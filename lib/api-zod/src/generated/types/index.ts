@@ -19,6 +19,7 @@ export * from './messageInput';
 export * from './profile';
 export * from './profileInput';
 export * from './profilePreferences';
+export * from './profileVideoTranscodeResult';
 export * from './reactionInput';
 export * from './reactionInputType';
 export * from './reactionResult';

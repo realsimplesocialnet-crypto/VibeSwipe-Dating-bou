@@ -13,6 +13,8 @@ import {
   Message,
   Profile,
   ReportProfileBody,
+  TranscodeProfileVideoParams,
+  TranscodeProfileVideoResponse,
   RequestProfileMediaUploadBody,
   RequestProfileMediaUploadResponse,
   SaveMyProfileBody,
@@ -35,6 +37,11 @@ import { and, asc, desc, eq, gte, inArray, lte, or } from "drizzle-orm";
 import { Router, type IRouter, type Request, type Response } from "express";
 import { Readable } from "node:stream";
 import { ObjectNotFoundError, ObjectStorageService } from "../lib/objectStorage";
+import {
+  MAX_PROFILE_VIDEO_SOURCE_BYTES,
+  ProfileVideoValidationError,
+  transcodeProfileVideo,
+} from "../lib/profileVideoTranscoder";
 import { requireAuth } from "../middlewares/auth";
 
 const router: IRouter = Router();
@@ -621,13 +628,14 @@ router.post(
     const typeMatches =
       (mediaType === "image" && contentType.startsWith("image/")) ||
       (mediaType === "video" && contentType.startsWith("video/"));
-    const maxSize = mediaType === "image" ? 15 * 1024 * 1024 : 50 * 1024 * 1024;
+    const maxSize =
+      mediaType === "image" ? 15 * 1024 * 1024 : MAX_PROFILE_VIDEO_SOURCE_BYTES;
     if (!typeMatches || size > maxSize) {
       res.status(400).json({
         error:
           mediaType === "image"
             ? "Choose an image smaller than 15 MB."
-            : "Choose a video smaller than 50 MB.",
+            : "Choose a source video that is 500 MB or smaller.",
       });
       return;
     }
@@ -666,6 +674,57 @@ router.post(
         mediaReference: `media:${asset.id}`,
       }),
     );
+  },
+);
+
+router.post(
+  "/vibeswipe/uploads/:mediaId/transcode",
+  async (req, res): Promise<void> => {
+    const params = TranscodeProfileVideoParams.safeParse(req.params);
+    if (!params.success) {
+      res.status(400).json({ error: "Invalid video upload." });
+      return;
+    }
+    const userId = currentUserId(req);
+    const [asset] = await db
+      .select()
+      .from(mediaAssetsTable)
+      .where(eq(mediaAssetsTable.id, params.data.mediaId))
+      .limit(1);
+    if (!asset || asset.ownerId !== userId) {
+      res.status(404).json({ error: "Uploaded video was not found." });
+      return;
+    }
+    if (asset.mediaType !== "video") {
+      res.status(400).json({ error: "This upload is not a video." });
+      return;
+    }
+
+    try {
+      const file = await objectStorage.getObjectEntityFile(asset.objectPath);
+      const result = await transcodeProfileVideo(file);
+      await db
+        .update(mediaAssetsTable)
+        .set({ contentType: "video/mp4" })
+        .where(eq(mediaAssetsTable.id, asset.id));
+      res.json(
+        TranscodeProfileVideoResponse.parse({
+          mediaReference: `media:${asset.id}`,
+          ...result,
+        }),
+      );
+    } catch (error) {
+      if (error instanceof ObjectNotFoundError) {
+        res.status(404).json({ error: "Uploaded video was not found." });
+        return;
+      }
+      if (error instanceof ProfileVideoValidationError) {
+        res.status(400).json({ error: error.message });
+        return;
+      }
+      req.log.error({ err: error, mediaId: asset.id }, "Failed to compress profile video");
+      res.status(500).json({ error: "The video could not be compressed." });
+    }
   },
 );
 

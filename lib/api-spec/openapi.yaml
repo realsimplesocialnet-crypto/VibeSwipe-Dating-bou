@@ -237,6 +237,29 @@ paths:
                 $ref: "#/components/schemas/MediaUploadResult"
         "400":
           description: Unsupported media or invalid file size
+  /vibeswipe/uploads/{mediaId}/transcode:
+    post:
+      operationId: transcodeProfileVideo
+      tags: [vibeswipe]
+      summary: Compress an uploaded profile video for playback
+      parameters:
+        - in: path
+          name: mediaId
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Compressed video metadata
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProfileVideoTranscodeResult"
+        "400":
+          description: Video exceeds supported duration or size limits
+        "404":
+          description: Uploaded video was not found
+        "500":
+          description: Video could not be processed
   /vibeswipe/media/{mediaId}:
     get:
       operationId: getProfileMedia
@@ -375,7 +398,7 @@ components:
       type: object
       properties:
         name: { type: string, minLength: 1, maxLength: 255 }
-        size: { type: integer, minimum: 1, maximum: 52428800 }
+        size: { type: integer, minimum: 1, maximum: 524288000 }
         contentType:
           type: string
           enum: [image/jpeg, image/png, image/webp, image/heic, video/mp4, video/quicktime]
@@ -388,4 +411,13 @@ components:
         mediaId: { type: string, format: uuid }
         mediaReference: { type: string }
       required: [uploadURL, mediaId, mediaReference]
+    ProfileVideoTranscodeResult:
+      type: object
+      properties:
+        mediaReference: { type: string }
+        size: { type: integer, minimum: 1, maximum: 52428800 }
+        duration: { type: number, exclusiveMinimum: 0, maximum: 30 }
+        width: { type: integer, minimum: 1, maximum: 1280 }
+        height: { type: integer, minimum: 1, maximum: 1280 }
+      required: [mediaReference, size, duration, width, height]
 

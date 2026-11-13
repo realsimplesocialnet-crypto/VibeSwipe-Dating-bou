@@ -16,7 +16,7 @@ export interface MediaUploadInput {
   name: string;
   /**
      * @minimum 1
-     * @maximum 52428800
+     * @maximum 524288000
      */
   size: number;
   contentType: MediaUploadInputContentType;

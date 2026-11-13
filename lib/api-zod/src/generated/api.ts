@@ -334,7 +334,7 @@ export const ReportProfileResponse = zod.void()
  */
 export const requestProfileMediaUploadBodyNameMax = 255;
 
-export const requestProfileMediaUploadBodySizeMax = 52428800;
+export const requestProfileMediaUploadBodySizeMax = 524288000;
 
 
 
@@ -349,6 +349,33 @@ export const RequestProfileMediaUploadResponse = zod.object({
   "uploadURL": zod.string().url(),
   "mediaId": zod.string().uuid(),
   "mediaReference": zod.string()
+})
+
+
+/**
+ * @summary Compress an uploaded profile video for playback
+ */
+export const TranscodeProfileVideoParams = zod.object({
+  "mediaId": zod.coerce.string().uuid()
+})
+
+export const transcodeProfileVideoResponseSizeMax = 52428800;
+
+export const transcodeProfileVideoResponseDurationExclusiveMin = 0;
+export const transcodeProfileVideoResponseDurationMax = 30;
+
+export const transcodeProfileVideoResponseWidthMax = 1280;
+
+export const transcodeProfileVideoResponseHeightMax = 1280;
+
+
+
+export const TranscodeProfileVideoResponse = zod.object({
+  "mediaReference": zod.string(),
+  "size": zod.number().int().min(1).max(transcodeProfileVideoResponseSizeMax),
+  "duration": zod.number().gt(transcodeProfileVideoResponseDurationExclusiveMin).max(transcodeProfileVideoResponseDurationMax),
+  "width": zod.number().int().min(1).max(transcodeProfileVideoResponseWidthMax),
+  "height": zod.number().int().min(1).max(transcodeProfileVideoResponseHeightMax)
 })
 
 

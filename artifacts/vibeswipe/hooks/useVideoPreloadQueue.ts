@@ -6,7 +6,7 @@ import { profileVideoSource } from "@/lib/media";
 
 export function useVideoPreloadQueue(profiles: Profile[], activeIndex: number) {
   const { getToken } = useAuth();
-  const players = useRef(new Map<string, VideoPlayer>());
+  const players = useRef(new Map<string, { videoUrl: string; player: VideoPlayer }>());
   const [activePlayer, setActivePlayer] = useState<VideoPlayer | null>(null);
   const [token, setToken] = useState<string | null>(null);
 
@@ -23,16 +23,23 @@ export function useVideoPreloadQueue(profiles: Profile[], activeIndex: number) {
       const queuedIds = new Set(queueProfiles.map((profile) => profile.id));
 
       for (const profile of queueProfiles) {
-        if (!profile.videoUrl) continue;
-        let player = players.current.get(profile.id);
+        const videoUrl = profile.videoUrl;
+        if (!videoUrl) continue;
+        const existing = players.current.get(profile.id);
+        if (existing && existing.videoUrl !== videoUrl) {
+          existing.player.pause();
+          existing.player.release();
+          players.current.delete(profile.id);
+        }
+        let player = players.current.get(profile.id)?.player;
         if (!player) {
-          const source = profileVideoSource(profile.videoUrl, sessionToken);
+          const source = profileVideoSource(videoUrl, sessionToken);
           if (!source) continue;
           player = createVideoPlayer(source);
           player.loop = true;
           player.muted = true;
           player.bufferOptions = { preferredForwardBufferDuration: 5 };
-          players.current.set(profile.id, player);
+          players.current.set(profile.id, { videoUrl, player });
         }
         if (profile.id === activeProfile?.id) {
           player.muted = true;
@@ -43,10 +50,10 @@ export function useVideoPreloadQueue(profiles: Profile[], activeIndex: number) {
         }
       }
 
-      for (const [profileId, player] of players.current) {
+       for (const [profileId, queued] of players.current) {
         if (!queuedIds.has(profileId)) {
-          player.pause();
-          player.release();
+          queued.player.pause();
+          queued.player.release();
           players.current.delete(profileId);
         }
       }
@@ -62,8 +69,8 @@ export function useVideoPreloadQueue(profiles: Profile[], activeIndex: number) {
   useEffect(
     () => () => {
       for (const player of players.current.values()) {
-        player.pause();
-        player.release();
+        player.player.pause();
+        player.player.release();
       }
       players.current.clear();
     },

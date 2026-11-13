@@ -1,5 +1,6 @@
 import {
   useRequestProfileMediaUpload,
+  useTranscodeProfileVideo,
   type MediaUploadInputContentType,
 } from "@workspace/api-client-react";
 import { useAuth } from "@clerk/expo";
@@ -27,14 +28,16 @@ type Props = {
 
 const MAX_PHOTOS = 6;
 const MAX_IMAGE_BYTES = 15 * 1024 * 1024;
-const MAX_VIDEO_BYTES = 50 * 1024 * 1024;
+const MAX_VIDEO_SOURCE_BYTES = 500 * 1024 * 1024;
 
 export function MediaPicker({ photos, videoUrl, onChange }: Props) {
   const colors = useColors();
   const { getToken } = useAuth();
   const uploadUrl = useRequestProfileMediaUpload();
+  const transcodeVideo = useTranscodeProfileVideo();
   const [token, setToken] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [busyMessage, setBusyMessage] = useState("Uploading securely…");
   const [error, setError] = useState("");
   useEffect(() => {
     let active = true;
@@ -59,11 +62,11 @@ export function MediaPicker({ photos, videoUrl, onChange }: Props) {
     const contentType = allowedTypes.includes(asset.mimeType as MediaUploadInputContentType)
       ? (asset.mimeType as MediaUploadInputContentType)
       : fallbackType;
-    const maxSize = mediaType === "video" ? MAX_VIDEO_BYTES : MAX_IMAGE_BYTES;
+    const maxSize = mediaType === "video" ? MAX_VIDEO_SOURCE_BYTES : MAX_IMAGE_BYTES;
     if (size <= 0 || size > maxSize) {
       throw new Error(
         mediaType === "video"
-          ? "Choose a video smaller than 50 MB."
+          ? "Choose a source video that is 500 MB or smaller."
           : "Choose an image smaller than 15 MB.",
       );
     }
@@ -75,12 +78,17 @@ export function MediaPicker({ photos, videoUrl, onChange }: Props) {
         mediaType,
       },
     });
+    setBusyMessage(mediaType === "video" ? "Uploading video…" : "Uploading securely…");
     const uploaded = await fetch(result.uploadURL, {
       method: "PUT",
       headers: { "Content-Type": contentType },
       body: file as unknown as BodyInit,
     });
     if (!uploaded.ok) throw new Error("The file could not be uploaded.");
+    if (mediaType === "video") {
+      setBusyMessage("Compressing video…");
+      await transcodeVideo.mutateAsync({ mediaId: result.mediaId });
+    }
     return result.mediaReference;
   }
 
@@ -126,10 +134,6 @@ export function MediaPicker({ photos, videoUrl, onChange }: Props) {
     });
     if (result.canceled || !result.assets[0]) return;
     const asset = result.assets[0];
-    if (Math.max(asset.width, asset.height) > 1280 || Math.min(asset.width, asset.height) > 720) {
-      setError("Choose a video that is 720p or smaller.");
-      return;
-    }
     setBusy(true);
     try {
       const reference = await uploadAsset(asset, "video");
@@ -212,7 +216,7 @@ export function MediaPicker({ photos, videoUrl, onChange }: Props) {
         <View style={styles.progress}>
           <ActivityIndicator color={colors.primary} />
           <Text style={[styles.helper, { color: colors.mutedForeground }]}>
-            Uploading securely…
+            {busyMessage}
           </Text>
         </View>
       ) : null}
@@ -222,7 +226,7 @@ export function MediaPicker({ photos, videoUrl, onChange }: Props) {
         </Text>
       ) : null}
       <Text style={[styles.helper, { color: colors.mutedForeground }]}>
-        Add 1–6 photos. Videos are limited to 720p, 30 seconds, and 50 MB.
+        Add 1–6 photos. Videos are compressed to 720p or smaller and limited to 30 seconds and 50 MB.
       </Text>
     </View>
   );

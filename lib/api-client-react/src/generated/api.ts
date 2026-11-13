@@ -35,6 +35,7 @@ import type {
   MessageInput,
   Profile,
   ProfileInput,
+  ProfileVideoTranscodeResult,
   ReactionInput,
   ReactionResult,
   ReportInput
@@ -1209,6 +1210,80 @@ export const useRequestProfileMediaUpload = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getRequestProfileMediaUploadMutationOptions(options), queryClient);
+    }
+
+export const getTranscodeProfileVideoUrl = (mediaId: string,) => {
+
+
+
+
+  return `/api/vibeswipe/uploads/${mediaId}/transcode`
+}
+
+/**
+ * @summary Compress an uploaded profile video for playback
+ */
+export const transcodeProfileVideo = async (mediaId: string, options?: Parameters<typeof customFetch>[1]): Promise<ProfileVideoTranscodeResult> => {
+
+  return customFetch<ProfileVideoTranscodeResult>(getTranscodeProfileVideoUrl(mediaId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getTranscodeProfileVideoMutationKey = () => ['transcodeProfileVideo'] as const;
+
+export const getTranscodeProfileVideoMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof transcodeProfileVideo>>, TError,TranscodeProfileVideoMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof transcodeProfileVideo>>, TError,TranscodeProfileVideoMutationVariables, TContext> => {
+
+const mutationKey = getTranscodeProfileVideoMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof transcodeProfileVideo>>, TranscodeProfileVideoMutationVariables> = (props) => {
+          const {mediaId} = props ?? {};
+
+          return  transcodeProfileVideo(mediaId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type TranscodeProfileVideoMutationResult = NonNullable<Awaited<ReturnType<typeof transcodeProfileVideo>>>
+
+    export type TranscodeProfileVideoMutationError = ErrorType<void>
+    export type TranscodeProfileVideoMutationVariables = {mediaId: string}
+
+    /**
+ * @summary Compress an uploaded profile video for playback
+ */
+export const useTranscodeProfileVideo = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof transcodeProfileVideo>>, TError,TranscodeProfileVideoMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof transcodeProfileVideo>>,
+        TError,
+        TranscodeProfileVideoMutationVariables,
+        TContext
+      > => {
+      return useMutation(getTranscodeProfileVideoMutationOptions(options), queryClient);
     }
 
 export const getGetProfileMediaUrl = (mediaId: string,) => {

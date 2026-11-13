@@ -185,7 +185,7 @@ export interface MediaUploadInput {
   name: string;
   /**
      * @minimum 1
-     * @maximum 52428800
+     * @maximum 524288000
      */
   size: number;
   contentType: MediaUploadInputContentType;
@@ -196,6 +196,30 @@ export interface MediaUploadResult {
   uploadURL: string;
   mediaId: string;
   mediaReference: string;
+}
+
+export interface ProfileVideoTranscodeResult {
+  mediaReference: string;
+  /**
+     * @minimum 1
+     * @maximum 52428800
+     */
+  size: number;
+  /**
+     * @maximum 30
+     * @exclusiveMinimum 0
+     */
+  duration: number;
+  /**
+     * @minimum 1
+     * @maximum 1280
+     */
+  width: number;
+  /**
+     * @minimum 1
+     * @maximum 1280
+     */
+  height: number;
 }
 
 export type GetDiscoverProfilesParams = {
