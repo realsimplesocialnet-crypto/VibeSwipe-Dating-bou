@@ -1,0 +1,24 @@
+kind = "mobile"
+previewPath = "/"
+title = "VibeSwipe"
+description = "A mobile-first dating app for adults with swipe discovery, expressive video profiles, mutual matches, and private chat. Includes profile setup, discovery preferences, and safety controls."
+version = "1.0.0"
+id = "artifacts/vibeswipe"
+router = "expo-domain"
+
+[[services]]
+name = "expo"
+ensurePreviewReachable = "/status"
+paths = [ "/" ]
+localPort = 22375
+
+[services.development]
+run = "pnpm --filter @workspace/vibeswipe run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/vibeswipe", "run", "build" ]
+run = [ "pnpm", "--filter", "@workspace/vibeswipe", "run", "serve" ]
+
+[services.env]
+PORT = "22375"
+BASE_PATH = "/"

@@ -1,0 +1,151 @@
+import {
+  boolean,
+  integer,
+  jsonb,
+  pgTable,
+  text,
+  timestamp,
+  uniqueIndex,
+  uuid,
+} from "drizzle-orm/pg-core";
+
+export type ProfilePreferences = {
+  ageMin: number;
+  ageMax: number;
+  gender: string;
+  distanceKm: number;
+};
+
+export const profilesTable = pgTable("vibeswipe_profiles", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  age: integer("age").notNull(),
+  gender: text("gender").notNull(),
+  lookingFor: text("looking_for").notNull(),
+  bio: text("bio").notNull().default(""),
+  city: text("city").notNull().default(""),
+  interests: text("interests").array().notNull().default([]),
+  photos: text("photos").array().notNull().default([]),
+  videoUrl: text("video_url"),
+  isDemo: boolean("is_demo").notNull().default(false),
+  preferences: jsonb("preferences")
+    .$type<ProfilePreferences>()
+    .notNull()
+    .default({ ageMin: 22, ageMax: 35, gender: "Everyone", distanceKm: 50 }),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export const reactionsTable = pgTable(
+  "vibeswipe_reactions",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    fromUserId: text("from_user_id")
+      .notNull()
+      .references(() => profilesTable.id, { onDelete: "cascade" }),
+    toUserId: text("to_user_id")
+      .notNull()
+      .references(() => profilesTable.id, { onDelete: "cascade" }),
+    type: text("type").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    uniqueReaction: uniqueIndex("vibeswipe_reaction_pair_idx").on(
+      table.fromUserId,
+      table.toUserId,
+    ),
+  }),
+);
+
+export const matchesTable = pgTable(
+  "vibeswipe_matches",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userAId: text("user_a_id")
+      .notNull()
+      .references(() => profilesTable.id, { onDelete: "cascade" }),
+    userBId: text("user_b_id")
+      .notNull()
+      .references(() => profilesTable.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    uniqueMatch: uniqueIndex("vibeswipe_match_pair_idx").on(
+      table.userAId,
+      table.userBId,
+    ),
+  }),
+);
+
+export const messagesTable = pgTable("vibeswipe_messages", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  matchId: uuid("match_id")
+    .notNull()
+    .references(() => matchesTable.id, { onDelete: "cascade" }),
+  senderId: text("sender_id")
+    .notNull()
+    .references(() => profilesTable.id, { onDelete: "cascade" }),
+  content: text("content").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export const blocksTable = pgTable(
+  "vibeswipe_blocks",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    blockerId: text("blocker_id")
+      .notNull()
+      .references(() => profilesTable.id, { onDelete: "cascade" }),
+    blockedId: text("blocked_id")
+      .notNull()
+      .references(() => profilesTable.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    uniqueBlock: uniqueIndex("vibeswipe_block_pair_idx").on(
+      table.blockerId,
+      table.blockedId,
+    ),
+  }),
+);
+
+export const reportsTable = pgTable("vibeswipe_reports", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  reporterId: text("reporter_id")
+    .notNull()
+    .references(() => profilesTable.id, { onDelete: "cascade" }),
+  reportedId: text("reported_id")
+    .notNull()
+    .references(() => profilesTable.id, { onDelete: "cascade" }),
+  reason: text("reason").notNull(),
+  details: text("details"),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export const mediaAssetsTable = pgTable("vibeswipe_media_assets", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  ownerId: text("owner_id").notNull(),
+  objectPath: text("object_path").notNull().unique(),
+  mediaType: text("media_type").notNull(),
+  contentType: text("content_type").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});

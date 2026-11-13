@@ -3,13 +3,17 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: VibeSwipe dating profile, discovery, matching, messaging, and safety API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: vibeswipe
+    description: Authenticated dating app operations
+security:
+  - bearerAuth: []
 paths:
   /healthz:
     get:
@@ -17,6 +21,7 @@ paths:
       tags: [health]
       summary: Health check
       description: Returns server health status
+      security: []
       responses:
         "200":
           description: Healthy
@@ -24,13 +29,339 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /vibeswipe/me:
+    get:
+      operationId: getMyProfile
+      tags: [vibeswipe]
+      summary: Get the signed-in user's profile
+      responses:
+        "200":
+          description: Profile found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Profile"
+        "404":
+          description: Profile has not been created
+    put:
+      operationId: saveMyProfile
+      tags: [vibeswipe]
+      summary: Create or update the signed-in user's profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProfileInput"
+      responses:
+        "200":
+          description: Saved profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Profile"
+        "400":
+          description: Invalid profile
+  /vibeswipe/discover:
+    get:
+      operationId: getDiscoverProfiles
+      tags: [vibeswipe]
+      summary: List profiles matching the signed-in user's preferences
+      parameters:
+        - in: query
+          name: ageMin
+          schema: { type: integer, minimum: 18, maximum: 120 }
+        - in: query
+          name: ageMax
+          schema: { type: integer, minimum: 18, maximum: 120 }
+        - in: query
+          name: gender
+          schema: { type: string }
+        - in: query
+          name: city
+          schema: { type: string }
+      responses:
+        "200":
+          description: Profiles for discovery
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Profile" }
+  /vibeswipe/reactions:
+    post:
+      operationId: createReaction
+      tags: [vibeswipe]
+      summary: Like, super-like, or pass on a profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReactionInput"
+      responses:
+        "200":
+          description: Reaction recorded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReactionResult"
+        "404":
+          description: Target profile not found
+  /vibeswipe/matches:
+    get:
+      operationId: getMatches
+      tags: [vibeswipe]
+      summary: List current matches
+      responses:
+        "200":
+          description: Matches for the signed-in user
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Match" }
+  /vibeswipe/matches/{matchId}/messages:
+    get:
+      operationId: getMessages
+      tags: [vibeswipe]
+      summary: Get messages for a match
+      parameters:
+        - in: path
+          name: matchId
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Match messages
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Message" }
+        "403":
+          description: Not a participant in the match
+    post:
+      operationId: sendMessage
+      tags: [vibeswipe]
+      summary: Send a message in a match
+      parameters:
+        - in: path
+          name: matchId
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MessageInput"
+      responses:
+        "201":
+          description: Message sent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Message"
+        "403":
+          description: Not a participant in the match
+  /vibeswipe/blocks:
+    post:
+      operationId: blockProfile
+      tags: [vibeswipe]
+      summary: Block a profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BlockInput"
+      responses:
+        "204":
+          description: Profile blocked
+  /vibeswipe/reports:
+    post:
+      operationId: reportProfile
+      tags: [vibeswipe]
+      summary: Report a profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReportInput"
+      responses:
+        "201":
+          description: Report submitted
+  /vibeswipe/uploads/request-url:
+    post:
+      operationId: requestProfileMediaUpload
+      tags: [vibeswipe]
+      summary: Request a protected profile media upload
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MediaUploadInput"
+      responses:
+        "200":
+          description: Upload URL and media reference
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MediaUploadResult"
+        "400":
+          description: Unsupported media or invalid file size
+  /vibeswipe/media/{mediaId}:
+    get:
+      operationId: getProfileMedia
+      tags: [vibeswipe]
+      summary: Stream a media file referenced by a profile
+      parameters:
+        - in: path
+          name: mediaId
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Protected media content
+          content:
+            "*/*":
+              schema: { type: string, format: binary }
+        "403":
+          description: Media is not visible to the signed-in user
+        "404":
+          description: Media not found
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
   schemas:
     HealthStatus:
       type: object
       properties:
-        status:
+        status: { type: string }
+      required: [status]
+    ProfilePreferences:
+      type: object
+      properties:
+        ageMin: { type: integer, minimum: 18, maximum: 120 }
+        ageMax: { type: integer, minimum: 18, maximum: 120 }
+        gender: { type: string }
+        distanceKm: { type: integer, minimum: 1, maximum: 500 }
+      required: [ageMin, ageMax, gender, distanceKm]
+    Profile:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        age: { type: integer }
+        gender: { type: string }
+        lookingFor: { type: string }
+        bio: { type: string }
+        city: { type: string }
+        interests:
+          type: array
+          items: { type: string }
+        photos:
+          type: array
+          items: { type: string }
+        videoUrl:
+          type: [string, "null"]
+        isDemo: { type: boolean }
+        preferences:
+          $ref: "#/components/schemas/ProfilePreferences"
+      required: [id, name, age, gender, lookingFor, bio, city, interests, photos, isDemo, preferences]
+    ProfileInput:
+      type: object
+      properties:
+        name: { type: string, minLength: 1, maxLength: 60 }
+        age: { type: integer, minimum: 18, maximum: 120 }
+        gender: { type: string, minLength: 1, maxLength: 40 }
+        lookingFor: { type: string, minLength: 1, maxLength: 40 }
+        bio: { type: string, maxLength: 500 }
+        city: { type: string, maxLength: 100 }
+        interests:
+          type: array
+          maxItems: 12
+          items: { type: string, maxLength: 32 }
+        photos:
+          type: array
+          minItems: 1
+          maxItems: 6
+          items: { type: string, maxLength: 2048 }
+        videoUrl:
+          type: [string, "null"]
+          maxLength: 2048
+        preferences:
+          $ref: "#/components/schemas/ProfilePreferences"
+      required: [name, age, gender, lookingFor, bio, city, interests, photos, preferences]
+    ReactionInput:
+      type: object
+      properties:
+        toUserId: { type: string, minLength: 1 }
+        type: { type: string, enum: [like, super, pass] }
+      required: [toUserId, type]
+    ReactionResult:
+      type: object
+      properties:
+        matched: { type: boolean }
+        matchId:
+          type: [string, "null"]
+          format: uuid
+      required: [matched]
+    Match:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        profile: { $ref: "#/components/schemas/Profile" }
+        lastMessage:
+          type: [string, "null"]
+        updatedAt: { type: string, format: date-time }
+      required: [id, profile, updatedAt]
+    Message:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        matchId: { type: string, format: uuid }
+        senderId: { type: string }
+        content: { type: string }
+        createdAt: { type: string, format: date-time }
+      required: [id, matchId, senderId, content, createdAt]
+    MessageInput:
+      type: object
+      properties:
+        content: { type: string, minLength: 1, maxLength: 2000 }
+      required: [content]
+    BlockInput:
+      type: object
+      properties:
+        targetUserId: { type: string, minLength: 1 }
+      required: [targetUserId]
+    ReportInput:
+      type: object
+      properties:
+        targetUserId: { type: string, minLength: 1 }
+        reason: { type: string, enum: [fake, harassment, unsafe, underage, other] }
+        details: { type: string, maxLength: 1000 }
+      required: [targetUserId, reason]
+    MediaUploadInput:
+      type: object
+      properties:
+        name: { type: string, minLength: 1, maxLength: 255 }
+        size: { type: integer, minimum: 1, maximum: 52428800 }
+        contentType:
           type: string
-      required:
-        - status
+          enum: [image/jpeg, image/png, image/webp, image/heic, video/mp4, video/quicktime]
+        mediaType: { type: string, enum: [image, video] }
+      required: [name, size, contentType, mediaType]
+    MediaUploadResult:
+      type: object
+      properties:
+        uploadURL: { type: string, format: uri }
+        mediaId: { type: string, format: uuid }
+        mediaReference: { type: string }
+      required: [uploadURL, mediaId, mediaReference]
 

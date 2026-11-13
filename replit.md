@@ -1,44 +1,57 @@
-# [Project name]
+# VibeSwipe
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+A mobile-first dating app for profiles, mutual likes, matches, and private chat.
 
 ## Run & Operate
 
 - `pnpm --filter @workspace/api-server run dev` — run the API server (port 5000)
+- `pnpm --filter @workspace/vibeswipe run dev` — run the Expo mobile app
 - `pnpm run typecheck` — full typecheck across all packages
 - `pnpm run build` — typecheck + build all packages
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
-- Required env: `DATABASE_URL` — Postgres connection string
+- Required env: Postgres connection and Clerk keys are provided through Replit-managed secrets.
 
 ## Stack
 
 - pnpm workspaces, Node.js 24, TypeScript 5.9
 - API: Express 5
 - DB: PostgreSQL + Drizzle ORM
+- Authentication: Clerk
+- Private photos and videos: Replit Object Storage
+- Mobile: Expo Router, React Native, Expo Video
 - Validation: Zod (`zod/v4`), `drizzle-zod`
 - API codegen: Orval (from OpenAPI spec)
 - Build: esbuild (CJS bundle)
 
 ## Where things live
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+- `artifacts/vibeswipe/` — Expo app, screens, uploads, and media preload queue
+- `artifacts/api-server/src/routes/vibeswipe.ts` — authenticated app API
+- `lib/db/src/schema/vibeswipe.ts` — PostgreSQL schema
+- `lib/api-spec/openapi.yaml` — API source of truth; run codegen after changes
+- `artifacts/vibeswipe/constants/colors.ts` — mobile theme tokens
 
 ## Architecture decisions
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+- Use Clerk + PostgreSQL + Replit Object Storage; Supabase is not connected in this project.
+- Chat messages refresh by polling because no realtime service is configured.
+- Private media is served through authenticated API routes rather than public object URLs.
 
 ## Product
 
-_Describe the high-level user-facing capabilities of this app once they exist._
+- Email/password and Google sign-in, 18+ onboarding, profile editing, and media uploads.
+- Profile discovery, pass/like/super-like, mutual matches, match-gated chat, and reporting/blocking.
+- Discover video playback is muted by default and keeps the active and next two profiles buffered.
 
 ## User preferences
 
-_Populate as you build — explicit user instructions worth remembering across sessions._
+- Continue the existing project in place; do not restart or delete anything.
 
 ## Gotchas
 
-_Populate as you build — sharp edges, "always run X before Y" rules._
+- Google OAuth must be enabled in the Clerk configuration before its button can complete sign-in.
+- Profile videos are limited to 720p dimensions, 30 seconds, and 50 MB; users may need to select a lower-resolution file.
 
 ## Pointers
 
