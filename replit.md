@@ -41,6 +41,7 @@ A mobile-first dating app for profiles, mutual likes, matches, and private chat.
 ## Product
 
 - Email/password and Google sign-in, 18+ onboarding, profile editing, and media uploads.
+- Sign-up email must be valid but has no 15-character minimum; passwords require at least 8 characters, stay readable with a show/hide control, and show the exact minimum-length error.
 - Profile discovery, pass/like/super-like, mutual matches, match-gated chat, and reporting/blocking.
 - Discover video playback is muted by default and keeps the active and next two profiles buffered.
 

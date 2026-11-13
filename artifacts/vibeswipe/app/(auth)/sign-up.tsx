@@ -18,15 +18,27 @@ export default function SignUpScreen() {
   const { signUp, errors, fetchStatus } = useSignUp();
   const [emailAddress, setEmailAddress] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(true);
   const [code, setCode] = useState("");
   const [message, setMessage] = useState("");
+  const normalizedEmail = emailAddress.trim();
+  const emailIsValid = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(normalizedEmail);
+  const passwordIsTooShort = password.length > 0 && password.length < 8;
   const verifying = signUp.status === "missing_requirements" &&
     signUp.unverifiedFields.includes("email_address") &&
     signUp.missingFields.length === 0;
 
   async function createAccount() {
     setMessage("");
-    const { error } = await signUp.password({ emailAddress, password });
+    if (!emailIsValid) {
+      setMessage("Enter a valid email address.");
+      return;
+    }
+    if (password.length < 8) {
+      setMessage("Password must be at least 8 characters");
+      return;
+    }
+    const { error } = await signUp.password({ emailAddress: normalizedEmail, password });
     if (error) {
       setMessage(errors.fields.emailAddress?.message ?? errors.fields.password?.message ?? "Check your email and password.");
       return;
@@ -87,25 +99,52 @@ export default function SignUpScreen() {
           <TextInput
             testID="sign-up-email"
             autoCapitalize="none"
+            autoCorrect={false}
             keyboardType="email-address"
             autoComplete="email"
             value={emailAddress}
-            onChangeText={setEmailAddress}
+            onChangeText={(value) => {
+              setEmailAddress(value);
+              setMessage("");
+            }}
             placeholder="you@example.com"
             placeholderTextColor={colors.mutedForeground}
             style={[styles.input, { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.card }]}
           />
+          {emailAddress.length > 0 && !emailIsValid ? (
+            <Text style={[styles.fieldError, { color: colors.destructive }]}>Enter a valid email address.</Text>
+          ) : null}
           <Text style={[styles.label, { color: colors.foreground }]}>Password</Text>
-          <TextInput
-            testID="sign-up-password"
-            secureTextEntry
-            autoComplete="new-password"
-            value={password}
-            onChangeText={setPassword}
-            placeholder="At least 8 characters"
-            placeholderTextColor={colors.mutedForeground}
-            style={[styles.input, { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.card }]}
-          />
+          <View style={[styles.passwordField, { borderColor: colors.border, backgroundColor: colors.card }]}>
+            <TextInput
+              testID="sign-up-password"
+              secureTextEntry={!showPassword}
+              autoComplete="new-password"
+              value={password}
+              onChangeText={(value) => {
+                setPassword(value);
+                setMessage("");
+              }}
+              placeholder="At least 8 characters"
+              placeholderTextColor={colors.mutedForeground}
+              style={[styles.passwordInput, { color: colors.foreground }]}
+            />
+            <Pressable
+              testID="toggle-sign-up-password"
+              accessibilityRole="button"
+              accessibilityLabel={showPassword ? "Hide password" : "Show password"}
+              onPress={() => setShowPassword((visible) => !visible)}
+              hitSlop={10}
+              style={styles.passwordToggle}
+            >
+              <Feather name={showPassword ? "eye-off" : "eye"} size={19} color={colors.mutedForeground} />
+            </Pressable>
+          </View>
+          {passwordIsTooShort ? (
+            <Text style={[styles.fieldError, { color: colors.destructive }]}>Password must be at least 8 characters</Text>
+          ) : password.length === 0 ? (
+            <Text style={[styles.passwordHint, { color: colors.mutedForeground }]}>Use at least 8 characters.</Text>
+          ) : null}
         </>
       )}
       {message ? <Text style={[styles.error, { color: colors.destructive }]}>{message}</Text> : null}
@@ -113,7 +152,7 @@ export default function SignUpScreen() {
       <Pressable
         testID="submit-sign-up"
         onPress={verifying ? verifyAccount : createAccount}
-        disabled={fetchStatus === "fetching" || (!verifying && (!emailAddress || !password)) || (verifying && !code)}
+        disabled={fetchStatus === "fetching" || (!verifying && (!emailIsValid || password.length < 8)) || (verifying && !code)}
         style={[styles.submit, { backgroundColor: colors.primary, opacity: fetchStatus === "fetching" ? 0.6 : 1 }]}
       >
         {fetchStatus === "fetching" ? (
@@ -145,6 +184,11 @@ const styles = StyleSheet.create({
   subtitle: { fontSize: 15, lineHeight: 22, marginTop: 9, marginBottom: 24 },
   label: { fontSize: 13, fontWeight: "600", marginBottom: 8, marginTop: 12 },
   input: { height: 52, borderWidth: 1, borderRadius: 14, paddingHorizontal: 14, fontSize: 15 },
+  passwordField: { height: 52, borderWidth: 1, borderRadius: 14, flexDirection: "row", alignItems: "center", paddingLeft: 14, paddingRight: 12 },
+  passwordInput: { flex: 1, height: "100%", fontSize: 15 },
+  passwordToggle: { width: 34, height: 42, alignItems: "center", justifyContent: "center" },
+  fieldError: { fontSize: 12, lineHeight: 17, marginTop: 6 },
+  passwordHint: { fontSize: 12, lineHeight: 17, marginTop: 6 },
   error: { fontSize: 13, marginTop: 12 },
   submit: { height: 54, borderRadius: 16, alignItems: "center", justifyContent: "center", marginTop: 24 },
   submitText: { color: "#ffffff", fontSize: 15, fontWeight: "700" },

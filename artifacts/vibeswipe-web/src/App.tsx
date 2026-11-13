@@ -1,11 +1,12 @@
 import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
-import { ClerkProvider, Show, SignIn, SignUp, useClerk, useUser } from '@clerk/react';
+import { ClerkProvider, Show, SignIn, useClerk, useSignUp, useUser } from '@clerk/react';
 import { publishableKeyFromHost } from '@clerk/react/internal';
 import { shadcn } from '@clerk/themes';
 import {
   getGetBlockedProfilesQueryKey, getGetChatReadReceiptQueryKey, getGetDailyLikeStatusQueryKey,
   getGetDiscoverProfilesQueryKey, getGetMatchesQueryKey, getGetMessagesQueryKey, getGetBoostStatusQueryKey,
+  getStreamMatchMessagesQueryKey, getGetTypingStatusQueryKey,
   getGetMyProfileQueryKey, getGetNotificationsQueryKey, getGetOnboardingDraftQueryKey, getGetProfileMediaQueryKey,
   getGetProfileByIdQueryKey, getGetSuperLikeStatusQueryKey, getGetVibeSwipeSettingsQueryKey,
   getGetWhoViewedYouQueryKey, getGetMatchPresenceQueryKey, getHealthCheckQueryKey, useHealthCheck,
@@ -247,6 +248,30 @@ function ChatPage({matchId}:{matchId:string}) {
   useEffect(()=>{if(last&&last.senderId!==profile.data?.id&&!last.isRead)markRead.mutate({matchId});},[last?.id,profile.data?.id]);
   useEffect(()=>{heartbeat.mutate({data:{isActive:true}});const beat=window.setInterval(()=>heartbeat.mutate({data:{isActive:document.visibilityState==='visible'}}),30000);const visibility=()=>heartbeat.mutate({data:{isActive:document.visibilityState==='visible'}});document.addEventListener('visibilitychange',visibility);return()=>{clearInterval(beat);document.removeEventListener('visibilitychange',visibility)}},[]);
   useEffect(()=>{if(blocked)return;const t=setTimeout(()=>updateTyping.mutate({matchId,data:{isTyping:!!draft.trim()}}),300);return()=>clearTimeout(t)},[draft,blocked,matchId]);
+  useEffect(()=>{
+    if(!match||blocked)return;
+    const streamPath=getStreamMatchMessagesQueryKey(matchId)[0];
+    const stream=new EventSource(streamPath,{withCredentials:true});
+    stream.onmessage=(event)=>{
+      try{
+        const incoming=JSON.parse(event.data) as Message;
+        if(incoming.matchId!==matchId)return;
+        qc.setQueryData<Message[]>(getGetMessagesQueryKey(matchId),current=>{
+          const byId=new Map((current??[]).map(message=>[message.id,message]));
+          byId.set(incoming.id,incoming);
+          return [...byId.values()].sort((a,b)=>new Date(b.createdAt).getTime()-new Date(a.createdAt).getTime());
+        });
+      }catch{ /* Ignore an incomplete frame; the conversation query remains authoritative. */ }
+    };
+    const refreshTyping=()=>void qc.invalidateQueries({queryKey:getGetTypingStatusQueryKey(matchId)});
+    const refreshRead=()=>void qc.invalidateQueries({queryKey:getGetChatReadReceiptQueryKey(matchId)});
+    const refreshPresence=()=>void qc.invalidateQueries({queryKey:getGetMatchPresenceQueryKey(matchId)});
+    stream.addEventListener('typing',refreshTyping);
+    stream.addEventListener('read',refreshRead);
+    stream.addEventListener('presence',refreshPresence);
+    stream.onerror=()=>{ /* EventSource reconnects automatically and resumes with Last-Event-ID. */ };
+    return()=>stream.close();
+  },[matchId,Boolean(match),blocked,qc]);
   useEffect(()=>{bottom.current?.scrollIntoView({behavior:'smooth'})},[messages.length]);
   if(matches.isLoading||msgs.isLoading)return <PageFrame><div className="h-16 animate-pulse rounded-2xl bg-white/[.04]"/><div className="mt-6"><Busy/></div></PageFrame>;
   if(!match)return <PageFrame><Empty title="Conversation unavailable" detail="This chat may have ended or the match is no longer available." action={<Link href="/matches" data-testid="link-back-matches" className="rounded-xl bg-secondary px-4 py-2.5 font-bold">Back to matches</Link>}/></PageFrame>;
@@ -259,13 +284,14 @@ function ChatPage({matchId}:{matchId:string}) {
     {blocked&&<div className="mt-3 rounded-xl border border-rose-300/15 bg-rose-300/[.06] px-4 py-3 text-sm text-rose-200">Messaging is unavailable while this profile is blocked.</div>}
     {msgs.isError&&<button onClick={()=>void msgs.refetch()} data-testid="button-retry-messages" className="mt-2 rounded-lg bg-rose-300/10 p-2 text-xs text-rose-200">Messages failed to load. Tap to retry.</button>}
     <div className="hide-scrollbar flex-1 space-y-3 overflow-y-auto py-5">{!messages.length&&<div className="mx-auto max-w-sm py-10 text-center"><div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-accent text-primary"><MessageCircle size={22}/></div><h2 className="mt-4 font-bold">A good conversation starts here</h2><p className="mt-2 text-xs text-muted-foreground">A mutual match is an open door. Make the first message yours.</p><div className="mt-5 space-y-2">{ice.data?.slice(0,3).map(i=><button key={i.id} disabled={blocked||send.isPending} onClick={()=>void sendMessage(i.question)} data-testid={`button-chat-icebreaker-${i.id}`} className="w-full rounded-xl border border-white/10 bg-white/[.025] p-3 text-left text-xs hover:bg-white/[.05]">{i.question}</button>)}</div></div>}
-      {messages.map(m=><div key={m.id} className={`group flex ${m.senderId===profile.data?.id?'justify-end':'justify-start'}`} data-testid={`message-${m.id}`}><div className={`max-w-[82%] rounded-2xl px-4 py-3 text-sm leading-6 md:max-w-[65%] ${m.senderId===profile.data?.id?'bg-primary text-[#28111e]':'border border-white/[.08] bg-card'}`}>{m.deletedForEveryone?<span className="italic opacity-60">This message was deleted.</span>:<>{m.mediaReference&&m.mediaType!=='audio'&&<img src={mediaUrl(m.mediaReference)} alt="Message attachment" className="mb-2 max-h-72 rounded-xl object-cover"/>}{m.mediaType==='audio'&&<audio controls src={mediaUrl(m.mediaReference)} className="max-w-full"/>}{m.content}</>}<div className="mt-1 flex items-center justify-end gap-2 text-[10px] opacity-60">{new Date(m.createdAt).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'})}{m.senderId===profile.data?.id&&m.isRead&&<span>Read</span>}<button onClick={async()=>{if(window.confirm('Delete this message for you?')){await del.mutateAsync({matchId,messageId:m.id,data:{forEveryone:false}});void msgs.refetch()}}} data-testid={`button-delete-message-${m.id}`} className="hidden group-hover:inline">Delete</button></div></div></div>)}
+      {messages.map(m=><div key={m.id} className={`group flex ${m.senderId===profile.data?.id?'justify-end':'justify-start'}`} data-testid={`message-${m.id}`}><div className={`max-w-[82%] rounded-2xl px-4 py-3 text-sm leading-6 md:max-w-[65%] ${m.senderId===profile.data?.id?'bg-primary text-[#28111e]':'border border-white/[.08] bg-card'}`}>{m.deletedForEveryone?<span className="italic opacity-60">This message was deleted.</span>:<>{m.mediaType==='image'&&m.mediaReference&&<MediaImage reference={m.mediaReference} alt="Message attachment" className="mb-2 max-h-72 rounded-xl object-cover"/>}{m.mediaType==='video'&&m.mediaReference&&<video controls src={mediaUrl(m.mediaReference)} className="mb-2 max-h-72 rounded-xl"/>}{m.mediaType==='audio'&&<audio controls src={mediaUrl(m.mediaReference)} className="max-w-full"/>}{m.content}</>}<div className="mt-1 flex items-center justify-end gap-2 text-[10px] opacity-60">{new Date(m.createdAt).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'})}{m.senderId===profile.data?.id&&m.isRead&&<span>Read</span>}<button onClick={()=>setDeleteTarget(m)} data-testid={`button-delete-message-${m.id}`} className="hidden group-hover:inline">Delete</button></div></div></div>)}
       {typing.data?.isTyping&&<div className="text-xs text-muted-foreground">{match.profile.name} is typing</div>}<div ref={bottom}/></div>
     {receipt.data?.readAt&&<div className="pb-2 text-right text-[10px] text-muted-foreground">Seen {new Date(receipt.data.readAt).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'})}</div>}
     {error&&<div role="alert" className="pb-2 text-xs text-rose-300">{error}</div>}
     <form onSubmit={e=>{e.preventDefault();void sendMessage(draft)}} className="flex items-end gap-2 border-t border-white/[.08] pt-3"><label className="flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-white/10 text-muted-foreground hover:bg-white/[.04]" aria-label="Attach photo, video, or voice note"><ImagePlus size={18}/><input data-testid="input-chat-media" type="file" accept="image/*,video/mp4,video/quicktime,audio/*" className="hidden" disabled={blocked||busy} onChange={e=>{void attach(e.currentTarget.files?.[0]);e.currentTarget.value=''}}/></label><textarea data-testid="input-chat-message" value={draft} onChange={e=>setDraft(e.target.value)} disabled={blocked} maxLength={2000} rows={1} placeholder={blocked?'Messaging unavailable':'Write a message'} className="field min-h-11 max-h-32 flex-1 resize-y py-3"/><button disabled={blocked||busy||send.isPending||(!draft.trim()&&!busy)} data-testid="button-send-message" className="h-11 rounded-xl bg-primary px-4 font-bold text-[#28111e] disabled:opacity-40">{busy?'Uploading':'Send'}</button></form>
     {actions&&<Dialog title="Conversation settings" onClose={()=>setActions(false)}><div className="space-y-2"><button onClick={()=>void action('theme')} data-testid="button-change-chat-theme" className="w-full rounded-xl border border-white/10 p-3 text-left text-sm">Change chat color</button><button onClick={()=>void action('clear')} data-testid="button-clear-chat" className="w-full rounded-xl border border-white/10 p-3 text-left text-sm">Clear chat for me</button><button onClick={()=>void action('report')} data-testid="button-report-chat-profile" className="w-full rounded-xl border border-white/10 p-3 text-left text-sm">Report profile</button><button onClick={()=>void action('block')} data-testid="button-block-chat-profile" className="w-full rounded-xl border border-rose-300/20 p-3 text-left text-sm text-rose-300">{match.blockedByMe?'Unblock profile':'Block profile'}</button><button onClick={()=>void action('unmatch')} data-testid="button-chat-unmatch" className="w-full rounded-xl border border-rose-300/20 p-3 text-left text-sm text-rose-300">Unmatch</button></div></Dialog>}
     {themeOpen&&<Dialog title="Choose a chat color" onClose={()=>setThemeOpen(false)}><div className="grid grid-cols-2 gap-2">{(['pink','blue','purple','green','dark','light'] as ChatTheme[]).map(t=><button key={t} onClick={()=>theme.mutate({matchId,data:{theme:t}},{onSuccess:()=>{setThemeOpen(false);void qc.invalidateQueries({queryKey:getGetMatchesQueryKey()})}})} data-testid={`button-theme-${t}`} className="rounded-xl border border-white/10 p-3 text-sm font-semibold capitalize">{t}</button>)}</div></Dialog>}
+    {deleteTarget&&<Dialog title="Delete message" onClose={()=>setDeleteTarget(null)}><p className="mb-4 text-sm text-muted-foreground">Choose whether to remove this message only for you or for everyone.</p><div className="space-y-2"><button disabled={del.isPending} onClick={()=>void deleteMessageFor(deleteTarget,false)} data-testid="button-delete-message-for-me" className="w-full rounded-xl border border-white/10 p-3 text-left text-sm">Delete for me</button>{deleteTarget.senderId===profile.data?.id&&<button disabled={del.isPending} onClick={()=>void deleteMessageFor(deleteTarget,true)} data-testid="button-delete-message-for-everyone" className="w-full rounded-xl border border-rose-300/20 p-3 text-left text-sm text-rose-300">Delete for everyone</button>}</div></Dialog>}
   </div>;
 }
 
@@ -319,6 +345,46 @@ function PublicProfile({id}:{id:string}){const q=useGetProfileById(id,{query:{qu
 
 function OnboardingGate(){const p=useGetMyProfile();if(p.isLoading)return <PageFrame><Busy/></PageFrame>;if(p.data)return <Redirect to="/discover"/>;return <OnboardingPage/>}
 function HomeRedirect(){return <><Show when="signed-in"><Redirect to="/discover"/></Show><Show when="signed-out"><Landing/></Show></>}
+function BrandedSignUp(){
+  const {signUp,fetchStatus}=useSignUp();
+  const [,setLocation]=useLocation();
+  const [email,setEmail]=useState('');
+  const [password,setPassword]=useState('');
+  const [showPassword,setShowPassword]=useState(true);
+  const [code,setCode]=useState('');
+  const [verifying,setVerifying]=useState(false);
+  const [error,setError]=useState('');
+  const [busy,setBusy]=useState(false);
+  const emailValid=/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim());
+  const passwordTooShort=password.length>0&&password.length<8;
+  async function finish(){const result=await signUp.finalize();if(result.error){setError(result.error.message);return}setLocation('/discover',{replace:true})}
+  async function submit(event:React.FormEvent){event.preventDefault();setError('');if(verifying){if(!code.trim())return;setBusy(true);try{const result=await signUp.verifications.verifyEmailCode({code:code.trim()});if(result.error){setError(result.error.message);return}await finish()}catch(e){setError(e instanceof Error?e.message:'The verification code could not be confirmed.')}finally{setBusy(false)}return}
+    if(!emailValid||password.length<8)return;
+    setBusy(true);
+    try{
+      const result=await signUp.password({emailAddress:email.trim(),password});
+      if(result.error){setError(result.error.message);return}
+      if(signUp.status==='complete'){await finish();return}
+      const sent=await signUp.verifications.sendEmailCode();
+      if(sent.error){setError(sent.error.message);return}
+      setVerifying(true);
+    }catch(e){setError(e instanceof Error?e.message:'Your account could not be created. Please try again.')}
+    finally{setBusy(false)}
+  }
+  return <div className="grain flex min-h-[100dvh] items-center justify-center bg-background px-4 py-10"><div className="fixed left-6 top-6"><Brand/></div><section className="w-full max-w-[440px] rounded-[26px] border border-white/10 bg-[#211d25] p-6 shadow-2xl sm:p-8">
+    <div className="mb-7"><div className="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-accent text-primary"><Heart size={22}/></div><p className="text-[10px] font-bold uppercase tracking-[.2em] text-primary">VibeSwipe · 18+</p><h1 className="brand mt-2 text-3xl font-bold tracking-[-.05em]">{verifying?'Check your email':'Make room for a spark'}</h1><p className="mt-2 text-sm leading-6 text-muted-foreground">{verifying?`We sent a verification code to ${email.trim()}.`:'Create an account to meet people who show up as themselves.'}</p></div>
+    <form onSubmit={submit} className="space-y-5" noValidate>
+      {!verifying?<><label className="grid gap-2 text-xs font-semibold text-[#e7dce3]">Email address<input data-testid="input-signup-email" type="email" inputMode="email" autoComplete="email" required value={email} onChange={e=>{setEmail(e.target.value);setError('')}} className="field" placeholder="you@example.com"/>{email&& !emailValid&&<span className="text-xs font-normal text-rose-300" data-testid="error-signup-email">Enter a valid email address.</span>}</label>
+      <label className="grid gap-2 text-xs font-semibold text-[#e7dce3]">Password <span className="relative block"><input data-testid="input-signup-password" type={showPassword?'text':'password'} autoComplete="new-password" required value={password} onChange={e=>{setPassword(e.target.value);setError('')}} className="field pr-12" placeholder="At least 8 characters"/><button type="button" onClick={()=>setShowPassword(v=>!v)} data-testid="button-toggle-signup-password" aria-label={showPassword?'Hide password':'Show password'} className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg p-2 text-muted-foreground hover:bg-white/[.06]">{showPassword?<EyeOff size={17}/>:<Eye size={17}/>}</button></span>{passwordTooShort&&<span className="text-xs font-normal text-rose-300" data-testid="error-signup-password">Password must be at least 8 characters</span>}</label>
+      </>:<label className="grid gap-2 text-xs font-semibold text-[#e7dce3]">Email verification code<input data-testid="input-signup-code" inputMode="numeric" autoComplete="one-time-code" value={code} onChange={e=>setCode(e.target.value)} className="field" placeholder="Enter the code from your email"/></label>}
+      {error&&<p role="alert" data-testid="error-signup-clerk" className="rounded-xl border border-rose-300/20 bg-rose-300/[.06] px-3 py-2.5 text-xs leading-5 text-rose-200">{error}</p>}
+      <button type="submit" disabled={busy||fetchStatus==='fetching'||(!verifying&&(!emailValid||password.length<8))||(verifying&&!code.trim())} data-testid="button-signup-continue" className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3.5 text-sm font-bold text-[#24111b] disabled:cursor-not-allowed disabled:opacity-40">{busy?'Please wait…':verifying?'Verify email':'Create account'}{!busy&&<ArrowRight size={16}/>}</button>
+      {verifying&&<button type="button" onClick={async()=>{setBusy(true);setError('');try{const result=await signUp.verifications.sendEmailCode();if(result.error)setError(result.error.message)}catch(e){setError(e instanceof Error?e.message:'Could not resend the code.')}finally{setBusy(false)}}} data-testid="button-resend-signup-code" className="w-full text-center text-xs font-semibold text-primary">Resend code</button>}
+    </form>
+    <p className="mt-6 border-t border-white/[.08] pt-5 text-center text-xs text-muted-foreground">Already a member? <Link href="/sign-in" data-testid="link-signin-from-signup" className="font-bold text-primary">Sign in</Link></p>
+    <p className="mt-4 text-center text-[10px] leading-5 text-muted-foreground">By continuing, you confirm you are 18 or older.</p>
+  </section></div>;
+}
 function RouteShell({component:Component}:{component:()=>ReactNode}){return <ShellPage><Component/></ShellPage>}
 function ChatRoute(){const params=useParams<{matchId:string}>();return <ShellPage><ChatPage matchId={params.matchId||''}/></ShellPage>}
 function OnboardingRoute(){return <ShellPage><OnboardingGate/></ShellPage>}
@@ -333,7 +399,7 @@ function ClerkCacheSync(){const {user}=useUser();const client=useQueryClient();c
 function ClerkRoutes(){const [,setLocation]=useLocation();return <ClerkProvider publishableKey={clerkPubKey} proxyUrl={clerkProxyUrl} appearance={appearance} signInUrl={pathFor('/sign-in')} signUpUrl={pathFor('/sign-up')} localization={{signIn:{start:{title:'Welcome back',subtitle:'Your next good conversation is waiting.'}},signUp:{start:{title:'Make room for a spark',subtitle:'Create your adults-only VibeSwipe account.'}}}} routerPush={to=>setLocation(to.startsWith(basePath)?to.slice(basePath.length)||'/':to)} routerReplace={to=>setLocation(to.startsWith(basePath)?to.slice(basePath.length)||'/':to,{replace:true})}><ClerkCacheSync/><Switch>
   <Route path="/" component={HomeRedirect}/>
   <Route path="/sign-in/*?"><div className="grain flex min-h-[100dvh] items-center justify-center bg-background px-4 py-10"><div className="fixed left-6 top-6"><Brand/></div><SignIn routing="path" path={pathFor('/sign-in')} signUpUrl={pathFor('/sign-up')}/></div></Route>
-  <Route path="/sign-up/*?"><div className="grain flex min-h-[100dvh] items-center justify-center bg-background px-4 py-10"><div className="fixed left-6 top-6"><Brand/></div><SignUp routing="path" path={pathFor('/sign-up')} signInUrl={pathFor('/sign-in')}/></div></Route>
+  <Route path="/sign-up/*?" component={BrandedSignUp}/>
   <Route path="/onboarding" component={OnboardingRoute}/><Route path="/discover" component={DiscoverRoute}/><Route path="/matches" component={MatchesRoute}/>
   <Route path="/chat/:matchId" component={ChatRoute}/><Route path="/views" component={ViewsRoute}/><Route path="/notifications" component={NotificationsRoute}/>
   <Route path="/profile" component={ProfileRoute}/><Route path="/profile/:profileId" component={PublicProfileRoute}/><Route path="/settings" component={SettingsRoute}/><Route component={NotFound}/>
