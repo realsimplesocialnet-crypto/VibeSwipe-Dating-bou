@@ -1,0 +1,4 @@
+.landing .landing-rise { animation: landingRise .5s ease both; }
+@keyframes landingRise { from { opacity:0; transform:translateY(10px) } to { opacity:1; transform:none } }
+.landing dd.order-first { order:-1; }
+.landing dl > div { display:flex; flex-direction:column; }

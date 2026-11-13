@@ -2,6 +2,7 @@ import path from 'path';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import { defineConfig } from 'vite';
+import { queryClientSingletonGuard } from './build/query-client-singleton.mjs';
 
 import runtimeErrorOverlay from '@replit/vite-plugin-runtime-error-modal';
 
@@ -30,6 +31,7 @@ if (!basePath) {
 export default defineConfig({
   base: basePath,
   plugins: [
+    queryClientSingletonGuard(),
     react(),
     tailwindcss({ optimize: false }),
     runtimeErrorOverlay(),
@@ -57,7 +59,8 @@ export default defineConfig({
         'attached_assets',
       ),
     },
-    dedupe: ['react', 'react-dom'],
+    // Shared API hooks and the app must use the same QueryClientContext.
+    dedupe: ['react', 'react-dom', '@tanstack/react-query'],
   },
   root: path.resolve(import.meta.dirname),
   build: {
