@@ -71,6 +71,7 @@ import {
   messagesTable,
   messageHiddenByUserTable,
   profileSetupDraftsTable,
+  pool,
   profilesTable,
   reactionsTable,
   reportsTable,
@@ -79,6 +80,7 @@ import {
 import { and, asc, desc, eq, gt, gte, inArray, lte, or, sql } from "drizzle-orm";
 import { Router, type IRouter, type Request, type Response } from "express";
 import { Readable } from "node:stream";
+import { logger } from "../lib/logger";
 import { ObjectNotFoundError, ObjectStorageService } from "../lib/objectStorage";
 import {
   MAX_PROFILE_VIDEO_SOURCE_BYTES,
@@ -91,6 +93,15 @@ import { createVibeSwipeNotification } from "../lib/vibeswipeNotifications";
 const router: IRouter = Router();
 const objectStorage = new ObjectStorageService();
 const messageStreams = new Map<string, Set<Response>>();
+const chatEventChannel = "vibeswipe_chat_events";
+type ChatEvent =
+  | { type: "message"; matchId: string; messageId: string }
+  | { type: "close"; matchId: string };
+type NotificationClient = { release(error?: Error | boolean): void };
+let notificationClient: NotificationClient | null = null;
+let notificationConnection: Promise<void> | null = null;
+let notificationRetryTimer: NodeJS.Timeout | null = null;
+let notificationQueue = Promise.resolve();
 const defaultPreferences = {
   ageMin: 22,
   ageMax: 35,
@@ -131,6 +142,135 @@ function currentUserId(req: Request): string {
   const userId = getAuth(req).userId;
   if (!userId) throw new Error("Authenticated user is missing from the request");
   return userId;
+}
+
+function writeMessageToStreams(matchId: string, message: Message): void {
+  const event = `id: ${message.id}\nevent: message\ndata: ${JSON.stringify(message)}\n\n`;
+  for (const listener of messageStreams.get(matchId) ?? []) {
+    if (!listener.destroyed && !listener.writableEnded) listener.write(event);
+  }
+}
+
+function closeStreams(matchId: string): void {
+  for (const listener of messageStreams.get(matchId) ?? []) {
+    if (listener.destroyed || listener.writableEnded) continue;
+    listener.write("event: close\ndata: {}\n\n");
+    listener.end();
+  }
+}
+
+function reconnectStreamsAfterNotificationDisconnect(): void {
+  for (const listeners of messageStreams.values()) {
+    for (const listener of listeners) {
+      if (!listener.destroyed && !listener.writableEnded) listener.end();
+    }
+  }
+}
+
+async function handleChatEvent(event: ChatEvent): Promise<void> {
+  if (event.type === "close") {
+    closeStreams(event.matchId);
+    return;
+  }
+  const [message] = await db
+    .select()
+    .from(messagesTable)
+    .where(
+      and(
+        eq(messagesTable.id, event.messageId),
+        eq(messagesTable.matchId, event.matchId),
+      ),
+    )
+    .limit(1);
+  if (message) writeMessageToStreams(event.matchId, projectMessage(message));
+}
+
+function parseChatEvent(payload: string | undefined): ChatEvent | null {
+  if (!payload) return null;
+  try {
+    const parsed: unknown = JSON.parse(payload);
+    if (!parsed || typeof parsed !== "object") return null;
+    const event = parsed as Record<string, unknown>;
+    if (
+      typeof event.matchId !== "string" ||
+      !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+        event.matchId,
+      )
+    ) {
+      return null;
+    }
+    if (event.type === "close") {
+      return { type: "close", matchId: event.matchId };
+    }
+    if (
+      event.type === "message" &&
+      typeof event.messageId === "string" &&
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+        event.messageId,
+      )
+    ) {
+      return {
+        type: "message",
+        matchId: event.matchId,
+        messageId: event.messageId,
+      };
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function scheduleNotificationReconnect(): void {
+  if (notificationRetryTimer) return;
+  notificationRetryTimer = setTimeout(() => {
+    notificationRetryTimer = null;
+    void ensureNotificationListener().catch((error: unknown) => {
+      logger.error({ err: error }, "Unable to reconnect chat notifications");
+    });
+  }, 1_000);
+  notificationRetryTimer.unref();
+}
+
+async function connectNotificationListener(): Promise<void> {
+  const client = await pool.connect();
+  try {
+    await client.query(`LISTEN ${chatEventChannel}`);
+    notificationClient = client;
+    client.on("notification", (notification) => {
+      if (notification.channel !== chatEventChannel) return;
+      const event = parseChatEvent(notification.payload);
+      if (!event) return;
+      notificationQueue = notificationQueue
+        .then(() => handleChatEvent(event))
+        .catch((error: unknown) => {
+          logger.error({ err: error }, "Unable to deliver a chat notification");
+        });
+    });
+    const handleDisconnect = (error?: Error): void => {
+      if (notificationClient !== client) return;
+      notificationClient = null;
+      client.release(true);
+      reconnectStreamsAfterNotificationDisconnect();
+      if (error) logger.warn({ err: error }, "Chat notification listener disconnected");
+      scheduleNotificationReconnect();
+    };
+    client.on("error", handleDisconnect);
+    client.on("end", () => handleDisconnect());
+  } catch (error) {
+    client.release(true);
+    throw error;
+  }
+}
+
+function ensureNotificationListener(): Promise<void> {
+  if (notificationClient) return Promise.resolve();
+  if (!notificationConnection) {
+    notificationConnection = connectNotificationListener().finally(() => {
+      notificationConnection = null;
+    });
+  }
+  return notificationConnection;
 }
 
 function projectMessage(
@@ -1099,6 +1239,13 @@ router.get(
       res.status(403).json({ error: "Chat is unavailable while blocked." });
       return;
     }
+    try {
+      await ensureNotificationListener();
+    } catch (error) {
+      logger.error({ err: error }, "Unable to start chat notifications");
+      res.status(503).json({ error: "Chat is temporarily unavailable." });
+      return;
+    }
 
     res.status(200);
     res.set({
@@ -1261,22 +1408,32 @@ router.post(
         return;
       }
     }
-    const [message] = await db
-      .insert(messagesTable)
-      .values({
-        matchId: match.id,
-        senderId: userId,
-        content,
-        mediaReference: mediaReference ?? null,
-        mediaType: mediaType ?? null,
-        mediaDuration: body.data.mediaDuration ?? null,
-      })
-      .returning();
+    const message = await db.transaction(async (tx) => {
+      const [createdMessage] = await tx
+        .insert(messagesTable)
+        .values({
+          matchId: match.id,
+          senderId: userId,
+          content,
+          mediaReference: mediaReference ?? null,
+          mediaType: mediaType ?? null,
+          mediaDuration: body.data.mediaDuration ?? null,
+        })
+        .returning();
+      await tx
+        .update(matchesTable)
+        .set({ updatedAt: new Date() })
+        .where(eq(matchesTable.id, match.id));
+      await tx.execute(
+        sql`SELECT pg_notify(${chatEventChannel}, ${JSON.stringify({
+          type: "message",
+          matchId: match.id,
+          messageId: createdMessage.id,
+        })})`,
+      );
+      return createdMessage;
+    });
     await saveMatchUserState(match.id, userId, { typingUntil: null });
-    await db
-      .update(matchesTable)
-      .set({ updatedAt: new Date() })
-      .where(eq(matchesTable.id, match.id));
     const recipientId =
       match.userAId === userId ? match.userBId : match.userAId;
     const [recipient] = await db
@@ -1295,13 +1452,6 @@ router.post(
         });
       } catch (error) {
         req.log.error({ err: error, messageId: message.id }, "Could not save message notification");
-      }
-    }
-    for (const listener of messageStreams.get(match.id) ?? []) {
-      if (!listener.destroyed && !listener.writableEnded) {
-        listener.write(
-          `id: ${message.id}\nevent: message\ndata: ${JSON.stringify(projectMessage(message))}\n\n`,
-        );
       }
     }
     res.status(201).json(SendMessageResponse.parse(projectMessage(message)));
@@ -1342,28 +1492,29 @@ router.delete(
         res.status(403).json({ error: "Only the sender can delete for everyone." });
         return;
       }
-      const [deleted] = await db
-        .update(messagesTable)
-        .set({
-          content: "",
-          mediaReference: null,
-          mediaType: null,
-          mediaDuration: null,
-          deletedForEveryone: true,
-          deletedAt: new Date(),
-        })
-        .where(eq(messagesTable.id, message.id))
-        .returning();
-      if (deleted) {
-        const projected = projectMessage(deleted);
-        for (const listener of messageStreams.get(match.id) ?? []) {
-          if (!listener.destroyed && !listener.writableEnded) {
-            listener.write(
-              `id: ${projected.id}\nevent: message\ndata: ${JSON.stringify(projected)}\n\n`,
-            );
-          }
+      await db.transaction(async (tx) => {
+        const [deleted] = await tx
+          .update(messagesTable)
+          .set({
+            content: "",
+            mediaReference: null,
+            mediaType: null,
+            mediaDuration: null,
+            deletedForEveryone: true,
+            deletedAt: new Date(),
+          })
+          .where(eq(messagesTable.id, message.id))
+          .returning();
+        if (deleted) {
+          await tx.execute(
+            sql`SELECT pg_notify(${chatEventChannel}, ${JSON.stringify({
+              type: "message",
+              matchId: match.id,
+              messageId: deleted.id,
+            })})`,
+          );
         }
-      }
+      });
     } else {
       await db
         .insert(messageHiddenByUserTable)
@@ -1433,13 +1584,15 @@ router.delete(
       res.status(403).json({ error: "A valid match is required to unmatch." });
       return;
     }
-    for (const listener of messageStreams.get(match.id) ?? []) {
-      if (!listener.destroyed && !listener.writableEnded) {
-        listener.write("event: close\ndata: {}\n\n");
-        listener.end();
-      }
-    }
-    await db.delete(matchesTable).where(eq(matchesTable.id, match.id));
+    await db.transaction(async (tx) => {
+      await tx.delete(matchesTable).where(eq(matchesTable.id, match.id));
+      await tx.execute(
+        sql`SELECT pg_notify(${chatEventChannel}, ${JSON.stringify({
+          type: "close",
+          matchId: match.id,
+        })})`,
+      );
+    });
     await db
       .delete(reactionsTable)
       .where(
@@ -1642,18 +1795,20 @@ router.post("/vibeswipe/blocks", async (req, res): Promise<void> => {
         and(eq(matchesTable.userAId, targetUserId), eq(matchesTable.userBId, userId)),
       ),
     );
-  await db
-    .insert(blocksTable)
-    .values({ blockerId: userId, blockedId: targetUserId })
-    .onConflictDoNothing();
-  for (const { id } of existingMatches) {
-    for (const listener of messageStreams.get(id) ?? []) {
-      if (!listener.destroyed && !listener.writableEnded) {
-        listener.write("event: close\ndata: {}\n\n");
-        listener.end();
-      }
+  await db.transaction(async (tx) => {
+    await tx
+      .insert(blocksTable)
+      .values({ blockerId: userId, blockedId: targetUserId })
+      .onConflictDoNothing();
+    for (const { id } of existingMatches) {
+      await tx.execute(
+        sql`SELECT pg_notify(${chatEventChannel}, ${JSON.stringify({
+          type: "close",
+          matchId: id,
+        })})`,
+      );
     }
-  }
+  });
   BlockProfileResponse.parse(undefined);
   res.status(204).end();
 });
