@@ -24,13 +24,21 @@ type Props = {
   photos: string[];
   videoUrl: string | null;
   onChange: (next: { photos: string[]; videoUrl: string | null }) => void;
+  maxPhotos?: number;
+  showVideo?: boolean;
 };
 
 const MAX_PHOTOS = 6;
 const MAX_IMAGE_BYTES = 15 * 1024 * 1024;
 const MAX_VIDEO_SOURCE_BYTES = 500 * 1024 * 1024;
 
-export function MediaPicker({ photos, videoUrl, onChange }: Props) {
+export function MediaPicker({
+  photos,
+  videoUrl,
+  onChange,
+  maxPhotos = MAX_PHOTOS,
+  showVideo = true,
+}: Props) {
   const colors = useColors();
   const { getToken } = useAuth();
   const uploadUrl = useRequestProfileMediaUpload();
@@ -39,6 +47,7 @@ export function MediaPicker({ photos, videoUrl, onChange }: Props) {
   const [busy, setBusy] = useState(false);
   const [busyMessage, setBusyMessage] = useState("Uploading securely…");
   const [error, setError] = useState("");
+  const photoLimit = Math.min(MAX_PHOTOS, Math.max(1, maxPhotos));
   useEffect(() => {
     let active = true;
     void getToken().then((value) => {
@@ -102,13 +111,13 @@ export function MediaPicker({ photos, videoUrl, onChange }: Props) {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ["images"],
       allowsMultipleSelection: true,
-      selectionLimit: Math.max(1, MAX_PHOTOS - photos.length),
+      selectionLimit: Math.max(1, photoLimit - photos.length),
       quality: 0.85,
     });
     if (result.canceled || result.assets.length === 0) return;
     setBusy(true);
     try {
-      const remaining = MAX_PHOTOS - photos.length;
+      const remaining = photoLimit - photos.length;
       const uploaded = await Promise.all(
         result.assets.slice(0, remaining).map((asset) => uploadAsset(asset, "image")),
       );
@@ -172,7 +181,7 @@ export function MediaPicker({ photos, videoUrl, onChange }: Props) {
             </Pressable>
           </View>
         ))}
-        {photos.length < MAX_PHOTOS && (
+        {photos.length < photoLimit && (
           <Pressable
             accessibilityLabel="Add photos"
             testID="add-profile-photos"
@@ -187,7 +196,7 @@ export function MediaPicker({ photos, videoUrl, onChange }: Props) {
           </Pressable>
         )}
       </View>
-      <Pressable
+      {showVideo ? <Pressable
         accessibilityRole="button"
         testID="add-profile-video"
         onPress={pickVideo}
@@ -211,7 +220,7 @@ export function MediaPicker({ photos, videoUrl, onChange }: Props) {
             <Feather name="x" size={16} color={colors.mutedForeground} />
           </Pressable>
         ) : null}
-      </Pressable>
+      </Pressable> : null}
       {busy ? (
         <View style={styles.progress}>
           <ActivityIndicator color={colors.primary} />
@@ -226,7 +235,9 @@ export function MediaPicker({ photos, videoUrl, onChange }: Props) {
         </Text>
       ) : null}
       <Text style={[styles.helper, { color: colors.mutedForeground }]}>
-        Add 1–6 photos. Videos are compressed to 720p or smaller and limited to 30 seconds and 50 MB.
+        {photoLimit === 1
+          ? "Add one profile picture. It will appear on your profile and Discover cards."
+          : `Add 1–${photoLimit} photos.${showVideo ? " Videos are compressed to 720p or smaller and limited to 30 seconds and 50 MB." : ""}`}
       </Text>
     </View>
   );
