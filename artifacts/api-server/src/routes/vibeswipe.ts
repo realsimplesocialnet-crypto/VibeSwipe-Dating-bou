@@ -31,7 +31,7 @@ import {
   reactionsTable,
   reportsTable,
 } from "@workspace/db";
-import { and, desc, eq, gte, inArray, lte, or } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, lte, or } from "drizzle-orm";
 import { Router, type IRouter, type Request, type Response } from "express";
 import { Readable } from "node:stream";
 import { ObjectNotFoundError, ObjectStorageService } from "../lib/objectStorage";
@@ -39,6 +39,7 @@ import { requireAuth } from "../middlewares/auth";
 
 const router: IRouter = Router();
 const objectStorage = new ObjectStorageService();
+const messageStreams = new Map<string, Set<Response>>();
 const defaultPreferences = {
   ageMin: 22,
   ageMax: 35,
@@ -392,9 +393,99 @@ router.get(
       .select()
       .from(messagesTable)
       .where(eq(messagesTable.matchId, match.id))
-      .orderBy(desc(messagesTable.createdAt))
+      .orderBy(desc(messagesTable.createdAt), desc(messagesTable.id))
       .limit(200);
     res.json(GetMessagesResponse.parse(messages));
+  },
+);
+
+router.get(
+  "/vibeswipe/matches/:matchId/messages/events",
+  async (req, res): Promise<void> => {
+    const params = GetMessagesParams.safeParse(req.params);
+    if (!params.success) {
+      res.status(400).json({ error: params.error.message });
+      return;
+    }
+    const match = await getMatchForUser(
+      params.data.matchId,
+      currentUserId(req),
+    );
+    if (!match) {
+      res.status(403).json({ error: "A valid match is required to subscribe to chat." });
+      return;
+    }
+
+    res.status(200);
+    res.set({
+      "Content-Type": "text/event-stream; charset=utf-8",
+      "Cache-Control": "no-cache, no-transform",
+      Connection: "keep-alive",
+      "X-Accel-Buffering": "no",
+    });
+    res.flushHeaders();
+    res.write("retry: 1500\n\n");
+
+    const listeners = messageStreams.get(match.id) ?? new Set<Response>();
+    listeners.add(res);
+    messageStreams.set(match.id, listeners);
+
+    const writeMessage = (message: Message): void => {
+      if (res.destroyed || res.writableEnded) return;
+      res.write(
+        `id: ${message.id}\nevent: message\ndata: ${JSON.stringify(message)}\n\n`,
+      );
+    };
+    const keepAlive = setInterval(() => {
+      if (!res.destroyed && !res.writableEnded) res.write(": keep-alive\n\n");
+    }, 25_000);
+    const removeListener = (): void => {
+      clearInterval(keepAlive);
+      listeners.delete(res);
+      if (listeners.size === 0) messageStreams.delete(match.id);
+    };
+    res.on("close", removeListener);
+
+    const rawAfterId = req.get("Last-Event-ID");
+    const afterId =
+      typeof rawAfterId === "string" &&
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+        rawAfterId,
+      )
+        ? rawAfterId
+        : null;
+    const [cursor] = afterId
+      ? await db
+          .select({ createdAt: messagesTable.createdAt })
+          .from(messagesTable)
+          .where(
+            and(
+              eq(messagesTable.id, afterId),
+              eq(messagesTable.matchId, match.id),
+            ),
+          )
+          .limit(1)
+      : [];
+    const missedMessages = cursor
+      ? await db
+          .select()
+          .from(messagesTable)
+          .where(
+            and(
+              eq(messagesTable.matchId, match.id),
+              gte(messagesTable.createdAt, cursor.createdAt),
+            ),
+          )
+          .orderBy(asc(messagesTable.createdAt), asc(messagesTable.id))
+      : await db
+          .select()
+          .from(messagesTable)
+          .where(eq(messagesTable.matchId, match.id))
+          .orderBy(desc(messagesTable.createdAt), desc(messagesTable.id))
+          .limit(200)
+          .then((rows) => rows.reverse());
+    for (const message of missedMessages) writeMessage(message as Message);
+    if (res.destroyed || res.writableEnded) removeListener();
   },
 );
 
@@ -426,6 +517,13 @@ router.post(
       .update(matchesTable)
       .set({ updatedAt: new Date() })
       .where(eq(matchesTable.id, match.id));
+    for (const listener of messageStreams.get(match.id) ?? []) {
+      if (!listener.destroyed && !listener.writableEnded) {
+        listener.write(
+          `id: ${message.id}\nevent: message\ndata: ${JSON.stringify(message)}\n\n`,
+        );
+      }
+    }
     res.status(201).json(SendMessageResponse.parse(message as Message));
   },
 );
@@ -442,6 +540,15 @@ router.post("/vibeswipe/blocks", async (req, res): Promise<void> => {
     res.status(400).json({ error: "You cannot block yourself." });
     return;
   }
+  const existingMatches = await db
+    .select({ id: matchesTable.id })
+    .from(matchesTable)
+    .where(
+      or(
+        and(eq(matchesTable.userAId, userId), eq(matchesTable.userBId, targetUserId)),
+        and(eq(matchesTable.userAId, targetUserId), eq(matchesTable.userBId, userId)),
+      ),
+    );
   await db
     .insert(blocksTable)
     .values({ blockerId: userId, blockedId: targetUserId })
@@ -454,6 +561,14 @@ router.post("/vibeswipe/blocks", async (req, res): Promise<void> => {
         and(eq(matchesTable.userAId, targetUserId), eq(matchesTable.userBId, userId)),
       ),
     );
+  for (const { id } of existingMatches) {
+    for (const listener of messageStreams.get(id) ?? []) {
+      if (!listener.destroyed && !listener.writableEnded) {
+        listener.write("event: close\ndata: {}\n\n");
+        listener.end();
+      }
+    }
+  }
   await db
     .delete(reactionsTable)
     .where(

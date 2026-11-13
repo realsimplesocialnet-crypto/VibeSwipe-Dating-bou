@@ -845,6 +845,108 @@ export const useSendMessage = <TError = ErrorType<void>,
       return useMutation(getSendMessageMutationOptions(options), queryClient);
     }
 
+export const getStreamMatchMessagesUrl = (matchId: string,) => {
+
+
+
+
+  return `/api/vibeswipe/matches/${matchId}/messages/events`
+}
+
+/**
+ * Authenticated server-sent events stream. Reconnect with the most recent message ID in the Last-Event-ID header to recover missed messages.
+ * @summary Stream new messages for a match
+ */
+export const streamMatchMessages = async (matchId: string, options?: Parameters<typeof customFetch>[1]): Promise<string> => {
+
+  return customFetch<string>(getStreamMatchMessagesUrl(matchId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getStreamMatchMessagesQueryKey = (matchId: string,) => {
+    return [
+    `/api/vibeswipe/matches/${matchId}/messages/events`
+    ] as const;
+    }
+
+
+export const getStreamMatchMessagesQueryOptions = <TData = Awaited<ReturnType<typeof streamMatchMessages>>, TError = ErrorType<void>>(matchId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof streamMatchMessages>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getStreamMatchMessagesQueryKey(matchId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof streamMatchMessages>>> = ({ signal }) => streamMatchMessages(matchId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: matchId !== null && matchId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof streamMatchMessages>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type StreamMatchMessagesQueryResult = NonNullable<Awaited<ReturnType<typeof streamMatchMessages>>>
+export type StreamMatchMessagesQueryError = ErrorType<void>
+
+
+export function useStreamMatchMessages<TData = Awaited<ReturnType<typeof streamMatchMessages>>, TError = ErrorType<void>>(
+ matchId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof streamMatchMessages>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof streamMatchMessages>>,
+          TError,
+          Awaited<ReturnType<typeof streamMatchMessages>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useStreamMatchMessages<TData = Awaited<ReturnType<typeof streamMatchMessages>>, TError = ErrorType<void>>(
+ matchId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof streamMatchMessages>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof streamMatchMessages>>,
+          TError,
+          Awaited<ReturnType<typeof streamMatchMessages>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useStreamMatchMessages<TData = Awaited<ReturnType<typeof streamMatchMessages>>, TError = ErrorType<void>>(
+ matchId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof streamMatchMessages>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Stream new messages for a match
+ */
+
+export function useStreamMatchMessages<TData = Awaited<ReturnType<typeof streamMatchMessages>>, TError = ErrorType<void>>(
+ matchId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof streamMatchMessages>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getStreamMatchMessagesQueryOptions(matchId,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
 export const getBlockProfileUrl = () => {
 
 

@@ -285,6 +285,21 @@ export const SendMessageResponse = zod.object({
 
 
 /**
+ * Authenticated server-sent events stream. Reconnect with the most recent message ID in the Last-Event-ID header to recover missed messages.
+ * @summary Stream new messages for a match
+ */
+export const StreamMatchMessagesParams = zod.object({
+  "matchId": zod.coerce.string().uuid()
+})
+
+export const StreamMatchMessagesHeader = zod.object({
+  "Last-Event-ID": zod.string().uuid().optional().describe('Most recently received message ID; messages after it are replayed on connection.')
+})
+
+export const StreamMatchMessagesResponse = zod.unknown()
+
+
+/**
  * @summary Block a profile
  */
 

@@ -1,14 +1,16 @@
 import {
   getGetMessagesQueryKey,
+  type Message,
   useGetMatches,
   useGetMessages,
   useSendMessage,
 } from "@workspace/api-client-react";
 import { Feather } from "@expo/vector-icons";
-import { useUser } from "@clerk/expo";
+import { useAuth } from "@clerk/expo";
 import { useQueryClient } from "@tanstack/react-query";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
+import { fetch as expoFetch } from "expo/fetch";
 import {
   ActivityIndicator,
   FlatList,
@@ -28,13 +30,13 @@ export default function ChatScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
-  const { user } = useUser();
+  const { getToken, userId } = useAuth();
   const { matchId: rawId } = useLocalSearchParams<{ matchId: string }>();
   const matchId = Array.isArray(rawId) ? rawId[0] : rawId;
   const matches = useGetMatches({ query: { refetchInterval: 10_000 } });
   const match = matches.data?.find((item) => item.id === matchId);
   const messages = useGetMessages(matchId ?? "", {
-    query: { enabled: !!match, refetchInterval: 2_500 },
+    query: { enabled: !!match },
   });
   const sendMessage = useSendMessage();
   const [draft, setDraft] = useState("");
@@ -43,13 +45,119 @@ export default function ChatScreen() {
     if (!matches.isLoading && matches.data && !match) router.replace("/(tabs)/matches");
   }, [match, matches.data, matches.isLoading]);
 
+  useEffect(() => {
+    if (!match || !matchId || messages.isLoading) return;
+
+    let active = true;
+    let stopAfterCloseEvent = false;
+    const controller = new AbortController();
+    const queryKey = getGetMessagesQueryKey(matchId);
+    const apiBaseUrl = process.env.EXPO_PUBLIC_DOMAIN
+      ? `https://${process.env.EXPO_PUBLIC_DOMAIN}/api`
+      : "/api";
+
+    const addMessage = (message: Message): void => {
+      if (message.matchId !== matchId) return;
+      queryClient.setQueryData<Message[]>(queryKey, (current = []) => {
+        const byId = new Map(current.map((item) => [item.id, item]));
+        byId.set(message.id, message);
+        return [...byId.values()].sort(
+          (a, b) =>
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime() ||
+            b.id.localeCompare(a.id),
+        );
+      });
+    };
+
+    async function connect(): Promise<void> {
+      let retryDelay = 500;
+      while (active && !stopAfterCloseEvent) {
+        try {
+          const token = await getToken();
+          if (!token || !active) return;
+          const current = queryClient.getQueryData<Message[]>(queryKey) ?? [];
+          const afterId = current[0]?.id;
+          const response = await expoFetch(
+            `${apiBaseUrl}/vibeswipe/matches/${matchId}/messages/events`,
+            {
+              headers: {
+                Accept: "text/event-stream",
+                Authorization: `Bearer ${token}`,
+                ...(afterId ? { "Last-Event-ID": afterId } : {}),
+              },
+              signal: controller.signal,
+            },
+          );
+
+          if (response.status === 401 || response.status === 403) return;
+          if (!response.ok || !response.body) {
+            throw new Error(`Chat stream failed with status ${response.status}`);
+          }
+
+          retryDelay = 500;
+          const reader = response.body.getReader();
+          const decoder = new TextDecoder();
+          let buffer = "";
+          try {
+            while (active) {
+              const { value, done } = await reader.read();
+              if (done) break;
+              buffer += decoder.decode(value, { stream: true }).replace(/\r\n/g, "\n");
+              let boundary = buffer.indexOf("\n\n");
+              while (boundary >= 0) {
+                const frame = buffer.slice(0, boundary);
+                buffer = buffer.slice(boundary + 2);
+                let eventName = "message";
+                const data: string[] = [];
+                for (const line of frame.split("\n")) {
+                  if (line.startsWith("event:")) eventName = line.slice(6).trim();
+                  if (line.startsWith("data:")) data.push(line.slice(5).trimStart());
+                }
+                if (eventName === "close") {
+                  stopAfterCloseEvent = true;
+                  break;
+                }
+                if (eventName === "message" && data.length > 0) {
+                  try {
+                    addMessage(JSON.parse(data.join("\n")) as Message);
+                  } catch {
+                    // Ignore malformed event payloads and keep the stream alive.
+                  }
+                }
+                boundary = buffer.indexOf("\n\n");
+              }
+              if (stopAfterCloseEvent) break;
+            }
+          } finally {
+            reader.releaseLock();
+          }
+        } catch {
+          if (!active || controller.signal.aborted) return;
+        }
+
+        if (!active || stopAfterCloseEvent) return;
+        await new Promise((resolve) => setTimeout(resolve, retryDelay));
+        retryDelay = Math.min(retryDelay * 2, 8_000);
+      }
+    }
+
+    void connect();
+    return () => {
+      active = false;
+      controller.abort();
+    };
+  }, [getToken, match, matchId, messages.isLoading, queryClient]);
+
   async function send() {
     const content = draft.trim();
     if (!content || !matchId || sendMessage.isPending) return;
     setDraft("");
     try {
-      await sendMessage.mutateAsync({ matchId, data: { content } });
-      await queryClient.invalidateQueries({ queryKey: getGetMessagesQueryKey(matchId) });
+      const message = await sendMessage.mutateAsync({ matchId, data: { content } });
+      queryClient.setQueryData<Message[]>(getGetMessagesQueryKey(matchId), (current = []) => {
+        if (current.some((item) => item.id === message.id)) return current;
+        return [message, ...current];
+      });
     } catch {
       setDraft(content);
     }
@@ -81,7 +189,7 @@ export default function ChatScreen() {
         contentContainerStyle={styles.messageList}
         ListEmptyComponent={<Text style={[styles.empty, { color: colors.mutedForeground }]}>Say hello to start the conversation.</Text>}
         renderItem={({ item }) => {
-          const own = item.senderId === user?.id;
+          const own = item.senderId === userId;
           return (
             <View style={[styles.messageRow, own ? styles.ownRow : styles.otherRow]}>
               <View style={[styles.bubble, own ? { backgroundColor: colors.primary } : { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1 }]}>
