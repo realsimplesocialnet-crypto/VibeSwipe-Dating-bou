@@ -1,5 +1,6 @@
 import app from "./app";
 import { logger } from "./lib/logger";
+import { cleanupAbandonedProfileMedia } from "./lib/profileMediaCleanup";
 
 const rawPort = process.env["PORT"];
 
@@ -15,6 +16,22 @@ if (Number.isNaN(port) || port <= 0) {
   throw new Error(`Invalid PORT value: "${rawPort}"`);
 }
 
+let cleanupRunning = false;
+const runProfileMediaCleanup = async (): Promise<void> => {
+  if (cleanupRunning) return;
+  cleanupRunning = true;
+  try {
+    const deleted = await cleanupAbandonedProfileMedia();
+    if (deleted > 0) {
+      logger.info({ deleted }, "Removed abandoned profile media uploads");
+    }
+  } catch (err) {
+    logger.error({ err }, "Failed to clean up abandoned profile media uploads");
+  } finally {
+    cleanupRunning = false;
+  }
+};
+
 app.listen(port, (err) => {
   if (err) {
     logger.error({ err }, "Error listening on port");
@@ -22,4 +39,10 @@ app.listen(port, (err) => {
   }
 
   logger.info({ port }, "Server listening");
+  void runProfileMediaCleanup();
+  const cleanupTimer = setInterval(
+    () => void runProfileMediaCleanup(),
+    60 * 60 * 1000,
+  );
+  cleanupTimer.unref();
 });

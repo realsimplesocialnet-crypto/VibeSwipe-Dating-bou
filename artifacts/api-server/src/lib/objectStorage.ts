@@ -134,6 +134,20 @@ export class ObjectStorageService {
   }
 
   async getObjectEntityFile(objectPath: string): Promise<File> {
+    const objectFile = this.getObjectEntityFileHandle(objectPath);
+    const [exists] = await objectFile.exists();
+    if (!exists) {
+      throw new ObjectNotFoundError();
+    }
+    return objectFile;
+  }
+
+  async deleteObjectEntity(objectPath: string): Promise<void> {
+    const objectFile = this.getObjectEntityFileHandle(objectPath);
+    await objectFile.delete({ ignoreNotFound: true });
+  }
+
+  private getObjectEntityFileHandle(objectPath: string): File {
     if (!objectPath.startsWith('/objects/')) {
       throw new ObjectNotFoundError();
     }
@@ -150,13 +164,7 @@ export class ObjectStorageService {
     }
     const objectEntityPath = `${entityDir}${entityId}`;
     const { bucketName, objectName } = parseObjectPath(objectEntityPath);
-    const bucket = objectStorageClient.bucket(bucketName);
-    const objectFile = bucket.file(objectName);
-    const [exists] = await objectFile.exists();
-    if (!exists) {
-      throw new ObjectNotFoundError();
-    }
-    return objectFile;
+    return objectStorageClient.bucket(bucketName).file(objectName);
   }
 
   normalizeObjectEntityPath(rawPath: string): string {

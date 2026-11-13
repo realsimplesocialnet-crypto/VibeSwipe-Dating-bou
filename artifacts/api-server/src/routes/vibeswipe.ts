@@ -77,11 +77,27 @@ import {
   reportsTable,
   vibeSwipeReadReceiptsTable,
 } from "@workspace/db";
-import { and, asc, desc, eq, gt, gte, inArray, lte, or, sql } from "drizzle-orm";
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  gt,
+  gte,
+  inArray,
+  isNull,
+  lte,
+  or,
+  sql,
+} from "drizzle-orm";
 import { Router, type IRouter, type Request, type Response } from "express";
 import { Readable } from "node:stream";
 import { logger } from "../lib/logger";
-import { ObjectNotFoundError, ObjectStorageService } from "../lib/objectStorage";
+import {
+  ObjectNotFoundError,
+  ObjectStorageService,
+} from "../lib/objectStorage";
+import { removeUnreferencedProfileMedia } from "../lib/profileMediaCleanup";
 import {
   MAX_PROFILE_VIDEO_SOURCE_BYTES,
   ProfileVideoValidationError,
@@ -469,27 +485,55 @@ router.put("/vibeswipe/onboarding/draft", async (req, res): Promise<void> => {
     res.status(409).json({ error: "Profile setup is already complete." });
     return;
   }
-  const [draft] = await db
-    .insert(profileSetupDraftsTable)
-    .values({
-      userId,
-      step: parsed.data.step,
-      data: parsed.data.data,
-      updatedAt: new Date(),
-    })
-    .onConflictDoUpdate({
-      target: profileSetupDraftsTable.userId,
-      set: {
+  const draftMediaIds = [
+    ...new Set(
+      JSON.stringify(parsed.data.data)
+        .match(/media:([0-9a-f-]{36})/gi)
+        ?.map((value) => value.slice("media:".length)) ?? [],
+    ),
+  ];
+  const draft = await db.transaction(async (tx) => {
+    if (draftMediaIds.length > 0) {
+      const ownedMedia = await tx
+        .select({ id: mediaAssetsTable.id })
+        .from(mediaAssetsTable)
+        .where(
+          and(
+            eq(mediaAssetsTable.ownerId, userId),
+            isNull(mediaAssetsTable.matchId),
+            inArray(mediaAssetsTable.id, draftMediaIds),
+          ),
+        )
+        .for("key share");
+      if (ownedMedia.length !== draftMediaIds.length) return null;
+    }
+    const [savedDraft] = await tx
+      .insert(profileSetupDraftsTable)
+      .values({
+        userId,
         step: parsed.data.step,
         data: parsed.data.data,
         updatedAt: new Date(),
-      },
-    })
-    .returning({
-      step: profileSetupDraftsTable.step,
-      data: profileSetupDraftsTable.data,
-      updatedAt: profileSetupDraftsTable.updatedAt,
-    });
+      })
+      .onConflictDoUpdate({
+        target: profileSetupDraftsTable.userId,
+        set: {
+          step: parsed.data.step,
+          data: parsed.data.data,
+          updatedAt: new Date(),
+        },
+      })
+      .returning({
+        step: profileSetupDraftsTable.step,
+        data: profileSetupDraftsTable.data,
+        updatedAt: profileSetupDraftsTable.updatedAt,
+      });
+    return savedDraft ?? null;
+  });
+  if (!draft) {
+    res.status(400).json({ error: "Draft media must belong to you." });
+    return;
+  }
   res.json(SaveOnboardingDraftResponse.parse(draft));
 });
 
@@ -537,22 +581,6 @@ router.put("/vibeswipe/me", async (req, res): Promise<void> => {
     res.status(400).json({ error: "Upload profile media before saving it." });
     return;
   }
-  if (mediaIds.length > 0) {
-    const ownedMedia = await db
-      .select({ id: mediaAssetsTable.id })
-      .from(mediaAssetsTable)
-      .where(
-        and(
-          eq(mediaAssetsTable.ownerId, userId),
-          inArray(mediaAssetsTable.id, mediaIds),
-        ),
-      );
-    if (ownedMedia.length !== new Set(mediaIds).size) {
-      res.status(400).json({ error: "Profile media must belong to you." });
-      return;
-    }
-  }
-
   const values = {
     id: userId,
     name: body.name.trim(),
@@ -569,22 +597,47 @@ router.put("/vibeswipe/me", async (req, res): Promise<void> => {
     preferences: body.preferences,
     updatedAt: new Date(),
   };
-  const [profile] = await db
-    .insert(profilesTable)
-    .values(values)
-    .onConflictDoUpdate({
-      target: profilesTable.id,
-      set: values,
-    })
-    .returning();
-  if (!profile) {
+  const result = await db.transaction(async (tx) => {
+    const uniqueMediaIds = [...new Set(mediaIds)];
+    if (uniqueMediaIds.length > 0) {
+      const ownedMedia = await tx
+        .select({ id: mediaAssetsTable.id })
+        .from(mediaAssetsTable)
+        .where(
+          and(
+            eq(mediaAssetsTable.ownerId, userId),
+            isNull(mediaAssetsTable.matchId),
+            inArray(mediaAssetsTable.id, uniqueMediaIds),
+          ),
+        )
+        .for("key share");
+      if (ownedMedia.length !== uniqueMediaIds.length) {
+        return { invalidMedia: true as const };
+      }
+    }
+    const [profile] = await tx
+      .insert(profilesTable)
+      .values(values)
+      .onConflictDoUpdate({
+        target: profilesTable.id,
+        set: values,
+      })
+      .returning();
+    if (!profile) return { invalidMedia: false as const, profile: null };
+    await tx
+      .delete(profileSetupDraftsTable)
+      .where(eq(profileSetupDraftsTable.userId, userId));
+    return { invalidMedia: false as const, profile };
+  });
+  if (result.invalidMedia) {
+    res.status(400).json({ error: "Profile media must belong to you." });
+    return;
+  }
+  if (!result.profile) {
     res.status(500).json({ error: "Profile could not be saved." });
     return;
   }
-  await db
-    .delete(profileSetupDraftsTable)
-    .where(eq(profileSetupDraftsTable.userId, userId));
-  res.json(SaveMyProfileResponse.parse(profile));
+  res.json(SaveMyProfileResponse.parse(result.profile));
 });
 
 router.get("/vibeswipe/settings", async (req, res): Promise<void> => {
@@ -1957,6 +2010,14 @@ router.post(
         }),
       );
     } catch (error) {
+      try {
+        await removeUnreferencedProfileMedia(asset.id);
+      } catch (cleanupError) {
+        req.log.error(
+          { err: cleanupError, mediaId: asset.id },
+          "Could not remove failed profile video upload",
+        );
+      }
       if (error instanceof ObjectNotFoundError) {
         res.status(404).json({ error: "Uploaded video was not found." });
         return;
