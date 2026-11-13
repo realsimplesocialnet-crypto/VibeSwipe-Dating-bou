@@ -29,6 +29,9 @@ import {
   Shield, SlidersHorizontal, Sparkles, Star, UserRound, Users, Volume2, X, Zap,
 } from 'lucide-react';
 import NotFound from '@/pages/not-found';
+import SafetyCenterPage from '@/pages/safety-center';
+import CommunityGuidelinesPage from '@/pages/community-guidelines';
+import PublicLocationSharePage from '@/pages/public-location-share';
 
 const queryClient = new QueryClient({ defaultOptions: { queries: { staleTime: 12_000, retry: 1 } } });
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, '');
@@ -338,6 +341,7 @@ function SettingsPage(){const health=useHealthCheck({query:{queryKey:getHealthCh
 return <PageFrame><PageHeading eyebrow="Your comfort" title="Settings" description="Control how you show up and where you discover."/><div className="max-w-2xl space-y-4"><div className="flex items-center gap-2 px-1 text-xs text-muted-foreground" data-testid="status-api-health"><span className={`h-2 w-2 rounded-full ${health.data?.status==='ok'?'bg-emerald-400':health.isError?'bg-rose-400':'bg-amber-300'}`}/>{health.data?.status==='ok'?'VibeSwipe services are connected':health.isError?'Service status unavailable':'Checking service status'}</div><div className="rounded-2xl border border-white/[.08] bg-card p-5"><div className="flex items-center gap-4"><div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent text-primary"><EyeOff size={18}/></div><div className="flex-1"><h3 className="font-bold">Incognito mode</h3><p className="mt-1 text-xs text-muted-foreground">Only people you like can see your profile.</p></div><input type="checkbox" aria-label="Incognito mode" data-testid="toggle-incognito" checked={q.data?.incognito??false} disabled={update.isPending||q.isLoading} onChange={e=>void save({incognito:e.target.checked,travelMode:q.data?.travelMode??false,travelCity:q.data?.travelCity??null})} className="h-5 w-5 accent-[#f34e9a]"/></div></div>
 <div className="rounded-2xl border border-white/[.08] bg-card p-5"><div className="flex items-center gap-4"><div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent text-primary"><Navigation size={18}/></div><div className="flex-1"><h3 className="font-bold">Travel mode</h3><p className="mt-1 text-xs text-muted-foreground">Discover people in another city.</p></div><input type="checkbox" aria-label="Travel mode" data-testid="toggle-travel-mode" checked={q.data?.travelMode??false} disabled={!q.data?.travelCity||update.isPending} onChange={e=>void save({incognito:q.data?.incognito??false,travelMode:e.target.checked,travelCity:q.data?.travelCity??null})} className="h-5 w-5 accent-[#f34e9a]"/></div><div className="mt-5 flex gap-2"><input data-testid="input-travel-city" value={city} onChange={e=>setCity(e.target.value)} placeholder="Search a city" className="field"/><button onClick={()=>void save({incognito:q.data?.incognito??false,travelMode:q.data?.travelMode??false,travelCity:city.trim()||null})} data-testid="button-save-travel-city" className="shrink-0 rounded-xl bg-secondary px-4 text-sm font-bold">Save city</button></div></div>
 <div className="rounded-2xl border border-white/[.08] bg-card p-5"><div className="flex items-start gap-3"><Shield size={19} className="mt-1 text-[#8ed9b7]"/><div><h3 className="font-bold">Your safety matters</h3><p className="mt-1 text-xs leading-5 text-muted-foreground">Block and report from a profile or conversation. Blocking prevents contact. Unmatching ends a mutual connection and shared chat.</p><Link href="/matches" data-testid="link-safety-matches" className="mt-3 inline-block text-xs font-bold text-primary">Manage blocked profiles</Link></div></div></div>
+<Link href="/safety-center" data-testid="link-open-safety-center" className="flex items-center gap-3 rounded-2xl border border-white/[.08] bg-card p-5 transition-colors hover:border-primary/30"><div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent text-primary"><Shield size={18}/></div><div className="flex-1"><h3 className="font-bold">Safety Center</h3><p className="mt-1 text-xs text-muted-foreground">Safety guidance, trusted contacts, and live location sharing.</p></div><ChevronRight size={18} className="text-muted-foreground"/></Link>
 <div className="rounded-2xl border border-white/[.08] bg-card p-5"><div className="flex items-center justify-between gap-4"><div><h3 className="font-bold">Install VibeSwipe</h3><p className="mt-1 text-xs text-muted-foreground">Add a shortcut to your Android home screen.</p></div><InstallAction/></div></div>
 {q.isError&&<Retry onRetry={()=>void q.refetch()} text="Settings could not load."/>}</div></PageFrame>}
 
@@ -393,6 +397,9 @@ function ChatRoute(){const params=useParams<{matchId:string}>();return <ShellPag
 function OnboardingRoute(){return <ShellPage><OnboardingGate/></ShellPage>}
 function ProfileRoute(){return <ShellPage><ProfilePage/></ShellPage>}
 function SettingsRoute(){return <ShellPage><SettingsPage/></ShellPage>}
+function SafetyCenterRoute(){return <ShellPage><SafetyCenterPage/></ShellPage>}
+function CommunityGuidelinesRoute(){return <CommunityGuidelinesPage/>}
+function PublicLocationShareRoute(){return <PublicLocationSharePage/>}
 function DiscoverRoute(){return <ShellPage><DiscoverPage/></ShellPage>}
 function MatchesRoute(){return <ShellPage><MatchesPage/></ShellPage>}
 function ViewsRoute(){return <ShellPage><ViewsPage/></ShellPage>}
@@ -405,6 +412,7 @@ function ClerkRoutes(){const [,setLocation]=useLocation();return <ClerkProvider 
   <Route path="/sign-up/*?" component={BrandedSignUp}/>
   <Route path="/onboarding" component={OnboardingRoute}/><Route path="/discover" component={DiscoverRoute}/><Route path="/matches" component={MatchesRoute}/>
   <Route path="/chat/:matchId" component={ChatRoute}/><Route path="/views" component={ViewsRoute}/><Route path="/notifications" component={NotificationsRoute}/>
+  <Route path="/safety-center" component={SafetyCenterRoute}/><Route path="/community-guidelines" component={CommunityGuidelinesRoute}/><Route path="/safety/location" component={PublicLocationShareRoute}/>
   <Route path="/profile" component={ProfileRoute}/><Route path="/profile/:profileId" component={PublicProfileRoute}/><Route path="/settings" component={SettingsRoute}/><Route component={NotFound}/>
 </Switch></ClerkProvider>}
 function App(){if(!clerkPubKey)throw new Error('Missing VITE_CLERK_PUBLISHABLE_KEY');return <QueryClientProvider client={queryClient}><WouterRouter base={basePath}><ClerkRoutes/></WouterRouter></QueryClientProvider>}

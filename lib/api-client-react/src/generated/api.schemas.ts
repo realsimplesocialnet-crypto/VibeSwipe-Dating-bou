@@ -203,6 +203,103 @@ export interface VibeSwipeSettings {
   travelCity: string | null;
 }
 
+export interface EmergencyContact {
+  id: string;
+  /**
+     * @minLength 1
+     * @maxLength 80
+     */
+  name: string;
+  /**
+     * @minLength 7
+     * @maxLength 32
+     */
+  phone: string;
+  /**
+     * @minimum 1
+     * @maximum 3
+     */
+  slot: number;
+  createdAt: string;
+}
+
+export interface EmergencyContactInput {
+  /**
+     * @minLength 1
+     * @maxLength 80
+     */
+  name: string;
+  /**
+     * @minLength 7
+     * @maxLength 32
+     */
+  phone: string;
+}
+
+export interface LocationShareCreateInput {
+  /**
+     * @minimum -90
+     * @maximum 90
+     */
+  latitude: number;
+  /**
+     * @minimum -180
+     * @maximum 180
+     */
+  longitude: number;
+}
+
+export interface LocationShareUpdateInput {
+  /**
+     * @minimum -90
+     * @maximum 90
+     */
+  latitude: number;
+  /**
+     * @minimum -180
+     * @maximum 180
+     */
+  longitude: number;
+}
+
+export interface LocationShareStatus {
+  /** @nullable */
+  shareId: string | null;
+  /** @nullable */
+  expiresAt: string | null;
+  /** @nullable */
+  updatedAt: string | null;
+}
+
+export interface LocationShareCreateResult {
+  shareId: string;
+  /**
+     * @minLength 40
+     * @maxLength 60
+     */
+  token: string;
+  expiresAt: string;
+}
+
+export interface LocationShareUpdateResult {
+  updatedAt: string;
+}
+
+export interface PublicLocationShare {
+  /**
+     * @minimum -90
+     * @maximum 90
+     */
+  latitude: number;
+  /**
+     * @minimum -180
+     * @maximum 180
+     */
+  longitude: number;
+  updatedAt: string;
+  expiresAt: string;
+}
+
 export type ChatTheme = typeof ChatTheme[keyof typeof ChatTheme];
 
 
@@ -480,5 +577,13 @@ ageMin?: number;
 ageMax?: number;
 gender?: string;
 city?: string;
+};
+
+export type GetPublicLocationShareParams = {
+/**
+ * @minLength 40
+ * @maxLength 60
+ */
+token: string;
 };
 

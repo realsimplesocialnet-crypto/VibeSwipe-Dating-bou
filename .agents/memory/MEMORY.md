@@ -1,1 +1,2 @@
 - [Expo package maturity](expo-package-maturity.md) — Avoid bypassing package-maturity blocks when Expo releases are still propagating.
+- [Temporary location sharing](temporary-location-sharing.md) — Keep VibeSwipe location links short-lived, revocable, foreground-only, and limited to location data.

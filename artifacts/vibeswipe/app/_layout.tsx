@@ -41,6 +41,8 @@ function RootLayoutNav() {
       <Stack.Screen name="chat/[matchId]" />
       <Stack.Screen name="edit-profile" />
       <Stack.Screen name="settings" />
+      <Stack.Screen name="safety-center" />
+      <Stack.Screen name="community-guidelines" />
       <Stack.Screen name="notifications" />
       <Stack.Screen name="profile/[profileId]" />
     </Stack>

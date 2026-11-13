@@ -162,15 +162,21 @@ export default function SettingsScreen() {
         ))}
       </View>
       <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>SAFETY</Text>
-      <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.border }]}>
-        <View style={styles.safety}>
+      <Pressable
+        accessibilityRole="button"
+        onPress={() => router.push("/safety-center")}
+        style={[styles.section, { backgroundColor: colors.card, borderColor: colors.border }]}
+        testID="button-open-safety-center"
+      >
+        <View style={styles.row}>
           <Feather name="shield" size={19} color={colors.primary} />
           <View style={styles.copy}>
-            <Text style={[styles.rowTitle, { color: colors.foreground }]}>Your safety matters</Text>
-            <Text style={[styles.rowSub, { color: colors.mutedForeground }]}>You can block and report a profile from its details.</Text>
+            <Text style={[styles.rowTitle, { color: colors.foreground }]}>Safety Center</Text>
+            <Text style={[styles.rowSub, { color: colors.mutedForeground }]}>Safety tips, trusted contacts, and location sharing.</Text>
           </View>
+          <Feather name="chevron-right" size={18} color={colors.mutedForeground} />
         </View>
-      </View>
+      </Pressable>
       <Pressable onPress={() => void signOut().then(() => router.replace("/"))} style={[styles.signOut, { borderColor: colors.border }]}>
         <Feather name="log-out" size={17} color={colors.destructive} />
         <Text style={[styles.signOutText, { color: colors.destructive }]}>Sign out</Text>

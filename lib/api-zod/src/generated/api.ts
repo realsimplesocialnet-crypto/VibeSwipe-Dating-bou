@@ -376,6 +376,172 @@ export const UpdateVibeSwipeSettingsResponse = zod.object({
 
 
 /**
+ * @summary List the signed-in user's trusted emergency contacts
+ */
+export const listEmergencyContactsResponseNameMax = 80;
+
+export const listEmergencyContactsResponsePhoneMin = 7;
+export const listEmergencyContactsResponsePhoneMax = 32;
+
+export const listEmergencyContactsResponseSlotMax = 3;
+
+
+
+export const ListEmergencyContactsResponseItem = zod.object({
+  "id": zod.string().uuid(),
+  "name": zod.string().min(1).max(listEmergencyContactsResponseNameMax),
+  "phone": zod.string().min(listEmergencyContactsResponsePhoneMin).max(listEmergencyContactsResponsePhoneMax),
+  "slot": zod.number().int().min(1).max(listEmergencyContactsResponseSlotMax),
+  "createdAt": zod.coerce.date()
+})
+export const ListEmergencyContactsResponse = zod.array(ListEmergencyContactsResponseItem)
+
+
+/**
+ * @summary Add a trusted emergency contact
+ */
+export const addEmergencyContactBodyNameMax = 80;
+
+export const addEmergencyContactBodyPhoneMin = 7;
+export const addEmergencyContactBodyPhoneMax = 32;
+
+
+
+export const AddEmergencyContactBody = zod.object({
+  "name": zod.string().min(1).max(addEmergencyContactBodyNameMax),
+  "phone": zod.string().min(addEmergencyContactBodyPhoneMin).max(addEmergencyContactBodyPhoneMax)
+})
+
+export const addEmergencyContactResponseNameMax = 80;
+
+export const addEmergencyContactResponsePhoneMin = 7;
+export const addEmergencyContactResponsePhoneMax = 32;
+
+export const addEmergencyContactResponseSlotMax = 3;
+
+
+
+export const AddEmergencyContactResponse = zod.object({
+  "id": zod.string().uuid(),
+  "name": zod.string().min(1).max(addEmergencyContactResponseNameMax),
+  "phone": zod.string().min(addEmergencyContactResponsePhoneMin).max(addEmergencyContactResponsePhoneMax),
+  "slot": zod.number().int().min(1).max(addEmergencyContactResponseSlotMax),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Remove one of the signed-in user's emergency contacts
+ */
+export const DeleteEmergencyContactParams = zod.object({
+  "contactId": zod.coerce.string().uuid()
+})
+
+export const DeleteEmergencyContactResponse = zod.void()
+
+
+/**
+ * @summary Get the signed-in user's active location share
+ */
+export const GetMyLocationShareResponse = zod.object({
+  "shareId": zod.string().uuid().nullable(),
+  "expiresAt": zod.coerce.date().nullable(),
+  "updatedAt": zod.coerce.date().nullable()
+})
+
+
+/**
+ * @summary Start a one-hour location share
+ */
+export const createLocationShareBodyLatitudeMin = -90;
+export const createLocationShareBodyLatitudeMax = 90;
+
+export const createLocationShareBodyLongitudeMin = -180;
+export const createLocationShareBodyLongitudeMax = 180;
+
+
+
+export const CreateLocationShareBody = zod.object({
+  "latitude": zod.number().min(createLocationShareBodyLatitudeMin).max(createLocationShareBodyLatitudeMax),
+  "longitude": zod.number().min(createLocationShareBodyLongitudeMin).max(createLocationShareBodyLongitudeMax)
+})
+
+export const createLocationShareResponseTokenMin = 40;
+export const createLocationShareResponseTokenMax = 60;
+
+
+
+export const CreateLocationShareResponse = zod.object({
+  "shareId": zod.string().uuid(),
+  "token": zod.string().min(createLocationShareResponseTokenMin).max(createLocationShareResponseTokenMax),
+  "expiresAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Update coordinates for an active location share
+ */
+export const UpdateLocationShareParams = zod.object({
+  "shareId": zod.coerce.string().uuid()
+})
+
+export const updateLocationShareBodyLatitudeMin = -90;
+export const updateLocationShareBodyLatitudeMax = 90;
+
+export const updateLocationShareBodyLongitudeMin = -180;
+export const updateLocationShareBodyLongitudeMax = 180;
+
+
+
+export const UpdateLocationShareBody = zod.object({
+  "latitude": zod.number().min(updateLocationShareBodyLatitudeMin).max(updateLocationShareBodyLatitudeMax),
+  "longitude": zod.number().min(updateLocationShareBodyLongitudeMin).max(updateLocationShareBodyLongitudeMax)
+})
+
+export const UpdateLocationShareResponse = zod.object({
+  "updatedAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Stop an active location share
+ */
+export const StopLocationShareParams = zod.object({
+  "shareId": zod.coerce.string().uuid()
+})
+
+export const StopLocationShareResponse = zod.void()
+
+
+/**
+ * @summary Read the latest location from a temporary share link
+ */
+export const getPublicLocationShareQueryTokenMin = 40;
+export const getPublicLocationShareQueryTokenMax = 60;
+
+
+
+export const GetPublicLocationShareQueryParams = zod.object({
+  "token": zod.coerce.string().min(getPublicLocationShareQueryTokenMin).max(getPublicLocationShareQueryTokenMax)
+})
+
+export const getPublicLocationShareResponseLatitudeMin = -90;
+export const getPublicLocationShareResponseLatitudeMax = 90;
+
+export const getPublicLocationShareResponseLongitudeMin = -180;
+export const getPublicLocationShareResponseLongitudeMax = 180;
+
+
+
+export const GetPublicLocationShareResponse = zod.object({
+  "latitude": zod.number().min(getPublicLocationShareResponseLatitudeMin).max(getPublicLocationShareResponseLatitudeMax),
+  "longitude": zod.number().min(getPublicLocationShareResponseLongitudeMin).max(getPublicLocationShareResponseLongitudeMax),
+  "updatedAt": zod.coerce.date(),
+  "expiresAt": zod.coerce.date()
+})
+
+
+/**
  * @summary List current matches
  */
 export const getMatchesResponseProfilePreferencesAgeMinMin = 18;

@@ -17,6 +17,12 @@
     },
     "plugins": [
       "expo-router",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Allow VibeSwipe to share your live location while the Safety Center is open."
+        }
+      ],
       "expo-secure-store",
       "expo-web-browser",
       "expo-video",

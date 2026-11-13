@@ -32,9 +32,17 @@ import type {
   ChatThemeResult,
   DailyLikeStatus,
   DeleteMessageInput,
+  EmergencyContact,
+  EmergencyContactInput,
   GetDiscoverProfilesParams,
+  GetPublicLocationShareParams,
   HealthStatus,
   Icebreaker,
+  LocationShareCreateInput,
+  LocationShareCreateResult,
+  LocationShareStatus,
+  LocationShareUpdateInput,
+  LocationShareUpdateResult,
   Match,
   MediaUploadInput,
   MediaUploadResult,
@@ -49,6 +57,7 @@ import type {
   ProfileInput,
   ProfileVideoTranscodeResult,
   ProfileView,
+  PublicLocationShare,
   ReactionInput,
   ReactionResult,
   ReadReceiptStatus,
@@ -1577,6 +1586,729 @@ export const useUpdateVibeSwipeSettings = <TError = ErrorType<void>,
       > => {
       return useMutation(getUpdateVibeSwipeSettingsMutationOptions(options), queryClient);
     }
+
+export const getListEmergencyContactsUrl = () => {
+
+
+
+
+  return `/api/vibeswipe/safety/emergency-contacts`
+}
+
+/**
+ * @summary List the signed-in user's trusted emergency contacts
+ */
+export const listEmergencyContacts = async ( options?: Parameters<typeof customFetch>[1]): Promise<EmergencyContact[]> => {
+
+  return customFetch<EmergencyContact[]>(getListEmergencyContactsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListEmergencyContactsQueryKey = () => {
+    return [
+    `/api/vibeswipe/safety/emergency-contacts`
+    ] as const;
+    }
+
+
+export const getListEmergencyContactsQueryOptions = <TData = Awaited<ReturnType<typeof listEmergencyContacts>>, TError = ErrorType<unknown>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listEmergencyContacts>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListEmergencyContactsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listEmergencyContacts>>> = ({ signal }) => listEmergencyContacts({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listEmergencyContacts>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListEmergencyContactsQueryResult = NonNullable<Awaited<ReturnType<typeof listEmergencyContacts>>>
+export type ListEmergencyContactsQueryError = ErrorType<unknown>
+
+
+export function useListEmergencyContacts<TData = Awaited<ReturnType<typeof listEmergencyContacts>>, TError = ErrorType<unknown>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listEmergencyContacts>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listEmergencyContacts>>,
+          TError,
+          Awaited<ReturnType<typeof listEmergencyContacts>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListEmergencyContacts<TData = Awaited<ReturnType<typeof listEmergencyContacts>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listEmergencyContacts>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listEmergencyContacts>>,
+          TError,
+          Awaited<ReturnType<typeof listEmergencyContacts>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListEmergencyContacts<TData = Awaited<ReturnType<typeof listEmergencyContacts>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listEmergencyContacts>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary List the signed-in user's trusted emergency contacts
+ */
+
+export function useListEmergencyContacts<TData = Awaited<ReturnType<typeof listEmergencyContacts>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listEmergencyContacts>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getListEmergencyContactsQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getAddEmergencyContactUrl = () => {
+
+
+
+
+  return `/api/vibeswipe/safety/emergency-contacts`
+}
+
+/**
+ * @summary Add a trusted emergency contact
+ */
+export const addEmergencyContact = async (emergencyContactInput: EmergencyContactInput, options?: Parameters<typeof customFetch>[1]): Promise<EmergencyContact> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<EmergencyContact>(getAddEmergencyContactUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(emergencyContactInput)
+  }
+);}
+
+
+
+
+
+export const getAddEmergencyContactMutationKey = () => ['addEmergencyContact'] as const;
+
+export const getAddEmergencyContactMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof addEmergencyContact>>, TError,AddEmergencyContactMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof addEmergencyContact>>, TError,AddEmergencyContactMutationVariables, TContext> => {
+
+const mutationKey = getAddEmergencyContactMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof addEmergencyContact>>, AddEmergencyContactMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  addEmergencyContact(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AddEmergencyContactMutationResult = NonNullable<Awaited<ReturnType<typeof addEmergencyContact>>>
+    export type AddEmergencyContactMutationBody = BodyType<EmergencyContactInput>
+    export type AddEmergencyContactMutationError = ErrorType<void>
+    export type AddEmergencyContactMutationVariables = {data: BodyType<EmergencyContactInput>}
+
+    /**
+ * @summary Add a trusted emergency contact
+ */
+export const useAddEmergencyContact = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof addEmergencyContact>>, TError,AddEmergencyContactMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof addEmergencyContact>>,
+        TError,
+        AddEmergencyContactMutationVariables,
+        TContext
+      > => {
+      return useMutation(getAddEmergencyContactMutationOptions(options), queryClient);
+    }
+
+export const getDeleteEmergencyContactUrl = (contactId: string,) => {
+
+
+
+
+  return `/api/vibeswipe/safety/emergency-contacts/${contactId}`
+}
+
+/**
+ * @summary Remove one of the signed-in user's emergency contacts
+ */
+export const deleteEmergencyContact = async (contactId: string, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getDeleteEmergencyContactUrl(contactId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeleteEmergencyContactMutationKey = () => ['deleteEmergencyContact'] as const;
+
+export const getDeleteEmergencyContactMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteEmergencyContact>>, TError,DeleteEmergencyContactMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteEmergencyContact>>, TError,DeleteEmergencyContactMutationVariables, TContext> => {
+
+const mutationKey = getDeleteEmergencyContactMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteEmergencyContact>>, DeleteEmergencyContactMutationVariables> = (props) => {
+          const {contactId} = props ?? {};
+
+          return  deleteEmergencyContact(contactId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteEmergencyContactMutationResult = NonNullable<Awaited<ReturnType<typeof deleteEmergencyContact>>>
+
+    export type DeleteEmergencyContactMutationError = ErrorType<void>
+    export type DeleteEmergencyContactMutationVariables = {contactId: string}
+
+    /**
+ * @summary Remove one of the signed-in user's emergency contacts
+ */
+export const useDeleteEmergencyContact = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteEmergencyContact>>, TError,DeleteEmergencyContactMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof deleteEmergencyContact>>,
+        TError,
+        DeleteEmergencyContactMutationVariables,
+        TContext
+      > => {
+      return useMutation(getDeleteEmergencyContactMutationOptions(options), queryClient);
+    }
+
+export const getGetMyLocationShareUrl = () => {
+
+
+
+
+  return `/api/vibeswipe/safety/location-share`
+}
+
+/**
+ * @summary Get the signed-in user's active location share
+ */
+export const getMyLocationShare = async ( options?: Parameters<typeof customFetch>[1]): Promise<LocationShareStatus> => {
+
+  return customFetch<LocationShareStatus>(getGetMyLocationShareUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetMyLocationShareQueryKey = () => {
+    return [
+    `/api/vibeswipe/safety/location-share`
+    ] as const;
+    }
+
+
+export const getGetMyLocationShareQueryOptions = <TData = Awaited<ReturnType<typeof getMyLocationShare>>, TError = ErrorType<unknown>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyLocationShare>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetMyLocationShareQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMyLocationShare>>> = ({ signal }) => getMyLocationShare({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMyLocationShare>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetMyLocationShareQueryResult = NonNullable<Awaited<ReturnType<typeof getMyLocationShare>>>
+export type GetMyLocationShareQueryError = ErrorType<unknown>
+
+
+export function useGetMyLocationShare<TData = Awaited<ReturnType<typeof getMyLocationShare>>, TError = ErrorType<unknown>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyLocationShare>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getMyLocationShare>>,
+          TError,
+          Awaited<ReturnType<typeof getMyLocationShare>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetMyLocationShare<TData = Awaited<ReturnType<typeof getMyLocationShare>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyLocationShare>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getMyLocationShare>>,
+          TError,
+          Awaited<ReturnType<typeof getMyLocationShare>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetMyLocationShare<TData = Awaited<ReturnType<typeof getMyLocationShare>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyLocationShare>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get the signed-in user's active location share
+ */
+
+export function useGetMyLocationShare<TData = Awaited<ReturnType<typeof getMyLocationShare>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyLocationShare>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetMyLocationShareQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateLocationShareUrl = () => {
+
+
+
+
+  return `/api/vibeswipe/safety/location-share`
+}
+
+/**
+ * @summary Start a one-hour location share
+ */
+export const createLocationShare = async (locationShareCreateInput: LocationShareCreateInput, options?: Parameters<typeof customFetch>[1]): Promise<LocationShareCreateResult> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<LocationShareCreateResult>(getCreateLocationShareUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(locationShareCreateInput)
+  }
+);}
+
+
+
+
+
+export const getCreateLocationShareMutationKey = () => ['createLocationShare'] as const;
+
+export const getCreateLocationShareMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createLocationShare>>, TError,CreateLocationShareMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createLocationShare>>, TError,CreateLocationShareMutationVariables, TContext> => {
+
+const mutationKey = getCreateLocationShareMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createLocationShare>>, CreateLocationShareMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  createLocationShare(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateLocationShareMutationResult = NonNullable<Awaited<ReturnType<typeof createLocationShare>>>
+    export type CreateLocationShareMutationBody = BodyType<LocationShareCreateInput>
+    export type CreateLocationShareMutationError = ErrorType<unknown>
+    export type CreateLocationShareMutationVariables = {data: BodyType<LocationShareCreateInput>}
+
+    /**
+ * @summary Start a one-hour location share
+ */
+export const useCreateLocationShare = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createLocationShare>>, TError,CreateLocationShareMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof createLocationShare>>,
+        TError,
+        CreateLocationShareMutationVariables,
+        TContext
+      > => {
+      return useMutation(getCreateLocationShareMutationOptions(options), queryClient);
+    }
+
+export const getUpdateLocationShareUrl = (shareId: string,) => {
+
+
+
+
+  return `/api/vibeswipe/safety/location-share/${shareId}`
+}
+
+/**
+ * @summary Update coordinates for an active location share
+ */
+export const updateLocationShare = async (shareId: string,
+    locationShareUpdateInput: LocationShareUpdateInput, options?: Parameters<typeof customFetch>[1]): Promise<LocationShareUpdateResult> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<LocationShareUpdateResult>(getUpdateLocationShareUrl(shareId),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(locationShareUpdateInput)
+  }
+);}
+
+
+
+
+
+export const getUpdateLocationShareMutationKey = () => ['updateLocationShare'] as const;
+
+export const getUpdateLocationShareMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateLocationShare>>, TError,UpdateLocationShareMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateLocationShare>>, TError,UpdateLocationShareMutationVariables, TContext> => {
+
+const mutationKey = getUpdateLocationShareMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateLocationShare>>, UpdateLocationShareMutationVariables> = (props) => {
+          const {shareId,data} = props ?? {};
+
+          return  updateLocationShare(shareId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateLocationShareMutationResult = NonNullable<Awaited<ReturnType<typeof updateLocationShare>>>
+    export type UpdateLocationShareMutationBody = BodyType<LocationShareUpdateInput>
+    export type UpdateLocationShareMutationError = ErrorType<void>
+    export type UpdateLocationShareMutationVariables = {shareId: string;data: BodyType<LocationShareUpdateInput>}
+
+    /**
+ * @summary Update coordinates for an active location share
+ */
+export const useUpdateLocationShare = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateLocationShare>>, TError,UpdateLocationShareMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof updateLocationShare>>,
+        TError,
+        UpdateLocationShareMutationVariables,
+        TContext
+      > => {
+      return useMutation(getUpdateLocationShareMutationOptions(options), queryClient);
+    }
+
+export const getStopLocationShareUrl = (shareId: string,) => {
+
+
+
+
+  return `/api/vibeswipe/safety/location-share/${shareId}`
+}
+
+/**
+ * @summary Stop an active location share
+ */
+export const stopLocationShare = async (shareId: string, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getStopLocationShareUrl(shareId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getStopLocationShareMutationKey = () => ['stopLocationShare'] as const;
+
+export const getStopLocationShareMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof stopLocationShare>>, TError,StopLocationShareMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof stopLocationShare>>, TError,StopLocationShareMutationVariables, TContext> => {
+
+const mutationKey = getStopLocationShareMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof stopLocationShare>>, StopLocationShareMutationVariables> = (props) => {
+          const {shareId} = props ?? {};
+
+          return  stopLocationShare(shareId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type StopLocationShareMutationResult = NonNullable<Awaited<ReturnType<typeof stopLocationShare>>>
+
+    export type StopLocationShareMutationError = ErrorType<void>
+    export type StopLocationShareMutationVariables = {shareId: string}
+
+    /**
+ * @summary Stop an active location share
+ */
+export const useStopLocationShare = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof stopLocationShare>>, TError,StopLocationShareMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof stopLocationShare>>,
+        TError,
+        StopLocationShareMutationVariables,
+        TContext
+      > => {
+      return useMutation(getStopLocationShareMutationOptions(options), queryClient);
+    }
+
+export const getGetPublicLocationShareUrl = (params: GetPublicLocationShareParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/vibeswipe/public/location-share?${stringifiedParams}` : `/api/vibeswipe/public/location-share`
+}
+
+/**
+ * @summary Read the latest location from a temporary share link
+ */
+export const getPublicLocationShare = async (params: GetPublicLocationShareParams, options?: Parameters<typeof customFetch>[1]): Promise<PublicLocationShare> => {
+
+  return customFetch<PublicLocationShare>(getGetPublicLocationShareUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetPublicLocationShareQueryKey = (params?: GetPublicLocationShareParams,) => {
+    return [
+    `/api/vibeswipe/public/location-share`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetPublicLocationShareQueryOptions = <TData = Awaited<ReturnType<typeof getPublicLocationShare>>, TError = ErrorType<void>>(params: GetPublicLocationShareParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPublicLocationShare>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPublicLocationShareQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPublicLocationShare>>> = ({ signal }) => getPublicLocationShare(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getPublicLocationShare>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetPublicLocationShareQueryResult = NonNullable<Awaited<ReturnType<typeof getPublicLocationShare>>>
+export type GetPublicLocationShareQueryError = ErrorType<void>
+
+
+export function useGetPublicLocationShare<TData = Awaited<ReturnType<typeof getPublicLocationShare>>, TError = ErrorType<void>>(
+ params: GetPublicLocationShareParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPublicLocationShare>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getPublicLocationShare>>,
+          TError,
+          Awaited<ReturnType<typeof getPublicLocationShare>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetPublicLocationShare<TData = Awaited<ReturnType<typeof getPublicLocationShare>>, TError = ErrorType<void>>(
+ params: GetPublicLocationShareParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPublicLocationShare>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getPublicLocationShare>>,
+          TError,
+          Awaited<ReturnType<typeof getPublicLocationShare>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetPublicLocationShare<TData = Awaited<ReturnType<typeof getPublicLocationShare>>, TError = ErrorType<void>>(
+ params: GetPublicLocationShareParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPublicLocationShare>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Read the latest location from a temporary share link
+ */
+
+export function useGetPublicLocationShare<TData = Awaited<ReturnType<typeof getPublicLocationShare>>, TError = ErrorType<void>>(
+ params: GetPublicLocationShareParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPublicLocationShare>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetPublicLocationShareQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export const getGetMatchesUrl = () => {
 

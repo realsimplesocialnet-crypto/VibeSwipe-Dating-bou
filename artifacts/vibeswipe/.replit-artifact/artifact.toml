@@ -22,3 +22,4 @@ run = [ "pnpm", "--filter", "@workspace/vibeswipe", "run", "serve" ]
 [services.env]
 PORT = "22375"
 BASE_PATH = "/vibeswipe-mobile/"
+EXPO_PUBLIC_WEB_URL = "https://myage.beauty"

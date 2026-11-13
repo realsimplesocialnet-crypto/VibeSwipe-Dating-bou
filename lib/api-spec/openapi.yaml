@@ -249,6 +249,133 @@ paths:
                 $ref: "#/components/schemas/VibeSwipeSettings"
         "404":
           description: Target profile not found
+  /vibeswipe/safety/emergency-contacts:
+    get:
+      operationId: listEmergencyContacts
+      tags: [vibeswipe]
+      summary: List the signed-in user's trusted emergency contacts
+      responses:
+        "200":
+          description: Emergency contacts
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/EmergencyContact" }
+    post:
+      operationId: addEmergencyContact
+      tags: [vibeswipe]
+      summary: Add a trusted emergency contact
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/EmergencyContactInput" }
+      responses:
+        "201":
+          description: Emergency contact added
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/EmergencyContact" }
+        "409":
+          description: The user already has three emergency contacts
+  /vibeswipe/safety/emergency-contacts/{contactId}:
+    delete:
+      operationId: deleteEmergencyContact
+      tags: [vibeswipe]
+      summary: Remove one of the signed-in user's emergency contacts
+      parameters:
+        - name: contactId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "204":
+          description: Emergency contact removed
+        "404":
+          description: Emergency contact not found
+  /vibeswipe/safety/location-share:
+    get:
+      operationId: getMyLocationShare
+      tags: [vibeswipe]
+      summary: Get the signed-in user's active location share
+      responses:
+        "200":
+          description: Active share status, or empty status when none is active
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LocationShareStatus" }
+    post:
+      operationId: createLocationShare
+      tags: [vibeswipe]
+      summary: Start a one-hour location share
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/LocationShareCreateInput" }
+      responses:
+        "201":
+          description: Location share created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LocationShareCreateResult" }
+  /vibeswipe/safety/location-share/{shareId}:
+    patch:
+      operationId: updateLocationShare
+      tags: [vibeswipe]
+      summary: Update coordinates for an active location share
+      parameters:
+        - name: shareId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/LocationShareUpdateInput" }
+      responses:
+        "200":
+          description: Location updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LocationShareUpdateResult" }
+        "404":
+          description: Active location share not found
+    delete:
+      operationId: stopLocationShare
+      tags: [vibeswipe]
+      summary: Stop an active location share
+      parameters:
+        - name: shareId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "204":
+          description: Location sharing stopped
+        "404":
+          description: Location share not found
+  /vibeswipe/public/location-share:
+    get:
+      operationId: getPublicLocationShare
+      tags: [vibeswipe]
+      summary: Read the latest location from a temporary share link
+      security: []
+      parameters:
+        - name: token
+          in: query
+          required: true
+          schema: { type: string, minLength: 40, maxLength: 60 }
+      responses:
+        "200":
+          description: Current location and share expiry
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PublicLocationShare" }
+        "404":
+          description: The share link is invalid, stopped, or expired
   /vibeswipe/matches:
     get:
       operationId: getMatches
@@ -891,6 +1018,60 @@ components:
         travelMode: { type: boolean }
         travelCity: { type: [string, "null"], maxLength: 100 }
       required: [incognito, travelMode, travelCity]
+    EmergencyContact:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string, minLength: 1, maxLength: 80 }
+        phone: { type: string, minLength: 7, maxLength: 32 }
+        slot: { type: integer, minimum: 1, maximum: 3 }
+        createdAt: { type: string, format: date-time }
+      required: [id, name, phone, slot, createdAt]
+    EmergencyContactInput:
+      type: object
+      properties:
+        name: { type: string, minLength: 1, maxLength: 80 }
+        phone: { type: string, minLength: 7, maxLength: 32 }
+      required: [name, phone]
+    LocationShareCreateInput:
+      type: object
+      properties:
+        latitude: { type: number, minimum: -90, maximum: 90 }
+        longitude: { type: number, minimum: -180, maximum: 180 }
+      required: [latitude, longitude]
+    LocationShareUpdateInput:
+      type: object
+      properties:
+        latitude: { type: number, minimum: -90, maximum: 90 }
+        longitude: { type: number, minimum: -180, maximum: 180 }
+      required: [latitude, longitude]
+    LocationShareStatus:
+      type: object
+      properties:
+        shareId: { type: [string, "null"], format: uuid }
+        expiresAt: { type: [string, "null"], format: date-time }
+        updatedAt: { type: [string, "null"], format: date-time }
+      required: [shareId, expiresAt, updatedAt]
+    LocationShareCreateResult:
+      type: object
+      properties:
+        shareId: { type: string, format: uuid }
+        token: { type: string, minLength: 40, maxLength: 60 }
+        expiresAt: { type: string, format: date-time }
+      required: [shareId, token, expiresAt]
+    LocationShareUpdateResult:
+      type: object
+      properties:
+        updatedAt: { type: string, format: date-time }
+      required: [updatedAt]
+    PublicLocationShare:
+      type: object
+      properties:
+        latitude: { type: number, minimum: -90, maximum: 90 }
+        longitude: { type: number, minimum: -180, maximum: 180 }
+        updatedAt: { type: string, format: date-time }
+        expiresAt: { type: string, format: date-time }
+      required: [latitude, longitude, updatedAt, expiresAt]
     Match:
       type: object
       properties:
