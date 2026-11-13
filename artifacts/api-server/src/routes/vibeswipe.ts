@@ -89,10 +89,15 @@ import {
 } from "../lib/profileVideoTranscoder";
 import { requireAuth } from "../middlewares/auth";
 import { createVibeSwipeNotification } from "../lib/vibeswipeNotifications";
+import {
+  canSubscribeToChat,
+  ChatMessageStreams,
+  messagesAfterCursor,
+} from "../lib/chatEventStream";
 
 const router: IRouter = Router();
 const objectStorage = new ObjectStorageService();
-const messageStreams = new Map<string, Set<Response>>();
+const messageStreams = new ChatMessageStreams<Message>();
 const chatEventChannel = "vibeswipe_chat_events";
 type ChatEvent =
   | { type: "message"; matchId: string; messageId: string }
@@ -145,26 +150,15 @@ function currentUserId(req: Request): string {
 }
 
 function writeMessageToStreams(matchId: string, message: Message): void {
-  const event = `id: ${message.id}\nevent: message\ndata: ${JSON.stringify(message)}\n\n`;
-  for (const listener of messageStreams.get(matchId) ?? []) {
-    if (!listener.destroyed && !listener.writableEnded) listener.write(event);
-  }
+  messageStreams.publish(matchId, message);
 }
 
 function closeStreams(matchId: string): void {
-  for (const listener of messageStreams.get(matchId) ?? []) {
-    if (listener.destroyed || listener.writableEnded) continue;
-    listener.write("event: close\ndata: {}\n\n");
-    listener.end();
-  }
+  messageStreams.close(matchId);
 }
 
 function reconnectStreamsAfterNotificationDisconnect(): void {
-  for (const listeners of messageStreams.values()) {
-    for (const listener of listeners) {
-      if (!listener.destroyed && !listener.writableEnded) listener.end();
-    }
-  }
+  messageStreams.closeAll();
 }
 
 async function handleChatEvent(event: ChatEvent): Promise<void> {
@@ -1235,7 +1229,13 @@ router.get(
       res.status(403).json({ error: "A valid match is required to subscribe to chat." });
       return;
     }
-    if (await isBlockedBetween(match.userAId, match.userBId)) {
+    const userId = currentUserId(req);
+    if (!canSubscribeToChat(match, userId, false)) {
+      res.status(403).json({ error: "A valid match is required to subscribe to chat." });
+      return;
+    }
+    const blocked = await isBlockedBetween(match.userAId, match.userBId);
+    if (!canSubscribeToChat(match, userId, blocked)) {
       res.status(403).json({ error: "Chat is unavailable while blocked." });
       return;
     }
@@ -1257,27 +1257,16 @@ router.get(
     res.flushHeaders();
     res.write("retry: 1500\n\n");
 
-    const listeners = messageStreams.get(match.id) ?? new Set<Response>();
-    listeners.add(res);
-    messageStreams.set(match.id, listeners);
-    const userId = currentUserId(req);
+    const removeListener = messageStreams.subscribe(match.id, res);
     const streamState = await getMatchUserState(match.id, userId);
-
-    const writeMessage = (message: Message): void => {
-      if (res.destroyed || res.writableEnded) return;
-      res.write(
-        `id: ${message.id}\nevent: message\ndata: ${JSON.stringify(message)}\n\n`,
-      );
-    };
     const keepAlive = setInterval(() => {
       if (!res.destroyed && !res.writableEnded) res.write(": keep-alive\n\n");
     }, 25_000);
-    const removeListener = (): void => {
+    const cleanup = (): void => {
       clearInterval(keepAlive);
-      listeners.delete(res);
-      if (listeners.size === 0) messageStreams.delete(match.id);
+      removeListener();
     };
-    res.on("close", removeListener);
+    res.on("close", cleanup);
 
     const rawAfterId = req.get("Last-Event-ID");
     const afterId =
@@ -1299,7 +1288,7 @@ router.get(
           )
           .limit(1)
       : [];
-    const missedMessages = cursor
+    const messagesFromCursor = cursor
       ? await db
           .select()
           .from(messagesTable)
@@ -1307,9 +1296,6 @@ router.get(
             and(
               eq(messagesTable.matchId, match.id),
               gte(messagesTable.createdAt, cursor.createdAt),
-              ...(streamState?.clearedAt
-                ? [gt(messagesTable.createdAt, streamState.clearedAt)]
-                : []),
             ),
           )
           .orderBy(asc(messagesTable.createdAt), asc(messagesTable.id))
@@ -1327,6 +1313,14 @@ router.get(
           .orderBy(desc(messagesTable.createdAt), desc(messagesTable.id))
           .limit(200)
           .then((rows) => rows.reverse());
+    const afterCursor = cursor
+      ? messagesAfterCursor(messagesFromCursor, afterId!)
+      : messagesFromCursor;
+    const missedMessages = streamState?.clearedAt
+      ? afterCursor.filter(
+          (message) => message.createdAt > streamState.clearedAt!,
+        )
+      : afterCursor;
     const hidden = missedMessages.length
       ? await db
           .select({ messageId: messageHiddenByUserTable.messageId })
@@ -1342,10 +1336,14 @@ router.get(
           )
       : [];
     const hiddenIds = new Set(hidden.map((item) => item.messageId));
-    for (const message of missedMessages) {
-      if (!hiddenIds.has(message.id)) writeMessage(projectMessage(message));
-    }
-    if (res.destroyed || res.writableEnded) removeListener();
+    messageStreams.replay(
+      match.id,
+      res,
+      missedMessages
+        .filter((message) => !hiddenIds.has(message.id))
+        .map((message) => projectMessage(message)),
+    );
+    if (res.destroyed || res.writableEnded) cleanup();
   },
 );
 
