@@ -16,6 +16,7 @@ import { useColors } from "@/hooks/useColors";
 export default function SignUpScreen() {
   const colors = useColors();
   const { signUp, errors, fetchStatus } = useSignUp();
+  const [step, setStep] = useState<"email" | "password">("email");
   const [emailAddress, setEmailAddress] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(true);
@@ -27,6 +28,20 @@ export default function SignUpScreen() {
   const verifying = signUp.status === "missing_requirements" &&
     signUp.unverifiedFields.includes("email_address") &&
     signUp.missingFields.length === 0;
+  const submitDisabled =
+    fetchStatus === "fetching" ||
+    (verifying && !code) ||
+    (!verifying && step === "email" && !emailIsValid) ||
+    (!verifying && step === "password" && password.length < 8);
+
+  function continueToPassword() {
+    setMessage("");
+    if (!emailIsValid) {
+      setMessage("Enter a valid email address.");
+      return;
+    }
+    setStep("password");
+  }
 
   async function createAccount() {
     setMessage("");
@@ -68,17 +83,44 @@ export default function SignUpScreen() {
       contentContainerStyle={styles.container}
       bottomOffset={24}
     >
-      <Pressable style={styles.back} onPress={() => router.replace("/")}>
+      <Pressable
+        testID="sign-up-back"
+        style={styles.back}
+        onPress={() => {
+          if (!verifying && step === "password") {
+            setMessage("");
+            setStep("email");
+            return;
+          }
+          router.replace("/");
+        }}
+      >
         <Feather name="arrow-left" size={20} color={colors.foreground} />
       </Pressable>
-      <Text style={[styles.eyebrow, { color: colors.primary }]}>JOIN VIBESWIPE</Text>
+      <Text style={[styles.eyebrow, { color: colors.primary }]}>
+        {verifying
+          ? "EMAIL VERIFICATION"
+          : `ACCOUNT SETUP · ${step === "email" ? "1" : "2"} OF 2`}
+      </Text>
+      {!verifying ? (
+        <View style={styles.progressTrack} accessibilityLabel={`Step ${step === "email" ? "1" : "2"} of 2`}>
+          <View style={[styles.progressSegment, { backgroundColor: colors.primary }]} />
+          <View style={[styles.progressSegment, { backgroundColor: step === "password" ? colors.primary : colors.border }]} />
+        </View>
+      ) : null}
       <Text style={[styles.title, { color: colors.foreground }]}>
-        {verifying ? "Check your inbox." : "Make room for a real connection."}
+        {verifying
+          ? "Check your inbox."
+          : step === "email"
+            ? "Start with your email."
+            : "Create a password."}
       </Text>
       <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>
         {verifying
           ? `We sent a code to ${emailAddress}.`
-          : "Create an account to meet people and start a conversation."}
+          : step === "email"
+            ? "Enter your email to begin creating your account."
+            : "Choose a password with at least 8 characters."}
       </Text>
       {verifying ? (
         <>
@@ -93,7 +135,7 @@ export default function SignUpScreen() {
             style={[styles.input, { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.card }]}
           />
         </>
-      ) : (
+      ) : step === "email" ? (
         <>
           <Text style={[styles.label, { color: colors.foreground }]}>Email</Text>
           <TextInput
@@ -114,6 +156,9 @@ export default function SignUpScreen() {
           {emailAddress.length > 0 && !emailIsValid ? (
             <Text style={[styles.fieldError, { color: colors.destructive }]}>Enter a valid email address.</Text>
           ) : null}
+        </>
+      ) : (
+        <>
           <Text style={[styles.label, { color: colors.foreground }]}>Password</Text>
           <View style={[styles.passwordField, { borderColor: colors.border, backgroundColor: colors.card }]}>
             <TextInput
@@ -151,14 +196,16 @@ export default function SignUpScreen() {
       <View nativeID="clerk-captcha" />
       <Pressable
         testID="submit-sign-up"
-        onPress={verifying ? verifyAccount : createAccount}
-        disabled={fetchStatus === "fetching" || (!verifying && (!emailIsValid || password.length < 8)) || (verifying && !code)}
-        style={[styles.submit, { backgroundColor: colors.primary, opacity: fetchStatus === "fetching" ? 0.6 : 1 }]}
+        onPress={verifying ? verifyAccount : step === "email" ? continueToPassword : createAccount}
+        disabled={submitDisabled}
+        style={[styles.submit, { backgroundColor: colors.primary, opacity: submitDisabled ? 0.6 : 1 }]}
       >
         {fetchStatus === "fetching" ? (
           <ActivityIndicator color="#ffffff" />
         ) : (
-          <Text style={styles.submitText}>{verifying ? "Verify email" : "Create account"}</Text>
+          <Text style={styles.submitText}>
+            {verifying ? "Verify email" : step === "email" ? "Continue" : "Create account"}
+          </Text>
         )}
       </Pressable>
       {verifying ? (
@@ -180,6 +227,8 @@ const styles = StyleSheet.create({
   container: { flexGrow: 1, justifyContent: "center", paddingHorizontal: 24, paddingTop: 60, paddingBottom: 36 },
   back: { marginBottom: 35, width: 42, height: 42, borderRadius: 21, alignItems: "center", justifyContent: "center" },
   eyebrow: { fontSize: 11, fontWeight: "700", letterSpacing: 2.3, marginBottom: 10 },
+  progressTrack: { flexDirection: "row", gap: 7, marginBottom: 20 },
+  progressSegment: { height: 3, flex: 1, borderRadius: 2 },
   title: { fontSize: 32, fontWeight: "700", lineHeight: 38, letterSpacing: -0.7 },
   subtitle: { fontSize: 15, lineHeight: 22, marginTop: 9, marginBottom: 24 },
   label: { fontSize: 13, fontWeight: "600", marginBottom: 8, marginTop: 12 },

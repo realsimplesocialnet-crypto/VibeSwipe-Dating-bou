@@ -41,7 +41,7 @@ A mobile-first dating app for profiles, mutual likes, matches, and private chat.
 ## Product
 
 - Email/password and Google sign-in, 18+ onboarding, profile editing, and media uploads.
-- Sign-up email must be valid but has no 15-character minimum; passwords require at least 8 characters, stay readable with a show/hide control, and show the exact minimum-length error.
+- VibeSwipe sign-up collects email and password on separate screens. Email uses format validation without a minimum length; the password screen keeps the at-least-8 rule, visible-by-default field, show/hide control, and exact minimum-length error.
 - Profile discovery, pass/like/super-like, mutual matches, match-gated chat, and reporting/blocking.
 - Discover video playback is muted by default and keeps the active and next two profiles buffered.
 
