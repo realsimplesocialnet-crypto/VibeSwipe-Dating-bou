@@ -16,7 +16,7 @@ import {
   Inter_700Bold,
   useFonts,
 } from '@expo-google-fonts/inter';
-import { Stack } from "expo-router";
+import { Stack, router, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
@@ -42,6 +42,21 @@ function RootLayoutNav() {
       <Stack.Screen name="settings" />
     </Stack>
   );
+}
+
+function AuthRouteGuard() {
+  const { isLoaded, isSignedIn } = useAuth();
+  const segments = useSegments();
+  useEffect(() => {
+    if (!isLoaded) return;
+    const section = segments[0];
+    const authScreen =
+      section === "(auth)" || section === "sign-in" || section === "sign-up";
+    const publicScreen = !section || authScreen;
+    if (!isSignedIn && !publicScreen) router.replace("/");
+    if (isSignedIn && authScreen) router.replace("/");
+  }, [isLoaded, isSignedIn, segments]);
+  return <RootLayoutNav />;
 }
 
 function AuthenticatedApi({ children }: { children: React.ReactNode }) {
@@ -86,7 +101,7 @@ export default function RootLayout() {
                 <KeyboardProvider>
                   <AuthenticatedApi>
                     <StatusBar style="light" />
-                    <RootLayoutNav />
+                    <AuthRouteGuard />
                   </AuthenticatedApi>
                 </KeyboardProvider>
               </GestureHandlerRootView>
