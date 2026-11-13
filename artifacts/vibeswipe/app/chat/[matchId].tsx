@@ -12,6 +12,7 @@ import {
   useClearChat,
   useDeleteMessage,
   useGetChatReadReceipt,
+  useGetIcebreakers,
   useGetMatchPresence,
   useGetMatches,
   useGetMessages,
@@ -108,6 +109,7 @@ export default function ChatScreen() {
   const readReceipt = useGetChatReadReceipt(matchId ?? "", {
     query: { enabled: !!match, refetchInterval: 5_000 },
   });
+  const icebreakers = useGetIcebreakers({ query: { enabled: !!match } });
   const sendMessage = useSendMessage();
   const blockProfile = useBlockProfile();
   const unblockProfile = useUnblockProfile();
@@ -132,12 +134,16 @@ export default function ChatScreen() {
   const [menuVisible, setMenuVisible] = useState(false);
   const [themeVisible, setThemeVisible] = useState(false);
   const [viewingMedia, setViewingMedia] = useState<{ reference: string; type: "image" | "video" } | null>(null);
+  const [searchVisible, setSearchVisible] = useState(false);
+  const [searchText, setSearchText] = useState("");
+  const [searchIndex, setSearchIndex] = useState(0);
   const typingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const recordingTimer = useRef<ReturnType<typeof setInterval> | null>(null);
   const recordingRef = useRef(false);
   const recordingPressRef = useRef(false);
   const recordingTicks = useRef(0);
   const lastMarkedMessage = useRef("");
+  const listRef = useRef<FlatList<Message> | null>(null);
   const blocked = !!match?.blockedByMe || !!match?.blockedMe;
   const chatAccent = mediaTheme(match?.chatTheme ?? ChatTheme.pink, colors.primary);
   const themedBackground = match?.chatTheme === ChatTheme.dark ? "#171317"
@@ -515,14 +521,31 @@ export default function ChatScreen() {
     }
   }
 
+  const sortedMessages = messages.data ?? [];
+  const searchMatchIndexes = searchText.trim()
+    ? sortedMessages
+        .map((message, index) =>
+          message.content.toLowerCase().includes(searchText.trim().toLowerCase())
+            ? index
+            : -1,
+        )
+        .filter((index) => index >= 0)
+    : [];
+  useEffect(() => {
+    if (!searchVisible || searchMatchIndexes.length === 0) return;
+    const index = searchMatchIndexes[Math.min(searchIndex, searchMatchIndexes.length - 1)];
+    const timer = setTimeout(() => {
+      listRef.current?.scrollToIndex({ index, animated: true, viewPosition: 0.5 });
+    }, 80);
+    return () => clearTimeout(timer);
+  }, [searchIndex, searchMatchIndexes.join(","), searchVisible]);
+
   if (matches.isLoading || !match) {
     return <View style={[styles.center, { backgroundColor: colors.background }]}><ActivityIndicator color={colors.primary} /></View>;
   }
 
   const otherIsTyping = typing.data?.isTyping === true;
   const lastReadAt = readReceipt.data?.readAt;
-  const sortedMessages = messages.data ?? [];
-
   return (
     <KeyboardAvoidingView
       style={[styles.screen, { backgroundColor: themedBackground }]}
@@ -543,10 +566,45 @@ export default function ChatScreen() {
             {presence.data?.isOnline ? "Online" : formatLastSeen(presence.data?.lastSeenAt)}
           </Text>
         </View>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Search this chat"
+          onPress={() => {
+            setSearchVisible((visible) => !visible);
+            setSearchText("");
+            setSearchIndex(0);
+          }}
+          style={styles.more}
+        >
+          <Feather name="search" size={19} color={themedForeground} />
+        </Pressable>
         <Pressable accessibilityRole="button" accessibilityLabel="Chat actions" testID="chat-actions" onPress={() => setMenuVisible(true)} style={styles.more}>
           <Feather name="more-vertical" size={21} color={themedForeground} />
         </Pressable>
       </View>
+
+      {searchVisible ? (
+        <View style={[styles.searchBar, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
+          <TextInput
+            autoFocus
+            value={searchText}
+            onChangeText={(value) => { setSearchText(value); setSearchIndex(0); }}
+            placeholder="Search messages"
+            placeholderTextColor={colors.mutedForeground}
+            returnKeyType="search"
+            style={[styles.searchInput, { color: themedForeground }]}
+          />
+          <Text style={[styles.searchCount, { color: colors.mutedForeground }]}>
+            {searchMatchIndexes.length ? `${Math.min(searchIndex + 1, searchMatchIndexes.length)} / ${searchMatchIndexes.length}` : "0"}
+          </Text>
+          <Pressable accessibilityLabel="Previous result" onPress={() => setSearchIndex((i) => (i - 1 + searchMatchIndexes.length) % Math.max(searchMatchIndexes.length, 1))} style={styles.searchArrow}>
+            <Feather name="chevron-up" size={19} color={themedForeground} />
+          </Pressable>
+          <Pressable accessibilityLabel="Next result" onPress={() => setSearchIndex((i) => (i + 1) % Math.max(searchMatchIndexes.length, 1))} style={styles.searchArrow}>
+            <Feather name="chevron-down" size={19} color={themedForeground} />
+          </Pressable>
+        </View>
+      ) : null}
 
       {messages.isError ? (
         <Pressable accessibilityRole="button" onPress={() => void messages.refetch()} style={styles.errorBanner}>
@@ -555,6 +613,7 @@ export default function ChatScreen() {
       ) : null}
       {error ? <Text accessibilityRole="alert" style={[styles.error, { color: colors.destructive }]}>{error}</Text> : null}
       <FlatList
+        ref={listRef}
         inverted
         data={sortedMessages}
         keyExtractor={(item) => item.id}
@@ -563,12 +622,33 @@ export default function ChatScreen() {
         keyboardShouldPersistTaps="handled"
         scrollEnabled={sortedMessages.length > 0}
         ListHeaderComponent={otherIsTyping ? <Text style={[styles.typing, { color: colors.mutedForeground }]}>{match.profile.name} is typing…</Text> : undefined}
-        ListEmptyComponent={<Text style={[styles.empty, { color: colors.mutedForeground }]}>Say hello to start the conversation.</Text>}
+        ListEmptyComponent={
+          <View style={styles.icebreakerWrap}>
+            <Text style={[styles.empty, { color: colors.mutedForeground }]}>Say hello to start the conversation.</Text>
+            {icebreakers.data?.map((prompt) => (
+              <Pressable
+                key={prompt.id}
+                disabled={blocked || sendMessage.isPending}
+                onPress={() => void send(prompt.question)}
+                style={[styles.icebreakerChip, { borderColor: colors.border, backgroundColor: colors.card }]}
+              >
+                <Text style={[styles.icebreakerText, { color: themedForeground }]}>{prompt.question}</Text>
+                <Feather name="arrow-up-right" size={14} color={chatAccent} />
+              </Pressable>
+            ))}
+          </View>
+        }
         renderItem={({ item }) => {
           const own = item.senderId === userId;
           const bubbleColor = own ? chatAccent : colors.card;
           const messageMedia = item.mediaReference ? mediaUri(item.mediaReference) : null;
           const tombstone = item.deletedForEveryone;
+          const isSearchMatch =
+            searchText.trim().length > 0 &&
+            item.content.toLowerCase().includes(searchText.trim().toLowerCase());
+          const isSelectedSearchMatch =
+            isSearchMatch &&
+            sortedMessages.indexOf(item) === searchMatchIndexes[searchIndex];
           return (
             <View style={[styles.messageRow, own ? styles.ownRow : styles.otherRow]}>
               <Pressable
@@ -581,6 +661,7 @@ export default function ChatScreen() {
                   { backgroundColor: bubbleColor, borderColor: colors.border },
                   !own && styles.otherBubble,
                   tombstone && styles.deletedBubble,
+                  isSearchMatch && { borderColor: "#FFD166", borderWidth: isSelectedSearchMatch ? 2 : 1 },
                 ]}
               >
                 {tombstone ? (
@@ -751,6 +832,10 @@ const styles = StyleSheet.create({
   name: { fontSize: 15, fontWeight: "700" },
   status: { fontSize: 11 },
   more: { width: 36, height: 42, alignItems: "flex-end", justifyContent: "center" },
+  searchBar: { minHeight: 48, paddingHorizontal: 14, flexDirection: "row", alignItems: "center", gap: 7, borderBottomWidth: StyleSheet.hairlineWidth },
+  searchInput: { flex: 1, height: 42, fontSize: 14 },
+  searchCount: { fontSize: 11, minWidth: 32, textAlign: "center" },
+  searchArrow: { width: 28, height: 36, alignItems: "center", justifyContent: "center" },
   messageList: { paddingHorizontal: 16, paddingVertical: 18, flexGrow: 1, justifyContent: "flex-end" },
   messageRow: { marginVertical: 5, maxWidth: "84%" },
   ownRow: { alignSelf: "flex-end", alignItems: "flex-end" },
@@ -771,6 +856,9 @@ const styles = StyleSheet.create({
   secondCheck: { marginLeft: -7 },
   typing: { alignSelf: "flex-start", marginHorizontal: 7, marginVertical: 8, fontSize: 12, fontStyle: "italic" },
   empty: { textAlign: "center", marginTop: 16, fontSize: 13 },
+  icebreakerWrap: { alignItems: "center", padding: 12, gap: 9 },
+  icebreakerChip: { width: "100%", maxWidth: 390, minHeight: 44, borderWidth: 1, borderRadius: 16, paddingHorizontal: 12, flexDirection: "row", alignItems: "center", gap: 8 },
+  icebreakerText: { flex: 1, fontSize: 12, fontWeight: "600" },
   error: { textAlign: "center", marginVertical: 7, paddingHorizontal: 12, fontSize: 12 },
   errorBanner: { minHeight: 34, justifyContent: "center" },
   composer: { flexDirection: "row", alignItems: "flex-end", gap: 9, paddingHorizontal: 12, paddingTop: 9, borderTopWidth: StyleSheet.hairlineWidth },

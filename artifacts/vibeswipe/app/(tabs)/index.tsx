@@ -1,10 +1,14 @@
 import {
+  getGetBoostStatusQueryKey,
+  getGetDailyLikeStatusQueryKey,
   getGetDiscoverProfilesQueryKey,
   getGetMatchesQueryKey,
+  getGetSuperLikeStatusQueryKey,
   useBlockProfile,
   useCreateReaction,
   useActivateBoost,
   useGetBoostStatus,
+  useGetDailyLikeStatus,
   useGetDiscoverProfiles,
   useGetSuperLikeStatus,
   useRecordProfileView,
@@ -37,6 +41,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useColors } from "@/hooks/useColors";
 import { profileImageSource } from "@/lib/media";
 import { useVideoPreloadQueue } from "@/hooks/useVideoPreloadQueue";
+import { NotificationBell } from "@/components/NotificationBell";
 
 type SwipeDirection = "pass" | "like" | "super";
 
@@ -129,6 +134,12 @@ function SwipeCard({
         style={StyleSheet.absoluteFill}
         pointerEvents="none"
       />
+      {profile.superLikedYou ? (
+        <View style={styles.superLikedBadge}>
+          <Feather name="star" size={14} color="#FFD166" />
+          <Text style={styles.superLikedText}>Super liked you</Text>
+        </View>
+      ) : null}
       {profile.videoUrl ? (
         <Pressable
           accessibilityLabel={muted ? "Turn video sound on" : "Mute video"}
@@ -170,6 +181,7 @@ export default function DiscoverScreen() {
   const reportProfile = useReportProfile();
   const blockProfile = useBlockProfile();
   const superLikeStatus = useGetSuperLikeStatus({ query: { refetchInterval: 60_000 } });
+  const dailyLikeStatus = useGetDailyLikeStatus({ query: { refetchInterval: 60_000 } });
   const undoLastPass = useUndoLastPass();
   const boostStatus = useGetBoostStatus({ query: { refetchInterval: 10_000 } });
   const activateBoost = useActivateBoost();
@@ -193,7 +205,7 @@ export default function DiscoverScreen() {
     [ageMin, ageMax, city, gender],
   );
   const discover = useGetDiscoverProfiles(discoverParams, {
-    query: { refetchInterval: 20_000 },
+    query: { refetchOnWindowFocus: false },
   });
   const profiles = discover.data ?? [];
   const profile = profiles[index];
@@ -210,6 +222,10 @@ export default function DiscoverScreen() {
 
   async function swipe(direction: SwipeDirection) {
     if (!profile || busy) return;
+    if (direction === "like" && dailyLikeStatus.data?.remaining === 0) {
+      setBanner("You’ve reached your daily like limit. Come back in 24 hours.");
+      return;
+    }
     setBusy(true);
     setBanner("");
     setLastPassedProfileId(direction === "pass" ? profile.id : null);
@@ -222,7 +238,10 @@ export default function DiscoverScreen() {
         data: { toUserId: profile.id, type: direction },
       });
       if (direction === "super") {
-        await queryClient.invalidateQueries({ queryKey: ["getSuperLikeStatus"] });
+        await queryClient.invalidateQueries({ queryKey: getGetSuperLikeStatusQueryKey() });
+      }
+      if (direction === "like") {
+        await queryClient.invalidateQueries({ queryKey: getGetDailyLikeStatusQueryKey() });
       }
       if (result.matched && result.matchId) {
         await queryClient.invalidateQueries({ queryKey: getGetMatchesQueryKey() });
@@ -233,8 +252,15 @@ export default function DiscoverScreen() {
         setTimeout(() => setBanner(""), 3500);
       }
     } catch {
-      setBanner("That action did not save. Try again.");
+      if (direction === "like") await dailyLikeStatus.refetch();
+      if (direction === "super") await superLikeStatus.refetch();
+      setBanner(
+        direction === "like" && dailyLikeStatus.data?.remaining === 0
+          ? "You’ve reached your daily like limit. Come back in 24 hours."
+          : "That action did not save. Try again.",
+      );
       setIndex((current) => Math.max(0, current - 1));
+      setLastPassedProfileId(null);
     } finally {
       setBusy(false);
     }
@@ -284,7 +310,7 @@ export default function DiscoverScreen() {
     if (!boostStatus.data?.available || activateBoost.isPending) return;
     try {
       await activateBoost.mutateAsync();
-      await queryClient.invalidateQueries({ queryKey: ["getBoostStatus"] });
+      await queryClient.invalidateQueries({ queryKey: getGetBoostStatusQueryKey() });
       Alert.alert("Boost is on", "Your profile will be prioritized for the next 30 minutes.");
     } catch {
       await boostStatus.refetch();
@@ -308,11 +334,13 @@ export default function DiscoverScreen() {
     (boostActive ? boostEnd : boostAvailableAt) - clock,
   );
   const boostTimeLabel = `${String(Math.floor(boostRemaining / 60_000)).padStart(2, "0")}:${String(Math.floor((boostRemaining % 60_000) / 1000)).padStart(2, "0")}`;
-  const boostLabel = boostActive
-    ? `Boost · ${boostTimeLabel}`
-    : boostStatus.data?.available
-      ? "Boost for 30 min"
-      : `Available in ${boostTimeLabel}`;
+  const boostLabel = !boostStatus.data
+    ? "Boost"
+    : boostActive
+      ? `Boost · ${boostTimeLabel}`
+      : boostStatus.data.available
+        ? "Boost for 30 min"
+        : `Available in ${boostTimeLabel}`;
 
   if (discover.isLoading) {
     return (
@@ -346,6 +374,16 @@ export default function DiscoverScreen() {
         <Pressable onPress={() => setFilterOpen(true)} style={[styles.primarySmall, { backgroundColor: colors.primary }]}>
           <Text style={styles.buttonWhite}>Adjust filters</Text>
         </Pressable>
+        <Pressable
+          onPress={async () => {
+            setIndex(0);
+            await queryClient.invalidateQueries({ queryKey: getGetDiscoverProfilesQueryKey(discoverParams) });
+            await discover.refetch();
+          }}
+          style={[styles.primarySmall, { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1 }]}
+        >
+          <Text style={[styles.buttonWhite, { color: colors.foreground }]}>Refresh profiles</Text>
+        </Pressable>
       </View>
     );
   }
@@ -375,6 +413,36 @@ export default function DiscoverScreen() {
         >
           <Feather name="sliders" size={18} color={colors.discoverForeground} />
         </Pressable>
+        <View style={[styles.notificationSpot, { top: topInset + 8, right: 72 }]}>
+          <NotificationBell color={colors.discoverForeground} />
+        </View>
+        <Pressable
+          testID="boost-profile"
+          accessibilityRole="button"
+          accessibilityLabel={boostLabel}
+          disabled={!boostStatus.data?.available || activateBoost.isPending}
+          onPress={() => void startBoost()}
+          style={[
+            styles.boostButton,
+            {
+              top: topInset + 8,
+              backgroundColor: colors.discoverControl,
+              borderColor: colors.discoverControlBorder,
+              opacity: !boostStatus.data?.available || activateBoost.isPending ? 0.88 : 1,
+            },
+          ]}
+        >
+          <Feather name="zap" size={15} color="#FFD166" />
+          <Text numberOfLines={1} style={[styles.boostText, { color: colors.discoverForeground }]}>{boostLabel}</Text>
+        </Pressable>
+        <View style={[styles.dailyLikeBadge, { top: topInset + 62, backgroundColor: colors.discoverControl }]}>
+          <Feather name="heart" size={12} color={colors.discoverLike} />
+          <Text style={[styles.dailyLikeText, { color: colors.discoverForeground }]}>
+            {dailyLikeStatus.data?.remaining === 0
+              ? "You’ve reached your daily like limit. Come back in 24 hours."
+              : `${dailyLikeStatus.data?.remaining ?? "—"} likes left`}
+          </Text>
+        </View>
         {banner ? (
           <Pressable
             onPress={() => setBanner("")}
@@ -387,9 +455,30 @@ export default function DiscoverScreen() {
         ) : null}
         <View style={[styles.actions, { bottom: actionBottom }]}>
           <ActionButton label="Pass" icon="x" color={colors.discoverForeground} background={colors.discoverPass} onPress={() => void swipe("pass")} testID="pass-profile" />
-          <ActionButton label="Super like" icon="star" color={colors.discoverSuperLikeForeground} background={colors.discoverSuperLike} onPress={() => void swipe("super")} testID="super-like-profile" small />
-          <ActionButton label="Like" icon="heart" color={colors.discoverForeground} background={colors.discoverLike} onPress={() => void swipe("like")} testID="like-profile" />
+          <View style={styles.superLikeAction}>
+            <ActionButton label="Super like" icon="star" color={colors.discoverSuperLikeForeground} background={colors.discoverSuperLike} onPress={() => void swipe("super")} testID="super-like-profile" small disabled={superLikeStatus.data?.remaining === 0} />
+            <Text style={[styles.superLikeCount, { color: colors.discoverMuted }]}>{superLikeStatus.data?.remaining ?? "—"} left</Text>
+          </View>
+          <ActionButton label="Like" icon="heart" color={colors.discoverForeground} background={colors.discoverLike} onPress={() => void swipe("like")} testID="like-profile" disabled={dailyLikeStatus.data?.remaining === 0} />
         </View>
+        <Pressable
+          testID="undo-pass"
+          accessibilityRole="button"
+          accessibilityLabel="Undo your most recent pass"
+          disabled={!lastPassedProfileId || undoLastPass.isPending}
+          onPress={() => void undoPass()}
+          style={[
+            styles.undoButton,
+            {
+              bottom: actionBottom + 8,
+              backgroundColor: colors.discoverControl,
+              borderColor: colors.discoverControlBorder,
+              opacity: lastPassedProfileId && !undoLastPass.isPending ? 1 : 0.45,
+            },
+          ]}
+        >
+          <Feather name="rotate-ccw" size={18} color={colors.discoverForeground} />
+        </Pressable>
         {busy ? (
           <View style={[styles.busyOverlay, { top: topInset + 66, backgroundColor: colors.discoverControl }]}>
             <ActivityIndicator color={colors.discoverForeground} />
@@ -441,9 +530,11 @@ export default function DiscoverScreen() {
             </View>
             <View style={styles.safetyRow}>
               <Pressable onPress={() => Alert.alert("Report profile", "Choose a reason.", [
+                { text: "Spam", onPress: () => void report("spam") },
                 { text: "Fake profile", onPress: () => void report("fake") },
+                { text: "Inappropriate content", onPress: () => void report("inappropriate") },
                 { text: "Harassment", onPress: () => void report("harassment") },
-                { text: "Unsafe behavior", onPress: () => void report("unsafe") },
+                { text: "Other", onPress: () => void report("other") },
                 { text: "Cancel", style: "cancel" },
               ])}><Text style={[styles.safetyText, { color: colors.mutedForeground }]}>Report</Text></Pressable>
               <Pressable onPress={() => Alert.alert("Block this profile?", "You will no longer see each other or be able to chat.", [
@@ -466,6 +557,7 @@ function ActionButton({
   onPress,
   testID,
   small,
+  disabled,
 }: {
   label: string;
   icon: "x" | "star" | "heart";
@@ -474,9 +566,10 @@ function ActionButton({
   onPress: () => void;
   testID: string;
   small?: boolean;
+  disabled?: boolean;
 }) {
   return (
-    <Pressable testID={testID} accessibilityRole="button" accessibilityLabel={label} onPress={onPress} style={({ pressed }) => [styles.actionWrap, { transform: [{ scale: pressed ? 0.93 : 1 }] }]}>
+    <Pressable testID={testID} disabled={disabled} accessibilityRole="button" accessibilityLabel={label} onPress={onPress} style={({ pressed }) => [styles.actionWrap, { transform: [{ scale: pressed ? 0.93 : 1 }], opacity: disabled ? 0.42 : 1 }]}>
       <View style={[styles.actionCircle, small && styles.smallAction, { backgroundColor: background }]}>
         <Feather name={icon} size={small ? 22 : 25} color={color} />
       </View>
@@ -487,6 +580,14 @@ function ActionButton({
 const styles = StyleSheet.create({
   screen: { flex: 1, paddingHorizontal: 0, paddingBottom: 0 },
   filterButton: { position: "absolute", zIndex: 5, right: 18, width: 44, height: 44, borderRadius: 22, borderWidth: 1, alignItems: "center", justifyContent: "center" },
+  notificationSpot: { position: "absolute", zIndex: 6, width: 42, height: 42 },
+  boostButton: { position: "absolute", zIndex: 6, left: 18, height: 42, maxWidth: 190, paddingHorizontal: 12, borderRadius: 22, borderWidth: 1, flexDirection: "row", alignItems: "center", gap: 7 },
+  boostText: { fontSize: 11, fontWeight: "700", flexShrink: 1 },
+  dailyLikeBadge: { position: "absolute", zIndex: 3, left: 54, right: 54, minHeight: 30, borderRadius: 15, paddingHorizontal: 10, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6 },
+  dailyLikeText: { fontSize: 10, fontWeight: "700", textAlign: "center", flexShrink: 1 },
+  superLikedBadge: { position: "absolute", top: 136, left: 20, zIndex: 3, flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "rgba(20,17,20,0.76)", borderRadius: 18, paddingHorizontal: 12, paddingVertical: 8 },
+  superLikedText: { color: "#fff", fontSize: 12, fontWeight: "700" },
+  undoButton: { position: "absolute", zIndex: 5, left: 22, width: 46, height: 46, borderRadius: 23, borderWidth: 1, alignItems: "center", justifyContent: "center" },
   deck: { flex: 1, position: "relative", minHeight: 250 },
   card: { flex: 1, borderRadius: 0, overflow: "hidden" },
   cardCopy: { position: "absolute", left: 25, right: 25 },
@@ -498,6 +599,8 @@ const styles = StyleSheet.create({
   interests: { flexDirection: "row", flexWrap: "wrap", gap: 7, marginTop: 12 },
   soundButton: { position: "absolute", right: 20, width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center", zIndex: 3 },
   actions: { position: "absolute", left: 0, right: 0, zIndex: 4, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 26 },
+  superLikeAction: { alignItems: "center", justifyContent: "center" },
+  superLikeCount: { fontSize: 10, fontWeight: "700", marginTop: -2 },
   actionWrap: { width: 68, height: 68, alignItems: "center", justifyContent: "center" },
   actionCircle: { width: 62, height: 62, borderRadius: 31, alignItems: "center", justifyContent: "center", shadowColor: "#000", shadowOpacity: 0.32, shadowRadius: 16, shadowOffset: { width: 0, height: 7 }, elevation: 8 },
   smallAction: { width: 54, height: 54, borderRadius: 27 },

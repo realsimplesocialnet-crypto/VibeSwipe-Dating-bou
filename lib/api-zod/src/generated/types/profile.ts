@@ -15,6 +15,10 @@ export interface Profile {
   lookingFor: string;
   bio: string;
   city: string;
+  /** @nullable */
+  country: string | null;
+  /** @nullable */
+  state: string | null;
   interests: string[];
   photos: string[];
   /** @nullable */

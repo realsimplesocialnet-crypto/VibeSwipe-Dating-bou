@@ -29,6 +29,42 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /vibeswipe/onboarding/draft:
+    get:
+      operationId: getOnboardingDraft
+      tags: [vibeswipe]
+      summary: Load the signed-in user's saved profile setup progress
+      responses:
+        "200":
+          description: Saved setup progress or an empty draft
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OnboardingDraft"
+    put:
+      operationId: saveOnboardingDraft
+      tags: [vibeswipe]
+      summary: Save progress from one profile setup screen
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OnboardingDraftInput"
+      responses:
+        "200":
+          description: Saved profile setup progress
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OnboardingDraft"
+    delete:
+      operationId: clearOnboardingDraft
+      tags: [vibeswipe]
+      summary: Clear completed profile setup progress
+      responses:
+        "204":
+          description: Setup progress cleared
   /vibeswipe/me:
     get:
       operationId: getMyProfile
@@ -742,6 +778,8 @@ components:
         lookingFor: { type: string }
         bio: { type: string }
         city: { type: string }
+        country: { type: [string, "null"] }
+        state: { type: [string, "null"] }
         interests:
           type: array
           items: { type: string }
@@ -754,7 +792,7 @@ components:
         superLikedYou: { type: boolean }
         preferences:
           $ref: "#/components/schemas/ProfilePreferences"
-      required: [id, name, age, gender, lookingFor, bio, city, interests, photos, isDemo, preferences]
+      required: [id, name, age, gender, lookingFor, bio, city, country, state, interests, photos, isDemo, preferences]
     ProfileInput:
       type: object
       properties:
@@ -764,6 +802,8 @@ components:
         lookingFor: { type: string, minLength: 1, maxLength: 40 }
         bio: { type: string, maxLength: 500 }
         city: { type: string, maxLength: 100 }
+        country: { type: [string, "null"], maxLength: 100 }
+        state: { type: [string, "null"], maxLength: 100 }
         interests:
           type: array
           maxItems: 12
@@ -778,7 +818,24 @@ components:
           maxLength: 2048
         preferences:
           $ref: "#/components/schemas/ProfilePreferences"
-      required: [name, age, gender, lookingFor, bio, city, interests, photos, preferences]
+      required: [name, age, gender, lookingFor, bio, city, country, state, interests, photos, preferences]
+    OnboardingDraft:
+      type: object
+      properties:
+        step: { type: integer, minimum: 1, maximum: 12 }
+        data:
+          type: object
+          additionalProperties: true
+        updatedAt: { type: [string, "null"], format: date-time }
+      required: [step, data, updatedAt]
+    OnboardingDraftInput:
+      type: object
+      properties:
+        step: { type: integer, minimum: 1, maximum: 12 }
+        data:
+          type: object
+          additionalProperties: true
+      required: [step, data]
     ReactionInput:
       type: object
       properties:

@@ -94,7 +94,7 @@ const styles = StyleSheet.create({
   list: { padding: 15, gap: 9, paddingBottom: 40 },
   row: { minHeight: 76, borderWidth: 1, borderRadius: 16, padding: 11, flexDirection: "row", alignItems: "center", gap: 11 },
   copy: { flex: 1, gap: 5 },
-  message: { fontSize: 14, fontWeight: "650" },
+  message: { fontSize: 14, fontWeight: "600" },
   time: { fontSize: 11 },
   unread: { width: 9, height: 9, borderRadius: 5 },
   center: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12 },

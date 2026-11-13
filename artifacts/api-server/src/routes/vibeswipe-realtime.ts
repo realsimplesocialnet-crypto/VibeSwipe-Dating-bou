@@ -109,7 +109,10 @@ router.get(
     }
     const otherUserId = match.userAId === userId ? match.userBId : match.userAId;
     const [presence] = await db
-      .select({ lastSeenAt: vibeSwipePresenceTable.lastSeenAt })
+      .select({
+        lastSeenAt: vibeSwipePresenceTable.lastSeenAt,
+        isOnline: vibeSwipePresenceTable.isOnline,
+      })
       .from(vibeSwipePresenceTable)
       .where(eq(vibeSwipePresenceTable.userId, otherUserId))
       .limit(1);

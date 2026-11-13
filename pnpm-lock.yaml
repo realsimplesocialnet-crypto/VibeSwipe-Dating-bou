@@ -425,6 +425,9 @@ importers:
       '@clerk/expo':
         specifier: ^4.15.1
         version: 4.15.1(@types/react@19.3.0)(expo-application@58.1.2(expo@58.0.24))(expo-auth-session@58.0.18(expo@58.0.24)(react-native@0.88.0(@babel/core@7.29.7)(@types/react@19.3.0)(react@19.3.0))(react@19.3.0)(typescript@6.0.3))(expo-constants@58.0.16)(expo-crypto@58.0.8(expo@58.0.24))(expo-secure-store@58.0.3(expo@58.0.24))(expo-web-browser@58.0.8(expo@58.0.24)(react-native@0.88.0(@babel/core@7.29.7)(@types/react@19.3.0)(react@19.3.0)))(expo@58.0.24)(react-dom@19.3.0(react@19.3.0))(react-native@0.88.0(@babel/core@7.29.7)(@types/react@19.3.0)(react@19.3.0))(react@19.3.0)(typescript@6.0.3)(zod@3.25.76)
+      country-state-city:
+        specifier: ^3.2.1
+        version: 3.2.1
       expo-audio:
         specifier: ~58.0.12
         version: 58.0.12(expo-asset@58.0.21(expo@58.0.24)(react-native@0.88.0(@babel/core@7.29.7)(@types/react@19.3.0)(react@19.3.0))(react@19.3.0)(typescript@6.0.3))(expo@58.0.24)(react-native@0.88.0(@babel/core@7.29.7)(@types/react@19.3.0)(react@19.3.0))(react@19.3.0)
@@ -3021,6 +3024,9 @@ packages:
   cors@2.8.6:
     resolution: {integrity: sha512-tJtZBBHA6vjIAaF6EnIaq6laBBP9aq/Y3ouVJjEfoHbRBcHBAHYcMh/w8LDrk2PvIMMq8gmopa5D4V8RmbrxGw==}
     engines: {node: '>= 0.10'}
+
+  country-state-city@3.2.1:
+    resolution: {integrity: sha512-kxbanqMc6izjhc/EHkGPCTabSPZ2G6eG4/97akAYHJUN4stzzFEvQPZoF8oXDQ+10gM/O/yUmISCR1ZVxyb6EA==}
 
   create-launch@0.4.1:
     resolution: {integrity: sha512-SCwWUa4DYRy7InxzWyqwEn8INjyvy6SXdfti86NBVjPSd9Rm5fypdKQHRKVfnTSjXFmM0ql6zIRZGmrxzmywrw==}
@@ -8594,6 +8600,8 @@ snapshots:
     dependencies:
       object-assign: 4.1.1
       vary: 1.1.2
+
+  country-state-city@3.2.1: {}
 
   create-launch@0.4.1: {}
 

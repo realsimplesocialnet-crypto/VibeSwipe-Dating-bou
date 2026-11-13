@@ -33,6 +33,16 @@ export interface ProfileInput {
   /** @maxLength 100 */
   city: string;
   /**
+     * @maxLength 100
+     * @nullable
+     */
+  country: string | null;
+  /**
+     * @maxLength 100
+     * @nullable
+     */
+  state: string | null;
+  /**
      * @maxItems 12
      * @items.maxLength 32
      */

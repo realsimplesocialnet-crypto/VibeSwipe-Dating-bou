@@ -41,6 +41,8 @@ import type {
   Message,
   MessageInput,
   NotificationsResponse,
+  OnboardingDraft,
+  OnboardingDraftInput,
   PresenceHeartbeatInput,
   PresenceStatus,
   Profile,
@@ -186,6 +188,269 @@ export function useHealthCheck<TData = Awaited<ReturnType<typeof healthCheck>>, 
 
 
 
+
+export const getGetOnboardingDraftUrl = () => {
+
+
+
+
+  return `/api/vibeswipe/onboarding/draft`
+}
+
+/**
+ * @summary Load the signed-in user's saved profile setup progress
+ */
+export const getOnboardingDraft = async ( options?: Parameters<typeof customFetch>[1]): Promise<OnboardingDraft> => {
+
+  return customFetch<OnboardingDraft>(getGetOnboardingDraftUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetOnboardingDraftQueryKey = () => {
+    return [
+    `/api/vibeswipe/onboarding/draft`
+    ] as const;
+    }
+
+
+export const getGetOnboardingDraftQueryOptions = <TData = Awaited<ReturnType<typeof getOnboardingDraft>>, TError = ErrorType<unknown>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getOnboardingDraft>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetOnboardingDraftQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getOnboardingDraft>>> = ({ signal }) => getOnboardingDraft({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getOnboardingDraft>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetOnboardingDraftQueryResult = NonNullable<Awaited<ReturnType<typeof getOnboardingDraft>>>
+export type GetOnboardingDraftQueryError = ErrorType<unknown>
+
+
+export function useGetOnboardingDraft<TData = Awaited<ReturnType<typeof getOnboardingDraft>>, TError = ErrorType<unknown>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getOnboardingDraft>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getOnboardingDraft>>,
+          TError,
+          Awaited<ReturnType<typeof getOnboardingDraft>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetOnboardingDraft<TData = Awaited<ReturnType<typeof getOnboardingDraft>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getOnboardingDraft>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getOnboardingDraft>>,
+          TError,
+          Awaited<ReturnType<typeof getOnboardingDraft>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetOnboardingDraft<TData = Awaited<ReturnType<typeof getOnboardingDraft>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getOnboardingDraft>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Load the signed-in user's saved profile setup progress
+ */
+
+export function useGetOnboardingDraft<TData = Awaited<ReturnType<typeof getOnboardingDraft>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getOnboardingDraft>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetOnboardingDraftQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getSaveOnboardingDraftUrl = () => {
+
+
+
+
+  return `/api/vibeswipe/onboarding/draft`
+}
+
+/**
+ * @summary Save progress from one profile setup screen
+ */
+export const saveOnboardingDraft = async (onboardingDraftInput: OnboardingDraftInput, options?: Parameters<typeof customFetch>[1]): Promise<OnboardingDraft> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<OnboardingDraft>(getSaveOnboardingDraftUrl(),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(onboardingDraftInput)
+  }
+);}
+
+
+
+
+
+export const getSaveOnboardingDraftMutationKey = () => ['saveOnboardingDraft'] as const;
+
+export const getSaveOnboardingDraftMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof saveOnboardingDraft>>, TError,SaveOnboardingDraftMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof saveOnboardingDraft>>, TError,SaveOnboardingDraftMutationVariables, TContext> => {
+
+const mutationKey = getSaveOnboardingDraftMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof saveOnboardingDraft>>, SaveOnboardingDraftMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  saveOnboardingDraft(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SaveOnboardingDraftMutationResult = NonNullable<Awaited<ReturnType<typeof saveOnboardingDraft>>>
+    export type SaveOnboardingDraftMutationBody = BodyType<OnboardingDraftInput>
+    export type SaveOnboardingDraftMutationError = ErrorType<unknown>
+    export type SaveOnboardingDraftMutationVariables = {data: BodyType<OnboardingDraftInput>}
+
+    /**
+ * @summary Save progress from one profile setup screen
+ */
+export const useSaveOnboardingDraft = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof saveOnboardingDraft>>, TError,SaveOnboardingDraftMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof saveOnboardingDraft>>,
+        TError,
+        SaveOnboardingDraftMutationVariables,
+        TContext
+      > => {
+      return useMutation(getSaveOnboardingDraftMutationOptions(options), queryClient);
+    }
+
+export const getClearOnboardingDraftUrl = () => {
+
+
+
+
+  return `/api/vibeswipe/onboarding/draft`
+}
+
+/**
+ * @summary Clear completed profile setup progress
+ */
+export const clearOnboardingDraft = async ( options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getClearOnboardingDraftUrl(),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getClearOnboardingDraftMutationKey = () => ['clearOnboardingDraft'] as const;
+
+export const getClearOnboardingDraftMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof clearOnboardingDraft>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof clearOnboardingDraft>>, TError,void, TContext> => {
+
+const mutationKey = getClearOnboardingDraftMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof clearOnboardingDraft>>, void> = () => {
+
+
+          return  clearOnboardingDraft(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ClearOnboardingDraftMutationResult = NonNullable<Awaited<ReturnType<typeof clearOnboardingDraft>>>
+
+    export type ClearOnboardingDraftMutationError = ErrorType<unknown>
+
+
+    /**
+ * @summary Clear completed profile setup progress
+ */
+export const useClearOnboardingDraft = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof clearOnboardingDraft>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof clearOnboardingDraft>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getClearOnboardingDraftMutationOptions(options), queryClient);
+    }
 
 export const getGetMyProfileUrl = () => {
 

@@ -3,6 +3,7 @@ import {
   BlockProfileBody,
   CreateReactionBody,
   CreateReactionResponse,
+  GetOnboardingDraftResponse,
   GetDailyLikeStatusResponse,
   GetIcebreakersResponse,
   GetSuperLikeStatusResponse,
@@ -39,6 +40,8 @@ import {
   RequestProfileMediaUploadResponse,
   SaveMyProfileBody,
   SaveMyProfileResponse,
+  SaveOnboardingDraftBody,
+  SaveOnboardingDraftResponse,
   SendMessageBody,
   SendMessageParams,
   SendMessageResponse,
@@ -67,12 +70,13 @@ import {
   mediaAssetsTable,
   messagesTable,
   messageHiddenByUserTable,
+  profileSetupDraftsTable,
   profilesTable,
   reactionsTable,
   reportsTable,
   vibeSwipeReadReceiptsTable,
 } from "@workspace/db";
-import { and, asc, desc, eq, gt, gte, inArray, lte, or } from "drizzle-orm";
+import { and, asc, desc, eq, gt, gte, inArray, lte, or, sql } from "drizzle-orm";
 import { Router, type IRouter, type Request, type Response } from "express";
 import { Readable } from "node:stream";
 import { ObjectNotFoundError, ObjectStorageService } from "../lib/objectStorage";
@@ -298,6 +302,70 @@ async function reserveDailyLike(
     };
   });
 }
+router.get("/vibeswipe/onboarding/draft", async (req, res): Promise<void> => {
+  const [draft] = await db
+    .select({
+      step: profileSetupDraftsTable.step,
+      data: profileSetupDraftsTable.data,
+      updatedAt: profileSetupDraftsTable.updatedAt,
+    })
+    .from(profileSetupDraftsTable)
+    .where(eq(profileSetupDraftsTable.userId, currentUserId(req)))
+    .limit(1);
+  res.json(
+    GetOnboardingDraftResponse.parse(
+      draft ?? { step: 1, data: {}, updatedAt: null },
+    ),
+  );
+});
+
+router.put("/vibeswipe/onboarding/draft", async (req, res): Promise<void> => {
+  const parsed = SaveOnboardingDraftBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+  const userId = currentUserId(req);
+  const [completedProfile] = await db
+    .select({ id: profilesTable.id })
+    .from(profilesTable)
+    .where(eq(profilesTable.id, userId))
+    .limit(1);
+  if (completedProfile) {
+    res.status(409).json({ error: "Profile setup is already complete." });
+    return;
+  }
+  const [draft] = await db
+    .insert(profileSetupDraftsTable)
+    .values({
+      userId,
+      step: parsed.data.step,
+      data: parsed.data.data,
+      updatedAt: new Date(),
+    })
+    .onConflictDoUpdate({
+      target: profileSetupDraftsTable.userId,
+      set: {
+        step: parsed.data.step,
+        data: parsed.data.data,
+        updatedAt: new Date(),
+      },
+    })
+    .returning({
+      step: profileSetupDraftsTable.step,
+      data: profileSetupDraftsTable.data,
+      updatedAt: profileSetupDraftsTable.updatedAt,
+    });
+  res.json(SaveOnboardingDraftResponse.parse(draft));
+});
+
+router.delete("/vibeswipe/onboarding/draft", async (req, res): Promise<void> => {
+  await db
+    .delete(profileSetupDraftsTable)
+    .where(eq(profileSetupDraftsTable.userId, currentUserId(req)));
+  res.status(204).end();
+});
+
 router.get("/vibeswipe/me", async (req, res): Promise<void> => {
   const [profile] = await db
     .select()
@@ -359,6 +427,8 @@ router.put("/vibeswipe/me", async (req, res): Promise<void> => {
     lookingFor: body.lookingFor,
     bio: body.bio.trim(),
     city: body.city.trim(),
+    country: body.country,
+    state: body.state,
     interests: body.interests,
     photos: body.photos,
     videoUrl: body.videoUrl ?? null,
@@ -377,6 +447,9 @@ router.put("/vibeswipe/me", async (req, res): Promise<void> => {
     res.status(500).json({ error: "Profile could not be saved." });
     return;
   }
+  await db
+    .delete(profileSetupDraftsTable)
+    .where(eq(profileSetupDraftsTable.userId, userId));
   res.json(SaveMyProfileResponse.parse(profile));
 });
 
@@ -498,15 +571,16 @@ router.get("/vibeswipe/boost", async (req, res): Promise<void> => {
   const active = Boolean(
     profile.boostStartTime &&
       profile.boostEndTime &&
-      profile.boostStartTime <= now &&
-      profile.boostEndTime > now,
+      profile.boostStartTime.getTime() <= now.getTime() &&
+      profile.boostEndTime.getTime() > now.getTime(),
   );
   res.json(
     GetBoostStatusResponse.parse({
       active,
       available:
         !active &&
-        (!profile.nextBoostAvailableTime || profile.nextBoostAvailableTime <= now),
+        (!profile.nextBoostAvailableTime ||
+          profile.nextBoostAvailableTime.getTime() <= now.getTime()),
       boostStartTime: profile.boostStartTime,
       boostEndTime: profile.boostEndTime,
       nextBoostAvailableTime: profile.nextBoostAvailableTime,
@@ -634,6 +708,9 @@ router.get("/vibeswipe/discover", async (req, res): Promise<void> => {
       .select()
       .from(profilesTable)
       .where(and(...conditions))
+      .orderBy(
+        desc(sql`CASE WHEN ${profilesTable.boostEndTime} > NOW() THEN 1 ELSE 0 END`),
+      )
       .limit(100),
     db
       .select({ id: reactionsTable.fromUserId })
@@ -673,8 +750,8 @@ router.get("/vibeswipe/discover", async (req, res): Promise<void> => {
     }))
     .sort((a, b) => {
       const now = Date.now();
-      const aBoosted = Number(Boolean(a.boostEndTime && a.boostEndTime > now));
-      const bBoosted = Number(Boolean(b.boostEndTime && b.boostEndTime > now));
+      const aBoosted = Number(Boolean(a.boostEndTime && a.boostEndTime.getTime() > now));
+      const bBoosted = Number(Boolean(b.boostEndTime && b.boostEndTime.getTime() > now));
       if (aBoosted !== bBoosted) return bBoosted - aBoosted;
       return (b.boostEndTime?.getTime() ?? 0) - (a.boostEndTime?.getTime() ?? 0);
     });

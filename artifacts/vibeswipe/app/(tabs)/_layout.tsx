@@ -7,12 +7,18 @@ import { isLiquidGlassAvailable } from 'expo-glass-effect';
 import { Tabs } from 'expo-router';
 import { NativeTabs } from 'expo-router/unstable-native-tabs';
 import { SymbolView } from 'expo-symbols';
+import { useGetNotifications } from '@workspace/api-client-react';
 
 // IMPORTANT: iOS 26 uses NativeTabs for native tabs with liquid glass support.
 // NativeTabs intentionally does NOT use custom design tokens — liquid glass
 // is a system-level appearance provided by iOS and cannot be overridden.
 // Custom brand colors are applied only on the ClassicTabLayout path (older iOS / Android / web).
 function NativeTabLayout() {
+  const notifications = useGetNotifications({ query: { refetchInterval: 15_000 } });
+  const counts = notifications.data?.unreadCounts;
+  const matchBadge = counts ? counts.matches + counts.likes : 0;
+  const messageBadge = counts?.messages ?? 0;
+  const viewBadge = counts?.views ?? 0;
   return (
     <NativeTabs>
       <NativeTabs.Trigger name="index">
@@ -24,10 +30,17 @@ function NativeTabLayout() {
       <NativeTabs.Trigger name="matches">
         <NativeTabs.Trigger.Icon sf={{ default: 'heart', selected: 'heart.fill' }} />
         <NativeTabs.Trigger.Label>Matches</NativeTabs.Trigger.Label>
+        {matchBadge > 0 ? <NativeTabs.Trigger.Badge>{matchBadge > 99 ? '99+' : String(matchBadge)}</NativeTabs.Trigger.Badge> : null}
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="chats">
         <NativeTabs.Trigger.Icon sf={{ default: 'message', selected: 'message.fill' }} />
         <NativeTabs.Trigger.Label>Chat</NativeTabs.Trigger.Label>
+        {messageBadge > 0 ? <NativeTabs.Trigger.Badge>{messageBadge > 99 ? '99+' : String(messageBadge)}</NativeTabs.Trigger.Badge> : null}
+      </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="views">
+        <NativeTabs.Trigger.Icon sf={{ default: 'eye', selected: 'eye.fill' }} />
+        <NativeTabs.Trigger.Label>Views</NativeTabs.Trigger.Label>
+        {viewBadge > 0 ? <NativeTabs.Trigger.Badge>{viewBadge > 99 ? '99+' : String(viewBadge)}</NativeTabs.Trigger.Badge> : null}
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="profile">
         <NativeTabs.Trigger.Icon sf={{ default: 'person', selected: 'person.fill' }} />
@@ -43,6 +56,11 @@ function ClassicTabLayout() {
   const isDark = colorScheme === 'dark';
   const isIOS = Platform.OS === 'ios';
   const isWeb = Platform.OS === 'web';
+  const notifications = useGetNotifications({ query: { refetchInterval: 15_000 } });
+  const counts = notifications.data?.unreadCounts;
+  const matchBadge = counts ? counts.matches + counts.likes : 0;
+  const messageBadge = counts?.messages ?? 0;
+  const viewBadge = counts?.views ?? 0;
 
   return (
     <Tabs
@@ -95,6 +113,7 @@ function ClassicTabLayout() {
         name="matches"
         options={{
           title: 'Matches',
+          tabBarBadge: matchBadge || undefined,
           tabBarIcon: ({ color }) => <Feather name="heart" size={21} color={typeof color === 'string' ? color : colors.primary} />,
         }}
       />
@@ -102,7 +121,16 @@ function ClassicTabLayout() {
         name="chats"
         options={{
           title: 'Chat',
+          tabBarBadge: messageBadge || undefined,
           tabBarIcon: ({ color }) => <Feather name="message-circle" size={21} color={typeof color === 'string' ? color : colors.primary} />,
+        }}
+      />
+      <Tabs.Screen
+        name="views"
+        options={{
+          title: 'Views',
+          tabBarBadge: viewBadge || undefined,
+          tabBarIcon: ({ color }) => <Feather name="eye" size={21} color={typeof color === 'string' ? color : colors.primary} />,
         }}
       />
       <Tabs.Screen

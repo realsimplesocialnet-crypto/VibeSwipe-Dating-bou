@@ -25,6 +25,8 @@ export const profilesTable = pgTable("vibeswipe_profiles", {
   lookingFor: text("looking_for").notNull(),
   bio: text("bio").notNull().default(""),
   city: text("city").notNull().default(""),
+  country: text("country"),
+  state: text("state"),
   interests: text("interests").array().notNull().default([]),
   photos: text("photos").array().notNull().default([]),
   videoUrl: text("video_url"),
@@ -44,6 +46,18 @@ export const profilesTable = pgTable("vibeswipe_profiles", {
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export const profileSetupDraftsTable = pgTable("vibeswipe_profile_setup_drafts", {
+  userId: text("user_id").primaryKey(),
+  step: integer("step").notNull().default(1),
+  data: jsonb("data")
+    .$type<Record<string, unknown>>()
+    .notNull()
+    .default({}),
   updatedAt: timestamp("updated_at", { withTimezone: true })
     .notNull()
     .defaultNow(),

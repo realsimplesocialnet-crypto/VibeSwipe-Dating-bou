@@ -2,7 +2,8 @@ import React, { useEffect, useState } from "react";
 import { ClerkLoaded, ClerkProvider, useAuth } from "@clerk/expo";
 import { tokenCache } from "@clerk/expo/token-cache";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { setAuthTokenGetter, setBaseUrl } from "@workspace/api-client-react";
+import { setAuthTokenGetter, setBaseUrl, useHeartbeatPresence } from "@workspace/api-client-react";
+import { AppState } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -40,6 +41,8 @@ function RootLayoutNav() {
       <Stack.Screen name="chat/[matchId]" />
       <Stack.Screen name="edit-profile" />
       <Stack.Screen name="settings" />
+      <Stack.Screen name="notifications" />
+      <Stack.Screen name="profile/[profileId]" />
     </Stack>
   );
 }
@@ -69,7 +72,34 @@ function AuthenticatedApi({ children }: { children: React.ReactNode }) {
   }, [getToken]);
 
   if (!ready) return null;
-  return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
+  return (
+    <QueryClientProvider client={queryClient}>
+      <PresenceHeartbeat />
+      {children}
+    </QueryClientProvider>
+  );
+}
+
+function PresenceHeartbeat() {
+  const { isLoaded, isSignedIn } = useAuth();
+  const heartbeat = useHeartbeatPresence();
+  useEffect(() => {
+    if (!isLoaded || !isSignedIn) return;
+    const send = (isActive: boolean) => heartbeat.mutate({ data: { isActive } });
+    if (AppState.currentState === "active") send(true);
+    const interval = setInterval(() => {
+      if (AppState.currentState === "active") send(true);
+    }, 20_000);
+    const subscription = AppState.addEventListener("change", (state) => {
+      send(state === "active");
+    });
+    return () => {
+      clearInterval(interval);
+      subscription.remove();
+      send(false);
+    };
+  }, [heartbeat.mutate, isLoaded, isSignedIn]);
+  return null;
 }
 
 export default function RootLayout() {

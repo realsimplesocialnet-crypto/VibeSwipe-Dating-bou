@@ -36,6 +36,10 @@ export interface Profile {
   lookingFor: string;
   bio: string;
   city: string;
+  /** @nullable */
+  country: string | null;
+  /** @nullable */
+  state: string | null;
   interests: string[];
   photos: string[];
   /** @nullable */
@@ -71,6 +75,16 @@ export interface ProfileInput {
   /** @maxLength 100 */
   city: string;
   /**
+     * @maxLength 100
+     * @nullable
+     */
+  country: string | null;
+  /**
+     * @maxLength 100
+     * @nullable
+     */
+  state: string | null;
+  /**
      * @maxItems 12
      * @items.maxLength 32
      */
@@ -87,6 +101,30 @@ export interface ProfileInput {
      */
   videoUrl?: string | null;
   preferences: ProfilePreferences;
+}
+
+export type OnboardingDraftData = { [key: string]: unknown };
+
+export interface OnboardingDraft {
+  /**
+     * @minimum 1
+     * @maximum 12
+     */
+  step: number;
+  data: OnboardingDraftData;
+  /** @nullable */
+  updatedAt: string | null;
+}
+
+export type OnboardingDraftInputData = { [key: string]: unknown };
+
+export interface OnboardingDraftInput {
+  /**
+     * @minimum 1
+     * @maximum 12
+     */
+  step: number;
+  data: OnboardingDraftInputData;
 }
 
 export type ReactionInputType = typeof ReactionInputType[keyof typeof ReactionInputType];

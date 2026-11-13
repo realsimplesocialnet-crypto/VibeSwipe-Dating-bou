@@ -5,8 +5,10 @@ import {
   useBlockProfile,
   useDeleteChat,
   useGetBlockedProfiles,
+  useGetIcebreakers,
   useGetMatches,
   useReportProfile,
+  useSendMessage,
   useUnblockProfile,
   useUnmatchMatch,
   type Profile,
@@ -49,12 +51,14 @@ export default function MatchesScreen() {
   const colors = useColors();
   const queryClient = useQueryClient();
   const matches = useGetMatches();
+  const icebreakers = useGetIcebreakers();
   const blockedProfiles = useGetBlockedProfiles();
   const blockProfile = useBlockProfile();
   const unblockProfile = useUnblockProfile();
   const reportProfile = useReportProfile();
   const deleteChat = useDeleteChat();
   const unmatch = useUnmatchMatch();
+  const sendMessage = useSendMessage();
   const [actionTarget, setActionTarget] = useState<ActionTarget | null>(null);
   const [showReportReasons, setShowReportReasons] = useState(false);
   const data = matches.data ?? [];
@@ -91,6 +95,16 @@ export default function MatchesScreen() {
       Alert.alert("Report submitted", "Thank you. We’ll review this profile.");
     } catch {
       Alert.alert("Could not submit report", "Please try again.");
+    }
+  }
+
+  async function sendIcebreaker(matchId: string, question: string) {
+    try {
+      await sendMessage.mutateAsync({ matchId, data: { content: question } });
+      await queryClient.invalidateQueries({ queryKey: getGetMatchesQueryKey() });
+      router.push({ pathname: "/chat/[matchId]", params: { matchId } } as never);
+    } catch {
+      Alert.alert("Could not send opener", "Please try again.");
     }
   }
 
@@ -165,36 +179,56 @@ export default function MatchesScreen() {
           const isBlocked = item.blockedByMe || item.blockedMe;
           const status = item.blockedByMe ? "Blocked" : item.blockedMe ? "Blocked you" : null;
           return (
-            <View style={[styles.row, { backgroundColor: colors.card, borderColor: colors.border }]}>
-              <Pressable
-                testID={`match-${item.id}`}
-                disabled={isBlocked}
-                onPress={() => router.push({ pathname: "/chat/[matchId]", params: { matchId: item.id } } as never)}
-                style={styles.rowMain}
-              >
-                <ProfileAvatar profile={item.profile} size={58} />
-                <View style={styles.copy}>
-                  <Text style={[styles.name, { color: colors.foreground }]}>{item.profile.name}, {item.profile.age}</Text>
-                  <Text numberOfLines={1} style={[styles.last, { color: colors.mutedForeground }]}>
-                    {status ?? item.lastMessage ?? "Say hello and start a conversation"}
-                  </Text>
-                </View>
-                {!isBlocked ? <Feather name="message-circle" size={20} color={colors.primary} /> : null}
-              </Pressable>
+            <View style={[styles.row, { backgroundColor: colors.card, borderColor: colors.border, flexDirection: "column", alignItems: "stretch", paddingVertical: 10 }]}>
+              <View style={styles.matchTopRow}>
+                <Pressable
+                  testID={`match-${item.id}`}
+                  disabled={isBlocked}
+                  onPress={() => router.push({ pathname: "/chat/[matchId]", params: { matchId: item.id } } as never)}
+                  style={styles.rowMain}
+                >
+                  <ProfileAvatar profile={item.profile} size={58} />
+                  <View style={styles.copy}>
+                    <Text style={[styles.name, { color: colors.foreground }]}>{item.profile.name}, {item.profile.age}</Text>
+                    <Text numberOfLines={1} style={[styles.last, { color: colors.mutedForeground }]}>
+                      {status ?? item.lastMessage ?? "Say hello and start a conversation"}
+                    </Text>
+                  </View>
+                  {!isBlocked ? <Feather name="message-circle" size={20} color={colors.primary} /> : null}
+                </Pressable>
+                <Pressable
+                  accessibilityLabel={`Actions for ${item.profile.name}`}
+                  testID={`match-actions-${item.id}`}
+                  onPress={() => openActions({
+                    profile: item.profile,
+                    matchId: item.id,
+                    blockedByMe: item.blockedByMe,
+                    blockedMe: item.blockedMe,
+                  })}
+                  style={styles.actionTrigger}
+                >
+                  <Feather name="more-horizontal" size={21} color={colors.mutedForeground} />
+                </Pressable>
+              </View>
               {status ? <Text style={[styles.blockedLabel, { color: colors.destructive }]}>{status}</Text> : null}
-              <Pressable
-                accessibilityLabel={`Actions for ${item.profile.name}`}
-                testID={`match-actions-${item.id}`}
-                onPress={() => openActions({
-                  profile: item.profile,
-                  matchId: item.id,
-                  blockedByMe: item.blockedByMe,
-                  blockedMe: item.blockedMe,
-                })}
-                style={styles.actionTrigger}
-              >
-                <Feather name="more-horizontal" size={21} color={colors.mutedForeground} />
-              </Pressable>
+              {!isBlocked && !item.lastMessage && icebreakers.data?.length ? (
+                <View style={styles.icebreakerPanel}>
+                  <Text style={[styles.icebreakerHeading, { color: colors.mutedForeground }]}>Send a first message</Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.icebreakerList}>
+                    {icebreakers.data.slice(0, 3).map((prompt) => (
+                      <Pressable
+                        key={prompt.id}
+                        disabled={sendMessage.isPending}
+                        onPress={() => void sendIcebreaker(item.id, prompt.question)}
+                        style={[styles.icebreakerChip, { borderColor: colors.border, backgroundColor: colors.background }]}
+                      >
+                        <Text numberOfLines={2} style={[styles.icebreakerText, { color: colors.foreground }]}>{prompt.question}</Text>
+                        <Feather name="arrow-up-right" size={13} color={colors.primary} />
+                      </Pressable>
+                    ))}
+                  </ScrollView>
+                </View>
+              ) : null}
             </View>
           );
         }}
@@ -350,7 +384,13 @@ const styles = StyleSheet.create({
   loading: { marginTop: 40 },
   list: { paddingBottom: 18 },
   row: { minHeight: 88, flexDirection: "row", alignItems: "center", gap: 8, borderBottomWidth: StyleSheet.hairlineWidth, borderRadius: 14, paddingHorizontal: 11, marginBottom: 9 },
+  matchTopRow: { flexDirection: "row", alignItems: "center", gap: 4 },
   rowMain: { flex: 1, minHeight: 78, flexDirection: "row", alignItems: "center", gap: 11 },
+  icebreakerPanel: { paddingTop: 8, gap: 7 },
+  icebreakerHeading: { fontSize: 10, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.6 },
+  icebreakerList: { gap: 7, paddingRight: 3 },
+  icebreakerChip: { width: 190, minHeight: 48, borderWidth: 1, borderRadius: 13, paddingHorizontal: 10, paddingVertical: 7, flexDirection: "row", alignItems: "center", gap: 7 },
+  icebreakerText: { flex: 1, fontSize: 10, fontWeight: "600" },
   copy: { flex: 1, gap: 5 },
   name: { fontSize: 15, fontWeight: "700" },
   last: { fontSize: 12 },

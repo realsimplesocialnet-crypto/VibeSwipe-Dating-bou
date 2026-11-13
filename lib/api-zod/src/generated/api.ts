@@ -18,6 +18,49 @@ export const HealthCheckResponse = zod.object({
 
 
 /**
+ * @summary Load the signed-in user's saved profile setup progress
+ */
+export const getOnboardingDraftResponseStepMax = 12;
+
+
+
+export const GetOnboardingDraftResponse = zod.object({
+  "step": zod.number().int().min(1).max(getOnboardingDraftResponseStepMax),
+  "data": zod.record(zod.string(), zod.unknown()),
+  "updatedAt": zod.coerce.date().nullable()
+})
+
+
+/**
+ * @summary Save progress from one profile setup screen
+ */
+export const saveOnboardingDraftBodyStepMax = 12;
+
+
+
+export const SaveOnboardingDraftBody = zod.object({
+  "step": zod.number().int().min(1).max(saveOnboardingDraftBodyStepMax),
+  "data": zod.record(zod.string(), zod.unknown())
+})
+
+export const saveOnboardingDraftResponseStepMax = 12;
+
+
+
+export const SaveOnboardingDraftResponse = zod.object({
+  "step": zod.number().int().min(1).max(saveOnboardingDraftResponseStepMax),
+  "data": zod.record(zod.string(), zod.unknown()),
+  "updatedAt": zod.coerce.date().nullable()
+})
+
+
+/**
+ * @summary Clear completed profile setup progress
+ */
+export const ClearOnboardingDraftResponse = zod.void()
+
+
+/**
  * @summary Get the signed-in user's profile
  */
 export const getMyProfileResponsePreferencesAgeMinMin = 18;
@@ -38,6 +81,8 @@ export const GetMyProfileResponse = zod.object({
   "lookingFor": zod.string(),
   "bio": zod.string(),
   "city": zod.string(),
+  "country": zod.string().nullable(),
+  "state": zod.string().nullable(),
   "interests": zod.array(zod.string()),
   "photos": zod.array(zod.string()),
   "videoUrl": zod.string().nullish(),
@@ -68,6 +113,10 @@ export const saveMyProfileBodyBioMax = 500;
 
 export const saveMyProfileBodyCityMax = 100;
 
+export const saveMyProfileBodyCountryMax = 100;
+
+export const saveMyProfileBodyStateMax = 100;
+
 export const saveMyProfileBodyInterestsItemMax = 32;
 
 export const saveMyProfileBodyInterestsMax = 12;
@@ -95,6 +144,8 @@ export const SaveMyProfileBody = zod.object({
   "lookingFor": zod.string().min(1).max(saveMyProfileBodyLookingForMax),
   "bio": zod.string().max(saveMyProfileBodyBioMax),
   "city": zod.string().max(saveMyProfileBodyCityMax),
+  "country": zod.string().max(saveMyProfileBodyCountryMax).nullable(),
+  "state": zod.string().max(saveMyProfileBodyStateMax).nullable(),
   "interests": zod.array(zod.string().max(saveMyProfileBodyInterestsItemMax)).max(saveMyProfileBodyInterestsMax),
   "photos": zod.array(zod.string().max(saveMyProfileBodyPhotosItemMax)).min(1).max(saveMyProfileBodyPhotosMax),
   "videoUrl": zod.string().max(saveMyProfileBodyVideoUrlMax).nullish(),
@@ -124,6 +175,8 @@ export const SaveMyProfileResponse = zod.object({
   "lookingFor": zod.string(),
   "bio": zod.string(),
   "city": zod.string(),
+  "country": zod.string().nullable(),
+  "state": zod.string().nullable(),
   "interests": zod.array(zod.string()),
   "photos": zod.array(zod.string()),
   "videoUrl": zod.string().nullish(),
@@ -174,6 +227,8 @@ export const GetDiscoverProfilesResponseItem = zod.object({
   "lookingFor": zod.string(),
   "bio": zod.string(),
   "city": zod.string(),
+  "country": zod.string().nullable(),
+  "state": zod.string().nullable(),
   "interests": zod.array(zod.string()),
   "photos": zod.array(zod.string()),
   "videoUrl": zod.string().nullish(),
@@ -343,6 +398,8 @@ export const GetMatchesResponseItem = zod.object({
   "lookingFor": zod.string(),
   "bio": zod.string(),
   "city": zod.string(),
+  "country": zod.string().nullable(),
+  "state": zod.string().nullable(),
   "interests": zod.array(zod.string()),
   "photos": zod.array(zod.string()),
   "videoUrl": zod.string().nullish(),
@@ -643,6 +700,8 @@ export const GetWhoViewedYouResponseItem = zod.object({
   "lookingFor": zod.string(),
   "bio": zod.string(),
   "city": zod.string(),
+  "country": zod.string().nullable(),
+  "state": zod.string().nullable(),
   "interests": zod.array(zod.string()),
   "photos": zod.array(zod.string()),
   "videoUrl": zod.string().nullish(),
@@ -693,6 +752,8 @@ export const GetNotificationsResponse = zod.object({
   "lookingFor": zod.string(),
   "bio": zod.string(),
   "city": zod.string(),
+  "country": zod.string().nullable(),
+  "state": zod.string().nullable(),
   "interests": zod.array(zod.string()),
   "photos": zod.array(zod.string()),
   "videoUrl": zod.string().nullish(),
@@ -757,6 +818,8 @@ export const GetProfileByIdResponse = zod.object({
   "lookingFor": zod.string(),
   "bio": zod.string(),
   "city": zod.string(),
+  "country": zod.string().nullable(),
+  "state": zod.string().nullable(),
   "interests": zod.array(zod.string()),
   "photos": zod.array(zod.string()),
   "videoUrl": zod.string().nullish(),
@@ -793,6 +856,8 @@ export const GetBlockedProfilesResponseItem = zod.object({
   "lookingFor": zod.string(),
   "bio": zod.string(),
   "city": zod.string(),
+  "country": zod.string().nullable(),
+  "state": zod.string().nullable(),
   "interests": zod.array(zod.string()),
   "photos": zod.array(zod.string()),
   "videoUrl": zod.string().nullish(),
