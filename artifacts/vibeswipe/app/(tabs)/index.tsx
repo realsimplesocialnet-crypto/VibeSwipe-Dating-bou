@@ -41,12 +41,16 @@ function SwipeCard({
   token,
   onSwipe,
   onPressDetails,
+  topInset,
+  actionBottom,
 }: {
   profile: Profile;
   player: ReturnType<typeof useVideoPreloadQueue>["player"];
   token: string | null;
   onSwipe: (direction: SwipeDirection) => void;
   onPressDetails: () => void;
+  topInset: number;
+  actionBottom: number;
 }) {
   const colors = useColors();
   const { width, height } = useWindowDimensions();
@@ -100,7 +104,10 @@ function SwipeCard({
   const poster = profileImageSource(profile.photos[0], token);
 
   return (
-    <Animated.View {...responder.panHandlers} style={[styles.card, cardTransform]}>
+    <Animated.View
+      {...responder.panHandlers}
+      style={[styles.card, { backgroundColor: colors.discoverBackground }, cardTransform]}
+    >
       {poster ? <Image source={poster} style={StyleSheet.absoluteFill} resizeMode="cover" /> : null}
       {player && Platform.OS !== "web" ? (
         <VideoView
@@ -112,17 +119,11 @@ function SwipeCard({
         />
       ) : null}
       <LinearGradient
-        colors={["transparent", "rgba(9,7,9,0.18)", "rgba(9,7,9,0.95)"]}
-        locations={[0.25, 0.56, 1]}
+        colors={[colors.discoverGradientTop, colors.discoverGradientMiddle, colors.discoverGradientBottom]}
+        locations={[0.22, 0.54, 1]}
         style={StyleSheet.absoluteFill}
         pointerEvents="none"
       />
-      {profile.isDemo ? (
-        <View style={styles.demoBadge}>
-          <Feather name="eye" size={12} color="#ffffff" />
-          <Text style={styles.demoText}>SAMPLE PROFILE</Text>
-        </View>
-      ) : null}
       {profile.videoUrl ? (
         <Pressable
           accessibilityLabel={muted ? "Turn video sound on" : "Mute video"}
@@ -132,25 +133,24 @@ function SwipeCard({
             setMuted(next);
             if (player) player.muted = next;
           }}
-          style={styles.soundButton}
+          style={[styles.soundButton, { top: topInset + 58, backgroundColor: colors.discoverControl }]}
         >
-          <Feather name={muted ? "volume-x" : "volume-2"} size={17} color="#ffffff" />
+          <Feather name={muted ? "volume-x" : "volume-2"} size={17} color={colors.discoverForeground} />
         </Pressable>
       ) : null}
-      <Pressable onPress={onPressDetails} style={styles.cardCopy}>
-        <View style={styles.locationLine}>
-          <Feather name="map-pin" size={13} color="#ffffff" />
-          <Text style={styles.location}>{profile.city || "Nearby"}</Text>
-        </View>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`View ${profile.name}'s profile`}
+        onPress={onPressDetails}
+        style={[styles.cardCopy, { bottom: actionBottom + 88 }]}
+      >
         <View style={styles.nameLine}>
-          <Text style={styles.name}>{profile.name}, {profile.age}</Text>
-          <Feather name="chevron-up" size={20} color="#ffffff" />
+          <Text numberOfLines={1} style={[styles.name, { color: colors.discoverForeground }]}>{profile.name}</Text>
+          <Text style={[styles.age, { color: colors.discoverMuted }]}>{profile.age}</Text>
         </View>
-        <Text numberOfLines={2} style={styles.bio}>{profile.bio}</Text>
-        <View style={styles.interests}>
-          {profile.interests.slice(0, 3).map((interest) => (
-            <Text key={interest} style={styles.interest}>{interest}</Text>
-          ))}
+        <View style={styles.locationLine}>
+          <Feather name="map-pin" size={13} color={colors.discoverMuted} />
+          <Text style={[styles.location, { color: colors.discoverMuted }]}>{profile.city || "Nearby"}</Text>
         </View>
       </Pressable>
     </Animated.View>
@@ -173,6 +173,8 @@ export default function DiscoverScreen() {
   const [index, setIndex] = useState(0);
   const [banner, setBanner] = useState("");
   const [busy, setBusy] = useState(false);
+  const topInset = Math.max(insets.top, Platform.OS === "web" ? 67 : 12);
+  const actionBottom = Platform.OS === "web" ? 100 : Math.max(insets.bottom + 62, 82);
   const discoverParams = useMemo(
     () => ({ ageMin, ageMax, gender, ...(city.trim() ? { city: city.trim() } : {}) }),
     [ageMin, ageMax, city, gender],
@@ -273,22 +275,8 @@ export default function DiscoverScreen() {
   }
 
   return (
-    <View style={[styles.screen, { backgroundColor: colors.background, paddingTop: Math.max(insets.top, Platform.OS === "web" ? 67 : 8) }]}>
-      <View style={styles.header}>
-        <View>
-          <Text style={[styles.brand, { color: colors.foreground }]}>vibe<Text style={{ color: colors.primary }}>swipe</Text></Text>
-          <Text style={[styles.headerHint, { color: colors.mutedForeground }]}>Discover your next connection</Text>
-        </View>
-        <Pressable testID="open-filters" accessibilityLabel="Open discovery filters" onPress={() => setFilterOpen(true)} style={[styles.filterButton, { borderColor: colors.border, backgroundColor: colors.card }]}>
-          <Feather name="sliders" size={18} color={colors.foreground} />
-        </Pressable>
-      </View>
+    <View style={[styles.screen, { backgroundColor: colors.discoverBackground }]}>
       <View style={styles.deck}>
-        {profiles[index + 1] ? (
-          <View style={[styles.backCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <Image source={profileImageSource(profiles[index + 1].photos[0], token)} style={StyleSheet.absoluteFill} resizeMode="cover" />
-          </View>
-        ) : null}
         <SwipeCard
           key={profile.id}
           profile={profile}
@@ -296,21 +284,42 @@ export default function DiscoverScreen() {
           token={token}
           onSwipe={(direction) => void swipe(direction)}
           onPressDetails={() => setDetailOpen(true)}
+          topInset={topInset}
+          actionBottom={actionBottom}
         />
-      </View>
-      {banner ? (
-        <Pressable onPress={() => setBanner("")} style={[styles.matchBanner, { backgroundColor: colors.accent }]}>
-          <Feather name="heart" size={15} color={colors.primary} />
-          <Text style={[styles.bannerText, { color: colors.foreground }]}>{banner}</Text>
-          <Feather name="x" size={15} color={colors.mutedForeground} />
+        <Pressable
+          testID="open-filters"
+          accessibilityRole="button"
+          accessibilityLabel="Open discovery filters"
+          onPress={() => setFilterOpen(true)}
+          style={[
+            styles.filterButton,
+            { top: topInset + 8, backgroundColor: colors.discoverControl, borderColor: colors.discoverControlBorder },
+          ]}
+        >
+          <Feather name="sliders" size={18} color={colors.discoverForeground} />
         </Pressable>
-      ) : null}
-      <View style={styles.actions}>
-        <ActionButton label="Pass" icon="x" color={colors.foreground} background={colors.card} onPress={() => void swipe("pass")} testID="pass-profile" />
-        <ActionButton label="Super like" icon="star" color="#dfb44c" background={colors.card} onPress={() => void swipe("super")} testID="super-like-profile" small />
-        <ActionButton label="Like" icon="heart" color="#ffffff" background={colors.primary} onPress={() => void swipe("like")} testID="like-profile" />
+        {banner ? (
+          <Pressable
+            onPress={() => setBanner("")}
+            style={[styles.matchBanner, { backgroundColor: colors.accent }]}
+          >
+            <Feather name="heart" size={15} color={colors.primary} />
+            <Text style={[styles.bannerText, { color: colors.foreground }]}>{banner}</Text>
+            <Feather name="x" size={15} color={colors.mutedForeground} />
+          </Pressable>
+        ) : null}
+        <View style={[styles.actions, { bottom: actionBottom }]}>
+          <ActionButton label="Pass" icon="x" color={colors.discoverForeground} background={colors.discoverPass} onPress={() => void swipe("pass")} testID="pass-profile" />
+          <ActionButton label="Super like" icon="star" color={colors.discoverSuperLikeForeground} background={colors.discoverSuperLike} onPress={() => void swipe("super")} testID="super-like-profile" small />
+          <ActionButton label="Like" icon="heart" color={colors.discoverForeground} background={colors.discoverLike} onPress={() => void swipe("like")} testID="like-profile" />
+        </View>
+        {busy ? (
+          <View style={[styles.busyOverlay, { top: topInset + 66, backgroundColor: colors.discoverControl }]}>
+            <ActivityIndicator color={colors.discoverForeground} />
+          </View>
+        ) : null}
       </View>
-      {busy ? <View style={styles.busyOverlay}><ActivityIndicator color={colors.primary} /></View> : null}
 
       <Modal visible={filterOpen} transparent animationType="slide" onRequestClose={() => setFilterOpen(false)}>
         <View style={styles.modalScrim}>
@@ -391,43 +400,34 @@ function ActionButton({
   small?: boolean;
 }) {
   return (
-    <Pressable testID={testID} accessibilityLabel={label} onPress={onPress} style={({ pressed }) => [styles.actionWrap, { transform: [{ scale: pressed ? 0.93 : 1 }] }]}>
+    <Pressable testID={testID} accessibilityRole="button" accessibilityLabel={label} onPress={onPress} style={({ pressed }) => [styles.actionWrap, { transform: [{ scale: pressed ? 0.93 : 1 }] }]}>
       <View style={[styles.actionCircle, small && styles.smallAction, { backgroundColor: background }]}>
-        <Feather name={icon} size={small ? 19 : 23} color={color} />
+        <Feather name={icon} size={small ? 22 : 25} color={color} />
       </View>
-      <Text style={styles.actionLabel}>{label}</Text>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, paddingHorizontal: 18, paddingBottom: Platform.OS === "web" ? 98 : 86 },
-  header: { height: 56, flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 10 },
-  brand: { fontSize: 22, fontWeight: "800", letterSpacing: -0.7 },
-  headerHint: { fontSize: 11, marginTop: 1 },
-  filterButton: { width: 42, height: 42, borderRadius: 15, borderWidth: 1, alignItems: "center", justifyContent: "center" },
+  screen: { flex: 1, paddingHorizontal: 0, paddingBottom: 0 },
+  filterButton: { position: "absolute", zIndex: 5, right: 18, width: 44, height: 44, borderRadius: 22, borderWidth: 1, alignItems: "center", justifyContent: "center" },
   deck: { flex: 1, position: "relative", minHeight: 250 },
-  backCard: { position: "absolute", top: 9, left: 12, right: 12, bottom: -6, borderRadius: 28, overflow: "hidden", opacity: 0.52, transform: [{ scale: 0.97 }] },
-  card: { flex: 1, borderRadius: 28, overflow: "hidden", backgroundColor: "#181316" },
-  cardCopy: { position: "absolute", left: 22, right: 22, bottom: 20 },
-  locationLine: { flexDirection: "row", gap: 6, alignItems: "center", marginBottom: 4 },
-  location: { color: "#ffffff", fontSize: 12, fontWeight: "500" },
-  nameLine: { flexDirection: "row", alignItems: "center", gap: 5 },
-  name: { color: "#ffffff", fontSize: 31, fontWeight: "700", letterSpacing: -0.8 },
-  bio: { color: "rgba(255,255,255,0.88)", fontSize: 14, lineHeight: 20, marginTop: 4, maxWidth: 310 },
+  card: { flex: 1, borderRadius: 0, overflow: "hidden" },
+  cardCopy: { position: "absolute", left: 25, right: 25 },
+  locationLine: { flexDirection: "row", gap: 6, alignItems: "center", marginTop: 9 },
+  location: { fontSize: 13, fontWeight: "500" },
+  nameLine: { flexDirection: "row", alignItems: "baseline", gap: 10 },
+  name: { fontSize: 35, fontWeight: "800", letterSpacing: -1.1, flexShrink: 1 },
+  age: { fontSize: 23, fontWeight: "500" },
   interests: { flexDirection: "row", flexWrap: "wrap", gap: 7, marginTop: 12 },
-  interest: { overflow: "hidden", borderRadius: 20, color: "#ffffff", backgroundColor: "rgba(255,255,255,0.18)", paddingHorizontal: 10, paddingVertical: 6, fontSize: 11, fontWeight: "600" },
-  demoBadge: { position: "absolute", top: 17, left: 17, flexDirection: "row", alignItems: "center", gap: 6, borderRadius: 16, backgroundColor: "rgba(0,0,0,0.55)", paddingHorizontal: 10, paddingVertical: 7 },
-  demoText: { color: "#ffffff", fontSize: 9, fontWeight: "700", letterSpacing: 0.8 },
-  soundButton: { position: "absolute", top: 16, right: 16, width: 38, height: 38, borderRadius: 19, backgroundColor: "rgba(0,0,0,0.55)", alignItems: "center", justifyContent: "center" },
-  actions: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 28, paddingTop: 14, paddingBottom: 8 },
-  actionWrap: { alignItems: "center", gap: 6 },
-  actionCircle: { width: 58, height: 58, borderRadius: 29, alignItems: "center", justifyContent: "center", shadowColor: "#000", shadowOpacity: 0.18, shadowRadius: 10, elevation: 4 },
-  smallAction: { width: 46, height: 46, borderRadius: 23 },
-  actionLabel: { color: "#b6a8af", fontSize: 10, fontWeight: "600" },
-  matchBanner: { marginHorizontal: 6, marginTop: 8, borderRadius: 14, minHeight: 38, paddingHorizontal: 12, flexDirection: "row", alignItems: "center", gap: 8 },
+  soundButton: { position: "absolute", right: 20, width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center", zIndex: 3 },
+  actions: { position: "absolute", left: 0, right: 0, zIndex: 4, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 26 },
+  actionWrap: { width: 68, height: 68, alignItems: "center", justifyContent: "center" },
+  actionCircle: { width: 62, height: 62, borderRadius: 31, alignItems: "center", justifyContent: "center", shadowColor: "#000", shadowOpacity: 0.32, shadowRadius: 16, shadowOffset: { width: 0, height: 7 }, elevation: 8 },
+  smallAction: { width: 54, height: 54, borderRadius: 27 },
+  matchBanner: { position: "absolute", top: 96, left: 16, right: 16, zIndex: 5, borderRadius: 14, minHeight: 40, paddingHorizontal: 12, flexDirection: "row", alignItems: "center", gap: 8 },
   bannerText: { flex: 1, fontSize: 12, fontWeight: "600" },
-  busyOverlay: { position: "absolute", right: 14, top: 70, width: 34, height: 34, borderRadius: 17, backgroundColor: "rgba(0,0,0,0.55)", alignItems: "center", justifyContent: "center" },
+  busyOverlay: { position: "absolute", left: 18, width: 34, height: 34, borderRadius: 17, alignItems: "center", justifyContent: "center", zIndex: 4 },
   center: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12 },
   loadingText: { fontSize: 13 },
   emptyIcon: { width: 66, height: 66, borderRadius: 24, alignItems: "center", justifyContent: "center", marginBottom: 5 },

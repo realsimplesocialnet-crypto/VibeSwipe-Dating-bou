@@ -42,6 +42,20 @@ const colors = {
     accent: "#f8dce3",
     accentForeground: "#6c263d",
 
+    // Discover screen colors stay dark and high-contrast in either theme.
+    discoverBackground: "#050506",
+    discoverForeground: "#fffaf8",
+    discoverMuted: "rgba(255,255,255,0.78)",
+    discoverPass: "#df7582",
+    discoverSuperLike: "#e4b84f",
+    discoverSuperLikeForeground: "#281c08",
+    discoverLike: "#ff2d55",
+    discoverControl: "rgba(15,12,15,0.42)",
+    discoverControlBorder: "rgba(255,255,255,0.3)",
+    discoverGradientTop: "rgba(0,0,0,0)",
+    discoverGradientMiddle: "rgba(0,0,0,0.28)",
+    discoverGradientBottom: "rgba(0,0,0,0.92)",
+
     // Destructive actions (delete, error states)
     destructive: "#d44358",
     destructiveForeground: "#ffffff",
@@ -66,6 +80,21 @@ const colors = {
     mutedForeground: "#b6a8af",
     accent: "#3b202b",
     accentForeground: "#ffb1c2",
+
+    // Discover screen colors stay dark and high-contrast in either theme.
+    discoverBackground: "#050506",
+    discoverForeground: "#fffaf8",
+    discoverMuted: "rgba(255,255,255,0.78)",
+    discoverPass: "#df7582",
+    discoverSuperLike: "#e4b84f",
+    discoverSuperLikeForeground: "#281c08",
+    discoverLike: "#ff2d55",
+    discoverControl: "rgba(15,12,15,0.42)",
+    discoverControlBorder: "rgba(255,255,255,0.3)",
+    discoverGradientTop: "rgba(0,0,0,0)",
+    discoverGradientMiddle: "rgba(0,0,0,0.28)",
+    discoverGradientBottom: "rgba(0,0,0,0.92)",
+
     destructive: "#f05a6e",
     destructiveForeground: "#ffffff",
     border: "#332b31",
