@@ -1,0 +1,116 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+import {
+  EMPTY_SETUP,
+  buildProfileInput,
+  getOnboardingStepError,
+  runProfileCompletionOnce,
+  type SetupData,
+} from "../lib/onboardingProfile.ts";
+
+const completeSetup: SetupData = {
+  ...EMPTY_SETUP,
+  firstName: "  Sam ",
+  lastName: " Rivera  ",
+  age: "29",
+  gender: "Non-binary",
+  lookingFor: "Everyone",
+  photos: ["media:photo-one"],
+  bio: "  Loves live music. ",
+  country: "Canada",
+  countryCode: "CA",
+  state: "Ontario",
+  stateCode: "ON",
+  city: "Toronto",
+  interests: "Music, coffee, travel",
+  ageMin: "24",
+  ageMax: "38",
+  distanceKm: 100,
+};
+
+test("each required onboarding screen rejects missing or invalid input", () => {
+  const cases: Array<{ step: number; patch: Partial<SetupData>; hasRegions?: boolean }> = [
+    { step: 0, patch: { firstName: " " } },
+    { step: 1, patch: { lastName: "" } },
+    { step: 2, patch: { age: "17" } },
+    { step: 3, patch: { gender: "" } },
+    { step: 4, patch: { lookingFor: "" } },
+    { step: 5, patch: { photos: [] } },
+    { step: 5, patch: { photos: ["media:one", "media:two"] } },
+    { step: 7, patch: { countryCode: "" } },
+    { step: 8, patch: { stateCode: "" }, hasRegions: true },
+    { step: 9, patch: { city: "" } },
+    { step: 11, patch: { ageMin: "17" } },
+    { step: 11, patch: { ageMin: "40", ageMax: "39" } },
+    { step: 11, patch: { distanceKm: 501 } },
+  ];
+
+  for (const { step, patch, hasRegions = false } of cases) {
+    assert.ok(
+      getOnboardingStepError(step, { ...completeSetup, ...patch }, hasRegions),
+      `expected step ${step} to reject ${JSON.stringify(patch)}`,
+    );
+  }
+});
+
+test("valid steps accept the required details, one photo, and discovery values", () => {
+  for (const step of [0, 1, 2, 3, 4, 5, 7, 8, 9, 11]) {
+    assert.equal(getOnboardingStepError(step, completeSetup, true), null);
+  }
+  assert.equal(getOnboardingStepError(8, completeSetup, false), null);
+  assert.equal(getOnboardingStepError(6, completeSetup, false), null);
+  assert.equal(getOnboardingStepError(10, completeSetup, false), null);
+});
+
+test("the final profile payload combines details, bio, one photo, interests, and preferences", () => {
+  assert.deepEqual(buildProfileInput(completeSetup), {
+    name: "Sam Rivera",
+    age: 29,
+    gender: "Non-binary",
+    lookingFor: "Everyone",
+    bio: "Loves live music.",
+    country: "Canada",
+    state: "Ontario",
+    city: "Toronto",
+    interests: ["Music", "coffee", "travel"],
+    photos: ["media:photo-one"],
+    videoUrl: null,
+    preferences: {
+      ageMin: 24,
+      ageMax: 38,
+      gender: "Everyone",
+      distanceKm: 100,
+    },
+  });
+});
+
+test("concurrent completion attempts submit once and failed saves can be retried", async () => {
+  const guard = { current: false };
+  let saveCount = 0;
+  let releaseSave!: () => void;
+  const save = () => {
+    saveCount += 1;
+    return new Promise<void>((resolve) => {
+      releaseSave = resolve;
+    });
+  };
+
+  const first = runProfileCompletionOnce(guard, save);
+  const second = runProfileCompletionOnce(guard, save);
+  assert.equal(saveCount, 1);
+  releaseSave();
+  assert.deepEqual(await Promise.all([first, second]), [true, false]);
+
+  const retryGuard = { current: false };
+  await assert.rejects(
+    runProfileCompletionOnce(retryGuard, async () => {
+      throw new Error("temporary save failure");
+    }),
+    /temporary save failure/,
+  );
+  assert.equal(retryGuard.current, false);
+  assert.equal(
+    await runProfileCompletionOnce(retryGuard, async () => {}),
+    true,
+  );
+});

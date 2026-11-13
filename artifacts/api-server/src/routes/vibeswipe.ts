@@ -110,6 +110,7 @@ import {
   ChatMessageStreams,
   messagesAfterCursor,
 } from "../lib/chatEventStream";
+import { buildProfileValues } from "../lib/profileSetup";
 
 const router: IRouter = Router();
 const objectStorage = new ObjectStorageService();
@@ -581,22 +582,7 @@ router.put("/vibeswipe/me", async (req, res): Promise<void> => {
     res.status(400).json({ error: "Upload profile media before saving it." });
     return;
   }
-  const values = {
-    id: userId,
-    name: body.name.trim(),
-    age: body.age,
-    gender: body.gender,
-    lookingFor: body.lookingFor,
-    bio: body.bio.trim(),
-    city: body.city.trim(),
-    country: body.country,
-    state: body.state,
-    interests: body.interests,
-    photos: body.photos,
-    videoUrl: body.videoUrl ?? null,
-    preferences: body.preferences,
-    updatedAt: new Date(),
-  };
+  const values = buildProfileValues(userId, body);
   const result = await db.transaction(async (tx) => {
     const uniqueMediaIds = [...new Set(mediaIds)];
     if (uniqueMediaIds.length > 0) {

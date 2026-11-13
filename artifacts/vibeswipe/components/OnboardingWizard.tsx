@@ -23,6 +23,14 @@ import {
 import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollViewCompat";
 import { MediaPicker } from "@/components/MediaPicker";
 import { useColors } from "@/hooks/useColors";
+import {
+  asSetupData,
+  buildProfileInput,
+  EMPTY_SETUP,
+  getOnboardingStepError,
+  runProfileCompletionOnce,
+  type SetupData,
+} from "@/lib/onboardingProfile";
 
 const STEP_COUNT = 12;
 const STEPS = [
@@ -40,73 +48,9 @@ const STEPS = [
   "Preferences",
 ];
 
-type SetupData = {
-  firstName: string;
-  lastName: string;
-  age: string;
-  gender: string;
-  lookingFor: string;
-  photos: string[];
-  bio: string;
-  country: string;
-  countryCode: string;
-  state: string;
-  stateCode: string;
-  city: string;
-  interests: string;
-  ageMin: string;
-  ageMax: string;
-  distanceKm: number;
-};
-
-const EMPTY_SETUP: SetupData = {
-  firstName: "",
-  lastName: "",
-  age: "",
-  gender: "",
-  lookingFor: "",
-  photos: [],
-  bio: "",
-  country: "",
-  countryCode: "",
-  state: "",
-  stateCode: "",
-  city: "",
-  interests: "",
-  ageMin: "22",
-  ageMax: "35",
-  distanceKm: 50,
-};
-
 const COUNTRIES = Country.getAllCountries().sort((a, b) =>
   a.name.localeCompare(b.name),
 );
-
-function asSetupData(value: Record<string, unknown>): SetupData {
-  return {
-    ...EMPTY_SETUP,
-    ...value,
-    firstName: typeof value.firstName === "string" ? value.firstName : "",
-    lastName: typeof value.lastName === "string" ? value.lastName : "",
-    age: typeof value.age === "string" ? value.age : "",
-    gender: typeof value.gender === "string" ? value.gender : "",
-    lookingFor: typeof value.lookingFor === "string" ? value.lookingFor : "",
-    photos: Array.isArray(value.photos)
-      ? value.photos.filter((photo): photo is string => typeof photo === "string")
-      : [],
-    bio: typeof value.bio === "string" ? value.bio : "",
-    country: typeof value.country === "string" ? value.country : "",
-    countryCode: typeof value.countryCode === "string" ? value.countryCode : "",
-    state: typeof value.state === "string" ? value.state : "",
-    stateCode: typeof value.stateCode === "string" ? value.stateCode : "",
-    city: typeof value.city === "string" ? value.city : "",
-    interests: typeof value.interests === "string" ? value.interests : "",
-    ageMin: typeof value.ageMin === "string" ? value.ageMin : "22",
-    ageMax: typeof value.ageMax === "string" ? value.ageMax : "35",
-    distanceKm:
-      typeof value.distanceKm === "number" ? value.distanceKm : 50,
-  };
-}
 
 export function OnboardingWizard() {
   const colors = useColors();
@@ -120,6 +64,7 @@ export function OnboardingWizard() {
   const [search, setSearch] = useState("");
   const [error, setError] = useState("");
   const [hydrated, setHydrated] = useState(false);
+  const completionInFlight = useRef(false);
   const lastSavedKey = useRef("");
   const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -203,62 +148,10 @@ export function OnboardingWizard() {
 
   function validateCurrentScreen(): boolean {
     setError("");
-    if (step === 0 && !values.firstName.trim()) {
-      setError("Enter your first name to continue.");
-      return false;
-    }
-    if (step === 1 && !values.lastName.trim()) {
-      setError("Enter your last name to continue.");
-      return false;
-    }
-    if (step === 2) {
-      const age = Number(values.age);
-      if (!Number.isInteger(age) || age < 18 || age > 120) {
-        setError("You must be between 18 and 120 years old.");
-        return false;
-      }
-    }
-    if (step === 3 && !values.gender) {
-      setError("Choose a gender to continue.");
-      return false;
-    }
-    if (step === 4 && !values.lookingFor) {
-      setError("Choose who you would like to meet.");
-      return false;
-    }
-    if (step === 5 && values.photos.length === 0) {
-      setError("Add one profile picture to continue.");
-      return false;
-    }
-    if (step === 7 && !values.countryCode) {
-      setError("Select a country to continue.");
-      return false;
-    }
-    if (step === 8 && regions.length > 0 && !values.stateCode) {
-      setError("Select a state or region to continue.");
-      return false;
-    }
-    if (step === 9 && !values.city) {
-      setError("Select a city from the real location list.");
-      return false;
-    }
-    if (step === 11) {
-      const min = Number(values.ageMin);
-      const max = Number(values.ageMax);
-      if (!Number.isInteger(min) || min < 18 || min > 120) {
-        setError("Set the minimum age between 18 and 120.");
-        return false;
-      }
-      if (!Number.isInteger(max) || max < min || max > 120) {
-        setError("The maximum age must be at least the minimum and no more than 120.");
-        return false;
-      }
-      if (values.distanceKm < 1 || values.distanceKm > 500) {
-        setError("Choose a distance from 1 to 500 km.");
-        return false;
-      }
-    }
-    return true;
+    const validationError = getOnboardingStepError(step, values, regions.length > 0);
+    if (!validationError) return true;
+    setError(validationError);
+    return false;
   }
 
   async function next() {
@@ -290,35 +183,15 @@ export function OnboardingWizard() {
 
   async function complete() {
     try {
-      if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
-      await saveProfile.mutateAsync({
-        data: {
-          name: `${values.firstName.trim()} ${values.lastName.trim()}`.trim(),
-          age: Number(values.age),
-          gender: values.gender,
-          lookingFor: values.lookingFor,
-          bio: values.bio.trim(),
-          country: values.country || null,
-          state: values.state || null,
-          city: values.city,
-          interests: values.interests
-            .split(",")
-            .map((item) => item.trim())
-            .filter(Boolean)
-            .slice(0, 12),
-          photos: values.photos,
-          videoUrl: null,
-          preferences: {
-            ageMin: Number(values.ageMin),
-            ageMax: Number(values.ageMax),
-            gender: values.lookingFor,
-            distanceKm: values.distanceKm,
-          },
-        },
+      await runProfileCompletionOnce(completionInFlight, async () => {
+        if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
+        await saveProfile.mutateAsync({
+          data: buildProfileInput(values),
+        });
+        await clearDraft.mutateAsync();
+        await queryClient.invalidateQueries();
+        router.replace("/(tabs)");
       });
-      await clearDraft.mutateAsync();
-      await queryClient.invalidateQueries();
-      router.replace("/(tabs)");
     } catch {
       setError("Your profile could not be saved. Check your details and try again.");
     }
