@@ -1,5 +1,5 @@
 kind = "web"
-previewPath = "/vibeswipe-web/"
+previewPath = "/"
 title = "VibeSwipe Web"
 description = "An installable browser version of VibeSwipe Dating that lets adults create profiles, discover people, match, and chat from Android Chrome and desktop browsers."
 version = "1.0.0"
@@ -8,7 +8,7 @@ router = "path"
 
 [[services]]
 name = "web"
-paths = [ "/vibeswipe-web/" ]
+paths = [ "/" ]
 localPort = 20207
 
 [services.development]
@@ -25,4 +25,4 @@ to = "/index.html"
 
 [services.env]
 PORT = "20207"
-BASE_PATH = "/vibeswipe-web/"
+BASE_PATH = "/"
