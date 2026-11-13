@@ -24,6 +24,21 @@ export type TranscodedProfileVideo = {
   height: number;
 };
 
+export function validateTranscodedProfileVideo(video: TranscodedProfileVideo): void {
+  if (!Number.isFinite(video.size) || video.size <= 0) {
+    throw new ProfileVideoValidationError("This video could not be compressed.");
+  }
+  if (video.size > MAX_PROFILE_VIDEO_BYTES) {
+    throw new ProfileVideoValidationError("The compressed video must be 50 MB or smaller.");
+  }
+  if (video.duration > MAX_PROFILE_VIDEO_DURATION_SECONDS) {
+    throw new ProfileVideoValidationError("Profile videos must be 30 seconds or shorter.");
+  }
+  if (Math.max(video.width, video.height) > 1280 || Math.min(video.width, video.height) > 720) {
+    throw new ProfileVideoValidationError("The compressed video exceeds the 720p limit.");
+  }
+}
+
 type ProbeResult = {
   streams?: Array<{ width?: number; height?: number }>;
   format?: { duration?: string };
@@ -118,20 +133,8 @@ export async function transcodeProfileVideo(
     ]);
 
     const outputStats = await stat(outputPath);
-    if (!outputStats.size) {
-      throw new ProfileVideoValidationError("This video could not be compressed.");
-    }
-    if (outputStats.size > MAX_PROFILE_VIDEO_BYTES) {
-      throw new ProfileVideoValidationError("The compressed video must be 50 MB or smaller.");
-    }
-
     const video = await probeVideo(outputPath);
-    if (video.duration > MAX_PROFILE_VIDEO_DURATION_SECONDS) {
-      throw new ProfileVideoValidationError("Profile videos must be 30 seconds or shorter.");
-    }
-    if (Math.max(video.width, video.height) > 1280 || Math.min(video.width, video.height) > 720) {
-      throw new ProfileVideoValidationError("The compressed video exceeds the 720p limit.");
-    }
+    validateTranscodedProfileVideo({ ...video, size: outputStats.size });
 
     const destination = source.createWriteStream({
       resumable: false,

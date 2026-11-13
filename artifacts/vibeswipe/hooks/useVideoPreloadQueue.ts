@@ -3,6 +3,7 @@ import { createVideoPlayer, type VideoPlayer } from "expo-video";
 import { useEffect, useRef, useState } from "react";
 import type { Profile } from "@workspace/api-client-react";
 import { profileVideoSource } from "@/lib/media";
+import { getQueuedVideoProfiles } from "@/lib/videoPreloadQueue";
 
 export function useVideoPreloadQueue(profiles: Profile[], activeIndex: number) {
   const { getToken } = useAuth();
@@ -17,9 +18,7 @@ export function useVideoPreloadQueue(profiles: Profile[], activeIndex: number) {
       if (cancelled) return;
       setToken(sessionToken);
       const activeProfile = profiles[activeIndex];
-      const queueProfiles = profiles
-        .slice(activeIndex, activeIndex + 3)
-        .filter((profile) => !!profile.videoUrl);
+      const queueProfiles = getQueuedVideoProfiles(profiles, activeIndex);
       const queuedIds = new Set(queueProfiles.map((profile) => profile.id));
 
       for (const profile of queueProfiles) {
