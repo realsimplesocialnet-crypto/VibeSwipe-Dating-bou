@@ -106,6 +106,111 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ReactionResult"
+        "429":
+          description: Daily Super Like limit reached
+  /vibeswipe/reactions/undo:
+    delete:
+      operationId: undoLastPass
+      tags: [vibeswipe]
+      summary: Undo the signed-in user's most recent pass
+      responses:
+        "200":
+          description: Result of the undo
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UndoReactionResult"
+  /vibeswipe/super-likes:
+    get:
+      operationId: getSuperLikeStatus
+      tags: [vibeswipe]
+      summary: Get today's remaining Super Likes
+      responses:
+        "200":
+          description: Remaining Super Likes and next reset time
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuperLikeStatus"
+  /vibeswipe/likes/status:
+    get:
+      operationId: getDailyLikeStatus
+      tags: [vibeswipe]
+      summary: Get remaining free likes and the next reset time
+      responses:
+        "200":
+          description: Daily like allowance
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DailyLikeStatus"
+  /vibeswipe/boost:
+    get:
+      operationId: getBoostStatus
+      tags: [vibeswipe]
+      summary: Get Boost activity and cooldown status
+      responses:
+        "200":
+          description: Current Boost status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BoostStatus"
+    post:
+      operationId: activateBoost
+      tags: [vibeswipe]
+      summary: Activate a 30-minute profile Boost
+      responses:
+        "200":
+          description: Boost activated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BoostStatus"
+        "409":
+          description: Boost is active or still cooling down
+  /vibeswipe/icebreakers:
+    get:
+      operationId: getIcebreakers
+      tags: [vibeswipe]
+      summary: List suggested first-message questions
+      responses:
+        "200":
+          description: Active icebreaker questions
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Icebreaker" }
+  /vibeswipe/settings:
+    get:
+      operationId: getVibeSwipeSettings
+      tags: [vibeswipe]
+      summary: Get the signed-in user's privacy settings
+      responses:
+        "200":
+          description: User privacy settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VibeSwipeSettings"
+    put:
+      operationId: updateVibeSwipeSettings
+      tags: [vibeswipe]
+      summary: Save the signed-in user's privacy settings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VibeSwipeSettings"
+      responses:
+        "200":
+          description: Saved privacy settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VibeSwipeSettings"
         "404":
           description: Target profile not found
   /vibeswipe/matches:
@@ -407,6 +512,12 @@ paths:
       operationId: heartbeatPresence
       tags: [vibeswipe]
       summary: Record that the signed-in user is active
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PresenceHeartbeatInput"
       responses:
         "204":
           description: Presence updated
@@ -640,6 +751,7 @@ components:
         videoUrl:
           type: [string, "null"]
         isDemo: { type: boolean }
+        superLikedYou: { type: boolean }
         preferences:
           $ref: "#/components/schemas/ProfilePreferences"
       required: [id, name, age, gender, lookingFor, bio, city, interests, photos, isDemo, preferences]
@@ -681,6 +793,47 @@ components:
           type: [string, "null"]
           format: uuid
       required: [matched]
+    UndoReactionResult:
+      type: object
+      properties:
+        undone: { type: boolean }
+        targetUserId: { type: [string, "null"] }
+      required: [undone, targetUserId]
+    SuperLikeStatus:
+      type: object
+      properties:
+        remaining: { type: integer, minimum: 0, maximum: 1 }
+        resetsAt: { type: [string, "null"], format: date-time }
+      required: [remaining, resetsAt]
+    DailyLikeStatus:
+      type: object
+      properties:
+        limit: { type: integer, minimum: 1 }
+        remaining: { type: integer, minimum: 0 }
+        resetAt: { type: [string, "null"], format: date-time }
+      required: [limit, remaining, resetAt]
+    BoostStatus:
+      type: object
+      properties:
+        active: { type: boolean }
+        available: { type: boolean }
+        boostStartTime: { type: [string, "null"], format: date-time }
+        boostEndTime: { type: [string, "null"], format: date-time }
+        nextBoostAvailableTime: { type: [string, "null"], format: date-time }
+      required: [active, available, boostStartTime, boostEndTime, nextBoostAvailableTime]
+    Icebreaker:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        question: { type: string, minLength: 1, maxLength: 240 }
+      required: [id, question]
+    VibeSwipeSettings:
+      type: object
+      properties:
+        incognito: { type: boolean }
+        travelMode: { type: boolean }
+        travelCity: { type: [string, "null"], maxLength: 100 }
+      required: [incognito, travelMode, travelCity]
     Match:
       type: object
       properties:
@@ -754,6 +907,11 @@ components:
         isOnline: { type: boolean }
         lastSeenAt: { type: [string, "null"], format: date-time }
       required: [isOnline, lastSeenAt]
+    PresenceHeartbeatInput:
+      type: object
+      properties:
+        isActive: { type: boolean }
+      required: [isActive]
     ReadReceiptStatus:
       type: object
       properties:

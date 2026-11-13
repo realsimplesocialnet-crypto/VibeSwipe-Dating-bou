@@ -3,6 +3,10 @@ import {
   BlockProfileBody,
   CreateReactionBody,
   CreateReactionResponse,
+  GetDailyLikeStatusResponse,
+  GetIcebreakersResponse,
+  GetSuperLikeStatusResponse,
+  GetVibeSwipeSettingsResponse,
   ClearChatParams,
   ClearChatResponse,
   DeleteChatParams,
@@ -11,6 +15,7 @@ import {
   DeleteMessageParams,
   DeleteMessageResponse,
   GetBlockedProfilesResponse,
+  GetBoostStatusResponse,
   GetDiscoverProfilesQueryParams,
   GetDiscoverProfilesResponse,
   GetMatchesResponse,
@@ -37,6 +42,7 @@ import {
   SendMessageBody,
   SendMessageParams,
   SendMessageResponse,
+  UndoLastPassResponse,
   UnblockProfileParams,
   UnblockProfileResponse,
   BlockProfileResponse,
@@ -44,6 +50,9 @@ import {
   UpdateChatThemeBody,
   UpdateChatThemeParams,
   UpdateChatThemeResponse,
+  UpdateVibeSwipeSettingsBody,
+  UpdateVibeSwipeSettingsResponse,
+  ActivateBoostResponse,
   UpdateTypingStatusBody,
   UpdateTypingStatusParams,
   UpdateTypingStatusResponse,
@@ -51,6 +60,8 @@ import {
 import {
   blocksTable,
   db,
+  dailyLikeUsageTable,
+  icebreakersTable,
   matchUserStateTable,
   matchesTable,
   mediaAssetsTable,
@@ -59,6 +70,7 @@ import {
   profilesTable,
   reactionsTable,
   reportsTable,
+  vibeSwipeReadReceiptsTable,
 } from "@workspace/db";
 import { and, asc, desc, eq, gt, gte, inArray, lte, or } from "drizzle-orm";
 import { Router, type IRouter, type Request, type Response } from "express";
@@ -70,6 +82,7 @@ import {
   transcodeProfileVideo,
 } from "../lib/profileVideoTranscoder";
 import { requireAuth } from "../middlewares/auth";
+import { createVibeSwipeNotification } from "../lib/vibeswipeNotifications";
 
 const router: IRouter = Router();
 const objectStorage = new ObjectStorageService();
@@ -80,6 +93,8 @@ const defaultPreferences = {
   gender: "Everyone",
   distanceKm: 50,
 };
+const DAILY_LIKE_LIMIT = 50;
+const DAILY_LIKE_RESET_MS = 24 * 60 * 60 * 1000;
 
 const demoProfiles = [
   {
@@ -114,7 +129,10 @@ function currentUserId(req: Request): string {
   return userId;
 }
 
-function projectMessage(row: typeof messagesTable.$inferSelect): Message {
+function projectMessage(
+  row: typeof messagesTable.$inferSelect,
+  isRead = false,
+): Message {
   const deleted = row.deletedForEveryone;
   return {
     ...row,
@@ -123,8 +141,7 @@ function projectMessage(row: typeof messagesTable.$inferSelect): Message {
     mediaType: deleted ? null : (row.mediaType as Message["mediaType"]),
     mediaDuration: deleted ? null : row.mediaDuration,
     deletedForEveryone: deleted,
-    // Read receipt storage is provided by the host application separately.
-    isRead: false,
+    isRead,
   };
 }
 
@@ -201,6 +218,85 @@ async function saveMatchUserState(
       target: [matchUserStateTable.userId, matchUserStateTable.matchId],
       set: values,
     });
+}
+
+async function getDailyLikeStatus(userId: string) {
+  const [usage] = await db
+    .select()
+    .from(dailyLikeUsageTable)
+    .where(eq(dailyLikeUsageTable.userId, userId))
+    .limit(1);
+  const now = new Date();
+  if (usage?.resetAt && usage.resetAt <= now) {
+    await db
+      .update(dailyLikeUsageTable)
+      .set({ likeCount: 0, resetAt: null })
+      .where(eq(dailyLikeUsageTable.userId, userId));
+    return { limit: DAILY_LIKE_LIMIT, remaining: DAILY_LIKE_LIMIT, resetAt: null };
+  }
+  return {
+    limit: DAILY_LIKE_LIMIT,
+    remaining: Math.max(0, DAILY_LIKE_LIMIT - (usage?.likeCount ?? 0)),
+    resetAt: usage?.resetAt ?? null,
+  };
+}
+
+async function reserveDailyLike(
+  userId: string,
+): Promise<{ allowed: boolean; status: Awaited<ReturnType<typeof getDailyLikeStatus>> }> {
+  return db.transaction(async (tx) => {
+    await tx
+      .insert(dailyLikeUsageTable)
+      .values({ userId, likeCount: 0 })
+      .onConflictDoNothing();
+    const [usage] = await tx
+      .select()
+      .from(dailyLikeUsageTable)
+      .where(eq(dailyLikeUsageTable.userId, userId))
+      .for("update")
+      .limit(1);
+    if (!usage) throw new Error("Like allowance row could not be loaded.");
+
+    const now = new Date();
+    let likeCount = usage.likeCount;
+    let resetAt = usage.resetAt;
+    if (resetAt && resetAt <= now) {
+      likeCount = 0;
+      resetAt = null;
+    }
+    if (likeCount >= DAILY_LIKE_LIMIT) {
+      resetAt ??= new Date(now.getTime() + DAILY_LIKE_RESET_MS);
+      await tx
+        .update(dailyLikeUsageTable)
+        .set({ likeCount, resetAt })
+        .where(eq(dailyLikeUsageTable.userId, userId));
+      return {
+        allowed: false,
+        status: {
+          limit: DAILY_LIKE_LIMIT,
+          remaining: 0,
+          resetAt,
+        },
+      };
+    }
+
+    likeCount += 1;
+    if (likeCount >= DAILY_LIKE_LIMIT) {
+      resetAt = new Date(now.getTime() + DAILY_LIKE_RESET_MS);
+    }
+    await tx
+      .update(dailyLikeUsageTable)
+      .set({ likeCount, resetAt })
+      .where(eq(dailyLikeUsageTable.userId, userId));
+    return {
+      allowed: true,
+      status: {
+        limit: DAILY_LIKE_LIMIT,
+        remaining: DAILY_LIKE_LIMIT - likeCount,
+        resetAt,
+      },
+    };
+  });
 }
 router.get("/vibeswipe/me", async (req, res): Promise<void> => {
   const [profile] = await db
@@ -284,6 +380,211 @@ router.put("/vibeswipe/me", async (req, res): Promise<void> => {
   res.json(SaveMyProfileResponse.parse(profile));
 });
 
+router.get("/vibeswipe/settings", async (req, res): Promise<void> => {
+  const [profile] = await db
+    .select({
+      incognito: profilesTable.incognito,
+      travelMode: profilesTable.travelMode,
+      travelCity: profilesTable.travelCity,
+    })
+    .from(profilesTable)
+    .where(eq(profilesTable.id, currentUserId(req)))
+    .limit(1);
+  if (!profile) {
+    res.status(404).json({ error: "Profile not found." });
+    return;
+  }
+  res.json(GetVibeSwipeSettingsResponse.parse(profile));
+});
+
+router.put("/vibeswipe/settings", async (req, res): Promise<void> => {
+  const body = UpdateVibeSwipeSettingsBody.safeParse(req.body);
+  if (!body.success) {
+    res.status(400).json({ error: body.error.message });
+    return;
+  }
+  const [profile] = await db
+    .update(profilesTable)
+    .set({
+      incognito: body.data.incognito,
+      travelMode: body.data.travelMode,
+      travelCity: body.data.travelCity?.trim() || null,
+      updatedAt: new Date(),
+    })
+    .where(eq(profilesTable.id, currentUserId(req)))
+    .returning({
+      incognito: profilesTable.incognito,
+      travelMode: profilesTable.travelMode,
+      travelCity: profilesTable.travelCity,
+    });
+  if (!profile) {
+    res.status(404).json({ error: "Profile not found." });
+    return;
+  }
+  res.json(UpdateVibeSwipeSettingsResponse.parse(profile));
+});
+
+router.get("/vibeswipe/icebreakers", async (_req, res): Promise<void> => {
+  const prompts = [
+    "What’s your favorite thing to do on weekends?",
+    "Coffee or drinks?",
+    "What song are you playing on repeat?",
+  ];
+  const [active] = await db
+    .select({ id: icebreakersTable.id })
+    .from(icebreakersTable)
+    .where(eq(icebreakersTable.isActive, true))
+    .limit(1);
+  if (!active) {
+    await db
+      .insert(icebreakersTable)
+      .values(prompts.map((question) => ({ question })))
+      .onConflictDoNothing({ target: icebreakersTable.question });
+  }
+  const rows = await db
+    .select({ id: icebreakersTable.id, question: icebreakersTable.question })
+    .from(icebreakersTable)
+    .where(eq(icebreakersTable.isActive, true))
+    .orderBy(asc(icebreakersTable.createdAt));
+  res.json(GetIcebreakersResponse.parse(rows));
+});
+
+router.get("/vibeswipe/super-likes", async (req, res): Promise<void> => {
+  const userId = currentUserId(req);
+  const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const [recent] = await db
+    .select({ createdAt: reactionsTable.createdAt })
+    .from(reactionsTable)
+    .where(
+      and(
+        eq(reactionsTable.fromUserId, userId),
+        eq(reactionsTable.type, "super"),
+        gt(reactionsTable.createdAt, cutoff),
+      ),
+    )
+    .orderBy(desc(reactionsTable.createdAt))
+    .limit(1);
+  const resetsAt = recent
+    ? new Date(recent.createdAt.getTime() + 24 * 60 * 60 * 1000)
+    : null;
+  res.json(
+    GetSuperLikeStatusResponse.parse({
+      remaining: recent ? 0 : 1,
+      resetsAt,
+    }),
+  );
+});
+
+router.get("/vibeswipe/likes/status", async (req, res): Promise<void> => {
+  const status = await getDailyLikeStatus(currentUserId(req));
+  res.json(GetDailyLikeStatusResponse.parse(status));
+});
+
+router.get("/vibeswipe/boost", async (req, res): Promise<void> => {
+  const [profile] = await db
+    .select({
+      boostStartTime: profilesTable.boostStartTime,
+      boostEndTime: profilesTable.boostEndTime,
+      nextBoostAvailableTime: profilesTable.nextBoostAvailableTime,
+    })
+    .from(profilesTable)
+    .where(eq(profilesTable.id, currentUserId(req)))
+    .limit(1);
+  if (!profile) {
+    res.status(404).json({ error: "Profile not found." });
+    return;
+  }
+  const now = new Date();
+  const active = Boolean(
+    profile.boostStartTime &&
+      profile.boostEndTime &&
+      profile.boostStartTime <= now &&
+      profile.boostEndTime > now,
+  );
+  res.json(
+    GetBoostStatusResponse.parse({
+      active,
+      available:
+        !active &&
+        (!profile.nextBoostAvailableTime || profile.nextBoostAvailableTime <= now),
+      boostStartTime: profile.boostStartTime,
+      boostEndTime: profile.boostEndTime,
+      nextBoostAvailableTime: profile.nextBoostAvailableTime,
+    }),
+  );
+});
+
+router.post("/vibeswipe/boost", async (req, res): Promise<void> => {
+  const userId = currentUserId(req);
+  const [profile] = await db
+    .select({
+      boostEndTime: profilesTable.boostEndTime,
+      nextBoostAvailableTime: profilesTable.nextBoostAvailableTime,
+    })
+    .from(profilesTable)
+    .where(eq(profilesTable.id, userId))
+    .limit(1);
+  if (!profile) {
+    res.status(404).json({ error: "Profile not found." });
+    return;
+  }
+  const now = new Date();
+  if (
+    (profile.boostEndTime && profile.boostEndTime > now) ||
+    (profile.nextBoostAvailableTime && profile.nextBoostAvailableTime > now)
+  ) {
+    res.status(409).json({ error: "Boost is active or still cooling down." });
+    return;
+  }
+  const boostEndTime = new Date(now.getTime() + 30 * 60 * 1000);
+  const nextBoostAvailableTime = new Date(boostEndTime.getTime() + 24 * 60 * 60 * 1000);
+  const [updated] = await db
+    .update(profilesTable)
+    .set({
+      boostStartTime: now,
+      boostEndTime,
+      nextBoostAvailableTime,
+      updatedAt: now,
+    })
+    .where(eq(profilesTable.id, userId))
+    .returning({
+      boostStartTime: profilesTable.boostStartTime,
+      boostEndTime: profilesTable.boostEndTime,
+      nextBoostAvailableTime: profilesTable.nextBoostAvailableTime,
+    });
+  const response = {
+    active: true,
+    available: false,
+    ...updated,
+  };
+  res.json(ActivateBoostResponse.parse(response));
+});
+
+router.delete("/vibeswipe/reactions/undo", async (req, res): Promise<void> => {
+  const userId = currentUserId(req);
+  const [latest] = await db
+    .select({
+      id: reactionsTable.id,
+      toUserId: reactionsTable.toUserId,
+      type: reactionsTable.type,
+    })
+    .from(reactionsTable)
+    .where(eq(reactionsTable.fromUserId, userId))
+    .orderBy(desc(reactionsTable.createdAt), desc(reactionsTable.id))
+    .limit(1);
+  if (!latest || latest.type !== "pass") {
+    res.json(UndoLastPassResponse.parse({ undone: false, targetUserId: null }));
+    return;
+  }
+  await db.delete(reactionsTable).where(eq(reactionsTable.id, latest.id));
+  res.json(
+    UndoLastPassResponse.parse({
+      undone: true,
+      targetUserId: latest.toUserId,
+    }),
+  );
+});
+
 router.get("/vibeswipe/discover", async (req, res): Promise<void> => {
   const params = GetDiscoverProfilesQueryParams.safeParse(req.query);
   if (!params.success) {
@@ -307,9 +608,15 @@ router.get("/vibeswipe/discover", async (req, res): Promise<void> => {
   const gender = params.data.gender ?? ownProfile.preferences.gender;
   const conditions = [gte(profilesTable.age, ageMin), lte(profilesTable.age, ageMax)];
   if (gender && gender !== "Everyone") conditions.push(eq(profilesTable.gender, gender));
-  if (params.data.city) conditions.push(eq(profilesTable.city, params.data.city));
+  const discoveryCity = ownProfile.travelMode
+    ? ownProfile.travelCity
+    : params.data.city;
+  if (discoveryCity?.trim()) {
+    conditions.push(eq(profilesTable.city, discoveryCity.trim()));
+  }
 
-  const [reacted, blockRows, candidates] = await Promise.all([
+  const [reacted, blockRows, candidates, incognitoLikes, incomingSuperLikes] =
+    await Promise.all([
     db
       .select({ id: reactionsTable.toUserId })
       .from(reactionsTable)
@@ -328,13 +635,49 @@ router.get("/vibeswipe/discover", async (req, res): Promise<void> => {
       .from(profilesTable)
       .where(and(...conditions))
       .limit(100),
+    db
+      .select({ id: reactionsTable.fromUserId })
+      .from(reactionsTable)
+      .where(
+        and(
+          eq(reactionsTable.toUserId, userId),
+          inArray(reactionsTable.type, ["like", "super"]),
+        ),
+      ),
+    db
+      .select({ id: reactionsTable.fromUserId })
+      .from(reactionsTable)
+      .where(
+        and(
+          eq(reactionsTable.toUserId, userId),
+          eq(reactionsTable.type, "super"),
+        ),
+      ),
   ]);
   const excluded = new Set([
     userId,
     ...reacted.map((row) => row.id),
     ...blockRows.flatMap((row) => [row.blockerId, row.blockedId]),
   ]);
-  const profiles = candidates.filter((profile) => !excluded.has(profile.id));
+  const likedUserIds = new Set(incognitoLikes.map((row) => row.id));
+  const superLikedUserIds = new Set(incomingSuperLikes.map((row) => row.id));
+  const profiles = candidates
+    .filter(
+      (profile) =>
+        !excluded.has(profile.id) &&
+        (!profile.incognito || likedUserIds.has(profile.id)),
+    )
+    .map((profile) => ({
+      ...profile,
+      superLikedYou: superLikedUserIds.has(profile.id),
+    }))
+    .sort((a, b) => {
+      const now = Date.now();
+      const aBoosted = Number(Boolean(a.boostEndTime && a.boostEndTime > now));
+      const bBoosted = Number(Boolean(b.boostEndTime && b.boostEndTime > now));
+      if (aBoosted !== bBoosted) return bBoosted - aBoosted;
+      return (b.boostEndTime?.getTime() ?? 0) - (a.boostEndTime?.getTime() ?? 0);
+    });
   res.json(GetDiscoverProfilesResponse.parse(profiles));
 });
 
@@ -362,6 +705,46 @@ router.post("/vibeswipe/reactions", async (req, res): Promise<void> => {
   if (await isBlockedBetween(userId, toUserId)) {
     res.status(403).json({ error: "This profile is unavailable." });
     return;
+  }
+  if (type === "like") {
+    const [existingReaction] = await db
+      .select({ type: reactionsTable.type })
+      .from(reactionsTable)
+      .where(
+        and(
+          eq(reactionsTable.fromUserId, userId),
+          eq(reactionsTable.toUserId, toUserId),
+        ),
+      )
+      .limit(1);
+    if (existingReaction?.type !== "like") {
+      const allowance = await reserveDailyLike(userId);
+      if (!allowance.allowed) {
+        res.status(429).json({
+          error: "You’ve reached your daily like limit. Come back in 24 hours.",
+          resetAt: allowance.status.resetAt,
+        });
+        return;
+      }
+    }
+  }
+  if (type === "super") {
+    const [recentSuperLike] = await db
+      .select({ createdAt: reactionsTable.createdAt })
+      .from(reactionsTable)
+      .where(
+        and(
+          eq(reactionsTable.fromUserId, userId),
+          eq(reactionsTable.type, "super"),
+          gt(reactionsTable.createdAt, new Date(Date.now() - 24 * 60 * 60 * 1000)),
+        ),
+      )
+      .orderBy(desc(reactionsTable.createdAt))
+      .limit(1);
+    if (recentSuperLike) {
+      res.status(429).json({ error: "Your next Super Like is not ready yet." });
+      return;
+    }
   }
   await db
     .insert(reactionsTable)
@@ -392,6 +775,7 @@ router.post("/vibeswipe/reactions", async (req, res): Promise<void> => {
   }
 
   let matchId: string | null = null;
+  let createdMatch = false;
   if (mutual) {
     const [match] = await db
       .insert(matchesTable)
@@ -404,6 +788,7 @@ router.post("/vibeswipe/reactions", async (req, res): Promise<void> => {
       .returning({ id: matchesTable.id });
     if (match) {
       matchId = match.id;
+      createdMatch = true;
     } else {
       const [existing] = await db
         .select({ id: matchesTable.id })
@@ -416,6 +801,39 @@ router.post("/vibeswipe/reactions", async (req, res): Promise<void> => {
         )
         .limit(1);
       matchId = existing?.id ?? null;
+    }
+  }
+  if (createdMatch && matchId && !target.isDemo) {
+    const notifications = [
+      createVibeSwipeNotification({
+        recipientId: userId,
+        actorId: toUserId,
+        type: "new_match",
+        matchId,
+      }),
+      createVibeSwipeNotification({
+        recipientId: toUserId,
+        actorId: userId,
+        type: "new_match",
+        matchId,
+      }),
+    ];
+    await Promise.all(
+      notifications.map((notification) =>
+        notification.catch((error) =>
+          req.log.error({ err: error }, "Could not save match notification"),
+        ),
+      ),
+    );
+  } else if (type !== "pass" && !mutual && !target.isDemo) {
+    try {
+      await createVibeSwipeNotification({
+        recipientId: toUserId,
+        actorId: userId,
+        type: "new_like",
+      });
+    } catch (error) {
+      req.log.error({ err: error }, "Could not save like notification");
     }
   }
   res.json(CreateReactionResponse.parse({ matched: mutual, matchId }));
@@ -556,11 +974,29 @@ router.get(
           )
       : [];
     const hiddenIds = new Set(hidden.map((item) => item.messageId));
+    const otherUserId = match.userAId === userId ? match.userBId : match.userAId;
+    const [readReceipt] = await db
+      .select({ readAt: vibeSwipeReadReceiptsTable.readAt })
+      .from(vibeSwipeReadReceiptsTable)
+      .where(
+        and(
+          eq(vibeSwipeReadReceiptsTable.userId, otherUserId),
+          eq(vibeSwipeReadReceiptsTable.matchId, match.id),
+        ),
+      )
+      .limit(1);
     res.json(
       GetMessagesResponse.parse(
         messages
           .filter((message) => !hiddenIds.has(message.id))
-          .map(projectMessage),
+          .map((message) =>
+            projectMessage(
+              message,
+              message.senderId === userId &&
+                !!readReceipt?.readAt &&
+                message.createdAt <= readReceipt.readAt,
+            ),
+          ),
       ),
     );
   },
@@ -764,6 +1200,26 @@ router.post(
       .update(matchesTable)
       .set({ updatedAt: new Date() })
       .where(eq(matchesTable.id, match.id));
+    const recipientId =
+      match.userAId === userId ? match.userBId : match.userAId;
+    const [recipient] = await db
+      .select({ isDemo: profilesTable.isDemo })
+      .from(profilesTable)
+      .where(eq(profilesTable.id, recipientId))
+      .limit(1);
+    if (recipient && !recipient.isDemo) {
+      try {
+        await createVibeSwipeNotification({
+          recipientId,
+          actorId: userId,
+          type: "new_message",
+          matchId: match.id,
+          messageId: message.id,
+        });
+      } catch (error) {
+        req.log.error({ err: error, messageId: message.id }, "Could not save message notification");
+      }
+    }
     for (const listener of messageStreams.get(match.id) ?? []) {
       if (!listener.destroyed && !listener.writableEnded) {
         listener.write(

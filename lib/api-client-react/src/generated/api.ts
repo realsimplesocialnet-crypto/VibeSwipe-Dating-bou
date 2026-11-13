@@ -27,17 +27,21 @@ import type {
 import type {
   BlockInput,
   BlockedProfile,
+  BoostStatus,
   ChatThemeInput,
   ChatThemeResult,
+  DailyLikeStatus,
   DeleteMessageInput,
   GetDiscoverProfilesParams,
   HealthStatus,
+  Icebreaker,
   Match,
   MediaUploadInput,
   MediaUploadResult,
   Message,
   MessageInput,
   NotificationsResponse,
+  PresenceHeartbeatInput,
   PresenceStatus,
   Profile,
   ProfileInput,
@@ -47,8 +51,11 @@ import type {
   ReactionResult,
   ReadReceiptStatus,
   ReportInput,
+  SuperLikeStatus,
   TypingInput,
-  TypingStatus
+  TypingStatus,
+  UndoReactionResult,
+  VibeSwipeSettings
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -563,6 +570,747 @@ export const useCreateReaction = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getCreateReactionMutationOptions(options), queryClient);
+    }
+
+export const getUndoLastPassUrl = () => {
+
+
+
+
+  return `/api/vibeswipe/reactions/undo`
+}
+
+/**
+ * @summary Undo the signed-in user's most recent pass
+ */
+export const undoLastPass = async ( options?: Parameters<typeof customFetch>[1]): Promise<UndoReactionResult> => {
+
+  return customFetch<UndoReactionResult>(getUndoLastPassUrl(),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getUndoLastPassMutationKey = () => ['undoLastPass'] as const;
+
+export const getUndoLastPassMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof undoLastPass>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof undoLastPass>>, TError,void, TContext> => {
+
+const mutationKey = getUndoLastPassMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof undoLastPass>>, void> = () => {
+
+
+          return  undoLastPass(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UndoLastPassMutationResult = NonNullable<Awaited<ReturnType<typeof undoLastPass>>>
+
+    export type UndoLastPassMutationError = ErrorType<unknown>
+
+
+    /**
+ * @summary Undo the signed-in user's most recent pass
+ */
+export const useUndoLastPass = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof undoLastPass>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof undoLastPass>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getUndoLastPassMutationOptions(options), queryClient);
+    }
+
+export const getGetSuperLikeStatusUrl = () => {
+
+
+
+
+  return `/api/vibeswipe/super-likes`
+}
+
+/**
+ * @summary Get today's remaining Super Likes
+ */
+export const getSuperLikeStatus = async ( options?: Parameters<typeof customFetch>[1]): Promise<SuperLikeStatus> => {
+
+  return customFetch<SuperLikeStatus>(getGetSuperLikeStatusUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetSuperLikeStatusQueryKey = () => {
+    return [
+    `/api/vibeswipe/super-likes`
+    ] as const;
+    }
+
+
+export const getGetSuperLikeStatusQueryOptions = <TData = Awaited<ReturnType<typeof getSuperLikeStatus>>, TError = ErrorType<unknown>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSuperLikeStatus>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetSuperLikeStatusQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getSuperLikeStatus>>> = ({ signal }) => getSuperLikeStatus({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getSuperLikeStatus>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetSuperLikeStatusQueryResult = NonNullable<Awaited<ReturnType<typeof getSuperLikeStatus>>>
+export type GetSuperLikeStatusQueryError = ErrorType<unknown>
+
+
+export function useGetSuperLikeStatus<TData = Awaited<ReturnType<typeof getSuperLikeStatus>>, TError = ErrorType<unknown>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSuperLikeStatus>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getSuperLikeStatus>>,
+          TError,
+          Awaited<ReturnType<typeof getSuperLikeStatus>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetSuperLikeStatus<TData = Awaited<ReturnType<typeof getSuperLikeStatus>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSuperLikeStatus>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getSuperLikeStatus>>,
+          TError,
+          Awaited<ReturnType<typeof getSuperLikeStatus>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetSuperLikeStatus<TData = Awaited<ReturnType<typeof getSuperLikeStatus>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSuperLikeStatus>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get today's remaining Super Likes
+ */
+
+export function useGetSuperLikeStatus<TData = Awaited<ReturnType<typeof getSuperLikeStatus>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSuperLikeStatus>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetSuperLikeStatusQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetDailyLikeStatusUrl = () => {
+
+
+
+
+  return `/api/vibeswipe/likes/status`
+}
+
+/**
+ * @summary Get remaining free likes and the next reset time
+ */
+export const getDailyLikeStatus = async ( options?: Parameters<typeof customFetch>[1]): Promise<DailyLikeStatus> => {
+
+  return customFetch<DailyLikeStatus>(getGetDailyLikeStatusUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetDailyLikeStatusQueryKey = () => {
+    return [
+    `/api/vibeswipe/likes/status`
+    ] as const;
+    }
+
+
+export const getGetDailyLikeStatusQueryOptions = <TData = Awaited<ReturnType<typeof getDailyLikeStatus>>, TError = ErrorType<unknown>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDailyLikeStatus>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetDailyLikeStatusQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getDailyLikeStatus>>> = ({ signal }) => getDailyLikeStatus({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getDailyLikeStatus>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetDailyLikeStatusQueryResult = NonNullable<Awaited<ReturnType<typeof getDailyLikeStatus>>>
+export type GetDailyLikeStatusQueryError = ErrorType<unknown>
+
+
+export function useGetDailyLikeStatus<TData = Awaited<ReturnType<typeof getDailyLikeStatus>>, TError = ErrorType<unknown>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDailyLikeStatus>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getDailyLikeStatus>>,
+          TError,
+          Awaited<ReturnType<typeof getDailyLikeStatus>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetDailyLikeStatus<TData = Awaited<ReturnType<typeof getDailyLikeStatus>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDailyLikeStatus>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getDailyLikeStatus>>,
+          TError,
+          Awaited<ReturnType<typeof getDailyLikeStatus>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetDailyLikeStatus<TData = Awaited<ReturnType<typeof getDailyLikeStatus>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDailyLikeStatus>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get remaining free likes and the next reset time
+ */
+
+export function useGetDailyLikeStatus<TData = Awaited<ReturnType<typeof getDailyLikeStatus>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDailyLikeStatus>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetDailyLikeStatusQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetBoostStatusUrl = () => {
+
+
+
+
+  return `/api/vibeswipe/boost`
+}
+
+/**
+ * @summary Get Boost activity and cooldown status
+ */
+export const getBoostStatus = async ( options?: Parameters<typeof customFetch>[1]): Promise<BoostStatus> => {
+
+  return customFetch<BoostStatus>(getGetBoostStatusUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetBoostStatusQueryKey = () => {
+    return [
+    `/api/vibeswipe/boost`
+    ] as const;
+    }
+
+
+export const getGetBoostStatusQueryOptions = <TData = Awaited<ReturnType<typeof getBoostStatus>>, TError = ErrorType<unknown>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getBoostStatus>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetBoostStatusQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getBoostStatus>>> = ({ signal }) => getBoostStatus({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getBoostStatus>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetBoostStatusQueryResult = NonNullable<Awaited<ReturnType<typeof getBoostStatus>>>
+export type GetBoostStatusQueryError = ErrorType<unknown>
+
+
+export function useGetBoostStatus<TData = Awaited<ReturnType<typeof getBoostStatus>>, TError = ErrorType<unknown>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getBoostStatus>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getBoostStatus>>,
+          TError,
+          Awaited<ReturnType<typeof getBoostStatus>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetBoostStatus<TData = Awaited<ReturnType<typeof getBoostStatus>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getBoostStatus>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getBoostStatus>>,
+          TError,
+          Awaited<ReturnType<typeof getBoostStatus>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetBoostStatus<TData = Awaited<ReturnType<typeof getBoostStatus>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getBoostStatus>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get Boost activity and cooldown status
+ */
+
+export function useGetBoostStatus<TData = Awaited<ReturnType<typeof getBoostStatus>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getBoostStatus>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetBoostStatusQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getActivateBoostUrl = () => {
+
+
+
+
+  return `/api/vibeswipe/boost`
+}
+
+/**
+ * @summary Activate a 30-minute profile Boost
+ */
+export const activateBoost = async ( options?: Parameters<typeof customFetch>[1]): Promise<BoostStatus> => {
+
+  return customFetch<BoostStatus>(getActivateBoostUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getActivateBoostMutationKey = () => ['activateBoost'] as const;
+
+export const getActivateBoostMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof activateBoost>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof activateBoost>>, TError,void, TContext> => {
+
+const mutationKey = getActivateBoostMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof activateBoost>>, void> = () => {
+
+
+          return  activateBoost(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ActivateBoostMutationResult = NonNullable<Awaited<ReturnType<typeof activateBoost>>>
+
+    export type ActivateBoostMutationError = ErrorType<void>
+
+
+    /**
+ * @summary Activate a 30-minute profile Boost
+ */
+export const useActivateBoost = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof activateBoost>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof activateBoost>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getActivateBoostMutationOptions(options), queryClient);
+    }
+
+export const getGetIcebreakersUrl = () => {
+
+
+
+
+  return `/api/vibeswipe/icebreakers`
+}
+
+/**
+ * @summary List suggested first-message questions
+ */
+export const getIcebreakers = async ( options?: Parameters<typeof customFetch>[1]): Promise<Icebreaker[]> => {
+
+  return customFetch<Icebreaker[]>(getGetIcebreakersUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetIcebreakersQueryKey = () => {
+    return [
+    `/api/vibeswipe/icebreakers`
+    ] as const;
+    }
+
+
+export const getGetIcebreakersQueryOptions = <TData = Awaited<ReturnType<typeof getIcebreakers>>, TError = ErrorType<unknown>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getIcebreakers>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetIcebreakersQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getIcebreakers>>> = ({ signal }) => getIcebreakers({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getIcebreakers>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetIcebreakersQueryResult = NonNullable<Awaited<ReturnType<typeof getIcebreakers>>>
+export type GetIcebreakersQueryError = ErrorType<unknown>
+
+
+export function useGetIcebreakers<TData = Awaited<ReturnType<typeof getIcebreakers>>, TError = ErrorType<unknown>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getIcebreakers>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getIcebreakers>>,
+          TError,
+          Awaited<ReturnType<typeof getIcebreakers>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetIcebreakers<TData = Awaited<ReturnType<typeof getIcebreakers>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getIcebreakers>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getIcebreakers>>,
+          TError,
+          Awaited<ReturnType<typeof getIcebreakers>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetIcebreakers<TData = Awaited<ReturnType<typeof getIcebreakers>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getIcebreakers>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary List suggested first-message questions
+ */
+
+export function useGetIcebreakers<TData = Awaited<ReturnType<typeof getIcebreakers>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getIcebreakers>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetIcebreakersQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetVibeSwipeSettingsUrl = () => {
+
+
+
+
+  return `/api/vibeswipe/settings`
+}
+
+/**
+ * @summary Get the signed-in user's privacy settings
+ */
+export const getVibeSwipeSettings = async ( options?: Parameters<typeof customFetch>[1]): Promise<VibeSwipeSettings> => {
+
+  return customFetch<VibeSwipeSettings>(getGetVibeSwipeSettingsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetVibeSwipeSettingsQueryKey = () => {
+    return [
+    `/api/vibeswipe/settings`
+    ] as const;
+    }
+
+
+export const getGetVibeSwipeSettingsQueryOptions = <TData = Awaited<ReturnType<typeof getVibeSwipeSettings>>, TError = ErrorType<unknown>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getVibeSwipeSettings>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetVibeSwipeSettingsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getVibeSwipeSettings>>> = ({ signal }) => getVibeSwipeSettings({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getVibeSwipeSettings>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetVibeSwipeSettingsQueryResult = NonNullable<Awaited<ReturnType<typeof getVibeSwipeSettings>>>
+export type GetVibeSwipeSettingsQueryError = ErrorType<unknown>
+
+
+export function useGetVibeSwipeSettings<TData = Awaited<ReturnType<typeof getVibeSwipeSettings>>, TError = ErrorType<unknown>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getVibeSwipeSettings>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getVibeSwipeSettings>>,
+          TError,
+          Awaited<ReturnType<typeof getVibeSwipeSettings>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetVibeSwipeSettings<TData = Awaited<ReturnType<typeof getVibeSwipeSettings>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getVibeSwipeSettings>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getVibeSwipeSettings>>,
+          TError,
+          Awaited<ReturnType<typeof getVibeSwipeSettings>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetVibeSwipeSettings<TData = Awaited<ReturnType<typeof getVibeSwipeSettings>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getVibeSwipeSettings>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get the signed-in user's privacy settings
+ */
+
+export function useGetVibeSwipeSettings<TData = Awaited<ReturnType<typeof getVibeSwipeSettings>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getVibeSwipeSettings>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetVibeSwipeSettingsQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getUpdateVibeSwipeSettingsUrl = () => {
+
+
+
+
+  return `/api/vibeswipe/settings`
+}
+
+/**
+ * @summary Save the signed-in user's privacy settings
+ */
+export const updateVibeSwipeSettings = async (vibeSwipeSettings: VibeSwipeSettings, options?: Parameters<typeof customFetch>[1]): Promise<VibeSwipeSettings> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<VibeSwipeSettings>(getUpdateVibeSwipeSettingsUrl(),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(vibeSwipeSettings)
+  }
+);}
+
+
+
+
+
+export const getUpdateVibeSwipeSettingsMutationKey = () => ['updateVibeSwipeSettings'] as const;
+
+export const getUpdateVibeSwipeSettingsMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateVibeSwipeSettings>>, TError,UpdateVibeSwipeSettingsMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateVibeSwipeSettings>>, TError,UpdateVibeSwipeSettingsMutationVariables, TContext> => {
+
+const mutationKey = getUpdateVibeSwipeSettingsMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateVibeSwipeSettings>>, UpdateVibeSwipeSettingsMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  updateVibeSwipeSettings(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateVibeSwipeSettingsMutationResult = NonNullable<Awaited<ReturnType<typeof updateVibeSwipeSettings>>>
+    export type UpdateVibeSwipeSettingsMutationBody = BodyType<VibeSwipeSettings>
+    export type UpdateVibeSwipeSettingsMutationError = ErrorType<void>
+    export type UpdateVibeSwipeSettingsMutationVariables = {data: BodyType<VibeSwipeSettings>}
+
+    /**
+ * @summary Save the signed-in user's privacy settings
+ */
+export const useUpdateVibeSwipeSettings = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateVibeSwipeSettings>>, TError,UpdateVibeSwipeSettingsMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof updateVibeSwipeSettings>>,
+        TError,
+        UpdateVibeSwipeSettingsMutationVariables,
+        TContext
+      > => {
+      return useMutation(getUpdateVibeSwipeSettingsMutationOptions(options), queryClient);
     }
 
 export const getGetMatchesUrl = () => {
@@ -1926,14 +2674,28 @@ export const getHeartbeatPresenceUrl = () => {
 /**
  * @summary Record that the signed-in user is active
  */
-export const heartbeatPresence = async ( options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+export const heartbeatPresence = async (presenceHeartbeatInput: PresenceHeartbeatInput, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
 
-  return customFetch<void>(getHeartbeatPresenceUrl(),
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<void>(getHeartbeatPresenceUrl(),
   {
     ...options,
-    method: 'PUT'
-
-
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(presenceHeartbeatInput)
   }
 );}
 
@@ -1944,8 +2706,8 @@ export const heartbeatPresence = async ( options?: Parameters<typeof customFetch
 export const getHeartbeatPresenceMutationKey = () => ['heartbeatPresence'] as const;
 
 export const getHeartbeatPresenceMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof heartbeatPresence>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof heartbeatPresence>>, TError,void, TContext> => {
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof heartbeatPresence>>, TError,HeartbeatPresenceMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof heartbeatPresence>>, TError,HeartbeatPresenceMutationVariables, TContext> => {
 
 const mutationKey = getHeartbeatPresenceMutationKey();
 const {mutation: mutationOptions, request: requestOptions} = options ?
@@ -1957,10 +2719,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof heartbeatPresence>>, void> = () => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof heartbeatPresence>>, HeartbeatPresenceMutationVariables> = (props) => {
+          const {data} = props ?? {};
 
-
-          return  heartbeatPresence(requestOptions)
+          return  heartbeatPresence(data,requestOptions)
         }
 
 
@@ -1971,19 +2733,19 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
   return  { mutationFn, ...mutationOptions }}
 
     export type HeartbeatPresenceMutationResult = NonNullable<Awaited<ReturnType<typeof heartbeatPresence>>>
-
+    export type HeartbeatPresenceMutationBody = BodyType<PresenceHeartbeatInput>
     export type HeartbeatPresenceMutationError = ErrorType<unknown>
-
+    export type HeartbeatPresenceMutationVariables = {data: BodyType<PresenceHeartbeatInput>}
 
     /**
  * @summary Record that the signed-in user is active
  */
 export const useHeartbeatPresence = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof heartbeatPresence>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof heartbeatPresence>>, TError,HeartbeatPresenceMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof heartbeatPresence>>,
         TError,
-        void,
+        HeartbeatPresenceMutationVariables,
         TContext
       > => {
       return useMutation(getHeartbeatPresenceMutationOptions(options), queryClient);

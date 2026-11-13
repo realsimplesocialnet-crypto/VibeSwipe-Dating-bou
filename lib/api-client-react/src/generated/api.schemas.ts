@@ -41,6 +41,7 @@ export interface Profile {
   /** @nullable */
   videoUrl?: string | null;
   isDemo: boolean;
+  superLikedYou?: boolean;
   preferences: ProfilePreferences;
 }
 
@@ -107,6 +108,61 @@ export interface ReactionResult {
   matched: boolean;
   /** @nullable */
   matchId?: string | null;
+}
+
+export interface UndoReactionResult {
+  undone: boolean;
+  /** @nullable */
+  targetUserId: string | null;
+}
+
+export interface SuperLikeStatus {
+  /**
+     * @minimum 0
+     * @maximum 1
+     */
+  remaining: number;
+  /** @nullable */
+  resetsAt: string | null;
+}
+
+export interface DailyLikeStatus {
+  /** @minimum 1 */
+  limit: number;
+  /** @minimum 0 */
+  remaining: number;
+  /** @nullable */
+  resetAt: string | null;
+}
+
+export interface BoostStatus {
+  active: boolean;
+  available: boolean;
+  /** @nullable */
+  boostStartTime: string | null;
+  /** @nullable */
+  boostEndTime: string | null;
+  /** @nullable */
+  nextBoostAvailableTime: string | null;
+}
+
+export interface Icebreaker {
+  id: string;
+  /**
+     * @minLength 1
+     * @maxLength 240
+     */
+  question: string;
+}
+
+export interface VibeSwipeSettings {
+  incognito: boolean;
+  travelMode: boolean;
+  /**
+     * @maxLength 100
+     * @nullable
+     */
+  travelCity: string | null;
 }
 
 export type ChatTheme = typeof ChatTheme[keyof typeof ChatTheme];
@@ -224,6 +280,10 @@ export interface PresenceStatus {
   isOnline: boolean;
   /** @nullable */
   lastSeenAt: string | null;
+}
+
+export interface PresenceHeartbeatInput {
+  isActive: boolean;
 }
 
 export interface ReadReceiptStatus {

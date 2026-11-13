@@ -10,10 +10,12 @@ import {
   db,
   profilesTable,
   vibeswipeProfileViewsTable,
+  vibeSwipeNotificationsTable,
 } from "@workspace/db";
-import { and, desc, eq, or } from "drizzle-orm";
+import { and, desc, eq, isNull, or } from "drizzle-orm";
 import { Router, type IRouter, type Request } from "express";
 import { requireAuth } from "../middlewares/auth";
+import { createVibeSwipeNotification } from "../lib/vibeswipeNotifications";
 
 const router: IRouter = Router();
 
@@ -94,6 +96,30 @@ router.post(
         ],
         set: { viewedAt },
       });
+    const [unreadView] = await db
+      .select({ id: vibeSwipeNotificationsTable.id })
+      .from(vibeSwipeNotificationsTable)
+      .where(
+        and(
+          eq(vibeSwipeNotificationsTable.recipientId, profileId),
+          eq(vibeSwipeNotificationsTable.actorId, viewerId),
+          eq(vibeSwipeNotificationsTable.type, "profile_view"),
+          isNull(vibeSwipeNotificationsTable.readAt),
+        ),
+      )
+      .limit(1);
+    if (unreadView) {
+      await db
+        .update(vibeSwipeNotificationsTable)
+        .set({ createdAt: viewedAt })
+        .where(eq(vibeSwipeNotificationsTable.id, unreadView.id));
+    } else {
+      await createVibeSwipeNotification({
+        recipientId: profileId,
+        actorId: viewerId,
+        type: "profile_view",
+      });
+    }
 
     res.status(204).end();
   },

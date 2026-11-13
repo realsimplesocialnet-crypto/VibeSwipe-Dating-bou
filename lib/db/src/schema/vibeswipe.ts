@@ -29,6 +29,14 @@ export const profilesTable = pgTable("vibeswipe_profiles", {
   photos: text("photos").array().notNull().default([]),
   videoUrl: text("video_url"),
   isDemo: boolean("is_demo").notNull().default(false),
+  incognito: boolean("incognito").notNull().default(false),
+  travelMode: boolean("travel_mode").notNull().default(false),
+  travelCity: text("travel_city"),
+  boostStartTime: timestamp("boost_start_time", { withTimezone: true }),
+  boostEndTime: timestamp("boost_end_time", { withTimezone: true }),
+  nextBoostAvailableTime: timestamp("next_boost_available_time", {
+    withTimezone: true,
+  }),
   preferences: jsonb("preferences")
     .$type<ProfilePreferences>()
     .notNull()
@@ -63,6 +71,31 @@ export const reactionsTable = pgTable(
     ),
   }),
 );
+
+export const icebreakersTable = pgTable(
+  "vibeswipe_icebreakers",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    question: text("question").notNull(),
+    isActive: boolean("is_active").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    uniqueQuestion: uniqueIndex("vibeswipe_icebreaker_question_idx").on(
+      table.question,
+    ),
+  }),
+);
+
+export const dailyLikeUsageTable = pgTable("vibeswipe_daily_like_usage", {
+  userId: text("user_id")
+    .primaryKey()
+    .references(() => profilesTable.id, { onDelete: "cascade" }),
+  likeCount: integer("like_count").notNull().default(0),
+  resetAt: timestamp("reset_at", { withTimezone: true }),
+});
 
 export const matchesTable = pgTable(
   "vibeswipe_matches",

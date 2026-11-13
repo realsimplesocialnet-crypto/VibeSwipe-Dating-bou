@@ -1,4 +1,5 @@
 import {
+  boolean,
   index,
   pgTable,
   primaryKey,
@@ -10,6 +11,7 @@ import { matchesTable, messagesTable, profilesTable } from "./vibeswipe";
 
 export const vibeSwipePresenceTable = pgTable("vibeswipe_presence", {
   userId: text("user_id").primaryKey(),
+  isOnline: boolean("is_online").notNull().default(false),
   lastSeenAt: timestamp("last_seen_at", { withTimezone: true })
     .notNull()
     .defaultNow(),

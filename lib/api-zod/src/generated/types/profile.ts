@@ -20,5 +20,6 @@ export interface Profile {
   /** @nullable */
   videoUrl?: string | null;
   isDemo: boolean;
+  superLikedYou?: boolean;
   preferences: ProfilePreferences;
 }

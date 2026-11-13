@@ -1,5 +1,6 @@
 import { getAuth } from "@clerk/express";
 import {
+  HeartbeatPresenceBody,
   GetChatReadReceiptParams,
   GetChatReadReceiptResponse,
   GetMatchPresenceParams,
@@ -71,14 +72,19 @@ async function requireAvailableMatch(matchId: string, userId: string) {
 }
 
 router.put("/vibeswipe/presence", async (req, res): Promise<void> => {
+  const body = HeartbeatPresenceBody.safeParse(req.body);
+  if (!body.success) {
+    res.status(400).json({ error: body.error.message });
+    return;
+  }
   const userId = currentUserId(req);
   const lastSeenAt = new Date();
   await db
     .insert(vibeSwipePresenceTable)
-    .values({ userId, lastSeenAt })
+    .values({ userId, lastSeenAt, isOnline: body.data.isActive })
     .onConflictDoUpdate({
       target: vibeSwipePresenceTable.userId,
-      set: { lastSeenAt },
+      set: { lastSeenAt, isOnline: body.data.isActive },
     });
   HeartbeatPresenceResponse.parse(undefined);
   res.status(204).end();
@@ -112,6 +118,7 @@ router.get(
     res.json(
       GetMatchPresenceResponse.parse({
         isOnline:
+          presence?.isOnline === true &&
           lastSeenAt !== null &&
           lastSeenAt.getTime() <= now &&
           now - lastSeenAt.getTime() <= ONLINE_WINDOW_MS,

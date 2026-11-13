@@ -1,4 +1,4 @@
-import { useGetMyProfile } from "@workspace/api-client-react";
+import { useGetMyProfile, useGetVibeSwipeSettings } from "@workspace/api-client-react";
 import { Feather } from "@expo/vector-icons";
 import { useAuth } from "@clerk/expo";
 import { router } from "expo-router";
@@ -10,6 +10,7 @@ export default function ProfileScreen() {
   const colors = useColors();
   const { signOut } = useAuth();
   const profile = useGetMyProfile();
+  const settings = useGetVibeSwipeSettings();
   if (profile.isLoading) {
     return <View style={[styles.center, { backgroundColor: colors.background }]}><ActivityIndicator color={colors.primary} /></View>;
   }
@@ -29,6 +30,12 @@ export default function ProfileScreen() {
         <ProfileAvatar profile={user} size={92} />
         <Text style={[styles.name, { color: colors.foreground }]}>{user.name}, {user.age}</Text>
         <Text style={[styles.city, { color: colors.mutedForeground }]}>{user.city} · {user.gender}</Text>
+        {settings.data?.travelMode && settings.data.travelCity ? (
+          <View style={[styles.travelBadge, { backgroundColor: colors.accent }]}>
+            <Feather name="navigation" size={12} color={colors.primary} />
+            <Text style={[styles.travelBadgeText, { color: colors.primary }]}>Traveling · {settings.data.travelCity}</Text>
+          </View>
+        ) : null}
         <Pressable testID="edit-profile" onPress={() => router.push("/edit-profile")} style={[styles.editButton, { backgroundColor: colors.accent }]}>
           <Feather name="edit-2" size={15} color={colors.primary} />
           <Text style={[styles.editText, { color: colors.primary }]}>Edit profile</Text>
@@ -66,6 +73,8 @@ const styles = StyleSheet.create({
   hero: { alignItems: "center", paddingVertical: 27, gap: 6 },
   name: { fontSize: 22, fontWeight: "700", marginTop: 4 },
   city: { fontSize: 13 },
+  travelBadge: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 14, marginTop: 3 },
+  travelBadgeText: { fontSize: 11, fontWeight: "700" },
   editButton: { height: 38, borderRadius: 13, paddingHorizontal: 14, flexDirection: "row", alignItems: "center", gap: 7, marginTop: 8 },
   editText: { fontSize: 12, fontWeight: "700" },
   section: { fontSize: 15, fontWeight: "700", marginTop: 16, marginBottom: 9 },

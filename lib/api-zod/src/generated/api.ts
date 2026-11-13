@@ -42,6 +42,7 @@ export const GetMyProfileResponse = zod.object({
   "photos": zod.array(zod.string()),
   "videoUrl": zod.string().nullish(),
   "isDemo": zod.boolean(),
+  "superLikedYou": zod.boolean().optional(),
   "preferences": zod.object({
   "ageMin": zod.number().int().min(getMyProfileResponsePreferencesAgeMinMin).max(getMyProfileResponsePreferencesAgeMinMax),
   "ageMax": zod.number().int().min(getMyProfileResponsePreferencesAgeMaxMin).max(getMyProfileResponsePreferencesAgeMaxMax),
@@ -127,6 +128,7 @@ export const SaveMyProfileResponse = zod.object({
   "photos": zod.array(zod.string()),
   "videoUrl": zod.string().nullish(),
   "isDemo": zod.boolean(),
+  "superLikedYou": zod.boolean().optional(),
   "preferences": zod.object({
   "ageMin": zod.number().int().min(saveMyProfileResponsePreferencesAgeMinMin).max(saveMyProfileResponsePreferencesAgeMinMax),
   "ageMax": zod.number().int().min(saveMyProfileResponsePreferencesAgeMaxMin).max(saveMyProfileResponsePreferencesAgeMaxMax),
@@ -176,6 +178,7 @@ export const GetDiscoverProfilesResponseItem = zod.object({
   "photos": zod.array(zod.string()),
   "videoUrl": zod.string().nullish(),
   "isDemo": zod.boolean(),
+  "superLikedYou": zod.boolean().optional(),
   "preferences": zod.object({
   "ageMin": zod.number().int().min(getDiscoverProfilesResponsePreferencesAgeMinMin).max(getDiscoverProfilesResponsePreferencesAgeMinMax),
   "ageMax": zod.number().int().min(getDiscoverProfilesResponsePreferencesAgeMaxMin).max(getDiscoverProfilesResponsePreferencesAgeMaxMax),
@@ -200,6 +203,120 @@ export const CreateReactionBody = zod.object({
 export const CreateReactionResponse = zod.object({
   "matched": zod.boolean(),
   "matchId": zod.string().uuid().nullish()
+})
+
+
+/**
+ * @summary Undo the signed-in user's most recent pass
+ */
+export const UndoLastPassResponse = zod.object({
+  "undone": zod.boolean(),
+  "targetUserId": zod.string().nullable()
+})
+
+
+/**
+ * @summary Get today's remaining Super Likes
+ */
+export const getSuperLikeStatusResponseRemainingMin = 0;
+export const getSuperLikeStatusResponseRemainingMax = 1;
+
+
+
+export const GetSuperLikeStatusResponse = zod.object({
+  "remaining": zod.number().int().min(getSuperLikeStatusResponseRemainingMin).max(getSuperLikeStatusResponseRemainingMax),
+  "resetsAt": zod.coerce.date().nullable()
+})
+
+
+/**
+ * @summary Get remaining free likes and the next reset time
+ */
+
+export const getDailyLikeStatusResponseRemainingMin = 0;
+
+
+
+export const GetDailyLikeStatusResponse = zod.object({
+  "limit": zod.number().int().min(1),
+  "remaining": zod.number().int().min(getDailyLikeStatusResponseRemainingMin),
+  "resetAt": zod.coerce.date().nullable()
+})
+
+
+/**
+ * @summary Get Boost activity and cooldown status
+ */
+export const GetBoostStatusResponse = zod.object({
+  "active": zod.boolean(),
+  "available": zod.boolean(),
+  "boostStartTime": zod.coerce.date().nullable(),
+  "boostEndTime": zod.coerce.date().nullable(),
+  "nextBoostAvailableTime": zod.coerce.date().nullable()
+})
+
+
+/**
+ * @summary Activate a 30-minute profile Boost
+ */
+export const ActivateBoostResponse = zod.object({
+  "active": zod.boolean(),
+  "available": zod.boolean(),
+  "boostStartTime": zod.coerce.date().nullable(),
+  "boostEndTime": zod.coerce.date().nullable(),
+  "nextBoostAvailableTime": zod.coerce.date().nullable()
+})
+
+
+/**
+ * @summary List suggested first-message questions
+ */
+export const getIcebreakersResponseQuestionMax = 240;
+
+
+
+export const GetIcebreakersResponseItem = zod.object({
+  "id": zod.string().uuid(),
+  "question": zod.string().min(1).max(getIcebreakersResponseQuestionMax)
+})
+export const GetIcebreakersResponse = zod.array(GetIcebreakersResponseItem)
+
+
+/**
+ * @summary Get the signed-in user's privacy settings
+ */
+export const getVibeSwipeSettingsResponseTravelCityMax = 100;
+
+
+
+export const GetVibeSwipeSettingsResponse = zod.object({
+  "incognito": zod.boolean(),
+  "travelMode": zod.boolean(),
+  "travelCity": zod.string().max(getVibeSwipeSettingsResponseTravelCityMax).nullable()
+})
+
+
+/**
+ * @summary Save the signed-in user's privacy settings
+ */
+export const updateVibeSwipeSettingsBodyTravelCityMax = 100;
+
+
+
+export const UpdateVibeSwipeSettingsBody = zod.object({
+  "incognito": zod.boolean(),
+  "travelMode": zod.boolean(),
+  "travelCity": zod.string().max(updateVibeSwipeSettingsBodyTravelCityMax).nullable()
+})
+
+export const updateVibeSwipeSettingsResponseTravelCityMax = 100;
+
+
+
+export const UpdateVibeSwipeSettingsResponse = zod.object({
+  "incognito": zod.boolean(),
+  "travelMode": zod.boolean(),
+  "travelCity": zod.string().max(updateVibeSwipeSettingsResponseTravelCityMax).nullable()
 })
 
 
@@ -230,6 +347,7 @@ export const GetMatchesResponseItem = zod.object({
   "photos": zod.array(zod.string()),
   "videoUrl": zod.string().nullish(),
   "isDemo": zod.boolean(),
+  "superLikedYou": zod.boolean().optional(),
   "preferences": zod.object({
   "ageMin": zod.number().int().min(getMatchesResponseProfilePreferencesAgeMinMin).max(getMatchesResponseProfilePreferencesAgeMinMax),
   "ageMax": zod.number().int().min(getMatchesResponseProfilePreferencesAgeMaxMin).max(getMatchesResponseProfilePreferencesAgeMaxMax),
@@ -483,6 +601,10 @@ export const MarkChatReadResponse = zod.void()
 /**
  * @summary Record that the signed-in user is active
  */
+export const HeartbeatPresenceBody = zod.object({
+  "isActive": zod.boolean()
+})
+
 export const HeartbeatPresenceResponse = zod.void()
 
 
@@ -525,6 +647,7 @@ export const GetWhoViewedYouResponseItem = zod.object({
   "photos": zod.array(zod.string()),
   "videoUrl": zod.string().nullish(),
   "isDemo": zod.boolean(),
+  "superLikedYou": zod.boolean().optional(),
   "preferences": zod.object({
   "ageMin": zod.number().int().min(getWhoViewedYouResponseProfilePreferencesAgeMinMin).max(getWhoViewedYouResponseProfilePreferencesAgeMinMax),
   "ageMax": zod.number().int().min(getWhoViewedYouResponseProfilePreferencesAgeMaxMin).max(getWhoViewedYouResponseProfilePreferencesAgeMaxMax),
@@ -574,6 +697,7 @@ export const GetNotificationsResponse = zod.object({
   "photos": zod.array(zod.string()),
   "videoUrl": zod.string().nullish(),
   "isDemo": zod.boolean(),
+  "superLikedYou": zod.boolean().optional(),
   "preferences": zod.object({
   "ageMin": zod.number().int().min(getNotificationsResponseNotificationsItemActorPreferencesAgeMinMin).max(getNotificationsResponseNotificationsItemActorPreferencesAgeMinMax),
   "ageMax": zod.number().int().min(getNotificationsResponseNotificationsItemActorPreferencesAgeMaxMin).max(getNotificationsResponseNotificationsItemActorPreferencesAgeMaxMax),
@@ -637,6 +761,7 @@ export const GetProfileByIdResponse = zod.object({
   "photos": zod.array(zod.string()),
   "videoUrl": zod.string().nullish(),
   "isDemo": zod.boolean(),
+  "superLikedYou": zod.boolean().optional(),
   "preferences": zod.object({
   "ageMin": zod.number().int().min(getProfileByIdResponsePreferencesAgeMinMin).max(getProfileByIdResponsePreferencesAgeMinMax),
   "ageMax": zod.number().int().min(getProfileByIdResponsePreferencesAgeMaxMin).max(getProfileByIdResponsePreferencesAgeMaxMax),
@@ -672,6 +797,7 @@ export const GetBlockedProfilesResponseItem = zod.object({
   "photos": zod.array(zod.string()),
   "videoUrl": zod.string().nullish(),
   "isDemo": zod.boolean(),
+  "superLikedYou": zod.boolean().optional(),
   "preferences": zod.object({
   "ageMin": zod.number().int().min(getBlockedProfilesResponseProfilePreferencesAgeMinMin).max(getBlockedProfilesResponseProfilePreferencesAgeMinMax),
   "ageMax": zod.number().int().min(getBlockedProfilesResponseProfilePreferencesAgeMaxMin).max(getBlockedProfilesResponseProfilePreferencesAgeMaxMax),

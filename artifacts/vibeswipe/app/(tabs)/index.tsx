@@ -3,8 +3,13 @@ import {
   getGetMatchesQueryKey,
   useBlockProfile,
   useCreateReaction,
+  useActivateBoost,
+  useGetBoostStatus,
   useGetDiscoverProfiles,
+  useGetSuperLikeStatus,
+  useRecordProfileView,
   useReportProfile,
+  useUndoLastPass,
   type Profile,
 } from "@workspace/api-client-react";
 import { Feather } from "@expo/vector-icons";
@@ -12,7 +17,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import { VideoView } from "expo-video";
 import { useQueryClient } from "@tanstack/react-query";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -164,6 +169,11 @@ export default function DiscoverScreen() {
   const reaction = useCreateReaction();
   const reportProfile = useReportProfile();
   const blockProfile = useBlockProfile();
+  const superLikeStatus = useGetSuperLikeStatus({ query: { refetchInterval: 60_000 } });
+  const undoLastPass = useUndoLastPass();
+  const boostStatus = useGetBoostStatus({ query: { refetchInterval: 10_000 } });
+  const activateBoost = useActivateBoost();
+  const recordProfileView = useRecordProfileView();
   const [ageMin, setAgeMin] = useState(22);
   const [ageMax, setAgeMax] = useState(35);
   const [gender, setGender] = useState("Everyone");
@@ -173,6 +183,9 @@ export default function DiscoverScreen() {
   const [index, setIndex] = useState(0);
   const [banner, setBanner] = useState("");
   const [busy, setBusy] = useState(false);
+  const [lastPassedProfileId, setLastPassedProfileId] = useState<string | null>(null);
+  const [clock, setClock] = useState(Date.now());
+  const viewedProfiles = useRef(new Set<string>());
   const topInset = Math.max(insets.top, Platform.OS === "web" ? 67 : 12);
   const actionBottom = Platform.OS === "web" ? 100 : Math.max(insets.bottom + 62, 82);
   const discoverParams = useMemo(
@@ -185,11 +198,21 @@ export default function DiscoverScreen() {
   const profiles = discover.data ?? [];
   const profile = profiles[index];
   const { player, token } = useVideoPreloadQueue(profiles, index);
+  useEffect(() => {
+    const interval = setInterval(() => setClock(Date.now()), 1000);
+    return () => clearInterval(interval);
+  }, []);
+  useEffect(() => {
+    if (!profile || profile.isDemo || viewedProfiles.current.has(profile.id)) return;
+    viewedProfiles.current.add(profile.id);
+    recordProfileView.mutate({ profileId: profile.id });
+  }, [profile?.id]);
 
   async function swipe(direction: SwipeDirection) {
     if (!profile || busy) return;
     setBusy(true);
     setBanner("");
+    setLastPassedProfileId(direction === "pass" ? profile.id : null);
     void Haptics.impactAsync(
       direction === "pass" ? Haptics.ImpactFeedbackStyle.Light : Haptics.ImpactFeedbackStyle.Medium,
     );
@@ -198,7 +221,9 @@ export default function DiscoverScreen() {
       const result = await reaction.mutateAsync({
         data: { toUserId: profile.id, type: direction },
       });
-      await queryClient.invalidateQueries({ queryKey: getGetDiscoverProfilesQueryKey(discoverParams) });
+      if (direction === "super") {
+        await queryClient.invalidateQueries({ queryKey: ["getSuperLikeStatus"] });
+      }
       if (result.matched && result.matchId) {
         await queryClient.invalidateQueries({ queryKey: getGetMatchesQueryKey() });
         setBanner(`You and ${profile.name} matched.`);
@@ -215,7 +240,7 @@ export default function DiscoverScreen() {
     }
   }
 
-  async function report(reason: "fake" | "harassment" | "unsafe") {
+  async function report(reason: "spam" | "fake" | "inappropriate" | "harassment" | "other") {
     if (!profile) return;
     try {
       await reportProfile.mutateAsync({ data: { targetUserId: profile.id, reason } });
@@ -232,11 +257,62 @@ export default function DiscoverScreen() {
       await blockProfile.mutateAsync({ data: { targetUserId: profile.id } });
       await queryClient.invalidateQueries({ queryKey: getGetDiscoverProfilesQueryKey(discoverParams) });
       setDetailOpen(false);
-      setIndex((current) => Math.max(0, current - 1));
+      setIndex((current) => current);
     } catch {
       Alert.alert("Could not block profile", "Please try again.");
     }
   }
+
+  async function undoPass() {
+    if (!lastPassedProfileId || undoLastPass.isPending) return;
+    try {
+      const result = await undoLastPass.mutateAsync();
+      if (!result.undone || result.targetUserId !== lastPassedProfileId) {
+        setLastPassedProfileId(null);
+        Alert.alert("Nothing to undo", "Only your most recent pass can be undone.");
+        return;
+      }
+      setIndex((current) => Math.max(0, current - 1));
+      setLastPassedProfileId(null);
+      await queryClient.invalidateQueries({ queryKey: getGetDiscoverProfilesQueryKey(discoverParams) });
+    } catch {
+      Alert.alert("Could not undo swipe", "Please try again.");
+    }
+  }
+
+  async function startBoost() {
+    if (!boostStatus.data?.available || activateBoost.isPending) return;
+    try {
+      await activateBoost.mutateAsync();
+      await queryClient.invalidateQueries({ queryKey: ["getBoostStatus"] });
+      Alert.alert("Boost is on", "Your profile will be prioritized for the next 30 minutes.");
+    } catch {
+      await boostStatus.refetch();
+      Alert.alert("Boost unavailable", "Your Boost is active or still cooling down.");
+    }
+  }
+
+  const boostActive = Boolean(
+    boostStatus.data?.active &&
+      boostStatus.data.boostEndTime &&
+      new Date(boostStatus.data.boostEndTime).getTime() > clock,
+  );
+  const boostEnd = boostStatus.data?.boostEndTime
+    ? new Date(boostStatus.data.boostEndTime).getTime()
+    : 0;
+  const boostAvailableAt = boostStatus.data?.nextBoostAvailableTime
+    ? new Date(boostStatus.data.nextBoostAvailableTime).getTime()
+    : 0;
+  const boostRemaining = Math.max(
+    0,
+    (boostActive ? boostEnd : boostAvailableAt) - clock,
+  );
+  const boostTimeLabel = `${String(Math.floor(boostRemaining / 60_000)).padStart(2, "0")}:${String(Math.floor((boostRemaining % 60_000) / 1000)).padStart(2, "0")}`;
+  const boostLabel = boostActive
+    ? `Boost · ${boostTimeLabel}`
+    : boostStatus.data?.available
+      ? "Boost for 30 min"
+      : `Available in ${boostTimeLabel}`;
 
   if (discover.isLoading) {
     return (
