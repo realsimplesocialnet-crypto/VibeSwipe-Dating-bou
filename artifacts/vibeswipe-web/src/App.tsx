@@ -25,13 +25,14 @@ import {
 import { Link, Redirect, Route, Switch, useLocation, useParams, Router as WouterRouter } from 'wouter';
 import {
   ArrowLeft, ArrowRight, Bell, Check, ChevronDown, ChevronRight, CircleHelp, Compass, Eye, EyeOff,
-  Heart, ImagePlus, LogOut, MapPin, MessageCircle, MoreHorizontal, Navigation, Plus, Search, Settings,
+  Heart, ImagePlus, LogOut, MapPin, MessageCircle, MoreHorizontal, Navigation, Search, Settings,
   Shield, SlidersHorizontal, Sparkles, Star, UserRound, Users, Volume2, X, Zap,
 } from 'lucide-react';
 import NotFound from '@/pages/not-found';
 import SafetyCenterPage from '@/pages/safety-center';
 import CommunityGuidelinesPage from '@/pages/community-guidelines';
 import PublicLocationSharePage from '@/pages/public-location-share';
+import { InstallAction } from '@/components/install-action';
 
 const queryClient = new QueryClient({ defaultOptions: { queries: { staleTime: 12_000, retry: 1 } } });
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, '');
@@ -62,24 +63,6 @@ function Brand({ compact = false }: { compact?: boolean }) {
     <img src={pathFor('/icon.png')} alt="" className="h-9 w-9 rounded-xl ring-1 ring-white/10" />
     {!compact && <span className="brand text-[21px] font-extrabold text-[#fff2f7]">vibe<span className="text-primary">swipe</span></span>}
   </Link>;
-}
-
-function InstallAction({ className = '' }: { className?: string }) {
-  const [prompt, setPrompt] = useState<any>(null);
-  const [showHelp, setShowHelp] = useState(false);
-  useEffect(() => {
-    const fn = (event: Event) => { event.preventDefault(); setPrompt(event); };
-    window.addEventListener('beforeinstallprompt', fn);
-    return () => window.removeEventListener('beforeinstallprompt', fn);
-  }, []);
-  const install = async () => {
-    if (!prompt) { setShowHelp((v) => !v); return; }
-    await prompt.prompt(); setPrompt(null);
-  };
-  return <div className={`relative ${className}`}>
-    <button onClick={() => void install()} data-testid="button-install-app" className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[.04] px-3.5 py-2.5 text-sm font-semibold text-foreground hover:bg-white/[.08]"><Plus size={16}/><span>Install app</span></button>
-    {showHelp && <div className="absolute right-0 top-12 z-50 w-64 rounded-2xl border border-white/10 bg-[#26212a] p-4 text-xs leading-5 text-muted-foreground shadow-xl" data-testid="text-install-help">In Chrome on Android, open the browser menu and choose <strong className="text-foreground">Install app</strong> or <strong className="text-foreground">Add to Home screen</strong>.</div>}
-  </div>;
 }
 
 const navItems = [

@@ -1,5 +1,5 @@
 /* Static shell only. Never cache API, Clerk, private messages, or uploaded media. */
-const CACHE_NAME = 'vibeswipe-shell-v1';
+const CACHE_NAME = 'vibeswipe-shell-v2';
 const scopeUrl = new URL(self.registration.scope);
 const shell = [
   scopeUrl.href,
