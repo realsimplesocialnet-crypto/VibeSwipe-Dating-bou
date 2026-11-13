@@ -238,7 +238,10 @@ export const GetMatchesResponseItem = zod.object({
 })
 }),
   "lastMessage": zod.string().nullish(),
-  "updatedAt": zod.coerce.date()
+  "updatedAt": zod.coerce.date(),
+  "blockedByMe": zod.boolean(),
+  "blockedMe": zod.boolean(),
+  "chatTheme": zod.enum(['pink', 'blue', 'purple', 'green', 'dark', 'light'])
 })
 export const GetMatchesResponse = zod.array(GetMatchesResponseItem)
 
@@ -250,14 +253,50 @@ export const GetMessagesParams = zod.object({
   "matchId": zod.coerce.string().uuid()
 })
 
+export const getMessagesResponseMediaReferenceMax = 100;
+
+export const getMessagesResponseMediaDurationMax = 60;
+
+
+
 export const GetMessagesResponseItem = zod.object({
   "id": zod.string().uuid(),
   "matchId": zod.string().uuid(),
   "senderId": zod.string(),
   "content": zod.string(),
-  "createdAt": zod.coerce.date()
+  "createdAt": zod.coerce.date(),
+  "mediaReference": zod.string().max(getMessagesResponseMediaReferenceMax).nullish(),
+  "mediaType": zod.union([zod.literal('image'),zod.literal('video'),zod.literal('audio'),zod.literal(null)]).nullish(),
+  "mediaDuration": zod.number().int().min(1).max(getMessagesResponseMediaDurationMax).nullish(),
+  "deletedForEveryone": zod.boolean(),
+  "isRead": zod.boolean()
 })
 export const GetMessagesResponse = zod.array(GetMessagesResponseItem)
+
+
+/**
+ * @summary Delete a message for the signed-in user or for everyone
+ */
+export const DeleteMessageParams = zod.object({
+  "matchId": zod.coerce.string().uuid(),
+  "messageId": zod.coerce.string().uuid()
+})
+
+export const DeleteMessageBody = zod.object({
+  "forEveryone": zod.boolean()
+})
+
+export const DeleteMessageResponse = zod.void()
+
+
+/**
+ * @summary Remove a match and its shared chat history
+ */
+export const UnmatchMatchParams = zod.object({
+  "matchId": zod.coerce.string().uuid()
+})
+
+export const UnmatchMatchResponse = zod.void()
 
 
 /**
@@ -269,18 +308,36 @@ export const SendMessageParams = zod.object({
 
 export const sendMessageBodyContentMax = 2000;
 
+export const sendMessageBodyMediaReferenceMax = 100;
+
+export const sendMessageBodyMediaDurationMax = 60;
+
 
 
 export const SendMessageBody = zod.object({
-  "content": zod.string().min(1).max(sendMessageBodyContentMax)
+  "content": zod.string().min(1).max(sendMessageBodyContentMax).optional(),
+  "mediaReference": zod.string().min(1).max(sendMessageBodyMediaReferenceMax).optional(),
+  "mediaType": zod.enum(['image', 'video', 'audio']).optional(),
+  "mediaDuration": zod.number().int().min(1).max(sendMessageBodyMediaDurationMax).optional()
 })
+
+export const sendMessageResponseMediaReferenceMax = 100;
+
+export const sendMessageResponseMediaDurationMax = 60;
+
+
 
 export const SendMessageResponse = zod.object({
   "id": zod.string().uuid(),
   "matchId": zod.string().uuid(),
   "senderId": zod.string(),
   "content": zod.string(),
-  "createdAt": zod.coerce.date()
+  "createdAt": zod.coerce.date(),
+  "mediaReference": zod.string().max(sendMessageResponseMediaReferenceMax).nullish(),
+  "mediaType": zod.union([zod.literal('image'),zod.literal('video'),zod.literal('audio'),zod.literal(null)]).nullish(),
+  "mediaDuration": zod.number().int().min(1).max(sendMessageResponseMediaDurationMax).nullish(),
+  "deletedForEveryone": zod.boolean(),
+  "isRead": zod.boolean()
 })
 
 
@@ -300,6 +357,334 @@ export const StreamMatchMessagesResponse = zod.unknown()
 
 
 /**
+ * @summary Clear messages from the signed-in user's chat view
+ */
+export const ClearChatParams = zod.object({
+  "matchId": zod.coerce.string().uuid()
+})
+
+export const ClearChatResponse = zod.void()
+
+
+/**
+ * @summary Hide a conversation from the signed-in user's chat list
+ */
+export const DeleteChatParams = zod.object({
+  "matchId": zod.coerce.string().uuid()
+})
+
+export const DeleteChatResponse = zod.void()
+
+
+/**
+ * @summary Get the other participant's typing status
+ */
+export const GetTypingStatusParams = zod.object({
+  "matchId": zod.coerce.string().uuid()
+})
+
+export const GetTypingStatusResponse = zod.object({
+  "isTyping": zod.boolean()
+})
+
+
+/**
+ * @summary Update the signed-in user's temporary typing status
+ */
+export const UpdateTypingStatusParams = zod.object({
+  "matchId": zod.coerce.string().uuid()
+})
+
+export const UpdateTypingStatusBody = zod.object({
+  "isTyping": zod.boolean()
+})
+
+export const UpdateTypingStatusResponse = zod.void()
+
+
+/**
+ * @summary Save the signed-in user's chat appearance for a match
+ */
+export const UpdateChatThemeParams = zod.object({
+  "matchId": zod.coerce.string().uuid()
+})
+
+export const UpdateChatThemeBody = zod.object({
+  "theme": zod.enum(['pink', 'blue', 'purple', 'green', 'dark', 'light'])
+})
+
+export const UpdateChatThemeResponse = zod.object({
+  "theme": zod.enum(['pink', 'blue', 'purple', 'green', 'dark', 'light'])
+})
+
+
+/**
+ * @summary Request a media upload URL for a matched chat
+ */
+export const RequestChatMediaUploadParams = zod.object({
+  "matchId": zod.coerce.string().uuid()
+})
+
+export const requestChatMediaUploadBodyNameMax = 255;
+
+export const requestChatMediaUploadBodySizeMax = 524288000;
+
+
+
+export const RequestChatMediaUploadBody = zod.object({
+  "name": zod.string().min(1).max(requestChatMediaUploadBodyNameMax),
+  "size": zod.number().int().min(1).max(requestChatMediaUploadBodySizeMax),
+  "contentType": zod.enum(['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'video/mp4', 'video/quicktime', 'audio/mp4', 'audio/m4a', 'audio/aac', 'audio/wav']),
+  "mediaType": zod.enum(['image', 'video', 'audio'])
+})
+
+export const RequestChatMediaUploadResponse = zod.object({
+  "uploadURL": zod.string().url(),
+  "mediaId": zod.string().uuid(),
+  "mediaReference": zod.string()
+})
+
+
+/**
+ * @summary Get the other participant's online and last-seen status
+ */
+export const GetMatchPresenceParams = zod.object({
+  "matchId": zod.coerce.string().uuid()
+})
+
+export const GetMatchPresenceResponse = zod.object({
+  "isOnline": zod.boolean(),
+  "lastSeenAt": zod.coerce.date().nullable()
+})
+
+
+/**
+ * @summary Get when the other participant last read the chat
+ */
+export const GetChatReadReceiptParams = zod.object({
+  "matchId": zod.coerce.string().uuid()
+})
+
+export const GetChatReadReceiptResponse = zod.object({
+  "readAt": zod.coerce.date().nullable()
+})
+
+
+/**
+ * @summary Mark the chat read for the signed-in user
+ */
+export const MarkChatReadParams = zod.object({
+  "matchId": zod.coerce.string().uuid()
+})
+
+export const MarkChatReadResponse = zod.void()
+
+
+/**
+ * @summary Record that the signed-in user is active
+ */
+export const HeartbeatPresenceResponse = zod.void()
+
+
+/**
+ * @summary Record that the signed-in user opened a profile
+ */
+
+
+
+export const RecordProfileViewParams = zod.object({
+  "profileId": zod.coerce.string().min(1)
+})
+
+export const RecordProfileViewResponse = zod.void()
+
+
+/**
+ * @summary List people who opened the signed-in user's profile
+ */
+export const getWhoViewedYouResponseProfilePreferencesAgeMinMin = 18;
+export const getWhoViewedYouResponseProfilePreferencesAgeMinMax = 120;
+
+export const getWhoViewedYouResponseProfilePreferencesAgeMaxMin = 18;
+export const getWhoViewedYouResponseProfilePreferencesAgeMaxMax = 120;
+
+export const getWhoViewedYouResponseProfilePreferencesDistanceKmMax = 500;
+
+
+
+export const GetWhoViewedYouResponseItem = zod.object({
+  "profile": zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "age": zod.number().int(),
+  "gender": zod.string(),
+  "lookingFor": zod.string(),
+  "bio": zod.string(),
+  "city": zod.string(),
+  "interests": zod.array(zod.string()),
+  "photos": zod.array(zod.string()),
+  "videoUrl": zod.string().nullish(),
+  "isDemo": zod.boolean(),
+  "preferences": zod.object({
+  "ageMin": zod.number().int().min(getWhoViewedYouResponseProfilePreferencesAgeMinMin).max(getWhoViewedYouResponseProfilePreferencesAgeMinMax),
+  "ageMax": zod.number().int().min(getWhoViewedYouResponseProfilePreferencesAgeMaxMin).max(getWhoViewedYouResponseProfilePreferencesAgeMaxMax),
+  "gender": zod.string(),
+  "distanceKm": zod.number().int().min(1).max(getWhoViewedYouResponseProfilePreferencesDistanceKmMax)
+})
+}),
+  "viewedAt": zod.coerce.date()
+})
+export const GetWhoViewedYouResponse = zod.array(GetWhoViewedYouResponseItem)
+
+
+/**
+ * @summary List saved in-app notifications and unread tab counts
+ */
+export const getNotificationsResponseNotificationsItemActorPreferencesAgeMinMin = 18;
+export const getNotificationsResponseNotificationsItemActorPreferencesAgeMinMax = 120;
+
+export const getNotificationsResponseNotificationsItemActorPreferencesAgeMaxMin = 18;
+export const getNotificationsResponseNotificationsItemActorPreferencesAgeMaxMax = 120;
+
+export const getNotificationsResponseNotificationsItemActorPreferencesDistanceKmMax = 500;
+
+export const getNotificationsResponseUnreadCountsMatchesMin = 0;
+
+export const getNotificationsResponseUnreadCountsMessagesMin = 0;
+
+export const getNotificationsResponseUnreadCountsViewsMin = 0;
+
+export const getNotificationsResponseUnreadCountsLikesMin = 0;
+
+
+
+export const GetNotificationsResponse = zod.object({
+  "notifications": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "type": zod.enum(['new_match', 'new_message', 'new_like', 'profile_view']),
+  "actor": zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "age": zod.number().int(),
+  "gender": zod.string(),
+  "lookingFor": zod.string(),
+  "bio": zod.string(),
+  "city": zod.string(),
+  "interests": zod.array(zod.string()),
+  "photos": zod.array(zod.string()),
+  "videoUrl": zod.string().nullish(),
+  "isDemo": zod.boolean(),
+  "preferences": zod.object({
+  "ageMin": zod.number().int().min(getNotificationsResponseNotificationsItemActorPreferencesAgeMinMin).max(getNotificationsResponseNotificationsItemActorPreferencesAgeMinMax),
+  "ageMax": zod.number().int().min(getNotificationsResponseNotificationsItemActorPreferencesAgeMaxMin).max(getNotificationsResponseNotificationsItemActorPreferencesAgeMaxMax),
+  "gender": zod.string(),
+  "distanceKm": zod.number().int().min(1).max(getNotificationsResponseNotificationsItemActorPreferencesDistanceKmMax)
+})
+}),
+  "matchId": zod.string().uuid().nullish(),
+  "messageId": zod.string().uuid().nullish(),
+  "createdAt": zod.coerce.date(),
+  "readAt": zod.coerce.date().nullable()
+})),
+  "unreadCounts": zod.object({
+  "matches": zod.number().int().min(getNotificationsResponseUnreadCountsMatchesMin),
+  "messages": zod.number().int().min(getNotificationsResponseUnreadCountsMessagesMin),
+  "views": zod.number().int().min(getNotificationsResponseUnreadCountsViewsMin),
+  "likes": zod.number().int().min(getNotificationsResponseUnreadCountsLikesMin)
+})
+})
+
+
+/**
+ * @summary Mark one notification as read
+ */
+export const MarkNotificationReadParams = zod.object({
+  "notificationId": zod.coerce.string().uuid()
+})
+
+export const MarkNotificationReadResponse = zod.void()
+
+
+/**
+ * @summary Get a profile opened from a notification
+ */
+
+
+
+export const GetProfileByIdParams = zod.object({
+  "profileId": zod.coerce.string().min(1)
+})
+
+export const getProfileByIdResponsePreferencesAgeMinMin = 18;
+export const getProfileByIdResponsePreferencesAgeMinMax = 120;
+
+export const getProfileByIdResponsePreferencesAgeMaxMin = 18;
+export const getProfileByIdResponsePreferencesAgeMaxMax = 120;
+
+export const getProfileByIdResponsePreferencesDistanceKmMax = 500;
+
+
+
+export const GetProfileByIdResponse = zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "age": zod.number().int(),
+  "gender": zod.string(),
+  "lookingFor": zod.string(),
+  "bio": zod.string(),
+  "city": zod.string(),
+  "interests": zod.array(zod.string()),
+  "photos": zod.array(zod.string()),
+  "videoUrl": zod.string().nullish(),
+  "isDemo": zod.boolean(),
+  "preferences": zod.object({
+  "ageMin": zod.number().int().min(getProfileByIdResponsePreferencesAgeMinMin).max(getProfileByIdResponsePreferencesAgeMinMax),
+  "ageMax": zod.number().int().min(getProfileByIdResponsePreferencesAgeMaxMin).max(getProfileByIdResponsePreferencesAgeMaxMax),
+  "gender": zod.string(),
+  "distanceKm": zod.number().int().min(1).max(getProfileByIdResponsePreferencesDistanceKmMax)
+})
+})
+
+
+/**
+ * @summary List profiles blocked by the signed-in user
+ */
+export const getBlockedProfilesResponseProfilePreferencesAgeMinMin = 18;
+export const getBlockedProfilesResponseProfilePreferencesAgeMinMax = 120;
+
+export const getBlockedProfilesResponseProfilePreferencesAgeMaxMin = 18;
+export const getBlockedProfilesResponseProfilePreferencesAgeMaxMax = 120;
+
+export const getBlockedProfilesResponseProfilePreferencesDistanceKmMax = 500;
+
+
+
+export const GetBlockedProfilesResponseItem = zod.object({
+  "profile": zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "age": zod.number().int(),
+  "gender": zod.string(),
+  "lookingFor": zod.string(),
+  "bio": zod.string(),
+  "city": zod.string(),
+  "interests": zod.array(zod.string()),
+  "photos": zod.array(zod.string()),
+  "videoUrl": zod.string().nullish(),
+  "isDemo": zod.boolean(),
+  "preferences": zod.object({
+  "ageMin": zod.number().int().min(getBlockedProfilesResponseProfilePreferencesAgeMinMin).max(getBlockedProfilesResponseProfilePreferencesAgeMinMax),
+  "ageMax": zod.number().int().min(getBlockedProfilesResponseProfilePreferencesAgeMaxMin).max(getBlockedProfilesResponseProfilePreferencesAgeMaxMax),
+  "gender": zod.string(),
+  "distanceKm": zod.number().int().min(1).max(getBlockedProfilesResponseProfilePreferencesDistanceKmMax)
+})
+}),
+  "createdAt": zod.coerce.date()
+})
+export const GetBlockedProfilesResponse = zod.array(GetBlockedProfilesResponseItem)
+
+
+/**
  * @summary Block a profile
  */
 
@@ -313,6 +698,19 @@ export const BlockProfileResponse = zod.void()
 
 
 /**
+ * @summary Unblock a profile blocked by the signed-in user
+ */
+
+
+
+export const UnblockProfileParams = zod.object({
+  "targetUserId": zod.coerce.string().min(1)
+})
+
+export const UnblockProfileResponse = zod.void()
+
+
+/**
  * @summary Report a profile
  */
 
@@ -322,7 +720,7 @@ export const reportProfileBodyDetailsMax = 1000;
 
 export const ReportProfileBody = zod.object({
   "targetUserId": zod.string().min(1),
-  "reason": zod.enum(['fake', 'harassment', 'unsafe', 'underage', 'other']),
+  "reason": zod.enum(['spam', 'fake', 'inappropriate', 'harassment', 'other']),
   "details": zod.string().max(reportProfileBodyDetailsMax).optional()
 })
 
@@ -341,8 +739,8 @@ export const requestProfileMediaUploadBodySizeMax = 524288000;
 export const RequestProfileMediaUploadBody = zod.object({
   "name": zod.string().min(1).max(requestProfileMediaUploadBodyNameMax),
   "size": zod.number().int().min(1).max(requestProfileMediaUploadBodySizeMax),
-  "contentType": zod.enum(['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'video/mp4', 'video/quicktime']),
-  "mediaType": zod.enum(['image', 'video'])
+  "contentType": zod.enum(['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'video/mp4', 'video/quicktime', 'audio/mp4', 'audio/m4a', 'audio/aac', 'audio/wav']),
+  "mediaType": zod.enum(['image', 'video', 'audio'])
 })
 
 export const RequestProfileMediaUploadResponse = zod.object({

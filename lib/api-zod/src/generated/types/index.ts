@@ -6,7 +6,12 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from './blockedProfile';
 export * from './blockInput';
+export * from './chatTheme';
+export * from './chatThemeInput';
+export * from './chatThemeResult';
+export * from './deleteMessageInput';
 export * from './getDiscoverProfilesParams';
 export * from './healthStatus';
 export * from './match';
@@ -16,12 +21,23 @@ export * from './mediaUploadInputMediaType';
 export * from './mediaUploadResult';
 export * from './message';
 export * from './messageInput';
+export * from './messageInputMediaType';
+export * from './messageMediaType';
+export * from './notification';
+export * from './notificationCounts';
+export * from './notificationsResponse';
+export * from './notificationType';
+export * from './presenceStatus';
 export * from './profile';
 export * from './profileInput';
 export * from './profilePreferences';
 export * from './profileVideoTranscodeResult';
+export * from './profileView';
 export * from './reactionInput';
 export * from './reactionInputType';
 export * from './reactionResult';
+export * from './readReceiptStatus';
 export * from './reportInput';
 export * from './reportInputReason';
+export * from './typingInput';
+export * from './typingStatus';

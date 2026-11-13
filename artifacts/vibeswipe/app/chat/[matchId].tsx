@@ -1,20 +1,46 @@
 import {
+  ChatTheme,
+  getGetChatReadReceiptQueryKey,
   getGetMessagesQueryKey,
+  getGetMatchesQueryKey,
+  getGetMatchPresenceQueryKey,
+  getGetTypingStatusQueryKey,
+  type ChatTheme as ChatThemeType,
   type Message,
+  type MediaUploadInputContentType,
+  useBlockProfile,
+  useClearChat,
+  useDeleteMessage,
+  useGetChatReadReceipt,
+  useGetMatchPresence,
   useGetMatches,
   useGetMessages,
+  useGetTypingStatus,
+  useMarkChatRead,
+  useReportProfile,
+  useRequestChatMediaUpload,
   useSendMessage,
+  useTranscodeProfileVideo,
+  useUnblockProfile,
+  useUnmatchMatch,
+  useUpdateChatTheme,
+  useUpdateTypingStatus,
 } from "@workspace/api-client-react";
 import { Feather } from "@expo/vector-icons";
 import { useAuth } from "@clerk/expo";
 import { useQueryClient } from "@tanstack/react-query";
-import { router, useLocalSearchParams } from "expo-router";
-import { useEffect, useState } from "react";
+import { File } from "expo-file-system";
+import * as ImagePicker from "expo-image-picker";
 import { fetch as expoFetch } from "expo/fetch";
+import { KeyboardAvoidingView } from "react-native-keyboard-controller";
+import { router, useLocalSearchParams } from "expo-router";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
-  KeyboardAvoidingView,
+  Image,
+  Modal,
   Platform,
   Pressable,
   StyleSheet,
@@ -23,8 +49,45 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+  RecordingPresets,
+  requestRecordingPermissionsAsync,
+  setAudioModeAsync,
+  useAudioRecorder,
+} from "expo-audio";
 import { ProfileAvatar } from "@/components/ProfileAvatar";
+import { ChatAudioMessage, ChatVideoViewer } from "@/components/ChatMedia";
 import { useColors } from "@/hooks/useColors";
+import { mediaUri, profileImageSource } from "@/lib/media";
+
+const THEME_OPTIONS: { key: ChatThemeType; label: string; color: string }[] = [
+  { key: ChatTheme.pink, label: "Pink", color: "#e84768" },
+  { key: ChatTheme.blue, label: "Blue", color: "#3678d4" },
+  { key: ChatTheme.purple, label: "Purple", color: "#8b5bd5" },
+  { key: ChatTheme.green, label: "Green", color: "#238b63" },
+  { key: ChatTheme.dark, label: "Dark", color: "#28242a" },
+  { key: ChatTheme.light, label: "Light", color: "#f4eeee" },
+];
+const MAX_IMAGE_BYTES = 15 * 1024 * 1024;
+const MAX_VIDEO_BYTES = 500 * 1024 * 1024;
+const MAX_AUDIO_BYTES = 25 * 1024 * 1024;
+
+function formatTime(date: string): string {
+  return new Date(date).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+}
+
+function formatLastSeen(date: string | null | undefined): string {
+  if (!date) return "Last seen recently";
+  const then = new Date(date);
+  if (Number.isNaN(then.getTime())) return "Last seen recently";
+  const now = new Date();
+  const sameDay = then.toDateString() === now.toDateString();
+  return `Last seen ${sameDay ? `today at ${formatTime(date)}` : then.toLocaleDateString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}`;
+}
+
+function mediaTheme(theme: ChatThemeType, fallback: string): string {
+  return THEME_OPTIONS.find((option) => option.key === theme)?.color ?? fallback;
+}
 
 export default function ChatScreen() {
   const colors = useColors();
@@ -35,19 +98,78 @@ export default function ChatScreen() {
   const matchId = Array.isArray(rawId) ? rawId[0] : rawId;
   const matches = useGetMatches({ query: { refetchInterval: 10_000 } });
   const match = matches.data?.find((item) => item.id === matchId);
-  const messages = useGetMessages(matchId ?? "", {
-    query: { enabled: !!match },
+  const messages = useGetMessages(matchId ?? "", { query: { enabled: !!match } });
+  const presence = useGetMatchPresence(matchId ?? "", {
+    query: { enabled: !!match, refetchInterval: 15_000 },
+  });
+  const typing = useGetTypingStatus(matchId ?? "", {
+    query: { enabled: !!match, refetchInterval: 2_500 },
+  });
+  const readReceipt = useGetChatReadReceipt(matchId ?? "", {
+    query: { enabled: !!match, refetchInterval: 5_000 },
   });
   const sendMessage = useSendMessage();
+  const blockProfile = useBlockProfile();
+  const unblockProfile = useUnblockProfile();
+  const reportProfile = useReportProfile();
+  const clearChat = useClearChat();
+  const unmatch = useUnmatchMatch();
+  const updateTheme = useUpdateChatTheme();
+  const requestUpload = useRequestChatMediaUpload();
+  const transcodeVideo = useTranscodeProfileVideo();
+  const updateTyping = useUpdateTypingStatus();
+  const updateTypingStatus = updateTyping.mutate;
+  const markRead = useMarkChatRead();
+  const deleteMessage = useDeleteMessage();
+  const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
+
   const [draft, setDraft] = useState("");
+  const [authToken, setAuthToken] = useState<string | null>(null);
+  const [error, setError] = useState("");
+  const [busyMedia, setBusyMedia] = useState(false);
+  const [recording, setRecording] = useState(false);
+  const [recordSeconds, setRecordSeconds] = useState(0);
+  const [menuVisible, setMenuVisible] = useState(false);
+  const [themeVisible, setThemeVisible] = useState(false);
+  const [viewingMedia, setViewingMedia] = useState<{ reference: string; type: "image" | "video" } | null>(null);
+  const typingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const recordingTimer = useRef<ReturnType<typeof setInterval> | null>(null);
+  const recordingRef = useRef(false);
+  const recordingPressRef = useRef(false);
+  const recordingTicks = useRef(0);
+  const lastMarkedMessage = useRef("");
+  const blocked = !!match?.blockedByMe || !!match?.blockedMe;
+  const chatAccent = mediaTheme(match?.chatTheme ?? ChatTheme.pink, colors.primary);
+  const themedBackground = match?.chatTheme === ChatTheme.dark ? "#171317"
+    : match?.chatTheme === ChatTheme.light ? "#fffaf8" : colors.background;
+  const themedForeground = match?.chatTheme === ChatTheme.dark ? "#fbf5f7"
+    : match?.chatTheme === ChatTheme.light ? "#21171c" : colors.foreground;
 
   useEffect(() => {
     if (!matches.isLoading && matches.data && !match) router.replace("/(tabs)/matches");
   }, [match, matches.data, matches.isLoading]);
 
   useEffect(() => {
-    if (!match || !matchId || messages.isLoading) return;
+    let active = true;
+    void getToken().then((value) => {
+      if (active) setAuthToken(value);
+    });
+    return () => { active = false; };
+  }, [getToken]);
 
+  const addMessage = useCallback((message: Message) => {
+    if (!matchId || message.matchId !== matchId) return;
+    queryClient.setQueryData<Message[]>(getGetMessagesQueryKey(matchId), (current = []) => {
+      const byId = new Map(current.map((item) => [item.id, item]));
+      byId.set(message.id, message);
+      return [...byId.values()].sort(
+        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime() || b.id.localeCompare(a.id),
+      );
+    });
+  }, [matchId, queryClient]);
+
+  useEffect(() => {
+    if (!match || !matchId || messages.isLoading) return;
     let active = true;
     let stopAfterCloseEvent = false;
     const controller = new AbortController();
@@ -55,19 +177,6 @@ export default function ChatScreen() {
     const apiBaseUrl = process.env.EXPO_PUBLIC_DOMAIN
       ? `https://${process.env.EXPO_PUBLIC_DOMAIN}/api`
       : "/api";
-
-    const addMessage = (message: Message): void => {
-      if (message.matchId !== matchId) return;
-      queryClient.setQueryData<Message[]>(queryKey, (current = []) => {
-        const byId = new Map(current.map((item) => [item.id, item]));
-        byId.set(message.id, message);
-        return [...byId.values()].sort(
-          (a, b) =>
-            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime() ||
-            b.id.localeCompare(a.id),
-        );
-      });
-    };
 
     async function connect(): Promise<void> {
       let retryDelay = 500;
@@ -77,23 +186,16 @@ export default function ChatScreen() {
           if (!token || !active) return;
           const current = queryClient.getQueryData<Message[]>(queryKey) ?? [];
           const afterId = current[0]?.id;
-          const response = await expoFetch(
-            `${apiBaseUrl}/vibeswipe/matches/${matchId}/messages/events`,
-            {
-              headers: {
-                Accept: "text/event-stream",
-                Authorization: `Bearer ${token}`,
-                ...(afterId ? { "Last-Event-ID": afterId } : {}),
-              },
-              signal: controller.signal,
+          const response = await expoFetch(`${apiBaseUrl}/vibeswipe/matches/${matchId}/messages/events`, {
+            headers: {
+              Accept: "text/event-stream",
+              Authorization: `Bearer ${token}`,
+              ...(afterId ? { "Last-Event-ID": afterId } : {}),
             },
-          );
-
+            signal: controller.signal,
+          });
           if (response.status === 401 || response.status === 403) return;
-          if (!response.ok || !response.body) {
-            throw new Error(`Chat stream failed with status ${response.status}`);
-          }
-
+          if (!response.ok || !response.body) throw new Error(`Chat stream failed with status ${response.status}`);
           retryDelay = 500;
           const reader = response.body.getReader();
           const decoder = new TextDecoder();
@@ -117,12 +219,13 @@ export default function ChatScreen() {
                   stopAfterCloseEvent = true;
                   break;
                 }
-                if (eventName === "message" && data.length > 0) {
-                  try {
-                    addMessage(JSON.parse(data.join("\n")) as Message);
-                  } catch {
-                    // Ignore malformed event payloads and keep the stream alive.
-                  }
+                if (eventName === "message" && data.length) {
+                  try { addMessage(JSON.parse(data.join("\n")) as Message); } catch { /* Keep stream alive on malformed events. */ }
+                } else if (["typing", "read", "presence"].includes(eventName)) {
+                  const key = eventName === "typing" ? getGetTypingStatusQueryKey(matchId)
+                    : eventName === "read" ? getGetChatReadReceiptQueryKey(matchId)
+                    : getGetMatchPresenceQueryKey(matchId);
+                  void queryClient.invalidateQueries({ queryKey: key });
                 }
                 boundary = buffer.indexOf("\n\n");
               }
@@ -134,32 +237,281 @@ export default function ChatScreen() {
         } catch {
           if (!active || controller.signal.aborted) return;
         }
-
         if (!active || stopAfterCloseEvent) return;
         await new Promise((resolve) => setTimeout(resolve, retryDelay));
         retryDelay = Math.min(retryDelay * 2, 8_000);
       }
     }
-
     void connect();
     return () => {
       active = false;
       controller.abort();
     };
-  }, [getToken, match, matchId, messages.isLoading, queryClient]);
+  }, [addMessage, getToken, match, matchId, messages.isLoading, queryClient]);
 
-  async function send() {
-    const content = draft.trim();
-    if (!content || !matchId || sendMessage.isPending) return;
-    setDraft("");
+  useEffect(() => {
+    if (!matchId || blocked) return;
+    if (typingTimer.current) clearTimeout(typingTimer.current);
+    typingTimer.current = setTimeout(() => {
+      updateTypingStatus({ matchId, data: { isTyping: draft.length > 0 } });
+    }, 300);
+    return () => {
+      if (typingTimer.current) clearTimeout(typingTimer.current);
+    };
+  }, [blocked, draft, matchId, updateTypingStatus]);
+
+  useEffect(() => {
+    const latest = messages.data?.[0];
+    if (!matchId || !latest || !userId || latest.senderId === userId || latest.id === lastMarkedMessage.current) return;
+    lastMarkedMessage.current = latest.id;
+    markRead.mutate({ matchId });
+  }, [markRead, matchId, messages.data, userId]);
+
+  useEffect(() => () => {
+    if (recordingTimer.current) clearInterval(recordingTimer.current);
+    if (typingTimer.current) clearTimeout(typingTimer.current);
+    if (recordingRef.current) void recorder.stop();
+  }, [recorder]);
+
+  async function send(content: string, media?: { reference: string; type: "image" | "video" | "audio"; duration?: number }) {
+    if (!matchId || (!content.trim() && !media) || sendMessage.isPending || blocked) return;
+    const oldDraft = draft;
+    if (!media) setDraft("");
     try {
-      const message = await sendMessage.mutateAsync({ matchId, data: { content } });
-      queryClient.setQueryData<Message[]>(getGetMessagesQueryKey(matchId), (current = []) => {
-        if (current.some((item) => item.id === message.id)) return current;
-        return [message, ...current];
-      });
+      const payload = media
+        ? { content: content || "", mediaReference: media.reference, mediaType: media.type, ...(media.duration ? { mediaDuration: media.duration } : {}) }
+        : { content: content.trim() };
+      const message = await sendMessage.mutateAsync({ matchId, data: payload });
+      addMessage(message);
+      updateTyping.mutate({ matchId, data: { isTyping: false } });
+      setError("");
     } catch {
-      setDraft(content);
+      if (!media) setDraft(oldDraft);
+      setError("Message could not be sent. Please try again.");
+    }
+  }
+
+  async function uploadMedia(
+    uri: string,
+    name: string,
+    type: "image" | "video" | "audio",
+    fileSize?: number,
+    duration?: number,
+    contentTypeHint?: string | null,
+  ) {
+    if (!matchId) return;
+    const file = new File(uri);
+    const size = fileSize ?? file.size;
+    const supportedTypes: MediaUploadInputContentType[] = [
+      "image/jpeg", "image/png", "image/webp", "image/heic", "video/mp4", "video/quicktime",
+      "audio/mp4", "audio/m4a", "audio/aac", "audio/wav",
+    ];
+    const fallbackType: MediaUploadInputContentType = type === "image" ? "image/jpeg"
+      : type === "video" ? "video/mp4" : "audio/m4a";
+    const contentType = supportedTypes.includes(contentTypeHint as MediaUploadInputContentType)
+      ? contentTypeHint as MediaUploadInputContentType
+      : fallbackType;
+    const maxSize = type === "image" ? MAX_IMAGE_BYTES : type === "video" ? MAX_VIDEO_BYTES : MAX_AUDIO_BYTES;
+    if (size <= 0 || size > maxSize) throw new Error(type === "image" ? "Choose an image smaller than 15 MB." : type === "video" ? "Choose a video smaller than 500 MB." : "This voice note is too large to upload.");
+    const result = await requestUpload.mutateAsync({
+      matchId,
+      data: { name, size, contentType, mediaType: type },
+    });
+    const uploaded = await expoFetch(result.uploadURL, {
+      method: "PUT",
+      headers: { "Content-Type": contentType },
+      body: file as unknown as BodyInit,
+    });
+    if (!uploaded.ok) throw new Error("The media upload could not be completed.");
+    if (type === "video") {
+      const transcoded = await transcodeVideo.mutateAsync({ mediaId: result.mediaId });
+      await send("", { reference: transcoded.mediaReference || result.mediaReference, type });
+    } else {
+      await send("", { reference: result.mediaReference, type, ...(duration ? { duration } : {}) });
+    }
+  }
+
+  async function chooseAttachment() {
+    setError("");
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      setError("Allow photo library access to attach a photo or video.");
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images", "videos"],
+      quality: 0.88,
+      videoMaxDuration: 60,
+    });
+    if (result.canceled || !result.assets[0]) return;
+    const asset = result.assets[0];
+    const type = asset.type === "video" ? "video" : "image";
+    setBusyMedia(true);
+    try {
+      await uploadMedia(asset.uri, asset.fileName ?? `${type}-${Date.now()}`, type, asset.fileSize, undefined, asset.mimeType);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "The attachment could not be sent.");
+    } finally {
+      setBusyMedia(false);
+    }
+  }
+
+  async function startRecording() {
+    setError("");
+    try {
+      const permission = await requestRecordingPermissionsAsync();
+      if (!permission.granted) {
+        setError("Allow microphone access to record a voice note.");
+        return;
+      }
+      await setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true });
+      await recorder.prepareToRecordAsync();
+      if (!recordingPressRef.current) return;
+      recorder.record();
+      recordingRef.current = true;
+      recordingTicks.current = 0;
+      setRecordSeconds(0);
+      setRecording(true);
+      recordingTimer.current = setInterval(() => {
+        recordingTicks.current += 1;
+        setRecordSeconds(Math.min(60, recordingTicks.current));
+        if (recordingTicks.current >= 60) void stopRecording();
+      }, 1_000);
+    } catch {
+      setError("Voice recording couldn’t start. Check microphone permissions and try again.");
+    }
+  }
+
+  async function stopRecording() {
+    if (!recordingRef.current && !recorder.isRecording) return;
+    recordingRef.current = false;
+    if (recordingTimer.current) clearInterval(recordingTimer.current);
+    recordingTimer.current = null;
+    const duration = Math.max(1, Math.min(60, Math.round(recorder.currentTime)));
+    try {
+      await recorder.stop();
+      await setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true });
+      setRecording(false);
+      if (!recorder.uri) throw new Error("The recording could not be saved.");
+      setBusyMedia(true);
+      await uploadMedia(recorder.uri, `voice-${Date.now()}.m4a`, "audio", undefined, duration);
+      setRecordSeconds(duration);
+    } catch (caught) {
+      setRecording(false);
+      setError(caught instanceof Error ? caught.message : "The voice note could not be sent.");
+    } finally {
+      setBusyMedia(false);
+    }
+  }
+
+  function confirmDelete(message: Message) {
+    if (!matchId) return;
+    const own = message.senderId === userId;
+    const options = [
+      { text: "Delete for me", onPress: () => void deleteMessageFor(message, false) },
+      ...(own ? [{ text: "Delete for everyone", style: "destructive" as const, onPress: () => void deleteMessageFor(message, true) }] : []),
+      { text: "Cancel", style: "cancel" as const },
+    ];
+    Alert.alert("Delete message?", "Choose who should no longer see this message.", options);
+  }
+
+  async function deleteMessageFor(message: Message, forEveryone: boolean) {
+    if (!matchId) return;
+    try {
+      await deleteMessage.mutateAsync({ matchId, messageId: message.id, data: { forEveryone } });
+      if (!forEveryone) {
+        queryClient.setQueryData<Message[]>(getGetMessagesQueryKey(matchId), (current = []) => current.filter((item) => item.id !== message.id));
+      }
+      await messages.refetch();
+    } catch {
+      setError("Message could not be deleted. Please try again.");
+    }
+  }
+
+  async function blockOrUnblock() {
+    if (!match || !matchId) return;
+    try {
+      if (match.blockedByMe) {
+        await unblockProfile.mutateAsync({ targetUserId: match.profile.id });
+      } else {
+        await blockProfile.mutateAsync({ data: { targetUserId: match.profile.id } });
+      }
+      await queryClient.invalidateQueries({ queryKey: getGetMatchesQueryKey() });
+      setMenuVisible(false);
+    } catch {
+      setError(match.blockedByMe ? "Could not unblock this person. Try again." : "Could not block this person. Try again.");
+    }
+  }
+
+  function reportProfileAction() {
+    if (!match) return;
+    Alert.alert("Report profile", "Choose a reason for your report.", [
+      ...(["spam", "fake", "inappropriate", "harassment", "other"] as const).map((reason) => ({
+        text: reason[0].toUpperCase() + reason.slice(1),
+        onPress: async () => {
+          try {
+            await reportProfile.mutateAsync({ data: { targetUserId: match.profile.id, reason } });
+            setMenuVisible(false);
+            Alert.alert("Report submitted", "Thank you. We’ll review this profile.");
+          } catch {
+            setError("The report could not be submitted. Please try again.");
+          }
+        },
+      })),
+      { text: "Cancel", style: "cancel" as const },
+    ]);
+  }
+
+  function chooseTheme(theme: ChatThemeType) {
+    if (!matchId) return;
+    updateTheme.mutate({ matchId, data: { theme } }, {
+      onSuccess: () => {
+        queryClient.setQueryData(getGetMatchesQueryKey(), (current: typeof matches.data) =>
+          current?.map((item) => item.id === matchId ? { ...item, chatTheme: theme } : item));
+        setThemeVisible(false);
+        setMenuVisible(false);
+      },
+      onError: () => setError("Chat color couldn’t be saved. Please try again."),
+    });
+  }
+
+  function menuAction(action: string) {
+    if (!matchId) return;
+    setMenuVisible(false);
+    if (action === "Block" || action === "Unblock") {
+      Alert.alert(`${action} ${match?.profile.name}?`, action === "Block" ? "They won’t be able to message you." : "They will be able to interact with you again.", [
+        { text: action, style: action === "Block" ? "destructive" : "default", onPress: () => void blockOrUnblock() },
+        { text: "Cancel", style: "cancel" },
+      ]);
+    } else if (action === "Report") {
+      reportProfileAction();
+    } else if (action === "Change chat color") {
+      setThemeVisible(true);
+    } else if (action === "Clear chat") {
+      Alert.alert("Clear chat?", "This removes messages from your chat view only.", [
+        { text: "Clear chat", style: "destructive", onPress: async () => {
+          try {
+            await clearChat.mutateAsync({ matchId });
+            queryClient.setQueryData<Message[]>(getGetMessagesQueryKey(matchId), []);
+          } catch {
+            setError("Chat couldn’t be cleared. Please try again.");
+          }
+        } },
+        { text: "Cancel", style: "cancel" },
+      ]);
+    } else if (action === "Unmatch") {
+      Alert.alert(`Unmatch ${match?.profile.name}?`, "This removes the match and shared chat history.", [
+        { text: "Unmatch", style: "destructive", onPress: async () => {
+          try {
+            await unmatch.mutateAsync({ matchId });
+            await queryClient.invalidateQueries({ queryKey: getGetMatchesQueryKey() });
+            router.replace("/(tabs)/matches");
+          } catch {
+            setError("Could not unmatch. Please try again.");
+          }
+        } },
+        { text: "Cancel", style: "cancel" },
+      ]);
     }
   }
 
@@ -167,56 +519,223 @@ export default function ChatScreen() {
     return <View style={[styles.center, { backgroundColor: colors.background }]}><ActivityIndicator color={colors.primary} /></View>;
   }
 
+  const otherIsTyping = typing.data?.isTyping === true;
+  const lastReadAt = readReceipt.data?.readAt;
+  const sortedMessages = messages.data ?? [];
+
   return (
     <KeyboardAvoidingView
-      style={[styles.screen, { backgroundColor: colors.background }]}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-      keyboardVerticalOffset={insets.top + 12}
+      style={[styles.screen, { backgroundColor: themedBackground }]}
+      behavior="padding"
+      keyboardVerticalOffset={0}
     >
-      <View style={[styles.header, { borderBottomColor: colors.border, paddingTop: Math.max(insets.top, 12) }]}>
-        <Pressable onPress={() => router.back()} style={styles.back}><Feather name="arrow-left" size={21} color={colors.foreground} /></Pressable>
-        <ProfileAvatar profile={match.profile} size={42} />
-        <View style={styles.headerCopy}>
-          <Text style={[styles.name, { color: colors.foreground }]}>{match.profile.name}</Text>
-          <Text style={[styles.status, { color: colors.mutedForeground }]}>Your match</Text>
+      <View style={[styles.header, { borderBottomColor: colors.border, paddingTop: Math.max(insets.top, Platform.OS === "web" ? 67 : 12) }]}>
+        <Pressable accessibilityRole="button" accessibilityLabel="Go back" onPress={() => router.back()} style={styles.back}>
+          <Feather name="arrow-left" size={21} color={themedForeground} />
+        </Pressable>
+        <View style={styles.avatarWrap}>
+          <ProfileAvatar profile={match.profile} size={42} />
+          <View style={[styles.onlineDot, { backgroundColor: presence.data?.isOnline ? "#26b36d" : colors.mutedForeground }]} />
         </View>
+        <View style={styles.headerCopy}>
+          <Text numberOfLines={1} style={[styles.name, { color: themedForeground }]}>{match.profile.name}</Text>
+          <Text style={[styles.status, { color: presence.data?.isOnline ? "#238b63" : colors.mutedForeground }]}>
+            {presence.data?.isOnline ? "Online" : formatLastSeen(presence.data?.lastSeenAt)}
+          </Text>
+        </View>
+        <Pressable accessibilityRole="button" accessibilityLabel="Chat actions" testID="chat-actions" onPress={() => setMenuVisible(true)} style={styles.more}>
+          <Feather name="more-vertical" size={21} color={themedForeground} />
+        </Pressable>
       </View>
-      {messages.isError ? <Text style={[styles.error, { color: colors.destructive }]}>Messages couldn’t load. Try again.</Text> : null}
+
+      {messages.isError ? (
+        <Pressable accessibilityRole="button" onPress={() => void messages.refetch()} style={styles.errorBanner}>
+          <Text accessibilityRole="alert" style={[styles.error, { color: colors.destructive }]}>Messages couldn’t load. Tap to try again.</Text>
+        </Pressable>
+      ) : null}
+      {error ? <Text accessibilityRole="alert" style={[styles.error, { color: colors.destructive }]}>{error}</Text> : null}
       <FlatList
         inverted
-        data={messages.data ?? []}
+        data={sortedMessages}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.messageList}
+        keyboardDismissMode="interactive"
+        keyboardShouldPersistTaps="handled"
+        scrollEnabled={sortedMessages.length > 0}
+        ListHeaderComponent={otherIsTyping ? <Text style={[styles.typing, { color: colors.mutedForeground }]}>{match.profile.name} is typing…</Text> : undefined}
         ListEmptyComponent={<Text style={[styles.empty, { color: colors.mutedForeground }]}>Say hello to start the conversation.</Text>}
         renderItem={({ item }) => {
           const own = item.senderId === userId;
+          const bubbleColor = own ? chatAccent : colors.card;
+          const messageMedia = item.mediaReference ? mediaUri(item.mediaReference) : null;
+          const tombstone = item.deletedForEveryone;
           return (
             <View style={[styles.messageRow, own ? styles.ownRow : styles.otherRow]}>
-              <View style={[styles.bubble, own ? { backgroundColor: colors.primary } : { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1 }]}>
-                <Text style={[styles.messageText, { color: own ? "#ffffff" : colors.foreground }]}>{item.content}</Text>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={tombstone ? "Deleted message" : "Message. Hold for delete options."}
+                delayLongPress={350}
+                onLongPress={() => confirmDelete(item)}
+                style={[
+                  styles.bubble,
+                  { backgroundColor: bubbleColor, borderColor: colors.border },
+                  !own && styles.otherBubble,
+                  tombstone && styles.deletedBubble,
+                ]}
+              >
+                {tombstone ? (
+                  <Text style={[styles.deletedText, { color: own ? "#ffffff" : colors.mutedForeground }]}>
+                    {item.content || "This message was deleted."}
+                  </Text>
+                ) : item.mediaType === "audio" && item.mediaReference ? (
+                  <ChatAudioMessage reference={item.mediaReference} duration={item.mediaDuration ?? 1} token={authToken} foreground={own ? "#ffffff" : themedForeground} />
+                ) : item.mediaType === "image" && messageMedia ? (
+                  <Pressable accessibilityLabel="Open image full size" onPress={() => setViewingMedia({ reference: item.mediaReference!, type: "image" })}>
+                    <Image
+                      source={profileImageSource(item.mediaReference, authToken)}
+                      style={styles.imagePreview}
+                      resizeMode="cover"
+                    />
+                  </Pressable>
+                ) : item.mediaType === "video" && messageMedia ? (
+                  <Pressable accessibilityLabel="Open video" onPress={() => setViewingMedia({ reference: item.mediaReference!, type: "video" })} style={styles.videoPreview}>
+                    <Feather name="play-circle" size={42} color="#ffffff" />
+                    <Text style={styles.videoPreviewText}>Play video</Text>
+                  </Pressable>
+                ) : (
+                  <Text style={[styles.messageText, { color: own ? "#ffffff" : themedForeground }]}>{item.content}</Text>
+                )}
+              </Pressable>
+              <View style={[styles.messageMeta, own ? styles.ownMeta : styles.otherMeta]}>
+                <Text style={[styles.time, { color: colors.mutedForeground }]}>{formatTime(item.createdAt)}</Text>
+                {own && !tombstone ? (
+                  <View
+                    accessibilityLabel={item.isRead || (lastReadAt && new Date(lastReadAt).getTime() >= new Date(item.createdAt).getTime()) ? "Read" : "Sent"}
+                    accessibilityRole="image"
+                    style={styles.receiptChecks}
+                  >
+                    <Feather name="check" size={12} color={item.isRead || (lastReadAt && new Date(lastReadAt).getTime() >= new Date(item.createdAt).getTime()) ? chatAccent : colors.mutedForeground} />
+                    <Feather name="check" size={12} color={item.isRead || (lastReadAt && new Date(lastReadAt).getTime() >= new Date(item.createdAt).getTime()) ? chatAccent : colors.mutedForeground} style={styles.secondCheck} />
+                  </View>
+                ) : null}
               </View>
-              <Text style={[styles.time, { color: colors.mutedForeground }]}>{new Date(item.createdAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</Text>
             </View>
           );
         }}
         refreshing={messages.isRefetching}
         onRefresh={() => void messages.refetch()}
       />
-      <View style={[styles.composer, { borderTopColor: colors.border, paddingBottom: Math.max(insets.bottom, 10) }]}>
-        <TextInput
-          testID="chat-message-input"
-          value={draft}
-          onChangeText={setDraft}
-          placeholder="Write a message…"
-          placeholderTextColor={colors.mutedForeground}
-          multiline
-          maxLength={2000}
-          style={[styles.input, { color: colors.foreground, backgroundColor: colors.card, borderColor: colors.border }]}
-        />
-        <Pressable testID="send-chat-message" accessibilityLabel="Send message" disabled={!draft.trim() || sendMessage.isPending} onPress={() => void send()} style={[styles.sendButton, { backgroundColor: colors.primary, opacity: draft.trim() ? 1 : 0.55 }]}>
-          <Feather name="arrow-up" size={20} color="#ffffff" />
+      {blocked ? (
+        <View style={[styles.blockedNotice, { borderTopColor: colors.border, paddingBottom: Math.max(insets.bottom, Platform.OS === "web" ? 34 : 10) }]}>
+          <Feather name="slash" size={17} color={colors.mutedForeground} />
+          <Text style={[styles.blockedText, { color: colors.mutedForeground }]}>
+            {match.blockedByMe ? "You blocked this person." : "This person blocked you."}
+          </Text>
+        </View>
+      ) : (
+        <View style={[styles.composer, { borderTopColor: colors.border, paddingBottom: Math.max(insets.bottom, Platform.OS === "web" ? 34 : 10) }]}>
+          <Pressable accessibilityRole="button" accessibilityLabel="Attach photo or video" testID="chat-attachment" onPress={() => void chooseAttachment()} disabled={busyMedia || sendMessage.isPending} style={styles.attachButton}>
+            {busyMedia ? <ActivityIndicator color={chatAccent} size="small" /> : <Feather name="plus" size={21} color={chatAccent} />}
+          </Pressable>
+          {recording ? (
+            <View style={[styles.recordingPill, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              <View style={styles.recordingDot} />
+              <Text style={[styles.recordingText, { color: themedForeground }]}>Recording {recordSeconds}s / 60s</Text>
+              <Pressable accessibilityRole="button" accessibilityLabel="Send voice note" onPress={() => void stopRecording()} style={styles.recordSend}>
+                <Feather name="arrow-up" size={18} color="#ffffff" />
+              </Pressable>
+            </View>
+          ) : (
+            <>
+              <TextInput
+                testID="chat-message-input"
+                value={draft}
+                onChangeText={setDraft}
+                placeholder="Write a message…"
+                placeholderTextColor={colors.mutedForeground}
+                multiline
+                maxLength={2000}
+                blurOnSubmit={false}
+                style={[styles.input, { color: themedForeground, backgroundColor: colors.card, borderColor: colors.border }]}
+              />
+              {draft.trim() ? (
+                <Pressable testID="send-chat-message" accessibilityRole="button" accessibilityLabel="Send message" disabled={!draft.trim() || sendMessage.isPending} onPress={() => void send(draft)} style={[styles.sendButton, { backgroundColor: chatAccent, opacity: sendMessage.isPending ? 0.55 : 1 }]}>
+                  <Feather name="arrow-up" size={20} color="#ffffff" />
+                </Pressable>
+              ) : (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Hold to record a voice note"
+                  testID="record-voice-note"
+                  onPressIn={() => {
+                    recordingPressRef.current = true;
+                    void startRecording();
+                  }}
+                  onPressOut={() => {
+                    recordingPressRef.current = false;
+                    if (recordingRef.current) void stopRecording();
+                  }}
+                  disabled={busyMedia}
+                  style={styles.voiceButton}
+                >
+                  <Feather name="mic" size={19} color={chatAccent} />
+                </Pressable>
+              )}
+            </>
+          )}
+        </View>
+      )}
+
+      <Modal transparent visible={menuVisible} animationType="fade" onRequestClose={() => setMenuVisible(false)}>
+        <Pressable style={styles.modalScrim} onPress={() => setMenuVisible(false)}>
+          <View style={[styles.menuSheet, { backgroundColor: colors.card, paddingBottom: Math.max(insets.bottom, 18) }]}>
+            <View style={[styles.sheetHandle, { backgroundColor: colors.border }]} />
+            {[
+              match.blockedByMe ? "Unblock" : "Block",
+              "Report",
+              "Change chat color",
+              "Clear chat",
+              "Unmatch",
+            ].map((action) => (
+              <Pressable key={action} accessibilityRole="button" testID={`chat-action-${action.toLowerCase().replaceAll(" ", "-")}`} onPress={() => menuAction(action)} style={styles.menuItem}>
+                <Feather name={action === "Block" || action === "Unblock" ? "slash" : action === "Report" ? "flag" : action === "Change chat color" ? "droplet" : action === "Clear chat" ? "trash-2" : "user-x"} size={18} color={action === "Block" || action === "Report" || action === "Unmatch" ? colors.destructive : colors.foreground} />
+                <Text style={[styles.menuLabel, { color: action === "Block" || action === "Report" || action === "Unmatch" ? colors.destructive : colors.foreground }]}>{action}</Text>
+              </Pressable>
+            ))}
+          </View>
         </Pressable>
-      </View>
+      </Modal>
+
+      <Modal transparent visible={themeVisible} animationType="slide" onRequestClose={() => setThemeVisible(false)}>
+        <Pressable style={styles.modalScrim} onPress={() => setThemeVisible(false)}>
+          <View style={[styles.themeSheet, { backgroundColor: colors.card, paddingBottom: Math.max(insets.bottom, 18) }]}>
+            <View style={[styles.sheetHandle, { backgroundColor: colors.border }]} />
+            <Text style={[styles.themeTitle, { color: colors.foreground }]}>Chat color</Text>
+            <View style={styles.themeGrid}>
+              {THEME_OPTIONS.map((option) => (
+                <Pressable key={option.key} accessibilityRole="button" accessibilityLabel={`${option.label} chat theme`} testID={`chat-theme-${option.key}`} onPress={() => chooseTheme(option.key)} style={[styles.themeOption, { borderColor: match.chatTheme === option.key ? colors.primary : colors.border }]}>
+                  <View style={[styles.themeSwatch, { backgroundColor: option.color }]} />
+                  <Text style={[styles.themeName, { color: colors.foreground }]}>{option.label}</Text>
+                  {match.chatTheme === option.key ? <Feather name="check" size={16} color={colors.primary} /> : null}
+                </Pressable>
+              ))}
+            </View>
+          </View>
+        </Pressable>
+      </Modal>
+
+      <Modal visible={!!viewingMedia} animationType="fade" presentationStyle="fullScreen" onRequestClose={() => setViewingMedia(null)}>
+        <View style={[styles.mediaViewer, { backgroundColor: "#000000" }]}>
+          <Pressable accessibilityRole="button" accessibilityLabel="Close media" onPress={() => setViewingMedia(null)} style={[styles.mediaClose, { top: Math.max(insets.top, 16) }]}>
+            <Feather name="x" size={24} color="#ffffff" />
+          </Pressable>
+          {viewingMedia?.type === "image" ? (
+            <Image source={profileImageSource(viewingMedia.reference, null)} style={styles.fullImage} resizeMode="contain" />
+          ) : viewingMedia?.type === "video" ? (
+            <ChatVideoViewer reference={viewingMedia.reference} token={authToken} />
+          ) : null}
+        </View>
+      </Modal>
     </KeyboardAvoidingView>
   );
 }
@@ -226,19 +745,57 @@ const styles = StyleSheet.create({
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
   header: { minHeight: 68, flexDirection: "row", alignItems: "center", gap: 11, paddingHorizontal: 16, borderBottomWidth: StyleSheet.hairlineWidth },
   back: { width: 34, height: 42, justifyContent: "center" },
-  headerCopy: { gap: 3 },
+  avatarWrap: { width: 42, height: 42 },
+  onlineDot: { position: "absolute", right: -1, bottom: 1, width: 11, height: 11, borderRadius: 6, borderWidth: 2, borderColor: "#ffffff" },
+  headerCopy: { flex: 1, gap: 3 },
   name: { fontSize: 15, fontWeight: "700" },
   status: { fontSize: 11 },
+  more: { width: 36, height: 42, alignItems: "flex-end", justifyContent: "center" },
   messageList: { paddingHorizontal: 16, paddingVertical: 18, flexGrow: 1, justifyContent: "flex-end" },
   messageRow: { marginVertical: 5, maxWidth: "84%" },
   ownRow: { alignSelf: "flex-end", alignItems: "flex-end" },
   otherRow: { alignSelf: "flex-start", alignItems: "flex-start" },
-  bubble: { paddingHorizontal: 14, paddingVertical: 10, borderRadius: 18 },
+  bubble: { maxWidth: "100%", paddingHorizontal: 14, paddingVertical: 10, borderRadius: 19 },
+  otherBubble: { borderWidth: 1 },
+  deletedBubble: { borderRadius: 15, borderStyle: "dashed", borderWidth: 1 },
+  deletedText: { fontSize: 13, fontStyle: "italic" },
   messageText: { fontSize: 14, lineHeight: 20 },
-  time: { fontSize: 9, marginTop: 3, marginHorizontal: 5 },
-  empty: { textAlign: "center", transform: [{ scaleY: -1 }], marginTop: 16, fontSize: 13 },
-  composer: { flexDirection: "row", alignItems: "flex-end", gap: 9, paddingHorizontal: 14, paddingTop: 10, borderTopWidth: StyleSheet.hairlineWidth },
-  input: { flex: 1, minHeight: 44, maxHeight: 120, borderRadius: 18, borderWidth: 1, paddingHorizontal: 14, paddingTop: 11, paddingBottom: 9, fontSize: 14 },
+  imagePreview: { width: 216, height: 216, borderRadius: 12 },
+  videoPreview: { width: 216, height: 146, borderRadius: 12, backgroundColor: "#28242a", alignItems: "center", justifyContent: "center", gap: 7 },
+  videoPreviewText: { color: "#ffffff", fontSize: 12, fontWeight: "600" },
+  messageMeta: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 3, marginHorizontal: 5 },
+  ownMeta: { justifyContent: "flex-end" },
+  otherMeta: { justifyContent: "flex-start" },
+  time: { fontSize: 9 },
+  receiptChecks: { width: 17, height: 14, flexDirection: "row", alignItems: "center" },
+  secondCheck: { marginLeft: -7 },
+  typing: { alignSelf: "flex-start", marginHorizontal: 7, marginVertical: 8, fontSize: 12, fontStyle: "italic" },
+  empty: { textAlign: "center", marginTop: 16, fontSize: 13 },
+  error: { textAlign: "center", marginVertical: 7, paddingHorizontal: 12, fontSize: 12 },
+  errorBanner: { minHeight: 34, justifyContent: "center" },
+  composer: { flexDirection: "row", alignItems: "flex-end", gap: 9, paddingHorizontal: 12, paddingTop: 9, borderTopWidth: StyleSheet.hairlineWidth },
+  attachButton: { width: 40, height: 42, alignItems: "center", justifyContent: "center" },
+  input: { flex: 1, minHeight: 44, maxHeight: 120, borderRadius: 23, borderWidth: 1, paddingHorizontal: 15, paddingTop: 11, paddingBottom: 9, fontSize: 14 },
   sendButton: { width: 42, height: 42, borderRadius: 21, alignItems: "center", justifyContent: "center", marginBottom: 1 },
-  error: { textAlign: "center", marginTop: 10, fontSize: 12 },
+  voiceButton: { width: 40, height: 42, alignItems: "center", justifyContent: "center" },
+  recordingPill: { flex: 1, minHeight: 44, borderRadius: 23, borderWidth: 1, flexDirection: "row", alignItems: "center", paddingHorizontal: 12, gap: 9 },
+  recordingDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: "#d44358" },
+  recordingText: { flex: 1, fontSize: 13 },
+  recordSend: { width: 34, height: 34, borderRadius: 17, backgroundColor: "#e84768", alignItems: "center", justifyContent: "center" },
+  blockedNotice: { minHeight: 56, flexDirection: "row", gap: 10, alignItems: "center", justifyContent: "center", borderTopWidth: StyleSheet.hairlineWidth },
+  blockedText: { fontSize: 13 },
+  modalScrim: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.42)" },
+  menuSheet: { borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 18, paddingTop: 10 },
+  themeSheet: { borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 20, paddingTop: 10 },
+  sheetHandle: { width: 38, height: 4, borderRadius: 2, alignSelf: "center", marginBottom: 15 },
+  menuItem: { minHeight: 50, flexDirection: "row", alignItems: "center", gap: 14 },
+  menuLabel: { fontSize: 15, fontWeight: "600" },
+  themeTitle: { fontSize: 18, fontWeight: "700", marginBottom: 15 },
+  themeGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
+  themeOption: { width: "48%", minHeight: 58, borderWidth: 1, borderRadius: 14, flexDirection: "row", alignItems: "center", paddingHorizontal: 10, gap: 9 },
+  themeSwatch: { width: 23, height: 23, borderRadius: 12, borderWidth: 1, borderColor: "rgba(0,0,0,0.12)" },
+  themeName: { flex: 1, fontSize: 13, fontWeight: "600" },
+  mediaViewer: { flex: 1, alignItems: "center", justifyContent: "center" },
+  mediaClose: { position: "absolute", left: 16, zIndex: 2, width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(0,0,0,0.45)", alignItems: "center", justifyContent: "center" },
+  fullImage: { width: "100%", height: "100%" },
 });

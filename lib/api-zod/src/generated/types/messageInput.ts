@@ -5,11 +5,23 @@
  * VibeSwipe dating profile, discovery, matching, messaging, and safety API
  * OpenAPI spec version: 0.1.0
  */
+import type { MessageInputMediaType } from './messageInputMediaType';
 
 export interface MessageInput {
   /**
      * @minLength 1
      * @maxLength 2000
      */
-  content: string;
+  content?: string;
+  /**
+     * @minLength 1
+     * @maxLength 100
+     */
+  mediaReference?: string;
+  mediaType?: MessageInputMediaType;
+  /**
+     * @minimum 1
+     * @maximum 60
+     */
+  mediaDuration?: number;
 }

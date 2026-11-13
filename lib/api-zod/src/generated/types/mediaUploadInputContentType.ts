@@ -16,4 +16,8 @@ export const MediaUploadInputContentType = {
   'image/heic': 'image/heic',
   'video/mp4': 'video/mp4',
   'video/quicktime': 'video/quicktime',
+  'audio/mp4': 'audio/mp4',
+  'audio/m4a': 'audio/m4a',
+  'audio/aac': 'audio/aac',
+  'audio/wav': 'audio/wav',
 } as const;

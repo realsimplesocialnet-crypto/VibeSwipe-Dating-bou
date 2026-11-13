@@ -26,6 +26,10 @@ import type {
 
 import type {
   BlockInput,
+  BlockedProfile,
+  ChatThemeInput,
+  ChatThemeResult,
+  DeleteMessageInput,
   GetDiscoverProfilesParams,
   HealthStatus,
   Match,
@@ -33,12 +37,18 @@ import type {
   MediaUploadResult,
   Message,
   MessageInput,
+  NotificationsResponse,
+  PresenceStatus,
   Profile,
   ProfileInput,
   ProfileVideoTranscodeResult,
+  ProfileView,
   ReactionInput,
   ReactionResult,
-  ReportInput
+  ReadReceiptStatus,
+  ReportInput,
+  TypingInput,
+  TypingStatus
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -757,12 +767,177 @@ export function useGetMessages<TData = Awaited<ReturnType<typeof getMessages>>, 
 
 
 
+export const getDeleteMessageUrl = (matchId: string,
+    messageId: string,) => {
+
+
+
+
+  return `/api/vibeswipe/matches/${matchId}/messages/${messageId}`
+}
+
+/**
+ * @summary Delete a message for the signed-in user or for everyone
+ */
+export const deleteMessage = async (matchId: string,
+    messageId: string,
+    deleteMessageInput: DeleteMessageInput, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<void>(getDeleteMessageUrl(matchId,messageId),
+  {
+    ...options,
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(deleteMessageInput)
+  }
+);}
+
+
+
+
+
+export const getDeleteMessageMutationKey = () => ['deleteMessage'] as const;
+
+export const getDeleteMessageMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteMessage>>, TError,DeleteMessageMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteMessage>>, TError,DeleteMessageMutationVariables, TContext> => {
+
+const mutationKey = getDeleteMessageMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteMessage>>, DeleteMessageMutationVariables> = (props) => {
+          const {matchId,messageId,data} = props ?? {};
+
+          return  deleteMessage(matchId,messageId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteMessageMutationResult = NonNullable<Awaited<ReturnType<typeof deleteMessage>>>
+    export type DeleteMessageMutationBody = BodyType<DeleteMessageInput>
+    export type DeleteMessageMutationError = ErrorType<void>
+    export type DeleteMessageMutationVariables = {matchId: string;messageId: string;data: BodyType<DeleteMessageInput>}
+
+    /**
+ * @summary Delete a message for the signed-in user or for everyone
+ */
+export const useDeleteMessage = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteMessage>>, TError,DeleteMessageMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof deleteMessage>>,
+        TError,
+        DeleteMessageMutationVariables,
+        TContext
+      > => {
+      return useMutation(getDeleteMessageMutationOptions(options), queryClient);
+    }
+
+export const getUnmatchMatchUrl = (matchId: string,) => {
+
+
+
+
+  return `/api/vibeswipe/matches/${matchId}`
+}
+
+/**
+ * @summary Remove a match and its shared chat history
+ */
+export const unmatchMatch = async (matchId: string, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getUnmatchMatchUrl(matchId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getUnmatchMatchMutationKey = () => ['unmatchMatch'] as const;
+
+export const getUnmatchMatchMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof unmatchMatch>>, TError,UnmatchMatchMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof unmatchMatch>>, TError,UnmatchMatchMutationVariables, TContext> => {
+
+const mutationKey = getUnmatchMatchMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof unmatchMatch>>, UnmatchMatchMutationVariables> = (props) => {
+          const {matchId} = props ?? {};
+
+          return  unmatchMatch(matchId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UnmatchMatchMutationResult = NonNullable<Awaited<ReturnType<typeof unmatchMatch>>>
+
+    export type UnmatchMatchMutationError = ErrorType<void>
+    export type UnmatchMatchMutationVariables = {matchId: string}
+
+    /**
+ * @summary Remove a match and its shared chat history
+ */
+export const useUnmatchMatch = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof unmatchMatch>>, TError,UnmatchMatchMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof unmatchMatch>>,
+        TError,
+        UnmatchMatchMutationVariables,
+        TContext
+      > => {
+      return useMutation(getUnmatchMatchMutationOptions(options), queryClient);
+    }
+
 export const getSendMessageUrl = (matchId: string,) => {
 
 
 
 
-  return `/api/vibeswipe/matches/${matchId}/messages`
+  return `/api/vibeswipe/matches/${matchId}`
 }
 
 /**
@@ -948,6 +1123,1424 @@ export function useStreamMatchMessages<TData = Awaited<ReturnType<typeof streamM
 
 
 
+export const getClearChatUrl = (matchId: string,) => {
+
+
+
+
+  return `/api/vibeswipe/matches/${matchId}/clear`
+}
+
+/**
+ * @summary Clear messages from the signed-in user's chat view
+ */
+export const clearChat = async (matchId: string, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getClearChatUrl(matchId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getClearChatMutationKey = () => ['clearChat'] as const;
+
+export const getClearChatMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof clearChat>>, TError,ClearChatMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof clearChat>>, TError,ClearChatMutationVariables, TContext> => {
+
+const mutationKey = getClearChatMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof clearChat>>, ClearChatMutationVariables> = (props) => {
+          const {matchId} = props ?? {};
+
+          return  clearChat(matchId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ClearChatMutationResult = NonNullable<Awaited<ReturnType<typeof clearChat>>>
+
+    export type ClearChatMutationError = ErrorType<void>
+    export type ClearChatMutationVariables = {matchId: string}
+
+    /**
+ * @summary Clear messages from the signed-in user's chat view
+ */
+export const useClearChat = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof clearChat>>, TError,ClearChatMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof clearChat>>,
+        TError,
+        ClearChatMutationVariables,
+        TContext
+      > => {
+      return useMutation(getClearChatMutationOptions(options), queryClient);
+    }
+
+export const getDeleteChatUrl = (matchId: string,) => {
+
+
+
+
+  return `/api/vibeswipe/matches/${matchId}/chat`
+}
+
+/**
+ * @summary Hide a conversation from the signed-in user's chat list
+ */
+export const deleteChat = async (matchId: string, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getDeleteChatUrl(matchId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeleteChatMutationKey = () => ['deleteChat'] as const;
+
+export const getDeleteChatMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteChat>>, TError,DeleteChatMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteChat>>, TError,DeleteChatMutationVariables, TContext> => {
+
+const mutationKey = getDeleteChatMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteChat>>, DeleteChatMutationVariables> = (props) => {
+          const {matchId} = props ?? {};
+
+          return  deleteChat(matchId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteChatMutationResult = NonNullable<Awaited<ReturnType<typeof deleteChat>>>
+
+    export type DeleteChatMutationError = ErrorType<void>
+    export type DeleteChatMutationVariables = {matchId: string}
+
+    /**
+ * @summary Hide a conversation from the signed-in user's chat list
+ */
+export const useDeleteChat = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteChat>>, TError,DeleteChatMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof deleteChat>>,
+        TError,
+        DeleteChatMutationVariables,
+        TContext
+      > => {
+      return useMutation(getDeleteChatMutationOptions(options), queryClient);
+    }
+
+export const getGetTypingStatusUrl = (matchId: string,) => {
+
+
+
+
+  return `/api/vibeswipe/matches/${matchId}/typing`
+}
+
+/**
+ * @summary Get the other participant's typing status
+ */
+export const getTypingStatus = async (matchId: string, options?: Parameters<typeof customFetch>[1]): Promise<TypingStatus> => {
+
+  return customFetch<TypingStatus>(getGetTypingStatusUrl(matchId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetTypingStatusQueryKey = (matchId: string,) => {
+    return [
+    `/api/vibeswipe/matches/${matchId}/typing`
+    ] as const;
+    }
+
+
+export const getGetTypingStatusQueryOptions = <TData = Awaited<ReturnType<typeof getTypingStatus>>, TError = ErrorType<void>>(matchId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getTypingStatus>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetTypingStatusQueryKey(matchId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getTypingStatus>>> = ({ signal }) => getTypingStatus(matchId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: matchId !== null && matchId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getTypingStatus>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetTypingStatusQueryResult = NonNullable<Awaited<ReturnType<typeof getTypingStatus>>>
+export type GetTypingStatusQueryError = ErrorType<void>
+
+
+export function useGetTypingStatus<TData = Awaited<ReturnType<typeof getTypingStatus>>, TError = ErrorType<void>>(
+ matchId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getTypingStatus>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getTypingStatus>>,
+          TError,
+          Awaited<ReturnType<typeof getTypingStatus>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetTypingStatus<TData = Awaited<ReturnType<typeof getTypingStatus>>, TError = ErrorType<void>>(
+ matchId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getTypingStatus>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getTypingStatus>>,
+          TError,
+          Awaited<ReturnType<typeof getTypingStatus>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetTypingStatus<TData = Awaited<ReturnType<typeof getTypingStatus>>, TError = ErrorType<void>>(
+ matchId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getTypingStatus>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get the other participant's typing status
+ */
+
+export function useGetTypingStatus<TData = Awaited<ReturnType<typeof getTypingStatus>>, TError = ErrorType<void>>(
+ matchId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getTypingStatus>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetTypingStatusQueryOptions(matchId,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getUpdateTypingStatusUrl = (matchId: string,) => {
+
+
+
+
+  return `/api/vibeswipe/matches/${matchId}/typing`
+}
+
+/**
+ * @summary Update the signed-in user's temporary typing status
+ */
+export const updateTypingStatus = async (matchId: string,
+    typingInput: TypingInput, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<void>(getUpdateTypingStatusUrl(matchId),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(typingInput)
+  }
+);}
+
+
+
+
+
+export const getUpdateTypingStatusMutationKey = () => ['updateTypingStatus'] as const;
+
+export const getUpdateTypingStatusMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateTypingStatus>>, TError,UpdateTypingStatusMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateTypingStatus>>, TError,UpdateTypingStatusMutationVariables, TContext> => {
+
+const mutationKey = getUpdateTypingStatusMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateTypingStatus>>, UpdateTypingStatusMutationVariables> = (props) => {
+          const {matchId,data} = props ?? {};
+
+          return  updateTypingStatus(matchId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateTypingStatusMutationResult = NonNullable<Awaited<ReturnType<typeof updateTypingStatus>>>
+    export type UpdateTypingStatusMutationBody = BodyType<TypingInput>
+    export type UpdateTypingStatusMutationError = ErrorType<void>
+    export type UpdateTypingStatusMutationVariables = {matchId: string;data: BodyType<TypingInput>}
+
+    /**
+ * @summary Update the signed-in user's temporary typing status
+ */
+export const useUpdateTypingStatus = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateTypingStatus>>, TError,UpdateTypingStatusMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof updateTypingStatus>>,
+        TError,
+        UpdateTypingStatusMutationVariables,
+        TContext
+      > => {
+      return useMutation(getUpdateTypingStatusMutationOptions(options), queryClient);
+    }
+
+export const getUpdateChatThemeUrl = (matchId: string,) => {
+
+
+
+
+  return `/api/vibeswipe/matches/${matchId}/theme`
+}
+
+/**
+ * @summary Save the signed-in user's chat appearance for a match
+ */
+export const updateChatTheme = async (matchId: string,
+    chatThemeInput: ChatThemeInput, options?: Parameters<typeof customFetch>[1]): Promise<ChatThemeResult> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<ChatThemeResult>(getUpdateChatThemeUrl(matchId),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(chatThemeInput)
+  }
+);}
+
+
+
+
+
+export const getUpdateChatThemeMutationKey = () => ['updateChatTheme'] as const;
+
+export const getUpdateChatThemeMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateChatTheme>>, TError,UpdateChatThemeMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateChatTheme>>, TError,UpdateChatThemeMutationVariables, TContext> => {
+
+const mutationKey = getUpdateChatThemeMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateChatTheme>>, UpdateChatThemeMutationVariables> = (props) => {
+          const {matchId,data} = props ?? {};
+
+          return  updateChatTheme(matchId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateChatThemeMutationResult = NonNullable<Awaited<ReturnType<typeof updateChatTheme>>>
+    export type UpdateChatThemeMutationBody = BodyType<ChatThemeInput>
+    export type UpdateChatThemeMutationError = ErrorType<void>
+    export type UpdateChatThemeMutationVariables = {matchId: string;data: BodyType<ChatThemeInput>}
+
+    /**
+ * @summary Save the signed-in user's chat appearance for a match
+ */
+export const useUpdateChatTheme = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateChatTheme>>, TError,UpdateChatThemeMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof updateChatTheme>>,
+        TError,
+        UpdateChatThemeMutationVariables,
+        TContext
+      > => {
+      return useMutation(getUpdateChatThemeMutationOptions(options), queryClient);
+    }
+
+export const getRequestChatMediaUploadUrl = (matchId: string,) => {
+
+
+
+
+  return `/api/vibeswipe/matches/${matchId}/uploads/request-url`
+}
+
+/**
+ * @summary Request a media upload URL for a matched chat
+ */
+export const requestChatMediaUpload = async (matchId: string,
+    mediaUploadInput: MediaUploadInput, options?: Parameters<typeof customFetch>[1]): Promise<MediaUploadResult> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<MediaUploadResult>(getRequestChatMediaUploadUrl(matchId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(mediaUploadInput)
+  }
+);}
+
+
+
+
+
+export const getRequestChatMediaUploadMutationKey = () => ['requestChatMediaUpload'] as const;
+
+export const getRequestChatMediaUploadMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof requestChatMediaUpload>>, TError,RequestChatMediaUploadMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof requestChatMediaUpload>>, TError,RequestChatMediaUploadMutationVariables, TContext> => {
+
+const mutationKey = getRequestChatMediaUploadMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof requestChatMediaUpload>>, RequestChatMediaUploadMutationVariables> = (props) => {
+          const {matchId,data} = props ?? {};
+
+          return  requestChatMediaUpload(matchId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RequestChatMediaUploadMutationResult = NonNullable<Awaited<ReturnType<typeof requestChatMediaUpload>>>
+    export type RequestChatMediaUploadMutationBody = BodyType<MediaUploadInput>
+    export type RequestChatMediaUploadMutationError = ErrorType<void>
+    export type RequestChatMediaUploadMutationVariables = {matchId: string;data: BodyType<MediaUploadInput>}
+
+    /**
+ * @summary Request a media upload URL for a matched chat
+ */
+export const useRequestChatMediaUpload = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof requestChatMediaUpload>>, TError,RequestChatMediaUploadMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof requestChatMediaUpload>>,
+        TError,
+        RequestChatMediaUploadMutationVariables,
+        TContext
+      > => {
+      return useMutation(getRequestChatMediaUploadMutationOptions(options), queryClient);
+    }
+
+export const getGetMatchPresenceUrl = (matchId: string,) => {
+
+
+
+
+  return `/api/vibeswipe/matches/${matchId}/presence`
+}
+
+/**
+ * @summary Get the other participant's online and last-seen status
+ */
+export const getMatchPresence = async (matchId: string, options?: Parameters<typeof customFetch>[1]): Promise<PresenceStatus> => {
+
+  return customFetch<PresenceStatus>(getGetMatchPresenceUrl(matchId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetMatchPresenceQueryKey = (matchId: string,) => {
+    return [
+    `/api/vibeswipe/matches/${matchId}/presence`
+    ] as const;
+    }
+
+
+export const getGetMatchPresenceQueryOptions = <TData = Awaited<ReturnType<typeof getMatchPresence>>, TError = ErrorType<void>>(matchId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMatchPresence>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetMatchPresenceQueryKey(matchId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMatchPresence>>> = ({ signal }) => getMatchPresence(matchId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: matchId !== null && matchId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMatchPresence>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetMatchPresenceQueryResult = NonNullable<Awaited<ReturnType<typeof getMatchPresence>>>
+export type GetMatchPresenceQueryError = ErrorType<void>
+
+
+export function useGetMatchPresence<TData = Awaited<ReturnType<typeof getMatchPresence>>, TError = ErrorType<void>>(
+ matchId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMatchPresence>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getMatchPresence>>,
+          TError,
+          Awaited<ReturnType<typeof getMatchPresence>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetMatchPresence<TData = Awaited<ReturnType<typeof getMatchPresence>>, TError = ErrorType<void>>(
+ matchId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMatchPresence>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getMatchPresence>>,
+          TError,
+          Awaited<ReturnType<typeof getMatchPresence>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetMatchPresence<TData = Awaited<ReturnType<typeof getMatchPresence>>, TError = ErrorType<void>>(
+ matchId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMatchPresence>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get the other participant's online and last-seen status
+ */
+
+export function useGetMatchPresence<TData = Awaited<ReturnType<typeof getMatchPresence>>, TError = ErrorType<void>>(
+ matchId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMatchPresence>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetMatchPresenceQueryOptions(matchId,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetChatReadReceiptUrl = (matchId: string,) => {
+
+
+
+
+  return `/api/vibeswipe/matches/${matchId}/read`
+}
+
+/**
+ * @summary Get when the other participant last read the chat
+ */
+export const getChatReadReceipt = async (matchId: string, options?: Parameters<typeof customFetch>[1]): Promise<ReadReceiptStatus> => {
+
+  return customFetch<ReadReceiptStatus>(getGetChatReadReceiptUrl(matchId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetChatReadReceiptQueryKey = (matchId: string,) => {
+    return [
+    `/api/vibeswipe/matches/${matchId}/read`
+    ] as const;
+    }
+
+
+export const getGetChatReadReceiptQueryOptions = <TData = Awaited<ReturnType<typeof getChatReadReceipt>>, TError = ErrorType<void>>(matchId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getChatReadReceipt>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetChatReadReceiptQueryKey(matchId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getChatReadReceipt>>> = ({ signal }) => getChatReadReceipt(matchId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: matchId !== null && matchId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getChatReadReceipt>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetChatReadReceiptQueryResult = NonNullable<Awaited<ReturnType<typeof getChatReadReceipt>>>
+export type GetChatReadReceiptQueryError = ErrorType<void>
+
+
+export function useGetChatReadReceipt<TData = Awaited<ReturnType<typeof getChatReadReceipt>>, TError = ErrorType<void>>(
+ matchId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getChatReadReceipt>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getChatReadReceipt>>,
+          TError,
+          Awaited<ReturnType<typeof getChatReadReceipt>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetChatReadReceipt<TData = Awaited<ReturnType<typeof getChatReadReceipt>>, TError = ErrorType<void>>(
+ matchId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getChatReadReceipt>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getChatReadReceipt>>,
+          TError,
+          Awaited<ReturnType<typeof getChatReadReceipt>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetChatReadReceipt<TData = Awaited<ReturnType<typeof getChatReadReceipt>>, TError = ErrorType<void>>(
+ matchId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getChatReadReceipt>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get when the other participant last read the chat
+ */
+
+export function useGetChatReadReceipt<TData = Awaited<ReturnType<typeof getChatReadReceipt>>, TError = ErrorType<void>>(
+ matchId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getChatReadReceipt>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetChatReadReceiptQueryOptions(matchId,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getMarkChatReadUrl = (matchId: string,) => {
+
+
+
+
+  return `/api/vibeswipe/matches/${matchId}/read`
+}
+
+/**
+ * @summary Mark the chat read for the signed-in user
+ */
+export const markChatRead = async (matchId: string, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getMarkChatReadUrl(matchId),
+  {
+    ...options,
+    method: 'PUT'
+
+
+  }
+);}
+
+
+
+
+
+export const getMarkChatReadMutationKey = () => ['markChatRead'] as const;
+
+export const getMarkChatReadMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof markChatRead>>, TError,MarkChatReadMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof markChatRead>>, TError,MarkChatReadMutationVariables, TContext> => {
+
+const mutationKey = getMarkChatReadMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof markChatRead>>, MarkChatReadMutationVariables> = (props) => {
+          const {matchId} = props ?? {};
+
+          return  markChatRead(matchId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type MarkChatReadMutationResult = NonNullable<Awaited<ReturnType<typeof markChatRead>>>
+
+    export type MarkChatReadMutationError = ErrorType<void>
+    export type MarkChatReadMutationVariables = {matchId: string}
+
+    /**
+ * @summary Mark the chat read for the signed-in user
+ */
+export const useMarkChatRead = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof markChatRead>>, TError,MarkChatReadMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof markChatRead>>,
+        TError,
+        MarkChatReadMutationVariables,
+        TContext
+      > => {
+      return useMutation(getMarkChatReadMutationOptions(options), queryClient);
+    }
+
+export const getHeartbeatPresenceUrl = () => {
+
+
+
+
+  return `/api/vibeswipe/presence`
+}
+
+/**
+ * @summary Record that the signed-in user is active
+ */
+export const heartbeatPresence = async ( options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getHeartbeatPresenceUrl(),
+  {
+    ...options,
+    method: 'PUT'
+
+
+  }
+);}
+
+
+
+
+
+export const getHeartbeatPresenceMutationKey = () => ['heartbeatPresence'] as const;
+
+export const getHeartbeatPresenceMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof heartbeatPresence>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof heartbeatPresence>>, TError,void, TContext> => {
+
+const mutationKey = getHeartbeatPresenceMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof heartbeatPresence>>, void> = () => {
+
+
+          return  heartbeatPresence(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type HeartbeatPresenceMutationResult = NonNullable<Awaited<ReturnType<typeof heartbeatPresence>>>
+
+    export type HeartbeatPresenceMutationError = ErrorType<unknown>
+
+
+    /**
+ * @summary Record that the signed-in user is active
+ */
+export const useHeartbeatPresence = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof heartbeatPresence>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof heartbeatPresence>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getHeartbeatPresenceMutationOptions(options), queryClient);
+    }
+
+export const getRecordProfileViewUrl = (profileId: string,) => {
+
+
+
+
+  return `/api/vibeswipe/profiles/${profileId}/views`
+}
+
+/**
+ * @summary Record that the signed-in user opened a profile
+ */
+export const recordProfileView = async (profileId: string, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getRecordProfileViewUrl(profileId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getRecordProfileViewMutationKey = () => ['recordProfileView'] as const;
+
+export const getRecordProfileViewMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof recordProfileView>>, TError,RecordProfileViewMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof recordProfileView>>, TError,RecordProfileViewMutationVariables, TContext> => {
+
+const mutationKey = getRecordProfileViewMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof recordProfileView>>, RecordProfileViewMutationVariables> = (props) => {
+          const {profileId} = props ?? {};
+
+          return  recordProfileView(profileId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RecordProfileViewMutationResult = NonNullable<Awaited<ReturnType<typeof recordProfileView>>>
+
+    export type RecordProfileViewMutationError = ErrorType<void>
+    export type RecordProfileViewMutationVariables = {profileId: string}
+
+    /**
+ * @summary Record that the signed-in user opened a profile
+ */
+export const useRecordProfileView = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof recordProfileView>>, TError,RecordProfileViewMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof recordProfileView>>,
+        TError,
+        RecordProfileViewMutationVariables,
+        TContext
+      > => {
+      return useMutation(getRecordProfileViewMutationOptions(options), queryClient);
+    }
+
+export const getGetWhoViewedYouUrl = () => {
+
+
+
+
+  return `/api/vibeswipe/views`
+}
+
+/**
+ * @summary List people who opened the signed-in user's profile
+ */
+export const getWhoViewedYou = async ( options?: Parameters<typeof customFetch>[1]): Promise<ProfileView[]> => {
+
+  return customFetch<ProfileView[]>(getGetWhoViewedYouUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetWhoViewedYouQueryKey = () => {
+    return [
+    `/api/vibeswipe/views`
+    ] as const;
+    }
+
+
+export const getGetWhoViewedYouQueryOptions = <TData = Awaited<ReturnType<typeof getWhoViewedYou>>, TError = ErrorType<unknown>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getWhoViewedYou>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetWhoViewedYouQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getWhoViewedYou>>> = ({ signal }) => getWhoViewedYou({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getWhoViewedYou>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetWhoViewedYouQueryResult = NonNullable<Awaited<ReturnType<typeof getWhoViewedYou>>>
+export type GetWhoViewedYouQueryError = ErrorType<unknown>
+
+
+export function useGetWhoViewedYou<TData = Awaited<ReturnType<typeof getWhoViewedYou>>, TError = ErrorType<unknown>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getWhoViewedYou>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getWhoViewedYou>>,
+          TError,
+          Awaited<ReturnType<typeof getWhoViewedYou>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetWhoViewedYou<TData = Awaited<ReturnType<typeof getWhoViewedYou>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getWhoViewedYou>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getWhoViewedYou>>,
+          TError,
+          Awaited<ReturnType<typeof getWhoViewedYou>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetWhoViewedYou<TData = Awaited<ReturnType<typeof getWhoViewedYou>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getWhoViewedYou>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary List people who opened the signed-in user's profile
+ */
+
+export function useGetWhoViewedYou<TData = Awaited<ReturnType<typeof getWhoViewedYou>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getWhoViewedYou>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetWhoViewedYouQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetNotificationsUrl = () => {
+
+
+
+
+  return `/api/vibeswipe/notifications`
+}
+
+/**
+ * @summary List saved in-app notifications and unread tab counts
+ */
+export const getNotifications = async ( options?: Parameters<typeof customFetch>[1]): Promise<NotificationsResponse> => {
+
+  return customFetch<NotificationsResponse>(getGetNotificationsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetNotificationsQueryKey = () => {
+    return [
+    `/api/vibeswipe/notifications`
+    ] as const;
+    }
+
+
+export const getGetNotificationsQueryOptions = <TData = Awaited<ReturnType<typeof getNotifications>>, TError = ErrorType<unknown>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getNotifications>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetNotificationsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getNotifications>>> = ({ signal }) => getNotifications({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getNotifications>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetNotificationsQueryResult = NonNullable<Awaited<ReturnType<typeof getNotifications>>>
+export type GetNotificationsQueryError = ErrorType<unknown>
+
+
+export function useGetNotifications<TData = Awaited<ReturnType<typeof getNotifications>>, TError = ErrorType<unknown>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getNotifications>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getNotifications>>,
+          TError,
+          Awaited<ReturnType<typeof getNotifications>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetNotifications<TData = Awaited<ReturnType<typeof getNotifications>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getNotifications>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getNotifications>>,
+          TError,
+          Awaited<ReturnType<typeof getNotifications>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetNotifications<TData = Awaited<ReturnType<typeof getNotifications>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getNotifications>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary List saved in-app notifications and unread tab counts
+ */
+
+export function useGetNotifications<TData = Awaited<ReturnType<typeof getNotifications>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getNotifications>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetNotificationsQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getMarkNotificationReadUrl = (notificationId: string,) => {
+
+
+
+
+  return `/api/vibeswipe/notifications/${notificationId}/read`
+}
+
+/**
+ * @summary Mark one notification as read
+ */
+export const markNotificationRead = async (notificationId: string, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getMarkNotificationReadUrl(notificationId),
+  {
+    ...options,
+    method: 'PUT'
+
+
+  }
+);}
+
+
+
+
+
+export const getMarkNotificationReadMutationKey = () => ['markNotificationRead'] as const;
+
+export const getMarkNotificationReadMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof markNotificationRead>>, TError,MarkNotificationReadMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof markNotificationRead>>, TError,MarkNotificationReadMutationVariables, TContext> => {
+
+const mutationKey = getMarkNotificationReadMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof markNotificationRead>>, MarkNotificationReadMutationVariables> = (props) => {
+          const {notificationId} = props ?? {};
+
+          return  markNotificationRead(notificationId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type MarkNotificationReadMutationResult = NonNullable<Awaited<ReturnType<typeof markNotificationRead>>>
+
+    export type MarkNotificationReadMutationError = ErrorType<void>
+    export type MarkNotificationReadMutationVariables = {notificationId: string}
+
+    /**
+ * @summary Mark one notification as read
+ */
+export const useMarkNotificationRead = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof markNotificationRead>>, TError,MarkNotificationReadMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof markNotificationRead>>,
+        TError,
+        MarkNotificationReadMutationVariables,
+        TContext
+      > => {
+      return useMutation(getMarkNotificationReadMutationOptions(options), queryClient);
+    }
+
+export const getGetProfileByIdUrl = (profileId: string,) => {
+
+
+
+
+  return `/api/vibeswipe/profiles/${profileId}`
+}
+
+/**
+ * @summary Get a profile opened from a notification
+ */
+export const getProfileById = async (profileId: string, options?: Parameters<typeof customFetch>[1]): Promise<Profile> => {
+
+  return customFetch<Profile>(getGetProfileByIdUrl(profileId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetProfileByIdQueryKey = (profileId: string,) => {
+    return [
+    `/api/vibeswipe/profiles/${profileId}`
+    ] as const;
+    }
+
+
+export const getGetProfileByIdQueryOptions = <TData = Awaited<ReturnType<typeof getProfileById>>, TError = ErrorType<void>>(profileId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProfileById>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetProfileByIdQueryKey(profileId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getProfileById>>> = ({ signal }) => getProfileById(profileId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: profileId !== null && profileId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getProfileById>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetProfileByIdQueryResult = NonNullable<Awaited<ReturnType<typeof getProfileById>>>
+export type GetProfileByIdQueryError = ErrorType<void>
+
+
+export function useGetProfileById<TData = Awaited<ReturnType<typeof getProfileById>>, TError = ErrorType<void>>(
+ profileId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProfileById>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getProfileById>>,
+          TError,
+          Awaited<ReturnType<typeof getProfileById>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetProfileById<TData = Awaited<ReturnType<typeof getProfileById>>, TError = ErrorType<void>>(
+ profileId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProfileById>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getProfileById>>,
+          TError,
+          Awaited<ReturnType<typeof getProfileById>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetProfileById<TData = Awaited<ReturnType<typeof getProfileById>>, TError = ErrorType<void>>(
+ profileId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProfileById>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get a profile opened from a notification
+ */
+
+export function useGetProfileById<TData = Awaited<ReturnType<typeof getProfileById>>, TError = ErrorType<void>>(
+ profileId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProfileById>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetProfileByIdQueryOptions(profileId,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetBlockedProfilesUrl = () => {
+
+
+
+
+  return `/api/vibeswipe/blocks`
+}
+
+/**
+ * @summary List profiles blocked by the signed-in user
+ */
+export const getBlockedProfiles = async ( options?: Parameters<typeof customFetch>[1]): Promise<BlockedProfile[]> => {
+
+  return customFetch<BlockedProfile[]>(getGetBlockedProfilesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetBlockedProfilesQueryKey = () => {
+    return [
+    `/api/vibeswipe/blocks`
+    ] as const;
+    }
+
+
+export const getGetBlockedProfilesQueryOptions = <TData = Awaited<ReturnType<typeof getBlockedProfiles>>, TError = ErrorType<unknown>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getBlockedProfiles>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetBlockedProfilesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getBlockedProfiles>>> = ({ signal }) => getBlockedProfiles({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getBlockedProfiles>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetBlockedProfilesQueryResult = NonNullable<Awaited<ReturnType<typeof getBlockedProfiles>>>
+export type GetBlockedProfilesQueryError = ErrorType<unknown>
+
+
+export function useGetBlockedProfiles<TData = Awaited<ReturnType<typeof getBlockedProfiles>>, TError = ErrorType<unknown>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getBlockedProfiles>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getBlockedProfiles>>,
+          TError,
+          Awaited<ReturnType<typeof getBlockedProfiles>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetBlockedProfiles<TData = Awaited<ReturnType<typeof getBlockedProfiles>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getBlockedProfiles>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getBlockedProfiles>>,
+          TError,
+          Awaited<ReturnType<typeof getBlockedProfiles>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetBlockedProfiles<TData = Awaited<ReturnType<typeof getBlockedProfiles>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getBlockedProfiles>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary List profiles blocked by the signed-in user
+ */
+
+export function useGetBlockedProfiles<TData = Awaited<ReturnType<typeof getBlockedProfiles>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getBlockedProfiles>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetBlockedProfilesQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
 export const getBlockProfileUrl = () => {
 
 
@@ -1034,6 +2627,80 @@ export const useBlockProfile = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getBlockProfileMutationOptions(options), queryClient);
+    }
+
+export const getUnblockProfileUrl = (targetUserId: string,) => {
+
+
+
+
+  return `/api/vibeswipe/blocks/${targetUserId}`
+}
+
+/**
+ * @summary Unblock a profile blocked by the signed-in user
+ */
+export const unblockProfile = async (targetUserId: string, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getUnblockProfileUrl(targetUserId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getUnblockProfileMutationKey = () => ['unblockProfile'] as const;
+
+export const getUnblockProfileMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof unblockProfile>>, TError,UnblockProfileMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof unblockProfile>>, TError,UnblockProfileMutationVariables, TContext> => {
+
+const mutationKey = getUnblockProfileMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof unblockProfile>>, UnblockProfileMutationVariables> = (props) => {
+          const {targetUserId} = props ?? {};
+
+          return  unblockProfile(targetUserId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UnblockProfileMutationResult = NonNullable<Awaited<ReturnType<typeof unblockProfile>>>
+
+    export type UnblockProfileMutationError = ErrorType<unknown>
+    export type UnblockProfileMutationVariables = {targetUserId: string}
+
+    /**
+ * @summary Unblock a profile blocked by the signed-in user
+ */
+export const useUnblockProfile = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof unblockProfile>>, TError,UnblockProfileMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof unblockProfile>>,
+        TError,
+        UnblockProfileMutationVariables,
+        TContext
+      > => {
+      return useMutation(getUnblockProfileMutationOptions(options), queryClient);
     }
 
 export const getReportProfileUrl = () => {

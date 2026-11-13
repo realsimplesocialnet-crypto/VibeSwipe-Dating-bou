@@ -10,9 +10,9 @@ export type ReportInputReason = typeof ReportInputReason[keyof typeof ReportInpu
 
 
 export const ReportInputReason = {
+  spam: 'spam',
   fake: 'fake',
+  inappropriate: 'inappropriate',
   harassment: 'harassment',
-  unsafe: 'unsafe',
-  underage: 'underage',
   other: 'other',
 } as const;

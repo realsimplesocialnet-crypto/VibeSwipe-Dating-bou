@@ -141,6 +141,46 @@ paths:
                 items: { $ref: "#/components/schemas/Message" }
         "403":
           description: Not a participant in the match
+  /vibeswipe/matches/{matchId}/messages/{messageId}:
+    delete:
+      operationId: deleteMessage
+      tags: [vibeswipe]
+      summary: Delete a message for the signed-in user or for everyone
+      parameters:
+        - in: path
+          name: matchId
+          required: true
+          schema: { type: string, format: uuid }
+        - in: path
+          name: messageId
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DeleteMessageInput"
+      responses:
+        "204":
+          description: Message deleted
+        "403":
+          description: Not allowed to delete this message
+  /vibeswipe/matches/{matchId}:
+    delete:
+      operationId: unmatchMatch
+      tags: [vibeswipe]
+      summary: Remove a match and its shared chat history
+      parameters:
+        - in: path
+          name: matchId
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "204":
+          description: Match removed for both participants
+        "403":
+          description: Not a participant in the match
     post:
       operationId: sendMessage
       tags: [vibeswipe]
@@ -189,7 +229,276 @@ paths:
               schema: { type: string }
         "403":
           description: Not a participant in the match
+  /vibeswipe/matches/{matchId}/clear:
+    post:
+      operationId: clearChat
+      tags: [vibeswipe]
+      summary: Clear messages from the signed-in user's chat view
+      parameters:
+        - in: path
+          name: matchId
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "204":
+          description: Chat cleared for the signed-in user
+        "403":
+          description: Not a participant in the match
+  /vibeswipe/matches/{matchId}/chat:
+    delete:
+      operationId: deleteChat
+      tags: [vibeswipe]
+      summary: Hide a conversation from the signed-in user's chat list
+      parameters:
+        - in: path
+          name: matchId
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "204":
+          description: Conversation hidden for the signed-in user
+        "403":
+          description: Not a participant in the match
+  /vibeswipe/matches/{matchId}/typing:
+    get:
+      operationId: getTypingStatus
+      tags: [vibeswipe]
+      summary: Get the other participant's typing status
+      parameters:
+        - in: path
+          name: matchId
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Current typing status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TypingStatus"
+        "403":
+          description: Not a participant in the match
+    put:
+      operationId: updateTypingStatus
+      tags: [vibeswipe]
+      summary: Update the signed-in user's temporary typing status
+      parameters:
+        - in: path
+          name: matchId
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TypingInput"
+      responses:
+        "204":
+          description: Typing status updated
+        "403":
+          description: Chat is unavailable
+  /vibeswipe/matches/{matchId}/theme:
+    put:
+      operationId: updateChatTheme
+      tags: [vibeswipe]
+      summary: Save the signed-in user's chat appearance for a match
+      parameters:
+        - in: path
+          name: matchId
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChatThemeInput"
+      responses:
+        "200":
+          description: Saved chat theme
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatThemeResult"
+        "403":
+          description: Chat is unavailable
+  /vibeswipe/matches/{matchId}/uploads/request-url:
+    post:
+      operationId: requestChatMediaUpload
+      tags: [vibeswipe]
+      summary: Request a media upload URL for a matched chat
+      parameters:
+        - in: path
+          name: matchId
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MediaUploadInput"
+      responses:
+        "200":
+          description: Private upload URL and media reference
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MediaUploadResult"
+        "400":
+          description: Invalid or oversized attachment
+        "403":
+          description: Chat is unavailable
+  /vibeswipe/matches/{matchId}/presence:
+    get:
+      operationId: getMatchPresence
+      tags: [vibeswipe]
+      summary: Get the other participant's online and last-seen status
+      parameters:
+        - in: path
+          name: matchId
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Other participant's presence
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PresenceStatus"
+        "403":
+          description: Chat is unavailable
+  /vibeswipe/matches/{matchId}/read:
+    get:
+      operationId: getChatReadReceipt
+      tags: [vibeswipe]
+      summary: Get when the other participant last read the chat
+      parameters:
+        - in: path
+          name: matchId
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Read receipt status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReadReceiptStatus"
+        "403":
+          description: Chat is unavailable
+    put:
+      operationId: markChatRead
+      tags: [vibeswipe]
+      summary: Mark the chat read for the signed-in user
+      parameters:
+        - in: path
+          name: matchId
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "204":
+          description: Chat marked read
+        "403":
+          description: Chat is unavailable
+  /vibeswipe/presence:
+    put:
+      operationId: heartbeatPresence
+      tags: [vibeswipe]
+      summary: Record that the signed-in user is active
+      responses:
+        "204":
+          description: Presence updated
+  /vibeswipe/profiles/{profileId}/views:
+    post:
+      operationId: recordProfileView
+      tags: [vibeswipe]
+      summary: Record that the signed-in user opened a profile
+      parameters:
+        - in: path
+          name: profileId
+          required: true
+          schema: { type: string, minLength: 1 }
+      responses:
+        "204":
+          description: Profile view recorded
+        "404":
+          description: Profile not found
+  /vibeswipe/views:
+    get:
+      operationId: getWhoViewedYou
+      tags: [vibeswipe]
+      summary: List people who opened the signed-in user's profile
+      responses:
+        "200":
+          description: Profile viewers
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/ProfileView" }
+  /vibeswipe/notifications:
+    get:
+      operationId: getNotifications
+      tags: [vibeswipe]
+      summary: List saved in-app notifications and unread tab counts
+      responses:
+        "200":
+          description: Notifications for the signed-in user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotificationsResponse"
+  /vibeswipe/notifications/{notificationId}/read:
+    put:
+      operationId: markNotificationRead
+      tags: [vibeswipe]
+      summary: Mark one notification as read
+      parameters:
+        - in: path
+          name: notificationId
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "204":
+          description: Notification marked read
+        "404":
+          description: Notification not found
+  /vibeswipe/profiles/{profileId}:
+    get:
+      operationId: getProfileById
+      tags: [vibeswipe]
+      summary: Get a profile opened from a notification
+      parameters:
+        - in: path
+          name: profileId
+          required: true
+          schema: { type: string, minLength: 1 }
+      responses:
+        "200":
+          description: Profile details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Profile"
+        "403":
+          description: Profile is unavailable
+        "404":
+          description: Profile not found
   /vibeswipe/blocks:
+    get:
+      operationId: getBlockedProfiles
+      tags: [vibeswipe]
+      summary: List profiles blocked by the signed-in user
+      responses:
+        "200":
+          description: Blocked profiles
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/BlockedProfile" }
     post:
       operationId: blockProfile
       tags: [vibeswipe]
@@ -203,6 +512,19 @@ paths:
       responses:
         "204":
           description: Profile blocked
+  /vibeswipe/blocks/{targetUserId}:
+    delete:
+      operationId: unblockProfile
+      tags: [vibeswipe]
+      summary: Unblock a profile blocked by the signed-in user
+      parameters:
+        - in: path
+          name: targetUserId
+          required: true
+          schema: { type: string, minLength: 1 }
+      responses:
+        "204":
+          description: Profile unblocked
   /vibeswipe/reports:
     post:
       operationId: reportProfile
@@ -367,7 +689,39 @@ components:
         lastMessage:
           type: [string, "null"]
         updatedAt: { type: string, format: date-time }
-      required: [id, profile, updatedAt]
+        blockedByMe: { type: boolean }
+        blockedMe: { type: boolean }
+        chatTheme: { $ref: "#/components/schemas/ChatTheme" }
+      required: [id, profile, updatedAt, blockedByMe, blockedMe, chatTheme]
+    BlockedProfile:
+      type: object
+      properties:
+        profile: { $ref: "#/components/schemas/Profile" }
+        createdAt: { type: string, format: date-time }
+      required: [profile, createdAt]
+    TypingInput:
+      type: object
+      properties:
+        isTyping: { type: boolean }
+      required: [isTyping]
+    TypingStatus:
+      type: object
+      properties:
+        isTyping: { type: boolean }
+      required: [isTyping]
+    ChatTheme:
+      type: string
+      enum: [pink, blue, purple, green, dark, light]
+    ChatThemeInput:
+      type: object
+      properties:
+        theme: { $ref: "#/components/schemas/ChatTheme" }
+      required: [theme]
+    ChatThemeResult:
+      type: object
+      properties:
+        theme: { $ref: "#/components/schemas/ChatTheme" }
+      required: [theme]
     Message:
       type: object
       properties:
@@ -376,12 +730,71 @@ components:
         senderId: { type: string }
         content: { type: string }
         createdAt: { type: string, format: date-time }
-      required: [id, matchId, senderId, content, createdAt]
+        mediaReference: { type: [string, "null"], maxLength: 100 }
+        mediaType: { type: [string, "null"], enum: [image, video, audio, null] }
+        mediaDuration: { type: [integer, "null"], minimum: 1, maximum: 60 }
+        deletedForEveryone: { type: boolean }
+        isRead: { type: boolean }
+      required: [id, matchId, senderId, content, createdAt, deletedForEveryone, isRead]
     MessageInput:
       type: object
       properties:
         content: { type: string, minLength: 1, maxLength: 2000 }
-      required: [content]
+        mediaReference: { type: string, minLength: 1, maxLength: 100 }
+        mediaType: { type: string, enum: [image, video, audio] }
+        mediaDuration: { type: integer, minimum: 1, maximum: 60 }
+    DeleteMessageInput:
+      type: object
+      properties:
+        forEveryone: { type: boolean }
+      required: [forEveryone]
+    PresenceStatus:
+      type: object
+      properties:
+        isOnline: { type: boolean }
+        lastSeenAt: { type: [string, "null"], format: date-time }
+      required: [isOnline, lastSeenAt]
+    ReadReceiptStatus:
+      type: object
+      properties:
+        readAt: { type: [string, "null"], format: date-time }
+      required: [readAt]
+    ProfileView:
+      type: object
+      properties:
+        profile: { $ref: "#/components/schemas/Profile" }
+        viewedAt: { type: string, format: date-time }
+      required: [profile, viewedAt]
+    NotificationType:
+      type: string
+      enum: [new_match, new_message, new_like, profile_view]
+    Notification:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        type: { $ref: "#/components/schemas/NotificationType" }
+        actor: { $ref: "#/components/schemas/Profile" }
+        matchId: { type: [string, "null"], format: uuid }
+        messageId: { type: [string, "null"], format: uuid }
+        createdAt: { type: string, format: date-time }
+        readAt: { type: [string, "null"], format: date-time }
+      required: [id, type, actor, createdAt, readAt]
+    NotificationCounts:
+      type: object
+      properties:
+        matches: { type: integer, minimum: 0 }
+        messages: { type: integer, minimum: 0 }
+        views: { type: integer, minimum: 0 }
+        likes: { type: integer, minimum: 0 }
+      required: [matches, messages, views, likes]
+    NotificationsResponse:
+      type: object
+      properties:
+        notifications:
+          type: array
+          items: { $ref: "#/components/schemas/Notification" }
+        unreadCounts: { $ref: "#/components/schemas/NotificationCounts" }
+      required: [notifications, unreadCounts]
     BlockInput:
       type: object
       properties:
@@ -391,7 +804,7 @@ components:
       type: object
       properties:
         targetUserId: { type: string, minLength: 1 }
-        reason: { type: string, enum: [fake, harassment, unsafe, underage, other] }
+        reason: { type: string, enum: [spam, fake, inappropriate, harassment, other] }
         details: { type: string, maxLength: 1000 }
       required: [targetUserId, reason]
     MediaUploadInput:
@@ -401,8 +814,8 @@ components:
         size: { type: integer, minimum: 1, maximum: 524288000 }
         contentType:
           type: string
-          enum: [image/jpeg, image/png, image/webp, image/heic, video/mp4, video/quicktime]
-        mediaType: { type: string, enum: [image, video] }
+          enum: [image/jpeg, image/png, image/webp, image/heic, video/mp4, video/quicktime, audio/mp4, audio/m4a, audio/aac, audio/wav]
+        mediaType: { type: string, enum: [image, video, audio] }
       required: [name, size, contentType, mediaType]
     MediaUploadResult:
       type: object

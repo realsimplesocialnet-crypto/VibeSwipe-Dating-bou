@@ -109,13 +109,61 @@ export interface ReactionResult {
   matchId?: string | null;
 }
 
+export type ChatTheme = typeof ChatTheme[keyof typeof ChatTheme];
+
+
+export const ChatTheme = {
+  pink: 'pink',
+  blue: 'blue',
+  purple: 'purple',
+  green: 'green',
+  dark: 'dark',
+  light: 'light',
+} as const;
+
 export interface Match {
   id: string;
   profile: Profile;
   /** @nullable */
   lastMessage?: string | null;
   updatedAt: string;
+  blockedByMe: boolean;
+  blockedMe: boolean;
+  chatTheme: ChatTheme;
 }
+
+export interface BlockedProfile {
+  profile: Profile;
+  createdAt: string;
+}
+
+export interface TypingInput {
+  isTyping: boolean;
+}
+
+export interface TypingStatus {
+  isTyping: boolean;
+}
+
+export interface ChatThemeInput {
+  theme: ChatTheme;
+}
+
+export interface ChatThemeResult {
+  theme: ChatTheme;
+}
+
+/**
+ * @nullable
+ */
+export type MessageMediaType = typeof MessageMediaType[keyof typeof MessageMediaType] | null;
+
+
+export const MessageMediaType = {
+  image: 'image',
+  video: 'video',
+  audio: 'audio',
+} as const;
 
 export interface Message {
   id: string;
@@ -123,14 +171,108 @@ export interface Message {
   senderId: string;
   content: string;
   createdAt: string;
+  /**
+     * @maxLength 100
+     * @nullable
+     */
+  mediaReference?: string | null;
+  /** @nullable */
+  mediaType?: MessageMediaType;
+  /**
+     * @minimum 1
+     * @maximum 60
+     * @nullable
+     */
+  mediaDuration?: number | null;
+  deletedForEveryone: boolean;
+  isRead: boolean;
 }
+
+export type MessageInputMediaType = typeof MessageInputMediaType[keyof typeof MessageInputMediaType];
+
+
+export const MessageInputMediaType = {
+  image: 'image',
+  video: 'video',
+  audio: 'audio',
+} as const;
 
 export interface MessageInput {
   /**
      * @minLength 1
      * @maxLength 2000
      */
-  content: string;
+  content?: string;
+  /**
+     * @minLength 1
+     * @maxLength 100
+     */
+  mediaReference?: string;
+  mediaType?: MessageInputMediaType;
+  /**
+     * @minimum 1
+     * @maximum 60
+     */
+  mediaDuration?: number;
+}
+
+export interface DeleteMessageInput {
+  forEveryone: boolean;
+}
+
+export interface PresenceStatus {
+  isOnline: boolean;
+  /** @nullable */
+  lastSeenAt: string | null;
+}
+
+export interface ReadReceiptStatus {
+  /** @nullable */
+  readAt: string | null;
+}
+
+export interface ProfileView {
+  profile: Profile;
+  viewedAt: string;
+}
+
+export type NotificationType = typeof NotificationType[keyof typeof NotificationType];
+
+
+export const NotificationType = {
+  new_match: 'new_match',
+  new_message: 'new_message',
+  new_like: 'new_like',
+  profile_view: 'profile_view',
+} as const;
+
+export interface Notification {
+  id: string;
+  type: NotificationType;
+  actor: Profile;
+  /** @nullable */
+  matchId?: string | null;
+  /** @nullable */
+  messageId?: string | null;
+  createdAt: string;
+  /** @nullable */
+  readAt: string | null;
+}
+
+export interface NotificationCounts {
+  /** @minimum 0 */
+  matches: number;
+  /** @minimum 0 */
+  messages: number;
+  /** @minimum 0 */
+  views: number;
+  /** @minimum 0 */
+  likes: number;
+}
+
+export interface NotificationsResponse {
+  notifications: Notification[];
+  unreadCounts: NotificationCounts;
 }
 
 export interface BlockInput {
@@ -142,10 +284,10 @@ export type ReportInputReason = typeof ReportInputReason[keyof typeof ReportInpu
 
 
 export const ReportInputReason = {
+  spam: 'spam',
   fake: 'fake',
+  inappropriate: 'inappropriate',
   harassment: 'harassment',
-  unsafe: 'unsafe',
-  underage: 'underage',
   other: 'other',
 } as const;
 
@@ -167,6 +309,10 @@ export const MediaUploadInputContentType = {
   'image/heic': 'image/heic',
   'video/mp4': 'video/mp4',
   'video/quicktime': 'video/quicktime',
+  'audio/mp4': 'audio/mp4',
+  'audio/m4a': 'audio/m4a',
+  'audio/aac': 'audio/aac',
+  'audio/wav': 'audio/wav',
 } as const;
 
 export type MediaUploadInputMediaType = typeof MediaUploadInputMediaType[keyof typeof MediaUploadInputMediaType];
@@ -175,6 +321,7 @@ export type MediaUploadInputMediaType = typeof MediaUploadInputMediaType[keyof t
 export const MediaUploadInputMediaType = {
   image: 'image',
   video: 'video',
+  audio: 'audio',
 } as const;
 
 export interface MediaUploadInput {

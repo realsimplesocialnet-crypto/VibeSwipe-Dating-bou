@@ -1,0 +1,167 @@
+import { getAuth } from "@clerk/express";
+import {
+  GetProfileByIdParams,
+  GetProfileByIdResponse,
+  GetWhoViewedYouResponse,
+  RecordProfileViewParams,
+} from "@workspace/api-zod";
+import {
+  blocksTable,
+  db,
+  profilesTable,
+  vibeswipeProfileViewsTable,
+} from "@workspace/db";
+import { and, desc, eq, or } from "drizzle-orm";
+import { Router, type IRouter, type Request } from "express";
+import { requireAuth } from "../middlewares/auth";
+
+const router: IRouter = Router();
+
+router.use(requireAuth);
+
+function currentUserId(req: Request): string {
+  const userId = getAuth(req).userId;
+  if (!userId) throw new Error("Authenticated user is missing from the request");
+  return userId;
+}
+
+async function isBlockedBetween(userA: string, userB: string): Promise<boolean> {
+  const [block] = await db
+    .select({ id: blocksTable.id })
+    .from(blocksTable)
+    .where(
+      or(
+        and(eq(blocksTable.blockerId, userA), eq(blocksTable.blockedId, userB)),
+        and(eq(blocksTable.blockerId, userB), eq(blocksTable.blockedId, userA)),
+      ),
+    )
+    .limit(1);
+  return !!block;
+}
+
+router.post(
+  "/vibeswipe/profiles/:profileId/views",
+  async (req, res): Promise<void> => {
+    const params = RecordProfileViewParams.safeParse(req.params);
+    if (!params.success) {
+      res.status(400).json({ error: params.error.message });
+      return;
+    }
+
+    const viewerId = currentUserId(req);
+    const profileId = params.data.profileId;
+    if (viewerId === profileId) {
+      res.status(400).json({ error: "You cannot record a view of your own profile." });
+      return;
+    }
+
+    const [viewer, profile] = await Promise.all([
+      db
+        .select({ id: profilesTable.id, isDemo: profilesTable.isDemo })
+        .from(profilesTable)
+        .where(eq(profilesTable.id, viewerId))
+        .limit(1)
+        .then((rows) => rows[0]),
+      db
+        .select({ id: profilesTable.id, isDemo: profilesTable.isDemo })
+        .from(profilesTable)
+        .where(eq(profilesTable.id, profileId))
+        .limit(1)
+        .then((rows) => rows[0]),
+    ]);
+
+    if (!viewer || viewer.isDemo) {
+      res.status(409).json({ error: "Complete your profile before viewing profiles." });
+      return;
+    }
+    if (!profile || profile.isDemo) {
+      res.status(404).json({ error: "Profile not found." });
+      return;
+    }
+    if (await isBlockedBetween(viewerId, profileId)) {
+      res.status(204).end();
+      return;
+    }
+
+    const viewedAt = new Date();
+    await db
+      .insert(vibeswipeProfileViewsTable)
+      .values({ viewerId, profileId, viewedAt })
+      .onConflictDoUpdate({
+        target: [
+          vibeswipeProfileViewsTable.viewerId,
+          vibeswipeProfileViewsTable.profileId,
+        ],
+        set: { viewedAt },
+      });
+
+    res.status(204).end();
+  },
+);
+
+router.get("/vibeswipe/views", async (req, res): Promise<void> => {
+  const userId = currentUserId(req);
+  const rows = await db
+    .select({ profile: profilesTable, viewedAt: vibeswipeProfileViewsTable.viewedAt })
+    .from(vibeswipeProfileViewsTable)
+    .innerJoin(
+      profilesTable,
+      eq(vibeswipeProfileViewsTable.viewerId, profilesTable.id),
+    )
+    .where(eq(vibeswipeProfileViewsTable.profileId, userId))
+    .orderBy(desc(vibeswipeProfileViewsTable.viewedAt));
+
+  const blocks = await db
+    .select({
+      blockerId: blocksTable.blockerId,
+      blockedId: blocksTable.blockedId,
+    })
+    .from(blocksTable)
+    .where(
+      or(eq(blocksTable.blockerId, userId), eq(blocksTable.blockedId, userId)),
+    );
+  const blockedProfileIds = new Set(
+    blocks.map((block) =>
+      block.blockerId === userId ? block.blockedId : block.blockerId,
+    ),
+  );
+  const visibleRows = rows
+    .filter(
+      ({ profile }) =>
+        profile.id !== userId && !profile.isDemo && !blockedProfileIds.has(profile.id),
+    )
+    .map(({ profile, viewedAt }) => ({ profile, viewedAt }));
+
+  res.json(GetWhoViewedYouResponse.parse(visibleRows));
+});
+
+router.get(
+  "/vibeswipe/profiles/:profileId",
+  async (req, res): Promise<void> => {
+    const params = GetProfileByIdParams.safeParse(req.params);
+    if (!params.success) {
+      res.status(400).json({ error: params.error.message });
+      return;
+    }
+
+    const userId = currentUserId(req);
+    const profileId = params.data.profileId;
+    const [profile] = await db
+      .select()
+      .from(profilesTable)
+      .where(eq(profilesTable.id, profileId))
+      .limit(1);
+    if (!profile) {
+      res.status(404).json({ error: "Profile not found." });
+      return;
+    }
+    if (profileId !== userId && (await isBlockedBetween(userId, profileId))) {
+      res.status(404).json({ error: "Profile not found." });
+      return;
+    }
+
+    res.json(GetProfileByIdResponse.parse(profile));
+  },
+);
+
+export default router;

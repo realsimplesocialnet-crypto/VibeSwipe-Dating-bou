@@ -3,6 +3,7 @@ import {
   integer,
   jsonb,
   pgTable,
+  primaryKey,
   text,
   timestamp,
   uniqueIndex,
@@ -88,6 +89,28 @@ export const matchesTable = pgTable(
   }),
 );
 
+export const matchUserStateTable = pgTable(
+  "vibeswipe_match_user_state",
+  {
+    userId: text("user_id")
+      .notNull()
+      .references(() => profilesTable.id, { onDelete: "cascade" }),
+    matchId: uuid("match_id")
+      .notNull()
+      .references(() => matchesTable.id, { onDelete: "cascade" }),
+    hiddenAt: timestamp("hidden_at", { withTimezone: true }),
+    clearedAt: timestamp("cleared_at", { withTimezone: true }),
+    typingUntil: timestamp("typing_until", { withTimezone: true }),
+    chatTheme: text("chat_theme").notNull().default("pink"),
+  },
+  (table) => ({
+    matchUserStatePrimaryKey: primaryKey({
+      name: "vibeswipe_match_user_state_pk",
+      columns: [table.userId, table.matchId],
+    }),
+  }),
+);
+
 export const messagesTable = pgTable("vibeswipe_messages", {
   id: uuid("id").defaultRandom().primaryKey(),
   matchId: uuid("match_id")
@@ -97,10 +120,36 @@ export const messagesTable = pgTable("vibeswipe_messages", {
     .notNull()
     .references(() => profilesTable.id, { onDelete: "cascade" }),
   content: text("content").notNull(),
+  mediaReference: text("media_reference"),
+  mediaType: text("media_type"),
+  mediaDuration: integer("media_duration"),
+  deletedForEveryone: boolean("deleted_for_everyone").notNull().default(false),
+  deletedAt: timestamp("deleted_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
 });
+
+export const messageHiddenByUserTable = pgTable(
+  "vibeswipe_message_hidden_by_user",
+  {
+    messageId: uuid("message_id")
+      .notNull()
+      .references(() => messagesTable.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => profilesTable.id, { onDelete: "cascade" }),
+    hiddenAt: timestamp("hidden_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    messageUserPrimaryKey: primaryKey({
+      name: "vibeswipe_message_hidden_by_user_pk",
+      columns: [table.messageId, table.userId],
+    }),
+  }),
+);
 
 export const blocksTable = pgTable(
   "vibeswipe_blocks",
@@ -142,6 +191,9 @@ export const reportsTable = pgTable("vibeswipe_reports", {
 export const mediaAssetsTable = pgTable("vibeswipe_media_assets", {
   id: uuid("id").defaultRandom().primaryKey(),
   ownerId: text("owner_id").notNull(),
+  matchId: uuid("match_id").references(() => matchesTable.id, {
+    onDelete: "cascade",
+  }),
   objectPath: text("object_path").notNull().unique(),
   mediaType: text("media_type").notNull(),
   contentType: text("content_type").notNull(),

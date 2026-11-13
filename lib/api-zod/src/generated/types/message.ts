@@ -5,6 +5,7 @@
  * VibeSwipe dating profile, discovery, matching, messaging, and safety API
  * OpenAPI spec version: 0.1.0
  */
+import type { MessageMediaType } from './messageMediaType';
 
 export interface Message {
   id: string;
@@ -12,4 +13,19 @@ export interface Message {
   senderId: string;
   content: string;
   createdAt: Date;
+  /**
+     * @maxLength 100
+     * @nullable
+     */
+  mediaReference?: string | null;
+  /** @nullable */
+  mediaType?: MessageMediaType;
+  /**
+     * @minimum 1
+     * @maximum 60
+     * @nullable
+     */
+  mediaDuration?: number | null;
+  deletedForEveryone: boolean;
+  isRead: boolean;
 }

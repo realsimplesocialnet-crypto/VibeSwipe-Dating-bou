@@ -5,6 +5,7 @@
  * VibeSwipe dating profile, discovery, matching, messaging, and safety API
  * OpenAPI spec version: 0.1.0
  */
+import type { ChatTheme } from './chatTheme';
 import type { Profile } from './profile';
 
 export interface Match {
@@ -13,4 +14,7 @@ export interface Match {
   /** @nullable */
   lastMessage?: string | null;
   updatedAt: Date;
+  blockedByMe: boolean;
+  blockedMe: boolean;
+  chatTheme: ChatTheme;
 }
