@@ -1,5 +1,5 @@
 /* Static shell only. Never cache API, Clerk, private messages, or uploaded media. */
-const CACHE_NAME = 'vibeswipe-shell-v2';
+const CACHE_NAME = 'vibeswipe-shell-v3';
 const scopeUrl = new URL(self.registration.scope);
 const shell = [
   scopeUrl.href,
@@ -37,6 +37,18 @@ self.addEventListener('fetch', (event) => {
       const cache = await caches.open(CACHE_NAME);
       return (await cache.match(scopeUrl.href)) || Response.error();
     }));
+    return;
+  }
+
+  // Stable install metadata must refresh online rather than keeping old launch behavior.
+  if (/\/(?:manifest\.json|pwa-install\.js)$/.test(url.pathname)) {
+    event.respondWith(fetch(request).then(async (response) => {
+      if (response.ok) {
+        const cache = await caches.open(CACHE_NAME);
+        await cache.put(request, response.clone());
+      }
+      return response;
+    }).catch(async () => (await caches.match(request)) || Response.error()));
     return;
   }
 

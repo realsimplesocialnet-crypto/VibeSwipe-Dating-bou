@@ -1,5 +1,6 @@
 import { useId, useState, useSyncExternalStore } from 'react';
 import { Download, X } from 'lucide-react';
+import { useStandaloneMode } from '@/lib/app-display-mode';
 
 type InstallPrompt = Event & {
   prompt: () => Promise<void>;
@@ -22,6 +23,7 @@ const fallback: InstallStore = {
 };
 
 export function InstallAction({ className = '' }: { className?: string }) {
+  const standalone = useStandaloneMode();
   const store = window.vibeSwipeInstall ?? fallback;
   const { prompt, installed } = useSyncExternalStore(store.subscribe, store.getSnapshot);
   const [showHelp, setShowHelp] = useState(false);
@@ -53,7 +55,7 @@ export function InstallAction({ className = '' }: { className?: string }) {
     }
   }
 
-  if (installed) return null;
+  if (standalone || installed) return null;
   return <div className={`relative ${className}`}>
     <button onClick={() => void install()} disabled={busy} aria-expanded={showHelp} aria-controls={showHelp ? helpId : undefined}
       data-testid="button-install-app"

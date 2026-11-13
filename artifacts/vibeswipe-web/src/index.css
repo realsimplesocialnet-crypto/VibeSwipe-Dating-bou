@@ -36,6 +36,12 @@
 .field { width:100%; min-height:44px; border:1px solid hsl(var(--border)); border-radius:12px; background:#19161c; padding:10px 12px; color:hsl(var(--foreground)); outline:none; }
 .field:focus { border-color:hsl(var(--primary) / .75); box-shadow:0 0 0 3px hsl(var(--primary) / .13); }
 .field::placeholder { color:hsl(var(--muted-foreground)); }
+.signup-password { -webkit-text-fill-color: hsl(var(--foreground)); }
+.signup-password:-webkit-autofill {
+  -webkit-text-fill-color: hsl(var(--foreground));
+  -webkit-box-shadow: 0 0 0 1000px #19161c inset;
+  caret-color: hsl(var(--foreground));
+}
 .field[type=range] { min-height:24px; padding:0; border:0; background:transparent; box-shadow:none; }
 .page-in { animation: pageIn .28s ease both; }
 @keyframes pageIn { from { opacity:0; transform:translateY(8px) } to { opacity:1; transform:translateY(0) } }

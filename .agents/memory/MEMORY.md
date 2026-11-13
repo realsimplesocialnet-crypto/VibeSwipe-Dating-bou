@@ -1,3 +1,3 @@
 - [Expo package maturity](expo-package-maturity.md) — Avoid bypassing package-maturity blocks when Expo releases are still propagating.
 - [Temporary location sharing](temporary-location-sharing.md) — Keep VibeSwipe location links short-lived, revocable, foreground-only, and limited to location data.
-- [Android installation goal](android-installation.md) — Android visitors must be able to install VibeSwipe to their phone and open it as an app; instructions alone are not the goal.
+- [Installed-app experience](android-installation.md) — Android installation and iPhone home-screen launches must open the app, not show installation prompts again.
