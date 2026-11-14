@@ -71,6 +71,14 @@ export const getMyProfileResponsePreferencesAgeMaxMax = 120;
 
 export const getMyProfileResponsePreferencesDistanceKmMax = 500;
 
+export const getMyProfileResponsePreferencesDiscoveryLocationCountryMax = 100;
+
+export const getMyProfileResponsePreferencesDiscoveryLocationStateMax = 100;
+
+export const getMyProfileResponsePreferencesDiscoveryLocationCityMax = 100;
+
+export const getMyProfileResponsePreferencesDiscoveryLocationRadiusKmMax = 500;
+
 
 
 export const GetMyProfileResponse = zod.object({
@@ -96,7 +104,14 @@ export const GetMyProfileResponse = zod.object({
   "ageMin": zod.number().int().min(getMyProfileResponsePreferencesAgeMinMin).max(getMyProfileResponsePreferencesAgeMinMax),
   "ageMax": zod.number().int().min(getMyProfileResponsePreferencesAgeMaxMin).max(getMyProfileResponsePreferencesAgeMaxMax),
   "gender": zod.string(),
-  "distanceKm": zod.number().int().min(1).max(getMyProfileResponsePreferencesDistanceKmMax)
+  "distanceKm": zod.number().int().min(1).max(getMyProfileResponsePreferencesDistanceKmMax),
+  "discoveryLocation": zod.object({
+  "scope": zod.enum(['city', 'state', 'country', 'radius']),
+  "country": zod.string().max(getMyProfileResponsePreferencesDiscoveryLocationCountryMax).nullable(),
+  "state": zod.string().max(getMyProfileResponsePreferencesDiscoveryLocationStateMax).nullable(),
+  "city": zod.string().max(getMyProfileResponsePreferencesDiscoveryLocationCityMax).nullable(),
+  "radiusKm": zod.number().int().min(1).max(getMyProfileResponsePreferencesDiscoveryLocationRadiusKmMax).nullable()
+}).optional()
 })
 })
 
@@ -143,6 +158,14 @@ export const saveMyProfileBodyPreferencesAgeMaxMax = 120;
 
 export const saveMyProfileBodyPreferencesDistanceKmMax = 500;
 
+export const saveMyProfileBodyPreferencesDiscoveryLocationCountryMax = 100;
+
+export const saveMyProfileBodyPreferencesDiscoveryLocationStateMax = 100;
+
+export const saveMyProfileBodyPreferencesDiscoveryLocationCityMax = 100;
+
+export const saveMyProfileBodyPreferencesDiscoveryLocationRadiusKmMax = 500;
+
 
 
 export const SaveMyProfileBody = zod.object({
@@ -163,7 +186,14 @@ export const SaveMyProfileBody = zod.object({
   "ageMin": zod.number().int().min(saveMyProfileBodyPreferencesAgeMinMin).max(saveMyProfileBodyPreferencesAgeMinMax),
   "ageMax": zod.number().int().min(saveMyProfileBodyPreferencesAgeMaxMin).max(saveMyProfileBodyPreferencesAgeMaxMax),
   "gender": zod.string(),
-  "distanceKm": zod.number().int().min(1).max(saveMyProfileBodyPreferencesDistanceKmMax)
+  "distanceKm": zod.number().int().min(1).max(saveMyProfileBodyPreferencesDistanceKmMax),
+  "discoveryLocation": zod.object({
+  "scope": zod.enum(['city', 'state', 'country', 'radius']),
+  "country": zod.string().max(saveMyProfileBodyPreferencesDiscoveryLocationCountryMax).nullable(),
+  "state": zod.string().max(saveMyProfileBodyPreferencesDiscoveryLocationStateMax).nullable(),
+  "city": zod.string().max(saveMyProfileBodyPreferencesDiscoveryLocationCityMax).nullable(),
+  "radiusKm": zod.number().int().min(1).max(saveMyProfileBodyPreferencesDiscoveryLocationRadiusKmMax).nullable()
+}).optional()
 })
 })
 
@@ -174,6 +204,14 @@ export const saveMyProfileResponsePreferencesAgeMaxMin = 18;
 export const saveMyProfileResponsePreferencesAgeMaxMax = 120;
 
 export const saveMyProfileResponsePreferencesDistanceKmMax = 500;
+
+export const saveMyProfileResponsePreferencesDiscoveryLocationCountryMax = 100;
+
+export const saveMyProfileResponsePreferencesDiscoveryLocationStateMax = 100;
+
+export const saveMyProfileResponsePreferencesDiscoveryLocationCityMax = 100;
+
+export const saveMyProfileResponsePreferencesDiscoveryLocationRadiusKmMax = 500;
 
 
 
@@ -200,7 +238,14 @@ export const SaveMyProfileResponse = zod.object({
   "ageMin": zod.number().int().min(saveMyProfileResponsePreferencesAgeMinMin).max(saveMyProfileResponsePreferencesAgeMinMax),
   "ageMax": zod.number().int().min(saveMyProfileResponsePreferencesAgeMaxMin).max(saveMyProfileResponsePreferencesAgeMaxMax),
   "gender": zod.string(),
-  "distanceKm": zod.number().int().min(1).max(saveMyProfileResponsePreferencesDistanceKmMax)
+  "distanceKm": zod.number().int().min(1).max(saveMyProfileResponsePreferencesDistanceKmMax),
+  "discoveryLocation": zod.object({
+  "scope": zod.enum(['city', 'state', 'country', 'radius']),
+  "country": zod.string().max(saveMyProfileResponsePreferencesDiscoveryLocationCountryMax).nullable(),
+  "state": zod.string().max(saveMyProfileResponsePreferencesDiscoveryLocationStateMax).nullable(),
+  "city": zod.string().max(saveMyProfileResponsePreferencesDiscoveryLocationCityMax).nullable(),
+  "radiusKm": zod.number().int().min(1).max(saveMyProfileResponsePreferencesDiscoveryLocationRadiusKmMax).nullable()
+}).optional()
 })
 })
 
@@ -232,6 +277,14 @@ export const getDiscoverProfilesResponsePreferencesAgeMaxMax = 120;
 
 export const getDiscoverProfilesResponsePreferencesDistanceKmMax = 500;
 
+export const getDiscoverProfilesResponsePreferencesDiscoveryLocationCountryMax = 100;
+
+export const getDiscoverProfilesResponsePreferencesDiscoveryLocationStateMax = 100;
+
+export const getDiscoverProfilesResponsePreferencesDiscoveryLocationCityMax = 100;
+
+export const getDiscoverProfilesResponsePreferencesDiscoveryLocationRadiusKmMax = 500;
+
 
 
 export const GetDiscoverProfilesResponseItem = zod.object({
@@ -257,7 +310,14 @@ export const GetDiscoverProfilesResponseItem = zod.object({
   "ageMin": zod.number().int().min(getDiscoverProfilesResponsePreferencesAgeMinMin).max(getDiscoverProfilesResponsePreferencesAgeMinMax),
   "ageMax": zod.number().int().min(getDiscoverProfilesResponsePreferencesAgeMaxMin).max(getDiscoverProfilesResponsePreferencesAgeMaxMax),
   "gender": zod.string(),
-  "distanceKm": zod.number().int().min(1).max(getDiscoverProfilesResponsePreferencesDistanceKmMax)
+  "distanceKm": zod.number().int().min(1).max(getDiscoverProfilesResponsePreferencesDistanceKmMax),
+  "discoveryLocation": zod.object({
+  "scope": zod.enum(['city', 'state', 'country', 'radius']),
+  "country": zod.string().max(getDiscoverProfilesResponsePreferencesDiscoveryLocationCountryMax).nullable(),
+  "state": zod.string().max(getDiscoverProfilesResponsePreferencesDiscoveryLocationStateMax).nullable(),
+  "city": zod.string().max(getDiscoverProfilesResponsePreferencesDiscoveryLocationCityMax).nullable(),
+  "radiusKm": zod.number().int().min(1).max(getDiscoverProfilesResponsePreferencesDiscoveryLocationRadiusKmMax).nullable()
+}).optional()
 })
 })
 export const GetDiscoverProfilesResponse = zod.array(GetDiscoverProfilesResponseItem)
@@ -617,6 +677,14 @@ export const getMatchesResponseProfilePreferencesAgeMaxMax = 120;
 
 export const getMatchesResponseProfilePreferencesDistanceKmMax = 500;
 
+export const getMatchesResponseProfilePreferencesDiscoveryLocationCountryMax = 100;
+
+export const getMatchesResponseProfilePreferencesDiscoveryLocationStateMax = 100;
+
+export const getMatchesResponseProfilePreferencesDiscoveryLocationCityMax = 100;
+
+export const getMatchesResponseProfilePreferencesDiscoveryLocationRadiusKmMax = 500;
+
 
 
 export const GetMatchesResponseItem = zod.object({
@@ -644,7 +712,14 @@ export const GetMatchesResponseItem = zod.object({
   "ageMin": zod.number().int().min(getMatchesResponseProfilePreferencesAgeMinMin).max(getMatchesResponseProfilePreferencesAgeMinMax),
   "ageMax": zod.number().int().min(getMatchesResponseProfilePreferencesAgeMaxMin).max(getMatchesResponseProfilePreferencesAgeMaxMax),
   "gender": zod.string(),
-  "distanceKm": zod.number().int().min(1).max(getMatchesResponseProfilePreferencesDistanceKmMax)
+  "distanceKm": zod.number().int().min(1).max(getMatchesResponseProfilePreferencesDistanceKmMax),
+  "discoveryLocation": zod.object({
+  "scope": zod.enum(['city', 'state', 'country', 'radius']),
+  "country": zod.string().max(getMatchesResponseProfilePreferencesDiscoveryLocationCountryMax).nullable(),
+  "state": zod.string().max(getMatchesResponseProfilePreferencesDiscoveryLocationStateMax).nullable(),
+  "city": zod.string().max(getMatchesResponseProfilePreferencesDiscoveryLocationCityMax).nullable(),
+  "radiusKm": zod.number().int().min(1).max(getMatchesResponseProfilePreferencesDiscoveryLocationRadiusKmMax).nullable()
+}).optional()
 })
 }),
   "lastMessage": zod.string().nullish(),
@@ -924,6 +999,14 @@ export const getWhoViewedYouResponseProfilePreferencesAgeMaxMax = 120;
 
 export const getWhoViewedYouResponseProfilePreferencesDistanceKmMax = 500;
 
+export const getWhoViewedYouResponseProfilePreferencesDiscoveryLocationCountryMax = 100;
+
+export const getWhoViewedYouResponseProfilePreferencesDiscoveryLocationStateMax = 100;
+
+export const getWhoViewedYouResponseProfilePreferencesDiscoveryLocationCityMax = 100;
+
+export const getWhoViewedYouResponseProfilePreferencesDiscoveryLocationRadiusKmMax = 500;
+
 
 
 export const GetWhoViewedYouResponseItem = zod.object({
@@ -950,7 +1033,14 @@ export const GetWhoViewedYouResponseItem = zod.object({
   "ageMin": zod.number().int().min(getWhoViewedYouResponseProfilePreferencesAgeMinMin).max(getWhoViewedYouResponseProfilePreferencesAgeMinMax),
   "ageMax": zod.number().int().min(getWhoViewedYouResponseProfilePreferencesAgeMaxMin).max(getWhoViewedYouResponseProfilePreferencesAgeMaxMax),
   "gender": zod.string(),
-  "distanceKm": zod.number().int().min(1).max(getWhoViewedYouResponseProfilePreferencesDistanceKmMax)
+  "distanceKm": zod.number().int().min(1).max(getWhoViewedYouResponseProfilePreferencesDistanceKmMax),
+  "discoveryLocation": zod.object({
+  "scope": zod.enum(['city', 'state', 'country', 'radius']),
+  "country": zod.string().max(getWhoViewedYouResponseProfilePreferencesDiscoveryLocationCountryMax).nullable(),
+  "state": zod.string().max(getWhoViewedYouResponseProfilePreferencesDiscoveryLocationStateMax).nullable(),
+  "city": zod.string().max(getWhoViewedYouResponseProfilePreferencesDiscoveryLocationCityMax).nullable(),
+  "radiusKm": zod.number().int().min(1).max(getWhoViewedYouResponseProfilePreferencesDiscoveryLocationRadiusKmMax).nullable()
+}).optional()
 })
 }),
   "viewedAt": zod.coerce.date()
@@ -968,6 +1058,14 @@ export const getNotificationsResponseNotificationsItemActorPreferencesAgeMaxMin 
 export const getNotificationsResponseNotificationsItemActorPreferencesAgeMaxMax = 120;
 
 export const getNotificationsResponseNotificationsItemActorPreferencesDistanceKmMax = 500;
+
+export const getNotificationsResponseNotificationsItemActorPreferencesDiscoveryLocationCountryMax = 100;
+
+export const getNotificationsResponseNotificationsItemActorPreferencesDiscoveryLocationStateMax = 100;
+
+export const getNotificationsResponseNotificationsItemActorPreferencesDiscoveryLocationCityMax = 100;
+
+export const getNotificationsResponseNotificationsItemActorPreferencesDiscoveryLocationRadiusKmMax = 500;
 
 export const getNotificationsResponseUnreadCountsMatchesMin = 0;
 
@@ -1006,7 +1104,14 @@ export const GetNotificationsResponse = zod.object({
   "ageMin": zod.number().int().min(getNotificationsResponseNotificationsItemActorPreferencesAgeMinMin).max(getNotificationsResponseNotificationsItemActorPreferencesAgeMinMax),
   "ageMax": zod.number().int().min(getNotificationsResponseNotificationsItemActorPreferencesAgeMaxMin).max(getNotificationsResponseNotificationsItemActorPreferencesAgeMaxMax),
   "gender": zod.string(),
-  "distanceKm": zod.number().int().min(1).max(getNotificationsResponseNotificationsItemActorPreferencesDistanceKmMax)
+  "distanceKm": zod.number().int().min(1).max(getNotificationsResponseNotificationsItemActorPreferencesDistanceKmMax),
+  "discoveryLocation": zod.object({
+  "scope": zod.enum(['city', 'state', 'country', 'radius']),
+  "country": zod.string().max(getNotificationsResponseNotificationsItemActorPreferencesDiscoveryLocationCountryMax).nullable(),
+  "state": zod.string().max(getNotificationsResponseNotificationsItemActorPreferencesDiscoveryLocationStateMax).nullable(),
+  "city": zod.string().max(getNotificationsResponseNotificationsItemActorPreferencesDiscoveryLocationCityMax).nullable(),
+  "radiusKm": zod.number().int().min(1).max(getNotificationsResponseNotificationsItemActorPreferencesDiscoveryLocationRadiusKmMax).nullable()
+}).optional()
 })
 }),
   "matchId": zod.string().uuid().nullish(),
@@ -1131,6 +1236,14 @@ export const getProfileByIdResponsePreferencesAgeMaxMax = 120;
 
 export const getProfileByIdResponsePreferencesDistanceKmMax = 500;
 
+export const getProfileByIdResponsePreferencesDiscoveryLocationCountryMax = 100;
+
+export const getProfileByIdResponsePreferencesDiscoveryLocationStateMax = 100;
+
+export const getProfileByIdResponsePreferencesDiscoveryLocationCityMax = 100;
+
+export const getProfileByIdResponsePreferencesDiscoveryLocationRadiusKmMax = 500;
+
 
 
 export const GetProfileByIdResponse = zod.object({
@@ -1156,7 +1269,14 @@ export const GetProfileByIdResponse = zod.object({
   "ageMin": zod.number().int().min(getProfileByIdResponsePreferencesAgeMinMin).max(getProfileByIdResponsePreferencesAgeMinMax),
   "ageMax": zod.number().int().min(getProfileByIdResponsePreferencesAgeMaxMin).max(getProfileByIdResponsePreferencesAgeMaxMax),
   "gender": zod.string(),
-  "distanceKm": zod.number().int().min(1).max(getProfileByIdResponsePreferencesDistanceKmMax)
+  "distanceKm": zod.number().int().min(1).max(getProfileByIdResponsePreferencesDistanceKmMax),
+  "discoveryLocation": zod.object({
+  "scope": zod.enum(['city', 'state', 'country', 'radius']),
+  "country": zod.string().max(getProfileByIdResponsePreferencesDiscoveryLocationCountryMax).nullable(),
+  "state": zod.string().max(getProfileByIdResponsePreferencesDiscoveryLocationStateMax).nullable(),
+  "city": zod.string().max(getProfileByIdResponsePreferencesDiscoveryLocationCityMax).nullable(),
+  "radiusKm": zod.number().int().min(1).max(getProfileByIdResponsePreferencesDiscoveryLocationRadiusKmMax).nullable()
+}).optional()
 })
 })
 
@@ -1171,6 +1291,14 @@ export const getBlockedProfilesResponseProfilePreferencesAgeMaxMin = 18;
 export const getBlockedProfilesResponseProfilePreferencesAgeMaxMax = 120;
 
 export const getBlockedProfilesResponseProfilePreferencesDistanceKmMax = 500;
+
+export const getBlockedProfilesResponseProfilePreferencesDiscoveryLocationCountryMax = 100;
+
+export const getBlockedProfilesResponseProfilePreferencesDiscoveryLocationStateMax = 100;
+
+export const getBlockedProfilesResponseProfilePreferencesDiscoveryLocationCityMax = 100;
+
+export const getBlockedProfilesResponseProfilePreferencesDiscoveryLocationRadiusKmMax = 500;
 
 
 
@@ -1198,7 +1326,14 @@ export const GetBlockedProfilesResponseItem = zod.object({
   "ageMin": zod.number().int().min(getBlockedProfilesResponseProfilePreferencesAgeMinMin).max(getBlockedProfilesResponseProfilePreferencesAgeMinMax),
   "ageMax": zod.number().int().min(getBlockedProfilesResponseProfilePreferencesAgeMaxMin).max(getBlockedProfilesResponseProfilePreferencesAgeMaxMax),
   "gender": zod.string(),
-  "distanceKm": zod.number().int().min(1).max(getBlockedProfilesResponseProfilePreferencesDistanceKmMax)
+  "distanceKm": zod.number().int().min(1).max(getBlockedProfilesResponseProfilePreferencesDistanceKmMax),
+  "discoveryLocation": zod.object({
+  "scope": zod.enum(['city', 'state', 'country', 'radius']),
+  "country": zod.string().max(getBlockedProfilesResponseProfilePreferencesDiscoveryLocationCountryMax).nullable(),
+  "state": zod.string().max(getBlockedProfilesResponseProfilePreferencesDiscoveryLocationStateMax).nullable(),
+  "city": zod.string().max(getBlockedProfilesResponseProfilePreferencesDiscoveryLocationCityMax).nullable(),
+  "radiusKm": zod.number().int().min(1).max(getBlockedProfilesResponseProfilePreferencesDiscoveryLocationRadiusKmMax).nullable()
+}).optional()
 })
 }),
   "createdAt": zod.coerce.date()

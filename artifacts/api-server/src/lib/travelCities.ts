@@ -1,11 +1,48 @@
-import { City } from "country-state-city";
+import { City, Country, State } from "country-state-city";
+
+export type DiscoveryLocationScope = "city" | "state" | "country" | "radius";
+export type DiscoveryLocationPreference = {
+  scope: DiscoveryLocationScope;
+  country: string | null;
+  state: string | null;
+  city: string | null;
+  radiusKm: number | null;
+};
+export type ResolvedDiscoveryArea = DiscoveryLocationPreference;
 
 type CityNameEntry = { normalized: string; name: string };
+type CityPoint = { latitude: number; longitude: number };
 
 let cityNames: CityNameEntry[] | undefined;
+let cityPoints: Map<string, CityPoint> | undefined;
 
 function normalize(value: string): string {
   return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLocaleLowerCase();
+}
+
+function locationKey(country: string, state: string | null | undefined, city: string): string {
+  return [country, state ?? "", city].map(normalize).join("|");
+}
+
+function getCityPoints(): Map<string, CityPoint> {
+  if (cityPoints) return cityPoints;
+
+  const countries = new Map(Country.getAllCountries().map((country) => [country.isoCode, country.name]));
+  const states = new Map(
+    State.getAllStates().map((state) => [`${state.countryCode}:${state.isoCode}`, state.name]),
+  );
+  const points = new Map<string, CityPoint>();
+  for (const city of City.getAllCities()) {
+    const latitude = Number(city.latitude);
+    const longitude = Number(city.longitude);
+    const country = countries.get(city.countryCode);
+    const state = states.get(`${city.countryCode}:${city.stateCode}`) ?? "";
+    if (!country || !Number.isFinite(latitude) || !Number.isFinite(longitude)) continue;
+    const key = locationKey(country, state, city.name);
+    if (!points.has(key)) points.set(key, { latitude, longitude });
+  }
+  cityPoints = points;
+  return points;
 }
 
 function getCityNames(): CityNameEntry[] {
@@ -24,6 +61,89 @@ function getCityNames(): CityNameEntry[] {
   }
   cityNames = [...unique].map(([normalized, name]) => ({ normalized, name }));
   return cityNames;
+}
+
+export function resolvePreferredDiscoveryArea({
+  travelMode,
+  travelCity,
+  requestedCountry,
+  requestedCity,
+  preference,
+  homeCountry,
+  homeState,
+  homeCity,
+}: {
+  travelMode: boolean;
+  travelCity: string | null;
+  requestedCountry?: string;
+  requestedCity?: string;
+  preference?: DiscoveryLocationPreference | null;
+  homeCountry: string | null;
+  homeState: string | null;
+  homeCity: string;
+}): ResolvedDiscoveryArea {
+  if (travelMode) {
+    return {
+      scope: "city",
+      country: null,
+      state: null,
+      city: travelCity?.trim() || homeCity.trim() || null,
+      radiusKm: null,
+    };
+  }
+
+  const countryOverride = requestedCountry?.trim();
+  const cityOverride = requestedCity?.trim();
+  if (countryOverride || cityOverride) {
+    const country = countryOverride || homeCountry?.trim() || null;
+    return {
+      scope: cityOverride ? "city" : "country",
+      country,
+      state: null,
+      city: cityOverride || null,
+      radiusKm: null,
+    };
+  }
+
+  if (preference) {
+    const usesHomeFallback = preference.scope === "city" || preference.scope === "radius";
+    return {
+      scope: preference.scope,
+      country: preference.country?.trim() || homeCountry?.trim() || null,
+      state: preference.state?.trim() || (usesHomeFallback ? homeState?.trim() || null : null),
+      city: preference.city?.trim() || (usesHomeFallback ? homeCity.trim() || null : null),
+      radiusKm: preference.radiusKm ?? null,
+    };
+  }
+
+  return {
+    scope: "city",
+    country: homeCountry?.trim() || null,
+    state: homeState?.trim() || null,
+    city: homeCity.trim() || null,
+    radiusKm: null,
+  };
+}
+
+export function distanceBetweenCities(
+  from: { country: string; state: string | null; city: string },
+  to: { country: string; state: string | null; city: string },
+): number | null {
+  const points = getCityPoints();
+  const origin = points.get(locationKey(from.country, from.state, from.city));
+  const destination = points.get(locationKey(to.country, to.state, to.city));
+  if (!origin || !destination) return null;
+
+  const radians = (degrees: number) => (degrees * Math.PI) / 180;
+  const earthRadiusKm = 6371;
+  const latitudeDelta = radians(destination.latitude - origin.latitude);
+  const longitudeDelta = radians(destination.longitude - origin.longitude);
+  const haversine =
+    Math.sin(latitudeDelta / 2) ** 2 +
+    Math.cos(radians(origin.latitude)) *
+      Math.cos(radians(destination.latitude)) *
+      Math.sin(longitudeDelta / 2) ** 2;
+  return earthRadiusKm * 2 * Math.atan2(Math.sqrt(haversine), Math.sqrt(1 - haversine));
 }
 
 export function findRealTravelCity(value: string): string | null {

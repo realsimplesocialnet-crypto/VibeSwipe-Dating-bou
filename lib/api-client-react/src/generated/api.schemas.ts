@@ -9,6 +9,41 @@ export interface HealthStatus {
   status: string;
 }
 
+export type DiscoveryLocationPreferenceScope = typeof DiscoveryLocationPreferenceScope[keyof typeof DiscoveryLocationPreferenceScope];
+
+
+export const DiscoveryLocationPreferenceScope = {
+  city: 'city',
+  state: 'state',
+  country: 'country',
+  radius: 'radius',
+} as const;
+
+export interface DiscoveryLocationPreference {
+  scope: DiscoveryLocationPreferenceScope;
+  /**
+     * @maxLength 100
+     * @nullable
+     */
+  country: string | null;
+  /**
+     * @maxLength 100
+     * @nullable
+     */
+  state: string | null;
+  /**
+     * @maxLength 100
+     * @nullable
+     */
+  city: string | null;
+  /**
+     * @minimum 1
+     * @maximum 500
+     * @nullable
+     */
+  radiusKm: number | null;
+}
+
 export interface ProfilePreferences {
   /**
      * @minimum 18
@@ -26,6 +61,7 @@ export interface ProfilePreferences {
      * @maximum 500
      */
   distanceKm: number;
+  discoveryLocation?: DiscoveryLocationPreference;
 }
 
 export interface Profile {

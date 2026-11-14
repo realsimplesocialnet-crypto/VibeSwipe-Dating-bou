@@ -90,8 +90,10 @@ import {
   inArray,
   isNull,
   lte,
+  notInArray,
   or,
   sql,
+  type SQL,
 } from "drizzle-orm";
 import { Router, type IRouter, type Request, type Response } from "express";
 import { Readable } from "node:stream";
@@ -117,7 +119,12 @@ import {
 } from "../lib/chatEventStream";
 import { sendMessagePush } from "../lib/vibeswipePush";
 import { buildProfileValues } from "../lib/profileSetup";
-import { findRealTravelCity, resolveDiscoveryLocation, searchRealTravelCities } from "../lib/travelCities";
+import {
+  distanceBetweenCities,
+  findRealTravelCity,
+  resolvePreferredDiscoveryArea,
+  searchRealTravelCities,
+} from "../lib/travelCities";
 import { getUnblockedMatchBetween } from "../lib/vibeswipeStories";
 import { canViewStory } from "../lib/vibeswipeStoryRules";
 
@@ -947,28 +954,26 @@ router.get("/vibeswipe/discover", async (req, res): Promise<void> => {
   const ageMin = params.data.ageMin ?? ownProfile.preferences.ageMin;
   const ageMax = params.data.ageMax ?? ownProfile.preferences.ageMax;
   const gender = params.data.gender ?? ownProfile.preferences.gender;
-  const conditions = [
-    gte(profilesTable.age, ageMin),
-    lte(profilesTable.age, ageMax),
-    eq(profilesTable.deactivated, false),
-  ];
-  if (gender && gender !== "Everyone") conditions.push(eq(profilesTable.gender, gender));
-  const discoveryLocation = resolveDiscoveryLocation({
+  const area = resolvePreferredDiscoveryArea({
     travelMode: ownProfile.travelMode,
     travelCity: ownProfile.travelCity,
     requestedCountry: params.data.country,
     requestedCity: params.data.city,
+    preference: ownProfile.preferences.discoveryLocation,
+    homeCountry: ownProfile.country,
+    homeState: ownProfile.state,
     homeCity: ownProfile.city,
   });
-  if (discoveryLocation.country) {
-    conditions.push(eq(profilesTable.country, discoveryLocation.country));
-  }
-  if (discoveryLocation.city) {
-    conditions.push(eq(profilesTable.city, discoveryLocation.city));
+  const baseConditions: SQL[] = [
+    gte(profilesTable.age, ageMin),
+    lte(profilesTable.age, ageMax),
+    eq(profilesTable.deactivated, false),
+  ];
+  if (gender && gender !== "Everyone") {
+    baseConditions.push(eq(profilesTable.gender, gender));
   }
 
-  const [reacted, blockRows, candidates, incognitoLikes, incomingSuperLikes] =
-    await Promise.all([
+  const [reacted, blockRows, incognitoLikes, incomingSuperLikes] = await Promise.all([
     db
       .select({ id: reactionsTable.toUserId })
       .from(reactionsTable)
@@ -982,14 +987,6 @@ router.get("/vibeswipe/discover", async (req, res): Promise<void> => {
           eq(blocksTable.blockedId, userId),
         ),
       ),
-    db
-      .select()
-      .from(profilesTable)
-      .where(and(...conditions))
-      .orderBy(
-        desc(sql`CASE WHEN ${profilesTable.boostEndTime} > NOW() THEN 1 ELSE 0 END`),
-      )
-      .limit(100),
     db
       .select({ id: reactionsTable.fromUserId })
       .from(reactionsTable)
@@ -1009,18 +1006,129 @@ router.get("/vibeswipe/discover", async (req, res): Promise<void> => {
         ),
       ),
   ]);
-  const excluded = new Set([
+  const excludedIds = new Set([
     userId,
     ...reacted.map((row) => row.id),
     ...blockRows.flatMap((row) => [row.blockerId, row.blockedId]),
   ]);
-  const likedUserIds = new Set(incognitoLikes.map((row) => row.id));
+  const allowedIncognitoIds = new Set(incognitoLikes.map((row) => row.id));
   const superLikedUserIds = new Set(incomingSuperLikes.map((row) => row.id));
+
+  const normalizedLocation = (
+    column:
+      | typeof profilesTable.city
+      | typeof profilesTable.country
+      | typeof profilesTable.state,
+    value: string,
+  ): SQL => sql`LOWER(TRIM(${column})) = ${value.trim().toLocaleLowerCase()}`;
+  const countryFilter = area.country
+    ? normalizedLocation(profilesTable.country, area.country)
+    : null;
+  const stateFilter = area.state
+    ? normalizedLocation(profilesTable.state, area.state)
+    : null;
+  const cityFilter = area.city
+    ? normalizedLocation(profilesTable.city, area.city)
+    : null;
+
+  const queryCandidates = async (
+    locationConditions: SQL[],
+    limit?: number,
+    additionallyExcluded: string[] = [],
+  ) => {
+    const conditions: SQL[] = [...baseConditions, ...locationConditions];
+    if (excludedIds.size || additionallyExcluded.length) {
+      conditions.push(
+        notInArray(
+          profilesTable.id,
+          [...excludedIds, ...additionallyExcluded],
+        ),
+      );
+    }
+    const allowedIncognito = [...allowedIncognitoIds];
+    conditions.push(
+      allowedIncognito.length
+        ? or(
+            eq(profilesTable.incognito, false),
+            inArray(profilesTable.id, allowedIncognito),
+          )!
+        : eq(profilesTable.incognito, false),
+    );
+    const query = db
+      .select()
+      .from(profilesTable)
+      .where(and(...conditions))
+      .orderBy(desc(sql`CASE WHEN ${profilesTable.boostEndTime} > NOW() THEN 1 ELSE 0 END`));
+    return limit === undefined ? query : query.limit(limit);
+  };
+
+  let candidates: Awaited<ReturnType<typeof queryCandidates>> = [];
+  const hasSafeLocation = Boolean(area.country || ownProfile.travelMode);
+  if (hasSafeLocation && area.scope === "city" && cityFilter) {
+    const selectedCity = area.city!;
+    const cityConditions = [
+      ...(countryFilter ? [countryFilter] : []),
+      ...(stateFilter ? [stateFilter] : []),
+      cityFilter,
+    ];
+    const cityProfiles = await queryCandidates(cityConditions, 100);
+    candidates = [...cityProfiles];
+
+    // If the city has fewer than one full stack, fill only from its saved state.
+    // Never widen the default feed into another state or country automatically.
+    if (candidates.length < 100 && area.country && area.state) {
+      const stateFallbackConditions: SQL[] = [
+        countryFilter!,
+        stateFilter!,
+        sql`LOWER(TRIM(${profilesTable.city})) <> ${selectedCity.trim().toLocaleLowerCase()}`,
+      ];
+      const stateProfiles = await queryCandidates(
+        stateFallbackConditions,
+        100 - candidates.length,
+        cityProfiles.map((profile) => profile.id),
+      );
+      candidates = [...candidates, ...stateProfiles];
+    }
+  } else if (hasSafeLocation && area.scope === "state" && countryFilter && stateFilter) {
+    candidates = await queryCandidates([countryFilter, stateFilter], 100);
+  } else if (hasSafeLocation && area.scope === "country" && countryFilter) {
+    candidates = await queryCandidates([countryFilter], 100);
+  } else if (
+    hasSafeLocation &&
+    area.scope === "radius" &&
+    area.country &&
+    area.city &&
+    area.radiusKm
+  ) {
+    const countryProfiles = await queryCandidates([countryFilter!]);
+    candidates = countryProfiles
+      .map((profile) => ({
+        profile,
+        distance: profile.city
+          ? distanceBetweenCities(
+              { country: area.country!, state: area.state, city: area.city! },
+              {
+                country: profile.country || area.country!,
+                state: profile.state,
+                city: profile.city,
+              },
+            )
+          : null,
+      }))
+      .filter(
+        (entry): entry is { profile: (typeof countryProfiles)[number]; distance: number } =>
+          entry.distance !== null && entry.distance <= area.radiusKm!,
+      )
+      .sort((a, b) => a.distance - b.distance)
+      .map((entry) => entry.profile)
+      .slice(0, 100);
+  }
+
   const profiles = candidates
     .filter(
       (profile) =>
-        !excluded.has(profile.id) &&
-        (!profile.incognito || likedUserIds.has(profile.id)),
+        !excludedIds.has(profile.id) &&
+        (!profile.incognito || allowedIncognitoIds.has(profile.id)),
     )
     .map((profile) => ({
       ...profile,

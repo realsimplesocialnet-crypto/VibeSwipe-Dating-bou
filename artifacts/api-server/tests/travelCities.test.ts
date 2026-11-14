@@ -1,6 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { findRealTravelCity, resolveDiscoveryLocation, searchRealTravelCities } from "../src/lib/travelCities.ts";
+import {
+  distanceBetweenCities,
+  findRealTravelCity,
+  resolveDiscoveryLocation,
+  resolvePreferredDiscoveryArea,
+  searchRealTravelCities,
+} from "../src/lib/travelCities.ts";
 
 test("travel city search returns canonical real city names", () => {
   assert.equal(findRealTravelCity(" lagos "), "Lagos");
@@ -43,4 +49,51 @@ test("discovery uses travel city when active and home city when cleared", () => 
     travelCity: null,
     homeCity: "Port Harcourt",
   }), { country: null, city: "Port Harcourt" });
+});
+
+test("discovery defaults to the registered city and keeps its state boundary", () => {
+  assert.deepEqual(resolvePreferredDiscoveryArea({
+    travelMode: false,
+    travelCity: null,
+    homeCountry: "Nigeria",
+    homeState: "Rivers",
+    homeCity: "Port Harcourt",
+  }), {
+    scope: "city",
+    country: "Nigeria",
+    state: "Rivers",
+    city: "Port Harcourt",
+    radiusKm: null,
+  });
+});
+
+test("saved discovery area overrides home location and preserves the selected scope", () => {
+  assert.deepEqual(resolvePreferredDiscoveryArea({
+    travelMode: false,
+    travelCity: null,
+    homeCountry: "Nigeria",
+    homeState: "Rivers",
+    homeCity: "Port Harcourt",
+    preference: {
+      scope: "state",
+      country: "Ghana",
+      state: "Greater Accra",
+      city: null,
+      radiusKm: null,
+    },
+  }), {
+    scope: "state",
+    country: "Ghana",
+    state: "Greater Accra",
+    city: null,
+    radiusKm: null,
+  });
+});
+
+test("distance radius can resolve real city-center distances", () => {
+  const distance = distanceBetweenCities(
+    { country: "Nigeria", state: "Rivers", city: "Port Harcourt" },
+    { country: "Nigeria", state: "Lagos", city: "Lagos" },
+  );
+  assert.ok(distance !== null && distance > 400 && distance < 700);
 });

@@ -14,6 +14,8 @@ export * from './chatThemeInput';
 export * from './chatThemeResult';
 export * from './dailyLikeStatus';
 export * from './deleteMessageInput';
+export * from './discoveryLocationPreference';
+export * from './discoveryLocationPreferenceScope';
 export * from './emergencyContact';
 export * from './emergencyContactInput';
 export * from './getDiscoverProfilesParams';

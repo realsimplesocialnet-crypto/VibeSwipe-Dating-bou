@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useClerk } from "@clerk/react";
 import {
@@ -6,13 +6,14 @@ import {
   SlidersHorizontal, UserRound, Bell, FileText, UserX, Check, LoaderCircle,
 } from "lucide-react";
 import {
-  getGetBlockedProfilesQueryKey, getGetMyProfileQueryKey, getGetVibeSwipeSettingsQueryKey,
+  getGetBlockedProfilesQueryKey, getGetDiscoverProfilesQueryKey, getGetMyProfileQueryKey, getGetVibeSwipeSettingsQueryKey,
   useGetBlockedProfiles, useGetMyProfile, useGetVibeSwipeSettings, useSaveMyProfile,
   useUnblockProfile, useUpdateVibeSwipeSettings,
   type Profile, type ProfileInput, type VibeSwipeSettings,
 } from "@workspace/api-client-react";
 import { Link, useLocation, useParams } from "wouter";
 import { TravelModeSettings } from "@/components/travel-mode-settings";
+import { DiscoveryLocationSettings } from "@/components/settings/discovery-location-settings";
 import { WebPushSettings } from "@/components/WebPushSettings";
 
 type FullSettings = VibeSwipeSettings & {
@@ -132,6 +133,7 @@ function SectionContent({ section, settings, editReturnTo }: { section: string; 
     try {
       const updated = await saveProfile.mutateAsync({ data });
       queryClient.setQueryData(getGetMyProfileQueryKey(), updated);
+      await queryClient.invalidateQueries({ queryKey: getGetDiscoverProfilesQueryKey() });
       setMessage("Saved");
     } catch {
       setError("Your discovery preferences couldn’t be saved. Try again.");
@@ -171,7 +173,10 @@ function SectionContent({ section, settings, editReturnTo }: { section: string; 
       <p className="px-1 pt-2 text-xs leading-5 text-muted-foreground">Your exact location is never shown to other members.</p>
     </>}
     {section === "discovery" && <>
-      {profile.isLoading ? <SettingsSkeleton/> : profile.isError ? <InlineError text="Your discovery preferences couldn’t load." onRetry={()=>void profile.refetch()}/> : profile.data && <PreferencesPanel profile={profile.data} saving={saveProfile.isPending} onSave={savePreferences}/>}
+      {profile.isLoading ? <SettingsSkeleton/> : profile.isError ? <InlineError text="Your discovery preferences couldn’t load." onRetry={()=>void profile.refetch()}/> : profile.data && <>
+        <PreferencesPanel profile={profile.data} saving={saveProfile.isPending} onSave={savePreferences}/>
+        <DiscoveryLocationSettings profile={profile.data} saving={saveProfile.isPending} onSave={savePreferences}/>
+      </>}
       <TravelModeSettings/>
     </>}
     {section === "notifications" && <>
@@ -231,18 +236,16 @@ function ActionRow({ icon, title, detail, action, onClick }: { icon: ReactNode; 
 function PreferencesPanel({ profile, saving, onSave }: { profile: Profile; saving: boolean; onSave: (changes: Partial<Profile["preferences"]>)=>void }) {
   const [min, setMin] = useState(profile.preferences.ageMin);
   const [max, setMax] = useState(profile.preferences.ageMax);
-  const [distance, setDistance] = useState(profile.preferences.distanceKm);
-  const savedValues = useMemo(()=>`${profile.preferences.ageMin}:${profile.preferences.ageMax}:${profile.preferences.distanceKm}`,[profile.preferences.ageMin,profile.preferences.ageMax,profile.preferences.distanceKm]);
-  const dirty = `${min}:${max}:${distance}` !== savedValues;
+  const savedValues = `${profile.preferences.ageMin}:${profile.preferences.ageMax}`;
+  const dirty = `${min}:${max}` !== savedValues;
   return <section className="rounded-2xl border border-white/[.08] bg-card p-5" data-testid="discovery-preferences">
-    <div className="mb-5 flex items-center gap-3"><SettingIcon><SlidersHorizontal size={18}/></SettingIcon><div><h2 className="text-sm font-bold">Discovery preferences</h2><p className="mt-1 text-xs text-muted-foreground">Set the range of people you’d like to meet.</p></div></div>
+    <div className="mb-5 flex items-center gap-3"><SettingIcon><SlidersHorizontal size={18}/></SettingIcon><div><h2 className="text-sm font-bold">Age preferences</h2><p className="mt-1 text-xs text-muted-foreground">Choose the age range you’d like to meet.</p></div></div>
     <div className="space-y-5">
       <div className="grid grid-cols-2 gap-3">
         <label className="grid gap-2 text-xs font-semibold text-muted-foreground">Age from<input type="number" min={18} max={max} value={min} data-testid="input-settings-age-min" onChange={e=>setMin(Number(e.target.value))} className="field"/></label>
         <label className="grid gap-2 text-xs font-semibold text-muted-foreground">Age to<input type="number" min={min} max={120} value={max} data-testid="input-settings-age-max" onChange={e=>setMax(Number(e.target.value))} className="field"/></label>
       </div>
-      <label className="grid gap-3 text-xs font-semibold text-muted-foreground">Distance · {distance} km<input type="range" min={1} max={500} value={distance} data-testid="input-settings-distance" onChange={e=>setDistance(Number(e.target.value))} className="w-full accent-[#f34e9a]"/></label>
-      {min>=18 && min<=120 && max>=min && max<=120 && <button type="button" disabled={!dirty||saving} onClick={()=>onSave({ageMin:min,ageMax:max,distanceKm:distance})} data-testid="button-save-discovery-preferences" className="rounded-xl bg-secondary px-4 py-2.5 text-sm font-bold disabled:opacity-45">{saving?"Saving…":"Save preferences"}</button>}
+      {min>=18 && min<=120 && max>=min && max<=120 && <button type="button" disabled={!dirty||saving} onClick={()=>onSave({ageMin:min,ageMax:max})} data-testid="button-save-discovery-preferences" className="rounded-xl bg-secondary px-4 py-2.5 text-sm font-bold disabled:opacity-45">{saving?"Saving…":"Save preferences"}</button>}
       {(min<18||max<min||max>120)&&<p role="alert" className="text-xs text-rose-300">Choose an age range from 18 to 120.</p>}
     </div>
   </section>;

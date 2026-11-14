@@ -16,6 +16,13 @@ export type ProfilePreferences = {
   ageMax: number;
   gender: string;
   distanceKm: number;
+  discoveryLocation?: {
+    scope: "city" | "state" | "country" | "radius";
+    country: string | null;
+    state: string | null;
+    city: string | null;
+    radiusKm: number | null;
+  };
 };
 
 export const profilesTable = pgTable("vibeswipe_profiles", {

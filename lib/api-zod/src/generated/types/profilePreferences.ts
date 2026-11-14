@@ -5,6 +5,7 @@
  * VibeSwipe dating profile, discovery, matching, messaging, and safety API
  * OpenAPI spec version: 0.1.0
  */
+import type { DiscoveryLocationPreference } from './discoveryLocationPreference';
 
 export interface ProfilePreferences {
   /**
@@ -23,4 +24,5 @@ export interface ProfilePreferences {
      * @maximum 500
      */
   distanceKm: number;
+  discoveryLocation?: DiscoveryLocationPreference;
 }

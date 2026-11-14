@@ -1088,6 +1088,17 @@ components:
       properties:
         status: { type: string }
       required: [status]
+    DiscoveryLocationPreference:
+      type: object
+      properties:
+        scope:
+          type: string
+          enum: [city, state, country, radius]
+        country: { type: [string, "null"], maxLength: 100 }
+        state: { type: [string, "null"], maxLength: 100 }
+        city: { type: [string, "null"], maxLength: 100 }
+        radiusKm: { type: [integer, "null"], minimum: 1, maximum: 500 }
+      required: [scope, country, state, city, radiusKm]
     ProfilePreferences:
       type: object
       properties:
@@ -1095,6 +1106,8 @@ components:
         ageMax: { type: integer, minimum: 18, maximum: 120 }
         gender: { type: string }
         distanceKm: { type: integer, minimum: 1, maximum: 500 }
+        discoveryLocation:
+          $ref: "#/components/schemas/DiscoveryLocationPreference"
       required: [ageMin, ageMax, gender, distanceKm]
     Profile:
       type: object

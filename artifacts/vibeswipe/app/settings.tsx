@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import {
   Alert,
   Pressable,
+  ScrollView,
   StyleSheet,
   Switch,
   Text,
@@ -23,6 +24,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useColors } from "@/hooks/useColors";
 import { useTheme } from "@/hooks/useTheme";
 import { PushNotificationSettings } from "@/components/PushNotificationSettings";
+import { DiscoveryLocationSettings } from "@/components/DiscoveryLocationSettings";
 
 export default function SettingsScreen() {
   const colors = useColors();
@@ -107,7 +109,7 @@ export default function SettingsScreen() {
   }
 
   return (
-    <View style={[styles.screen, { backgroundColor: colors.background }]}>
+    <ScrollView keyboardShouldPersistTaps="handled" style={{ backgroundColor: colors.background }} contentContainerStyle={styles.scrollContent}>
       <View style={styles.header}>
         <Pressable onPress={() => router.back()} style={styles.back}>
           <Feather name="arrow-left" size={20} color={colors.foreground} />
@@ -214,6 +216,7 @@ export default function SettingsScreen() {
         {travelMessage ? <Text accessibilityRole="status" style={[styles.cityStatus, { color: colors.primary }]}>{travelMessage}</Text> : null}
         {travelError ? <Text accessibilityRole="alert" style={[styles.cityStatus, { color: colors.destructive }]}>{travelError}</Text> : null}
       </View>
+      <DiscoveryLocationSettings />
       <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>SAFETY</Text>
       <Pressable
         accessibilityRole="button"
@@ -280,12 +283,12 @@ export default function SettingsScreen() {
         <Text style={[styles.signOutText, { color: colors.destructive }]}>Sign out</Text>
       </Pressable>
       <Text style={[styles.version, { color: colors.mutedForeground }]}>Myage · 18+</Text>
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, padding: 20, paddingTop: 58 },
+  scrollContent: { flexGrow: 1, padding: 20, paddingTop: 58, paddingBottom: 60 },
   header: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 26 },
   back: { width: 36, height: 40, justifyContent: "center" },
   title: { fontSize: 25, fontWeight: "700" },
