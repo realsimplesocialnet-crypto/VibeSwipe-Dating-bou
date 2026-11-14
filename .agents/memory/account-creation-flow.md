@@ -5,6 +5,10 @@ description: The user's requirements for one shared signup flow across the websi
 
 Use the same account-creation experience for website visitors, Android-installed app users, and iPhone Home Screen users.
 
+Installation is optional. People who do not install VibeSwipe must still be able to create an account and use it directly on the website.
+
+Show Create account or Sign in first on both website and installed launches. Keep the main app and bottom navigation inaccessible until authentication and profile setup are complete, including on direct links.
+
 Ask profile questions first, step by step: names, where the person is from using real countries and dependent states/cities, gender, who they are looking for, and the other profile details. Require a profile picture; that picture is what shows on the profile and Discover cards. Ask for email and verify its code at the end rather than starting with email/password signup.
 
 **Why:** The user explicitly said the website, installed app, and Home Screen app must show “the same thing,” and that users “must put a picture” because it appears on their profile.

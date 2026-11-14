@@ -37,7 +37,7 @@ import { InstalledWelcome } from '@/components/installed-welcome';
 import { SignupPasswordField } from '@/components/signup-password-field';
 import { ProfileFirstSignup } from '@/components/profile-first-signup';
 import { useStandaloneMode } from '@/lib/app-display-mode';
-import { isProfileMissing, shouldRetryProfile } from '@/lib/profile-query-state';
+import { isDiscoverSetupRequired, isProfileMissing, shouldRetryDiscover, shouldRetryProfile } from '@/lib/profile-query-state';
 import '@/styles/landing.css';
 
 const queryClient = new QueryClient({ defaultOptions: { queries: { staleTime: 12_000, retry: 1 } } });
@@ -108,9 +108,15 @@ function AppShell({ children }: { children: ReactNode }) {
 }
 
 function Gate({ children }: { children: ReactNode }) {
-  return <><Show when="signed-in">{children}</Show><Show when="signed-out"><Redirect to="/sign-in"/></Show></>;
+  return <><Show when="signed-in">{children}</Show><Show when="signed-out"><Redirect to="/welcome"/></Show></>;
 }
-function ShellPage({ children }: { children: ReactNode }) { return <Gate><AppShell>{children}</AppShell></Gate>; }
+function RequiredProfile({ children }: { children: ReactNode }) {
+  const profile=useGetMyProfile<Profile>({query:{retry:shouldRetryProfile,staleTime:0,refetchOnMount:'always'}});
+  if(profile.isError&&isProfileMissing(profile.error))return <Redirect to="/onboarding"/>;
+  if(profile.isLoading||!profile.data)return <div className="min-h-[100dvh] bg-background text-foreground"><header className="p-6"><Brand/></header><PageFrame>{profile.isError?<Retry text="We couldn’t check your profile. Check your connection and try again." onRetry={()=>void profile.refetch()}/>:<ProfileLoading/>}</PageFrame></div>;
+  return <AppShell>{children}</AppShell>;
+}
+function ShellPage({ children }: { children: ReactNode }) { return <Gate><RequiredProfile>{children}</RequiredProfile></Gate>; }
 
 function Landing() {
   const { isSignedIn } = useUser();
@@ -213,7 +219,7 @@ function Empty({ title, detail, action }: { title: string; detail: string; actio
 function DiscoverPage() {
   const qc=useQueryClient(); const [index,setIndex]=useState(0); const [ageMin,setAgeMin]=useState(22); const [ageMax,setAgeMax]=useState(35); const [gender,setGender]=useState('Everyone'); const [city,setCity]=useState(''); const [filters,setFilters]=useState(false); const [detail,setDetail]=useState(false); const [notice,setNotice]=useState(''); const [lastPass,setLastPass]=useState<string|null>(null);
   const params=useMemo(()=>({ageMin,ageMax,gender,...(city.trim()?{city:city.trim()}:{})}),[ageMin,ageMax,gender,city]);
-  const discover=useGetDiscoverProfiles(params,{query:{queryKey:getGetDiscoverProfilesQueryKey(params),refetchOnWindowFocus:false}});
+  const discover=useGetDiscoverProfiles<Profile[]>(params,{query:{queryKey:getGetDiscoverProfilesQueryKey(params),refetchOnWindowFocus:false,retry:shouldRetryDiscover}});
   const profiles=discover.data??[]; const profile=profiles[index]; const reaction=useCreateReaction(); const undo=useUndoLastPass(); const likes=useGetDailyLikeStatus({query:{queryKey:getGetDailyLikeStatusQueryKey(),refetchInterval:60000}}); const superStatus=useGetSuperLikeStatus({query:{queryKey:getGetSuperLikeStatusQueryKey(),refetchInterval:60000}}); const boost=useGetBoostStatus({query:{queryKey:getGetBoostStatusQueryKey(),refetchInterval:10000}}); const activate=useActivateBoost(); const recordView=useRecordProfileView(); const block=useBlockProfile(); const report=useReportProfile(); const sentView=useRef(new Set<string>());
   useEffect(()=>{if(profile&&!profile.isDemo&&!sentView.current.has(profile.id)){sentView.current.add(profile.id);recordView.mutate({profileId:profile.id});}},[profile?.id]);
   async function act(type:'like'|'pass'|'super') {
@@ -226,6 +232,7 @@ function DiscoverPage() {
   async function blockCurrent(){if(!profile)return;if(!window.confirm(`Block ${profile.name}? You will no longer see each other or be able to chat.`))return;try{await block.mutateAsync({data:{targetUserId:profile.id}});setDetail(false);await qc.invalidateQueries({queryKey:getGetDiscoverProfilesQueryKey(params)});}catch{setNotice('Could not block this profile. Try again.')}}
   async function reportCurrent(reason:ReportInputReason){if(!profile)return;try{await report.mutateAsync({data:{targetUserId:profile.id,reason}});setNotice('Report received. Thank you for looking out for the community.');}catch{setNotice('Could not submit report. Try again.')}}
   if(discover.isLoading)return <PageFrame><PageHeading eyebrow="Discover" title="Finding your next spark"/><Busy/></PageFrame>;
+  if(discover.isError&&isDiscoverSetupRequired(discover.error))return <Redirect to="/onboarding"/>;
   if(discover.isError)return <PageFrame><Retry onRetry={()=>void discover.refetch()} text="Discovery could not load right now."/></PageFrame>;
   if(!profile)return <PageFrame><PageHeading eyebrow="Discover" title="That's everyone for now" description="Try broadening your filters, or check back soon."/><Empty title="You’re all caught up" detail="Your next connection might be just outside your current filters." action={<button data-testid="button-open-filters-empty" onClick={()=>setFilters(true)} className="rounded-xl bg-primary px-4 py-2.5 font-bold text-[#24111b]">Adjust filters</button>}/></PageFrame>;
   return <PageFrame><PageHeading eyebrow="Discover / a little serendipity" title="Meet someone new" description={`${likes.data?.remaining??'—'} likes left today · ${superStatus.data?.remaining??'—'} super likes available`} action={<div className="flex gap-2"><button disabled={!boost.data?.available||activate.isPending} onClick={()=>activate.mutate(undefined,{onSuccess:()=>{void qc.invalidateQueries({queryKey:getGetBoostStatusQueryKey()});setNotice('Your boost is active for 30 minutes.')}})} data-testid="button-activate-boost" className="inline-flex items-center gap-2 rounded-xl border border-white/10 px-3 py-2.5 text-xs font-bold disabled:opacity-40"><Zap size={15} className="text-amber-300"/>Boost</button><button onClick={()=>setFilters(true)} data-testid="button-discovery-filters" className="rounded-xl border border-white/10 p-2.5"><SlidersHorizontal size={17}/></button></div>}/>
@@ -381,7 +388,7 @@ return <PageFrame><PageHeading eyebrow="Your comfort" title="Settings" descripti
 function PublicProfile({id}:{id:string}){const q=useGetProfileById(id,{query:{queryKey:getGetProfileByIdQueryKey(id)}});const view=useRecordProfileView();const seen=useRef('');useEffect(()=>{if(q.data?.id&&seen.current!==q.data.id){seen.current=q.data.id;view.mutate({profileId:q.data.id})}},[q.data?.id]);return <PageFrame>{q.isLoading?<Busy/>:q.isError||!q.data?<Retry onRetry={()=>void q.refetch()} text="Profile unavailable."/>:<><PageHeading eyebrow="A closer look" title={`${q.data.name}, ${q.data.age}`} description={[q.data.city,q.data.country].filter(Boolean).join(', ')}/><div className="max-w-2xl rounded-3xl border border-white/10 bg-card p-6"><p className="leading-7 text-muted-foreground">{q.data.bio}</p><div className="mt-5 flex flex-wrap gap-2">{q.data.interests.map(i=><span key={i} className="rounded-full bg-accent px-3 py-2 text-xs text-[#ffafd1]">{i}</span>)}</div><Link href="/discover" data-testid="link-public-profile-discover" className="mt-6 inline-flex rounded-xl bg-primary px-4 py-3 text-sm font-bold text-[#26111b]">Discover profiles</Link></div></>}</PageFrame>}
 
 function OnboardingGate(){const p=useGetMyProfile({query:{retry:shouldRetryProfile}});if(p.isLoading)return <PageFrame><ProfileLoading/></PageFrame>;if(p.data)return <Redirect to="/discover"/>;if(p.isError&&!isProfileMissing(p.error))return <PageFrame><Retry text="We couldn’t check your profile. Check your connection and try again." onRetry={()=>void p.refetch()}/></PageFrame>;return <OnboardingPage/>}
-function HomeRedirect(){const standalone=useStandaloneMode();return <><Show when="signed-in"><Redirect to="/discover"/></Show><Show when="signed-out">{standalone?<Redirect to="/welcome"/>:<Landing/>}</Show></>}
+function HomeRedirect(){return <><Show when="signed-in"><Redirect to="/discover"/></Show><Show when="signed-out"><Redirect to="/welcome"/></Show></>}
 function WelcomeRoute(){return <><Show when="signed-in"><Redirect to="/discover"/></Show><Show when="signed-out"><InstalledWelcome/></Show></>}
 function BrandedSignUp(){
   const {signUp,fetchStatus}=useSignUp();
@@ -434,7 +441,7 @@ function BrandedSignUp(){
 }
 function RouteShell({component:Component}:{component:()=>ReactNode}){return <ShellPage><Component/></ShellPage>}
 function ChatRoute(){const params=useParams<{matchId:string}>();return <ShellPage><ChatPage matchId={params.matchId||''}/></ShellPage>}
-function OnboardingRoute(){return <ShellPage><OnboardingGate/></ShellPage>}
+function OnboardingRoute(){return <Gate><div className="min-h-[100dvh] bg-background text-foreground"><header className="p-6"><Brand/></header><OnboardingGate/></div></Gate>}
 function ProfileRoute(){return <ShellPage><ProfilePage/></ShellPage>}
 function SettingsRoute(){return <ShellPage><SettingsPage/></ShellPage>}
 function SafetyCenterRoute(){return <ShellPage><SafetyCenterPage/></ShellPage>}
