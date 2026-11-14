@@ -20,6 +20,7 @@ if ('serviceWorker' in navigator && import.meta.env.PROD) {
   window.addEventListener('load', () => {
     void navigator.serviceWorker.register(`${import.meta.env.BASE_URL}service-worker.js`, {
       scope: import.meta.env.BASE_URL,
+      updateViaCache: 'none',
     }).catch((error) => console.warn('Myage offline shell was not registered.', error));
   });
 }
