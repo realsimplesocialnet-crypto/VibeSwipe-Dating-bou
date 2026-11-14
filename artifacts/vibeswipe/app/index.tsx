@@ -43,43 +43,53 @@ export default function EntryScreen() {
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <View style={styles.orbit} />
-      <View style={[styles.mark, { backgroundColor: colors.primary }]}>
-        <Feather name="heart" size={28} color="#ffffff" />
-      </View>
-      <Text style={[styles.eyebrow, { color: colors.primary }]}>VIBESWIPE</Text>
-      <Text style={[styles.title, { color: colors.foreground }]}>
-        Meet someone{"\n"}worth the moment.
-      </Text>
-      <Text style={[styles.body, { color: colors.mutedForeground }]}>
-        Real people, moving stories, and conversations that start with a spark.
-      </Text>
+    <View style={[styles.container, { backgroundColor: "#100e14" }]}>
+      <View pointerEvents="none" style={styles.glow} />
+      <View style={styles.content}>
+        <View style={styles.brandRow}>
+          <View style={styles.mark}>
+            <Feather name="heart" size={23} color="#ff4e9b" />
+          </View>
+          <Text style={styles.brandText}>
+            <Text style={{ color: "#ffffff" }}>Vibe</Text>
+            <Text style={{ color: "#ff5ca6" }}>Swipe</Text>
+          </Text>
+        </View>
+        <Text style={[styles.title, { color: "#ffffff" }]}>
+          Welcome to{"\n"}VibeSwipe.
+        </Text>
+        <Text style={styles.body}>
+          Create your account or sign in to continue.
+        </Text>
       <View style={styles.actions}>
         <Pressable
           testID="create-account"
           style={({ pressed }) => [
             styles.primaryButton,
-            { backgroundColor: colors.primary, opacity: pressed ? 0.85 : 1 },
+            { opacity: pressed ? 0.86 : 1 },
           ]}
           onPress={() => router.push("/(auth)/sign-up")}
         >
+          <Feather name="user-plus" size={18} color="#27111d" />
           <Text style={styles.primaryText}>Create account</Text>
-          <Feather name="arrow-up-right" size={18} color="#ffffff" />
         </Pressable>
         <Pressable
           testID="sign-in"
-          style={[styles.secondaryButton, { borderColor: colors.border }]}
+          style={styles.secondaryButton}
           onPress={() => router.push("/(auth)/sign-in")}
         >
-          <Text style={[styles.secondaryText, { color: colors.foreground }]}>
-            I already have an account
-          </Text>
+          <Feather name="lock" size={16} color="#f3edf3" />
+          <Text style={styles.secondaryText}>Sign in</Text>
         </Pressable>
       </View>
-      <Text style={[styles.legal, { color: colors.mutedForeground }]}>
-        Adults only · 18+ · Your safety comes first
-      </Text>
+      </View>
+      <View style={styles.legal}>
+        <Text style={styles.legalText}>For adults 18 and over</Text>
+        <Text style={styles.bullet}>•</Text>
+        <Pressable onPress={() => router.push("/community-guidelines")} testID="community-guidelines">
+          <Text style={styles.guidelines}>Community guidelines</Text>
+        </Pressable>
+      </View>
     </View>
   );
 }
@@ -88,53 +98,76 @@ const styles = StyleSheet.create({
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
   container: {
     flex: 1,
-    justifyContent: "flex-end",
+    justifyContent: "center",
+    alignItems: "center",
     paddingHorizontal: 28,
-    paddingBottom: 48,
-    paddingTop: 80,
+    paddingBottom: 30,
+    paddingTop: 30,
     overflow: "hidden",
   },
-  orbit: {
+  glow: {
     position: "absolute",
-    top: 90,
-    right: -90,
-    width: 340,
-    height: 340,
-    borderWidth: 1,
-    borderColor: "rgba(255,83,118,0.18)",
-    borderRadius: 180,
+    top: -155,
+    width: 430,
+    height: 390,
+    borderRadius: 220,
+    backgroundColor: "rgba(190, 66, 157, 0.11)",
   },
-  mark: {
-    position: "absolute",
-    top: 170,
-    left: 32,
-    width: 58,
-    height: 58,
-    borderRadius: 20,
+  content: {
+    width: "100%",
+    maxWidth: 380,
     alignItems: "center",
     justifyContent: "center",
-    transform: [{ rotate: "-8deg" }],
+    flex: 1,
   },
-  eyebrow: { fontSize: 12, fontWeight: "700", letterSpacing: 3, marginBottom: 16 },
-  title: { fontSize: 42, lineHeight: 48, fontWeight: "700", letterSpacing: -1.5 },
-  body: { fontSize: 16, lineHeight: 24, marginTop: 15, maxWidth: 320 },
-  actions: { gap: 12, marginTop: 32 },
+  brandRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 11,
+    marginBottom: 40,
+  },
+  mark: {
+    width: 46,
+    height: 46,
+    borderRadius: 17,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,.1)",
+    backgroundColor: "rgba(239,72,151,.13)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  brandText: {
+    fontSize: 24,
+    fontWeight: "800",
+    letterSpacing: -1.3,
+  },
+  title: { fontSize: 39, lineHeight: 45, fontWeight: "800", letterSpacing: -1.7, textAlign: "center" },
+  body: { fontSize: 15, lineHeight: 23, marginTop: 15, maxWidth: 300, textAlign: "center", color: "#aaa2b1" },
+  actions: { width: "100%", gap: 12, marginTop: 34 },
   primaryButton: {
-    minHeight: 56,
-    borderRadius: 18,
+    minHeight: 60,
+    borderRadius: 17,
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    gap: 10,
+    gap: 11,
+    backgroundColor: "#f34e9a",
   },
-  primaryText: { color: "#ffffff", fontSize: 16, fontWeight: "700" },
+  primaryText: { color: "#27111d", fontSize: 16, fontWeight: "700" },
   secondaryButton: {
-    minHeight: 54,
-    borderRadius: 18,
+    minHeight: 58,
+    borderRadius: 17,
     borderWidth: 1,
+    borderColor: "rgba(255,255,255,.14)",
+    backgroundColor: "rgba(255,255,255,.035)",
+    flexDirection: "row",
+    gap: 10,
     justifyContent: "center",
     alignItems: "center",
   },
-  secondaryText: { fontSize: 14, fontWeight: "600" },
-  legal: { marginTop: 22, textAlign: "center", fontSize: 12 },
+  secondaryText: { fontSize: 15, fontWeight: "600", color: "#f3edf3" },
+  legal: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7, flexWrap: "wrap" },
+  legalText: { fontSize: 11, color: "#8f8997" },
+  bullet: { fontSize: 12, color: "#827987" },
+  guidelines: { fontSize: 11, fontWeight: "600", color: "#ff70b0" },
 });
