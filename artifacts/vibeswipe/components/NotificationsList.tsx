@@ -6,6 +6,7 @@ import {
 } from "@workspace/api-client-react";
 import type { Notification } from "@workspace/api-client-react";
 import { Feather } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
@@ -34,6 +35,7 @@ export function NotificationsList({ tabMode = false }: { tabMode?: boolean }) {
   const [notice, setNotice] = useState<{ id: string; text: string } | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const returnTo = tabMode ? "activity" : "notifications";
+  const unread = Object.values(notifications.data?.unreadCounts ?? {}).reduce((sum, count) => sum + count, 0);
   useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
 
   const currentMatch = (item: Notification) => matches.data?.find((m) => m.profile.id === item.actor.id);
@@ -95,15 +97,18 @@ export function NotificationsList({ tabMode = false }: { tabMode?: boolean }) {
   };
 
   return (
-    <View style={[styles.screen, { backgroundColor: colors.background, paddingTop: Platform.OS === "web" ? 72 : tabMode ? 16 : insets.top + 8 }]}>
+    <LinearGradient colors={[colors.profileGradientStart, colors.profileGradientMiddle, colors.profileGradientEnd]} style={[styles.screen, { paddingTop: Platform.OS === "web" ? 72 : insets.top + 8 }]}>
       <View style={styles.header}>
         {tabMode ? null : (
           <Pressable accessibilityRole="button" accessibilityLabel="Back" testID="notifications-back" onPress={() => router.back()} style={styles.back}>
             <Feather name="arrow-left" size={21} color={colors.foreground} />
           </Pressable>
         )}
-        <Text style={[styles.title, { color: colors.foreground }]}>Notifications</Text>
+        {tabMode ? <View style={styles.brand}><View style={[styles.logo, { backgroundColor: colors.foreground }]}><Text style={[styles.logoLetter, { color: colors.primary }]}>M</Text></View><Text style={[styles.brandText, { color: colors.foreground }]}>vibe<Text style={{ color: colors.primary }}>swipe</Text></Text></View> : null}
+        <View style={{ flex: 1 }} />
+        <View accessibilityLabel={unread ? "Unread notifications" : "Notifications"}><Feather name="bell" size={25} color={colors.foreground} />{unread > 0 ? <View style={[styles.bellDot, { backgroundColor: colors.primary }]} /> : null}</View>
       </View>
+      <View style={styles.heading}><Text style={[styles.title, { color: colors.foreground }]}>Notifications</Text>{notifications.data ? <Text style={[styles.unreadCount, { color: colors.primary }]}>{unread} unread updates</Text> : null}</View>
       {notifications.isLoading ? (
         <View style={styles.center}><ActivityIndicator color={colors.primary} /></View>
       ) : notifications.isError ? (
@@ -114,7 +119,7 @@ export function NotificationsList({ tabMode = false }: { tabMode?: boolean }) {
       ) : notifications.data?.notifications.length ? (
         <ScrollView contentContainerStyle={styles.list}>
           {notifications.data.notifications.map((item) => (
-            <View key={item.id} style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <View key={item.id} style={[styles.card, { backgroundColor: colors.profileCard, borderColor: colors.border, shadowColor: colors.foreground }]}>
               <View style={styles.row}>
                 <Pressable
                   testID={`notification-${item.id}`}
@@ -123,15 +128,14 @@ export function NotificationsList({ tabMode = false }: { tabMode?: boolean }) {
                   onPress={() => void openNotification(item)}
                   style={styles.main}
                 >
-                  <ProfileAvatar profile={item.actor} size={50} />
+                  <View style={[styles.avatarRing, { borderColor: colors.primary }]}><ProfileAvatar profile={item.actor} size={54} /></View>
                   <View style={styles.copy}>
-                    <Text numberOfLines={2} style={[styles.message, { color: colors.foreground }]}>{titleFor(item)}</Text>
-                    <View style={styles.timeRow}>
-                      {!item.readAt ? <View style={[styles.unread, { backgroundColor: colors.primary }]} /> : null}
-                      <Text style={[styles.time, { color: colors.mutedForeground }]}>{timeAgo(item.createdAt)}</Text>
-                    </View>
+                    <Text style={[styles.message, { color: colors.foreground }]}><Text style={{ color: colors.primary }}>{item.actor.name}</Text>{" "}{item.type === "new_match" ? "matched with you" : item.type === "new_message" ? "sent you a message" : item.type === "new_like" ? "liked you" : "viewed your profile"}</Text>
+                    <Text style={[styles.helper, { color: colors.mutedForeground }]}>{item.type === "new_match" ? "Start a conversation now!" : item.type === "new_like" ? "Tap to see who liked you" : item.type === "new_message" ? "Open your conversation" : "Take a closer look"}</Text>
                   </View>
                 </Pressable>
+                <View style={styles.meta}><Text style={[styles.time, { color: colors.mutedForeground }]}>{timeAgo(item.createdAt)}</Text><View style={styles.metaActions}>
+                {!item.readAt ? <View accessibilityLabel="Unread" style={[styles.unread, { backgroundColor: colors.primary }]} /> : null}
                 <Pressable
                   testID={`notification-message-${item.id}`}
                   accessibilityRole="button"
@@ -140,8 +144,8 @@ export function NotificationsList({ tabMode = false }: { tabMode?: boolean }) {
                   style={({ pressed }) => [styles.send, { backgroundColor: colors.primary, opacity: pressed ? 0.85 : 1 }]}
                 >
                   <Feather name="message-circle" size={15} color={colors.primaryForeground} />
-                  <Text style={[styles.sendText, { color: colors.primaryForeground }]}>Send message</Text>
                 </Pressable>
+                </View></View>
               </View>
               {notice?.id === item.id ? (
                 <Text accessibilityRole="alert" style={[styles.notice, { backgroundColor: colors.accent, color: colors.foreground }]}>{notice.text}</Text>
@@ -156,21 +160,32 @@ export function NotificationsList({ tabMode = false }: { tabMode?: boolean }) {
           <Text style={{ color: colors.mutedForeground, textAlign: "center" }}>New likes, views and matches will show up here.</Text>
         </View>
       )}
-    </View>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-  header: { paddingHorizontal: 18, flexDirection: "row", alignItems: "center", gap: 12, height: 52, marginBottom: 6 },
+  header: { paddingHorizontal: 18, flexDirection: "row", alignItems: "center", gap: 12, height: 48, marginBottom: 8 },
+  brand: { flexDirection: "row", alignItems: "center", gap: 8 },
+  logo: { width: 30, height: 30, borderRadius: 15, alignItems: "center", justifyContent: "center" },
+  logoLetter: { fontSize: 23, lineHeight: 27, fontWeight: "900" },
+  brandText: { fontSize: 20, fontWeight: "800" },
+  bellDot: { position: "absolute", right: 0, top: 0, width: 8, height: 8, borderRadius: 4 },
+  heading: { paddingHorizontal: 18, paddingBottom: 14 },
+  unreadCount: { fontSize: 16, fontWeight: "600", marginTop: 5 },
   back: { width: 35, height: 40, justifyContent: "center" },
-  title: { fontSize: 30, fontWeight: "800", letterSpacing: -0.6 },
-  list: { padding: 15, gap: 10, paddingBottom: 110 },
-  card: { borderWidth: 1, borderRadius: 18, padding: 11 },
+  title: { fontSize: 36, fontWeight: "800", letterSpacing: -1 },
+  list: { padding: 15, paddingTop: 2, gap: 12, paddingBottom: 110 },
+  card: { borderWidth: StyleSheet.hairlineWidth, borderRadius: 24, padding: 15, shadowOpacity: 0.06, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 1 },
+  avatarRing: { padding: 2, borderWidth: 1, borderRadius: 32 },
   row: { flexDirection: "row", alignItems: "center", gap: 8 },
   main: { flex: 1, flexDirection: "row", alignItems: "center", gap: 11, minHeight: 56 },
   copy: { flex: 1, gap: 5 },
   message: { fontSize: 14, fontWeight: "600" },
+  helper: { fontSize: 12, lineHeight: 17, marginTop: 3 },
+  meta: { alignItems: "flex-end", gap: 14 },
+  metaActions: { flexDirection: "row", alignItems: "center", gap: 8 },
   timeRow: { flexDirection: "row", alignItems: "center", gap: 6 },
   time: { fontSize: 11 },
   unread: { width: 8, height: 8, borderRadius: 4 },

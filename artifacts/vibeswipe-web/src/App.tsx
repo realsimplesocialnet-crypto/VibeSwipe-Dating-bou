@@ -15,7 +15,7 @@ import {
   useGetBoostStatus, useGetChatReadReceipt, useGetDailyLikeStatus,
   useGetDiscoverProfiles, useGetIcebreakers, useGetMatches, useGetMessages, useGetMyProfile,
   useGetNotifications, useGetOnboardingDraft, useGetProfileById, useGetProfileMedia, useGetStories, useGetSuperLikeStatus, useGetVibeSwipeSettings,
-  useGetTypingStatus, useGetMatchPresence, useMarkChatRead,
+  useGetTypingStatus, useGetMatchPresence, useMarkChatRead, useGetWhoViewedYou,
   useMarkNotificationRead, useRecordProfileView, useReportProfile, useSaveMyProfile,
   useSaveOnboardingDraft, useSendMessage, useTranscodeProfileVideo, useUnblockProfile,
   useUndoLastPass, useUnmatchMatch, useUpdateChatTheme, useUpdateTypingStatus, useHeartbeatPresence,
@@ -95,7 +95,7 @@ function Brand({ compact = false, small = false }: { compact?: boolean; small?: 
 
 const navItems = [
   { href: '/discover', label: 'Discover', icon: Compass }, { href: '/matches', label: 'Matches', icon: Heart },
-  { href: '/views', label: 'Views', icon: MessageCircle }, { href: '/notifications', label: 'Activity', icon: Bell },
+  { href: '/views', label: 'Views', icon: Eye }, { href: '/notifications', label: 'Activity', icon: Bell },
 ];
 
 function AppShell({ children }: { children: ReactNode }) {
@@ -104,9 +104,11 @@ function AppShell({ children }: { children: ReactNode }) {
   const settingsReturnTo = `${location}${window.location.search}${window.location.hash}`;
   const { user } = useUser();
   const profile = useGetMyProfile();
+  const activityHeader = useGetNotifications({query:{enabled:location==='/notifications'||location==='/views',queryKey:getGetNotificationsQueryKey()}});
+  const hasUnreadActivity = Object.values(activityHeader.data?.unreadCounts??{}).some(count=>count>0);
   const { signOut } = useClerk();
   const activeName = profile.data?.name || user?.firstName || 'Your profile';
-  return <div className="min-h-[100dvh] bg-background text-foreground">
+  return <div className={`min-h-[100dvh] bg-background text-foreground ${location==='/notifications'||location==='/views'?'notifications-shell':''} ${location==='/views'?'visitors-shell':''} ${location==='/discover'?'discover-shell':''}`}>
     {showMainNavigation && <>
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-[248px] flex-col border-r border-border bg-background px-5 py-6 lg:flex">
         <Brand small />
@@ -121,8 +123,8 @@ function AppShell({ children }: { children: ReactNode }) {
           <button onClick={() => void signOut({ redirectUrl: pathFor('/') })} data-testid="button-sign-out" className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm text-muted-foreground hover:bg-white/[.04]"><LogOut size={17}/>Sign out</button>
         </div>
       </aside>
-      <header className="sticky top-[var(--install-banner-height,0px)] z-20 flex h-12 items-center justify-between border-b border-border bg-background/90 px-4 backdrop-blur-xl lg:hidden">
-        <Brand compact/><span className="brand text-base font-extrabold">vibe<span className="text-primary">swipe</span></span><InstallAction compact/>
+      <header className={`${location==='/discover'?'hidden':'flex'} sticky top-[var(--install-banner-height,0px)] z-20 h-12 items-center justify-between border-b border-border bg-background/90 px-4 backdrop-blur-xl lg:hidden`}>
+        {location==='/notifications'||location==='/views'?<><div className="flex items-center gap-2"><Brand compact/><span className="brand text-lg font-extrabold">vibe<span className="text-primary">swipe</span></span></div><Link href="/notifications" aria-label={hasUnreadActivity?'Unread notifications':'Notifications'} className="relative text-foreground"><Bell size={24}/>{hasUnreadActivity&&<span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-primary"/>}</Link></>:<><Brand compact/><span className="brand text-base font-extrabold">vibe<span className="text-primary">swipe</span></span><InstallAction compact/></>}
       </header>
     </>}
     <main className={showMainNavigation ? "min-h-[calc(100dvh-48px)] pb-24 lg:ml-[248px] lg:min-h-[100dvh] lg:pb-0" : "min-h-[100dvh]"}>{children}</main>
@@ -301,7 +303,7 @@ function MatchesPage() {
   async function removeChat(id:string,kind:'delete'|'unmatch'){const msg=kind==='delete'?'Hide this conversation for you only?':'Unmatch? This removes the match and shared chat for both of you.';if(!window.confirm(msg))return;try{if(kind==='delete')await del.mutateAsync({matchId:id});else await unmatch.mutateAsync({matchId:id});await refresh()}catch{window.alert('That action could not be completed.')}}
   return <PageFrame>
     <div className="-mt-3" data-testid="matches-page-content">
-      <h1 className="brand text-3xl font-bold tracking-[-.05em] md:text-[2.6rem]">Matches</h1>
+      <div className="flex items-center justify-between gap-3"><h1 className="brand text-3xl font-bold tracking-[-.05em] md:text-[2.6rem]">Matches</h1><Link href="/messages" data-testid="link-matches-messages" className="flex items-center gap-2 rounded-full bg-primary/10 px-4 py-2 text-sm font-bold text-primary"><MessageCircle size={18}/>Messages</Link></div>
       {matches.isLoading ? <div className="mt-6"><Busy /></div>
         : matches.isError ? <div className="mt-6"><Retry onRetry={() => void matches.refetch()} /></div>
         : matches.data?.length
@@ -323,6 +325,14 @@ function ChatPage({matchId,returnTo='/matches'}:{matchId:string;returnTo?:string
   const msgs=useGetMessages(matchId,{query:{enabled:!!match,queryKey:getGetMessagesQueryKey(matchId),refetchInterval:10000}}); const typing=useGetTypingStatus(matchId,{query:{enabled:!!match,queryKey:['/api/vibeswipe/matches',matchId,'typing'],refetchInterval:3500}}); const receipt=useGetChatReadReceipt(matchId,{query:{enabled:!!match,queryKey:getGetChatReadReceiptQueryKey(matchId),refetchInterval:5000}}); const presence=useGetMatchPresence(matchId,{query:{enabled:!!match,queryKey:getGetMatchPresenceQueryKey(matchId),refetchInterval:15000}}); const heartbeat=useHeartbeatPresence();
   const ice=useGetIcebreakers({query:{enabled:!!match,queryKey:['/api/vibeswipe/icebreakers']}}); const send=useSendMessage(); const updateTyping=useUpdateTypingStatus(); const markRead=useMarkChatRead(); const del=useDeleteMessage(); const clear=useClearChat(); const unmatch=useUnmatchMatch(); const block=useBlockProfile(); const unblock=useUnblockProfile(); const report=useReportProfile(); const theme=useUpdateChatTheme(); const upload=useRequestChatMediaUpload(); const transcode=useTranscodeProfileVideo(); const [draft,setDraft]=useState(''); const [error,setError]=useState(''); const [actions,setActions]=useState(false); const [themeOpen,setThemeOpen]=useState(false); const [deleteTarget,setDeleteTarget]=useState<Message|null>(null); const [busy,setBusy]=useState(false); const bottom=useRef<HTMLDivElement>(null); const inputRef=useRef<HTMLTextAreaElement>(null);
   const messages=(msgs.data??[]).slice().reverse(); const last=messages[messages.length-1];
+  const [chatViewportHeight,setChatViewportHeight]=useState(()=>window.visualViewport?.height??window.innerHeight);
+  useEffect(()=>{
+    const viewport=window.visualViewport;
+    const resize=()=>setChatViewportHeight(viewport?.height??window.innerHeight);
+    viewport?.addEventListener('resize',resize);
+    window.addEventListener('resize',resize);
+    return()=>{viewport?.removeEventListener('resize',resize);window.removeEventListener('resize',resize)};
+  },[]);
   useEffect(()=>{if(last&&last.senderId!==profile.data?.id&&!last.isRead)markRead.mutate({matchId},{onSuccess:()=>{void qc.invalidateQueries({queryKey:getGetMatchesQueryKey()});void qc.invalidateQueries({queryKey:getGetNotificationsQueryKey()})}});},[last?.id,profile.data?.id]);
   useEffect(()=>{heartbeat.mutate({data:{isActive:true}});const beat=window.setInterval(()=>heartbeat.mutate({data:{isActive:document.visibilityState==='visible'}}),30000);const visibility=()=>heartbeat.mutate({data:{isActive:document.visibilityState==='visible'}});document.addEventListener('visibilitychange',visibility);return()=>{clearInterval(beat);document.removeEventListener('visibilitychange',visibility)}},[]);
   useEffect(()=>{if(blocked)return;const t=setTimeout(()=>updateTyping.mutate({matchId,data:{isTyping:!!draft.trim()}}),300);return()=>clearTimeout(t)},[draft,blocked,matchId]);
@@ -362,22 +372,22 @@ function ChatPage({matchId,returnTo='/matches'}:{matchId:string;returnTo?:string
   const accent=chatTheme==='blue'?'hsl(214 63% 52%)':chatTheme==='purple'?'hsl(263 55% 58%)':chatTheme==='green'?'hsl(157 60% 32%)':'hsl(var(--chat-pink))';
   const selfPath=`/chat/${matchId}${returnTo!=='/matches'?`?returnTo=${encodeURIComponent(returnTo)}`:''}`;
   const profileHref=`/profile/${match.profile.id}?returnTo=${encodeURIComponent(selfPath)}`;
-  const statusLine=typing.data?.isTyping?`${match.profile.name} is typing…`:presence.data?.isOnline?'Online now':'A conversation just for your mutual match';
+  const statusLine=typing.data?.isTyping?`${match.profile.name} is typing…`:presence.data?.isOnline?'Online now':presence.data?.lastSeenAt?`Last seen ${new Date(presence.data.lastSeenAt).toLocaleString()}`:'A conversation just for your mutual match';
   const suggestionIcons=[Coffee,CupSoda,Music];
-  function applySuggestion(question:string){if(blocked)return;setDraft(question);window.requestAnimationFrame(()=>{const el=inputRef.current;if(el){el.focus();el.setSelectionRange(question.length,question.length)}})}
-  return <div className={`chat-surface ${darkChat?'chat-dark':''} flex h-[calc(100dvh-var(--install-banner-height,0px))] w-full flex-col`} style={{['--chat-accent' as string]:accent}} data-testid="chat-page">
-    <header className="flex items-center gap-3 border-b border-[hsl(var(--chat-border))] px-3 py-3 md:px-6">
+  function applySuggestion(question:string){if(blocked||busy||send.isPending)return;setDraft(question);window.requestAnimationFrame(()=>{const el=inputRef.current;if(el){el.focus();el.setSelectionRange(question.length,question.length)}})}
+  return <div className={`chat-surface ${darkChat?'chat-dark':''} flex w-full flex-col`} style={{['--chat-accent' as string]:accent,height:`calc(${chatViewportHeight}px - var(--install-banner-height, 0px))`}} data-testid="chat-page">
+    <header className="flex shrink-0 items-center gap-3 border-b border-[hsl(var(--chat-border))] px-3 py-3 md:px-6">
       <Link href={returnTo} aria-label="Back" data-testid="link-chat-back" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[hsl(var(--chat-fg))] hover:bg-[hsl(var(--chat-soft))]"><ArrowLeft size={22}/></Link>
       <Link href={profileHref} aria-label={`View ${match.profile.name}’s profile`} data-testid="link-chat-profile" className="flex min-w-0 flex-1 items-center gap-3 rounded-2xl py-1 pr-2 hover:bg-[hsl(var(--chat-soft))]">
         <span className="relative shrink-0 rounded-full p-[2px] ring-2 ring-[var(--chat-accent)]"><Avatar profile={match.profile} size="sm"/>{presence.data?.isOnline&&<span aria-hidden="true" className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-[hsl(var(--chat-bg))] bg-emerald-500"/>}</span>
-        <span className="min-w-0"><span className="block truncate text-[17px] font-extrabold text-[hsl(var(--chat-fg))]">{match.profile.name}</span><span data-testid="text-chat-status" className={`block truncate text-[13px] ${presence.data?.isOnline||typing.data?.isTyping?'text-[var(--chat-accent)]':'text-[hsl(var(--chat-muted))]'}`}>{statusLine}</span></span>
+        <span className="min-w-0"><span className="block truncate text-[17px] font-extrabold text-[hsl(var(--chat-fg))]">{match.profile.name}</span><span data-testid="text-chat-status" className={`block text-[11px] leading-4 sm:text-[13px] ${presence.data?.isOnline||typing.data?.isTyping?'text-[var(--chat-accent)]':'text-[hsl(var(--chat-muted))]'}`}>{statusLine}</span></span>
       </Link>
       <button type="button" onClick={()=>setActions(true)} aria-label="Chat actions" data-testid="button-chat-actions" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[hsl(var(--chat-fg))] hover:bg-[hsl(var(--chat-soft))]"><MoreHorizontal size={22}/></button>
     </header>
     {blocked&&<div className="mx-4 mt-3 rounded-xl border border-rose-300/30 bg-rose-400/10 px-4 py-3 text-sm text-rose-500">Messaging is unavailable while this profile is blocked.</div>}
     {msgs.isError&&<button onClick={()=>void msgs.refetch()} data-testid="button-retry-messages" className="mx-4 mt-3 rounded-xl bg-rose-400/10 p-2.5 text-xs font-semibold text-rose-500">Messages failed to load. Tap to retry.</button>}
     <div className="hide-scrollbar flex-1 space-y-3 overflow-y-auto px-4 py-5 md:px-6">
-      {!messages.length&&!msgs.isError&&<div className="mx-auto max-w-xl pb-2 pt-4 text-center" data-testid="chat-empty-state">
+      {!messages.length&&!msgs.isError&&!blocked&&<div className="mx-auto max-w-xl pb-2 pt-4 text-center" data-testid="chat-empty-state">
         <MessageCircleMore aria-hidden="true" size={84} strokeWidth={1.4} className="mx-auto text-[var(--chat-accent)] [&>path]:fill-[color-mix(in_srgb,var(--chat-accent)_35%,transparent)]"/>
         <h2 className="mt-4 text-2xl font-extrabold tracking-[-.02em] text-[hsl(var(--chat-fg))]">A good conversation starts here</h2>
         <p className="mt-3 text-[15px] text-[hsl(var(--chat-muted))]">A mutual match is an open door.</p>
@@ -386,17 +396,17 @@ function ChatPage({matchId,returnTo='/matches'}:{matchId:string;returnTo?:string
           <h3 className="flex items-center gap-2 text-sm font-medium text-[hsl(var(--chat-muted))]"><Sparkles size={20} className="text-[var(--chat-accent)]"/>Suggested questions</h3>
           {ice.isLoading&&<div className="mt-3 space-y-2.5">{[0,1,2].map(n=><div key={n} className="h-[60px] animate-pulse rounded-2xl bg-[hsl(var(--chat-soft))]"/>)}</div>}
           {ice.isError&&<button type="button" onClick={()=>void ice.refetch()} data-testid="button-retry-icebreakers" className="mt-3 w-full rounded-2xl border border-[hsl(var(--chat-border))] p-3 text-sm text-[hsl(var(--chat-muted))]">Suggestions couldn’t load. Tap to retry.</button>}
-          <div className="mt-3 space-y-2.5">{ice.data?.slice(0,3).map((i,n)=>{const Icon=suggestionIcons[n]??Coffee;return <button key={i.id} type="button" disabled={blocked} onClick={()=>applySuggestion(i.question)} data-testid={`button-chat-icebreaker-${i.id}`} className="flex w-full items-center gap-4 rounded-2xl border border-[hsl(var(--chat-border))] bg-[hsl(var(--chat-card))] px-4 py-4 text-left text-[15px] text-[hsl(var(--chat-fg))] shadow-[0_2px_8px_hsl(330_30%_40%/.06)] transition-colors hover:border-[var(--chat-accent)] disabled:opacity-50"><Icon size={26} strokeWidth={1.6} className="shrink-0 text-[var(--chat-accent)]"/>{i.question}</button>})}</div>
+          <div className="mt-3 space-y-2.5">{ice.data?.slice(0,3).map((i,n)=>{const Icon=suggestionIcons[n]??Coffee;return <button key={i.id} type="button" disabled={blocked||busy||send.isPending} onClick={()=>applySuggestion(i.question)} data-testid={`button-chat-icebreaker-${i.id}`} className="flex w-full items-center gap-4 rounded-2xl border border-[hsl(var(--chat-border))] bg-[hsl(var(--chat-card))] px-4 py-4 text-left text-[15px] text-[hsl(var(--chat-fg))] shadow-[0_2px_8px_hsl(330_30%_40%/.06)] transition-colors hover:border-[var(--chat-accent)] disabled:opacity-50"><Icon size={26} strokeWidth={1.6} className="shrink-0 text-[var(--chat-accent)]"/>{i.question}</button>})}</div>
         </div>
       </div>}
       {messages.map(m=><div key={m.id} className={`group flex ${m.senderId===profile.data?.id?'justify-end':'justify-start'}`} data-testid={`message-${m.id}`}><div className={`max-w-[82%] rounded-2xl px-4 py-3 text-sm leading-6 md:max-w-[65%] ${m.senderId===profile.data?.id?'bg-[var(--chat-accent)] text-white':'border border-[hsl(var(--chat-border))] bg-[hsl(var(--chat-card))] text-[hsl(var(--chat-fg))]'}`}>{m.deletedForEveryone?<span className="italic opacity-70">This message was deleted.</span>:<>{m.mediaType==='image'&&m.mediaReference&&<MediaImage reference={m.mediaReference} alt="Message attachment" className="mb-2 max-h-72 rounded-xl object-cover"/>}{m.mediaType==='video'&&m.mediaReference&&<video controls src={mediaUrl(m.mediaReference)} className="mb-2 max-h-72 rounded-xl"/>}{m.mediaType==='audio'&&<audio controls src={mediaUrl(m.mediaReference)} className="max-w-full"/>}{m.content}</>}<div className="mt-1 flex items-center justify-end gap-2 text-[10px] opacity-70">{new Date(m.createdAt).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'})}{m.senderId===profile.data?.id&&m.isRead&&<span>Read</span>}<button onClick={()=>setDeleteTarget(m)} data-testid={`button-delete-message-${m.id}`} className="hidden group-hover:inline">Delete</button></div></div></div>)}
       {typing.data?.isTyping&&<div className="text-xs italic text-[hsl(var(--chat-muted))]">{match.profile.name} is typing…</div>}<div ref={bottom}/></div>
     {receipt.data?.readAt&&<div className="px-5 pb-1 text-right text-[10px] text-[hsl(var(--chat-muted))]">Seen {new Date(receipt.data.readAt).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'})}</div>}
     {error&&<div role="alert" className="px-5 pb-2 text-xs font-medium text-rose-500">{error}</div>}
-    <div className="px-3 pb-[max(.75rem,env(safe-area-inset-bottom))] pt-1 md:px-6">
+    <div className="shrink-0 px-3 pb-[max(.75rem,env(safe-area-inset-bottom))] pt-1 md:px-6">
       <form onSubmit={e=>{e.preventDefault();if(!busy)void sendMessage(draft)}} className="flex items-end gap-2 rounded-2xl border border-[hsl(var(--chat-border))] bg-[hsl(var(--chat-card))] p-2 shadow-[0_2px_10px_hsl(330_30%_40%/.06)]">
         <label className="flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-xl text-[hsl(var(--chat-muted))] hover:bg-[hsl(var(--chat-soft))]" aria-label="Attach photo, video, or voice note" data-testid="button-chat-attach"><ImageIcon size={24} strokeWidth={1.6}/><input data-testid="input-chat-media" type="file" accept="image/*,video/mp4,video/quicktime,audio/*" className="hidden" disabled={blocked||busy||send.isPending} onChange={e=>{void attach(e.currentTarget.files?.[0]);e.currentTarget.value=''}}/></label>
-        <textarea ref={inputRef} data-testid="input-chat-message" value={draft} onChange={e=>setDraft(e.target.value)} disabled={blocked||busy||send.isPending} maxLength={2000} rows={1} placeholder={blocked?'Messaging unavailable':'Write a message'} className="max-h-32 min-h-11 flex-1 resize-none bg-transparent px-1 py-2.5 text-[15px] text-[hsl(var(--chat-fg))] outline-none placeholder:text-[hsl(var(--chat-muted))]"/>
+        <textarea ref={inputRef} data-testid="input-chat-message" value={draft} onChange={e=>setDraft(e.target.value)} disabled={blocked||busy||send.isPending} maxLength={2000} rows={1} placeholder={blocked?'Messaging unavailable':'Write a message'} className="max-h-32 min-h-11 min-w-0 flex-1 resize-none bg-transparent px-1 py-2.5 text-[15px] text-[hsl(var(--chat-fg))] outline-none placeholder:text-[hsl(var(--chat-muted))]"/>
         <button disabled={blocked||busy||send.isPending||(!draft.trim()&&!busy)} data-testid="button-send-message" className="h-11 shrink-0 rounded-xl bg-[var(--chat-accent)] px-6 text-[15px] font-bold text-white transition-opacity disabled:opacity-45">{busy?'Uploading':send.isPending?'Sending…':'Send'}</button>
       </form>
     </div>
@@ -428,6 +438,7 @@ function MessagesPage() {
   const unreadTotal = list.reduce((sum, m) => sum + ((m as MatchListExtras).unreadCount ?? 0), 0);
   return <div className="messages-page min-h-[calc(100dvh-48px)] lg:min-h-[100dvh]">
     <div className="page-in mx-auto max-w-[720px] px-4 pb-10 pt-6 md:px-8 md:pt-10" data-testid="messages-page-content">
+      <Link href="/matches" data-testid="link-messages-back" className="mb-5 inline-flex items-center gap-2 text-sm font-semibold text-muted-foreground"><ArrowLeft size={20}/>Back to Matches</Link>
       <div className="flex items-end justify-between gap-4">
         <h1 className="brand text-[2.5rem] font-extrabold leading-none tracking-[-.05em] md:text-5xl">Messages</h1>
         {unreadTotal > 0 && <span data-testid="text-unread-total" className="mb-1 rounded-full bg-primary/15 px-3 py-1 text-xs font-bold text-primary">{unreadTotal} unread</span>}
@@ -443,10 +454,10 @@ function MessagesPage() {
             const unread = !blocked && (extras.unreadCount ?? 0) > 0;
             const preview = m.blockedByMe ? 'You blocked this person. Unblock from Matches to chat again.' : m.blockedMe ? 'Messaging is unavailable with this person.' : m.lastMessage || 'You matched. Say hello.';
             return <li key={m.id} data-testid={`card-conversation-${m.id}`} className={`msg-card relative flex items-center gap-4 rounded-[22px] p-3.5 transition-transform md:p-4 ${blocked ? 'opacity-70' : 'hover:-translate-y-px'}`}>
-              <div className="msg-avatar shrink-0"><MatchStoryAvatar matchId={m.id} profile={m.profile} storyGroup={stories.data?.matches.find(g => g.matchId === m.id)} disabled={blocked} returnTo="/views" /></div>
+              <div className="msg-avatar shrink-0"><MatchStoryAvatar matchId={m.id} profile={m.profile} storyGroup={stories.data?.matches.find(g => g.matchId === m.id)} disabled={blocked} returnTo="/messages" /></div>
               {blocked
                 ? <div className="min-w-0 flex-1" data-testid={`status-conversation-blocked-${m.id}`}><div className="truncate text-[17px] font-bold">{m.profile.name}</div><div className="mt-1 text-sm text-destructive">{preview}</div></div>
-                : <Link href={`/chat/${m.id}?returnTo=%2Fviews`} data-testid={`link-conversation-${m.id}`} aria-label={`Open chat with ${m.profile.name}${unread ? `, ${extras.unreadCount} unread` : ''}`} className="flex min-w-0 flex-1 items-center gap-3 self-stretch">
+                : <Link href={`/chat/${m.id}?returnTo=%2Fmessages`} data-testid={`link-conversation-${m.id}`} aria-label={`Open chat with ${m.profile.name}${unread ? `, ${extras.unreadCount} unread` : ''}`} className="flex min-w-0 flex-1 items-center gap-3 self-stretch">
                   <div className="min-w-0 flex-1"><div className="truncate text-[17px] font-bold">{m.profile.name}</div><div className={`mt-1 truncate text-[15px] ${unread ? 'font-semibold text-foreground' : 'text-muted-foreground'}`}>{preview}</div></div>
                   <div className="flex h-full shrink-0 flex-col items-end justify-between gap-5 self-stretch py-1">
                     {unread ? <span aria-hidden="true" data-testid={`status-unread-${m.id}`} className="h-3 w-3 rounded-full bg-primary" /> : <span className="h-3" />}
@@ -509,27 +520,32 @@ function NotificationsPage() {
   const unread = q.data ? Object.values(q.data.unreadCounts ?? {}).reduce((a, b) => a + (b as number), 0) : 0;
 
   return <PageFrame>
-    <div className="-mt-7" data-testid="notifications-page-content">
+    <div className="-mt-4" data-testid="notifications-page-content">
       <div className="mb-6">
-        <h1 className="brand text-3xl font-bold tracking-[-.05em] md:text-[2.6rem]">Notifications</h1>
-        {q.data && <p className="mt-2 max-w-2xl text-sm text-muted-foreground">{unread} unread updates</p>}
+        <h1 className="brand text-[2.35rem] font-extrabold leading-tight tracking-[-.05em] md:text-5xl">Notifications</h1>
+        {q.data && <p className="mt-2 max-w-2xl text-base font-semibold text-primary">{unread} unread updates</p>}
       </div>
       {q.isLoading ? <Busy />
         : q.isError ? <Retry onRetry={() => void q.refetch()} />
         : !q.data?.notifications.length ? <Empty title="All caught up" detail="Your new matches, likes, messages, and profile views will show up here." />
         : <div className="space-y-3">
-          {q.data.notifications.map((n) => <div key={n.id} data-testid={`card-notification-${n.id}`} className="rounded-2xl border border-border bg-card text-card-foreground transition-colors hover:bg-secondary/40">
-            <div className="flex items-center gap-2 p-3 sm:gap-3 sm:p-4">
+          {q.data.notifications.map((n) => <div key={n.id} data-testid={`card-notification-${n.id}`} className="notification-card rounded-[24px] border border-border/40 bg-card text-card-foreground">
+            <div className="flex items-center gap-3 p-4 sm:gap-4 sm:p-5">
               <button type="button" onClick={() => void open(n)} data-testid={`button-notification-${n.id}`} aria-label={`${n.actor.name} ${actionText(n)}${n.readAt ? '' : ', unread'}`} className="flex min-w-0 flex-1 items-center gap-3 text-left sm:gap-4">
                 <span className="shrink-0 rounded-full border border-primary/75 p-[2px]"><Avatar profile={n.actor} /></span>
                 <span className="min-w-0 flex-1">
-                  <span className="block text-sm font-bold text-card-foreground"><span>{n.actor.name}</span>{' '}<span className="font-semibold">{actionText(n)}</span></span>
-                  <time dateTime={n.createdAt} className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">{!n.readAt && <span aria-hidden="true" className="h-2 w-2 rounded-full bg-primary" />}{timeAgo(n.createdAt)}</time>
+                  <span className="block text-[15px] font-bold leading-5 text-card-foreground"><span className="text-primary">{n.actor.name}</span>{' '}<span className="font-semibold">{actionText(n)}</span></span>
+                  <span className="mt-2 block text-xs leading-4 text-muted-foreground">{n.type==='new_match'?'Start a conversation now!':n.type==='new_like'?'Tap to see who liked you':n.type==='new_message'?'Open your conversation':'Take a closer look'}</span>
                 </span>
               </button>
-              <button type="button" onClick={() => void message(n)} data-testid={`button-notification-message-${n.id}`} aria-label={`Send message to ${n.actor.name}`} className="inline-flex h-10 shrink-0 items-center gap-2 rounded-full bg-primary px-3 text-xs font-bold text-primary-foreground transition-transform active:scale-95 sm:px-4 sm:text-sm">
-                <MessageCircle size={16} /><span className="hidden min-[380px]:inline">Send message</span>
-              </button>
+              <div className="flex shrink-0 flex-col items-end gap-3">
+                <time dateTime={n.createdAt} className="text-[11px] text-muted-foreground">{timeAgo(n.createdAt)}</time>
+                <div className="flex items-center gap-3">{!n.readAt&&<span aria-label="Unread" className="h-2.5 w-2.5 rounded-full bg-primary"/>}
+                  <button type="button" onClick={() => void message(n)} data-testid={`button-notification-message-${n.id}`} aria-label={`Send message to ${n.actor.name}`} className="inline-flex h-9 shrink-0 items-center gap-2 rounded-full bg-primary px-3 text-xs font-bold text-primary-foreground transition-transform active:scale-95 sm:px-4">
+                    <MessageCircle size={16} /><span className="hidden sm:inline">Send message</span>
+                  </button>
+                </div>
+              </div>
             </div>
             {notice?.id === n.id && <div role="status" data-testid={`status-notification-message-${n.id}`} className="mx-3 mb-3 rounded-xl bg-accent px-3 py-2 text-xs font-semibold text-accent-foreground sm:mx-4">{notice.text}</div>}
           </div>)}
@@ -720,7 +736,7 @@ function BrandedSignUp(){
   </section></div>;
 }
 function RouteShell({component:Component}:{component:()=>ReactNode}){return <ShellPage><Component/></ShellPage>}
-const CHAT_RETURN_PATHS=['/views','/notifications','/matches'];
+const CHAT_RETURN_PATHS=['/views','/messages','/notifications','/matches'];
 function ChatRoute(){const params=useParams<{matchId:string}>();const requested=safeAppReturnPath(new URLSearchParams(window.location.search).get('returnTo'),'/matches');const returnTo=CHAT_RETURN_PATHS.includes(requested)?requested:'/matches';return <ShellPage><ChatPage matchId={params.matchId||''} returnTo={returnTo}/></ShellPage>}
 function OnboardingRoute(){return <Gate><div className="min-h-[100dvh] bg-background text-foreground"><header className="p-6"><Brand/></header><OnboardingGate/></div></Gate>}
 function ProfileRoute(){return <ShellPage><ProfilePage mode="view"/></ShellPage>}
@@ -735,7 +751,16 @@ function PublicLocationShareRoute(){return <PublicLocationSharePage/>}
 function DiscoverRoute(){return <ShellPage><DiscoverPage/></ShellPage>}
 function StoryComposerRoute(){return <ShellPage><StoryComposerPage/></ShellPage>}
 function MatchesRoute(){return <ShellPage><MatchesPage/></ShellPage>}
-function ViewsRoute(){return <ShellPage><MessagesPage/></ShellPage>}
+function VisitorsPage(){
+  const visitors=useGetWhoViewedYou({query:{refetchInterval:30000,refetchOnMount:'always'}});
+  return <PageFrame><section className="-mt-3" data-testid="visitors-page">
+    <h1 className="brand text-[2.35rem] font-bold tracking-[-.04em] md:text-5xl">Who viewed you</h1>
+    <p className="mb-6 mt-2 border-b border-primary/10 pb-5 text-sm text-muted-foreground">People who viewed your profile recently</p>
+    {visitors.isLoading?<Busy/>:visitors.isError&&!visitors.data?<Retry text="We couldn’t load your profile visitors. Please try again." onRetry={()=>void visitors.refetch()}/>:!visitors.data?.length?<p className="py-8 text-center text-sm text-muted-foreground">No profile views yet.</p>:<ul className="space-y-3">{visitors.data.map(({profile})=><li key={profile.id}><Link href={`/profile/${profile.id}?returnTo=%2Fviews`} data-testid={`card-visitor-${profile.id}`} className="visitor-card flex items-center gap-4 rounded-[24px] border border-border/50 bg-card px-4 py-5 shadow-[0_4px_18px_rgba(90,40,65,.05)]"><span className="shrink-0 rounded-full border border-primary/70 p-[3px]"><Avatar profile={profile}/></span><span className="min-w-0 flex-1"><span className="block text-[17px] font-bold leading-6 text-foreground">{profile.name}{profile.age!=null?`, ${profile.age}`:''}<Heart size={16} aria-hidden="true" fill="currentColor" className="ml-2 inline text-primary"/></span><span className="mt-1 flex items-start gap-1.5 text-sm text-muted-foreground"><MapPin size={15} className="mt-0.5 shrink-0 text-primary"/>{profile.city?.trim()||profile.state?.trim()||profile.country?.trim()||'Location not shared'}</span></span><ChevronRight size={21} className="shrink-0 text-primary"/></Link></li>)}</ul>}
+  </section></PageFrame>;
+}
+function ViewsRoute(){return <ShellPage><VisitorsPage/></ShellPage>}
+function MessagesRoute(){return <ShellPage><MessagesPage/></ShellPage>}
 function NotificationsRoute(){return <ShellPage><NotificationsPage/></ShellPage>}
 function ViewedNotificationProfileRoute(){const params=useParams<{profileId:string}>();return <ShellPage><PublicProfile id={params.profileId||''} actionReturnTo="/notifications"/></ShellPage>}
 function PublicProfileRoute(){const params=useParams<{profileId:string}>();const returnTo=safeAppReturnPath(new URLSearchParams(window.location.search).get('returnTo'),'/discover');return <ShellPage><PublicProfile id={params.profileId||''} actionReturnTo={returnTo}/></ShellPage>}
@@ -759,7 +784,7 @@ function ClerkRoutes(){const [,setLocation]=useLocation();return <ClerkProvider 
   <Route path="/sign-up/*?" component={BrandedSignUp}/>
   {import.meta.env.DEV&&<Route path="/create-account-preview"><div className="border-b border-primary/20 bg-accent px-5 py-3 text-center text-xs leading-5 text-foreground" role="note">Form preview only. Email-code signup still needs the authentication setting changed.</div><ProfileFirstSignup previewOnly/></Route>}
   <Route path="/onboarding" component={OnboardingRoute}/><Route path="/discover" component={DiscoverRoute}/><Route path="/stories/new" component={StoryComposerRoute}/><Route path="/matches" component={MatchesRoute}/>
-  <Route path="/chat/:matchId" component={ChatRoute}/><Route path="/views" component={ViewsRoute}/><Route path="/notifications" component={NotificationsRoute}/>
+  <Route path="/chat/:matchId" component={ChatRoute}/><Route path="/views" component={ViewsRoute}/><Route path="/messages" component={MessagesRoute}/><Route path="/notifications" component={NotificationsRoute}/>
    <Route path="/privacy-policy" component={PrivacyPolicyRoute}/><Route path="/terms" component={CommunityGuidelinesRoute}/><Route path="/community-guidelines" component={CommunityGuidelinesRoute}/>
    <Route path="/safety-center" component={SafetyCenterRoute}/><Route path="/report-safety" component={ReportSafetyRoute}/><Route path="/safety/location" component={PublicLocationShareRoute}/>
   <Route path="/profile" component={ProfileRoute}/><Route path="/profile/edit" component={ProfileEditRoute}/><Route path="/profile/:profileId/from-notifications" component={ViewedNotificationProfileRoute}/><Route path="/profile/:profileId" component={PublicProfileRoute}/><Route path="/settings" component={SettingsRoute}/><Route path="/settings/:section" component={SettingsSectionRoute}/><Route component={NotFound}/>

@@ -27,7 +27,7 @@ import {
   useUpdateChatTheme,
   useUpdateTypingStatus,
 } from "@workspace/api-client-react";
-import { Feather } from "@expo/vector-icons";
+import { Feather, Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@clerk/expo";
 import { useQueryClient } from "@tanstack/react-query";
 import { File } from "expo-file-system";
@@ -35,7 +35,7 @@ import * as ImagePicker from "expo-image-picker";
 import { fetch as expoFetch } from "expo/fetch";
 import { KeyboardAvoidingView } from "react-native-keyboard-controller";
 import { router, useLocalSearchParams } from "expo-router";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { type ComponentRef, useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -91,19 +91,32 @@ function mediaTheme(theme: ChatThemeType, fallback: string): string {
 }
 
 export default function ChatScreen() {
-  const colors = useColors();
+  const appColors = useColors();
   const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
   const { getToken, userId } = useAuth();
   const { matchId: rawId, returnTo: rawReturn } = useLocalSearchParams<{ matchId: string; returnTo?: string }>();
   const matchId = Array.isArray(rawId) ? rawId[0] : rawId;
   const returnKey = Array.isArray(rawReturn) ? rawReturn[0] : rawReturn;
-  const returnPath = returnKey === "views" ? "/(tabs)/views"
+  const returnPath = returnKey === "messages" ? "/messages"
+    : returnKey === "views" ? "/(tabs)/views"
     : returnKey === "activity" ? "/(tabs)/activity"
     : returnKey === "notifications" ? "/notifications"
     : "/(tabs)/matches";
   const matches = useGetMatches({ query: { refetchInterval: 10_000 } });
   const match = matches.data?.find((item) => item.id === matchId);
+  const darkChat = match?.chatTheme === ChatTheme.dark;
+  const colors = {
+    ...appColors,
+    background: darkChat ? appColors.chatDarkBackground : appColors.chatBackground,
+    foreground: darkChat ? appColors.chatDarkForeground : appColors.chatForeground,
+    card: darkChat ? appColors.chatDarkCard : appColors.chatCard,
+    mutedForeground: darkChat ? appColors.chatDarkMuted : appColors.chatMuted,
+    border: darkChat ? appColors.chatDarkBorder : appColors.chatBorder,
+    accent: darkChat ? appColors.chatDarkSoft : appColors.chatSoft,
+    primary: appColors.chatPink,
+    primaryForeground: appColors.chatOnAccent,
+  };
   const messages = useGetMessages(matchId ?? "", { query: { enabled: !!match } });
   const presence = useGetMatchPresence(matchId ?? "", {
     query: { enabled: !!match, refetchInterval: 15_000 },
@@ -149,12 +162,12 @@ export default function ChatScreen() {
   const recordingTicks = useRef(0);
   const lastMarkedMessage = useRef("");
   const listRef = useRef<FlatList<Message> | null>(null);
+  const inputRef = useRef<ComponentRef<typeof TextInput>>(null);
   const blocked = !!match?.blockedByMe || !!match?.blockedMe;
-  const chatAccent = mediaTheme(match?.chatTheme ?? ChatTheme.pink, colors.primary);
-  const themedBackground = match?.chatTheme === ChatTheme.dark ? "#171317"
-    : match?.chatTheme === ChatTheme.light ? "#fffaf8" : colors.background;
-  const themedForeground = match?.chatTheme === ChatTheme.dark ? "#fbf5f7"
-    : match?.chatTheme === ChatTheme.light ? "#21171c" : colors.foreground;
+  const chatAccent = [ChatTheme.blue, ChatTheme.purple, ChatTheme.green].some((theme) => theme === match?.chatTheme)
+    ? mediaTheme(match!.chatTheme, colors.primary) : colors.primary;
+  const themedBackground = colors.background;
+  const themedForeground = colors.foreground;
 
   useEffect(() => {
     if (!matches.isLoading && matches.data && !match) router.replace(returnPath as never);
@@ -489,7 +502,11 @@ export default function ChatScreen() {
   function menuAction(action: string) {
     if (!matchId) return;
     setMenuVisible(false);
-    if (action === "Block" || action === "Unblock") {
+    if (action === "Search chat") {
+      setSearchVisible((visible) => !visible);
+      setSearchText("");
+      setSearchIndex(0);
+    } else if (action === "Block" || action === "Unblock") {
       Alert.alert(`${action} ${match?.profile.name}?`, action === "Block" ? "They won’t be able to message you." : "They will be able to interact with you again.", [
         { text: action, style: action === "Block" ? "destructive" : "default", onPress: () => void blockOrUnblock() },
         { text: "Cancel", style: "cancel" },
@@ -561,27 +578,22 @@ export default function ChatScreen() {
         <Pressable accessibilityRole="button" accessibilityLabel="Back" onPress={() => router.replace(returnPath as never)} style={styles.back}>
           <Feather name="arrow-left" size={21} color={themedForeground} />
         </Pressable>
-        <View style={styles.avatarWrap}>
-          <ProfileAvatar profile={match.profile} size={42} />
-          <View style={[styles.onlineDot, { backgroundColor: presence.data?.isOnline ? "#26b36d" : colors.mutedForeground }]} />
-        </View>
-        <View style={styles.headerCopy}>
-          <Text numberOfLines={1} style={[styles.name, { color: themedForeground }]}>{match.profile.name}</Text>
-          <Text style={[styles.status, { color: presence.data?.isOnline ? "#238b63" : colors.mutedForeground }]}>
-            {presence.data?.isOnline ? "Online" : formatLastSeen(presence.data?.lastSeenAt)}
-          </Text>
-        </View>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Search this chat"
-          onPress={() => {
-            setSearchVisible((visible) => !visible);
-            setSearchText("");
-            setSearchIndex(0);
-          }}
-          style={styles.more}
+          accessibilityLabel={`View ${match.profile.name}'s profile`}
+          testID="chat-profile-header"
+          onPress={() => router.push({ pathname: "/profile/[profileId]", params: { profileId: match.profile.id } })}
+          style={styles.headerProfile}
         >
-          <Feather name="search" size={19} color={themedForeground} />
+          <View style={[styles.avatarWrap, { borderColor: colors.primary }]}>
+            <ProfileAvatar profile={match.profile} size={44} />
+            {presence.data?.isOnline ? <View style={[styles.onlineDot, { backgroundColor: colors.chatOnline, borderColor: colors.background }]} /> : null}
+          </View>
+          <View style={styles.headerCopy}>
+            <Text numberOfLines={1} style={[styles.name, { color: themedForeground }]}>{match.profile.name}</Text>
+            <Text numberOfLines={2} style={[styles.status, { color: colors.mutedForeground }]}>A conversation just for your mutual match</Text>
+            {typing.data?.isTyping || presence.data?.isOnline || presence.data?.lastSeenAt ? <Text numberOfLines={1} style={[styles.status, { color: presence.data?.isOnline ? colors.chatOnline : colors.mutedForeground }]}>{typing.data?.isTyping ? "Typing…" : presence.data?.isOnline ? "Online" : formatLastSeen(presence.data?.lastSeenAt)}</Text> : null}
+          </View>
         </Pressable>
         <Pressable accessibilityRole="button" accessibilityLabel="Chat actions" testID="chat-actions" onPress={() => setMenuVisible(true)} style={styles.more}>
           <Feather name="more-vertical" size={21} color={themedForeground} />
@@ -619,30 +631,39 @@ export default function ChatScreen() {
       {error ? <Text accessibilityRole="alert" style={[styles.error, { color: colors.destructive }]}>{error}</Text> : null}
       <FlatList
         ref={listRef}
-        inverted
+        inverted={sortedMessages.length > 0}
         data={sortedMessages}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.messageList}
+        contentContainerStyle={[styles.messageList, !sortedMessages.length && styles.emptyMessageList]}
         keyboardDismissMode="interactive"
         keyboardShouldPersistTaps="handled"
-        scrollEnabled={sortedMessages.length > 0}
+        scrollEnabled
         ListHeaderComponent={otherIsTyping ? <Text style={[styles.typing, { color: colors.mutedForeground }]}>{match.profile.name} is typing…</Text> : undefined}
-        ListEmptyComponent={
-          <View style={styles.icebreakerWrap}>
-            <Text style={[styles.empty, { color: colors.mutedForeground }]}>Say hello to start the conversation.</Text>
-            {icebreakers.data?.map((prompt) => (
+        ListEmptyComponent={!messages.isError && !blocked ? (
+          <View style={styles.icebreakerWrap} testID="chat-empty-conversation">
+            <Ionicons name="chatbubble-ellipses" size={92} color={colors.primary} style={styles.emptyIcon} />
+            <Text style={[styles.emptyTitle, { color: colors.foreground }]}>A good conversation starts here</Text>
+            <Text style={[styles.emptySubtitle, { color: colors.mutedForeground }]}>A mutual match is an open door.</Text>
+            <Text style={[styles.emptySubtitle, { color: colors.primary }]}>Make the first message yours.</Text>
+            <View style={styles.suggestionsHeading}><Ionicons name="sparkles-outline" size={22} color={colors.primary} /><Text style={[styles.suggestionsLabel, { color: colors.mutedForeground }]}>Suggested questions</Text></View>
+            {icebreakers.isLoading ? <ActivityIndicator color={colors.primary} accessibilityLabel="Loading suggested questions" /> : null}
+            {icebreakers.isError ? <Pressable onPress={() => void icebreakers.refetch()} testID="retry-chat-suggestions"><Text style={[styles.error, { color: colors.destructive }]}>Couldn’t load suggestions. Tap to retry.</Text></Pressable> : null}
+            {icebreakers.data?.slice(0, 3).map((prompt, index) => (
               <Pressable
                 key={prompt.id}
-                disabled={blocked || sendMessage.isPending}
-                onPress={() => void send(prompt.question)}
+                accessibilityRole="button"
+                accessibilityLabel={`Use suggested question: ${prompt.question}`}
+                testID={`chat-suggestion-${index}`}
+                disabled={busyMedia || sendMessage.isPending}
+                onPress={() => { setDraft(prompt.question); inputRef.current?.focus(); }}
                 style={[styles.icebreakerChip, { borderColor: colors.border, backgroundColor: colors.card }]}
               >
+                <Feather name={index === 2 ? "music" : "coffee"} size={24} color={colors.primary} />
                 <Text style={[styles.icebreakerText, { color: themedForeground }]}>{prompt.question}</Text>
-                <Feather name="arrow-up-right" size={14} color={chatAccent} />
               </Pressable>
             ))}
           </View>
-        }
+        ) : undefined}
         renderItem={({ item }) => {
           const own = item.senderId === userId;
           const bubbleColor = own ? chatAccent : colors.card;
@@ -719,9 +740,9 @@ export default function ChatScreen() {
           </Text>
         </View>
       ) : (
-        <View style={[styles.composer, { borderTopColor: colors.border, paddingBottom: Math.max(insets.bottom, Platform.OS === "web" ? 34 : 10) }]}>
+        <View style={[styles.composer, { borderColor: colors.border, backgroundColor: colors.card, marginBottom: Math.max(insets.bottom, Platform.OS === "web" ? 34 : 10) }]}>
           <Pressable accessibilityRole="button" accessibilityLabel="Attach photo or video" testID="chat-attachment" onPress={() => void chooseAttachment()} disabled={busyMedia || sendMessage.isPending} style={styles.attachButton}>
-            {busyMedia ? <ActivityIndicator color={chatAccent} size="small" /> : <Feather name="plus" size={21} color={chatAccent} />}
+            {busyMedia ? <ActivityIndicator color={chatAccent} size="small" /> : <Feather name="image" size={24} color={colors.mutedForeground} />}
           </Pressable>
           {recording ? (
             <View style={[styles.recordingPill, { backgroundColor: colors.card, borderColor: colors.border }]}>
@@ -734,21 +755,19 @@ export default function ChatScreen() {
           ) : (
             <>
               <TextInput
+                ref={inputRef}
                 testID="chat-message-input"
                 value={draft}
                 onChangeText={setDraft}
-                placeholder="Write a message…"
+                editable={!busyMedia && !sendMessage.isPending}
+                placeholder="Write a message"
                 placeholderTextColor={colors.mutedForeground}
                 multiline
                 maxLength={2000}
                 blurOnSubmit={false}
                 style={[styles.input, { color: themedForeground, backgroundColor: colors.card, borderColor: colors.border }]}
               />
-              {draft.trim() ? (
-                <Pressable testID="send-chat-message" accessibilityRole="button" accessibilityLabel="Send message" disabled={!draft.trim() || sendMessage.isPending} onPress={() => void send(draft)} style={[styles.sendButton, { backgroundColor: chatAccent, opacity: sendMessage.isPending ? 0.55 : 1 }]}>
-                  <Feather name="arrow-up" size={20} color="#ffffff" />
-                </Pressable>
-              ) : (
+              {!draft.trim() ? (
                 <Pressable
                   accessibilityRole="button"
                   accessibilityLabel="Hold to record a voice note"
@@ -766,7 +785,10 @@ export default function ChatScreen() {
                 >
                   <Feather name="mic" size={19} color={chatAccent} />
                 </Pressable>
-              )}
+              ) : null}
+              <Pressable testID="send-chat-message" accessibilityRole="button" accessibilityLabel="Send message" disabled={!draft.trim() || sendMessage.isPending || busyMedia} onPress={() => void send(draft)} style={[styles.sendButton, { backgroundColor: chatAccent, opacity: !draft.trim() || sendMessage.isPending || busyMedia ? 0.5 : 1 }]}>
+                {sendMessage.isPending ? <ActivityIndicator color={colors.primaryForeground} /> : <Text style={[styles.sendLabel, { color: colors.primaryForeground }]}>Send</Text>}
+              </Pressable>
             </>
           )}
         </View>
@@ -777,6 +799,7 @@ export default function ChatScreen() {
           <View style={[styles.menuSheet, { backgroundColor: colors.card, paddingBottom: Math.max(insets.bottom, 18) }]}>
             <View style={[styles.sheetHandle, { backgroundColor: colors.border }]} />
             {[
+              "Search chat",
               match.blockedByMe ? "Unblock" : "Block",
               "Report",
               "Change chat color",
@@ -784,7 +807,7 @@ export default function ChatScreen() {
               "Unmatch",
             ].map((action) => (
               <Pressable key={action} accessibilityRole="button" testID={`chat-action-${action.toLowerCase().replaceAll(" ", "-")}`} onPress={() => menuAction(action)} style={styles.menuItem}>
-                <Feather name={action === "Block" || action === "Unblock" ? "slash" : action === "Report" ? "flag" : action === "Change chat color" ? "droplet" : action === "Clear chat" ? "trash-2" : "user-x"} size={18} color={action === "Block" || action === "Report" || action === "Unmatch" ? colors.destructive : colors.foreground} />
+                <Feather name={action === "Search chat" ? "search" : action === "Block" || action === "Unblock" ? "slash" : action === "Report" ? "flag" : action === "Change chat color" ? "droplet" : action === "Clear chat" ? "trash-2" : "user-x"} size={18} color={action === "Block" || action === "Report" || action === "Unmatch" ? colors.destructive : colors.foreground} />
                 <Text style={[styles.menuLabel, { color: action === "Block" || action === "Report" || action === "Unmatch" ? colors.destructive : colors.foreground }]}>{action}</Text>
               </Pressable>
             ))}
@@ -831,17 +854,19 @@ const styles = StyleSheet.create({
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
   header: { minHeight: 68, flexDirection: "row", alignItems: "center", gap: 11, paddingHorizontal: 16, borderBottomWidth: StyleSheet.hairlineWidth },
   back: { width: 34, height: 42, justifyContent: "center" },
-  avatarWrap: { width: 42, height: 42 },
-  onlineDot: { position: "absolute", right: -1, bottom: 1, width: 11, height: 11, borderRadius: 6, borderWidth: 2, borderColor: "#ffffff" },
+  headerProfile: { flex: 1, minWidth: 0, flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 10 },
+  avatarWrap: { width: 50, height: 50, padding: 2, borderWidth: 1, borderRadius: 25 },
+  onlineDot: { position: "absolute", right: -1, bottom: 1, width: 11, height: 11, borderRadius: 6, borderWidth: 2 },
   headerCopy: { flex: 1, gap: 3 },
-  name: { fontSize: 15, fontWeight: "700" },
-  status: { fontSize: 11 },
+  name: { fontSize: 18, fontWeight: "700" },
+  status: { fontSize: 11, lineHeight: 15 },
   more: { width: 36, height: 42, alignItems: "flex-end", justifyContent: "center" },
   searchBar: { minHeight: 48, paddingHorizontal: 14, flexDirection: "row", alignItems: "center", gap: 7, borderBottomWidth: StyleSheet.hairlineWidth },
   searchInput: { flex: 1, height: 42, fontSize: 14 },
   searchCount: { fontSize: 11, minWidth: 32, textAlign: "center" },
   searchArrow: { width: 28, height: 36, alignItems: "center", justifyContent: "center" },
   messageList: { paddingHorizontal: 16, paddingVertical: 18, flexGrow: 1, justifyContent: "flex-end" },
+  emptyMessageList: { justifyContent: "flex-start" },
   messageRow: { marginVertical: 5, maxWidth: "84%" },
   ownRow: { alignSelf: "flex-end", alignItems: "flex-end" },
   otherRow: { alignSelf: "flex-start", alignItems: "flex-start" },
@@ -860,17 +885,22 @@ const styles = StyleSheet.create({
   receiptChecks: { width: 17, height: 14, flexDirection: "row", alignItems: "center" },
   secondCheck: { marginLeft: -7 },
   typing: { alignSelf: "flex-start", marginHorizontal: 7, marginVertical: 8, fontSize: 12, fontStyle: "italic" },
-  empty: { textAlign: "center", marginTop: 16, fontSize: 13 },
-  icebreakerWrap: { alignItems: "center", padding: 12, gap: 9 },
-  icebreakerChip: { width: "100%", maxWidth: 390, minHeight: 44, borderWidth: 1, borderRadius: 16, paddingHorizontal: 12, flexDirection: "row", alignItems: "center", gap: 8 },
-  icebreakerText: { flex: 1, fontSize: 12, fontWeight: "600" },
+  emptyIcon: { marginTop: 14, marginBottom: 15 },
+  emptyTitle: { maxWidth: 340, textAlign: "center", fontSize: 22, lineHeight: 29, fontWeight: "700", letterSpacing: -0.5 },
+  emptySubtitle: { textAlign: "center", fontSize: 15, lineHeight: 22, marginTop: 8 },
+  icebreakerWrap: { alignItems: "center", paddingVertical: 6, gap: 10 },
+  suggestionsHeading: { width: "100%", flexDirection: "row", alignItems: "center", gap: 8, marginTop: 24, marginBottom: 3 },
+  suggestionsLabel: { fontSize: 14, fontWeight: "500" },
+  icebreakerChip: { width: "100%", minHeight: 64, borderWidth: 1, borderRadius: 17, padding: 14, flexDirection: "row", alignItems: "center", gap: 12 },
+  icebreakerText: { flex: 1, fontSize: 14, lineHeight: 21, fontWeight: "500" },
   error: { textAlign: "center", marginVertical: 7, paddingHorizontal: 12, fontSize: 12 },
   errorBanner: { minHeight: 34, justifyContent: "center" },
-  composer: { flexDirection: "row", alignItems: "flex-end", gap: 9, paddingHorizontal: 12, paddingTop: 9, borderTopWidth: StyleSheet.hairlineWidth },
+  composer: { flexDirection: "row", alignItems: "flex-end", gap: 6, padding: 8, marginHorizontal: 12, marginTop: 8, borderWidth: 1, borderRadius: 22 },
   attachButton: { width: 40, height: 42, alignItems: "center", justifyContent: "center" },
-  input: { flex: 1, minHeight: 44, maxHeight: 120, borderRadius: 23, borderWidth: 1, paddingHorizontal: 15, paddingTop: 11, paddingBottom: 9, fontSize: 14 },
-  sendButton: { width: 42, height: 42, borderRadius: 21, alignItems: "center", justifyContent: "center", marginBottom: 1 },
-  voiceButton: { width: 40, height: 42, alignItems: "center", justifyContent: "center" },
+  input: { flex: 1, minWidth: 0, minHeight: 44, maxHeight: 120, paddingHorizontal: 4, paddingTop: 11, paddingBottom: 9, fontSize: 14 },
+  sendButton: { minWidth: 66, height: 44, paddingHorizontal: 12, borderRadius: 14, alignItems: "center", justifyContent: "center" },
+  sendLabel: { fontSize: 15, fontWeight: "700" },
+  voiceButton: { width: 28, height: 42, alignItems: "center", justifyContent: "center" },
   recordingPill: { flex: 1, minHeight: 44, borderRadius: 23, borderWidth: 1, flexDirection: "row", alignItems: "center", paddingHorizontal: 12, gap: 9 },
   recordingDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: "#d44358" },
   recordingText: { flex: 1, fontSize: 13 },

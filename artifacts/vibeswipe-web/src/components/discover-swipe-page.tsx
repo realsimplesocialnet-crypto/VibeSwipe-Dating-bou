@@ -189,6 +189,13 @@ export function DiscoverSwipePage() {
     }
   }
 
+  const stickyHeader = <div className="discover-sticky sticky top-[var(--install-banner-height,0px)] z-30 -mx-4 mb-4 px-4 pb-1 pt-3 sm:-mx-6 sm:px-6" data-testid="discover-sticky-header">
+    <header className="mb-3 rounded-[28px] border border-border/40 bg-card/95 px-3 py-2.5 shadow-sm">
+      <div className="flex items-center gap-2.5"><StoriesRow mode="own"/><div className="flex min-w-0 flex-1 items-center gap-1.5"><img src={`${import.meta.env.BASE_URL}icon.png`} alt="" className="h-7 w-7 rounded-full"/><span className="truncate text-[15px] font-extrabold tracking-tight">vibe<span className="text-primary">swipe</span></span></div><span className="shrink-0 text-[11px] text-muted-foreground" data-testid="text-discover-likes">{likes.data?.remaining??"—"} likes left</span><button type="button" onClick={()=>setFiltersOpen(true)} aria-label="Discovery filters" data-testid="button-discovery-filters" className="flex h-10 w-9 shrink-0 items-center justify-center text-primary"><SlidersHorizontal size={22}/></button></div>
+      <div className="mt-1.5 flex items-center justify-between pl-1"><h1 className="text-[13px] font-semibold text-foreground">Meet someone new</h1><button type="button" onClick={()=>void startBoost()} disabled={!boost.data?.available||activateBoost.isPending} aria-label={boost.data?.active?"Boost active":"Activate boost"} data-testid="button-activate-boost" className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-semibold text-primary disabled:opacity-40"><Zap size={12}/>Boost</button></div>
+    </header>
+    <StoriesRow mode="matches"/>
+  </div>;
   if (discover.isLoading) {
     return <div className="mx-auto max-w-xl px-4 py-12 text-center text-sm text-muted-foreground">Finding people nearby…</div>;
   }
@@ -203,8 +210,8 @@ export function DiscoverSwipePage() {
   }
   if (!profile) {
     return (
-      <div className="mx-auto max-w-[760px] px-4 pt-3 pb-5 text-center sm:px-6 sm:pt-5 sm:pb-7">
-        <StoriesRow />
+      <div className="mx-auto max-w-[680px] px-4 pb-5 text-center sm:px-6 sm:pb-7">
+        {stickyHeader}
         <div className="mx-auto max-w-xl pt-10 pb-8"><h1 className="brand text-2xl font-bold">That’s everyone for now</h1>
         <p className="mt-2 text-sm text-muted-foreground">Try broadening your filters or check back soon.</p>
         <button onClick={() => setFiltersOpen(true)} data-testid="button-open-filters-empty" className="mt-5 rounded-xl bg-primary px-4 py-3 font-bold text-[#27101d]">Adjust filters</button></div>
@@ -214,35 +221,14 @@ export function DiscoverSwipePage() {
   }
 
   return (
-    <main className="mx-auto w-full max-w-[680px] px-4 pb-8 pt-5 sm:px-6 sm:pt-7">
-      <StoriesRow />
-      <header className="mb-4 flex items-center justify-between gap-3">
-        <div>
-          <h1 className="brand text-2xl font-bold tracking-[-.04em]">Meet someone new</h1>
-          <p className="mt-1 text-xs text-muted-foreground" data-testid="text-discover-likes">
-            {likes.data?.remaining === 0 ? "Daily like limit reached" : `${likes.data?.remaining ?? "—"} likes left`}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => void startBoost()}
-            disabled={!boost.data?.available || activateBoost.isPending}
-            aria-label={boost.data?.active ? "Boost active" : "Activate boost"}
-            data-testid="button-activate-boost"
-            className="rounded-xl border border-white/10 p-2.5 text-amber-300 disabled:opacity-40"
-          ><Zap size={17} /></button>
-          <button type="button" onClick={() => setFiltersOpen(true)} aria-label="Discovery filters" data-testid="button-discovery-filters" className="rounded-xl border border-white/10 p-2.5">
-            <SlidersHorizontal size={17} />
-          </button>
-        </div>
-      </header>
+    <main className="mx-auto w-full max-w-[680px] px-4 pb-8 sm:px-6">
+      {stickyHeader}
 
       {notice && <div role="status" data-testid="status-discover" className="mb-3 rounded-xl border border-primary/20 bg-accent px-4 py-3 text-sm text-[#ffafd1]">{notice}<button onClick={() => setNotice("")} aria-label="Dismiss message" className="float-right"><X size={16} /></button></div>}
       {likeConfirmation && <div className="fixed inset-x-0 top-[calc(env(safe-area-inset-top)+1rem)] z-[60] flex justify-center px-4" role="status" aria-live="polite" data-testid="status-discover-liked"><div className="flex items-center gap-2 rounded-full border border-primary/25 bg-[#211a27]/95 px-5 py-3 text-sm font-semibold text-white shadow-2xl backdrop-blur-xl"><Heart size={17} fill="currentColor" className="text-primary"/>{likeConfirmation}</div></div>}
 
       <article
-        className="relative mx-auto flex h-[68dvh] min-h-[420px] max-h-[700px] w-full max-w-[520px] flex-col overflow-hidden rounded-[28px] border border-white/10 bg-[#17141b] shadow-xl touch-pan-y"
+        className="relative mx-auto flex h-[62dvh] min-h-[360px] max-h-[660px] w-full max-w-[560px] flex-col overflow-hidden rounded-[30px] border border-white/10 bg-[#17141b] shadow-xl touch-pan-y"
         onTouchStart={(event) => { touchStart.current = { x: event.touches[0].clientX, y: event.touches[0].clientY }; }}
         onTouchEnd={(event) => {
           const start = touchStart.current;
@@ -283,13 +269,13 @@ export function DiscoverSwipePage() {
           </div>
         </div>
 
-        <div className="z-[3] flex shrink-0 items-center justify-center gap-4 border-t border-white/[.08] bg-[#141117]/95 px-4 py-3 backdrop-blur-xl">
-          <button type="button" onClick={(event) => { event.stopPropagation(); void swipe("pass"); }} disabled={reaction.isPending || !!likeConfirmation || !!matchResult} data-testid="button-pass-profile" aria-label="Pass" className="flex h-12 w-12 items-center justify-center rounded-full border border-white/15 bg-[#28232d] text-rose-300 disabled:opacity-40"><X size={23} /></button>
-          <button type="button" onClick={(event) => { event.stopPropagation(); void undoLastSwipe(); }} disabled={!lastPass || undo.isPending} data-testid="button-undo-pass" aria-label="Undo last pass" className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-[#28232d] text-muted-foreground disabled:opacity-40"><ArrowLeft size={17} /></button>
-          <div className="flex flex-col items-center"><button type="button" onClick={(event) => { event.stopPropagation(); void swipe("super"); }} disabled={reaction.isPending || !!likeConfirmation || !!matchResult || superLikes.data?.remaining === 0} data-testid="button-super-like" aria-label="Super like" className="flex h-12 w-12 items-center justify-center rounded-full bg-[#f3c75c] text-[#211a11] shadow-lg disabled:opacity-40"><Star size={21} /></button><span className="mt-1 text-[10px] text-muted-foreground">{superLikes.data?.remaining ?? "—"} left</span></div>
-          <button type="button" onClick={(event) => { event.stopPropagation(); void swipe("like"); }} disabled={reaction.isPending || !!likeConfirmation || !!matchResult || likes.data?.remaining === 0} data-testid="button-like-profile" aria-label="Like" className="flex h-14 w-14 items-center justify-center rounded-full bg-primary text-[#27101d] shadow-[0_8px_30px_rgba(243,78,154,.32)] disabled:opacity-40"><Heart size={25} fill="currentColor" /></button>
-        </div>
       </article>
+        <div className="flex items-center justify-center gap-5 px-4 py-5">
+          <button type="button" onClick={(event) => { event.stopPropagation(); void swipe("pass"); }} disabled={reaction.isPending || !!likeConfirmation || !!matchResult} data-testid="button-pass-profile" aria-label="Pass" className="flex h-14 w-14 items-center justify-center rounded-full bg-card text-foreground shadow-lg disabled:opacity-40"><X size={27} /></button>
+          <button type="button" onClick={(event) => { event.stopPropagation(); void undoLastSwipe(); }} disabled={!lastPass || undo.isPending} data-testid="button-undo-pass" aria-label="Undo last pass" className="flex h-10 w-10 items-center justify-center rounded-full bg-card text-muted-foreground shadow-sm disabled:opacity-40"><ArrowLeft size={18} /></button>
+          <button type="button" onClick={(event) => { event.stopPropagation(); void swipe("super"); }} disabled={reaction.isPending || !!likeConfirmation || !!matchResult || superLikes.data?.remaining === 0} data-testid="button-super-like" aria-label={`Super like, ${superLikes.data?.remaining??"unknown"} left`} className="flex h-14 w-14 items-center justify-center rounded-full bg-card text-amber-400 shadow-lg disabled:opacity-40"><Star size={29} fill="currentColor"/></button>
+          <button type="button" onClick={(event) => { event.stopPropagation(); void swipe("like"); }} disabled={reaction.isPending || !!likeConfirmation || !!matchResult || likes.data?.remaining === 0} data-testid="button-like-profile" aria-label="Like" className="flex h-16 w-16 items-center justify-center rounded-full bg-card text-primary shadow-lg disabled:opacity-40"><Heart size={31} fill="currentColor" /></button>
+        </div>
 
       {optionsOpen && <ProfileOptionsDialog onClose={() => setOptionsOpen(false)} onReport={(reason) => void reportCurrent(reason)} onBlock={() => void blockCurrent()} />}
       <FilterDialog open={filtersOpen} onClose={() => setFiltersOpen(false)} ageMin={ageMin} ageMax={ageMax} gender={gender} country={country} city={city} travelMode={Boolean(settings.data?.travelMode)} setAgeMin={setAgeMin} setAgeMax={setAgeMax} setGender={setGender} setCountry={(value) => { setCountry(value); setCity(""); }} setCity={setCity} onApply={() => { setIndex(0); setFiltersOpen(false); }} />

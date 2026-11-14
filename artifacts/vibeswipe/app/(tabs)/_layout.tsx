@@ -17,8 +17,8 @@ import { useGetNotifications } from '@workspace/api-client-react';
 function NativeTabLayout() {
   const notifications = useGetNotifications({ query: { refetchInterval: 5_000 } });
   const counts = notifications.data?.unreadCounts;
-  const matchBadge = counts ? counts.matches + counts.likes : 0;
-  const messageBadge = counts?.messages ?? 0;
+  const matchBadge = counts ? counts.matches + counts.likes + counts.messages : 0;
+  const viewBadge = counts?.views ?? 0;
   const activityBadge = counts ? counts.views + counts.likes : 0;
   return (
     <NativeTabs>
@@ -34,9 +34,9 @@ function NativeTabLayout() {
         {matchBadge > 0 ? <NativeTabs.Trigger.Badge>{matchBadge > 99 ? '99+' : String(matchBadge)}</NativeTabs.Trigger.Badge> : null}
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="views">
-        <NativeTabs.Trigger.Icon sf={{ default: 'message', selected: 'message.fill' }} />
+        <NativeTabs.Trigger.Icon sf={{ default: 'eye', selected: 'eye.fill' }} />
         <NativeTabs.Trigger.Label>Views</NativeTabs.Trigger.Label>
-        {messageBadge > 0 ? <NativeTabs.Trigger.Badge>{messageBadge > 99 ? '99+' : String(messageBadge)}</NativeTabs.Trigger.Badge> : null}
+        {viewBadge > 0 ? <NativeTabs.Trigger.Badge>{viewBadge > 99 ? '99+' : String(viewBadge)}</NativeTabs.Trigger.Badge> : null}
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="activity">
         <NativeTabs.Trigger.Icon sf={{ default: 'bell', selected: 'bell.fill' }} />
@@ -60,8 +60,8 @@ function ClassicTabLayout() {
   const isWeb = Platform.OS === 'web';
   const notifications = useGetNotifications({ query: { refetchInterval: 5_000 } });
   const counts = notifications.data?.unreadCounts;
-  const matchBadge = counts ? counts.matches + counts.likes : 0;
-  const messageBadge = counts?.messages ?? 0;
+  const matchBadge = counts ? counts.matches + counts.likes + counts.messages : 0;
+  const viewBadge = counts?.views ?? 0;
   const activityBadge = counts ? counts.views + counts.likes : 0;
 
   return (
@@ -128,8 +128,8 @@ function ClassicTabLayout() {
         options={{
           title: 'Views',
           headerShown: false,
-          tabBarBadge: messageBadge || undefined,
-          tabBarIcon: ({ color }) => <Feather name="message-circle" size={21} color={typeof color === 'string' ? color : colors.primary} />,
+          tabBarBadge: viewBadge || undefined,
+          tabBarIcon: ({ color }) => <Feather name="eye" size={21} color={typeof color === 'string' ? color : colors.primary} />,
         }}
       />
       <Tabs.Screen

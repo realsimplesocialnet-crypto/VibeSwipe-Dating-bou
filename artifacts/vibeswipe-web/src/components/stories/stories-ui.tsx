@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
+import { createPortal } from "react-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
 import { Link, useLocation } from "wouter";
@@ -105,12 +106,18 @@ function StoryAvatar({ reference, name, className = "" }: { reference: string | 
   </div>;
 }
 
-export function StoriesRow() {
+export function StoriesRow({mode="all"}:{mode?:"all"|"own"|"matches"}) {
   const feed = useGetStories({ query: { queryKey: getGetStoriesQueryKey(), refetchInterval: 30_000 } });
   const profile = useGetMyProfile();
   const [active, setActive] = useState<{ stories: StoryItem[]; name: string; photo: string | null; matchId?: string } | null>(null);
   const own = feed.data?.ownStories ?? [];
   const matches = feed.data?.matches ?? [];
+  if(mode==="own")return <div className="relative h-11 w-11 shrink-0">
+    {own.length?<button type="button" onClick={()=>setActive({stories:own,name:profile.data?.name||"Your story",photo:profile.data?.photos?.[0]??null})} aria-label="View your story" className="h-11 w-11 overflow-hidden rounded-full border-2 border-primary p-[2px]"><StoryAvatar reference={profile.data?.photos?.[0]??null} name={profile.data?.name??"You"} className="h-full w-full"/></button>:<Link href="/stories/new" aria-label="Add your story" className="block h-11 w-11 overflow-hidden rounded-full border-2 border-primary/40"><StoryAvatar reference={profile.data?.photos?.[0]??null} name={profile.data?.name??"You"} className="h-full w-full"/></Link>}
+    <Link href="/stories/new" aria-label="Add a story" className="absolute -bottom-0.5 -right-0.5 flex h-5 w-5 items-center justify-center rounded-full border-2 border-background bg-primary text-primary-foreground"><Plus size={12}/></Link>
+    <StoryViewer active={active} onClose={()=>setActive(null)}/>
+  </div>;
+  if(mode==="matches"&&!feed.isLoading&&!feed.isError&&!matches.length)return null;
   return <section className="mb-4 -mx-4 w-[calc(100%+2rem)]" aria-label="Stories" data-testid="section-stories">
     {feed.isLoading
       ? <div className="hide-scrollbar flex min-h-[100px] gap-3 overflow-x-auto px-5 pb-1" aria-label="Loading stories">
@@ -119,7 +126,7 @@ export function StoriesRow() {
       : feed.isError
         ? <div role="alert" className="flex min-h-[84px] items-center px-5"><button type="button" onClick={() => void feed.refetch()} data-testid="button-retry-stories" aria-label="Retry loading stories" className="rounded-full border border-white/15 px-4 py-2 text-xs font-semibold text-foreground">Retry stories</button></div>
         : <div className="hide-scrollbar flex min-h-[100px] gap-3 overflow-x-auto px-5 pb-1" data-testid="list-story-circles">
-          <div className="flex w-[72px] shrink-0 flex-col items-center gap-1.5 text-center">
+          {mode!=="matches"&&<div className="flex w-[72px] shrink-0 flex-col items-center gap-1.5 text-center">
             <span className="relative block h-[68px] w-[68px]">
               {own.length > 0
                 ? <button type="button" onClick={() => setActive({ stories: own, name: profile.data?.name || "Your story", photo: profile.data?.photos?.[0] ?? null })} data-testid="button-own-story" aria-label="View your story" className="group absolute inset-0 h-full w-full rounded-full">
@@ -133,7 +140,7 @@ export function StoriesRow() {
               <Link href="/stories/new" data-testid="link-create-story" aria-label="Add a story" className="absolute -bottom-0.5 -right-0.5 z-[1] flex h-6 w-6 items-center justify-center rounded-full border-2 border-[#17141b] bg-primary text-[#25131f] transition-transform hover:scale-110"><Plus size={14}/></Link>
             </span>
             <span className="w-full truncate text-[11px] font-medium text-foreground">Your story</span>
-          </div>
+          </div>}
           {matches.map((group) => <button type="button" key={group.matchId} onClick={() => setActive({ stories: group.stories, name: group.poster.name, photo: group.poster.photo, matchId: group.matchId })} data-testid={`button-story-${group.matchId}`} aria-label={`View ${group.poster.name}'s story`} className="group flex w-[72px] shrink-0 flex-col items-center gap-1.5 text-center">
             <span className={`flex h-[68px] w-[68px] items-center justify-center overflow-hidden rounded-full p-[2px] transition-transform group-hover:scale-[1.04] ${group.stories.some((story) => !story.viewed) ? "bg-gradient-to-br from-[#ef9bc7] via-[#bd8ae1] to-[#8e79d5]" : "bg-white/25"}`}><span className="h-full w-full overflow-hidden rounded-full"><StoryAvatar reference={group.poster.photo} name={group.poster.name} className="h-full w-full text-xl"/></span></span>
             <span className="w-full truncate text-[11px] font-medium text-foreground">{group.poster.name.split(/\s+/)[0].slice(0, 12)}</span>
@@ -152,7 +159,7 @@ export function MatchStoryAvatar({
   disabled = false,
   returnTo = "/matches",
 }: {
-  returnTo?: "/matches" | "/views" | "/notifications";
+  returnTo?: "/matches" | "/views" | "/messages" | "/notifications";
   matchId: string;
   profile: Pick<Profile, "name" | "photos">;
   storyGroup?: StoryGroup;
@@ -268,7 +275,7 @@ function StoryViewer({ active, onClose }: { active: ActiveStory | null; onClose:
     } catch { setNotice("Your reply didn’t send. Try again."); }
   }
   const textOnly = !current?.mediaUrl;
-  return <AnimatePresence>
+  return createPortal(<AnimatePresence>
     {active && current && <motion.div key="story-overlay" initial={{ opacity: 0, y: 28, scale: .985 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 22, scale: .985 }} transition={{ duration: .24, ease: [.22, .8, .2, 1] }} className="fixed inset-0 z-[80] flex items-center justify-center bg-[#100d14] sm:bg-[#100d14]/95 sm:p-4" data-testid="overlay-story-viewer" role="dialog" aria-modal="true" aria-label={`${active.name}'s story`}>
       <div className="relative flex h-[100dvh] w-full max-w-[510px] flex-col overflow-hidden bg-[#201a27] sm:h-[min(860px,94dvh)] sm:rounded-[30px] sm:border sm:border-white/10 sm:shadow-2xl"
         onTouchStart={(event) => { touchStart.current = { x: event.touches[0].clientX, y: event.touches[0].clientY }; }}
@@ -294,7 +301,7 @@ function StoryViewer({ active, onClose }: { active: ActiveStory | null; onClose:
         </div>
       </div>
     </motion.div>}
-  </AnimatePresence>;
+  </AnimatePresence>, document.body);
 }
 
 function timeAgo(date: string) {

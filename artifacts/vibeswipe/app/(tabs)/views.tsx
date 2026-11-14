@@ -5,6 +5,8 @@ import {
   useBlockProfile,
   useDeleteChat,
   useGetMatches,
+  useGetWhoViewedYou,
+  useGetNotifications,
   useReportProfile,
   useUnblockProfile,
   useUnmatchMatch,
@@ -12,6 +14,7 @@ import {
   type ReportInputReason,
 } from "@workspace/api-client-react";
 import { Feather } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import { useQueryClient } from "@tanstack/react-query";
 import { router } from "expo-router";
 import { useMemo, useState } from "react";
@@ -28,6 +31,7 @@ import {
   View,
 } from "react-native";
 import { ProfileAvatar } from "@/components/ProfileAvatar";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useColors } from "@/hooks/useColors";
 
 type ActionTarget = {
@@ -56,7 +60,7 @@ function timeAgo(value?: string | null): string {
   return new Date(value).toLocaleDateString();
 }
 
-export default function MessagesScreen() {
+export function MessagesScreen() {
   const colors = useColors();
   const queryClient = useQueryClient();
   const matches = useGetMatches({ query: { refetchInterval: 10_000, refetchOnMount: "always", staleTime: 0 } });
@@ -179,7 +183,7 @@ export default function MessagesScreen() {
             <View style={[styles.row, { backgroundColor: colors.card, borderColor: colors.border }]}>
               <Pressable
                 disabled={isBlocked}
-                onPress={() => router.push({ pathname: "/chat/[matchId]", params: { matchId: item.id, returnTo: "views" } } as never)}
+                onPress={() => router.push({ pathname: "/chat/[matchId]", params: { matchId: item.id, returnTo: "messages" } } as never)}
                 style={styles.rowMain}
                 testID={`conversation-${item.id}`}
                 accessibilityRole="button"
@@ -320,8 +324,62 @@ export default function MessagesScreen() {
   );
 }
 
+export default function VisitorsScreen() {
+  const colors = useColors();
+  const visitors = useGetWhoViewedYou({ query: { refetchInterval: 30_000, refetchOnMount: "always" } });
+  const notifications = useGetNotifications({ query: { refetchInterval: 30_000 } });
+  const unread = Object.values(notifications.data?.unreadCounts ?? {}).some((count) => count > 0);
+  return <LinearGradient colors={[colors.profileGradientStart, colors.profileGradientMiddle, colors.profileGradientEnd]} style={{ flex: 1 }}><SafeAreaView edges={["top"]} style={visitorStyles.screen} testID="visitors-page">
+    <View style={[visitorStyles.header, { borderBottomColor: colors.border }]}>
+      <View style={{ flexDirection: "row", gap: 8, alignItems: "center" }}><View style={[visitorStyles.logo, { backgroundColor: colors.foreground }]}><Text style={[visitorStyles.logoText, { color: colors.primary }]}>M</Text></View>
+      <Text style={{ color: colors.foreground, fontSize: 19, fontWeight: "800" }}>vibe<Text style={{ color: colors.primary }}>swipe</Text></Text></View>
+      <Pressable accessibilityRole="button" accessibilityLabel="Notifications" onPress={() => router.push("/(tabs)/activity")}><Feather name="bell" size={25} color={colors.foreground} />{unread ? <View style={{ position: "absolute", right: 0, top: 0, width: 8, height: 8, borderRadius: 4, backgroundColor: colors.primary }} /> : null}</Pressable>
+    </View>
+    <Text style={[visitorStyles.title, { color: colors.foreground }]}>Who viewed you</Text>
+    <Text style={[visitorStyles.subtitle, { color: colors.mutedForeground }]}>People who viewed your profile recently</Text>
+    <FlatList
+      data={visitors.data ?? []}
+      keyExtractor={(item) => item.profile.id}
+      contentContainerStyle={visitorStyles.list}
+      refreshing={visitors.isRefetching}
+      onRefresh={() => void visitors.refetch()}
+      ListEmptyComponent={visitors.isLoading ? <ActivityIndicator color={colors.primary} /> : visitors.isError ? <Pressable onPress={() => void visitors.refetch()} style={visitorStyles.empty}><Text style={{ color: colors.destructive, textAlign: "center" }}>Couldn’t load profile visitors. Tap to retry.</Text></Pressable> : <Text style={[visitorStyles.empty, { color: colors.mutedForeground }]}>No profile views yet.</Text>}
+      renderItem={({ item: { profile } }) => <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`Open ${profile.name}'s profile`}
+        testID={`card-visitor-${profile.id}`}
+        onPress={() => router.push({ pathname: "/profile/[profileId]", params: { profileId: profile.id } })}
+        style={[visitorStyles.card, { backgroundColor: colors.profileCard, borderColor: colors.border, shadowColor: colors.foreground }]}
+      >
+        <View style={[visitorStyles.avatarRing, { borderColor: colors.primary }]}><ProfileAvatar profile={profile} size={62} /></View>
+        <View style={visitorStyles.copy}>
+          <Text style={[visitorStyles.name, { color: colors.foreground }]}>{profile.name}{profile.age != null ? `, ${profile.age}` : ""} <Feather name="heart" size={15} color={colors.primary} /></Text>
+          <View style={{ flexDirection: "row", gap: 5, alignItems: "flex-start" }}><Feather name="map-pin" size={15} color={colors.primary} /><Text style={[visitorStyles.location, { color: colors.mutedForeground, flex: 1 }]}>{profile.city?.trim() || profile.state?.trim() || profile.country?.trim() || "Location not shared"}</Text></View>
+        </View>
+        <Feather name="chevron-right" size={21} color={colors.primary} />
+      </Pressable>}
+    />
+  </SafeAreaView></LinearGradient>;
+}
+
+const visitorStyles = StyleSheet.create({
+  screen: { flex: 1, paddingTop: 12, paddingHorizontal: 18 },
+  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", borderBottomWidth: StyleSheet.hairlineWidth, paddingBottom: 12, marginBottom: 16 },
+  logo: { width: 32, height: 32, borderRadius: 16, alignItems: "center", justifyContent: "center" },
+  logoText: { fontSize: 25, fontWeight: "900", lineHeight: 28 },
+  title: { fontSize: 34, lineHeight: 42, fontFamily: Platform.OS === "ios" ? "Georgia" : "serif", fontWeight: "700", letterSpacing: -0.7 },
+  subtitle: { fontSize: 14, lineHeight: 21, marginTop: 6, marginBottom: 22 },
+  list: { gap: 12, paddingBottom: 100 },
+  card: { flexDirection: "row", alignItems: "center", gap: 15, paddingHorizontal: 16, paddingVertical: 20, borderRadius: 24, borderWidth: StyleSheet.hairlineWidth, shadowOpacity: 0.04, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 1 },
+  avatarRing: { borderWidth: 1, padding: 3, borderRadius: 36 },
+  copy: { flex: 1, gap: 5 },
+  name: { fontWeight: "700", fontSize: 17, lineHeight: 23 },
+  location: { fontSize: 13, lineHeight: 20 },
+  empty: { textAlign: "center", paddingVertical: 32 },
+});
+
 const styles = StyleSheet.create({
-  screen: { flex: 1, paddingHorizontal: 20, paddingTop: Platform.OS === "web" ? 78 : 16, paddingBottom: 90 },
+  screen: { flex: 1, paddingHorizontal: 20, paddingTop: 16, paddingBottom: 24 },
   title: { fontSize: 34, fontWeight: "800", letterSpacing: -0.8 },
   subtitle: { fontSize: 13, marginTop: 6, marginBottom: 16 },
   loading: { marginTop: 40 },

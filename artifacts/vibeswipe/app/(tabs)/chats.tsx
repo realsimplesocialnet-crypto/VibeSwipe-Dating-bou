@@ -1,6 +1,6 @@
 import { Redirect } from "expo-router";
 
-// Legacy route: conversations now live on the Views tab.
+// Preserve old conversation links while Views shows profile visitors.
 export default function LegacyChatsRedirect() {
-  return <Redirect href="/(tabs)/views" />;
+  return <Redirect href="/messages" />;
 }

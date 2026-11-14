@@ -8,3 +8,9 @@ Keep the top logo and wordmark small and the shared header compact on all main s
 **Why:** The user wants the app to feel like Instagram, with more room for stories, cards, and titles rather than a large logo area.
 
 **How to apply:** Preserve this compact approach when changing main-tab headers.
+
+Discover has a specific newer reference: keep its story/profile header and match-story row sticky together while the profile card scrolls. Show the user's own story entry in that header instead of duplicating it in the row.
+
+**Why:** The user explicitly requested that the Discover header and stories stay fixed while the card scrolls.
+
+**How to apply:** Keep this Discover-specific arrangement without adding a second shared logo header above it.
