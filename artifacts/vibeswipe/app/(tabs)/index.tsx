@@ -25,6 +25,7 @@ import { useAuth } from "@clerk/expo";
 import { City, Country } from "country-state-city";
 import { router } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
+import { Image as PositionedImage } from "expo-image";
 import * as Haptics from "expo-haptics";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -119,7 +120,7 @@ function SwipeCard({
     ],
   };
   const poster = profileImageSource(profile.photos[0], token);
-  const heroHeight = Math.max(340, Math.min(560, height - topInset - actionBottom - 170));
+  const heroSource = typeof poster === "number" ? poster : poster && "uri" in poster ? { uri: poster.uri, headers: poster.headers } : null;
 
   return (
     <Animated.View
@@ -133,8 +134,8 @@ function SwipeCard({
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        <View style={[styles.photoHero, { height: heroHeight, backgroundColor: colors.card }]}>
-          {poster ? <Image source={poster} style={StyleSheet.absoluteFill} resizeMode="cover" /> : null}
+        <View style={[styles.photoHero, { backgroundColor: colors.card }]}>
+          {heroSource ? <PositionedImage key={profile.id} source={heroSource} style={StyleSheet.absoluteFill} contentFit="cover" contentPosition="top" cachePolicy="none" /> : null}
           <LinearGradient
             colors={[colors.discoverGradientTop, colors.discoverGradientMiddle, colors.discoverGradientBottom]}
             locations={[0.22, 0.54, 1]}
@@ -715,7 +716,7 @@ const styles = StyleSheet.create({
   deck: { flex: 1, position: "relative", minHeight: 250 },
   card: { flex: 1, borderRadius: 0, overflow: "hidden" },
   profileScroll: { flex: 1 },
-  photoHero: { width: "100%", overflow: "hidden" },
+  photoHero: { width: "100%", aspectRatio: 4 / 5, overflow: "hidden" },
   heroCopy: { position: "absolute", left: 22, right: 22, bottom: 24 },
   profileOptions: { position: "absolute", right: 18, width: 40, height: 40, borderRadius: 20, borderWidth: 1, alignItems: "center", justifyContent: "center", zIndex: 4 },
   profileDetails: { paddingHorizontal: 22, paddingTop: 20, paddingBottom: 24 },

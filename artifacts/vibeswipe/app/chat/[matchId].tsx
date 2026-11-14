@@ -40,7 +40,6 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
-  Image,
   Modal,
   Platform,
   Pressable,
@@ -57,9 +56,10 @@ import {
   useAudioRecorder,
 } from "expo-audio";
 import { ProfileAvatar } from "@/components/ProfileAvatar";
-import { ChatAudioMessage, ChatVideoViewer } from "@/components/ChatMedia";
+import { ChatAudioMessage } from "@/components/ChatMedia";
+import { ChatMediaMessage } from "@/components/ChatMediaMessage";
 import { useColors } from "@/hooks/useColors";
-import { mediaUri, profileImageSource } from "@/lib/media";
+import { mediaUri } from "@/lib/media";
 
 const THEME_OPTIONS: { key: ChatThemeType; label: string; color: string }[] = [
   { key: ChatTheme.pink, label: "Pink", color: "#e84768" },
@@ -153,7 +153,6 @@ export default function ChatScreen() {
   const [recordSeconds, setRecordSeconds] = useState(0);
   const [menuVisible, setMenuVisible] = useState(false);
   const [themeVisible, setThemeVisible] = useState(false);
-  const [viewingMedia, setViewingMedia] = useState<{ reference: string; type: "image" | "video" } | null>(null);
   const [searchVisible, setSearchVisible] = useState(false);
   const [searchText, setSearchText] = useState("");
   const [searchIndex, setSearchIndex] = useState(0);
@@ -697,19 +696,8 @@ export default function ChatScreen() {
                   </Text>
                 ) : item.mediaType === "audio" && item.mediaReference ? (
                   <ChatAudioMessage reference={item.mediaReference} duration={item.mediaDuration ?? 1} token={authToken} foreground={own ? "#ffffff" : themedForeground} />
-                ) : item.mediaType === "image" && messageMedia ? (
-                  <Pressable accessibilityLabel="Open image full size" onPress={() => setViewingMedia({ reference: item.mediaReference!, type: "image" })}>
-                    <Image
-                      source={profileImageSource(item.mediaReference, authToken)}
-                      style={styles.imagePreview}
-                      resizeMode="cover"
-                    />
-                  </Pressable>
-                ) : item.mediaType === "video" && messageMedia ? (
-                  <Pressable accessibilityLabel="Open video" onPress={() => setViewingMedia({ reference: item.mediaReference!, type: "video" })} style={styles.videoPreview}>
-                    <Feather name="play-circle" size={42} color="#ffffff" />
-                    <Text style={styles.videoPreviewText}>Play video</Text>
-                  </Pressable>
+                ) : (item.mediaType === "image" || item.mediaType === "video") && messageMedia ? (
+                  <ChatMediaMessage reference={item.mediaReference!} type={item.mediaType}/>
                 ) : (
                   <Text style={[styles.messageText, { color: own ? "#ffffff" : themedForeground }]}>{item.content}</Text>
                 )}
@@ -834,18 +822,6 @@ export default function ChatScreen() {
         </Pressable>
       </Modal>
 
-      <Modal visible={!!viewingMedia} animationType="fade" presentationStyle="fullScreen" onRequestClose={() => setViewingMedia(null)}>
-        <View style={[styles.mediaViewer, { backgroundColor: "#000000" }]}>
-          <Pressable accessibilityRole="button" accessibilityLabel="Close media" onPress={() => setViewingMedia(null)} style={[styles.mediaClose, { top: Math.max(insets.top, 16) }]}>
-            <Feather name="x" size={24} color="#ffffff" />
-          </Pressable>
-          {viewingMedia?.type === "image" ? (
-            <Image source={profileImageSource(viewingMedia.reference, null)} style={styles.fullImage} resizeMode="contain" />
-          ) : viewingMedia?.type === "video" ? (
-            <ChatVideoViewer reference={viewingMedia.reference} token={authToken} />
-          ) : null}
-        </View>
-      </Modal>
     </KeyboardAvoidingView>
   );
 }
@@ -876,9 +852,6 @@ const styles = StyleSheet.create({
   deletedBubble: { borderRadius: 15, borderStyle: "dashed", borderWidth: 1 },
   deletedText: { fontSize: 13, fontStyle: "italic" },
   messageText: { fontSize: 14, lineHeight: 20 },
-  imagePreview: { width: 216, height: 216, borderRadius: 12 },
-  videoPreview: { width: 216, height: 146, borderRadius: 12, backgroundColor: "#28242a", alignItems: "center", justifyContent: "center", gap: 7 },
-  videoPreviewText: { color: "#ffffff", fontSize: 12, fontWeight: "600" },
   messageMeta: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 3, marginHorizontal: 5 },
   ownMeta: { justifyContent: "flex-end" },
   otherMeta: { justifyContent: "flex-start" },
@@ -919,7 +892,4 @@ const styles = StyleSheet.create({
   themeOption: { width: "48%", minHeight: 58, borderWidth: 1, borderRadius: 14, flexDirection: "row", alignItems: "center", paddingHorizontal: 10, gap: 9 },
   themeSwatch: { width: 23, height: 23, borderRadius: 12, borderWidth: 1, borderColor: "rgba(0,0,0,0.12)" },
   themeName: { flex: 1, fontSize: 13, fontWeight: "600" },
-  mediaViewer: { flex: 1, alignItems: "center", justifyContent: "center" },
-  mediaClose: { position: "absolute", left: 16, zIndex: 2, width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(0,0,0,0.45)", alignItems: "center", justifyContent: "center" },
-  fullImage: { width: "100%", height: "100%" },
 });

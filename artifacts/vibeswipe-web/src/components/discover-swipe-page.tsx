@@ -194,10 +194,10 @@ export function DiscoverSwipePage() {
 
   const stickyHeader = <div className="discover-sticky sticky top-[var(--install-banner-height,0px)] z-30 -mx-4 mb-4 px-4 pb-1 pt-3 sm:-mx-6 sm:px-6" data-testid="discover-sticky-header">
     <header className="mb-3 rounded-[28px] border border-border/40 bg-card/95 px-3 py-2.5 shadow-sm">
-      <div className="flex items-center gap-2.5"><StoriesRow mode="own"/><div className="flex min-w-0 flex-1 items-center gap-1.5"><img src={`${import.meta.env.BASE_URL}icon.png`} alt="" className="h-7 w-7 rounded-full"/><span className="truncate text-[15px] font-extrabold tracking-tight">vibe<span className="text-primary">swipe</span></span></div><span className="shrink-0 text-[11px] text-muted-foreground" data-testid="text-discover-likes">{likes.data?.remaining??"—"} likes left</span><button type="button" onClick={()=>setFiltersOpen(true)} aria-label="Discovery filters" data-testid="button-discovery-filters" className="flex h-10 w-9 shrink-0 items-center justify-center text-primary"><SlidersHorizontal size={22}/></button></div>
+      <div className="flex min-h-11 items-center gap-2.5">{!profile && <StoriesRow mode="own"/>}<div className="flex min-w-0 flex-1 items-center gap-1.5"><img src={`${import.meta.env.BASE_URL}icon.png`} alt="" className="h-7 w-7 rounded-full"/><span className="truncate text-[15px] font-extrabold tracking-tight">vibe<span className="text-primary">swipe</span></span></div><span className="shrink-0 text-[11px] text-muted-foreground" data-testid="text-discover-likes">{likes.data?.remaining??"—"} likes left</span><button type="button" onClick={()=>setFiltersOpen(true)} aria-label="Discovery filters" data-testid="button-discovery-filters" className="flex h-10 w-9 shrink-0 items-center justify-center text-primary"><SlidersHorizontal size={22}/></button></div>
       <div className="mt-1.5 flex items-center justify-between pl-1"><h1 className="text-[13px] font-semibold text-foreground">Meet someone new</h1><button type="button" onClick={()=>void startBoost()} disabled={!boost.data?.available||activateBoost.isPending} aria-label={boost.data?.active?"Boost active":"Activate boost"} data-testid="button-activate-boost" className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-semibold text-primary disabled:opacity-40"><Zap size={12}/>Boost</button></div>
     </header>
-    <StoriesRow mode="matches"/>
+    <StoriesRow mode={profile ? "all" : "matches"}/>
   </div>;
   if (discover.isLoading) {
     return <div className="mx-auto max-w-xl px-4 py-12 text-center text-sm text-muted-foreground">Finding people nearby…</div>;
@@ -231,7 +231,7 @@ export function DiscoverSwipePage() {
       {likeConfirmation && <div className="fixed inset-x-0 top-[calc(env(safe-area-inset-top)+1rem)] z-[60] flex justify-center px-4" role="status" aria-live="polite" data-testid="status-discover-liked"><div className="flex items-center gap-2 rounded-full border border-primary/25 bg-[#211a27]/95 px-5 py-3 text-sm font-semibold text-white shadow-2xl backdrop-blur-xl"><Heart size={17} fill="currentColor" className="text-primary"/>{likeConfirmation}</div></div>}
 
       <article
-        className="relative mx-auto flex h-[62dvh] min-h-[360px] max-h-[660px] w-full max-w-[560px] flex-col overflow-hidden rounded-[30px] border border-white/10 bg-[#17141b] shadow-xl touch-pan-y"
+        className="relative isolate mx-auto flex aspect-[4/5] w-full max-w-[560px] flex-col overflow-hidden rounded-[30px] border border-white/10 bg-[#17141b] shadow-xl touch-pan-y"
         onTouchStart={(event) => { touchStart.current = { x: event.touches[0].clientX, y: event.touches[0].clientY }; }}
         onTouchEnd={(event) => {
           const start = touchStart.current;
@@ -261,7 +261,7 @@ export function DiscoverSwipePage() {
       >
         <div className="relative min-h-0 flex-1">
           {profile.photos?.[0]
-            ? <ProfilePhoto reference={profile.photos[0]} alt={`${profile.name}${profile.age !== null ? `, ${profile.age}` : ""}`} className="absolute inset-0 h-full w-full object-cover" />
+            ? <ProfilePhoto key={profile.id} reference={profile.photos[0]} alt={`${profile.name}${profile.age !== null ? `, ${profile.age}` : ""}`} className="absolute inset-0 h-full w-full object-cover object-top" />
             : <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_25%,#9f6076,#382b3a_55%,#1b1820)]" />}
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#130f16] via-[#17121a]/10 to-[#17121a]/10" />
           <button type="button" onClick={(event) => { event.stopPropagation(); setOptionsOpen(true); }} data-testid="button-profile-details" aria-label={`Profile options for ${profile.name}`} className="absolute right-4 top-4 z-[2] rounded-full border border-white/20 bg-black/40 p-2.5 text-white backdrop-blur"><MoreHorizontal size={19} /></button>

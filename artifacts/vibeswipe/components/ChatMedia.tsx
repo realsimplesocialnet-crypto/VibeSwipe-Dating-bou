@@ -1,6 +1,7 @@
 import { Feather } from "@expo/vector-icons";
 import { useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
 import { VideoView, useVideoPlayer } from "expo-video";
+import { useEffect } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { mediaUri } from "@/lib/media";
 
@@ -41,11 +42,17 @@ export function ChatAudioMessage({
   );
 }
 
-export function ChatVideoViewer({ reference, token }: { reference: string; token: string | null }) {
+export function ChatVideoViewer({ reference, token, onReady, onError }: { reference: string; token: string | null; onReady?: () => void; onError?: () => void }) {
   const uri = mediaUri(reference);
   const player = useVideoPlayer(uri ? { uri, headers: token ? { Authorization: `Bearer ${token}` } : undefined } : null, (instance) => {
     instance.loop = false;
   });
+  useEffect(() => {
+    const update = (status: string) => { if (status === "readyToPlay") onReady?.(); if (status === "error") onError?.(); };
+    update(player.status);
+    const subscription = player.addListener("statusChange", event => update(event.status));
+    return () => subscription.remove();
+  }, [player, onReady, onError]);
 
   return (
     <VideoView

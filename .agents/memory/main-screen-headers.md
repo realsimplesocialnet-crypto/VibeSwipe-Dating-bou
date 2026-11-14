@@ -9,8 +9,8 @@ Keep the top logo and wordmark small and the shared header compact on all main s
 
 **How to apply:** Preserve this compact approach when changing main-tab headers.
 
-Discover has a specific newer reference: keep its story/profile header and match-story row sticky together while the profile card scrolls. Show the user's own story entry in that header instead of duplicating it in the row.
+Keep Discover's branding and story row sticky together while the profile card scrolls. When a swipe card is present, put the user's own story entry in the labelled Stories row, not as a separate personal avatar beside the branding. Preserve the existing empty-state placement when there is no profile card.
 
-**Why:** The user explicitly requested that the Discover header and stories stay fixed while the card scrolls.
+**Why:** The user requested sticky branding/stories, then objected to the small personal photo floating above the main swipe photo. Grouping it into Stories preserves story access without that misplaced avatar.
 
 **How to apply:** Keep this Discover-specific arrangement without adding a second shared logo header above it.
