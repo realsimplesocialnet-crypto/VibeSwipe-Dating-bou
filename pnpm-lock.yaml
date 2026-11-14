@@ -196,6 +196,9 @@ importers:
       cors:
         specifier: ^2.8.6
         version: 2.8.6
+      country-state-city:
+        specifier: 3.2.1
+        version: 3.2.1
       drizzle-orm:
         specifier: 'catalog:'
         version: 0.45.4(@types/pg@8.23.1)(pg@8.23.1)

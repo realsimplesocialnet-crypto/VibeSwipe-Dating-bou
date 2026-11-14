@@ -4,6 +4,7 @@ import {
   getGetDiscoverProfilesQueryKey,
   getGetMatchesQueryKey,
   getGetSuperLikeStatusQueryKey,
+  getGetVibeSwipeSettingsQueryKey,
   useBlockProfile,
   useCreateReaction,
   useActivateBoost,
@@ -11,6 +12,7 @@ import {
   useGetDailyLikeStatus,
   useGetDiscoverProfiles,
   useGetSuperLikeStatus,
+  useGetVibeSwipeSettings,
   useRecordProfileView,
   useReportProfile,
   useUndoLastPass,
@@ -241,7 +243,7 @@ export default function DiscoverScreen() {
   const recordProfileView = useRecordProfileView();
   const [ageMin, setAgeMin] = useState(22);
   const [ageMax, setAgeMax] = useState(35);
-  const [gender, setGender] = useState("Everyone");
+  const [gender, setGender] = useState<string | undefined>(undefined);
   const [city, setCity] = useState("");
   const [filterOpen, setFilterOpen] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
@@ -251,10 +253,14 @@ export default function DiscoverScreen() {
   const [lastPassedProfileId, setLastPassedProfileId] = useState<string | null>(null);
   const [clock, setClock] = useState(Date.now());
   const viewedProfiles = useRef(new Set<string>());
+  const previousTravelFilter = useRef<string | null>(null);
+  const discoverySettings = useGetVibeSwipeSettings({
+    query: { queryKey: getGetVibeSwipeSettingsQueryKey() },
+  });
   const topInset = Math.max(insets.top, Platform.OS === "web" ? 67 : 12);
   const actionBottom = Platform.OS === "web" ? 100 : Math.max(insets.bottom + 62, 82);
   const discoverParams = useMemo(
-    () => ({ ageMin, ageMax, gender, ...(city.trim() ? { city: city.trim() } : {}) }),
+    () => ({ ageMin, ageMax, ...(gender ? { gender } : {}), ...(city.trim() ? { city: city.trim() } : {}) }),
     [ageMin, ageMax, city, gender],
   );
   const discover = useGetDiscoverProfiles(discoverParams, {
@@ -263,6 +269,15 @@ export default function DiscoverScreen() {
   const profiles = discover.data ?? [];
   const profile = profiles[index];
   const { player, token } = useVideoPreloadQueue(profiles, index);
+  useEffect(() => {
+    if (!discoverySettings.data) return;
+    const filter = `${discoverySettings.data.travelMode}:${discoverySettings.data.travelCity ?? ""}`;
+    if (previousTravelFilter.current !== null && previousTravelFilter.current !== filter) {
+      setIndex(0);
+      setCity("");
+    }
+    previousTravelFilter.current = filter;
+  }, [discoverySettings.data?.travelMode, discoverySettings.data?.travelCity]);
   useEffect(() => {
     const interval = setInterval(() => setClock(Date.now()), 1000);
     return () => clearInterval(interval);
@@ -535,11 +550,13 @@ export default function DiscoverScreen() {
             </View>
             <Text style={[styles.label, { color: colors.foreground }]}>Interested in</Text>
             <View style={styles.choiceRow}>
-              {["Everyone", "Woman", "Man"].map((item) => (
-                <Pressable key={item} onPress={() => setGender(item)} style={[styles.choice, { borderColor: gender === item ? colors.primary : colors.border, backgroundColor: gender === item ? colors.accent : "transparent" }]}>
-                  <Text style={{ color: gender === item ? colors.primary : colors.foreground, fontWeight: "600" }}>{item}</Text>
+              {["Your preference", "Everyone", "Woman", "Man"].map((item) => {
+                const selected = item === "Your preference" ? gender === undefined : gender === item;
+                return (
+                <Pressable key={item} onPress={() => setGender(item === "Your preference" ? undefined : item)} style={[styles.choice, { borderColor: selected ? colors.primary : colors.border, backgroundColor: selected ? colors.accent : "transparent" }]}>
+                  <Text style={{ color: selected ? colors.primary : colors.foreground, fontWeight: "600" }}>{item}</Text>
                 </Pressable>
-              ))}
+              );})}
             </View>
             <Text style={[styles.label, { color: colors.foreground }]}>City</Text>
             <TextInput value={city} onChangeText={setCity} placeholder="Any city" placeholderTextColor={colors.mutedForeground} style={[styles.filterInput, styles.cityInput, { borderColor: colors.border, color: colors.foreground }]} />

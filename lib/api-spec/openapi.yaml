@@ -249,6 +249,30 @@ paths:
                 $ref: "#/components/schemas/VibeSwipeSettings"
         "404":
           description: Target profile not found
+        "400":
+          description: Travel city must be selected from real city suggestions
+  /vibeswipe/travel-cities:
+    get:
+      operationId: searchTravelCities
+      tags: [vibeswipe]
+      summary: Search verified travel cities
+      parameters:
+        - name: search
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 2
+            maxLength: 100
+      responses:
+        "200":
+          description: Matching real cities
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TravelCityOption"
   /vibeswipe/safety/emergency-contacts:
     get:
       operationId: listEmergencyContacts
@@ -1022,6 +1046,11 @@ components:
         travelMode: { type: boolean }
         travelCity: { type: [string, "null"], maxLength: 100 }
       required: [incognito, travelMode, travelCity]
+    TravelCityOption:
+      type: object
+      properties:
+        name: { type: string, minLength: 1, maxLength: 100 }
+      required: [name]
     EmergencyContact:
       type: object
       properties:

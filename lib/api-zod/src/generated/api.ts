@@ -388,6 +388,28 @@ export const UpdateVibeSwipeSettingsResponse = zod.object({
 
 
 /**
+ * @summary Search verified travel cities
+ */
+export const searchTravelCitiesQuerySearchMin = 2;
+export const searchTravelCitiesQuerySearchMax = 100;
+
+
+
+export const SearchTravelCitiesQueryParams = zod.object({
+  "search": zod.coerce.string().min(searchTravelCitiesQuerySearchMin).max(searchTravelCitiesQuerySearchMax)
+})
+
+export const searchTravelCitiesResponseNameMax = 100;
+
+
+
+export const SearchTravelCitiesResponseItem = zod.object({
+  "name": zod.string().min(1).max(searchTravelCitiesResponseNameMax)
+})
+export const SearchTravelCitiesResponse = zod.array(SearchTravelCitiesResponseItem)
+
+
+/**
  * @summary List the signed-in user's trusted emergency contacts
  */
 export const listEmergencyContactsResponseNameMax = 80;

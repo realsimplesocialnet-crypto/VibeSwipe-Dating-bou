@@ -1,7 +1,7 @@
 import { useAuth } from "@clerk/expo";
 import { Feather } from "@expo/vector-icons";
 import { router } from "expo-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Alert,
   Pressable,
@@ -12,8 +12,11 @@ import {
   View,
 } from "react-native";
 import {
+  getGetDiscoverProfilesQueryKey,
   getGetVibeSwipeSettingsQueryKey,
   useGetVibeSwipeSettings,
+  getSearchTravelCitiesQueryKey,
+  useSearchTravelCities,
   useUpdateVibeSwipeSettings,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -30,13 +33,19 @@ export default function SettingsScreen() {
   const [incognito, setIncognito] = useState(false);
   const [travelMode, setTravelMode] = useState(false);
   const [travelCity, setTravelCity] = useState("");
+  const [selectedTravelCity, setSelectedTravelCity] = useState("");
   const [citySearch, setCitySearch] = useState("");
+  const [debouncedCitySearch, setDebouncedCitySearch] = useState("");
+  const [travelMessage, setTravelMessage] = useState("");
+  const [travelError, setTravelError] = useState("");
   const dark = scheme === "dark";
-  const citySuggestions = useMemo(() => {
-    const options = ["Lagos", "Abuja", "Port Harcourt", "Accra", "London", "Nairobi", "Cape Town", "New York", "Toronto", "Dubai"];
-    const query = citySearch.trim().toLowerCase();
-    return query ? options.filter((city) => city.toLowerCase().includes(query)).slice(0, 4) : options.slice(0, 4);
-  }, [citySearch]);
+  const citySuggestions = useSearchTravelCities({ search: debouncedCitySearch }, {
+    query: {
+      queryKey: getSearchTravelCitiesQueryKey({ search: debouncedCitySearch }),
+      enabled: travelMode && debouncedCitySearch.length >= 2,
+      retry: false,
+    },
+  });
 
   useEffect(() => {
     if (!settings.data) return;
@@ -44,39 +53,56 @@ export default function SettingsScreen() {
     setTravelMode(settings.data.travelMode);
     setTravelCity(settings.data.travelCity ?? "");
     setCitySearch(settings.data.travelCity ?? "");
+    setSelectedTravelCity(settings.data.travelCity ?? "");
   }, [settings.data]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedCitySearch(citySearch.trim()), 250);
+    return () => clearTimeout(timer);
+  }, [citySearch]);
 
   async function savePrivacySettings(next: {
     incognito: boolean;
     travelMode: boolean;
     travelCity: string | null;
-  }) {
+  }): Promise<boolean> {
     try {
-      await updateSettings.mutateAsync({
+      const saved = await updateSettings.mutateAsync({
         data: {
           incognito: next.incognito,
           travelMode: next.travelMode,
           travelCity: next.travelCity,
         },
       });
-      await queryClient.invalidateQueries({
-        queryKey: getGetVibeSwipeSettingsQueryKey(),
-      });
+      queryClient.setQueryData(getGetVibeSwipeSettingsQueryKey(), saved);
+      await queryClient.invalidateQueries({ queryKey: getGetDiscoverProfilesQueryKey() });
+      return true;
     } catch {
+      setTravelError("Travel Mode could not be saved. Check your connection and try again.");
       Alert.alert("Could not save settings", "Please try again.");
+      return false;
     }
   }
 
-  async function selectCity(value: string) {
-    const selected = value.trim();
-    if (!selected) return;
-    setTravelCity(selected);
-    setCitySearch(selected);
-    await savePrivacySettings({
-      incognito,
-      travelMode,
-      travelCity: selected,
-    });
+  function selectCity(value: string) {
+    setSelectedTravelCity(value);
+    setCitySearch(value);
+    setTravelError("");
+    setTravelMessage("");
+  }
+
+  async function saveTravelCity() {
+    if (!selectedTravelCity) {
+      setTravelError("Choose a real city from the search results before saving.");
+      return;
+    }
+    const saved = await savePrivacySettings({ incognito, travelMode: true, travelCity: selectedTravelCity });
+    if (saved) {
+      setTravelMode(true);
+      setTravelCity(selectedTravelCity);
+      setTravelMessage(`Now showing people in ${selectedTravelCity}.`);
+      setTravelError("");
+    }
   }
 
   return (
@@ -109,8 +135,9 @@ export default function SettingsScreen() {
             value={incognito}
             disabled={updateSettings.isPending || settings.isLoading}
             onValueChange={(value) => {
+              setTravelError("");
               setIncognito(value);
-              void savePrivacySettings({ incognito: value, travelMode, travelCity: travelCity || null });
+              void savePrivacySettings({ incognito: value, travelMode, travelCity: travelMode ? travelCity || null : null });
             }}
             trackColor={{ true: colors.primary }}
           />
@@ -126,40 +153,65 @@ export default function SettingsScreen() {
           </View>
           <Switch
             value={travelMode}
-            disabled={updateSettings.isPending || settings.isLoading || (!travelCity && !travelMode)}
-            onValueChange={(value) => {
-              if (value && !travelCity.trim()) {
-                Alert.alert("Choose a city first", "Search for and select a travel city to turn on Travel Mode.");
-                return;
+            disabled={updateSettings.isPending || settings.isLoading}
+            onValueChange={async (value) => {
+              setTravelMessage("");
+              setTravelError("");
+              const nextCity = value ? travelCity || null : null;
+              const saved = await savePrivacySettings({ incognito, travelMode: value, travelCity: nextCity });
+              if (saved) {
+                setTravelMode(value);
+                if (value) {
+                  setTravelMessage(nextCity ? `Now showing people in ${nextCity}.` : "Travel Mode is on. Choose a real city, then save it.");
+                } else {
+                  setTravelCity("");
+                  setSelectedTravelCity("");
+                  setCitySearch("");
+                  setTravelMessage("Travel Mode is off. Discovery is back to your registered city.");
+                }
+              } else {
+                setTravelMode(!value);
               }
-              setTravelMode(value);
-              void savePrivacySettings({ incognito, travelMode: value, travelCity: travelCity || null });
             }}
             trackColor={{ true: colors.primary }}
+            testID="toggle-travel-mode"
           />
         </View>
-        <TextInput
-          value={citySearch}
-          onChangeText={setCitySearch}
-          onSubmitEditing={() => void selectCity(citySearch)}
-          placeholder="Search any city"
-          placeholderTextColor={colors.mutedForeground}
-          returnKeyType="search"
-          style={[styles.cityInput, { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.background }]}
-        />
-        {citySearch.trim() && !citySuggestions.some((city) => city.toLowerCase() === citySearch.trim().toLowerCase()) ? (
-          <Pressable onPress={() => void selectCity(citySearch)} style={[styles.suggestion, { borderColor: colors.border }]}>
-            <Feather name="map-pin" size={15} color={colors.primary} />
-            <Text style={[styles.suggestionText, { color: colors.foreground }]}>Use “{citySearch.trim()}”</Text>
-          </Pressable>
+        {travelMode ? (
+          <>
+            <TextInput
+              value={citySearch}
+              onChangeText={(value) => { setCitySearch(value); setSelectedTravelCity(""); setTravelError(""); setTravelMessage(""); }}
+              placeholder="Search real cities"
+              placeholderTextColor={colors.mutedForeground}
+              returnKeyType="search"
+              style={[styles.cityInput, { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.background }]}
+              testID="input-travel-city"
+            />
+            {selectedTravelCity ? <Text style={[styles.selectedCity, { color: colors.primary }]}>Selected city: {selectedTravelCity}</Text> : null}
+            {debouncedCitySearch.length >= 2 && citySuggestions.isFetching ? <Text style={[styles.cityStatus, { color: colors.mutedForeground }]}>Searching real cities…</Text> : null}
+            {citySuggestions.isError ? <Text style={[styles.cityStatus, { color: colors.destructive }]}>City search is unavailable. Try again.</Text> : null}
+            {citySuggestions.data?.map((city) => (
+              <Pressable key={city.name} onPress={() => selectCity(city.name)} style={[styles.suggestion, { borderColor: colors.border }]}>
+                <Feather name="map-pin" size={15} color={selectedTravelCity === city.name ? colors.primary : colors.mutedForeground} />
+                <Text style={[styles.suggestionText, { color: colors.foreground }]}>{city.name}</Text>
+                {selectedTravelCity === city.name ? <Feather name="check" size={16} color={colors.primary} /> : null}
+              </Pressable>
+            ))}
+            {debouncedCitySearch.length >= 2 && !citySuggestions.isFetching && !citySuggestions.isError && !citySuggestions.data?.length ? <Text style={[styles.cityStatus, { color: colors.mutedForeground }]}>No real city matches that search.</Text> : null}
+            <Pressable
+              accessibilityRole="button"
+              testID="button-save-travel-city"
+              disabled={!selectedTravelCity || updateSettings.isPending}
+              onPress={() => void saveTravelCity()}
+              style={[styles.saveCityButton, { backgroundColor: colors.secondary, opacity: selectedTravelCity && !updateSettings.isPending ? 1 : 0.5 }]}
+            >
+              <Text style={[styles.saveCityText, { color: colors.foreground }]}>{updateSettings.isPending ? "Saving city…" : "Save city"}</Text>
+            </Pressable>
+          </>
         ) : null}
-        {citySuggestions.map((city) => (
-          <Pressable key={city} onPress={() => void selectCity(city)} style={[styles.suggestion, { borderColor: colors.border }]}>
-            <Feather name="map-pin" size={15} color={colors.mutedForeground} />
-            <Text style={[styles.suggestionText, { color: colors.foreground }]}>{city}</Text>
-            {travelCity.toLowerCase() === city.toLowerCase() ? <Feather name="check" size={16} color={colors.primary} /> : null}
-          </Pressable>
-        ))}
+        {travelMessage ? <Text accessibilityRole="status" style={[styles.cityStatus, { color: colors.primary }]}>{travelMessage}</Text> : null}
+        {travelError ? <Text accessibilityRole="alert" style={[styles.cityStatus, { color: colors.destructive }]}>{travelError}</Text> : null}
       </View>
       <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>SAFETY</Text>
       <Pressable
@@ -202,6 +254,10 @@ const styles = StyleSheet.create({
   cityInput: { borderWidth: 1, borderRadius: 12, height: 46, paddingHorizontal: 12, marginTop: 16, marginBottom: 8, fontSize: 14 },
   suggestion: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 11, borderBottomWidth: StyleSheet.hairlineWidth },
   suggestionText: { flex: 1, fontSize: 13, fontWeight: "500" },
+  selectedCity: { fontSize: 12, fontWeight: "600", marginBottom: 6 },
+  cityStatus: { fontSize: 12, lineHeight: 18, marginTop: 7 },
+  saveCityButton: { minHeight: 44, borderRadius: 12, alignItems: "center", justifyContent: "center", marginTop: 13 },
+  saveCityText: { fontSize: 13, fontWeight: "700" },
   sectionLabel: { fontSize: 10, letterSpacing: 1.4, fontWeight: "700", marginBottom: 9 },
   safety: { flexDirection: "row", alignItems: "flex-start", gap: 12 },
   signOut: { height: 50, borderRadius: 14, borderWidth: 1, flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 8, marginTop: 5 },

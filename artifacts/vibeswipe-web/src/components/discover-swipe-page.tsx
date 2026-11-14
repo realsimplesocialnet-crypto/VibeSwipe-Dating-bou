@@ -8,6 +8,7 @@ import {
   getGetMatchesQueryKey,
   getGetProfileMediaQueryKey,
   getGetSuperLikeStatusQueryKey,
+  getGetVibeSwipeSettingsQueryKey,
   useActivateBoost,
   useBlockProfile,
   useCreateReaction,
@@ -16,6 +17,7 @@ import {
   useGetDiscoverProfiles,
   useGetProfileMedia,
   useGetSuperLikeStatus,
+  useGetVibeSwipeSettings,
   useRecordProfileView,
   useReportProfile,
   useUndoLastPass,
@@ -40,16 +42,18 @@ export function DiscoverSwipePage() {
   const [index, setIndex] = useState(0);
   const [ageMin, setAgeMin] = useState(22);
   const [ageMax, setAgeMax] = useState(35);
-  const [gender, setGender] = useState("Everyone");
+  const [gender, setGender] = useState<string | undefined>(undefined);
   const [city, setCity] = useState("");
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [optionsOpen, setOptionsOpen] = useState(false);
   const [notice, setNotice] = useState("");
   const [lastPass, setLastPass] = useState<string | null>(null);
   const touchStart = useRef<{ x: number; y: number } | null>(null);
+  const previousTravelFilter = useRef<string | null>(null);
+  const settings = useGetVibeSwipeSettings({ query: { queryKey: getGetVibeSwipeSettingsQueryKey() } });
 
   const params = useMemo(
-    () => ({ ageMin, ageMax, gender, ...(city.trim() ? { city: city.trim() } : {}) }),
+    () => ({ ageMin, ageMax, ...(gender ? { gender } : {}), ...(city.trim() ? { city: city.trim() } : {}) }),
     [ageMin, ageMax, city, gender],
   );
   const discover = useGetDiscoverProfiles<Profile[]>(params, {
@@ -71,6 +75,16 @@ export function DiscoverSwipePage() {
   const block = useBlockProfile();
   const report = useReportProfile();
   const viewed = useRef(new Set<string>());
+
+  useEffect(() => {
+    if (!settings.data) return;
+    const filter = `${settings.data.travelMode}:${settings.data.travelCity ?? ""}`;
+    if (previousTravelFilter.current !== null && previousTravelFilter.current !== filter) {
+      setIndex(0);
+      setCity("");
+    }
+    previousTravelFilter.current = filter;
+  }, [settings.data?.travelMode, settings.data?.travelCity]);
 
   useEffect(() => {
     if (profile && !profile.isDemo && !viewed.current.has(profile.id)) {
@@ -264,13 +278,13 @@ function ProfilePhoto({ reference, alt, className }: { reference: string; alt: s
 }
 
 function FilterDialog({ open, onClose, ageMin, ageMax, gender, city, setAgeMin, setAgeMax, setGender, setCity, onApply }: {
-  open: boolean; onClose: () => void; ageMin: number; ageMax: number; gender: string; city: string;
-  setAgeMin: (value: number) => void; setAgeMax: (value: number) => void; setGender: (value: string) => void; setCity: (value: string) => void; onApply: () => void;
+  open: boolean; onClose: () => void; ageMin: number; ageMax: number; gender: string | undefined; city: string;
+  setAgeMin: (value: number) => void; setAgeMax: (value: number) => void; setGender: (value: string | undefined) => void; setCity: (value: string) => void; onApply: () => void;
 }) {
   if (!open) return null;
   return <Dialog title="Discovery filters" onClose={onClose}><div className="space-y-5">
     <div className="grid grid-cols-2 gap-3"><label className="text-xs text-muted-foreground">Age from<input type="number" min="18" value={ageMin} onChange={(event) => setAgeMin(Number(event.target.value))} className="field mt-2" /></label><label className="text-xs text-muted-foreground">Age to<input type="number" min={ageMin} value={ageMax} onChange={(event) => setAgeMax(Number(event.target.value))} className="field mt-2" /></label></div>
-    <label className="block text-xs text-muted-foreground">Interested in<select value={gender} onChange={(event) => setGender(event.target.value)} className="field mt-2"><option>Everyone</option><option>Woman</option><option>Man</option><option>Non-binary</option></select></label>
+    <label className="block text-xs text-muted-foreground">Interested in<select value={gender ?? ""} onChange={(event) => setGender(event.target.value || undefined)} className="field mt-2"><option value="">Use signup preference</option><option>Everyone</option><option>Woman</option><option>Man</option><option>Non-binary</option></select></label>
     <label className="block text-xs text-muted-foreground">City<input value={city} onChange={(event) => setCity(event.target.value)} placeholder="Any city" className="field mt-2" /></label>
     <button type="button" onClick={onApply} data-testid="button-apply-filters" className="w-full rounded-xl bg-primary py-3 font-bold text-[#27101d]">Show people</button>
   </div></Dialog>;

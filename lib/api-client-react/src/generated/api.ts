@@ -62,7 +62,9 @@ import type {
   ReactionResult,
   ReadReceiptStatus,
   ReportInput,
+  SearchTravelCitiesParams,
   SuperLikeStatus,
+  TravelCityOption,
   TypingInput,
   TypingStatus,
   UndoReactionResult,
@@ -1586,6 +1588,114 @@ export const useUpdateVibeSwipeSettings = <TError = ErrorType<void>,
       > => {
       return useMutation(getUpdateVibeSwipeSettingsMutationOptions(options), queryClient);
     }
+
+export const getSearchTravelCitiesUrl = (params: SearchTravelCitiesParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/vibeswipe/travel-cities?${stringifiedParams}` : `/api/vibeswipe/travel-cities`
+}
+
+/**
+ * @summary Search verified travel cities
+ */
+export const searchTravelCities = async (params: SearchTravelCitiesParams, options?: Parameters<typeof customFetch>[1]): Promise<TravelCityOption[]> => {
+
+  return customFetch<TravelCityOption[]>(getSearchTravelCitiesUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getSearchTravelCitiesQueryKey = (params?: SearchTravelCitiesParams,) => {
+    return [
+    `/api/vibeswipe/travel-cities`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getSearchTravelCitiesQueryOptions = <TData = Awaited<ReturnType<typeof searchTravelCities>>, TError = ErrorType<unknown>>(params: SearchTravelCitiesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof searchTravelCities>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getSearchTravelCitiesQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof searchTravelCities>>> = ({ signal }) => searchTravelCities(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof searchTravelCities>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type SearchTravelCitiesQueryResult = NonNullable<Awaited<ReturnType<typeof searchTravelCities>>>
+export type SearchTravelCitiesQueryError = ErrorType<unknown>
+
+
+export function useSearchTravelCities<TData = Awaited<ReturnType<typeof searchTravelCities>>, TError = ErrorType<unknown>>(
+ params: SearchTravelCitiesParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof searchTravelCities>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof searchTravelCities>>,
+          TError,
+          Awaited<ReturnType<typeof searchTravelCities>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useSearchTravelCities<TData = Awaited<ReturnType<typeof searchTravelCities>>, TError = ErrorType<unknown>>(
+ params: SearchTravelCitiesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof searchTravelCities>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof searchTravelCities>>,
+          TError,
+          Awaited<ReturnType<typeof searchTravelCities>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useSearchTravelCities<TData = Awaited<ReturnType<typeof searchTravelCities>>, TError = ErrorType<unknown>>(
+ params: SearchTravelCitiesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof searchTravelCities>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Search verified travel cities
+ */
+
+export function useSearchTravelCities<TData = Awaited<ReturnType<typeof searchTravelCities>>, TError = ErrorType<unknown>>(
+ params: SearchTravelCitiesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof searchTravelCities>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getSearchTravelCitiesQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export const getListEmergencyContactsUrl = () => {
 

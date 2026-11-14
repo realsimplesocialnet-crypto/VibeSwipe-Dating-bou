@@ -34,6 +34,7 @@ import CommunityGuidelinesPage from '@/pages/community-guidelines';
 import PublicLocationSharePage from '@/pages/public-location-share';
 import { InstallAction } from '@/components/install-action';
 import { InstalledWelcome } from '@/components/installed-welcome';
+import { TravelModeSettings } from '@/components/travel-mode-settings';
 import { DiscoverSwipePage } from '@/components/discover-swipe-page';
 import { SignupPasswordField } from '@/components/signup-password-field';
 import { ProfileFirstSignup } from '@/components/profile-first-signup';
@@ -395,13 +396,54 @@ const choices=(values:string[],key:string)=> <div className="grid grid-cols-2 ga
 </div>{uploading&&<p role="status" className="mt-4 text-sm text-muted-foreground">{uploadStatus}</p>}{error&&<p role="alert" data-testid="text-onboarding-error" className="mt-5 text-sm text-rose-300">{error}</p>}{step===5&&photoRetry&&!uploading&&retryPhoto.current&&<button type="button" data-testid="button-retry-photo" className="mt-3 rounded-xl border border-primary/30 px-4 py-2 text-sm font-semibold text-primary" onClick={()=>void uploadOnboardingPhoto(retryPhoto.current??undefined)}>Retry upload</button>}
  <div className="mt-8 flex items-center justify-between border-t border-white/[.08] pt-5"><button disabled={step===0||uploading||saveDraft.isPending||saveProfile.isPending} onClick={()=>setStep(s=>Math.max(0,s-1))} data-testid="button-onboarding-back" className="rounded-xl border border-white/10 px-4 py-3 text-sm font-semibold disabled:opacity-35">Back</button><button disabled={uploading||saveDraft.isPending||saveProfile.isPending||(step===5&&!data.photos.length)||(step===7&&!data.country)} onClick={()=>void next()} data-testid="button-onboarding-next" className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-bold text-[#26111b] disabled:opacity-50">{saveProfile.isPending?'Saving profile…':saveDraft.isPending?'Saving…':step===12?'Finish setup':'Continue'}<ArrowRight size={16}/></button></div></div></div></PageFrame>}
 
-function SettingsPage(){const standalone=useStandaloneMode();const health=useHealthCheck({query:{queryKey:getHealthCheckQueryKey(),refetchInterval:60000}});const q=useGetVibeSwipeSettings({query:{queryKey:getGetVibeSwipeSettingsQueryKey()}});const update=useUpdateVibeSwipeSettings();const qc=useQueryClient();const [city,setCity]=useState('');useEffect(()=>{if(q.data?.travelCity)setCity(q.data.travelCity)},[q.data?.travelCity]);async function save(data:{incognito:boolean;travelMode:boolean;travelCity:string|null}){try{await update.mutateAsync({data});await qc.invalidateQueries({queryKey:getGetVibeSwipeSettingsQueryKey()})}catch{window.alert('Settings could not be saved. Try again.')}}
-return <PageFrame><PageHeading eyebrow="Your comfort" title="Settings" description="Control how you show up and where you discover."/><div className="max-w-2xl space-y-4"><div className="flex items-center gap-2 px-1 text-xs text-muted-foreground" data-testid="status-api-health"><span className={`h-2 w-2 rounded-full ${health.data?.status==='ok'?'bg-emerald-400':health.isError?'bg-rose-400':'bg-amber-300'}`}/>{health.data?.status==='ok'?'VibeSwipe services are connected':health.isError?'Service status unavailable':'Checking service status'}</div><div className="rounded-2xl border border-white/[.08] bg-card p-5"><div className="flex items-center gap-4"><div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent text-primary"><EyeOff size={18}/></div><div className="flex-1"><h3 className="font-bold">Incognito mode</h3><p className="mt-1 text-xs text-muted-foreground">Only people you like can see your profile.</p></div><input type="checkbox" aria-label="Incognito mode" data-testid="toggle-incognito" checked={q.data?.incognito??false} disabled={update.isPending||q.isLoading} onChange={e=>void save({incognito:e.target.checked,travelMode:q.data?.travelMode??false,travelCity:q.data?.travelCity??null})} className="h-5 w-5 accent-[#f34e9a]"/></div></div>
-<div className="rounded-2xl border border-white/[.08] bg-card p-5"><div className="flex items-center gap-4"><div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent text-primary"><Navigation size={18}/></div><div className="flex-1"><h3 className="font-bold">Travel mode</h3><p className="mt-1 text-xs text-muted-foreground">Discover people in another city.</p></div><input type="checkbox" aria-label="Travel mode" data-testid="toggle-travel-mode" checked={q.data?.travelMode??false} disabled={!q.data?.travelCity||update.isPending} onChange={e=>void save({incognito:q.data?.incognito??false,travelMode:e.target.checked,travelCity:q.data?.travelCity??null})} className="h-5 w-5 accent-[#f34e9a]"/></div><div className="mt-5 flex gap-2"><input data-testid="input-travel-city" value={city} onChange={e=>setCity(e.target.value)} placeholder="Search a city" className="field"/><button onClick={()=>void save({incognito:q.data?.incognito??false,travelMode:q.data?.travelMode??false,travelCity:city.trim()||null})} data-testid="button-save-travel-city" className="shrink-0 rounded-xl bg-secondary px-4 text-sm font-bold">Save city</button></div></div>
-<div className="rounded-2xl border border-white/[.08] bg-card p-5"><div className="flex items-start gap-3"><Shield size={19} className="mt-1 text-[#8ed9b7]"/><div><h3 className="font-bold">Your safety matters</h3><p className="mt-1 text-xs leading-5 text-muted-foreground">Block and report from a profile or conversation. Blocking prevents contact. Unmatching ends a mutual connection and shared chat.</p><Link href="/matches" data-testid="link-safety-matches" className="mt-3 inline-block text-xs font-bold text-primary">Manage blocked profiles</Link></div></div></div>
-<Link href="/safety-center" data-testid="link-open-safety-center" className="flex items-center gap-3 rounded-2xl border border-white/[.08] bg-card p-5 transition-colors hover:border-primary/30"><div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent text-primary"><Shield size={18}/></div><div className="flex-1"><h3 className="font-bold">Safety Center</h3><p className="mt-1 text-xs text-muted-foreground">Safety guidance, trusted contacts, and live location sharing.</p></div><ChevronRight size={18} className="text-muted-foreground"/></Link>
-{!standalone&&<div className="rounded-2xl border border-white/[.08] bg-card p-5"><div className="flex items-center justify-between gap-4"><div><h3 className="font-bold">Install VibeSwipe</h3><p className="mt-1 text-xs text-muted-foreground">Install on your home screen and open VibeSwipe as an app.</p></div><InstallAction/></div></div>}
-{q.isError&&<Retry onRetry={()=>void q.refetch()} text="Settings could not load."/>}</div></PageFrame>}
+function SettingsPage() {
+  const standalone = useStandaloneMode();
+  const health = useHealthCheck({ query: { queryKey: getHealthCheckQueryKey(), refetchInterval: 60000 } });
+  const settings = useGetVibeSwipeSettings({ query: { queryKey: getGetVibeSwipeSettingsQueryKey() } });
+  const update = useUpdateVibeSwipeSettings();
+  const queryClient = useQueryClient();
+
+  async function saveIncognito(incognito: boolean) {
+    try {
+      const saved = await update.mutateAsync({
+        data: {
+          incognito,
+          travelMode: settings.data?.travelMode ?? false,
+          travelCity: settings.data?.travelCity ?? null,
+        },
+      });
+      queryClient.setQueryData(getGetVibeSwipeSettingsQueryKey(), saved);
+    } catch {
+      window.alert("Settings could not be saved. Try again.");
+    }
+  }
+
+  return (
+    <PageFrame>
+      <PageHeading eyebrow="Your comfort" title="Settings" description="Control how you show up and where you discover." />
+      <div className="max-w-2xl space-y-4">
+        <div className="flex items-center gap-2 px-1 text-xs text-muted-foreground" data-testid="status-api-health">
+          <span className={`h-2 w-2 rounded-full ${health.data?.status === "ok" ? "bg-emerald-400" : health.isError ? "bg-rose-400" : "bg-amber-300"}`} />
+          {health.data?.status === "ok" ? "VibeSwipe services are connected" : health.isError ? "Service status unavailable" : "Checking service status"}
+        </div>
+        <div className="rounded-2xl border border-white/[.08] bg-card p-5">
+          <div className="flex items-center gap-4">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent text-primary"><EyeOff size={18} /></div>
+            <div className="flex-1"><h3 className="font-bold">Incognito mode</h3><p className="mt-1 text-xs text-muted-foreground">Only people you like can see your profile.</p></div>
+            <input type="checkbox" aria-label="Incognito mode" data-testid="toggle-incognito" checked={settings.data?.incognito ?? false} disabled={update.isPending || settings.isLoading} onChange={(event) => void saveIncognito(event.target.checked)} className="h-5 w-5 accent-[#f34e9a]" />
+          </div>
+        </div>
+        <TravelModeSettings />
+        <div className="rounded-2xl border border-white/[.08] bg-card p-5">
+          <div className="flex items-start gap-3"><Shield size={19} className="mt-1 text-[#8ed9b7]" /><div><h3 className="font-bold">Your safety matters</h3><p className="mt-1 text-xs leading-5 text-muted-foreground">Block and report from a profile or conversation. Blocking prevents contact. Unmatching ends a mutual connection and shared chat.</p><Link href="/matches" data-testid="link-safety-matches" className="mt-3 inline-block text-xs font-bold text-primary">Manage blocked profiles</Link></div></div>
+        </div>
+        <Link href="/safety-center" data-testid="link-open-safety-center" className="flex items-center gap-3 rounded-2xl border border-white/[.08] bg-card p-5 transition-colors hover:border-primary/30"><div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent text-primary"><Shield size={18} /></div><div className="flex-1"><h3 className="font-bold">Safety Center</h3><p className="mt-1 text-xs text-muted-foreground">Safety guidance, trusted contacts, and live location sharing.</p></div><ChevronRight size={18} className="text-muted-foreground" /></Link>
+        {!standalone && <div className="rounded-2xl border border-white/[.08] bg-card p-5"><div className="flex items-center justify-between gap-4"><div><h3 className="font-bold">Install VibeSwipe</h3><p className="mt-1 text-xs text-muted-foreground">Install on your home screen and open VibeSwipe as an app.</p></div><InstallAction /></div></div>}
+        {settings.isError && <Retry onRetry={() => void settings.refetch()} text="Settings could not load." />}
+      </div>
+    </PageFrame>
+  );
+}
 
 function PublicProfile({id}:{id:string}){const q=useGetProfileById(id,{query:{queryKey:getGetProfileByIdQueryKey(id)}});const view=useRecordProfileView();const seen=useRef('');useEffect(()=>{if(q.data?.id&&seen.current!==q.data.id){seen.current=q.data.id;view.mutate({profileId:q.data.id})}},[q.data?.id]);return <PageFrame>{q.isLoading?<Busy/>:q.isError||!q.data?<Retry onRetry={()=>void q.refetch()} text="Profile unavailable."/>:<><PageHeading eyebrow="A closer look" title={`${q.data.name}, ${q.data.age}`} description={[q.data.city,q.data.country].filter(Boolean).join(', ')}/><div className="max-w-2xl rounded-3xl border border-white/10 bg-card p-6"><p className="leading-7 text-muted-foreground">{q.data.bio}</p><div className="mt-5 flex flex-wrap gap-2">{q.data.interests.map(i=><span key={i} className="rounded-full bg-accent px-3 py-2 text-xs text-[#ffafd1]">{i}</span>)}</div><Link href="/discover" data-testid="link-public-profile-discover" className="mt-6 inline-flex rounded-xl bg-primary px-4 py-3 text-sm font-bold text-[#26111b]">Discover profiles</Link></div></>}</PageFrame>}
 

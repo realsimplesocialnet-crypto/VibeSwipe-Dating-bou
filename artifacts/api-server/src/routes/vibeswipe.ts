@@ -8,6 +8,8 @@ import {
   GetIcebreakersResponse,
   GetSuperLikeStatusResponse,
   GetVibeSwipeSettingsResponse,
+  SearchTravelCitiesQueryParams,
+  SearchTravelCitiesResponse,
   ClearChatParams,
   ClearChatResponse,
   DeleteChatParams,
@@ -111,6 +113,7 @@ import {
   messagesAfterCursor,
 } from "../lib/chatEventStream";
 import { buildProfileValues } from "../lib/profileSetup";
+import { findRealTravelCity, resolveDiscoveryCity, searchRealTravelCities } from "../lib/travelCities";
 
 const router: IRouter = Router();
 const objectStorage = new ObjectStorageService();
@@ -651,10 +654,25 @@ router.get("/vibeswipe/settings", async (req, res): Promise<void> => {
   res.json(GetVibeSwipeSettingsResponse.parse(profile));
 });
 
+router.get("/vibeswipe/travel-cities", async (req, res): Promise<void> => {
+  const query = SearchTravelCitiesQueryParams.safeParse(req.query);
+  if (!query.success) {
+    res.status(400).json({ error: query.error.message });
+    return;
+  }
+  res.json(SearchTravelCitiesResponse.parse(searchRealTravelCities(query.data.search)));
+});
+
 router.put("/vibeswipe/settings", async (req, res): Promise<void> => {
   const body = UpdateVibeSwipeSettingsBody.safeParse(req.body);
   if (!body.success) {
     res.status(400).json({ error: body.error.message });
+    return;
+  }
+  const submittedCity = body.data.travelCity?.trim();
+  const travelCity = submittedCity ? findRealTravelCity(submittedCity) : null;
+  if (submittedCity && !travelCity) {
+    res.status(400).json({ error: "Choose a real city from the suggestions." });
     return;
   }
   const [profile] = await db
@@ -662,7 +680,7 @@ router.put("/vibeswipe/settings", async (req, res): Promise<void> => {
     .set({
       incognito: body.data.incognito,
       travelMode: body.data.travelMode,
-      travelCity: body.data.travelCity?.trim() || null,
+      travelCity: body.data.travelMode ? travelCity : null,
       updatedAt: new Date(),
     })
     .where(eq(profilesTable.id, currentUserId(req)))
@@ -863,9 +881,12 @@ router.get("/vibeswipe/discover", async (req, res): Promise<void> => {
   const gender = params.data.gender ?? ownProfile.preferences.gender;
   const conditions = [gte(profilesTable.age, ageMin), lte(profilesTable.age, ageMax)];
   if (gender && gender !== "Everyone") conditions.push(eq(profilesTable.gender, gender));
-  const discoveryCity = ownProfile.travelMode
-    ? ownProfile.travelCity
-    : params.data.city;
+  const discoveryCity = resolveDiscoveryCity({
+    travelMode: ownProfile.travelMode,
+    travelCity: ownProfile.travelCity,
+    requestedCity: params.data.city,
+    homeCity: ownProfile.city,
+  });
   if (discoveryCity?.trim()) {
     conditions.push(eq(profilesTable.city, discoveryCity.trim()));
   }

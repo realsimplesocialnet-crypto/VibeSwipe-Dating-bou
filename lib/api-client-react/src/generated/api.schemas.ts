@@ -209,6 +209,14 @@ export interface VibeSwipeSettings {
   travelCity: string | null;
 }
 
+export interface TravelCityOption {
+  /**
+     * @minLength 1
+     * @maxLength 100
+     */
+  name: string;
+}
+
 export interface EmergencyContact {
   id: string;
   /**
@@ -583,6 +591,14 @@ ageMin?: number;
 ageMax?: number;
 gender?: string;
 city?: string;
+};
+
+export type SearchTravelCitiesParams = {
+/**
+ * @minLength 2
+ * @maxLength 100
+ */
+search: string;
 };
 
 export type GetPublicLocationShareParams = {
