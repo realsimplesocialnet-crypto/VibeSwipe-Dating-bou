@@ -78,6 +78,7 @@ import {
   reactionsTable,
   reportsTable,
   storiesTable,
+  vibeSwipeNotificationsTable,
   vibeSwipeReadReceiptsTable,
 } from "@workspace/db";
 import {
@@ -111,6 +112,7 @@ import {
 } from "../lib/profileVideoTranscoder";
 import { requireAuth } from "../middlewares/auth";
 import { createVibeSwipeNotification } from "../lib/vibeswipeNotifications";
+import { planReactionEffects } from "../lib/vibeswipeReaction";
 import {
   canSubscribeToChat,
   CHAT_EVENT_CHANNEL,
@@ -420,63 +422,6 @@ async function getDailyLikeStatus(userId: string) {
   };
 }
 
-async function reserveDailyLike(
-  userId: string,
-): Promise<{ allowed: boolean; status: Awaited<ReturnType<typeof getDailyLikeStatus>> }> {
-  return db.transaction(async (tx) => {
-    await tx
-      .insert(dailyLikeUsageTable)
-      .values({ userId, likeCount: 0 })
-      .onConflictDoNothing();
-    const [usage] = await tx
-      .select()
-      .from(dailyLikeUsageTable)
-      .where(eq(dailyLikeUsageTable.userId, userId))
-      .for("update")
-      .limit(1);
-    if (!usage) throw new Error("Like allowance row could not be loaded.");
-
-    const now = new Date();
-    let likeCount = usage.likeCount;
-    let resetAt = usage.resetAt;
-    if (resetAt && resetAt <= now) {
-      likeCount = 0;
-      resetAt = null;
-    }
-    if (likeCount >= DAILY_LIKE_LIMIT) {
-      resetAt ??= new Date(now.getTime() + DAILY_LIKE_RESET_MS);
-      await tx
-        .update(dailyLikeUsageTable)
-        .set({ likeCount, resetAt })
-        .where(eq(dailyLikeUsageTable.userId, userId));
-      return {
-        allowed: false,
-        status: {
-          limit: DAILY_LIKE_LIMIT,
-          remaining: 0,
-          resetAt,
-        },
-      };
-    }
-
-    likeCount += 1;
-    if (likeCount >= DAILY_LIKE_LIMIT) {
-      resetAt = new Date(now.getTime() + DAILY_LIKE_RESET_MS);
-    }
-    await tx
-      .update(dailyLikeUsageTable)
-      .set({ likeCount, resetAt })
-      .where(eq(dailyLikeUsageTable.userId, userId));
-    return {
-      allowed: true,
-      status: {
-        limit: DAILY_LIKE_LIMIT,
-        remaining: DAILY_LIKE_LIMIT - likeCount,
-        resetAt,
-      },
-    };
-  });
-}
 router.get("/vibeswipe/onboarding/draft", async (req, res): Promise<void> => {
   const [draft] = await db
     .select({
@@ -1170,8 +1115,20 @@ router.post("/vibeswipe/reactions", async (req, res): Promise<void> => {
     res.status(403).json({ error: "This profile is unavailable." });
     return;
   }
-  if (type === "like") {
-    const [existingReaction] = await db
+  const result = await db.transaction(async (tx) => {
+    // Lock both profiles in a stable order. This prevents two simultaneous
+    // cross-likes from missing each other and failing to create a match.
+    const lockedProfiles = await tx
+      .select({ id: profilesTable.id })
+      .from(profilesTable)
+      .where(inArray(profilesTable.id, [userId, toUserId]))
+      .orderBy(profilesTable.id)
+      .for("update");
+    if (lockedProfiles.length !== 2) {
+      return { status: "profile-not-found" as const };
+    }
+
+    const [existingReaction] = await tx
       .select({ type: reactionsTable.type })
       .from(reactionsTable)
       .where(
@@ -1181,126 +1138,186 @@ router.post("/vibeswipe/reactions", async (req, res): Promise<void> => {
         ),
       )
       .limit(1);
-    if (existingReaction?.type !== "like") {
-      const allowance = await reserveDailyLike(userId);
-      if (!allowance.allowed) {
-        res.status(429).json({
-          error: "You’ve reached your daily like limit. Come back in 24 hours.",
-          resetAt: allowance.status.resetAt,
-        });
-        return;
+
+    if (type === "like" && existingReaction?.type !== "like") {
+      await tx
+        .insert(dailyLikeUsageTable)
+        .values({ userId, likeCount: 0 })
+        .onConflictDoNothing();
+      const [usage] = await tx
+        .select()
+        .from(dailyLikeUsageTable)
+        .where(eq(dailyLikeUsageTable.userId, userId))
+        .for("update")
+        .limit(1);
+      if (!usage) throw new Error("Like allowance row could not be loaded.");
+
+      const now = new Date();
+      let likeCount = usage.likeCount;
+      let resetAt = usage.resetAt;
+      if (resetAt && resetAt <= now) {
+        likeCount = 0;
+        resetAt = null;
+      }
+      if (likeCount >= DAILY_LIKE_LIMIT) {
+        resetAt ??= new Date(now.getTime() + DAILY_LIKE_RESET_MS);
+        await tx
+          .update(dailyLikeUsageTable)
+          .set({ likeCount, resetAt })
+          .where(eq(dailyLikeUsageTable.userId, userId));
+        return { status: "like-limit" as const, resetAt };
+      }
+
+      likeCount += 1;
+      if (likeCount >= DAILY_LIKE_LIMIT) {
+        resetAt = new Date(now.getTime() + DAILY_LIKE_RESET_MS);
+      }
+      await tx
+        .update(dailyLikeUsageTable)
+        .set({ likeCount, resetAt })
+        .where(eq(dailyLikeUsageTable.userId, userId));
+    }
+
+    if (type === "super") {
+      const [recentSuperLike] = await tx
+        .select({ createdAt: reactionsTable.createdAt })
+        .from(reactionsTable)
+        .where(
+          and(
+            eq(reactionsTable.fromUserId, userId),
+            eq(reactionsTable.type, "super"),
+            gt(
+              reactionsTable.createdAt,
+              new Date(Date.now() - 24 * 60 * 60 * 1000),
+            ),
+          ),
+        )
+        .orderBy(desc(reactionsTable.createdAt))
+        .limit(1);
+      if (recentSuperLike) {
+        return { status: "super-cooldown" as const };
       }
     }
-  }
-  if (type === "super") {
-    const [recentSuperLike] = await db
-      .select({ createdAt: reactionsTable.createdAt })
-      .from(reactionsTable)
-      .where(
-        and(
-          eq(reactionsTable.fromUserId, userId),
-          eq(reactionsTable.type, "super"),
-          gt(reactionsTable.createdAt, new Date(Date.now() - 24 * 60 * 60 * 1000)),
-        ),
-      )
-      .orderBy(desc(reactionsTable.createdAt))
-      .limit(1);
-    if (recentSuperLike) {
-      res.status(429).json({ error: "Your next Super Like is not ready yet." });
-      return;
-    }
-  }
-  await db
-    .insert(reactionsTable)
-    .values({ fromUserId: userId, toUserId, type })
-    .onConflictDoUpdate({
-      target: [reactionsTable.fromUserId, reactionsTable.toUserId],
-      set: { type, createdAt: new Date() },
-    });
 
-  let mutual = false;
-  if (type !== "pass") {
-    if (target.isDemo && process.env.NODE_ENV !== "production") {
-      mutual = true;
-    } else {
-      const [reverseReaction] = await db
-        .select({ id: reactionsTable.id })
+    await tx
+      .insert(reactionsTable)
+      .values({ fromUserId: userId, toUserId, type })
+      .onConflictDoUpdate({
+        target: [reactionsTable.fromUserId, reactionsTable.toUserId],
+        set: { type, createdAt: new Date() },
+      });
+
+    let reverseType: string | null = null;
+    if (type !== "pass" && !(target.isDemo && process.env.NODE_ENV !== "production")) {
+      const [reverseReaction] = await tx
+        .select({ type: reactionsTable.type })
         .from(reactionsTable)
         .where(
           and(
             eq(reactionsTable.fromUserId, toUserId),
             eq(reactionsTable.toUserId, userId),
-            inArray(reactionsTable.type, ["like", "super"]),
           ),
         )
         .limit(1);
-      mutual = !!reverseReaction;
+      reverseType = reverseReaction?.type ?? null;
     }
-  }
 
-  let matchId: string | null = null;
-  let createdMatch = false;
-  if (mutual) {
-    const [match] = await db
-      .insert(matchesTable)
-      .values({
-        userAId: userId < toUserId ? userId : toUserId,
-        userBId: userId < toUserId ? toUserId : userId,
-        updatedAt: new Date(),
-      })
-      .onConflictDoNothing()
-      .returning({ id: matchesTable.id });
-    if (match) {
-      matchId = match.id;
-      createdMatch = true;
-    } else {
-      const [existing] = await db
-        .select({ id: matchesTable.id })
-        .from(matchesTable)
-        .where(
-          and(
-            eq(matchesTable.userAId, userId < toUserId ? userId : toUserId),
-            eq(matchesTable.userBId, userId < toUserId ? toUserId : userId),
-          ),
-        )
-        .limit(1);
-      matchId = existing?.id ?? null;
+    const mutual =
+      type !== "pass" &&
+      ((target.isDemo && process.env.NODE_ENV !== "production") ||
+        reverseType === "like" ||
+        reverseType === "super");
+    const userAId = userId < toUserId ? userId : toUserId;
+    const userBId = userId < toUserId ? toUserId : userId;
+    const [existingMatch] = mutual
+      ? await tx
+          .select({ id: matchesTable.id })
+          .from(matchesTable)
+          .where(
+            and(
+              eq(matchesTable.userAId, userAId),
+              eq(matchesTable.userBId, userBId),
+            ),
+          )
+          .limit(1)
+      : [];
+    const effects = planReactionEffects({
+      fromUserId: userId,
+      toUserId,
+      type,
+      previousType: existingReaction?.type ?? null,
+      reverseType,
+      existingMatchId: existingMatch?.id ?? null,
+      targetIsDemo: target.isDemo,
+      isProduction: process.env.NODE_ENV === "production",
+    });
+
+    let matchId = existingMatch?.id ?? null;
+    let createdMatch = false;
+    if (effects.createMatch) {
+      const [match] = await tx
+        .insert(matchesTable)
+        .values({ userAId, userBId, updatedAt: new Date() })
+        .onConflictDoNothing()
+        .returning({ id: matchesTable.id });
+      if (match) {
+        matchId = match.id;
+        createdMatch = true;
+      } else {
+        const [concurrentMatch] = await tx
+          .select({ id: matchesTable.id })
+          .from(matchesTable)
+          .where(
+            and(
+              eq(matchesTable.userAId, userAId),
+              eq(matchesTable.userBId, userBId),
+            ),
+          )
+          .limit(1);
+        matchId = concurrentMatch?.id ?? null;
+      }
     }
-  }
-  if (createdMatch && matchId && !target.isDemo) {
-    const notifications = [
-      createVibeSwipeNotification({
-        recipientId: userId,
-        actorId: toUserId,
-        type: "new_match",
-        matchId,
-      }),
-      createVibeSwipeNotification({
-        recipientId: toUserId,
-        actorId: userId,
-        type: "new_match",
-        matchId,
-      }),
-    ];
-    await Promise.all(
-      notifications.map((notification) =>
-        notification.catch((error) =>
-          req.log.error({ err: error }, "Could not save match notification"),
-        ),
-      ),
+
+    const notifications = effects.notifications.filter(
+      (notification) =>
+        notification.type !== "new_match" || (createdMatch && matchId),
     );
-  } else if (type !== "pass" && !mutual && !target.isDemo) {
-    try {
-      await createVibeSwipeNotification({
-        recipientId: toUserId,
-        actorId: userId,
-        type: "new_like",
-      });
-    } catch (error) {
-      req.log.error({ err: error }, "Could not save like notification");
+    if (notifications.length) {
+      await tx.insert(vibeSwipeNotificationsTable).values(
+        notifications.map((notification) => ({
+          recipientId: notification.recipientId,
+          actorId: notification.actorId,
+          type: notification.type,
+          matchId: notification.type === "new_match" ? matchId : null,
+          messageId: null,
+        })),
+      );
     }
+
+    return { status: "ok" as const, matched: effects.matched, matchId };
+  });
+
+  if (result.status === "profile-not-found") {
+    res.status(404).json({ error: "Profile not found." });
+    return;
   }
-  res.json(CreateReactionResponse.parse({ matched: mutual, matchId }));
+  if (result.status === "like-limit") {
+    res.status(429).json({
+      error: "You’ve reached your daily like limit. Come back in 24 hours.",
+      resetAt: result.resetAt,
+    });
+    return;
+  }
+  if (result.status === "super-cooldown") {
+    res.status(429).json({ error: "Your next Super Like is not ready yet." });
+    return;
+  }
+  res.json(
+    CreateReactionResponse.parse({
+      matched: result.matched,
+      matchId: result.matchId,
+    }),
+  );
 });
 
 router.get("/vibeswipe/matches", async (req, res): Promise<void> => {

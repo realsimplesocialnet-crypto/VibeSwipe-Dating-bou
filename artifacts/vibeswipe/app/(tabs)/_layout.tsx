@@ -14,7 +14,7 @@ import { useGetNotifications } from '@workspace/api-client-react';
 // is a system-level appearance provided by iOS and cannot be overridden.
 // Custom brand colors are applied only on the ClassicTabLayout path (older iOS / Android / web).
 function NativeTabLayout() {
-  const notifications = useGetNotifications({ query: { refetchInterval: 15_000 } });
+  const notifications = useGetNotifications({ query: { refetchInterval: 5_000 } });
   const counts = notifications.data?.unreadCounts;
   const matchBadge = counts ? counts.matches + counts.likes : 0;
   const messageBadge = counts?.messages ?? 0;
@@ -56,7 +56,7 @@ function ClassicTabLayout() {
   const isDark = colorScheme === 'dark';
   const isIOS = Platform.OS === 'ios';
   const isWeb = Platform.OS === 'web';
-  const notifications = useGetNotifications({ query: { refetchInterval: 15_000 } });
+  const notifications = useGetNotifications({ query: { refetchInterval: 5_000 } });
   const counts = notifications.data?.unreadCounts;
   const matchBadge = counts ? counts.matches + counts.likes : 0;
   const messageBadge = counts?.messages ?? 0;

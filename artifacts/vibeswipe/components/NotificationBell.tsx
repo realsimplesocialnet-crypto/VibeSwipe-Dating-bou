@@ -5,7 +5,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 
 export function NotificationBell({ color }: { color: string }) {
   const notifications = useGetNotifications({
-    query: { refetchInterval: 15_000 },
+    query: { refetchInterval: 5_000 },
   });
   const counts = notifications.data?.unreadCounts;
   const unread = counts

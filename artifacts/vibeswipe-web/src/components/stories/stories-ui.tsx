@@ -111,30 +111,34 @@ export function StoriesRow() {
   const [active, setActive] = useState<{ stories: StoryItem[]; name: string; photo: string | null; matchId?: string } | null>(null);
   const own = feed.data?.ownStories ?? [];
   const matches = feed.data?.matches ?? [];
-  return <section className="mb-6 rounded-[24px] border border-white/[.08] bg-[linear-gradient(115deg,rgba(111,75,132,.18),rgba(40,31,48,.55)_55%,rgba(30,26,36,.7))] px-4 py-4 sm:px-5" aria-label="Stories" data-testid="section-stories">
-    <div className="mb-3 flex items-end justify-between gap-3">
-      <div><div className="text-[10px] font-bold uppercase tracking-[.2em] text-[#d2a8ef]">A little more personal</div><h2 className="brand mt-1 text-lg font-bold">Stories <span className="font-sans text-xs font-medium tracking-normal text-muted-foreground">· just for your matches</span></h2></div>
-      <Link href="/stories/new" data-testid="link-create-story" className="inline-flex min-h-10 items-center gap-1.5 rounded-full border border-primary/30 bg-primary/[.09] px-3.5 text-xs font-bold text-[#ffc4e0] transition-colors hover:bg-primary/[.16]"><Plus size={15}/>Add a story</Link>
-    </div>
-    {feed.isLoading ? <div className="flex gap-4 py-1" aria-label="Loading stories">{[0, 1, 2, 3].map((item) => <div key={item} className="h-[68px] w-[58px] animate-pulse rounded-full bg-white/[.07]" />)}</div>
-      : feed.isError ? <div role="alert" className="flex items-center justify-between gap-3 py-2 text-xs text-muted-foreground"><span>Stories couldn’t load. Your discovery is still here.</span><button type="button" onClick={() => void feed.refetch()} data-testid="button-retry-stories" className="rounded-lg border border-white/10 px-3 py-2 font-semibold text-foreground">Retry</button></div>
-      : <div className="hide-scrollbar flex min-h-[86px] gap-4 overflow-x-auto pb-1" data-testid="list-story-circles">
-        <Link href="/stories/new" data-testid="button-own-story" aria-label="Add a story" className="group flex w-[60px] shrink-0 flex-col items-center gap-1.5 text-center">
-          <span className="relative flex h-[66px] w-[66px] items-center justify-center rounded-full border border-dashed border-[#ab8bc4]/60 bg-[#614777]/20 p-[2px]">
-            <span className="flex h-full w-full items-center justify-center overflow-hidden rounded-full bg-[#27212e]"><StoryAvatar reference={profile.data?.photos?.[0] ?? null} name={profile.data?.name ?? "You"} className="h-full w-full text-xl"/></span>
-            <span className="absolute -bottom-0.5 -right-0.5 flex h-5 w-5 items-center justify-center rounded-full border-2 border-[#211d25] bg-primary text-[#25131f]"><Plus size={12}/></span>
-          </span><span className="w-full truncate text-[11px] font-semibold text-foreground">Add story</span>
-        </Link>
-        {own.length > 0 && <button type="button" onClick={() => setActive({ stories: own, name: profile.data?.name || "Your story", photo: profile.data?.photos?.[0] ?? null })} data-testid="button-view-own-story" aria-label="View your story" className="group flex w-[60px] shrink-0 flex-col items-center gap-1.5 text-center">
-          <span className="flex h-[66px] w-[66px] items-center justify-center rounded-full bg-gradient-to-br from-[#f6a8d1] via-[#b185dc] to-[#7d69bd] p-[2px]"><span className="h-full w-full overflow-hidden rounded-full border-[2px] border-[#211d25]"><StoryAvatar reference={profile.data?.photos?.[0] ?? null} name={profile.data?.name ?? "You"} className="h-full w-full text-xl"/></span></span>
-          <span className="w-full truncate text-[11px] font-semibold text-foreground">You</span>
-        </button>}
-        {matches.map((group) => <button type="button" key={group.matchId} onClick={() => setActive({ stories: group.stories, name: group.poster.name, photo: group.poster.photo, matchId: group.matchId })} data-testid={`button-story-${group.matchId}`} aria-label={`View ${group.poster.name}'s story`} className="group flex w-[60px] shrink-0 flex-col items-center gap-1.5 text-center">
-          <span className={`flex h-[66px] w-[66px] items-center justify-center rounded-full p-[2px] transition-transform group-hover:scale-[1.04] ${group.stories.some((story) => !story.viewed) ? "bg-gradient-to-br from-[#ef9bc7] via-[#bd8ae1] to-[#8e79d5]" : "bg-white/20"}`}><span className="h-full w-full overflow-hidden rounded-full border-[2px] border-[#211d25]"><StoryAvatar reference={group.poster.photo} name={group.poster.name} className="h-full w-full text-xl"/></span></span>
-          <span className="w-full truncate text-[11px] font-semibold text-foreground">{group.poster.name}</span>
-        </button>)}
-        {!matches.length && !own.length && <div className="flex min-h-[68px] items-center gap-3 pl-1 text-xs text-muted-foreground" data-testid="empty-stories"><span className="flex h-9 w-9 items-center justify-center rounded-full bg-white/[.045] text-[#c9a9df]"><ShieldCheck size={16}/></span><span>Only your active stories and mutual matches appear here.</span></div>}
-      </div>}
+  return <section className="mb-4 -mx-4 w-[calc(100%+2rem)]" aria-label="Stories" data-testid="section-stories">
+    {feed.isLoading
+      ? <div className="hide-scrollbar flex min-h-[100px] gap-3 overflow-x-auto px-5 pb-1" aria-label="Loading stories">
+          {[0, 1, 2, 3].map((item) => <div key={item} className="flex w-[72px] shrink-0 flex-col items-center gap-2"><div className="h-[68px] w-[68px] animate-pulse rounded-full bg-white/[.08]" /><div className="h-2.5 w-12 animate-pulse rounded-full bg-white/[.07]" /></div>)}
+        </div>
+      : feed.isError
+        ? <div role="alert" className="flex min-h-[84px] items-center px-5"><button type="button" onClick={() => void feed.refetch()} data-testid="button-retry-stories" aria-label="Retry loading stories" className="rounded-full border border-white/15 px-4 py-2 text-xs font-semibold text-foreground">Retry stories</button></div>
+        : <div className="hide-scrollbar flex min-h-[100px] gap-3 overflow-x-auto px-5 pb-1" data-testid="list-story-circles">
+          <div className="flex w-[72px] shrink-0 flex-col items-center gap-1.5 text-center">
+            <span className="relative block h-[68px] w-[68px]">
+              {own.length > 0
+                ? <button type="button" onClick={() => setActive({ stories: own, name: profile.data?.name || "Your story", photo: profile.data?.photos?.[0] ?? null })} data-testid="button-own-story" aria-label="View your story" className="group absolute inset-0 h-full w-full rounded-full">
+                    <span className={`flex h-full w-full items-center justify-center rounded-full p-[2.5px] transition-transform group-hover:scale-[1.04] ${own.some((story) => !story.viewed) ? "bg-gradient-to-br from-[#ef9bc7] via-[#bd8ae1] to-[#8e79d5]" : "bg-white/25"}`}>
+                      <span className="h-full w-full overflow-hidden rounded-full border-[2px] border-[#17141b]"><StoryAvatar reference={profile.data?.photos?.[0] ?? null} name={profile.data?.name ?? "You"} className="h-full w-full text-xl"/></span>
+                    </span>
+                  </button>
+                : <Link href="/stories/new" data-testid="button-own-story" aria-label="Add your story" className="group absolute inset-0 rounded-full border border-white/15 p-[2px] transition-transform hover:scale-[1.04]">
+                    <span className="block h-full w-full overflow-hidden rounded-full"><StoryAvatar reference={profile.data?.photos?.[0] ?? null} name={profile.data?.name ?? "You"} className="h-full w-full text-xl"/></span>
+                  </Link>}
+              <Link href="/stories/new" data-testid="link-create-story" aria-label="Add a story" className="absolute -bottom-0.5 -right-0.5 z-[1] flex h-6 w-6 items-center justify-center rounded-full border-2 border-[#17141b] bg-primary text-[#25131f] transition-transform hover:scale-110"><Plus size={14}/></Link>
+            </span>
+            <span className="w-full truncate text-[11px] font-medium text-foreground">Your story</span>
+          </div>
+          {matches.map((group) => <button type="button" key={group.matchId} onClick={() => setActive({ stories: group.stories, name: group.poster.name, photo: group.poster.photo, matchId: group.matchId })} data-testid={`button-story-${group.matchId}`} aria-label={`View ${group.poster.name}'s story`} className="group flex w-[72px] shrink-0 flex-col items-center gap-1.5 text-center">
+            <span className={`flex h-[68px] w-[68px] items-center justify-center rounded-full p-[2.5px] transition-transform group-hover:scale-[1.04] ${group.stories.some((story) => !story.viewed) ? "bg-gradient-to-br from-[#ef9bc7] via-[#bd8ae1] to-[#8e79d5]" : "bg-white/25"}`}><span className="h-full w-full overflow-hidden rounded-full border-[2px] border-[#17141b]"><StoryAvatar reference={group.poster.photo} name={group.poster.name} className="h-full w-full text-xl"/></span></span>
+            <span className="w-full truncate text-[11px] font-medium text-foreground">{group.poster.name.split(/\s+/)[0].slice(0, 12)}</span>
+          </button>)}
+        </div>}
     <StoryViewer active={active} onClose={() => setActive(null)} />
   </section>;
 }

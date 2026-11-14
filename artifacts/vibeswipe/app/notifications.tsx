@@ -14,7 +14,7 @@ import { useColors } from "@/hooks/useColors";
 export default function NotificationsScreen() {
   const colors = useColors();
   const queryClient = useQueryClient();
-  const notifications = useGetNotifications({ query: { refetchInterval: 15_000 } });
+  const notifications = useGetNotifications({ query: { refetchInterval: 5_000 } });
   const markRead = useMarkNotificationRead();
 
   async function openNotification(item: Notification) {
