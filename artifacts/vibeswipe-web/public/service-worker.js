@@ -1,5 +1,5 @@
 /* Static shell only. Never cache API, Clerk, private messages, or uploaded media. */
-const CACHE_NAME = 'myage-shell-v7';
+const CACHE_NAME = 'myage-shell-v8';
 const scopeUrl = new URL(self.registration.scope);
 const shell = [
   scopeUrl.href,
@@ -36,13 +36,17 @@ self.addEventListener('push', (event) => {
   }
   const title = typeof payload.title === 'string' ? payload.title : 'New message';
   const data = payload.data && typeof payload.data === 'object' ? payload.data : {};
-  event.waitUntil(self.registration.showNotification(title, {
+  event.waitUntil(Promise.all([self.registration.showNotification(title, {
     body: typeof payload.body === 'string' ? payload.body : 'You have a new message.',
     icon: new URL('myage-icon-192-v7.png', scopeUrl).href,
     badge: new URL('myage-icon-192-v7.png', scopeUrl).href,
     tag: typeof data.matchId === 'string' ? `message-${data.matchId}` : 'myage-message',
+    renotify: true,
+    silent: false,
     data,
-  }));
+  }), self.clients.matchAll({ type: 'window' }).then(windows => {
+    for (const client of windows) client.postMessage({ type: 'myage:new-message', matchId: data.matchId });
+  })]));
 });
 
 self.addEventListener('notificationclick', (event) => {

@@ -39,6 +39,7 @@ export * from './messageMediaType';
 export * from './nativePushTokenInput';
 export * from './notification';
 export * from './notificationCounts';
+export * from './notificationReadInput';
 export * from './notificationsResponse';
 export * from './notificationType';
 export * from './onboardingDraft';

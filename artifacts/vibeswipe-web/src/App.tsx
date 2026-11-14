@@ -44,6 +44,8 @@ import { ProfileFirstSignup } from '@/components/profile-first-signup';
 import { LocationChoice } from '@/components/location-choice';
 import { HobbyMultiSelect, OccupationSelect } from '@/components/profile-field-selectors';
 import { ConnectionNotice } from '@/components/connection-notice';
+import { WebPushSettings } from '@/components/WebPushSettings';
+import { chatViewportFrame } from '@/lib/chat-viewport';
 import { ActivityOverview, InboundPeoplePage, MutualMatchesPage } from '@/components/social-hub';
 import { isDiscoverSetupRequired, isProfileMissing, shouldRetryDiscover, shouldRetryProfile } from '@/lib/profile-query-state';
 import { PROFILE_PHOTO_ACCEPT, photoUploadCanRetry, prepareProfilePhoto, uploadProfilePhotoBytes, validatePhotoFile } from '@/lib/profile-photo-upload';
@@ -132,6 +134,7 @@ function AppShell({ children }: { children: ReactNode }) {
       </header>
     </>}
     <main className={showMainNavigation ? "min-h-[calc(100dvh-48px)] pb-24 lg:ml-[248px] lg:min-h-[100dvh] lg:pb-0" : "min-h-[100dvh]"}>{children}</main>
+    {profile.data?.id&&<WebPushSettings key={profile.data.id} compact visible={showMainNavigation} accountId={profile.data.id}/>}
     {showMainNavigation && <nav className={`${location==='/profile'?'profile-nav ':''}fixed inset-x-0 bottom-0 z-30 flex justify-around border-t border-border bg-background/95 px-2 pb-[max(env(safe-area-inset-bottom),8px)] pt-2 backdrop-blur-xl lg:hidden`}>
       {navItems.map(({ href, label, icon: Icon }) => <Link key={href} href={href} data-testid={`mobile-nav-${label.toLowerCase()}`} className={`flex min-w-0 flex-1 flex-col items-center gap-1 rounded-xl px-1 py-1.5 text-[10px] font-semibold ${activeLocation === href ? 'text-primary' : 'text-muted-foreground'}`}><Icon size={19}/>{label}</Link>)}
       <Link href="/profile" data-testid="mobile-nav-profile" className={`flex min-w-[62px] flex-col items-center gap-1 rounded-xl px-3 py-1.5 text-[10px] font-semibold ${location === '/profile' ? 'text-primary' : 'text-muted-foreground'}`}><UserRound size={19}/>Profile</Link>
@@ -329,13 +332,30 @@ function ChatPage({matchId,returnTo='/matches'}:{matchId:string;returnTo?:string
   const msgs=useGetMessages(matchId,{query:{enabled:!!match,queryKey:getGetMessagesQueryKey(matchId),refetchInterval:10000}}); const typing=useGetTypingStatus(matchId,{query:{enabled:!!match,queryKey:['/api/vibeswipe/matches',matchId,'typing'],refetchInterval:3500}}); const receipt=useGetChatReadReceipt(matchId,{query:{enabled:!!match,queryKey:getGetChatReadReceiptQueryKey(matchId),refetchInterval:5000}}); const presence=useGetMatchPresence(matchId,{query:{enabled:!!match,queryKey:getGetMatchPresenceQueryKey(matchId),refetchInterval:15000}}); const heartbeat=useHeartbeatPresence();
   const ice=useGetIcebreakers({query:{enabled:!!match,queryKey:['/api/vibeswipe/icebreakers']}}); const send=useSendMessage(); const updateTyping=useUpdateTypingStatus(); const markRead=useMarkChatRead(); const del=useDeleteMessage(); const clear=useClearChat(); const unmatch=useUnmatchMatch(); const block=useBlockProfile(); const unblock=useUnblockProfile(); const report=useReportProfile(); const theme=useUpdateChatTheme(); const upload=useRequestChatMediaUpload(); const transcode=useTranscodeProfileVideo(); const [draft,setDraft]=useState(''); const [error,setError]=useState(''); const [actions,setActions]=useState(false); const [themeOpen,setThemeOpen]=useState(false); const [deleteTarget,setDeleteTarget]=useState<Message|null>(null); const [busy,setBusy]=useState(false); const bottom=useRef<HTMLDivElement>(null); const inputRef=useRef<HTMLTextAreaElement>(null);
   const messages=(msgs.data??[]).slice().reverse(); const last=messages[messages.length-1];
-  const [chatViewportHeight,setChatViewportHeight]=useState(()=>window.visualViewport?.height??window.innerHeight);
+  const [chatViewport,setChatViewport]=useState(()=>chatViewportFrame(window.visualViewport?.height??window.innerHeight,window.visualViewport?.offsetTop??0,window.innerHeight,false));
+  const fullChatHeight=useRef(window.visualViewport?.height??window.innerHeight);
   useEffect(()=>{
     const viewport=window.visualViewport;
-    const resize=()=>setChatViewportHeight(viewport?.height??window.innerHeight);
+    const previousBodyOverflow=document.body.style.overflow;
+    const previousHtmlOverflow=document.documentElement.style.overflow;
+    document.body.style.overflow='hidden';
+    document.documentElement.style.overflow='hidden';
+    const resize=()=>{
+      const focused=document.activeElement;
+      const editing=focused instanceof HTMLElement&&(focused.tagName==='TEXTAREA'||focused.tagName==='INPUT'||focused.isContentEditable);
+      const height=viewport?.height??window.innerHeight;
+      const frame=chatViewportFrame(height,viewport?.offsetTop??0,Math.max(fullChatHeight.current,window.innerHeight),editing);
+      if(!editing)fullChatHeight.current=height;
+      setChatViewport(frame);
+      if(editing)requestAnimationFrame(()=>{const list=bottom.current?.parentElement;list?.scrollTo({top:list.scrollHeight})});
+    };
+    resize();
     viewport?.addEventListener('resize',resize);
+    viewport?.addEventListener('scroll',resize);
     window.addEventListener('resize',resize);
-    return()=>{viewport?.removeEventListener('resize',resize);window.removeEventListener('resize',resize)};
+    document.addEventListener('focusin',resize);
+    document.addEventListener('focusout',resize);
+    return()=>{viewport?.removeEventListener('resize',resize);viewport?.removeEventListener('scroll',resize);window.removeEventListener('resize',resize);document.removeEventListener('focusin',resize);document.removeEventListener('focusout',resize);document.body.style.overflow=previousBodyOverflow;document.documentElement.style.overflow=previousHtmlOverflow};
   },[]);
   useEffect(()=>{if(last&&last.senderId!==profile.data?.id&&!last.isRead)markRead.mutate({matchId},{onSuccess:()=>{void qc.invalidateQueries({queryKey:getGetMatchesQueryKey()});void qc.invalidateQueries({queryKey:getGetNotificationsQueryKey()})}});},[last?.id,profile.data?.id]);
   useEffect(()=>{heartbeat.mutate({data:{isActive:true}});const beat=window.setInterval(()=>heartbeat.mutate({data:{isActive:document.visibilityState==='visible'}}),30000);const visibility=()=>heartbeat.mutate({data:{isActive:document.visibilityState==='visible'}});document.addEventListener('visibilitychange',visibility);return()=>{clearInterval(beat);document.removeEventListener('visibilitychange',visibility)}},[]);
@@ -364,7 +384,7 @@ function ChatPage({matchId,returnTo='/matches'}:{matchId:string;returnTo?:string
     stream.onerror=()=>{ /* EventSource reconnects automatically and resumes with Last-Event-ID. */ };
     return()=>stream.close();
   },[matchId,Boolean(match),blocked,qc]);
-  useEffect(()=>{bottom.current?.scrollIntoView({behavior:'smooth'})},[messages.length]);
+  useEffect(()=>{const list=bottom.current?.parentElement;list?.scrollTo({top:list.scrollHeight,behavior:'smooth'})},[messages.length]);
   if(matches.isLoading||msgs.isLoading)return <PageFrame><div className="h-16 animate-pulse rounded-2xl bg-white/[.04]"/><div className="mt-6"><Busy/></div></PageFrame>;
   if(matches.isError&&!matches.data)return <PageFrame><Retry error={matches.error} text="We couldn’t load your conversations. Check your connection and try again." onRetry={()=>void matches.refetch()}/></PageFrame>;
   if(!match)return <PageFrame><Empty title="Conversation unavailable" detail="This chat may have ended or the match is no longer available." action={<Link href={returnTo} data-testid="link-back-matches" className="rounded-xl bg-secondary px-4 py-2.5 font-bold">{returnTo==='/views'?'Back to messages':returnTo==='/notifications'?'Back to activity':'Back to matches'}</Link>}/></PageFrame>;
@@ -379,7 +399,7 @@ function ChatPage({matchId,returnTo='/matches'}:{matchId:string;returnTo?:string
   const statusLine=typing.data?.isTyping?`${match.profile.name} is typing…`:presence.data?.isOnline?'Online now':presence.data?.lastSeenAt?`Last seen ${new Date(presence.data.lastSeenAt).toLocaleString()}`:'A conversation just for your mutual match';
   const suggestionIcons=[Coffee,CupSoda,Music];
   function applySuggestion(question:string){if(blocked||busy||send.isPending)return;setDraft(question);window.requestAnimationFrame(()=>{const el=inputRef.current;if(el){el.focus();el.setSelectionRange(question.length,question.length)}})}
-  return <div className={`chat-surface ${darkChat?'chat-dark':''} ${!messages.length?'chat-new-match':''} flex w-full flex-col`} style={{['--chat-accent' as string]:accent,height:`calc(${chatViewportHeight}px - var(--install-banner-height, 0px))`}} data-testid="chat-page">
+  return <div className={`chat-surface ${darkChat?'chat-dark':''} ${!messages.length?'chat-new-match':''} fixed inset-x-0 z-40 flex w-full flex-col overflow-hidden`} style={{['--chat-accent' as string]:accent,top:`calc(${chatViewport.top}px + var(--install-banner-height, 0px))`,height:`calc(${chatViewport.height}px - var(--install-banner-height, 0px))`}} data-testid="chat-page">
     <header className="flex shrink-0 items-center gap-3 border-b border-[hsl(var(--chat-border))] px-3 py-3 md:px-6">
       <Link href={returnTo} aria-label="Back" data-testid="link-chat-back" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[hsl(var(--chat-fg))] hover:bg-[hsl(var(--chat-soft))]"><ArrowLeft size={22}/></Link>
       <Link href={profileHref} aria-label={`View ${match.profile.name}’s profile`} data-testid="link-chat-profile" className="flex min-w-0 flex-1 items-center gap-3 rounded-2xl py-1 pr-2 hover:bg-[hsl(var(--chat-soft))]">
@@ -390,7 +410,7 @@ function ChatPage({matchId,returnTo='/matches'}:{matchId:string;returnTo?:string
     </header>
     {blocked&&<div className="mx-4 mt-3 rounded-xl border border-rose-300/30 bg-rose-400/10 px-4 py-3 text-sm text-rose-500">Messaging is unavailable while this profile is blocked.</div>}
     {msgs.isError&&<button onClick={()=>void msgs.refetch()} data-testid="button-retry-messages" className="mx-4 mt-3 rounded-xl bg-rose-400/10 p-2.5 text-xs font-semibold text-rose-500">Messages failed to load. Tap to retry.</button>}
-    <div className="hide-scrollbar flex-1 space-y-3 overflow-y-auto px-4 py-5 md:px-6">
+    <div className="hide-scrollbar min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-5 md:px-6">
       {!messages.length&&!msgs.isError&&!blocked&&<div className="chat-empty-intro mx-auto max-w-xl pb-2 pt-2 text-center" data-testid="chat-empty-state">
         <Heart aria-hidden="true" size={56} strokeWidth={1.2} className="mx-auto fill-[var(--chat-accent)] text-[var(--chat-accent)] opacity-50"/>
         <h2 className="mt-4 font-serif text-[clamp(1.9rem,6vw,2.75rem)] leading-[1.1] tracking-[-.035em] text-[var(--chat-accent)]">A good conversation starts here</h2>
@@ -406,10 +426,10 @@ function ChatPage({matchId,returnTo='/matches'}:{matchId:string;returnTo?:string
       {typing.data?.isTyping&&<div className="text-xs italic text-[hsl(var(--chat-muted))]">{match.profile.name} is typing…</div>}<div ref={bottom}/></div>
     {receipt.data?.readAt&&<div className="px-5 pb-1 text-right text-[10px] text-[hsl(var(--chat-muted))]">Seen {new Date(receipt.data.readAt).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'})}</div>}
     {error&&<div role="alert" className="px-5 pb-2 text-xs font-medium text-rose-500">{error}</div>}
-    <div className="shrink-0 px-3 pb-[max(.75rem,env(safe-area-inset-bottom))] pt-1 md:px-6">
+    <div data-testid="chat-composer" className="shrink-0 px-3 pt-1 md:px-6" style={{paddingBottom:chatViewport.keyboardOpen?0:'max(.75rem,env(safe-area-inset-bottom))'}}>
       <form onSubmit={e=>{e.preventDefault();if(!busy)void sendMessage(draft)}} className="flex items-end gap-2 rounded-2xl border border-[hsl(var(--chat-border))] bg-[hsl(var(--chat-card))] p-2 shadow-[0_2px_10px_hsl(330_30%_40%/.06)]">
         <label className="flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-xl text-[hsl(var(--chat-muted))] hover:bg-[hsl(var(--chat-soft))]" aria-label="Attach photo, video, or voice note" data-testid="button-chat-attach"><ImageIcon size={24} strokeWidth={1.6}/><input data-testid="input-chat-media" type="file" accept="image/*,video/mp4,video/quicktime,audio/*" className="hidden" disabled={blocked||busy||send.isPending} onChange={e=>{void attach(e.currentTarget.files?.[0]);e.currentTarget.value=''}}/></label>
-        <textarea ref={inputRef} data-testid="input-chat-message" value={draft} onChange={e=>setDraft(e.target.value)} disabled={blocked||busy||send.isPending} maxLength={2000} rows={1} placeholder={blocked?'Messaging unavailable':'Write a message'} className="max-h-32 min-h-11 min-w-0 flex-1 resize-none bg-transparent px-1 py-2.5 text-[15px] text-[hsl(var(--chat-fg))] outline-none placeholder:text-[hsl(var(--chat-muted))]"/>
+        <textarea ref={inputRef} data-testid="input-chat-message" value={draft} onChange={e=>setDraft(e.target.value)} disabled={blocked||busy||send.isPending} maxLength={2000} rows={1} placeholder={blocked?'Messaging unavailable':'Write a message'} className="max-h-32 min-h-11 min-w-0 flex-1 resize-none bg-transparent px-1 py-2.5 text-base text-[hsl(var(--chat-fg))] outline-none placeholder:text-[hsl(var(--chat-muted))]"/>
         <button disabled={blocked||busy||send.isPending||(!draft.trim()&&!busy)} data-testid="button-send-message" className="h-11 shrink-0 rounded-xl bg-[var(--chat-accent)] px-6 text-[15px] font-bold text-white transition-opacity disabled:opacity-45">{busy?'Uploading':send.isPending?'Sending…':'Send'}</button>
       </form>
     </div>

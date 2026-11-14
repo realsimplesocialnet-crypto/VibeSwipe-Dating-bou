@@ -428,6 +428,7 @@ export const GetVibeSwipeSettingsResponse = zod.object({
   "showAge": zod.boolean(),
   "showDistance": zod.boolean(),
   "notifyMatches": zod.boolean(),
+  "notifyLikes": zod.boolean(),
   "notifyMessages": zod.boolean(),
   "notifyProfileViews": zod.boolean(),
   "darkMode": zod.boolean(),
@@ -450,6 +451,7 @@ export const UpdateVibeSwipeSettingsBody = zod.object({
   "showAge": zod.boolean().optional(),
   "showDistance": zod.boolean().optional(),
   "notifyMatches": zod.boolean().optional(),
+  "notifyLikes": zod.boolean().optional(),
   "notifyMessages": zod.boolean().optional(),
   "notifyProfileViews": zod.boolean().optional(),
   "darkMode": zod.boolean().optional(),
@@ -468,6 +470,7 @@ export const UpdateVibeSwipeSettingsResponse = zod.object({
   "showAge": zod.boolean(),
   "showDistance": zod.boolean(),
   "notifyMatches": zod.boolean(),
+  "notifyLikes": zod.boolean(),
   "notifyMessages": zod.boolean(),
   "notifyProfileViews": zod.boolean(),
   "darkMode": zod.boolean(),
@@ -1191,6 +1194,20 @@ export const GetNotificationsResponse = zod.object({
   "likes": zod.number().int().min(getNotificationsResponseUnreadCountsLikesMin)
 })
 })
+
+
+/**
+ * @summary Mark a snapshot of the signed-in user's notifications as read
+ */
+export const markNotificationsReadBodyNotificationIdsMax = 500;
+
+
+
+export const MarkNotificationsReadBody = zod.object({
+  "notificationIds": zod.array(zod.string().uuid()).min(1).max(markNotificationsReadBodyNotificationIdsMax)
+})
+
+export const MarkNotificationsReadResponse = zod.void()
 
 
 /**

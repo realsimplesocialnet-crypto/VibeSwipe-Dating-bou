@@ -11,6 +11,7 @@ import {
   MarkChatReadResponse,
   MarkNotificationReadParams,
   MarkNotificationReadResponse,
+  MarkNotificationsReadBody,
 } from "@workspace/api-zod";
 import {
   blocksTable,
@@ -21,7 +22,7 @@ import {
   vibeSwipePresenceTable,
   vibeSwipeReadReceiptsTable,
 } from "@workspace/db";
-import { and, desc, eq, isNull, lte, or, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, lte, or, sql } from "drizzle-orm";
 import { Router, type IRouter, type Request } from "express";
 import { requireAuth } from "../middlewares/auth";
 import { CHAT_EVENT_CHANNEL } from "../lib/chatEventStream";
@@ -265,6 +266,20 @@ router.get("/vibeswipe/notifications", async (req, res): Promise<void> => {
     };
   });
   res.json(GetNotificationsResponse.parse({ notifications, unreadCounts }));
+});
+
+router.put("/vibeswipe/notifications/read", async (req, res): Promise<void> => {
+  const body = MarkNotificationsReadBody.safeParse(req.body);
+  if (!body.success) {
+    res.status(400).json({ error: "Invalid notification IDs." });
+    return;
+  }
+  await db.update(vibeSwipeNotificationsTable).set({ readAt: new Date() }).where(and(
+    eq(vibeSwipeNotificationsTable.recipientId, currentUserId(req)),
+    inArray(vibeSwipeNotificationsTable.id, body.data.notificationIds),
+    isNull(vibeSwipeNotificationsTable.readAt),
+  ));
+  res.status(204).end();
 });
 
 router.put(

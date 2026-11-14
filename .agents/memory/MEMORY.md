@@ -9,3 +9,4 @@
 - [Main-screen headers](main-screen-headers.md) — Keep branding compact across the main tabs so stories, cards, and titles start near the top.
 - [Own-profile appearance](own-profile-appearance.md) — User approved the pink-to-peach profile design with a circular portrait overlapping a rounded card.
 - [Messages and public profiles](messages-and-public-profiles.md) — Five tabs with separate Activity shortcuts; Messages is the only conversation list.
+- [Mobile chat keyboard](mobile-chat-keyboard.md) — Safari can pan its visible viewport; anchor the composer to that viewport without extra keyboard-time bottom inset.

@@ -12,6 +12,7 @@ export interface VibeSwipeSettings {
   showAge: boolean;
   showDistance: boolean;
   notifyMatches: boolean;
+  notifyLikes: boolean;
   notifyMessages: boolean;
   notifyProfileViews: boolean;
   darkMode: boolean;

@@ -1,5 +1,15 @@
 export type ReactionType = "like" | "super" | "pass";
 
+export function notificationPreferenceEnabled(
+  type: "new_like" | "new_super_like" | "new_match" | "new_message" | "profile_view",
+  preferences: { notifyMatches: boolean; notifyLikes?: boolean | null; notifyMessages: boolean; notifyProfileViews: boolean },
+): boolean {
+  if (type === "new_message") return preferences.notifyMessages;
+  if (type === "profile_view") return preferences.notifyProfileViews;
+  if (type === "new_like" || type === "new_super_like") return preferences.notifyLikes ?? preferences.notifyMatches;
+  return preferences.notifyMatches;
+}
+
 export type ReactionNotification = {
   recipientId: string;
   actorId: string;

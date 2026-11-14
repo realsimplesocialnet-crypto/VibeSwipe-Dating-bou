@@ -1,18 +1,35 @@
 import { Feather } from "@expo/vector-icons";
 import { useQueryClient } from "@tanstack/react-query";
 import { router, useFocusEffect } from "expo-router";
-import { useCallback, useMemo, type ReactNode } from "react";
-import { ActivityIndicator, FlatList, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { ActivityIndicator, AppState, FlatList, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   getGetMatchesQueryKey, getGetNotificationsQueryKey, getGetWhoLikedYouQueryKey, getGetWhoViewedYouQueryKey,
   useGetMatches, useGetNotifications, useGetWhoLikedYou, useGetWhoViewedYou, useMarkNotificationRead,
+  createUseMarkActivitySeen, type ActivityCategory,
   type Match, type Profile,
 } from "@workspace/api-client-react";
 import { ProfileAvatar } from "@/components/ProfileAvatar";
 import { useColors } from "@/hooks/useColors";
 
 const live = { refetchInterval: 15000, refetchOnMount: "always" as const, refetchOnWindowFocus: true, staleTime: 0 };
+const useMarkActivitySeen = createUseMarkActivitySeen({ useCallback, useEffect, useRef, useState });
+function useSeenOnFocus(category: ActivityCategory, ready: boolean) {
+  const [focused, setFocused] = useState(false);
+  const [foreground, setForeground] = useState(AppState.currentState === "active");
+  useFocusEffect(useCallback(() => { setFocused(true); return () => setFocused(false); }, []));
+  useEffect(() => {
+    const subscription = AppState.addEventListener("change", state => setForeground(state === "active"));
+    return () => subscription.remove();
+  }, []);
+  return useMarkActivitySeen(category, { active: focused && foreground, ready });
+}
+
+function SeenError({ seen }: { seen: ReturnType<typeof useMarkActivitySeen> }) {
+  const c = useColors();
+  return seen.error ? <Pressable disabled={seen.pending} onPress={() => void seen.retry()} accessibilityRole="button" style={{ padding: 12, marginHorizontal: 20 }}><Text accessibilityRole="alert" style={{ color: c.primary }}>Couldn’t clear the new count. Tap to retry.</Text></Pressable> : null;
+}
 const active = (m?: Match[]) => (m ?? []).filter((x) => !x.profile.isDemo && !x.blockedByMe && !x.blockedMe);
 function ago(v: string) {
   const s = Math.max(0, (Date.now() - new Date(v).getTime()) / 1000);
@@ -132,7 +149,7 @@ export function ActivityOverview() {
         ))}
         <View style={{ height: 18 }} />
         {cards.map((k) => (
-          <Pressable key={k.key} onPress={() => router.push(k.to as never)} testID={`link-summary-${k.key}`} accessibilityRole="button" accessibilityLabel={`${k.title}, ${k.n}`} style={({ pressed }) => [s.card, s.row, { backgroundColor: c.profileCard, borderColor: c.border, opacity: pressed ? 0.85 : 1 }]}>
+          <Pressable key={k.key} onPress={() => router.push(k.to as never)} testID={`link-summary-${k.key}`} accessibilityRole="button" accessibilityLabel={`${k.title}, ${k.badge} new`} style={({ pressed }) => [s.card, s.row, { backgroundColor: c.profileCard, borderColor: c.border, opacity: pressed ? 0.85 : 1 }]}>
             <View style={[s.iconBox, { backgroundColor: c.profileChip }]}>
               <Feather name={k.icon} size={20} color={c.primary} />
               {k.badge > 0 && <View style={[s.badge, { backgroundColor: c.primary }]}><Text style={[s.badgeText, { color: c.primaryForeground }]}>{k.badge > 99 ? "99+" : k.badge}</Text></View>}
@@ -142,7 +159,7 @@ export function ActivityOverview() {
               <Text numberOfLines={1} style={{ color: c.mutedForeground, fontSize: 13 }}>{k.sub}</Text>
             </View>
             <View style={s.stack}>{k.ps.slice(0, 3).map((p, i) => <View key={p.id} style={[s.stackItem, { marginLeft: i ? -12 : 0, borderColor: c.profileCard }]}><ProfileAvatar profile={p} size={32} /></View>)}</View>
-            <Text style={[s.count, { color: c.foreground }]} testID={`text-count-${k.key}`}>{k.loading ? "-" : k.n}</Text>
+            <Text style={[s.count, { color: c.foreground }]} testID={`text-count-${k.key}`}>{k.loading ? "-" : k.badge}</Text>
             <Feather name="chevron-right" size={18} color={c.mutedForeground} />
           </Pressable>
         ))}
@@ -159,10 +176,12 @@ export function InboundPeoplePage({ kind }: { kind: "likes" | "views" }) {
   const likes = useGetWhoLikedYou({ query: { queryKey: getGetWhoLikedYouQueryKey(), enabled: isLikes, ...live } });
   const views = useGetWhoViewedYou({ query: { queryKey: getGetWhoViewedYouQueryKey(), enabled: !isLikes, ...live } });
   const q = isLikes ? likes : views;
+  const seen = useSeenOnFocus(kind, q.isSuccess && !q.isFetching);
   useRefetchOnFocus([q.refetch]);
   const rows = useMemo(() => (isLikes ? (likes.data ?? []).map((l) => ({ profile: l.profile, at: l.likedAt, isSuperLike: l.isSuperLike })) : (views.data ?? []).map((v) => ({ profile: v.profile, at: v.viewedAt, isSuperLike: false }))), [isLikes, likes.data, views.data]);
   return (
     <Screen back title={isLikes ? "Likes" : "Views"} sub={isLikes ? "People who liked you" : "People who viewed your profile"}>
+      <SeenError seen={seen} />
       {q.isLoading || (q.isError && !q.data) || !rows.length ? (
         <View style={s.list}><State loading={q.isLoading} error={q.isError && !q.data} empty={!rows.length} onRetry={() => void q.refetch()} icon={isLikes ? "heart" : "eye"} emptyTitle={isLikes ? "No likes yet" : "No views yet"} emptyText={isLikes ? "When someone likes you, they show up here." : "When someone opens your profile, they show up here."} /></View>
       ) : (
@@ -193,10 +212,12 @@ export function MutualMatchesPage() {
   const c = useColors();
   const insets = useSafeAreaInsets();
   const matches = useGetMatches({ query: { queryKey: getGetMatchesQueryKey(), ...live } });
+  const seen = useSeenOnFocus("matches", matches.isSuccess && !matches.isFetching);
   useRefetchOnFocus([matches.refetch]);
   const list = useMemo(() => active(matches.data), [matches.data]);
   return (
     <Screen title="Matches">
+      <SeenError seen={seen} />
       {matches.isLoading || (matches.isError && !matches.data) ? (
         <View style={s.list}><State loading={matches.isLoading} error={matches.isError && !matches.data} empty={!list.length} onRetry={() => void matches.refetch()} icon="users" emptyTitle="No matches yet" emptyText="When someone you like likes you back, you'll meet here." /></View>
       ) : !list.length ? (

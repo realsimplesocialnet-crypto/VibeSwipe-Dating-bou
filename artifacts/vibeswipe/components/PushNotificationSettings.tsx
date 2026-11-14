@@ -14,23 +14,14 @@ import {
 import {
   useDeleteNativePushToken,
   useSaveNativePushToken,
+  useGetMyProfile,
 } from "@workspace/api-client-react";
 import { useColors } from "@/hooks/useColors";
-
-function expoProjectId(): string | null {
-  const extra = Constants.expoConfig?.extra as
-    | { eas?: { projectId?: string } }
-    | undefined;
-  return (
-    process.env.EXPO_PUBLIC_EAS_PROJECT_ID ??
-    Constants.easConfig?.projectId ??
-    extra?.eas?.projectId ??
-    null
-  );
-}
+import { devicePushOptedOut, getDeviceToken, prepareMessageChannel, setDevicePushOptOut } from "@/lib/push-enrollment";
 
 export function PushNotificationSettings() {
   const colors = useColors();
+  const profile = useGetMyProfile();
   const saveToken = useSaveNativePushToken();
   const deleteToken = useDeleteNativePushToken();
   const [token, setToken] = useState<string | null>(null);
@@ -38,37 +29,18 @@ export function PushNotificationSettings() {
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState("");
 
-  async function getDeviceToken(): Promise<string> {
-    const projectId = expoProjectId();
-    if (!projectId) {
-      throw new Error(
-        "Push is not configured in this app build yet. Install a build made with Replit Expo Launch and try again.",
-      );
-    }
-    if (Platform.OS === "android") {
-      await Notifications.setNotificationChannelAsync("messages", {
-        name: "Messages",
-        importance: Notifications.AndroidImportance.HIGH,
-        sound: "default",
-      });
-    }
-    return (
-      await Notifications.getExpoPushTokenAsync({ projectId })
-    ).data;
-  }
-
   useEffect(() => {
-    if (Platform.OS === "web" || !Device.isDevice) return;
+    if (Platform.OS === "web" || !Device.isDevice || !profile.data?.id) return;
     if (
-      Platform.OS === "ios" &&
       Constants.executionEnvironment === "storeClient"
     ) {
-      setStatus("On iPhone, push notifications need the installed TestFlight app; Expo Go cannot receive them.");
+      setStatus("Background notifications require the installed Myage app, not Expo Go.");
       return;
     }
     let active = true;
     void (async () => {
       try {
+        if (await devicePushOptedOut(profile.data!.id)) return;
         const permission = await Notifications.getPermissionsAsync();
         if (!permission.granted) return;
         const deviceToken = await getDeviceToken();
@@ -85,16 +57,18 @@ export function PushNotificationSettings() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [profile.data?.id]);
 
   async function toggleNotifications() {
     if (busy) return;
     setBusy(true);
     setStatus("");
     try {
+      if (!profile.data?.id) throw new Error("Your profile is still loading. Please try again.");
       if (enabled) {
         const currentToken = token ?? (await getDeviceToken());
         await deleteToken.mutateAsync({ data: { token: currentToken } });
+        await setDevicePushOptOut(profile.data.id, true);
         setToken(null);
         setEnabled(false);
         setStatus("Message notifications are off on this device.");
@@ -104,11 +78,11 @@ export function PushNotificationSettings() {
         throw new Error("Install Myage on a real phone to enable notifications.");
       }
       if (
-        Platform.OS === "ios" &&
         Constants.executionEnvironment === "storeClient"
       ) {
-        throw new Error("iPhone push notifications require the installed TestFlight app; Expo Go cannot receive them.");
+        throw new Error("Background notifications require the installed Myage app, not Expo Go.");
       }
+      await prepareMessageChannel();
       const current = await Notifications.getPermissionsAsync();
       const permission = current.granted
         ? current
@@ -118,6 +92,7 @@ export function PushNotificationSettings() {
       }
       const deviceToken = await getDeviceToken();
       await saveToken.mutateAsync({ data: { token: deviceToken } });
+      await setDevicePushOptOut(profile.data.id, false);
       setToken(deviceToken);
       setEnabled(true);
       setStatus("Message notifications are enabled on this device.");

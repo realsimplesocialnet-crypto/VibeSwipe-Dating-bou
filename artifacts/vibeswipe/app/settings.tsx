@@ -250,6 +250,22 @@ export default function SettingsScreen() {
           <Feather name="chevron-right" size={18} color={colors.mutedForeground} />
         </View>
       </Pressable>
+      <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>NOTIFICATIONS</Text>
+      <Pressable
+        accessibilityRole="button"
+        onPress={() => router.push("/notification-settings")}
+        style={[styles.section, { backgroundColor: colors.card, borderColor: colors.border }]}
+        testID="button-open-notification-settings"
+      >
+        <View style={styles.row}>
+          <Feather name="bell" size={19} color={colors.primary} />
+          <View style={styles.copy}>
+            <Text style={[styles.rowTitle, { color: colors.foreground }]}>Notification settings</Text>
+            <Text style={[styles.rowSub, { color: colors.mutedForeground }]}>New matches, likes, messages, and views.</Text>
+          </View>
+          <Feather name="chevron-right" size={18} color={colors.mutedForeground} />
+        </View>
+      </Pressable>
       <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>MESSAGES</Text>
       <PushNotificationSettings />
       <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>LEGAL AND SAFETY</Text>

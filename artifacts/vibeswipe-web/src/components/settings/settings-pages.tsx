@@ -3,7 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useClerk } from "@clerk/react";
 import {
   ArrowLeft, ChevronRight, Eye, EyeOff, Globe2, LockKeyhole, MapPin, Moon, Shield,
-  SlidersHorizontal, UserRound, Bell, FileText, UserX, Check, LoaderCircle,
+  SlidersHorizontal, UserRound, Bell, Heart, MessageCircle, ShieldCheck, FileText, UserX, Check, LoaderCircle,
 } from "lucide-react";
 import {
   getGetBlockedProfilesQueryKey, getGetDiscoverProfilesQueryKey, getGetMyProfileQueryKey, getGetVibeSwipeSettingsQueryKey,
@@ -20,6 +20,7 @@ type FullSettings = VibeSwipeSettings & {
   showAge: boolean;
   showDistance: boolean;
   notifyMatches: boolean;
+  notifyLikes: boolean;
   notifyMessages: boolean;
   notifyProfileViews: boolean;
   darkMode: boolean;
@@ -39,7 +40,7 @@ const sections = [
 ] as const;
 
 const settingDefaults: FullSettings = {
-  incognito: false, showAge: true, showDistance: true, notifyMatches: true,
+  incognito: false, showAge: true, showDistance: true, notifyMatches: true, notifyLikes: true,
   notifyMessages: true, notifyProfileViews: true, darkMode: true, language: "en",
   deactivated: false, travelMode: false, travelCity: null,
 };
@@ -82,6 +83,19 @@ export function SettingsSectionPage() {
   const query = useGetVibeSwipeSettings({ query: { queryKey: getGetVibeSwipeSettingsQueryKey() } });
   if (!selected) return <SettingsFrame><Link href={backTo} className="inline-flex items-center gap-2 text-sm text-muted-foreground"><ArrowLeft size={17}/>Back</Link><p className="mt-8">This settings section isn’t available.</p></SettingsFrame>;
   const saved = { ...settingDefaults, ...(query.data as Partial<FullSettings> | undefined) };
+  if (section === "notifications") return <div className="-mx-0 min-h-[calc(100dvh-66px)] bg-[#fdeef2] text-[#2b1d24] dark:bg-transparent dark:text-foreground"><SettingsFrame>
+    <div className="mx-auto max-w-xl">
+      <div className="mb-6 grid grid-cols-[44px_1fr_44px] items-center">
+        <Link href={backTo} aria-label="Back" data-testid="link-settings-back" className="flex h-11 w-11 items-center justify-center rounded-full bg-[#fffafb] text-[#e0507f] shadow-[0_6px_18px_-8px_rgba(224,80,127,.45)] transition-transform hover:-translate-x-0.5 dark:bg-white/[.06] dark:text-primary dark:shadow-none"><ArrowLeft size={19}/></Link>
+        <h1 className="text-center text-2xl font-bold tracking-[-.03em] text-[#e0507f] dark:text-primary md:text-[1.8rem]">Notification settings</h1>
+        <span/>
+      </div>
+      <p className="mb-6 text-center text-sm text-[#8a6a78] dark:text-muted-foreground">Choose what you want to be notified about.</p>
+      {query.isLoading ? <div aria-label="Loading settings" className="space-y-0 overflow-hidden rounded-[26px] bg-[#fffafb] p-2 dark:bg-card">{[0,1,2,3].map(i=><div key={i} className="m-2 h-[64px] animate-pulse rounded-2xl bg-[#fde3eb] dark:bg-white/[.04]"/>)}</div>
+        : query.isError ? <div role="alert" className="rounded-2xl border border-rose-300/40 bg-[#fffafb] p-5 text-sm text-rose-700 dark:border-rose-300/20 dark:bg-rose-300/[.06] dark:text-rose-200">Settings couldn’t load. <button data-testid="button-retry-settings" onClick={()=>void query.refetch()} className="ml-1 font-bold underline underline-offset-4">Try again</button></div>
+        : <SectionContent section={section} settings={saved} editReturnTo={editReturnTo}/>}
+    </div>
+  </SettingsFrame></div>;
   return <SettingsFrame>
     <Link href={backTo} data-testid="link-settings-back" className="mb-7 inline-flex items-center gap-2 rounded-lg text-sm font-semibold text-muted-foreground transition-colors hover:text-foreground"><ArrowLeft size={17}/>Back</Link>
     <header className="mb-7">
@@ -143,6 +157,19 @@ function SectionContent({ section, settings, editReturnTo }: { section: string; 
   const status = (update.isPending || saveProfile.isPending)
     ? <span role="status" className="inline-flex items-center gap-2 text-xs text-muted-foreground"><LoaderCircle size={14} className="animate-spin"/>Saving</span>
     : message ? <span role="status" className="inline-flex items-center gap-1.5 text-xs text-emerald-300"><Check size={14}/>{message}</span> : null;
+
+  if (section === "notifications") return <div className="space-y-4">
+    <section data-testid="card-notification-settings" className="rounded-[26px] bg-[#fffafb] px-4 py-2 shadow-[0_18px_40px_-24px_rgba(224,80,127,.5)] dark:border dark:border-white/[.08] dark:bg-card dark:shadow-none">
+      <NotifyRow icon={<Heart size={22} fill="currentColor"/>} title="New matches" detail="When you match with someone new" checked={settings.notifyMatches} disabled={update.isPending} testId="toggle-notify-matches" onChange={value=>void saveSettings({notifyMatches:value})}/>
+      <NotifyRow icon={<Heart size={22}/>} title="Likes" detail="When someone likes your profile" checked={settings.notifyLikes} disabled={update.isPending} testId="toggle-notify-likes" onChange={value=>void saveSettings({notifyLikes:value})}/>
+      <NotifyRow icon={<MessageCircle size={22}/>} title="Messages" detail="When you receive a new message" checked={settings.notifyMessages} disabled={update.isPending} testId="toggle-notify-messages" onChange={value=>void saveSettings({notifyMessages:value})}/>
+      <NotifyRow icon={<Eye size={22}/>} title="Views" detail="When someone views your profile" checked={settings.notifyProfileViews} disabled={update.isPending} testId="toggle-notify-profile-views" onChange={value=>void saveSettings({notifyProfileViews:value})}/>
+      <p className="flex items-center gap-3 py-4 text-xs text-[#8a6a78] dark:text-muted-foreground"><ShieldCheck size={20} className="shrink-0 text-[#e0507f] dark:text-primary"/>You can change these settings anytime here.</p>
+    </section>
+    <div className="min-h-5 px-1">{status}</div>
+    {error && <p role="alert" data-testid="settings-save-error" className="rounded-xl border border-rose-300/40 bg-[#fffafb] px-4 py-3 text-sm text-rose-700 dark:border-rose-300/15 dark:bg-rose-300/[.06] dark:text-rose-200">{error}</p>}
+    <WebPushSettings/>
+  </div>;
 
   return <div className="max-w-2xl space-y-3">
     {section === "account" && <>
@@ -217,6 +244,16 @@ function ToggleRow({ icon, title, detail, checked, disabled, testId, onChange }:
     <SettingIcon>{icon}</SettingIcon><span className="min-w-0 flex-1"><strong>{title}</strong><small>{detail}</small></span>
     <button type="button" role="switch" aria-checked={checked} aria-label={title} data-testid={testId} disabled={disabled} onClick={()=>onChange(!checked)} className={`relative h-6 w-11 shrink-0 rounded-full transition-colors disabled:opacity-50 ${checked?'bg-primary':'bg-white/15'}`}>
       <span className={`absolute top-1 h-4 w-4 rounded-full bg-[#211a20] transition-transform ${checked?'translate-x-6':'translate-x-1'}`}/>
+    </button>
+  </div>;
+}
+
+function NotifyRow({ icon, title, detail, checked, disabled, testId, onChange }: { icon: ReactNode; title: string; detail: string; checked: boolean; disabled: boolean; testId: string; onChange: (value:boolean)=>void }) {
+  return <div className="flex items-center gap-4 border-b border-[#f6dbe4] py-4 dark:border-white/[.07]">
+    <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#fde8ee] text-[#ef5f8f] dark:bg-accent dark:text-primary">{icon}</span>
+    <span className="min-w-0 flex-1"><strong className="block text-[16px] font-bold text-[#2b1d24] dark:text-foreground">{title}</strong><small className="mt-0.5 block text-[13px] text-[#7d6370] dark:text-muted-foreground">{detail}</small></span>
+    <button type="button" role="switch" aria-checked={checked} aria-label={title} data-testid={testId} disabled={disabled} onClick={()=>onChange(!checked)} className={`relative h-8 w-14 shrink-0 rounded-full transition-colors disabled:opacity-50 ${checked?'bg-[#f27aa0] dark:bg-primary':'bg-[#ecd9e0] dark:bg-white/15'}`}>
+      <span className={`absolute top-1 h-6 w-6 rounded-full bg-[#fffafb] shadow-sm transition-transform ${checked?'translate-x-7':'translate-x-1'}`}/>
     </button>
   </div>;
 }

@@ -764,6 +764,21 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/NotificationsResponse"
+  /vibeswipe/notifications/read:
+    put:
+      operationId: markNotificationsRead
+      tags: [vibeswipe]
+      summary: Mark a snapshot of the signed-in user's notifications as read
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/NotificationReadInput" }
+      responses:
+        "204":
+          description: Notifications marked read without deleting activity
+        "400":
+          description: Invalid notification IDs
   /vibeswipe/notifications/{notificationId}/read:
     put:
       operationId: markNotificationRead
@@ -1251,6 +1266,7 @@ components:
         showAge: { type: boolean }
         showDistance: { type: boolean }
         notifyMatches: { type: boolean }
+        notifyLikes: { type: boolean }
         notifyMessages: { type: boolean }
         notifyProfileViews: { type: boolean }
         darkMode: { type: boolean }
@@ -1258,7 +1274,7 @@ components:
         deactivated: { type: boolean }
         travelMode: { type: boolean }
         travelCity: { type: [string, "null"], maxLength: 100 }
-      required: [incognito, showAge, showDistance, notifyMatches, notifyMessages, notifyProfileViews, darkMode, language, deactivated, travelMode, travelCity]
+      required: [incognito, showAge, showDistance, notifyMatches, notifyLikes, notifyMessages, notifyProfileViews, darkMode, language, deactivated, travelMode, travelCity]
     VibeSwipeSettingsUpdateInput:
       type: object
       properties:
@@ -1266,6 +1282,7 @@ components:
         showAge: { type: boolean }
         showDistance: { type: boolean }
         notifyMatches: { type: boolean }
+        notifyLikes: { type: boolean }
         notifyMessages: { type: boolean }
         notifyProfileViews: { type: boolean }
         darkMode: { type: boolean }
@@ -1435,6 +1452,15 @@ components:
         profile: { $ref: "#/components/schemas/Profile" }
         viewedAt: { type: string, format: date-time }
       required: [profile, viewedAt]
+    NotificationReadInput:
+      type: object
+      required: [notificationIds]
+      properties:
+        notificationIds:
+          type: array
+          minItems: 1
+          maxItems: 500
+          items: { type: string, format: uuid }
     NotificationType:
       type: string
       enum: [new_match, new_message, new_like, new_super_like, profile_view]

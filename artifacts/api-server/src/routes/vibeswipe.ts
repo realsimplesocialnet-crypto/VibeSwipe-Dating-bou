@@ -112,7 +112,7 @@ import {
 } from "../lib/profileVideoTranscoder";
 import { requireAuth } from "../middlewares/auth";
 import { createVibeSwipeNotification } from "../lib/vibeswipeNotifications";
-import { planReactionEffects } from "../lib/vibeswipeReaction";
+import { notificationPreferenceEnabled, planReactionEffects } from "../lib/vibeswipeReaction";
 import {
   canSubscribeToChat,
   CHAT_EVENT_CHANNEL,
@@ -625,6 +625,7 @@ router.get("/vibeswipe/settings", async (req, res): Promise<void> => {
       showAge: profilesTable.showAge,
       showDistance: profilesTable.showDistance,
       notifyMatches: profilesTable.notifyMatches,
+      notifyLikes: sql<boolean>`coalesce(${profilesTable.notifyLikes}, ${profilesTable.notifyMatches})`,
       notifyMessages: profilesTable.notifyMessages,
       notifyProfileViews: profilesTable.notifyProfileViews,
       darkMode: profilesTable.darkMode,
@@ -685,6 +686,8 @@ router.put("/vibeswipe/settings", async (req, res): Promise<void> => {
       showAge: body.data.showAge ?? current.showAge,
       showDistance: body.data.showDistance ?? current.showDistance,
       notifyMatches: body.data.notifyMatches ?? current.notifyMatches,
+      // Freeze the legacy fallback before changing Matches so the switches stay independent.
+      notifyLikes: body.data.notifyLikes ?? current.notifyLikes ?? current.notifyMatches,
       notifyMessages: body.data.notifyMessages ?? current.notifyMessages,
       notifyProfileViews:
         body.data.notifyProfileViews ?? current.notifyProfileViews,
@@ -701,6 +704,7 @@ router.put("/vibeswipe/settings", async (req, res): Promise<void> => {
       showAge: profilesTable.showAge,
       showDistance: profilesTable.showDistance,
       notifyMatches: profilesTable.notifyMatches,
+      notifyLikes: sql<boolean>`coalesce(${profilesTable.notifyLikes}, ${profilesTable.notifyMatches})`,
       notifyMessages: profilesTable.notifyMessages,
       notifyProfileViews: profilesTable.notifyProfileViews,
       darkMode: profilesTable.darkMode,
@@ -1283,8 +1287,19 @@ router.post("/vibeswipe/reactions", async (req, res): Promise<void> => {
         notification.type !== "new_match" || (createdMatch && matchId),
     );
     if (notifications.length) {
-      await tx.insert(vibeSwipeNotificationsTable).values(
-        notifications.map((notification) => ({
+      const preferences = await tx.select({
+        id: profilesTable.id,
+        notifyMatches: profilesTable.notifyMatches,
+        notifyLikes: profilesTable.notifyLikes,
+        notifyMessages: profilesTable.notifyMessages,
+        notifyProfileViews: profilesTable.notifyProfileViews,
+      }).from(profilesTable).where(inArray(profilesTable.id, notifications.map(n => n.recipientId)));
+      const allowed = notifications.filter(n => {
+        const settings = preferences.find(p => p.id === n.recipientId);
+        return settings && notificationPreferenceEnabled(n.type, settings);
+      });
+      if (allowed.length) await tx.insert(vibeSwipeNotificationsTable).values(
+        allowed.map((notification) => ({
           recipientId: notification.recipientId,
           actorId: notification.actorId,
           type: notification.type,

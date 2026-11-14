@@ -250,6 +250,7 @@ export interface VibeSwipeSettings {
   showAge: boolean;
   showDistance: boolean;
   notifyMatches: boolean;
+  notifyLikes: boolean;
   notifyMessages: boolean;
   notifyProfileViews: boolean;
   darkMode: boolean;
@@ -275,6 +276,7 @@ export interface VibeSwipeSettingsUpdateInput {
   showAge?: boolean;
   showDistance?: boolean;
   notifyMatches?: boolean;
+  notifyLikes?: boolean;
   notifyMessages?: boolean;
   notifyProfileViews?: boolean;
   darkMode?: boolean;
@@ -535,6 +537,14 @@ export interface ProfileLike {
 export interface ProfileView {
   profile: Profile;
   viewedAt: string;
+}
+
+export interface NotificationReadInput {
+  /**
+     * @minItems 1
+     * @maxItems 500
+     */
+  notificationIds: string[];
 }
 
 export type NotificationType = typeof NotificationType[keyof typeof NotificationType];

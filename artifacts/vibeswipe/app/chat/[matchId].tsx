@@ -33,7 +33,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { File } from "expo-file-system";
 import * as ImagePicker from "expo-image-picker";
 import { fetch as expoFetch } from "expo/fetch";
-import { KeyboardAvoidingView } from "react-native-keyboard-controller";
+import { KeyboardAvoidingView, useKeyboardState } from "react-native-keyboard-controller";
 import { router, useLocalSearchParams } from "expo-router";
 import { type ComponentRef, useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -93,6 +93,7 @@ function mediaTheme(theme: ChatThemeType, fallback: string): string {
 export default function ChatScreen() {
   const appColors = useColors();
   const insets = useSafeAreaInsets();
+  const keyboardVisible = useKeyboardState(state => state.isVisible);
   const queryClient = useQueryClient();
   const { getToken, userId } = useAuth();
   const { matchId: rawId, returnTo: rawReturn } = useLocalSearchParams<{ matchId: string; returnTo?: string }>();
@@ -740,7 +741,7 @@ export default function ChatScreen() {
           </Text>
         </View>
       ) : (
-        <View style={[styles.composer, { borderColor: colors.border, backgroundColor: colors.card, marginBottom: Math.max(insets.bottom, Platform.OS === "web" ? 34 : 10) }]}>
+        <View testID="chat-composer" style={[styles.composer, { borderColor: colors.border, backgroundColor: colors.card, marginBottom: keyboardVisible ? 0 : Math.max(insets.bottom, 8) }]}>
           <Pressable accessibilityRole="button" accessibilityLabel="Attach photo or video" testID="chat-attachment" onPress={() => void chooseAttachment()} disabled={busyMedia || sendMessage.isPending} style={styles.attachButton}>
             {busyMedia ? <ActivityIndicator color={chatAccent} size="small" /> : <Feather name="image" size={24} color={colors.mutedForeground} />}
           </Pressable>

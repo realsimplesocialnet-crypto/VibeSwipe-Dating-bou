@@ -6,6 +6,7 @@ import {
   vibeSwipeNotificationsTable,
 } from "@workspace/db";
 import { and, eq, or } from "drizzle-orm";
+import { notificationPreferenceEnabled } from "./vibeswipeReaction";
 
 export type CreateVibeSwipeNotificationInput = {
   recipientId: string;
@@ -57,6 +58,7 @@ export async function createVibeSwipeNotification(
     .select({
       id: profilesTable.id,
       notifyMatches: profilesTable.notifyMatches,
+      notifyLikes: profilesTable.notifyLikes,
       notifyMessages: profilesTable.notifyMessages,
       notifyProfileViews: profilesTable.notifyProfileViews,
     })
@@ -105,12 +107,7 @@ export async function createVibeSwipeNotification(
     }
   }
 
-  const notificationsEnabled =
-    type === "new_message"
-      ? recipient.notifyMessages
-      : type === "profile_view"
-        ? recipient.notifyProfileViews
-        : recipient.notifyMatches;
+  const notificationsEnabled = notificationPreferenceEnabled(type, recipient);
   if (!notificationsEnabled) return;
 
   await db.insert(vibeSwipeNotificationsTable).values({

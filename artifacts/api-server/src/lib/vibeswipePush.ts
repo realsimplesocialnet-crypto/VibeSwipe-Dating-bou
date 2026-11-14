@@ -159,6 +159,9 @@ export async function sendMessagePush(input: {
   content: string;
   mediaType?: string | null;
 }): Promise<void> {
+  const [recipient] = await db.select({ notifyMessages: profilesTable.notifyMessages })
+    .from(profilesTable).where(eq(profilesTable.id, input.recipientId)).limit(1);
+  if (!recipient?.notifyMessages) return;
   const subscriptions = await db
     .select({
       id: vibeSwipePushSubscriptionsTable.id,

@@ -1,11 +1,16 @@
 import { useEffect, useState } from "react";
-import { Bell, BellOff, LoaderCircle } from "lucide-react";
+import { Bell, BellOff, LoaderCircle, X } from "lucide-react";
+import { InstallAction } from "./install-action";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   getGetWebPushConfigQueryKey,
   useDeleteWebPushSubscription,
   useGetWebPushConfig,
   useSaveWebPushSubscription,
+  useGetVibeSwipeSettings,
+  getGetMatchesQueryKey,
+  getGetNotificationsQueryKey,
+  getGetMessagesQueryKey,
 } from "@workspace/api-client-react";
 
 function isIOSDevice(): boolean {
@@ -28,8 +33,23 @@ function decodeApplicationServerKey(value: string): Uint8Array {
   return Uint8Array.from(raw, (character) => character.charCodeAt(0));
 }
 
-export function WebPushSettings() {
+function subscriptionInput(subscription: PushSubscription) {
+  const json = subscription.toJSON();
+  if (!json.endpoint || !json.keys?.p256dh || !json.keys.auth) throw new Error("Please reconnect message notifications.");
+  return { endpoint: json.endpoint, keys: { p256dh: json.keys.p256dh, auth: json.keys.auth } };
+}
+
+function usesApplicationKey(subscription: PushSubscription, key: string) {
+  const actual = subscription.options.applicationServerKey;
+  if (!actual) return true;
+  const expected = decodeApplicationServerKey(key);
+  const bytes = new Uint8Array(actual);
+  return bytes.length === expected.length && bytes.every((byte, index) => byte === expected[index]);
+}
+
+export function WebPushSettings({ compact = false, visible = true, accountId = "" }: { compact?: boolean; visible?: boolean; accountId?: string }) {
   const queryClient = useQueryClient();
+  const preferences = useGetVibeSwipeSettings();
   const config = useGetWebPushConfig({
     query: { queryKey: getGetWebPushConfigQueryKey(), enabled: false },
   });
@@ -38,34 +58,74 @@ export function WebPushSettings() {
   const [enabled, setEnabled] = useState(false);
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState("");
+  const [checked, setChecked] = useState(false);
+  const [dismissed, setDismissed] = useState(() => {
+    try { return sessionStorage.getItem(`myage-push-reminder:${accountId}`) === "dismissed"; } catch { return false; }
+  });
   const supported =
     typeof window !== "undefined" &&
     "serviceWorker" in navigator &&
     "PushManager" in window &&
     "Notification" in window;
-  const iosNeedsHomeScreen = supported && isIOSDevice() && !isStandaloneApp();
+  const iosNeedsHomeScreen = isIOSDevice() && !isStandaloneApp();
 
   useEffect(() => {
     if (!supported) {
       setStatus(
         "This browser cannot receive background notifications. Use iOS 16.4 or newer with Myage on the Home Screen, or Chrome on Android.",
       );
+      setChecked(true);
       return;
     }
     let active = true;
-    void navigator.serviceWorker
-      .getRegistration(new URL(import.meta.env.BASE_URL, window.location.origin).href)
-      .then((registration) => registration?.pushManager.getSubscription())
-      .then((subscription) => {
-        if (active) setEnabled(Boolean(subscription));
-      })
-      .catch(() => {
-        if (active) setEnabled(false);
-      });
+    let syncing = false;
+    async function reconnect() {
+      if (syncing || document.visibilityState === "hidden") return;
+      syncing = true;
+      try {
+        if (!import.meta.env.PROD || iosNeedsHomeScreen || Notification.permission !== "granted") {
+          if (active) setEnabled(false);
+          return;
+        }
+        const registration = await navigator.serviceWorker.getRegistration(new URL(import.meta.env.BASE_URL, window.location.origin).href);
+        const subscription = await registration?.pushManager.getSubscription();
+        if (!subscription) { if (active) setEnabled(false); return; }
+        const loaded = await config.refetch();
+        const key = loaded.data?.applicationServerKey;
+        if (!key || !usesApplicationKey(subscription, key)) throw new Error("Reconnect message alerts using Enable notifications.");
+        // A local subscription alone is not enrollment: bind it to the signed-in account.
+        await saveSubscription.mutateAsync({ data: subscriptionInput(subscription) });
+        if (active) { setEnabled(true); setStatus(""); }
+      } catch {
+        if (active) { setEnabled(false); setStatus("Message alerts need reconnecting. Tap Enable notifications."); }
+      } finally {
+        syncing = false;
+        if (active) setChecked(true);
+      }
+    }
+    void reconnect();
+    window.addEventListener("focus", reconnect);
+    window.addEventListener("online", reconnect);
+    document.addEventListener("visibilitychange", reconnect);
     return () => {
       active = false;
+      window.removeEventListener("focus", reconnect);
+      window.removeEventListener("online", reconnect);
+      document.removeEventListener("visibilitychange", reconnect);
     };
-  }, [supported]);
+  }, [supported, iosNeedsHomeScreen, accountId]);
+
+  useEffect(() => {
+    if (!("serviceWorker" in navigator)) return;
+    const received = (event: MessageEvent) => {
+      if (event.data?.type !== "myage:new-message") return;
+      void queryClient.invalidateQueries({ queryKey: getGetNotificationsQueryKey() });
+      void queryClient.invalidateQueries({ queryKey: getGetMatchesQueryKey() });
+      if (typeof event.data.matchId === "string") void queryClient.invalidateQueries({ queryKey: getGetMessagesQueryKey(event.data.matchId) });
+    };
+    navigator.serviceWorker.addEventListener("message", received);
+    return () => navigator.serviceWorker.removeEventListener("message", received);
+  }, [queryClient]);
 
   async function enablePush() {
     if (busy) return;
@@ -93,16 +153,18 @@ export function WebPushSettings() {
       const registration =
         (await navigator.serviceWorker.getRegistration(
           new URL(import.meta.env.BASE_URL, window.location.origin).href,
-        )) ?? (await navigator.serviceWorker.ready);
-      const existing = await registration.pushManager.getSubscription();
+        )) ?? (await navigator.serviceWorker.register(new URL("service-worker.js", new URL(import.meta.env.BASE_URL, window.location.origin)).href, { updateViaCache: "none" }));
+      await navigator.serviceWorker.ready;
+      let existing = await registration.pushManager.getSubscription();
 
-      let applicationServerKey = config.data?.applicationServerKey;
-      if (!applicationServerKey) {
-        const loaded = await config.refetch();
-        applicationServerKey = loaded.data?.applicationServerKey;
-      }
+      const loaded = await config.refetch();
+      const applicationServerKey = loaded.data?.applicationServerKey;
       if (!applicationServerKey) {
         throw new Error("Myage could not prepare notifications. Please try again.");
+      }
+      if (existing && !usesApplicationKey(existing, applicationServerKey)) {
+        await existing.unsubscribe();
+        existing = null;
       }
 
       const subscription =
@@ -112,18 +174,8 @@ export function WebPushSettings() {
           applicationServerKey:
             decodeApplicationServerKey(applicationServerKey) as BufferSource,
         }));
-      const json = subscription.toJSON();
-      if (!json.endpoint || !json.keys?.p256dh || !json.keys.auth) {
-        throw new Error("This browser returned an incomplete notification subscription. Please try again.");
-      }
       await saveSubscription.mutateAsync({
-        data: {
-          endpoint: json.endpoint,
-          keys: {
-            p256dh: json.keys.p256dh,
-            auth: json.keys.auth,
-          },
-        },
+        data: subscriptionInput(subscription),
       });
       setEnabled(true);
       setStatus("Message notifications are on for this browser.");
@@ -164,6 +216,17 @@ export function WebPushSettings() {
     } finally {
       setBusy(false);
     }
+  }
+
+  if (compact) {
+    const mobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+    if (!visible || !checked || enabled || dismissed || !mobile || !import.meta.env.PROD || preferences.data?.notifyMessages === false) return null;
+    return <section data-testid="message-notification-reminder" className="fixed inset-x-3 bottom-[calc(78px+env(safe-area-inset-bottom))] z-40 mx-auto max-w-md rounded-2xl border border-primary/25 bg-card p-3 text-foreground shadow-xl">
+      <button aria-label="Dismiss notification reminder" onClick={() => { setDismissed(true); try { sessionStorage.setItem(`myage-push-reminder:${accountId}`, "dismissed"); } catch { /* Storage may be unavailable. */ } }} className="absolute right-2 top-2 rounded-full p-1 text-muted-foreground"><X size={16}/></button>
+      <div className="flex items-center gap-3 pr-5"><Bell size={22} className="shrink-0 text-primary"/><div className="min-w-0 flex-1"><p className="text-sm font-bold">Get message notifications</p><p className="mt-0.5 text-xs text-muted-foreground">{iosNeedsHomeScreen ? "On iPhone, open Myage from your Home Screen first." : "Receive alerts even when Myage is closed."}</p></div></div>
+      {iosNeedsHomeScreen ? <div className="mt-2"><InstallAction compact/></div> : <button data-testid="button-enable-background-notifications" disabled={busy || !supported} onClick={() => void enablePush()} className="mt-2 flex min-h-10 w-full items-center justify-center gap-2 rounded-xl bg-primary px-3 text-sm font-bold text-primary-foreground disabled:opacity-50">{busy && <LoaderCircle size={15} className="animate-spin"/>}Enable notifications</button>}
+      {!!status && <p role="status" className="mt-2 text-xs text-muted-foreground">{status}</p>}
+    </section>;
   }
 
   return (

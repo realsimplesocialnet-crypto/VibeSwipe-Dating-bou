@@ -45,6 +45,7 @@ export const profilesTable = pgTable("vibeswipe_profiles", {
   showAge: boolean("show_age").notNull().default(true),
   showDistance: boolean("show_distance").notNull().default(true),
   notifyMatches: boolean("notify_matches").notNull().default(true),
+  notifyLikes: boolean("notify_likes"),
   notifyMessages: boolean("notify_messages").notNull().default(true),
   notifyProfileViews: boolean("notify_profile_views").notNull().default(true),
   darkMode: boolean("dark_mode").notNull().default(true),

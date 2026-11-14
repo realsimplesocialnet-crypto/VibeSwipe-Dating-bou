@@ -1,11 +1,12 @@
 import type { ReactNode } from 'react';
-import { useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation } from 'wouter';
 import { useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, ChevronRight, Eye, Heart, MessageCircle, RefreshCw, Star, Users } from 'lucide-react';
 import {
   getGetMatchesQueryKey, getGetNotificationsQueryKey, getGetStoriesQueryKey, getGetWhoLikedYouQueryKey, getGetWhoViewedYouQueryKey,
   useGetMatches, useGetNotifications, useGetStories, useGetWhoLikedYou, useGetWhoViewedYou, useMarkNotificationRead,
+  createUseMarkActivitySeen,
 } from '@workspace/api-client-react';
 import type { Match, Profile } from '@workspace/api-client-react';
 import { MatchStoryAvatar } from '@/components/stories/stories-ui';
@@ -13,6 +14,7 @@ import './social-hub.css';
 
 type AvatarFn = (profile: Profile) => ReactNode;
 const live = { refetchInterval: 15000, refetchOnMount: 'always' as const, refetchOnWindowFocus: true, staleTime: 0 };
+const useMarkActivitySeen = createUseMarkActivitySeen({ useCallback, useEffect, useRef, useState });
 
 function ago(v: string) {
   const s = Math.max(0, (Date.now() - new Date(v).getTime()) / 1000);
@@ -41,6 +43,10 @@ function Head({ title, sub, back }: { title: string; sub?: string; back?: boolea
     <h1 className="brand text-[2.4rem] font-extrabold leading-none tracking-[-.05em] md:text-5xl" data-testid="text-page-title">{title}</h1>
     {sub && <p className="mt-2 text-[15px] sh-muted">{sub}</p>}
   </header>;
+}
+
+function SeenError({ seen }: { seen: ReturnType<typeof useMarkActivitySeen> }) {
+  return seen.error ? <div role="alert" className="mb-3 rounded-xl bg-primary/10 p-3 text-sm">Couldn’t clear the new count. <button disabled={seen.pending} onClick={() => void seen.retry()} className="font-bold text-primary">Retry</button></div> : null;
 }
 function Skel() {
   return <div className="space-y-3" aria-label="Loading">{[0, 1, 2].map(i => <div key={i} className="sh-card flex items-center gap-4 rounded-[22px] p-4"><div className="h-14 w-14 animate-pulse rounded-full bg-muted" /><div className="flex-1 space-y-2"><div className="h-4 w-32 animate-pulse rounded bg-muted" /><div className="h-3 w-24 animate-pulse rounded bg-muted" /></div></div>)}</div>;
@@ -99,11 +105,11 @@ export function ActivityOverview({ avatar }: { avatar: AvatarFn }) {
       </Link>)}
     </section>}
     <section className="mt-8 space-y-3" aria-label="Summary">
-      {cards.map(c => <Link key={c.key} href={c.href} data-testid={`link-summary-${c.key}`} aria-label={`${c.label}, ${c.n}`} className="sh-card flex items-center gap-4 rounded-[24px] p-4 transition-transform hover:-translate-y-px md:p-5">
+      {cards.map(c => <Link key={c.key} href={c.href} data-testid={`link-summary-${c.key}`} aria-label={`${c.label}, ${c.badge} new`} className="sh-card flex items-center gap-4 rounded-[24px] p-4 transition-transform hover:-translate-y-px md:p-5">
         <div className="sh-icon relative flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl">{c.icon}{c.badge > 0 && <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 text-[11px] font-bold text-primary-foreground">{c.badge > 99 ? '99+' : c.badge}</span>}</div>
         <div className="min-w-0 flex-1"><div className="text-[17px] font-bold">{c.label}</div><div className="sh-muted truncate text-sm">{c.q.isLoading ? 'Loading' : c.q.isError ? 'Unavailable right now' : c.sub}</div></div>
         {c.ps.length > 0 && <div className="hidden sm:block"><Stack profiles={c.ps} avatar={avatar} /></div>}
-        <span className="text-xl font-extrabold tabular-nums" data-testid={`text-count-${c.key}`}>{c.q.isLoading ? '-' : c.n}</span>
+        <span className="text-xl font-extrabold tabular-nums" data-testid={`text-count-${c.key}`}>{c.q.isLoading ? '-' : c.badge}</span>
         <ChevronRight size={18} className="sh-muted" aria-hidden="true" />
       </Link>)}
     </section>
@@ -116,10 +122,12 @@ export function InboundPeoplePage({ avatar, kind }: { avatar: AvatarFn; kind: 'l
   const likes = useGetWhoLikedYou({ query: { queryKey: getGetWhoLikedYouQueryKey(), enabled: isLikes, ...live } });
   const views = useGetWhoViewedYou({ query: { queryKey: getGetWhoViewedYouQueryKey(), enabled: !isLikes, ...live } });
   const q = isLikes ? likes : views;
+  const seen = useMarkActivitySeen(kind, { ready: q.isSuccess && !q.isFetching });
   const rows = useMemo(() => isLikes ? (likes.data ?? []).map(l => ({ profile: l.profile, at: l.likedAt, isSuperLike: l.isSuperLike })) : (views.data ?? []).map(v => ({ profile: v.profile, at: v.viewedAt, isSuperLike: false })), [isLikes, likes.data, views.data]);
   const rt = isLikes ? '%2Flikes' : '%2Fviews';
   return <div className="social-hub min-h-[calc(100dvh-48px)] lg:min-h-[100dvh]"><div className="page-in mx-auto max-w-[720px] px-4 pb-12 pt-6 md:px-8 md:pt-10">
     <Head back title={isLikes ? 'Likes' : 'Views'} sub={isLikes ? 'People who liked you' : 'People who viewed your profile'} />
+    <SeenError seen={seen} />
     {q.isLoading ? <Skel /> : q.isError && !q.data ? <Err text={`We couldn't load your ${kind}.`} onRetry={() => void q.refetch()} />
       : !rows.length ? <Empty icon={isLikes ? <Heart size={24} fill="currentColor" /> : <Eye size={24} />} title={isLikes ? 'No likes yet' : 'No views yet'} detail={isLikes ? 'When someone likes you, they show up here.' : 'When someone opens your profile, they show up here.'} />
       : <ul className="space-y-3">{rows.map(r => <li key={`${r.profile.id}-${r.at}`}><Link href={`/profile/${r.profile.id}?returnTo=${rt}`} onClick={() => readNotice(r.profile.id, isLikes ? 'new_like' : 'profile_view')} data-testid={`link-${kind}-profile-${r.profile.id}`} aria-label={`View ${r.profile.name}'s profile`} className="sh-card flex items-center gap-4 rounded-[22px] p-3.5 transition-transform hover:-translate-y-px md:p-4">
@@ -133,10 +141,12 @@ export function InboundPeoplePage({ avatar, kind }: { avatar: AvatarFn; kind: 'l
 export function MutualMatchesPage(_props: { avatar: AvatarFn }) {
   const readNotice = useNoticeReader();
   const matches = useGetMatches({ query: { queryKey: getGetMatchesQueryKey(), ...live } });
+  const seen = useMarkActivitySeen('matches', { ready: matches.isSuccess && !matches.isFetching });
   const stories = useGetStories({ query: { queryKey: getGetStoriesQueryKey(), refetchInterval: 60000 } });
   const list = useMemo(() => activeMatches(matches.data), [matches.data]);
   return <div className="social-hub min-h-[calc(100dvh-48px)] lg:min-h-[100dvh]"><div className="page-in mx-auto max-w-[720px] px-4 pb-12 pt-6 md:px-8 md:pt-10">
     <Head title="Matches" />
+    <SeenError seen={seen} />
     {matches.isLoading ? <Skel /> : matches.isError && !matches.data ? <Err text="We couldn't load your matches." onRetry={() => void matches.refetch()} />
       : !list.length ? <Link href="/discover" data-testid="link-empty-discover" className="inline-flex rounded-2xl bg-primary px-5 py-3 font-bold text-primary-foreground">Explore profiles</Link>
       : <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">{list.map(m => <li key={m.id} data-testid={`card-match-${m.id}`} className="sh-card flex items-center gap-3 rounded-[22px] p-3.5">
