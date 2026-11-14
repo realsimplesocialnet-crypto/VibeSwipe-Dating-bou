@@ -2,7 +2,7 @@
   "id": "/",
   "name": "Myage",
   "short_name": "Myage",
-  "description": "Meet people who show up as themselves.",
+  "description": "Myage is an adults-only dating app for genuine connection.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
@@ -12,16 +12,16 @@
   "categories": ["lifestyle", "social"],
   "icons": [
     {
-      "src": "/icon-192.png",
+      "src": "myage-icon-192-v7.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/icon-512.png",
+      "src": "myage-icon-512-v7.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any"
+      "purpose": "any maskable"
     }
   ]
 }

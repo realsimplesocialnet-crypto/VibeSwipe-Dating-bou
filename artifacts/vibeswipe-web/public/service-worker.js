@@ -1,12 +1,13 @@
 /* Static shell only. Never cache API, Clerk, private messages, or uploaded media. */
-const CACHE_NAME = 'myage-shell-v6';
+const CACHE_NAME = 'myage-shell-v7';
 const scopeUrl = new URL(self.registration.scope);
 const shell = [
   scopeUrl.href,
   new URL('manifest.json', scopeUrl).href,
-  new URL('icon.png', scopeUrl).href,
-  new URL('icon-192.png', scopeUrl).href,
-  new URL('icon-512.png', scopeUrl).href,
+  new URL('myage-icon-192-v7.png', scopeUrl).href,
+  new URL('myage-icon-512-v7.png', scopeUrl).href,
+  new URL('myage-apple-touch-v7.png', scopeUrl).href,
+  new URL('myage-pwa-icon.svg?v=7', scopeUrl).href,
   new URL('logo.svg', scopeUrl).href,
 ];
 
@@ -37,8 +38,8 @@ self.addEventListener('push', (event) => {
   const data = payload.data && typeof payload.data === 'object' ? payload.data : {};
   event.waitUntil(self.registration.showNotification(title, {
     body: typeof payload.body === 'string' ? payload.body : 'You have a new message.',
-    icon: new URL('icon-192.png', scopeUrl).href,
-    badge: new URL('icon-192.png', scopeUrl).href,
+    icon: new URL('myage-icon-192-v7.png', scopeUrl).href,
+    badge: new URL('myage-icon-192-v7.png', scopeUrl).href,
     tag: typeof data.matchId === 'string' ? `message-${data.matchId}` : 'myage-message',
     data,
   }));

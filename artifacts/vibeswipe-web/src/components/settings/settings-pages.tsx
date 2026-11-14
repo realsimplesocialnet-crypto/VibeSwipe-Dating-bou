@@ -11,7 +11,7 @@ import {
   useUnblockProfile, useUpdateVibeSwipeSettings,
   type Profile, type ProfileInput, type VibeSwipeSettings,
 } from "@workspace/api-client-react";
-import { Link, useParams } from "wouter";
+import { Link, useLocation, useParams } from "wouter";
 import { TravelModeSettings } from "@/components/travel-mode-settings";
 import { WebPushSettings } from "@/components/WebPushSettings";
 
@@ -43,15 +43,29 @@ const settingDefaults: FullSettings = {
   deactivated: false, travelMode: false, travelCity: null,
 };
 
+function safeReturnPath(value: string | null, fallback: string) {
+  if (!value || value.startsWith("//")) return fallback;
+  try {
+    const resolved = new URL(value, window.location.origin);
+    if (resolved.origin !== window.location.origin) return fallback;
+    return `${resolved.pathname}${resolved.search}${resolved.hash}`;
+  } catch {
+    return fallback;
+  }
+}
+
 export function SettingsIndexPage() {
+  const [location] = useLocation();
+  const returnTo = safeReturnPath(new URLSearchParams(window.location.search).get("returnTo"), "/profile");
+  const currentPath = `${location}${window.location.search}${window.location.hash}`;
   return <SettingsFrame>
-    <Link href="/profile" data-testid="link-settings-back-profile" className="mb-7 inline-flex items-center gap-2 rounded-lg text-sm font-semibold text-muted-foreground transition-colors hover:text-foreground"><ArrowLeft size={17}/>Profile</Link>
+    <Link href={returnTo} data-testid="link-settings-back-profile" className="mb-7 inline-flex items-center gap-2 rounded-lg text-sm font-semibold text-muted-foreground transition-colors hover:text-foreground"><ArrowLeft size={17}/>Back</Link>
     <div className="mb-8">
       <p className="text-[10px] font-bold uppercase tracking-[.2em] text-primary">Your comfort</p>
       <h1 className="brand mt-2 text-3xl font-bold tracking-[-.05em] md:text-[2.6rem]">Settings</h1>
     </div>
     <nav aria-label="Settings sections" className="max-w-2xl divide-y divide-white/[.07] border-y border-white/[.07]">
-      {sections.map(({ id, label, icon: Icon }) => <Link key={id} href={`/settings/${id}`} data-testid={`link-settings-${id}`} className="group flex min-h-[64px] items-center gap-4 py-4 text-[15px] font-semibold transition-colors hover:text-primary">
+      {sections.map(({ id, label, icon: Icon }) => <Link key={id} href={`/settings/${id}?returnTo=${encodeURIComponent(currentPath)}`} data-testid={`link-settings-${id}`} className="group flex min-h-[64px] items-center gap-4 py-4 text-[15px] font-semibold transition-colors hover:text-primary">
         <SettingIcon><Icon size={18}/></SettingIcon><span className="flex-1">{label}</span><ChevronRight size={18} className="text-muted-foreground transition-transform group-hover:translate-x-1 group-hover:text-primary"/>
       </Link>)}
     </nav>
@@ -60,19 +74,22 @@ export function SettingsIndexPage() {
 
 export function SettingsSectionPage() {
   const { section = "" } = useParams<{ section: string }>();
+  const [location] = useLocation();
+  const backTo = safeReturnPath(new URLSearchParams(window.location.search).get("returnTo"), "/settings");
+  const editReturnTo = `${location}${window.location.search}${window.location.hash}`;
   const selected = sections.find((item) => item.id === section);
   const query = useGetVibeSwipeSettings({ query: { queryKey: getGetVibeSwipeSettingsQueryKey() } });
-  if (!selected) return <SettingsFrame><Link href="/settings" className="inline-flex items-center gap-2 text-sm text-muted-foreground"><ArrowLeft size={17}/>Settings</Link><p className="mt-8">This settings section isn’t available.</p></SettingsFrame>;
+  if (!selected) return <SettingsFrame><Link href={backTo} className="inline-flex items-center gap-2 text-sm text-muted-foreground"><ArrowLeft size={17}/>Back</Link><p className="mt-8">This settings section isn’t available.</p></SettingsFrame>;
   const saved = { ...settingDefaults, ...(query.data as Partial<FullSettings> | undefined) };
   return <SettingsFrame>
-    <Link href="/settings" data-testid="link-settings-back" className="mb-7 inline-flex items-center gap-2 rounded-lg text-sm font-semibold text-muted-foreground transition-colors hover:text-foreground"><ArrowLeft size={17}/>Settings</Link>
+    <Link href={backTo} data-testid="link-settings-back" className="mb-7 inline-flex items-center gap-2 rounded-lg text-sm font-semibold text-muted-foreground transition-colors hover:text-foreground"><ArrowLeft size={17}/>Back</Link>
     <header className="mb-7">
       <p className="text-[10px] font-bold uppercase tracking-[.2em] text-primary">Settings</p>
       <h1 className="brand mt-2 text-3xl font-bold tracking-[-.05em] md:text-[2.6rem]">{selected.label}</h1>
     </header>
     {query.isLoading ? <div aria-label="Loading settings" className="max-w-2xl space-y-3">{[0,1,2].map(i=><div key={i} className="h-[76px] animate-pulse rounded-2xl border border-white/[.06] bg-white/[.03]"/>)}</div>
       : query.isError ? <div role="alert" className="max-w-2xl rounded-2xl border border-rose-300/20 bg-rose-300/[.06] p-5 text-sm text-rose-200">Settings couldn’t load. <button data-testid="button-retry-settings" onClick={()=>void query.refetch()} className="ml-1 font-bold underline underline-offset-4">Try again</button></div>
-      : <SectionContent section={section} settings={saved}/>}
+      : <SectionContent section={section} settings={saved} editReturnTo={editReturnTo}/>}
   </SettingsFrame>;
 }
 
@@ -80,7 +97,7 @@ function SettingsFrame({ children }: { children: ReactNode }) {
   return <div className="page-in mx-auto min-h-[calc(100dvh-66px)] max-w-[1200px] px-4 py-7 md:px-8 md:py-10">{children}</div>;
 }
 
-function SectionContent({ section, settings }: { section: string; settings: FullSettings }) {
+function SectionContent({ section, settings, editReturnTo }: { section: string; settings: FullSettings; editReturnTo: string }) {
   const profile = useGetMyProfile();
   const update = useUpdateVibeSwipeSettings();
   const saveProfile = useSaveMyProfile();
@@ -127,7 +144,7 @@ function SectionContent({ section, settings }: { section: string; settings: Full
 
   return <div className="max-w-2xl space-y-3">
     {section === "account" && <>
-      <Link href="/profile/edit?returnTo=%2Fsettings%2Faccount" data-testid="link-settings-edit-profile" className="setting-row">
+      <Link href={`/profile/edit?returnTo=${encodeURIComponent(editReturnTo)}`} data-testid="link-settings-edit-profile" className="setting-row">
         <SettingIcon><UserRound size={18}/></SettingIcon><span className="min-w-0 flex-1"><strong>Edit profile</strong><small>Update your photos and the details people see.</small></span><ChevronRight size={18} className="text-muted-foreground"/>
       </Link>
       <ActionRow icon={<LockKeyhole size={18}/>} title="Change password" detail="Manage your sign-in credentials." action="Manage" onClick={()=>openUserProfile()}/>
