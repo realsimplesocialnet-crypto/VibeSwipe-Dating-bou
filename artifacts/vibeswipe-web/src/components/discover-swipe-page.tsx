@@ -191,7 +191,7 @@ export function DiscoverSwipePage() {
   if (!profile) {
     return (
       <div className="mx-auto max-w-[760px] px-4 pt-3 pb-5 text-center sm:px-6 sm:pt-5 sm:pb-7">
-        <div className="relative -top-5">
+        <div className="relative -top-7">
           <StoriesRow />
         </div>
         <div className="mx-auto max-w-xl pt-10 pb-8"><h1 className="brand text-2xl font-bold">That’s everyone for now</h1>
