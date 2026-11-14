@@ -1,6 +1,7 @@
 import React from 'react';
 import { Platform, StyleSheet, useColorScheme, View } from 'react-native';
 import { useColors } from '@/hooks/useColors';
+import { useTheme } from '@/hooks/useTheme';
 import { Feather } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { isLiquidGlassAvailable } from 'expo-glass-effect';
@@ -52,8 +53,8 @@ function NativeTabLayout() {
 
 function ClassicTabLayout() {
   const colors = useColors();
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
+  const { scheme } = useTheme();
+  const isDark = scheme === 'dark';
   const isIOS = Platform.OS === 'ios';
   const isWeb = Platform.OS === 'web';
   const notifications = useGetNotifications({ query: { refetchInterval: 5_000 } });
@@ -76,6 +77,10 @@ function ClassicTabLayout() {
           elevation: 0,
           ...(isWeb ? { height: 84 } : {}),
         },
+        headerStyle: { backgroundColor: colors.background },
+        headerTintColor: colors.foreground,
+        headerTitleStyle: { color: colors.foreground },
+        headerShadowVisible: false,
         tabBarBackground: () =>
           isIOS ? (
             <BlurView
@@ -145,7 +150,9 @@ function ClassicTabLayout() {
 }
 
 export default function TabLayout() {
-  if (isLiquidGlassAvailable()) {
+  const { scheme } = useTheme();
+  const systemScheme = useColorScheme() === 'dark' ? 'dark' : 'light';
+  if (isLiquidGlassAvailable() && scheme === systemScheme) {
     return <NativeTabLayout />;
   }
   return <ClassicTabLayout />;

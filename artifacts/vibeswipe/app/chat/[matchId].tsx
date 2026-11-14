@@ -553,7 +553,7 @@ export default function ChatScreen() {
       keyboardVerticalOffset={0}
     >
       <View style={[styles.header, { borderBottomColor: colors.border, paddingTop: Math.max(insets.top, Platform.OS === "web" ? 67 : 12) }]}>
-        <Pressable accessibilityRole="button" accessibilityLabel="Go back" onPress={() => router.back()} style={styles.back}>
+        <Pressable accessibilityRole="button" accessibilityLabel="Back to matches" onPress={() => router.replace("/(tabs)/matches")} style={styles.back}>
           <Feather name="arrow-left" size={21} color={themedForeground} />
         </Pressable>
         <View style={styles.avatarWrap}>

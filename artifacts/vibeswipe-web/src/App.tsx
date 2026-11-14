@@ -89,7 +89,7 @@ const appearance = {
 function Brand({ compact = false }: { compact?: boolean }) {
   return <Link href="/" className="inline-flex items-center gap-2.5" data-testid="link-brand">
     <img src={pathFor('/icon.png')} alt="" className="h-9 w-9 rounded-xl ring-1 ring-white/10" />
-    {!compact && <span className="brand text-[21px] font-extrabold text-[#fff2f7]">My<span className="text-primary">age</span></span>}
+    {!compact && <span className="brand text-[21px] font-extrabold text-foreground">My<span className="text-primary">age</span></span>}
   </Link>;
 }
 
@@ -100,33 +100,36 @@ const navItems = [
 
 function AppShell({ children }: { children: ReactNode }) {
   const [location] = useLocation();
+  const showMainNavigation = ['/discover', '/matches', '/views', '/notifications', '/profile'].includes(location);
   const settingsReturnTo = `${location}${window.location.search}${window.location.hash}`;
   const { user } = useUser();
   const profile = useGetMyProfile();
   const { signOut } = useClerk();
   const activeName = profile.data?.name || user?.firstName || 'Your profile';
   return <div className="min-h-[100dvh] bg-background text-foreground">
-    <aside className="fixed inset-y-0 left-0 z-30 hidden w-[248px] flex-col border-r border-white/[.07] bg-[#17151c] px-5 py-6 lg:flex">
-      <Brand />
-      <div className="mb-4 mt-11 px-3 text-[10px] font-bold uppercase tracking-[.2em] text-muted-foreground">Your space</div>
-      <nav className="space-y-1">
-        {navItems.map(({ href, label, icon: Icon }) => <Link key={href} href={href} data-testid={`nav-${label.toLowerCase()}`} className={`flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold transition-colors ${location === href || (href === '/matches' && location.startsWith('/chat/')) ? 'bg-accent text-[#ff80b6]' : 'text-muted-foreground hover:bg-white/[.04] hover:text-foreground'}`}><Icon size={18}/>{label}</Link>)}
-      </nav>
-      <div className="mt-auto space-y-2 border-t border-white/[.08] pt-4">
-        <Link href="/profile" data-testid="nav-profile" className={`flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold ${location === '/profile' ? 'bg-accent text-[#ff80b6]' : 'text-muted-foreground hover:bg-white/[.04]'}`}><UserRound size={18}/><span className="truncate">{activeName}</span></Link>
-        <Link href={`/settings?returnTo=${encodeURIComponent(settingsReturnTo)}`} data-testid="nav-settings" className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-muted-foreground hover:bg-white/[.04]"><Settings size={18}/>Settings</Link>
-        <InstallAction className="px-1 pt-2"/>
-        <button onClick={() => void signOut({ redirectUrl: pathFor('/') })} data-testid="button-sign-out" className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm text-muted-foreground hover:bg-white/[.04]"><LogOut size={17}/>Sign out</button>
-      </div>
-    </aside>
-    <header className="sticky top-0 z-20 flex h-[66px] items-center justify-between border-b border-white/[.07] bg-[#15131a]/90 px-4 backdrop-blur-xl lg:hidden">
-      <Brand compact/><span className="brand text-lg font-extrabold">vibe<span className="text-primary">swipe</span></span><InstallAction/>
-    </header>
-    <main className="min-h-[calc(100dvh-66px)] pb-24 lg:ml-[248px] lg:min-h-[100dvh] lg:pb-0">{children}</main>
-    <nav className="fixed inset-x-0 bottom-0 z-30 flex justify-around border-t border-white/[.08] bg-[#17151c]/95 px-2 pb-[max(env(safe-area-inset-bottom),8px)] pt-2 backdrop-blur-xl lg:hidden">
+    {showMainNavigation && <>
+      <aside className="fixed inset-y-0 left-0 z-30 hidden w-[248px] flex-col border-r border-border bg-background px-5 py-6 lg:flex">
+        <Brand />
+        <div className="mb-4 mt-11 px-3 text-[10px] font-bold uppercase tracking-[.2em] text-muted-foreground">Your space</div>
+        <nav className="space-y-1">
+          {navItems.map(({ href, label, icon: Icon }) => <Link key={href} href={href} data-testid={`nav-${label.toLowerCase()}`} className={`flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold transition-colors ${location === href || (href === '/matches' && location.startsWith('/chat/')) ? 'bg-accent text-[#ff80b6]' : 'text-muted-foreground hover:bg-white/[.04] hover:text-foreground'}`}><Icon size={18}/>{label}</Link>)}
+        </nav>
+        <div className="mt-auto space-y-2 border-t border-white/[.08] pt-4">
+          <Link href="/profile" data-testid="nav-profile" className={`flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold ${location === '/profile' ? 'bg-accent text-[#ff80b6]' : 'text-muted-foreground hover:bg-white/[.04]'}`}><UserRound size={18}/><span className="truncate">{activeName}</span></Link>
+          <Link href={`/settings?returnTo=${encodeURIComponent(settingsReturnTo)}`} data-testid="nav-settings" className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-muted-foreground hover:bg-white/[.04]"><Settings size={18}/>Settings</Link>
+          <InstallAction className="px-1 pt-2"/>
+          <button onClick={() => void signOut({ redirectUrl: pathFor('/') })} data-testid="button-sign-out" className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm text-muted-foreground hover:bg-white/[.04]"><LogOut size={17}/>Sign out</button>
+        </div>
+      </aside>
+      <header className="sticky top-0 z-20 flex h-[66px] items-center justify-between border-b border-border bg-background/90 px-4 backdrop-blur-xl lg:hidden">
+        <Brand compact/><span className="brand text-lg font-extrabold">vibe<span className="text-primary">swipe</span></span><InstallAction/>
+      </header>
+    </>}
+    <main className={showMainNavigation ? "min-h-[calc(100dvh-66px)] pb-24 lg:ml-[248px] lg:min-h-[100dvh] lg:pb-0" : "min-h-[100dvh]"}>{children}</main>
+    {showMainNavigation && <nav className="fixed inset-x-0 bottom-0 z-30 flex justify-around border-t border-border bg-background/95 px-2 pb-[max(env(safe-area-inset-bottom),8px)] pt-2 backdrop-blur-xl lg:hidden">
       {navItems.map(({ href, label, icon: Icon }) => <Link key={href} href={href} data-testid={`mobile-nav-${label.toLowerCase()}`} className={`flex min-w-[62px] flex-col items-center gap-1 rounded-xl px-3 py-1.5 text-[10px] font-semibold ${location === href || (href === '/matches' && location.startsWith('/chat/')) ? 'text-primary' : 'text-muted-foreground'}`}><Icon size={19}/>{label}</Link>)}
       <Link href="/profile" data-testid="mobile-nav-profile" className={`flex min-w-[62px] flex-col items-center gap-1 rounded-xl px-3 py-1.5 text-[10px] font-semibold ${location === '/profile' ? 'text-primary' : 'text-muted-foreground'}`}><UserRound size={19}/>Profile</Link>
-    </nav>
+    </nav>}
   </div>;
 }
 
@@ -355,7 +358,7 @@ function ChatPage({matchId}:{matchId:string}) {
   async function deleteMessageFor(message:Message,forEveryone:boolean){try{await del.mutateAsync({matchId,messageId:message.id,data:{forEveryone}});if(!forEveryone)qc.setQueryData<Message[]>(getGetMessagesQueryKey(matchId),current=>(current??[]).filter(item=>item.id!==message.id));await msgs.refetch()}catch{setError('Message could not be deleted. Please try again.')}finally{setDeleteTarget(null)}}
   async function attach(file?:File){if(!file||blocked||busy||send.isPending)return;const kind=file.type.startsWith('video/')?'video':file.type.startsWith('audio/')?'audio':'image';if(kind==='image'&&file.size>15*1024*1024){setError('Choose an image smaller than 15 MB.');return}if(kind==='video'&&file.size>500*1024*1024){setError('Choose a video smaller than 500 MB.');return}if(kind==='audio'&&file.size>25*1024*1024){setError('Choose an audio note smaller than 25 MB.');return}setBusy(true);setError('');try{const prepared=kind==='image'?await prepareProfilePhoto(file):file;const allowed:MediaUploadInputContentType[]=['image/jpeg','image/png','image/webp','image/heic','video/mp4','video/quicktime','audio/mp4','audio/m4a','audio/aac','audio/wav'];const fallback:MediaUploadInputContentType=kind==='image'?'image/jpeg':kind==='video'?'video/mp4':'audio/m4a';const contentType:MediaUploadInputContentType=allowed.includes(prepared.type as MediaUploadInputContentType)?prepared.type as MediaUploadInputContentType:fallback;const signed=await upload.mutateAsync({matchId,data:{name:prepared.name,size:prepared.size,contentType,mediaType:kind}});if(kind==='image')await uploadProfilePhotoBytes(signed.uploadURL,prepared);else{const res=await fetch(signed.uploadURL,{method:'PUT',headers:{'Content-Type':contentType},body:prepared});if(!res.ok)throw {status:res.status}}const mediaReference=kind==='video'?(await transcode.mutateAsync({mediaId:signed.mediaId})).mediaReference:signed.mediaReference;await sendMessage('',{mediaReference,mediaType:kind})}catch(error){setError(userErrorMessage(error,'Your attachment wasn’t sent. Choose the file again to retry.'))}finally{setBusy(false)}}
   async function action(a:string){if(!match)return;setActions(false);try{if(a==='block'){if(match.blockedByMe)await unblock.mutateAsync({targetUserId:match.profile.id});else if(window.confirm(`Block ${match.profile.name}?`))await block.mutateAsync({data:{targetUserId:match.profile.id}})}if(a==='report')await report.mutateAsync({data:{targetUserId:match.profile.id,reason:'other'}});if(a==='clear'){if(window.confirm('Clear messages from your view?')){await clear.mutateAsync({matchId});await qc.invalidateQueries({queryKey:getGetMessagesQueryKey(matchId)})}}if(a==='unmatch'){if(window.confirm('Unmatch and remove this shared chat?')){await unmatch.mutateAsync({matchId});void qc.invalidateQueries({queryKey:getGetMatchesQueryKey()})}}if(a==='theme')setThemeOpen(true)}catch{setError('That action did not complete. Please try again.')}}
-  return <div className="mx-auto flex h-[calc(100dvh-66px)] max-w-[1120px] flex-col px-3 py-3 md:h-[100dvh] md:px-7 md:py-6">
+  return <div className="mx-auto flex h-[100dvh] max-w-[1120px] flex-col px-3 py-3 md:px-7 md:py-6">
     <header className="flex items-center gap-3 border-b border-white/[.08] pb-4"><Link href="/matches" data-testid="link-chat-back" className="rounded-xl p-2 text-muted-foreground hover:bg-white/[.05]"><ArrowLeft size={19}/></Link><Avatar profile={match.profile} size="sm"/><div className="min-w-0 flex-1"><div className="font-bold">{match.profile.name}</div><div className="text-xs text-muted-foreground">{presence.data?.isOnline?<span className="text-emerald-300">Online</span>:presence.data?.lastSeenAt?`Last seen ${new Date(presence.data.lastSeenAt).toLocaleString()}`:'A conversation just for your mutual match'}</div></div><button onClick={()=>setActions(true)} data-testid="button-chat-actions" className="rounded-xl p-2 text-muted-foreground"><MoreHorizontal size={20}/></button></header>
     {blocked&&<div className="mt-3 rounded-xl border border-rose-300/15 bg-rose-300/[.06] px-4 py-3 text-sm text-rose-200">Messaging is unavailable while this profile is blocked.</div>}
     {msgs.isError&&<button onClick={()=>void msgs.refetch()} data-testid="button-retry-messages" className="mt-2 rounded-lg bg-rose-300/10 p-2 text-xs text-rose-200">Messages failed to load. Tap to retry.</button>}
@@ -380,7 +383,7 @@ function ViewsPage() {
         {q.isLoading ? <Busy />
           : q.isError ? <Retry onRetry={() => void q.refetch()} />
           : !q.data?.length ? <Empty title="No views yet" detail="When someone opens your profile, they’ll appear here." />
-          : <div className="space-y-2">{q.data.map(v => <Link key={`${v.profile.id}-${v.viewedAt}`} href={`/profile/${v.profile.id}?returnTo=%2Fviews`} data-testid={`link-viewer-${v.profile.id}`} className="flex items-center gap-4 rounded-2xl border border-white/[.08] bg-card p-4 hover:bg-white/[.04]"><Avatar profile={v.profile} /><div className="flex-1"><div className="font-bold">{v.profile.name}, {v.profile.age}</div><div className="mt-1 text-xs text-muted-foreground">{v.profile.city || 'Nearby'} · {new Date(v.viewedAt).toLocaleString()}</div></div><ChevronRight size={18} className="text-muted-foreground" /></Link>)}</div>}
+          : <div className="space-y-2">{q.data.map(v => <Link key={`${v.profile.id}-${v.viewedAt}`} href={`/profile/${v.profile.id}?returnTo=%2Fviews`} data-testid={`link-viewer-${v.profile.id}`} className="flex items-center gap-4 rounded-2xl border border-white/[.08] bg-card p-4 hover:bg-white/[.04]"><span className="shrink-0 rounded-full border border-primary/75 p-[2px]"><Avatar profile={v.profile} /></span><div className="flex-1"><div className="font-bold">{v.profile.name}, {v.profile.age}</div><div className="mt-1 text-xs text-muted-foreground">{v.profile.city || 'Nearby'} · {new Date(v.viewedAt).toLocaleString()}</div></div><ChevronRight size={18} className="text-muted-foreground" /></Link>)}</div>}
       </div>
     </div>
   </PageFrame>;
@@ -538,7 +541,7 @@ function PublicProfile({id,actionReturnTo='/discover'}:{id:string;actionReturnTo
     <Link href={actionReturnTo} data-testid="link-public-profile-back" className="mt-4 inline-flex min-h-11 items-center rounded-full border border-white/15 px-5 text-sm font-semibold text-foreground transition-colors hover:border-primary/40 hover:bg-primary/[.06]">Back</Link>
   </div>
  </main>
-  <div className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-[29] border-t border-white/[.08] bg-[#17151c]/95 px-4 py-3 backdrop-blur-xl lg:bottom-5 lg:left-[calc(248px+1.5rem)] lg:right-5 lg:rounded-2xl lg:border" aria-label="Profile actions">
+  <div className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-[29] border-t border-border bg-background/95 px-4 py-3 backdrop-blur-xl lg:bottom-5 lg:left-[calc(248px+1.5rem)] lg:right-5 lg:rounded-2xl lg:border" aria-label="Profile actions">
   <div className="flex items-center justify-center gap-6">
    <button type="button" onClick={()=>void passProfile()} disabled={reaction.isPending||!!likeConfirmation||!!matchResult} data-testid="button-viewed-profile-pass" aria-label="Pass" className="flex h-12 w-12 items-center justify-center rounded-full border border-white/15 bg-[#28232d] text-rose-300 shadow-lg disabled:opacity-40"><X size={23}/></button>
    <button type="button" onClick={()=>void likeProfile()} disabled={reaction.isPending||!!likeConfirmation||!!matchResult||likes.isLoading||likes.data?.remaining===0} data-testid="button-viewed-profile-like" aria-label={`Like ${q.data.name}`} className="flex h-14 w-14 items-center justify-center rounded-full bg-primary text-[#27101d] shadow-[0_8px_30px_rgba(243,78,154,.32)] disabled:opacity-40"><Heart size={25} fill="currentColor"/></button>
@@ -623,11 +626,17 @@ function ViewsRoute(){return <ShellPage><ViewsPage/></ShellPage>}
 function NotificationsRoute(){return <ShellPage><NotificationsPage/></ShellPage>}
 function ViewedNotificationProfileRoute(){const params=useParams<{profileId:string}>();return <ShellPage><PublicProfile id={params.profileId||''} actionReturnTo="/notifications"/></ShellPage>}
 function PublicProfileRoute(){const params=useParams<{profileId:string}>();const returnTo=safeAppReturnPath(new URLSearchParams(window.location.search).get('returnTo'),'/discover');return <ShellPage><PublicProfile id={params.profileId||''} actionReturnTo={returnTo}/></ShellPage>}
-function SettingsThemeSync(){
- const {isLoaded,isSignedIn}=useUser();
- const settings=useGetVibeSwipeSettings({query:{enabled:Boolean(isLoaded&&isSignedIn),queryKey:getGetVibeSwipeSettingsQueryKey()}});
- useEffect(()=>{if(!isLoaded)return;document.documentElement.dataset.theme=isSignedIn&&settings.data?.darkMode===false?'light':'dark'},[isLoaded,isSignedIn,settings.data?.darkMode]);
- return null;
+function SettingsThemeSync() {
+  const { isLoaded, isSignedIn } = useUser();
+  const settings = useGetVibeSwipeSettings({ query: { enabled: Boolean(isLoaded && isSignedIn), queryKey: getGetVibeSwipeSettingsQueryKey() } });
+  const lightMode = isSignedIn && settings.data?.darkMode === false;
+  useEffect(() => {
+    if (!isLoaded) return;
+    document.documentElement.dataset.theme = lightMode ? "light" : "dark";
+    document.querySelector<HTMLMetaElement>('meta[name="theme-color"]')?.setAttribute("content", lightMode ? "#f8f6fa" : "#15131a");
+    document.querySelector<HTMLMetaElement>('meta[name="apple-mobile-web-app-status-bar-style"]')?.setAttribute("content", lightMode ? "default" : "black-translucent");
+  }, [isLoaded, lightMode]);
+  return null;
 }
 function ClerkCacheSync(){const {user}=useUser();const client=useQueryClient();const previous=useRef<string|null|undefined>(undefined);useEffect(()=>{const id=user?.id??null;if(previous.current!==undefined&&previous.current!==id)client.clear();previous.current=id},[user?.id,client]);return null}
 function ClerkRoutes(){const [,setLocation]=useLocation();return <ClerkProvider publishableKey={clerkPubKey} proxyUrl={clerkProxyUrl} appearance={appearance} signInUrl={pathFor('/sign-in')} signUpUrl={pathFor('/sign-up')} localization={{signIn:{start:{title:'Welcome back',subtitle:'Your next good conversation is waiting.'}},signUp:{start:{title:'Make room for a spark',subtitle:'Create your adults-only Myage account.'}}}} routerPush={to=>setLocation(to.startsWith(basePath)?to.slice(basePath.length)||'/':to)} routerReplace={to=>setLocation(to.startsWith(basePath)?to.slice(basePath.length)||'/':to,{replace:true})}><ClerkCacheSync/><SettingsThemeSync/><Switch>

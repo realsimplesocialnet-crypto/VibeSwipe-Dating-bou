@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { ClerkLoaded, ClerkProvider, useAuth } from "@clerk/expo";
 import { tokenCache } from "@clerk/expo/token-cache";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { setAuthTokenGetter, setBaseUrl, useHeartbeatPresence } from "@workspace/api-client-react";
+import { setAuthTokenGetter, setBaseUrl, useGetVibeSwipeSettings, useHeartbeatPresence } from "@workspace/api-client-react";
 import { AppState, Platform } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
@@ -11,7 +11,7 @@ import { StatusBar } from "expo-status-bar";
 import * as Notifications from "expo-notifications";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { PushNotificationBridge } from "@/components/PushNotificationBridge";
-import { ThemeProvider } from "@/hooks/useTheme";
+import { ThemeProvider, useTheme } from "@/hooks/useTheme";
 import {
   Inter_400Regular,
   Inter_500Medium,
@@ -43,6 +43,11 @@ const domain = process.env.EXPO_PUBLIC_DOMAIN;
 if (domain) setBaseUrl(`https://${domain}`);
 const clerkKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY ?? "";
 const clerkProxyUrl = process.env.EXPO_PUBLIC_CLERK_PROXY_URL || undefined;
+
+function ThemeStatusBar() {
+  const { scheme } = useTheme();
+  return <StatusBar style={scheme === "dark" ? "light" : "dark"} />;
+}
 
 function RootLayoutNav() {
   return (
@@ -96,11 +101,28 @@ function AuthenticatedApi({ children }: { children: React.ReactNode }) {
   if (!ready) return null;
   return (
     <QueryClientProvider client={queryClient}>
+      <ThemePreferenceSync />
       <PushNotificationBridge />
       <PresenceHeartbeat />
       {children}
     </QueryClientProvider>
   );
+}
+
+function ThemePreferenceSync() {
+  const { isLoaded, isSignedIn } = useAuth();
+  const { scheme, setScheme } = useTheme();
+  const settings = useGetVibeSwipeSettings({
+    query: { enabled: Boolean(isLoaded && isSignedIn), retry: false },
+  });
+
+  useEffect(() => {
+    if (typeof settings.data?.darkMode !== "boolean") return;
+    const savedScheme = settings.data.darkMode ? "dark" : "light";
+    if (savedScheme !== scheme) void setScheme(savedScheme);
+  }, [scheme, setScheme, settings.data?.darkMode]);
+
+  return null;
 }
 
 function PresenceHeartbeat() {
@@ -153,7 +175,7 @@ export default function RootLayout() {
               <GestureHandlerRootView style={{ flex: 1 }}>
                 <KeyboardProvider>
                   <AuthenticatedApi>
-                    <StatusBar style="light" />
+                    <ThemeStatusBar />
                     <AuthRouteGuard />
                   </AuthenticatedApi>
                 </KeyboardProvider>

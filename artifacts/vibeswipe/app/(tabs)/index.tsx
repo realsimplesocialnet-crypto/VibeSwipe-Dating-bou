@@ -461,7 +461,7 @@ export default function DiscoverScreen() {
   }
 
   return (
-    <View style={[styles.screen, { backgroundColor: colors.discoverBackground }]}>
+    <View style={[styles.screen, { backgroundColor: colors.background }]}>
       <View style={styles.deck}>
         <SwipeCard
           key={profile.id}
