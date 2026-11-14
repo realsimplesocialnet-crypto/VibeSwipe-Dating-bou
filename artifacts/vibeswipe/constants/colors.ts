@@ -56,6 +56,21 @@ const colors = {
     discoverGradientMiddle: "rgba(0,0,0,0.28)",
     discoverGradientBottom: "rgba(0,0,0,0.92)",
 
+    // Own profile overview
+    profileGradientStart: "#f9c6d3",
+    profileGradientMiddle: "#fbd6d8",
+    profileGradientEnd: "#fde2cc",
+    profileCard: "#fffdfd",
+    profileEdit: "#f2557d",
+    profileEditForeground: "#fff8fa",
+    profileLabel: "#2a2328",
+    profileMuted: "#4a4248",
+    profileRule: "#efe6e9",
+    profileChip: "#fde4ea",
+    profileChipForeground: "#a8304f",
+    photoBadge: "rgba(0,0,0,0.62)",
+    photoBadgeForeground: "#ffffff",
+
     // Destructive actions (delete, error states)
     destructive: "#d44358",
     destructiveForeground: "#ffffff",
@@ -94,6 +109,20 @@ const colors = {
     discoverGradientTop: "rgba(0,0,0,0)",
     discoverGradientMiddle: "rgba(0,0,0,0.28)",
     discoverGradientBottom: "rgba(0,0,0,0.92)",
+
+    profileGradientStart: "#3a2232",
+    profileGradientMiddle: "#2a1d29",
+    profileGradientEnd: "#3a2a26",
+    profileCard: "#171317",
+    profileEdit: "#f2557d",
+    profileEditForeground: "#fff8fa",
+    profileLabel: "#efe2e8",
+    profileMuted: "#b6a8af",
+    profileRule: "#332b31",
+    profileChip: "#3b202b",
+    profileChipForeground: "#ffb1c2",
+    photoBadge: "rgba(0,0,0,0.62)",
+    photoBadgeForeground: "#ffffff",
 
     destructive: "#f05a6e",
     destructiveForeground: "#ffffff",
