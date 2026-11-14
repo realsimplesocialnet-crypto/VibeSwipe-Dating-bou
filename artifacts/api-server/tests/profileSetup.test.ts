@@ -15,6 +15,8 @@ const profileInput = SaveMyProfileBody.parse({
   country: "Canada",
   state: "Ontario",
   interests: ["Music", "coffee", "travel"],
+  occupation: "Other",
+  occupationOther: "Community gardener",
   photos: ["media:00000000-0000-4000-8000-000000000001"],
   videoUrl: null,
   preferences: {
@@ -37,8 +39,22 @@ test("profile persistence takes its owner from the authenticated user, not the b
   assert.equal(values.name, "Sam Rivera");
   assert.equal(values.bio, "Loves live music.");
   assert.deepEqual(values.photos, profileInput.photos);
+  assert.equal(values.occupation, "Other");
+  assert.equal(values.occupationOther, "Community gardener");
   assert.deepEqual(values.preferences, profileInput.preferences);
   assert.equal(values.updatedAt, savedAt);
+});
+
+test("older profile-save callers retain empty occupation defaults", () => {
+  const legacyInput = SaveMyProfileBody.parse({
+    ...profileInput,
+    occupation: undefined,
+    occupationOther: undefined,
+  });
+  const saved = buildProfileValues(signedInUserId, legacyInput, savedAt);
+
+  assert.equal(saved.occupation, "");
+  assert.equal(saved.occupationOther, "");
 });
 
 test("an account profile cannot be saved without at least one picture", () => {

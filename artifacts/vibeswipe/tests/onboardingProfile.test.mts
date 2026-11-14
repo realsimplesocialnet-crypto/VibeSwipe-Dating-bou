@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   EMPTY_SETUP,
+  asSetupData,
   buildProfileInput,
   getOnboardingStepError,
   runProfileCompletionOnce,
@@ -22,7 +23,9 @@ const completeSetup: SetupData = {
   state: "Ontario",
   stateCode: "ON",
   city: "Toronto",
-  interests: "Music, coffee, travel",
+  interests: ["Music", "Coffee", "Travel"],
+  occupation: "Other",
+  occupationOther: "Community gardener",
   ageMin: "24",
   ageMax: "38",
   distanceKm: 100,
@@ -40,9 +43,9 @@ test("each required onboarding screen rejects missing or invalid input", () => {
     { step: 7, patch: { countryCode: "" } },
     { step: 8, patch: { stateCode: "" }, hasRegions: true },
     { step: 9, patch: { city: "" } },
-    { step: 11, patch: { ageMin: "17" } },
-    { step: 11, patch: { ageMin: "40", ageMax: "39" } },
-    { step: 11, patch: { distanceKm: 501 } },
+    { step: 12, patch: { ageMin: "17" } },
+    { step: 12, patch: { ageMin: "40", ageMax: "39" } },
+    { step: 12, patch: { distanceKm: 501 } },
   ];
 
   for (const { step, patch, hasRegions = false } of cases) {
@@ -54,7 +57,7 @@ test("each required onboarding screen rejects missing or invalid input", () => {
 });
 
 test("valid steps accept the required details, one photo, and discovery values", () => {
-  for (const step of [0, 1, 2, 3, 4, 5, 7, 8, 9, 11]) {
+  for (const step of [0, 1, 2, 3, 4, 5, 7, 8, 9, 12]) {
     assert.equal(getOnboardingStepError(step, completeSetup, true), null);
   }
   assert.equal(getOnboardingStepError(8, completeSetup, false), null);
@@ -62,7 +65,7 @@ test("valid steps accept the required details, one photo, and discovery values",
   assert.equal(getOnboardingStepError(10, completeSetup, false), null);
 });
 
-test("the final profile payload combines details, bio, one photo, interests, and preferences", () => {
+test("the final profile payload saves selected hobbies and occupation", () => {
   assert.deepEqual(buildProfileInput(completeSetup), {
     name: "Sam Rivera",
     age: 29,
@@ -72,7 +75,9 @@ test("the final profile payload combines details, bio, one photo, interests, and
     country: "Canada",
     state: "Ontario",
     city: "Toronto",
-    interests: ["Music", "coffee", "travel"],
+    interests: ["Music", "Coffee", "Travel"],
+    occupation: "Other",
+    occupationOther: "Community gardener",
     photos: ["media:photo-one"],
     videoUrl: null,
     preferences: {
@@ -82,6 +87,12 @@ test("the final profile payload combines details, bio, one photo, interests, and
       distanceKm: 100,
     },
   });
+});
+
+test("saved drafts upgrade older comma-separated hobbies without losing them", () => {
+  const restored = asSetupData({ interests: "Music, coffee, travel" });
+  assert.deepEqual(restored.interests, ["Music", "coffee", "travel"]);
+  assert.equal(restored.occupation, "Prefer not to say");
 });
 
 test("concurrent completion attempts submit once and failed saves can be retried", async () => {

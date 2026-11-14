@@ -5,6 +5,7 @@ import {
   useSaveMyProfile,
   useSaveOnboardingDraft,
 } from "@workspace/api-client-react";
+import { HobbyMultiSelect, OccupationSelect } from "@/components/ProfileChoiceFields";
 import { City, Country, State } from "country-state-city";
 import { Feather } from "@expo/vector-icons";
 import { useQueryClient } from "@tanstack/react-query";
@@ -32,7 +33,7 @@ import {
   type SetupData,
 } from "@/lib/onboardingProfile";
 
-const STEP_COUNT = 12;
+const STEP_COUNT = 13;
 const STEPS = [
   "First name",
   "Last name",
@@ -44,7 +45,8 @@ const STEPS = [
   "Country",
   "State / region",
   "City",
-  "Interests",
+  "Hobbies",
+  "Work / occupation",
   "Preferences",
 ];
 
@@ -409,21 +411,26 @@ export function OnboardingWizard() {
       ) : null}
 
       {step === 10 ? (
-        <StepFrame title="What are you interested in?" subtitle="Add up to 12 interests, separated by commas.">
-          <TextInput
-            testID="profile-interests"
-            autoFocus
+        <StepFrame title="Choose your hobbies." subtitle="Tap as many as you like. You can choose up to 12.">
+          <HobbyMultiSelect
             value={values.interests}
-            onChangeText={(value) => update("interests", value)}
-            maxLength={400}
-            placeholder="Music, food, travel"
-            placeholderTextColor={colors.mutedForeground}
-            style={[styles.input, { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.card }]}
+            onChange={(interests) => update("interests", interests)}
           />
         </StepFrame>
       ) : null}
 
       {step === 11 ? (
+        <StepFrame title="What do you do for work?" subtitle="Choose one. The extra detail for “Other” is optional.">
+          <OccupationSelect
+            value={values.occupation}
+            otherValue={values.occupationOther}
+            onChange={(occupation) => update("occupation", occupation)}
+            onOtherChange={(occupationOther) => update("occupationOther", occupationOther)}
+          />
+        </StepFrame>
+      ) : null}
+
+      {step === 12 ? (
         <StepFrame title="Set your discovery preferences." subtitle="Choose the age range and distance for people you see.">
           <Text style={[styles.fieldLabel, { color: colors.foreground }]}>Age range</Text>
           <View style={styles.ageRow}>

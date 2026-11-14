@@ -11,7 +11,9 @@ export type SetupData = {
   state: string;
   stateCode: string;
   city: string;
-  interests: string;
+  interests: string[];
+  occupation: string;
+  occupationOther: string;
   ageMin: string;
   ageMax: string;
   distanceKm: number;
@@ -30,13 +32,20 @@ export const EMPTY_SETUP: SetupData = {
   state: "",
   stateCode: "",
   city: "",
-  interests: "",
+  interests: [],
+  occupation: "Prefer not to say",
+  occupationOther: "",
   ageMin: "22",
   ageMax: "35",
   distanceKm: 50,
 };
 
 export function asSetupData(value: Record<string, unknown>): SetupData {
+  const interests = Array.isArray(value.interests)
+    ? value.interests.filter((item): item is string => typeof item === "string")
+    : typeof value.interests === "string"
+      ? value.interests.split(",").map((item) => item.trim()).filter(Boolean)
+      : [];
   return {
     ...EMPTY_SETUP,
     ...value,
@@ -54,7 +63,9 @@ export function asSetupData(value: Record<string, unknown>): SetupData {
     state: typeof value.state === "string" ? value.state : "",
     stateCode: typeof value.stateCode === "string" ? value.stateCode : "",
     city: typeof value.city === "string" ? value.city : "",
-    interests: typeof value.interests === "string" ? value.interests : "",
+    interests,
+    occupation: typeof value.occupation === "string" ? value.occupation : EMPTY_SETUP.occupation,
+    occupationOther: typeof value.occupationOther === "string" ? value.occupationOther : "",
     ageMin: typeof value.ageMin === "string" ? value.ageMin : "22",
     ageMax: typeof value.ageMax === "string" ? value.ageMax : "35",
     distanceKm:
@@ -97,7 +108,7 @@ export function getOnboardingStepError(
   if (step === 9 && !values.city) {
     return "Select a city from the real location list.";
   }
-  if (step === 11) {
+  if (step === 12) {
     const min = Number(values.ageMin);
     const max = Number(values.ageMax);
     if (!Number.isInteger(min) || min < 18 || min > 120) {
@@ -123,11 +134,9 @@ export function buildProfileInput(values: SetupData) {
     country: values.country || null,
     state: values.state || null,
     city: values.city,
-    interests: values.interests
-      .split(",")
-      .map((item) => item.trim())
-      .filter(Boolean)
-      .slice(0, 12),
+    interests: values.interests.slice(0, 12),
+    occupation: values.occupation,
+    occupationOther: values.occupation === "Other" ? values.occupationOther.trim() : "",
     photos: values.photos,
     videoUrl: null,
     preferences: {

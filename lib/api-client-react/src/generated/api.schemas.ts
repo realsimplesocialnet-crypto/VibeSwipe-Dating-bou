@@ -41,6 +41,8 @@ export interface Profile {
   /** @nullable */
   state: string | null;
   interests: string[];
+  occupation: string;
+  occupationOther: string;
   photos: string[];
   /** @nullable */
   videoUrl?: string | null;
@@ -89,6 +91,10 @@ export interface ProfileInput {
      * @items.maxLength 32
      */
   interests: string[];
+  /** @maxLength 80 */
+  occupation?: string;
+  /** @maxLength 80 */
+  occupationOther?: string;
   /**
      * @minItems 1
      * @maxItems 6
@@ -108,7 +114,7 @@ export type OnboardingDraftData = { [key: string]: unknown };
 export interface OnboardingDraft {
   /**
      * @minimum 1
-     * @maximum 12
+     * @maximum 13
      */
   step: number;
   data: OnboardingDraftData;
@@ -121,7 +127,7 @@ export type OnboardingDraftInputData = { [key: string]: unknown };
 export interface OnboardingDraftInput {
   /**
      * @minimum 1
-     * @maximum 12
+     * @maximum 13
      */
   step: number;
   data: OnboardingDraftInputData;

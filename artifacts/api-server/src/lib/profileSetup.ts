@@ -18,6 +18,8 @@ export function buildProfileValues(
     country: body.country,
     state: body.state,
     interests: body.interests,
+    occupation: body.occupation ?? "",
+    occupationOther: body.occupationOther ?? "",
     photos: body.photos,
     videoUrl: body.videoUrl ?? null,
     preferences: body.preferences,

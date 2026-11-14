@@ -20,7 +20,7 @@ export const HealthCheckResponse = zod.object({
 /**
  * @summary Load the signed-in user's saved profile setup progress
  */
-export const getOnboardingDraftResponseStepMax = 12;
+export const getOnboardingDraftResponseStepMax = 13;
 
 
 
@@ -34,7 +34,7 @@ export const GetOnboardingDraftResponse = zod.object({
 /**
  * @summary Save progress from one profile setup screen
  */
-export const saveOnboardingDraftBodyStepMax = 12;
+export const saveOnboardingDraftBodyStepMax = 13;
 
 
 
@@ -43,7 +43,7 @@ export const SaveOnboardingDraftBody = zod.object({
   "data": zod.record(zod.string(), zod.unknown())
 })
 
-export const saveOnboardingDraftResponseStepMax = 12;
+export const saveOnboardingDraftResponseStepMax = 13;
 
 
 
@@ -84,6 +84,8 @@ export const GetMyProfileResponse = zod.object({
   "country": zod.string().nullable(),
   "state": zod.string().nullable(),
   "interests": zod.array(zod.string()),
+  "occupation": zod.string(),
+  "occupationOther": zod.string(),
   "photos": zod.array(zod.string()),
   "videoUrl": zod.string().nullish(),
   "isDemo": zod.boolean(),
@@ -121,6 +123,10 @@ export const saveMyProfileBodyInterestsItemMax = 32;
 
 export const saveMyProfileBodyInterestsMax = 12;
 
+export const saveMyProfileBodyOccupationMax = 80;
+
+export const saveMyProfileBodyOccupationOtherMax = 80;
+
 export const saveMyProfileBodyPhotosItemMax = 2048;
 
 export const saveMyProfileBodyPhotosMax = 6;
@@ -147,6 +153,8 @@ export const SaveMyProfileBody = zod.object({
   "country": zod.string().max(saveMyProfileBodyCountryMax).nullable(),
   "state": zod.string().max(saveMyProfileBodyStateMax).nullable(),
   "interests": zod.array(zod.string().max(saveMyProfileBodyInterestsItemMax)).max(saveMyProfileBodyInterestsMax),
+  "occupation": zod.string().max(saveMyProfileBodyOccupationMax).optional(),
+  "occupationOther": zod.string().max(saveMyProfileBodyOccupationOtherMax).optional(),
   "photos": zod.array(zod.string().max(saveMyProfileBodyPhotosItemMax)).min(1).max(saveMyProfileBodyPhotosMax),
   "videoUrl": zod.string().max(saveMyProfileBodyVideoUrlMax).nullish(),
   "preferences": zod.object({
@@ -178,6 +186,8 @@ export const SaveMyProfileResponse = zod.object({
   "country": zod.string().nullable(),
   "state": zod.string().nullable(),
   "interests": zod.array(zod.string()),
+  "occupation": zod.string(),
+  "occupationOther": zod.string(),
   "photos": zod.array(zod.string()),
   "videoUrl": zod.string().nullish(),
   "isDemo": zod.boolean(),
@@ -230,6 +240,8 @@ export const GetDiscoverProfilesResponseItem = zod.object({
   "country": zod.string().nullable(),
   "state": zod.string().nullable(),
   "interests": zod.array(zod.string()),
+  "occupation": zod.string(),
+  "occupationOther": zod.string(),
   "photos": zod.array(zod.string()),
   "videoUrl": zod.string().nullish(),
   "isDemo": zod.boolean(),
@@ -567,6 +579,8 @@ export const GetMatchesResponseItem = zod.object({
   "country": zod.string().nullable(),
   "state": zod.string().nullable(),
   "interests": zod.array(zod.string()),
+  "occupation": zod.string(),
+  "occupationOther": zod.string(),
   "photos": zod.array(zod.string()),
   "videoUrl": zod.string().nullish(),
   "isDemo": zod.boolean(),
@@ -869,6 +883,8 @@ export const GetWhoViewedYouResponseItem = zod.object({
   "country": zod.string().nullable(),
   "state": zod.string().nullable(),
   "interests": zod.array(zod.string()),
+  "occupation": zod.string(),
+  "occupationOther": zod.string(),
   "photos": zod.array(zod.string()),
   "videoUrl": zod.string().nullish(),
   "isDemo": zod.boolean(),
@@ -921,6 +937,8 @@ export const GetNotificationsResponse = zod.object({
   "country": zod.string().nullable(),
   "state": zod.string().nullable(),
   "interests": zod.array(zod.string()),
+  "occupation": zod.string(),
+  "occupationOther": zod.string(),
   "photos": zod.array(zod.string()),
   "videoUrl": zod.string().nullish(),
   "isDemo": zod.boolean(),
@@ -987,6 +1005,8 @@ export const GetProfileByIdResponse = zod.object({
   "country": zod.string().nullable(),
   "state": zod.string().nullable(),
   "interests": zod.array(zod.string()),
+  "occupation": zod.string(),
+  "occupationOther": zod.string(),
   "photos": zod.array(zod.string()),
   "videoUrl": zod.string().nullish(),
   "isDemo": zod.boolean(),
@@ -1025,6 +1045,8 @@ export const GetBlockedProfilesResponseItem = zod.object({
   "country": zod.string().nullable(),
   "state": zod.string().nullable(),
   "interests": zod.array(zod.string()),
+  "occupation": zod.string(),
+  "occupationOther": zod.string(),
   "photos": zod.array(zod.string()),
   "videoUrl": zod.string().nullish(),
   "isDemo": zod.boolean(),

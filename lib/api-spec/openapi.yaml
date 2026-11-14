@@ -910,6 +910,8 @@ components:
         interests:
           type: array
           items: { type: string }
+        occupation: { type: string }
+        occupationOther: { type: string }
         photos:
           type: array
           items: { type: string }
@@ -919,7 +921,7 @@ components:
         superLikedYou: { type: boolean }
         preferences:
           $ref: "#/components/schemas/ProfilePreferences"
-      required: [id, name, age, gender, lookingFor, bio, city, country, state, interests, photos, isDemo, preferences]
+      required: [id, name, age, gender, lookingFor, bio, city, country, state, interests, occupation, occupationOther, photos, isDemo, preferences]
     ProfileInput:
       type: object
       properties:
@@ -935,6 +937,8 @@ components:
           type: array
           maxItems: 12
           items: { type: string, maxLength: 32 }
+        occupation: { type: string, maxLength: 80 }
+        occupationOther: { type: string, maxLength: 80 }
         photos:
           type: array
           minItems: 1
@@ -949,7 +953,7 @@ components:
     OnboardingDraft:
       type: object
       properties:
-        step: { type: integer, minimum: 1, maximum: 12 }
+        step: { type: integer, minimum: 1, maximum: 13 }
         data:
           type: object
           additionalProperties: true
@@ -958,7 +962,7 @@ components:
     OnboardingDraftInput:
       type: object
       properties:
-        step: { type: integer, minimum: 1, maximum: 12 }
+        step: { type: integer, minimum: 1, maximum: 13 }
         data:
           type: object
           additionalProperties: true

@@ -43,7 +43,9 @@ export default function ProfileScreen() {
       </View>
       <Text style={[styles.section, { color: colors.foreground }]}>About</Text>
       <Text style={[styles.bio, { color: colors.mutedForeground }]}>{user.bio || "Add a bio so people can get to know you."}</Text>
-      <Text style={[styles.section, { color: colors.foreground }]}>Interests</Text>
+       <Text style={[styles.section, { color: colors.foreground }]}>Work / occupation</Text>
+       <Text style={[styles.bio, { color: colors.mutedForeground }]}>{user.occupation === "Other" ? user.occupationOther || "Other" : user.occupation || "Prefer not to say"}</Text>
+       <Text style={[styles.section, { color: colors.foreground }]}>Hobbies</Text>
       <View style={styles.tags}>
         {user.interests.length ? user.interests.map((item) => <Text key={item} style={[styles.tag, { backgroundColor: colors.accent, color: colors.accentForeground }]}>{item}</Text>) : <Text style={[styles.bio, { color: colors.mutedForeground }]}>Add a few interests to your profile.</Text>}
       </View>

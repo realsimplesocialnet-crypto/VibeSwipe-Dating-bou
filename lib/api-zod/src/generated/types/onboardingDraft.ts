@@ -10,7 +10,7 @@ import type { OnboardingDraftData } from './onboardingDraftData';
 export interface OnboardingDraft {
   /**
      * @minimum 1
-     * @maximum 12
+     * @maximum 13
      */
   step: number;
   data: OnboardingDraftData;

@@ -20,6 +20,8 @@ export interface Profile {
   /** @nullable */
   state: string | null;
   interests: string[];
+  occupation: string;
+  occupationOther: string;
   photos: string[];
   /** @nullable */
   videoUrl?: string | null;

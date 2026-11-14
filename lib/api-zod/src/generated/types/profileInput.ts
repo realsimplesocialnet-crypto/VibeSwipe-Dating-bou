@@ -47,6 +47,10 @@ export interface ProfileInput {
      * @items.maxLength 32
      */
   interests: string[];
+  /** @maxLength 80 */
+  occupation?: string;
+  /** @maxLength 80 */
+  occupationOther?: string;
   /**
      * @minItems 1
      * @maxItems 6

@@ -28,6 +28,8 @@ export const profilesTable = pgTable("vibeswipe_profiles", {
   country: text("country"),
   state: text("state"),
   interests: text("interests").array().notNull().default([]),
+  occupation: text("occupation").notNull().default(""),
+  occupationOther: text("occupation_other").notNull().default(""),
   photos: text("photos").array().notNull().default([]),
   videoUrl: text("video_url"),
   isDemo: boolean("is_demo").notNull().default(false),

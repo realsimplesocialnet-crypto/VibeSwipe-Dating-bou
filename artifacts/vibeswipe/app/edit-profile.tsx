@@ -3,6 +3,7 @@ import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { MediaPicker } from "@/components/MediaPicker";
+import { HobbyMultiSelect, OccupationSelect } from "@/components/ProfileChoiceFields";
 import { useColors } from "@/hooks/useColors";
 
 export default function EditProfileScreen() {
@@ -11,7 +12,8 @@ export default function EditProfileScreen() {
   const saveProfile = useSaveMyProfile();
   const [form, setForm] = useState({
     name: "", age: "", gender: "Woman", lookingFor: "Everyone", bio: "", city: "", country: "", state: "",
-    interests: "", photos: [] as string[], videoUrl: null as string | null,
+    interests: [] as string[], occupation: "Prefer not to say", occupationOther: "",
+    photos: [] as string[], videoUrl: null as string | null,
     ageMin: 22, ageMax: 35, distanceKm: 50,
   });
 
@@ -27,7 +29,9 @@ export default function EditProfileScreen() {
       city: value.city,
       country: value.country ?? "",
       state: value.state ?? "",
-      interests: value.interests.join(", "),
+      interests: value.interests,
+      occupation: value.occupation || "Prefer not to say",
+      occupationOther: value.occupationOther || "",
       photos: value.photos,
       videoUrl: value.videoUrl ?? null,
       ageMin: value.preferences.ageMin,
@@ -47,7 +51,9 @@ export default function EditProfileScreen() {
           name: form.name.trim(), age: Number(form.age), gender: form.gender,
           lookingFor: form.lookingFor, bio: form.bio.trim(), city: form.city.trim(),
           country: form.country || null, state: form.state || null,
-          interests: form.interests.split(",").map((item) => item.trim()).filter(Boolean).slice(0, 12),
+          interests: form.interests.slice(0, 12),
+          occupation: form.occupation,
+          occupationOther: form.occupation === "Other" ? form.occupationOther.trim().slice(0, 80) : "",
           photos: form.photos, videoUrl: form.videoUrl,
           preferences: { ageMin: form.ageMin, ageMax: form.ageMax, gender: form.lookingFor, distanceKm: form.distanceKm },
         },
@@ -70,7 +76,6 @@ export default function EditProfileScreen() {
         ["Gender", "gender"],
         ["Looking for", "lookingFor"],
         ["City", "city"],
-        ["Interests, separated by commas", "interests"],
       ] as const).map(([label, key]) => (
         <View key={key}>
           <Text style={[styles.label, { color: colors.foreground }]}>{label}</Text>
@@ -84,6 +89,16 @@ export default function EditProfileScreen() {
           />
         </View>
       ))}
+      <Text style={[styles.label, { color: colors.foreground }]}>Hobbies</Text>
+      <HobbyMultiSelect value={form.interests} onChange={(interests) => setForm({ ...form, interests })} testID="edit-profile-hobbies" />
+      <Text style={[styles.label, { color: colors.foreground }]}>Work / occupation</Text>
+      <OccupationSelect
+        value={form.occupation}
+        otherValue={form.occupationOther}
+        onChange={(occupation) => setForm({ ...form, occupation })}
+        onOtherChange={(occupationOther) => setForm({ ...form, occupationOther })}
+        testID="edit-profile-occupation"
+      />
       <Text style={[styles.label, { color: colors.foreground }]}>About you</Text>
       <TextInput value={form.bio} onChangeText={(bio) => setForm({ ...form, bio })} multiline maxLength={500} style={[styles.input, styles.bio, { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.card }]} />
       <Text style={[styles.label, { color: colors.foreground }]}>Discovery age range</Text>
