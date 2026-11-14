@@ -145,12 +145,6 @@ function SwipeCard({
             onPress={onOpenProfile}
             style={StyleSheet.absoluteFill}
           />
-          {profile.superLikedYou ? (
-            <View style={[styles.superLikedBadge, { top: topInset + 58 }]}>
-              <Feather name="star" size={14} color="#FFD166" />
-              <Text style={styles.superLikedText}>Super liked you</Text>
-            </View>
-          ) : null}
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={`Profile options for ${profile.name}`}
@@ -167,7 +161,7 @@ function SwipeCard({
             </View>
             <View style={styles.locationLine}>
               <Feather name="map-pin" size={13} color={colors.discoverMuted} />
-              <Text style={[styles.location, { color: colors.discoverMuted }]}>{profile.city || "Nearby"}</Text>
+              <Text style={[styles.location, { color: colors.discoverMuted }]}>{[profile.city, profile.state, profile.country].filter(Boolean).join(", ") || "Nearby"}</Text>
             </View>
             {profile.interests[0] ? (
               <View style={styles.interests}>
@@ -617,14 +611,10 @@ export default function DiscoverScreen() {
         <View style={styles.modalScrim}>
           <View style={[styles.sheet, { backgroundColor: colors.card }]}>
             <View style={styles.sheetHeading}>
-              <Text style={[styles.sheetTitle, { color: colors.foreground }]}>{profile.name}, {profile.age}</Text>
+              <Text style={[styles.sheetTitle, { color: colors.foreground }]}>Profile options</Text>
               <Pressable onPress={() => setDetailOpen(false)}><Feather name="x" size={22} color={colors.foreground} /></Pressable>
             </View>
-            <Text style={[styles.modalCity, { color: colors.mutedForeground }]}>{profile.city} · {profile.gender}</Text>
-            <Text style={[styles.modalBio, { color: colors.foreground }]}>{profile.bio}</Text>
-            <View style={styles.interests}>
-              {profile.interests.map((interest) => <Text key={interest} style={[styles.interestTag, { backgroundColor: colors.accent, color: colors.accentForeground }]}>{interest}</Text>)}
-            </View>
+            <Text style={[styles.modalBio, { color: colors.mutedForeground }]}>Manage this profile without opening its details.</Text>
             <View style={styles.safetyRow}>
               <Pressable onPress={() => Alert.alert("Report profile", "Choose a reason.", [
                 { text: "Spam", onPress: () => void report("spam") },

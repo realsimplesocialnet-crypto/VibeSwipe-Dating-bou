@@ -258,11 +258,10 @@ export function DiscoverSwipePage() {
             ? <ProfilePhoto reference={profile.photos[0]} alt={`${profile.name}, ${profile.age}`} className="absolute inset-0 h-full w-full object-cover" />
             : <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_25%,#9f6076,#382b3a_55%,#1b1820)]" />}
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#130f16] via-[#17121a]/10 to-[#17121a]/10" />
-          {profile.superLikedYou && <span className="absolute left-4 top-4 flex items-center gap-2 rounded-full bg-black/45 px-3 py-2 text-xs font-bold text-amber-200 backdrop-blur"><Star size={14} />Super liked you</span>}
           <button type="button" onClick={(event) => { event.stopPropagation(); setOptionsOpen(true); }} data-testid="button-profile-details" aria-label={`Profile options for ${profile.name}`} className="absolute right-4 top-4 z-[2] rounded-full border border-white/20 bg-black/40 p-2.5 text-white backdrop-blur"><MoreHorizontal size={19} /></button>
           <div className="pointer-events-none absolute inset-x-5 bottom-5">
             <div className="flex items-end gap-2"><h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">{profile.name}</h2><span className="pb-0.5 text-xl text-white/80 sm:text-2xl">{profile.age}</span></div>
-            <div className="mt-2 flex items-center gap-1.5 text-sm text-white/80"><MapPin size={14} />{profile.city || "Nearby"}{profile.country ? `, ${profile.country}` : ""}</div>
+            <div className="mt-2 flex items-center gap-1.5 text-sm text-white/80"><MapPin size={14} />{[profile.city, profile.state, profile.country].filter(Boolean).join(", ") || "Nearby"}</div>
             {!!profile.interests?.length && <div className="mt-3 flex flex-wrap gap-2"><span className="rounded-full border border-white/20 bg-black/25 px-3 py-1 text-xs text-white backdrop-blur">{profile.interests[0]}</span></div>}
           </div>
         </div>
@@ -275,7 +274,7 @@ export function DiscoverSwipePage() {
         </div>
       </article>
 
-      {optionsOpen && <ProfileOptionsDialog profile={profile} onClose={() => setOptionsOpen(false)} onReport={(reason) => void reportCurrent(reason)} onBlock={() => void blockCurrent()} />}
+      {optionsOpen && <ProfileOptionsDialog onClose={() => setOptionsOpen(false)} onReport={(reason) => void reportCurrent(reason)} onBlock={() => void blockCurrent()} />}
       <FilterDialog open={filtersOpen} onClose={() => setFiltersOpen(false)} ageMin={ageMin} ageMax={ageMax} gender={gender} country={country} city={city} travelMode={Boolean(settings.data?.travelMode)} setAgeMin={setAgeMin} setAgeMax={setAgeMax} setGender={setGender} setCountry={(value) => { setCountry(value); setCity(""); }} setCity={setCity} onApply={() => { setIndex(0); setFiltersOpen(false); }} />
     </main>
   );
@@ -368,11 +367,9 @@ function FilterDialog({ open, onClose, ageMin, ageMax, gender, country, city, tr
   </div></Dialog>;
 }
 
-function ProfileOptionsDialog({ profile, onClose, onReport, onBlock }: { profile: Profile; onClose: () => void; onReport: (reason: ReportInputReason) => void; onBlock: () => void }) {
-  return <Dialog title={`${profile.name}, ${profile.age}`} onClose={onClose}><div className="space-y-4">
-    <p className="text-sm text-muted-foreground">{profile.city} · {profile.gender} · Looking for {profile.lookingFor}</p>
-    <p className="whitespace-pre-wrap text-sm leading-6">{profile.bio || "No bio added yet."}</p>
-    <div className="flex flex-wrap gap-2">{profile.interests?.map((interest) => <span key={interest} className="rounded-full bg-accent px-3 py-1.5 text-xs text-[#ffafd1]">{interest}</span>)}</div>
+function ProfileOptionsDialog({ onClose, onReport, onBlock }: { onClose: () => void; onReport: (reason: ReportInputReason) => void; onBlock: () => void }) {
+  return <Dialog title="Profile options" onClose={onClose}><div className="space-y-4">
+    <p className="text-sm text-muted-foreground">Manage this profile without opening its details.</p>
     <div className="grid grid-cols-2 gap-2 pt-2"><button type="button" onClick={() => onReport("inappropriate")} data-testid="button-report-profile" className="rounded-xl border border-white/10 px-4 py-3 text-sm font-semibold">Report</button><button type="button" onClick={onBlock} data-testid="button-block-profile" className="rounded-xl border border-rose-400/20 px-4 py-3 text-sm font-semibold text-rose-300">Block profile</button></div>
   </div></Dialog>;
 }
