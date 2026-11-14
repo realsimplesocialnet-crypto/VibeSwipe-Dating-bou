@@ -66,11 +66,16 @@ export default function SettingsScreen() {
 
   async function saveTheme(darkMode: boolean) {
     const previousScheme = scheme;
+    const previousSettings = settings.data;
+    if (previousSettings) {
+      queryClient.setQueryData(getGetVibeSwipeSettingsQueryKey(), { ...previousSettings, darkMode });
+    }
     void setScheme(darkMode ? "dark" : "light");
     try {
       const saved = await updateSettings.mutateAsync({ data: { darkMode } });
       queryClient.setQueryData(getGetVibeSwipeSettingsQueryKey(), saved);
     } catch {
+      if (previousSettings) queryClient.setQueryData(getGetVibeSwipeSettingsQueryKey(), previousSettings);
       void setScheme(previousScheme);
       Alert.alert("Could not save theme", "Please check your connection and try again.");
     }
@@ -135,7 +140,7 @@ export default function SettingsScreen() {
             <Text style={[styles.rowTitle, { color: colors.foreground }]}>Dark appearance</Text>
             <Text style={[styles.rowSub, { color: colors.mutedForeground }]}>Choose a comfortable theme.</Text>
           </View>
-          <Switch value={dark} disabled={updateSettings.isPending} onValueChange={(value) => void saveTheme(value)} trackColor={{ true: colors.primary }} />
+          <Switch value={dark} disabled={updateSettings.isPending || !settings.data} onValueChange={(value) => void saveTheme(value)} trackColor={{ true: colors.primary }} />
         </View>
       </View>
       <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>DISCOVERY</Text>

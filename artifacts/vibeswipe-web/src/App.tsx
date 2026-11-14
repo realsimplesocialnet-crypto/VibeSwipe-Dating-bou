@@ -86,10 +86,10 @@ const appearance = {
   },
 };
 
-function Brand({ compact = false }: { compact?: boolean }) {
+function Brand({ compact = false, small = false }: { compact?: boolean; small?: boolean }) {
   return <Link href="/" className="inline-flex items-center gap-2.5" data-testid="link-brand">
-    <img src={pathFor('/icon.png')} alt="" className="h-9 w-9 rounded-xl ring-1 ring-white/10" />
-    {!compact && <span className="brand text-[21px] font-extrabold text-foreground">My<span className="text-primary">age</span></span>}
+    <img src={pathFor('/icon.png')} alt="" className={`${compact || small ? 'h-7 w-7 rounded-lg' : 'h-9 w-9 rounded-xl'} ring-1 ring-border`} />
+    {!compact && <span className={`brand ${small ? 'text-lg' : 'text-[21px]'} font-extrabold text-foreground`}>My<span className="text-primary">age</span></span>}
   </Link>;
 }
 
@@ -109,7 +109,7 @@ function AppShell({ children }: { children: ReactNode }) {
   return <div className="min-h-[100dvh] bg-background text-foreground">
     {showMainNavigation && <>
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-[248px] flex-col border-r border-border bg-background px-5 py-6 lg:flex">
-        <Brand />
+        <Brand small />
         <div className="mb-4 mt-11 px-3 text-[10px] font-bold uppercase tracking-[.2em] text-muted-foreground">Your space</div>
         <nav className="space-y-1">
           {navItems.map(({ href, label, icon: Icon }) => <Link key={href} href={href} data-testid={`nav-${label.toLowerCase()}`} className={`flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold transition-colors ${location === href || (href === '/matches' && location.startsWith('/chat/')) ? 'bg-accent text-[#ff80b6]' : 'text-muted-foreground hover:bg-white/[.04] hover:text-foreground'}`}><Icon size={18}/>{label}</Link>)}
@@ -121,11 +121,11 @@ function AppShell({ children }: { children: ReactNode }) {
           <button onClick={() => void signOut({ redirectUrl: pathFor('/') })} data-testid="button-sign-out" className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm text-muted-foreground hover:bg-white/[.04]"><LogOut size={17}/>Sign out</button>
         </div>
       </aside>
-      <header className="sticky top-0 z-20 flex h-[66px] items-center justify-between border-b border-border bg-background/90 px-4 backdrop-blur-xl lg:hidden">
-        <Brand compact/><span className="brand text-lg font-extrabold">vibe<span className="text-primary">swipe</span></span><InstallAction/>
+      <header className="sticky top-0 z-20 flex h-12 items-center justify-between border-b border-border bg-background/90 px-4 backdrop-blur-xl lg:hidden">
+        <Brand compact/><span className="brand text-base font-extrabold">vibe<span className="text-primary">swipe</span></span><InstallAction compact/>
       </header>
     </>}
-    <main className={showMainNavigation ? "min-h-[calc(100dvh-66px)] pb-24 lg:ml-[248px] lg:min-h-[100dvh] lg:pb-0" : "min-h-[100dvh]"}>{children}</main>
+    <main className={showMainNavigation ? "min-h-[calc(100dvh-48px)] pb-24 lg:ml-[248px] lg:min-h-[100dvh] lg:pb-0" : "min-h-[100dvh]"}>{children}</main>
     {showMainNavigation && <nav className="fixed inset-x-0 bottom-0 z-30 flex justify-around border-t border-border bg-background/95 px-2 pb-[max(env(safe-area-inset-bottom),8px)] pt-2 backdrop-blur-xl lg:hidden">
       {navItems.map(({ href, label, icon: Icon }) => <Link key={href} href={href} data-testid={`mobile-nav-${label.toLowerCase()}`} className={`flex min-w-[62px] flex-col items-center gap-1 rounded-xl px-3 py-1.5 text-[10px] font-semibold ${location === href || (href === '/matches' && location.startsWith('/chat/')) ? 'text-primary' : 'text-muted-foreground'}`}><Icon size={19}/>{label}</Link>)}
       <Link href="/profile" data-testid="mobile-nav-profile" className={`flex min-w-[62px] flex-col items-center gap-1 rounded-xl px-3 py-1.5 text-[10px] font-semibold ${location === '/profile' ? 'text-primary' : 'text-muted-foreground'}`}><UserRound size={19}/>Profile</Link>

@@ -22,7 +22,7 @@ const fallback: InstallStore = {
   clearPrompt: () => {},
 };
 
-export function InstallAction({ className = '' }: { className?: string }) {
+export function InstallAction({ className = '', compact = false }: { className?: string; compact?: boolean }) {
   const standalone = useStandaloneMode();
   const store = window.vibeSwipeInstall ?? fallback;
   const { prompt, installed } = useSyncExternalStore(store.subscribe, store.getSnapshot);
@@ -58,11 +58,11 @@ export function InstallAction({ className = '' }: { className?: string }) {
   if (standalone || installed) return null;
   return <div className={`relative ${className}`}>
     <button onClick={() => void install()} disabled={busy} aria-expanded={showHelp} aria-controls={showHelp ? helpId : undefined}
-      data-testid="button-install-app"
-      className="inline-flex items-center gap-2 whitespace-nowrap rounded-xl border border-white/10 bg-white/[.04] px-3.5 py-2.5 text-sm font-semibold text-foreground hover:bg-white/[.08] disabled:opacity-50">
-      <Download size={16}/><span>{busy ? 'Opening…' : prompt ? 'Install app' : 'Install options'}</span>
+      data-testid="button-install-app" aria-label={compact ? 'Install app options' : undefined}
+      className={`inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl border border-border bg-secondary/40 ${compact ? 'h-11 w-11' : 'px-3.5 py-2.5'} text-sm font-semibold text-foreground hover:bg-secondary disabled:opacity-50`}>
+      <Download size={16}/>{!compact && <span>{busy ? 'Opening…' : prompt ? 'Install app' : 'Install options'}</span>}
     </button>
-    <p className="mt-0.5 text-center text-[10px] leading-3 text-muted-foreground">Optional</p>
+    {!compact && <p className="mt-0.5 text-center text-[10px] leading-3 text-muted-foreground">Optional</p>}
     {showHelp && <div id={helpId} className="absolute right-0 top-full z-50 mt-3 w-80 max-w-[calc(100vw-2.5rem)] rounded-2xl border border-white/10 bg-[#26212a] p-4 text-left text-xs leading-5 text-muted-foreground shadow-xl"
       data-testid="text-install-help">
       <div className="mb-2 flex items-start justify-between gap-3">

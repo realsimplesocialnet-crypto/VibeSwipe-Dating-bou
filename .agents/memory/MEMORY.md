@@ -6,3 +6,4 @@
 - [Account creation](account-creation-flow.md) — One shared profile-first flow for web and installed apps; picture required, email verification last.
 - [Stored-photo reads](stored-photo-reads.md) — Verify both uploads and authenticated reads; sidecar uploads can work while GCS project discovery breaks reads.
 - [Clerk Protect in automated tests](clerk-protect-testing.md) — Development sign-up may require a human Protect check; do not bypass it to automate account creation.
+- [Main-screen headers](main-screen-headers.md) — Keep branding compact across the main tabs so stories, cards, and titles start near the top.
