@@ -57,6 +57,7 @@ const colors = {
     discoverGradientBottom: "rgba(0,0,0,0.92)",
 
     // Own profile overview
+    messagesBackground: "#ffedf1",
     profileGradientStart: "#f9c6d3",
     profileGradientMiddle: "#fbd6d8",
     profileGradientEnd: "#fde2cc",
@@ -140,6 +141,7 @@ const colors = {
     discoverGradientMiddle: "rgba(0,0,0,0.28)",
     discoverGradientBottom: "rgba(0,0,0,0.92)",
 
+    messagesBackground: "#291d27",
     profileGradientStart: "#3a2232",
     profileGradientMiddle: "#2a1d29",
     profileGradientEnd: "#3a2a26",

@@ -8,4 +8,4 @@
 - [Clerk Protect in automated tests](clerk-protect-testing.md) — Development sign-up may require a human Protect check; do not bypass it to automate account creation.
 - [Main-screen headers](main-screen-headers.md) — Keep branding compact across the main tabs so stories, cards, and titles start near the top.
 - [Own-profile appearance](own-profile-appearance.md) — User approved the pink-to-peach profile design with a circular portrait overlapping a rounded card.
-- [Messages and public profiles](messages-and-public-profiles.md) — Views shows visitors; Messages stays accessible from Matches; public-profile actions float without a black plate.
+- [Messages and public profiles](messages-and-public-profiles.md) — Messages replaces Views as the single conversation list; public-profile actions float without a black plate.

@@ -152,12 +152,7 @@ export default function MatchesScreen() {
 
   return (
     <View style={[styles.screen, { backgroundColor: colors.background }]}>
-      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-        <Text style={[styles.title, { color: colors.foreground }]}>Matches</Text>
-        <Pressable accessibilityRole="button" accessibilityLabel="Open Messages" testID="matches-messages" onPress={() => router.push("/messages")} style={{ flexDirection: "row", alignItems: "center", gap: 6, minHeight: 44 }}>
-          <Feather name="message-circle" size={19} color={colors.primary} /><Text style={{ color: colors.primary, fontWeight: "700" }}>Messages</Text>
-        </Pressable>
-      </View>
+      <Text style={[styles.title, { color: colors.foreground }]}>Matches</Text>
       <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>A mutual like is a good place to start.</Text>
       {matches.isLoading ? <ActivityIndicator color={colors.primary} style={styles.loading} /> : null}
       {matches.isError ? (

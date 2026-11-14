@@ -60,7 +60,7 @@ function timeAgo(value?: string | null): string {
   return new Date(value).toLocaleDateString();
 }
 
-export function MessagesScreen() {
+export default function MessagesScreen() {
   const colors = useColors();
   const queryClient = useQueryClient();
   const matches = useGetMatches({ query: { refetchInterval: 10_000, refetchOnMount: "always", staleTime: 0 } });
@@ -71,7 +71,7 @@ export function MessagesScreen() {
   const unmatch = useUnmatchMatch();
   const [actionTarget, setActionTarget] = useState<ActionTarget | null>(null);
   const [showReportReasons, setShowReportReasons] = useState(false);
-  const chats = useMemo(() => (matches.data ?? []).slice().sort((a, b) =>
+  const chats = useMemo(() => (matches.data ?? []).filter((m) => !m.profile.isDemo && !m.blockedByMe && !m.blockedMe).sort((a, b) =>
     new Date(b.lastMessageAt ?? b.updatedAt).getTime() - new Date(a.lastMessageAt ?? a.updatedAt).getTime()), [matches.data]);
 
   async function refreshSafetyAndLists() {
@@ -154,9 +154,10 @@ export function MessagesScreen() {
     || deleteChat.isPending || unmatch.isPending;
 
   return (
-    <View style={[styles.screen, { backgroundColor: colors.background }]}>
+    <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: colors.messagesBackground }}><View style={styles.screen}>
+      <View style={styles.brandHeader}><View style={styles.wordmark}><Text style={[styles.monogram, { color: colors.foreground }]}>M</Text><Text style={[styles.brandName, { color: colors.foreground }]}>vibe<Text style={{ color: colors.primary }}>swipe</Text></Text></View><Pressable accessibilityRole="button" accessibilityLabel="Notifications" onPress={() => router.push("/(tabs)/activity")} style={{ padding: 8 }}><Feather name="bell" size={24} color={colors.foreground}/></Pressable></View>
       <Text style={[styles.title, { color: colors.foreground }]}>Messages</Text>
-      <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>Private conversations with your mutual matches.</Text>
+      <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>Only mutual matches appear here. <Feather name="heart" size={16} color={colors.primary}/></Text>
       {matches.isLoading ? <ActivityIndicator color={colors.primary} style={styles.loading} /> : null}
       {matches.isError ? (
         <Pressable onPress={() => void matches.refetch()} style={styles.errorBox}>
@@ -180,7 +181,7 @@ export function MessagesScreen() {
           const unread = !isBlocked && (item.unreadCount ?? 0) > 0;
           const stamp = item.lastMessageAt ?? item.updatedAt;
           return (
-            <View style={[styles.row, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <View style={[styles.row, { backgroundColor: colors.profileCard, borderColor: colors.border }]}>
               <Pressable
                 disabled={isBlocked}
                 onPress={() => router.push({ pathname: "/chat/[matchId]", params: { matchId: item.id, returnTo: "messages" } } as never)}
@@ -191,14 +192,14 @@ export function MessagesScreen() {
               >
                 <ProfileAvatar profile={item.profile} size={64} />
                 <View style={styles.copy}>
-                  <Text numberOfLines={1} style={[styles.name, { color: colors.foreground }]}>{item.profile.name}</Text>
-                  <Text numberOfLines={1} style={[styles.last, { color: status ? colors.destructive : unread ? colors.foreground : colors.mutedForeground, fontWeight: unread ? "600" : "400" }]}>
+                  <Text numberOfLines={1} style={[styles.name, { color: colors.foreground }]}>{item.profile.name} <Feather name="heart" size={14} color={colors.primary}/></Text>
+                  <Text numberOfLines={2} style={[styles.last, { color: status ? colors.destructive : unread ? colors.foreground : colors.mutedForeground, fontWeight: unread ? "600" : "400" }]}>
                     {status ?? item.lastMessage ?? "You matched. Say hello."}
                   </Text>
                 </View>
                 <View style={styles.meta}>
-                  {unread ? <View testID={`unread-${item.id}`} style={[styles.dot, { backgroundColor: colors.primary }]} /> : <View style={styles.dotSpace} />}
                   <Text style={[styles.time, { color: colors.mutedForeground }]}>{timeAgo(stamp)}</Text>
+                  {unread ? <View testID={`unread-${item.id}`} accessibilityLabel={`${item.unreadCount} unread messages`} style={[styles.badge, { backgroundColor: colors.primary }]}><Text style={[styles.badgeText, { color: colors.chatOnAccent }]}>{item.unreadCount! > 99 ? "99+" : item.unreadCount}</Text></View> : <View style={styles.dotSpace} />}
                 </View>
               </Pressable>
               <Pressable
@@ -320,11 +321,11 @@ export function MessagesScreen() {
           </View>
         </View>
       </Modal>
-    </View>
+    </View></SafeAreaView>
   );
 }
 
-export default function VisitorsScreen() {
+export function VisitorsScreen() {
   const colors = useColors();
   const visitors = useGetWhoViewedYou({ query: { refetchInterval: 30_000, refetchOnMount: "always" } });
   const notifications = useGetNotifications({ query: { refetchInterval: 30_000 } });
@@ -379,9 +380,15 @@ const visitorStyles = StyleSheet.create({
 });
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, paddingHorizontal: 20, paddingTop: 16, paddingBottom: 24 },
-  title: { fontSize: 34, fontWeight: "800", letterSpacing: -0.8 },
-  subtitle: { fontSize: 13, marginTop: 6, marginBottom: 16 },
+  screen: { flex: 1, paddingHorizontal: 18, paddingTop: 8, paddingBottom: 90 },
+  brandHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 20 },
+  wordmark: { flexDirection: "row", alignItems: "center", gap: 10 },
+  monogram: { fontSize: 34, fontWeight: "900", letterSpacing: -3 },
+  brandName: { fontSize: 22, fontWeight: "800" },
+  title: { fontSize: 38, fontWeight: "800", letterSpacing: -1.3 },
+  subtitle: { fontSize: 14, marginTop: 8, marginBottom: 22 },
+  badge: { minWidth: 28, height: 28, paddingHorizontal: 6, borderRadius: 14, alignItems: "center", justifyContent: "center" },
+  badgeText: { fontSize: 13, fontWeight: "800" },
   loading: { marginTop: 40 },
   list: { paddingBottom: 18 },
   row: { minHeight: 96, flexDirection: "row", alignItems: "center", gap: 6, borderWidth: StyleSheet.hairlineWidth, borderRadius: 22, paddingHorizontal: 12, marginBottom: 12, shadowColor: "#7a3a5a", shadowOpacity: 0.1, shadowRadius: 14, shadowOffset: { width: 0, height: 6 }, elevation: 2 },

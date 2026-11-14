@@ -95,20 +95,20 @@ function Brand({ compact = false, small = false }: { compact?: boolean; small?: 
 
 const navItems = [
   { href: '/discover', label: 'Discover', icon: Compass }, { href: '/matches', label: 'Matches', icon: Heart },
-  { href: '/views', label: 'Views', icon: Eye }, { href: '/notifications', label: 'Activity', icon: Bell },
+  { href: '/messages', label: 'Messages', icon: MessageCircle }, { href: '/notifications', label: 'Activity', icon: Bell },
 ];
 
 function AppShell({ children }: { children: ReactNode }) {
   const [location] = useLocation();
-  const showMainNavigation = ['/discover', '/matches', '/views', '/notifications', '/profile'].includes(location);
+  const showMainNavigation = ['/discover', '/matches', '/messages', '/notifications', '/profile'].includes(location);
   const settingsReturnTo = `${location}${window.location.search}${window.location.hash}`;
   const { user } = useUser();
   const profile = useGetMyProfile();
-  const activityHeader = useGetNotifications({query:{enabled:location==='/notifications'||location==='/views',queryKey:getGetNotificationsQueryKey()}});
+  const activityHeader = useGetNotifications({query:{enabled:location==='/notifications'||location==='/messages',queryKey:getGetNotificationsQueryKey()}});
   const hasUnreadActivity = Object.values(activityHeader.data?.unreadCounts??{}).some(count=>count>0);
   const { signOut } = useClerk();
   const activeName = profile.data?.name || user?.firstName || 'Your profile';
-  return <div className={`min-h-[100dvh] bg-background text-foreground ${location==='/notifications'||location==='/views'?'notifications-shell':''} ${location==='/views'?'visitors-shell':''} ${location==='/discover'?'discover-shell':''}`}>
+  return <div className={`min-h-[100dvh] bg-background text-foreground ${location==='/notifications'?'notifications-shell':''} ${location==='/messages'?'messages-shell':''} ${location==='/discover'?'discover-shell':''}`}>
     {showMainNavigation && <>
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-[248px] flex-col border-r border-border bg-background px-5 py-6 lg:flex">
         <Brand small />
@@ -124,7 +124,7 @@ function AppShell({ children }: { children: ReactNode }) {
         </div>
       </aside>
       <header className={`${location==='/discover'?'hidden':'flex'} sticky top-[var(--install-banner-height,0px)] z-20 h-12 items-center justify-between border-b border-border bg-background/90 px-4 backdrop-blur-xl lg:hidden`}>
-        {location==='/notifications'||location==='/views'?<><div className="flex items-center gap-2"><Brand compact/><span className="brand text-lg font-extrabold">vibe<span className="text-primary">swipe</span></span></div><Link href="/notifications" aria-label={hasUnreadActivity?'Unread notifications':'Notifications'} className="relative text-foreground"><Bell size={24}/>{hasUnreadActivity&&<span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-primary"/>}</Link></>:<><Brand compact/><span className="brand text-base font-extrabold">vibe<span className="text-primary">swipe</span></span><InstallAction compact/></>}
+        {location==='/notifications'||location==='/messages'?<><div className="flex items-center gap-2">{location==='/messages'?<span aria-hidden="true" className="text-[30px] font-black leading-none tracking-[-.1em] text-foreground">M</span>:<Brand compact/>}<span className="brand text-lg font-extrabold">vibe<span className="text-primary">swipe</span></span></div><Link href="/notifications" aria-label={hasUnreadActivity?'Unread notifications':'Notifications'} className="relative text-foreground"><Bell size={24}/>{hasUnreadActivity&&<span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-primary"/>}</Link></>:<><Brand compact/><span className="brand text-base font-extrabold">vibe<span className="text-primary">swipe</span></span><InstallAction compact/></>}
       </header>
     </>}
     <main className={showMainNavigation ? "min-h-[calc(100dvh-48px)] pb-24 lg:ml-[248px] lg:min-h-[100dvh] lg:pb-0" : "min-h-[100dvh]"}>{children}</main>
@@ -303,7 +303,7 @@ function MatchesPage() {
   async function removeChat(id:string,kind:'delete'|'unmatch'){const msg=kind==='delete'?'Hide this conversation for you only?':'Unmatch? This removes the match and shared chat for both of you.';if(!window.confirm(msg))return;try{if(kind==='delete')await del.mutateAsync({matchId:id});else await unmatch.mutateAsync({matchId:id});await refresh()}catch{window.alert('That action could not be completed.')}}
   return <PageFrame>
     <div className="-mt-3" data-testid="matches-page-content">
-      <div className="flex items-center justify-between gap-3"><h1 className="brand text-3xl font-bold tracking-[-.05em] md:text-[2.6rem]">Matches</h1><Link href="/messages" data-testid="link-matches-messages" className="flex items-center gap-2 rounded-full bg-primary/10 px-4 py-2 text-sm font-bold text-primary"><MessageCircle size={18}/>Messages</Link></div>
+      <h1 className="brand text-3xl font-bold tracking-[-.05em] md:text-[2.6rem]">Matches</h1>
       {matches.isLoading ? <div className="mt-6"><Busy /></div>
         : matches.isError ? <div className="mt-6"><Retry onRetry={() => void matches.refetch()} /></div>
         : matches.data?.length
@@ -430,7 +430,7 @@ function timeAgo(value?: string | null) {
 function MessagesPage() {
   const matches = useGetMatches({ query: { queryKey: getGetMatchesQueryKey(), refetchInterval: 10000, refetchOnMount: 'always', refetchOnWindowFocus: true, staleTime: 0 } });
   const stories = useGetStories({ query: { queryKey: getGetStoriesQueryKey(), refetchInterval: 60000 } });
-  const list = useMemo(() => (matches.data ?? []).slice().sort((a, b) => {
+  const list = useMemo(() => (matches.data ?? []).filter(m=>!m.profile.isDemo&&!m.blockedByMe&&!m.blockedMe).sort((a, b) => {
     const at = new Date((a as MatchListExtras).lastMessageAt ?? a.updatedAt).getTime();
     const bt = new Date((b as MatchListExtras).lastMessageAt ?? b.updatedAt).getTime();
     return bt - at;
@@ -438,12 +438,11 @@ function MessagesPage() {
   const unreadTotal = list.reduce((sum, m) => sum + ((m as MatchListExtras).unreadCount ?? 0), 0);
   return <div className="messages-page min-h-[calc(100dvh-48px)] lg:min-h-[100dvh]">
     <div className="page-in mx-auto max-w-[720px] px-4 pb-10 pt-6 md:px-8 md:pt-10" data-testid="messages-page-content">
-      <Link href="/matches" data-testid="link-messages-back" className="mb-5 inline-flex items-center gap-2 text-sm font-semibold text-muted-foreground"><ArrowLeft size={20}/>Back to Matches</Link>
       <div className="flex items-end justify-between gap-4">
         <h1 className="brand text-[2.5rem] font-extrabold leading-none tracking-[-.05em] md:text-5xl">Messages</h1>
         {unreadTotal > 0 && <span data-testid="text-unread-total" className="mb-1 rounded-full bg-primary/15 px-3 py-1 text-xs font-bold text-primary">{unreadTotal} unread</span>}
       </div>
-      <p className="mt-2 text-sm text-muted-foreground">Private conversations with your mutual matches.</p>
+      <p className="mt-3 flex items-center gap-2 text-[15px] text-muted-foreground">Only mutual matches appear here.<Heart size={17} fill="currentColor" aria-hidden="true" className="text-primary"/></p>
       <div className="mt-6">
         {matches.isLoading ? <div className="space-y-3" aria-label="Loading conversations">{[0,1,2].map(i => <div key={i} className="msg-card flex items-center gap-4 rounded-[22px] p-4"><div className="h-[68px] w-[68px] animate-pulse rounded-full bg-muted"/><div className="flex-1 space-y-2"><div className="h-4 w-32 animate-pulse rounded bg-muted"/><div className="h-3 w-48 animate-pulse rounded bg-muted"/></div></div>)}</div>
           : matches.isError && !matches.data ? <Retry error={matches.error} text="We couldn’t load your messages. Check your connection and try again." onRetry={() => void matches.refetch()} />
@@ -458,10 +457,10 @@ function MessagesPage() {
               {blocked
                 ? <div className="min-w-0 flex-1" data-testid={`status-conversation-blocked-${m.id}`}><div className="truncate text-[17px] font-bold">{m.profile.name}</div><div className="mt-1 text-sm text-destructive">{preview}</div></div>
                 : <Link href={`/chat/${m.id}?returnTo=%2Fmessages`} data-testid={`link-conversation-${m.id}`} aria-label={`Open chat with ${m.profile.name}${unread ? `, ${extras.unreadCount} unread` : ''}`} className="flex min-w-0 flex-1 items-center gap-3 self-stretch">
-                  <div className="min-w-0 flex-1"><div className="truncate text-[17px] font-bold">{m.profile.name}</div><div className={`mt-1 truncate text-[15px] ${unread ? 'font-semibold text-foreground' : 'text-muted-foreground'}`}>{preview}</div></div>
+                  <div className="min-w-0 flex-1"><div className="flex items-center gap-2 text-[17px] font-bold"><span className="truncate">{m.profile.name}</span><Heart size={15} fill="currentColor" aria-hidden="true" className="shrink-0 text-primary"/></div><div className={`mt-1 line-clamp-2 text-sm leading-5 ${unread ? 'font-semibold text-foreground' : 'text-muted-foreground'}`}>{preview}</div></div>
                   <div className="flex h-full shrink-0 flex-col items-end justify-between gap-5 self-stretch py-1">
-                    {unread ? <span aria-hidden="true" data-testid={`status-unread-${m.id}`} className="h-3 w-3 rounded-full bg-primary" /> : <span className="h-3" />}
                     <time dateTime={extras.lastMessageAt ?? m.updatedAt} className="text-xs text-muted-foreground">{timeAgo(extras.lastMessageAt ?? m.updatedAt)}</time>
+                    {unread ? <span aria-label={`${extras.unreadCount} unread messages`} data-testid={`status-unread-${m.id}`} className="flex h-7 min-w-7 items-center justify-center rounded-full bg-primary px-1.5 text-xs font-bold text-white">{extras.unreadCount!>99?'99+':extras.unreadCount}</span> : <span className="h-7" />}
                   </div>
                 </Link>}
             </li>;
@@ -759,7 +758,7 @@ function VisitorsPage(){
     {visitors.isLoading?<Busy/>:visitors.isError&&!visitors.data?<Retry text="We couldn’t load your profile visitors. Please try again." onRetry={()=>void visitors.refetch()}/>:!visitors.data?.length?<p className="py-8 text-center text-sm text-muted-foreground">No profile views yet.</p>:<ul className="space-y-3">{visitors.data.map(({profile})=><li key={profile.id}><Link href={`/profile/${profile.id}?returnTo=%2Fviews`} data-testid={`card-visitor-${profile.id}`} className="visitor-card flex items-center gap-4 rounded-[24px] border border-border/50 bg-card px-4 py-5 shadow-[0_4px_18px_rgba(90,40,65,.05)]"><span className="shrink-0 rounded-full border border-primary/70 p-[3px]"><Avatar profile={profile}/></span><span className="min-w-0 flex-1"><span className="block text-[17px] font-bold leading-6 text-foreground">{profile.name}{profile.age!=null?`, ${profile.age}`:''}<Heart size={16} aria-hidden="true" fill="currentColor" className="ml-2 inline text-primary"/></span><span className="mt-1 flex items-start gap-1.5 text-sm text-muted-foreground"><MapPin size={15} className="mt-0.5 shrink-0 text-primary"/>{profile.city?.trim()||profile.state?.trim()||profile.country?.trim()||'Location not shared'}</span></span><ChevronRight size={21} className="shrink-0 text-primary"/></Link></li>)}</ul>}
   </section></PageFrame>;
 }
-function ViewsRoute(){return <ShellPage><VisitorsPage/></ShellPage>}
+function ViewsRoute(){return <Redirect to="/messages"/>}
 function MessagesRoute(){return <ShellPage><MessagesPage/></ShellPage>}
 function NotificationsRoute(){return <ShellPage><NotificationsPage/></ShellPage>}
 function ViewedNotificationProfileRoute(){const params=useParams<{profileId:string}>();return <ShellPage><PublicProfile id={params.profileId||''} actionReturnTo="/notifications"/></ShellPage>}

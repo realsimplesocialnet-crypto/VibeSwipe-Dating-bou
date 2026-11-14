@@ -98,7 +98,7 @@ export default function ChatScreen() {
   const { matchId: rawId, returnTo: rawReturn } = useLocalSearchParams<{ matchId: string; returnTo?: string }>();
   const matchId = Array.isArray(rawId) ? rawId[0] : rawId;
   const returnKey = Array.isArray(rawReturn) ? rawReturn[0] : rawReturn;
-  const returnPath = returnKey === "messages" ? "/messages"
+  const returnPath = returnKey === "messages" ? "/(tabs)/views"
     : returnKey === "views" ? "/(tabs)/views"
     : returnKey === "activity" ? "/(tabs)/activity"
     : returnKey === "notifications" ? "/notifications"

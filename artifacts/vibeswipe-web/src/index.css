@@ -122,3 +122,10 @@ html[data-theme="light"] .notifications-shell .notification-card { box-shadow:0 
 html[data-theme="light"] .discover-shell { background-image:linear-gradient(135deg,#fde1ec 0%,#fbdedc 48%,#ffe5c9 100%); }
 .discover-sticky { background:linear-gradient(135deg,hsl(327 22% 14% / .97),hsl(275 18% 9% / .97)); backdrop-filter:blur(14px); }
 html[data-theme="light"] .discover-sticky { background:linear-gradient(135deg,rgba(253,225,236,.97),rgba(251,222,220,.97)); }
+.messages-shell { background:linear-gradient(145deg,#2b1d28,#1b1521); }
+.messages-shell > header { background:transparent; border-color:hsl(var(--border) / .35); }
+.messages-shell .messages-page { background:transparent; }
+.messages-shell .msg-card { min-height:110px; box-shadow:0 5px 16px rgba(45,10,30,.08); }
+html[data-theme="light"] .messages-shell { --card:0 0% 100%; --primary:340 85% 61%; --primary-foreground:0 0% 100%; background:#ffedf1; }
+html[data-theme="light"] .messages-shell .messages-page { background:transparent; }
+html[data-theme="light"] .messages-shell .msg-card { background:#fff; border-color:rgba(255,255,255,.8); box-shadow:0 5px 13px rgba(123,56,83,.09); }

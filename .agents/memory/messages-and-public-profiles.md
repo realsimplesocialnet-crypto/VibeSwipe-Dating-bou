@@ -3,13 +3,13 @@ name: Messages and public profiles
 description: User's intentional navigation labels and separate visual direction for other members' profiles.
 ---
 
-Views opens “Who viewed you,” showing real visitors with a photo, name, age, and location only—no dates or times. Preserve the five labels Discover, Matches, Views, Activity, Profile. Keep Messages accessible from Matches. Activity continues to show views and likes and offers message shortcuts, while mutual matching remains required for chat.
+Messages replaces Views in the bottom navigation. The five labels are Discover, Matches, Messages, Activity, Profile. Messages is the main and only conversation list, showing real mutual matches, real previews and timestamps, and unread counts. Activity continues to show profile views and likes and offers message shortcuts, while mutual matching remains required for chat.
 
-**Why:** The user's latest reference restored “Who viewed you” with Views highlighted, superseding the earlier Messages-under-Views direction.
+**Why:** The user explicitly said to remove Views, replace it with Messages, and make this the main and only place for messages.
 
-**How to apply:** Do not introduce a sixth bottom tab or remove access to the Messages list when revising the visitor cards.
+**How to apply:** Do not restore the Views label or add a second Messages list elsewhere. Existing entry-point links may open the same conversation destination.
 
-Use the latest pink-to-peach visitor-screen reference, including its short “People who viewed your profile recently” subtitle, while keeping individual visitor dates and times hidden. Leave paid upgrades out.
+Leave paid upgrades out.
 
 **Why:** The user chose “Leave paid upgrades out” when asked about the reference's premium bar.
 
