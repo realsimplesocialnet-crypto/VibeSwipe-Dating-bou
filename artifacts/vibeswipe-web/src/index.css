@@ -101,11 +101,12 @@ html[data-theme="light"] .messages-page .msg-card { background:#fffdfe; border-c
   --muted: 258 13% 17%; --muted-foreground: 264 9% 68%; --accent: 333 34% 20%; --accent-foreground: 337 92% 78%; --secondary: 258 13% 18%;
   background-color: hsl(var(--background)); color: hsl(var(--foreground));
 }
-.public-profile .pp-section { background:hsl(var(--card)); border:1px solid hsl(var(--border) / .55); border-radius:20px; padding:18px 18px 20px; }
-.public-profile .pp-label { display:flex; align-items:center; gap:10px; font-size:11px; font-weight:800; letter-spacing:.2em; text-transform:uppercase; color:hsl(var(--foreground) / .82); }
-.public-profile .pp-icon { display:inline-flex; height:28px; width:28px; align-items:center; justify-content:center; border-radius:9px; background:hsl(var(--primary) / .14); color:hsl(var(--primary)); }
-.public-profile .pp-value { font-size:15px; font-weight:600; }
-.public-profile .pp-pill { border-radius:999px; background:hsl(var(--primary) / .12); border:1px solid hsl(var(--primary) / .22); padding:7px 14px; font-size:13px; font-weight:600; color:hsl(var(--accent-foreground)); }
-.public-profile .pp-pass { background:hsl(330 20% 97% / .92); color:hsl(350 70% 52%); box-shadow:0 6px 18px hsl(252 30% 3% / .28); backdrop-filter:blur(8px); }
+.public-profile .pp-pill { border-radius:999px; background:transparent; border:1px solid hsl(var(--primary) / .7); padding:7px 14px; font-size:13px; font-weight:600; color:hsl(var(--foreground)); }
 .public-profile .pp-like { background:hsl(var(--primary)); color:hsl(330 40% 99%); box-shadow:0 8px 22px hsl(335 94% 50% / .32); }
 .public-profile .pp-toast { background:hsl(252 16% 14% / .9); color:hsl(330 17% 94%); border:1px solid hsl(var(--border) / .6); backdrop-filter:blur(10px); }
+.public-profile .pp-round { display:flex; height:42px; width:42px; align-items:center; justify-content:center; border-radius:999px; background:hsl(var(--card)); border:1px solid hsl(var(--border) / .6); color:hsl(var(--primary)); transition:transform .15s; }
+.public-profile .pp-round:active { transform:scale(.94); }
+.public-profile .pp-card { background:hsl(var(--card)); border:1px solid hsl(var(--border) / .55); border-radius:14px; padding:10px 14px; }
+.public-profile .pp-card .pp-label { display:flex; align-items:center; gap:8px; font-size:13px; font-weight:800; letter-spacing:.04em; text-transform:uppercase; color:hsl(var(--primary)); }
+.public-profile .pp-card .pp-icon { display:inline-flex; flex-shrink:0; height:44px; width:44px; align-items:center; justify-content:center; border-radius:999px; background:hsl(var(--primary)); color:hsl(var(--card)); }
+.public-profile .pp-pass { background:hsl(var(--card)); color:hsl(var(--primary)); border:1px solid hsl(var(--border) / .7); box-shadow:0 6px 16px hsl(252 30% 3% / .35); backdrop-filter:none; }

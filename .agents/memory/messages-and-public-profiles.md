@@ -9,8 +9,8 @@ Keep the bottom tab label “Views” even though it opens the Messages list. Pr
 
 **How to apply:** Do not restore a viewer directory just because the tab is called Views, or introduce a sixth Chat tab.
 
-Other members' full profiles should use a dark appearance, organized detail sections with pink icons, and floating Pass and Like buttons with a transparent host rather than a heavy solid black action plate.
+Other members' full profiles should use a dark appearance with the name and location first, compact detail cards with pink icons, then all uploaded photos in More Photos. Place a dark gray Pass button with a pink X and a pink Like button over the lower photo, with a transparent host rather than a heavy solid black action plate.
 
-**Why:** The user said the black plate looked messy while scrolling and requested floating actions over photos.
+**Why:** The user said the black plate looked messy while scrolling, then provided a reference with details above the photos and floating actions over the lower photo.
 
 **How to apply:** Keep this public-profile direction separate from the approved pink-to-peach own-profile overview.
