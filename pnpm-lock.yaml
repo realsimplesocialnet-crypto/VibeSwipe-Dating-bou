@@ -581,6 +581,10 @@ importers:
         version: 3.5.4(zod@3.25.76)
 
   artifacts/vibeswipe-web:
+    dependencies:
+      country-state-city:
+        specifier: 3.2.1
+        version: 3.2.1
     devDependencies:
       '@clerk/react':
         specifier: ^6.18.6

@@ -587,7 +587,7 @@ router.put("/vibeswipe/me", async (req, res): Promise<void> => {
     const uniqueMediaIds = [...new Set(mediaIds)];
     if (uniqueMediaIds.length > 0) {
       const ownedMedia = await tx
-        .select({ id: mediaAssetsTable.id })
+        .select({ id: mediaAssetsTable.id, mediaType: mediaAssetsTable.mediaType })
         .from(mediaAssetsTable)
         .where(
           and(
@@ -599,6 +599,10 @@ router.put("/vibeswipe/me", async (req, res): Promise<void> => {
         .for("key share");
       if (ownedMedia.length !== uniqueMediaIds.length) {
         return { invalidMedia: true as const };
+      }
+      const photoIds = new Set(body.photos.map((reference) => reference.slice("media:".length)));
+      if (ownedMedia.some((asset) => photoIds.has(asset.id) && asset.mediaType !== "image")) {
+        return { invalidPhoto: true as const };
       }
     }
     const [profile] = await tx
@@ -615,6 +619,10 @@ router.put("/vibeswipe/me", async (req, res): Promise<void> => {
       .where(eq(profileSetupDraftsTable.userId, userId));
     return { invalidMedia: false as const, profile };
   });
+  if ("invalidPhoto" in result && result.invalidPhoto) {
+    res.status(400).json({ error: "Choose a profile picture, not a video." });
+    return;
+  }
   if (result.invalidMedia) {
     res.status(400).json({ error: "Profile media must belong to you." });
     return;

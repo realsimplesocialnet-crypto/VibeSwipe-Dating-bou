@@ -27,7 +27,10 @@ export const objectStorageClient = new Storage({
     },
     universe_domain: 'googleapis.com',
   },
-  projectId: '',
+  // Sidecar credentials authorize explicit buckets; no GCP project discovery
+  // is needed. A nonempty SDK project avoids ADC metadata discovery failures
+  // when google-auth-library reads existing uploaded objects.
+  projectId: 'replit-object-storage',
 });
 
 export class ObjectNotFoundError extends Error {

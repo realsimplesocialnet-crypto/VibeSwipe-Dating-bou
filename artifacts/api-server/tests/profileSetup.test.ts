@@ -40,3 +40,12 @@ test("profile persistence takes its owner from the authenticated user, not the b
   assert.deepEqual(values.preferences, profileInput.preferences);
   assert.equal(values.updatedAt, savedAt);
 });
+
+test("an account profile cannot be saved without at least one picture", () => {
+  assert.equal(SaveMyProfileBody.safeParse({ ...profileInput, photos: [] }).success, false);
+});
+
+test("the uploaded picture reference is preserved for profile and Discover cards", () => {
+  const saved = buildProfileValues(signedInUserId, profileInput, savedAt);
+  assert.equal(saved.photos[0], profileInput.photos[0]);
+});
