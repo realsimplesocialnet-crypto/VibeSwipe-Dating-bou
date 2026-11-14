@@ -46,7 +46,12 @@ export function WebPushSettings() {
   const iosNeedsHomeScreen = supported && isIOSDevice() && !isStandaloneApp();
 
   useEffect(() => {
-    if (!supported) return;
+    if (!supported) {
+      setStatus(
+        "This browser cannot receive background notifications. Use iOS 16.4 or newer with Myage on the Home Screen, or Chrome on Android.",
+      );
+      return;
+    }
     let active = true;
     void navigator.serviceWorker
       .getRegistration(new URL(import.meta.env.BASE_URL, window.location.origin).href)
@@ -62,7 +67,7 @@ export function WebPushSettings() {
     };
   }, [supported]);
 
-  async function togglePush() {
+  async function enablePush() {
     if (busy) return;
     setBusy(true);
     setStatus("");
@@ -77,21 +82,6 @@ export function WebPushSettings() {
         throw new Error("Background notifications can be enabled on the published Myage website, not in this preview.");
       }
 
-      const registration =
-        (await navigator.serviceWorker.getRegistration(
-          new URL(import.meta.env.BASE_URL, window.location.origin).href,
-        )) ?? (await navigator.serviceWorker.ready);
-      const existing = await registration.pushManager.getSubscription();
-      if (enabled && existing) {
-        await deleteSubscription.mutateAsync({
-          data: { endpoint: existing.endpoint },
-        });
-        await existing.unsubscribe();
-        setEnabled(false);
-        setStatus("Message notifications are off on this browser.");
-        return;
-      }
-
       const permission =
         Notification.permission === "granted"
           ? "granted"
@@ -99,6 +89,12 @@ export function WebPushSettings() {
       if (permission !== "granted") {
         throw new Error("Notifications are blocked. Allow them in your browser or phone settings, then try again.");
       }
+
+      const registration =
+        (await navigator.serviceWorker.getRegistration(
+          new URL(import.meta.env.BASE_URL, window.location.origin).href,
+        )) ?? (await navigator.serviceWorker.ready);
+      const existing = await registration.pushManager.getSubscription();
 
       let applicationServerKey = config.data?.applicationServerKey;
       if (!applicationServerKey) {
@@ -123,8 +119,10 @@ export function WebPushSettings() {
       await saveSubscription.mutateAsync({
         data: {
           endpoint: json.endpoint,
-          p256dh: json.keys.p256dh,
-          auth: json.keys.auth,
+          keys: {
+            p256dh: json.keys.p256dh,
+            auth: json.keys.auth,
+          },
         },
       });
       setEnabled(true);
@@ -143,6 +141,31 @@ export function WebPushSettings() {
     }
   }
 
+  async function disablePush() {
+    if (busy) return;
+    setBusy(true);
+    setStatus("");
+    try {
+      const registration =
+        (await navigator.serviceWorker.getRegistration(
+          new URL(import.meta.env.BASE_URL, window.location.origin).href,
+        )) ?? (await navigator.serviceWorker.ready);
+      const existing = await registration.pushManager.getSubscription();
+      if (existing) {
+        await deleteSubscription.mutateAsync({
+          data: { endpoint: existing.endpoint },
+        });
+        await existing.unsubscribe();
+      }
+      setEnabled(false);
+      setStatus("Message notifications are off on this browser.");
+    } catch {
+      setStatus("Notifications could not be turned off. Please try again.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <section
       className="rounded-2xl border border-white/[.08] bg-card p-5"
@@ -155,7 +178,7 @@ export function WebPushSettings() {
         <div className="min-w-0 flex-1">
           <h3 className="font-bold">Message notifications</h3>
           <p className="mt-1 text-xs leading-5 text-muted-foreground">
-            Get the sender’s name and message preview when Myage is closed or in the background.
+            Get the sender’s name and preview when Myage is closed. Tap an alert to open that chat.
           </p>
           {iosNeedsHomeScreen && (
             <p className="mt-2 text-xs leading-5 text-amber-200">
@@ -169,14 +192,25 @@ export function WebPushSettings() {
           )}
           <button
             type="button"
-            onClick={() => void togglePush()}
+            onClick={() => void enablePush()}
             disabled={busy || !supported}
             className="mt-4 inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-bold text-[#26111b] transition-opacity disabled:cursor-not-allowed disabled:opacity-50"
             data-testid="button-toggle-message-notifications"
           >
             {busy && <LoaderCircle size={16} className="animate-spin" />}
-            {enabled ? "Turn off on this browser" : "Enable message notifications"}
+            {enabled ? "Keep notifications on" : "Enable message notifications"}
           </button>
+          {enabled && (
+            <button
+              type="button"
+              onClick={() => void disablePush()}
+              disabled={busy}
+              className="ml-2 mt-4 inline-flex min-h-11 items-center justify-center rounded-xl border border-white/15 px-4 py-2 text-sm font-semibold text-muted-foreground transition-colors hover:border-primary/40 disabled:opacity-50"
+              data-testid="button-disable-message-notifications"
+            >
+              Turn off
+            </button>
+          )}
         </div>
       </div>
     </section>

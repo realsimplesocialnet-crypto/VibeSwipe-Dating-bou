@@ -10,11 +10,11 @@ import { db, vibeSwipePushSubscriptionsTable } from "@workspace/db";
 import { and, eq } from "drizzle-orm";
 import { Router, type IRouter, type Request } from "express";
 import { requireAuth } from "../middlewares/auth";
+import { getWebPushApplicationServerKey } from "../lib/vibeswipePush";
 import {
-  getWebPushApplicationServerKey,
   isAllowedWebPushEndpoint,
   isValidExpoPushToken,
-} from "../lib/vibeswipePush";
+} from "../lib/vibeswipePushPayload";
 
 const router: IRouter = Router();
 router.use(requireAuth);
@@ -44,8 +44,8 @@ router.put(
         userId: currentUserId(req),
         platform: "web",
         endpoint: body.data.endpoint,
-        p256dh: body.data.p256dh,
-        auth: body.data.auth,
+        p256dh: body.data.keys.p256dh,
+        auth: body.data.keys.auth,
         expoToken: null,
       })
       .onConflictDoUpdate({
@@ -53,8 +53,8 @@ router.put(
         set: {
           userId: currentUserId(req),
           platform: "web",
-          p256dh: body.data.p256dh,
-          auth: body.data.auth,
+          p256dh: body.data.keys.p256dh,
+          auth: body.data.keys.auth,
           expoToken: null,
           updatedAt: new Date(),
         },

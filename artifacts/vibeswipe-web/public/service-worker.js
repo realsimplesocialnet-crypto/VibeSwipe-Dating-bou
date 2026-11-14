@@ -61,9 +61,19 @@ self.addEventListener('notificationclick', (event) => {
   event.waitUntil((async () => {
     const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
     for (const client of windows) {
-      if (new URL(client.url).origin !== scopeUrl.origin) continue;
-      const destination = await client.navigate(target.href);
-      return (destination || client).focus();
+      const clientUrl = new URL(client.url);
+      if (
+        clientUrl.origin !== scopeUrl.origin ||
+        !clientUrl.pathname.startsWith(scopeUrl.pathname)
+      ) {
+        continue;
+      }
+      try {
+        const destination = await client.navigate(target.href);
+        return (destination || client).focus();
+      } catch {
+        // Open a fresh app window below if this browser cannot navigate an existing one.
+      }
     }
     return self.clients.openWindow(target.href);
   })());

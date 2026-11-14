@@ -23,6 +23,7 @@
           "locationWhenInUsePermission": "Allow Myage to share your live location while the Safety Center is open."
         }
       ],
+      "expo-notifications",
       "expo-secure-store",
       "expo-web-browser",
       "expo-video",

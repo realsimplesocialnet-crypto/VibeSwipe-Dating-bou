@@ -1563,7 +1563,10 @@ router.post(
         mediaType: message.mediaType,
       }).catch((error: unknown) => {
         req.log.error(
-          { err: error, messageId: message.id },
+          {
+            messageId: message.id,
+            reason: error instanceof Error ? error.message : "unknown failure",
+          },
           "Could not send message push notification",
         );
       });
