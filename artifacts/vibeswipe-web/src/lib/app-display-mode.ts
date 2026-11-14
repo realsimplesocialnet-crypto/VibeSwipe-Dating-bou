@@ -2,6 +2,17 @@ import { useSyncExternalStore } from 'react';
 
 const modes = ['(display-mode: standalone)', '(display-mode: fullscreen)'];
 
+export function isMobileBrowser(browserNavigator: {
+  userAgent?: string;
+  userAgentData?: { mobile?: boolean };
+  platform?: string;
+  maxTouchPoints?: number;
+}): boolean {
+  return browserNavigator.userAgentData?.mobile === true
+    || /Android|iPhone|iPad|iPod|Mobile/i.test(browserNavigator.userAgent ?? '')
+    || (browserNavigator.platform === 'MacIntel' && (browserNavigator.maxTouchPoints ?? 0) > 1);
+}
+
 export function isStandaloneApp(
   browser: Pick<Window, 'matchMedia'>,
   browserNavigator: { standalone?: boolean },

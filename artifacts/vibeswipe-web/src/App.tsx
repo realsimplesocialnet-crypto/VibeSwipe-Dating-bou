@@ -34,7 +34,7 @@ import CommunityGuidelinesPage from '@/pages/community-guidelines';
 import PrivacyPolicyPage from '@/pages/privacy-policy';
 import ReportSafetyPage from '@/pages/report-safety';
 import PublicLocationSharePage from '@/pages/public-location-share';
-import { InstallAction } from '@/components/install-action';
+import { InstallAction, MobileInstallBanner } from '@/components/install-action';
 import { InstalledWelcome } from '@/components/installed-welcome';
 import { DiscoverSwipePage } from '@/components/discover-swipe-page';
 import { MatchStoryAvatar, StoryComposerPage } from '@/components/stories/stories-ui';
@@ -121,7 +121,7 @@ function AppShell({ children }: { children: ReactNode }) {
           <button onClick={() => void signOut({ redirectUrl: pathFor('/') })} data-testid="button-sign-out" className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm text-muted-foreground hover:bg-white/[.04]"><LogOut size={17}/>Sign out</button>
         </div>
       </aside>
-      <header className="sticky top-0 z-20 flex h-12 items-center justify-between border-b border-border bg-background/90 px-4 backdrop-blur-xl lg:hidden">
+      <header className="sticky top-[var(--install-banner-height,0px)] z-20 flex h-12 items-center justify-between border-b border-border bg-background/90 px-4 backdrop-blur-xl lg:hidden">
         <Brand compact/><span className="brand text-base font-extrabold">vibe<span className="text-primary">swipe</span></span><InstallAction compact/>
       </header>
     </>}
@@ -732,5 +732,5 @@ function ClerkRoutes(){const [,setLocation]=useLocation();return <ClerkProvider 
    <Route path="/safety-center" component={SafetyCenterRoute}/><Route path="/report-safety" component={ReportSafetyRoute}/><Route path="/safety/location" component={PublicLocationShareRoute}/>
   <Route path="/profile" component={ProfileRoute}/><Route path="/profile/edit" component={ProfileEditRoute}/><Route path="/profile/:profileId/from-notifications" component={ViewedNotificationProfileRoute}/><Route path="/profile/:profileId" component={PublicProfileRoute}/><Route path="/settings" component={SettingsRoute}/><Route path="/settings/:section" component={SettingsSectionRoute}/><Route component={NotFound}/>
 </Switch></ClerkProvider>}
-function App(){if(!clerkPubKey)throw new Error('Missing VITE_CLERK_PUBLISHABLE_KEY');return <QueryClientProvider client={queryClient}><ConnectionNotice/><WouterRouter base={basePath}><ClerkRoutes/></WouterRouter></QueryClientProvider>}
+function App(){if(!clerkPubKey)throw new Error('Missing VITE_CLERK_PUBLISHABLE_KEY');return <QueryClientProvider client={queryClient}><ConnectionNotice/><WouterRouter base={basePath}><MobileInstallBanner/><ClerkRoutes/></WouterRouter></QueryClientProvider>}
 export default App;

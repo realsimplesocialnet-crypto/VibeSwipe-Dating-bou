@@ -46,3 +46,18 @@ test('standalone mode is reflected in the shared install state', () => {
   standalone.dispatchEvent(new Event('change'));
   assert.equal(store.getSnapshot().installed, true);
 });
+
+test('returning website visits remain eligible without a new browser prompt', () => {
+  const { window, store } = setup();
+  window.dispatchEvent(new Event('pageshow'));
+  assert.equal(store.getSnapshot().installed, false);
+  assert.equal(store.getSnapshot().prompt, null);
+});
+
+test('install completion stays confirmed when a browser-mode event follows', () => {
+  const { window, standalone, store } = setup();
+  window.dispatchEvent(new Event('appinstalled'));
+  standalone.matches = false;
+  standalone.dispatchEvent(new Event('change'));
+  assert.equal(store.getSnapshot().installed, true);
+});

@@ -10,3 +10,9 @@ Both normal website visits and home-screen launches on iPhone and Android should
 **Why:** The user repeated the Android installation requirement, objected to seeing Install again inside the installed app, and clarified that website visitors must have the same account-first entry without seeing the whole app before completing their form.
 
 **How to apply:** Detect the actual standalone window, including Safari's home-screen signal, rather than treating every mobile browser visit as an installed app. Distinguish verified website installability from completed physical-device installation, and do not describe an unpublished change as live.
+
+Use PWA installation, not an APK download, for the website install banner. Show the install option to returning mobile website visitors after refresh as well as new visitors, even when no automatic browser install prompt fires. Keep it available until installation is detected, and do not let old dismissal flags suppress it for returning users.
+
+**Why:** The user clarified “just show PWA install something” and said previous website users could not see the install option.
+
+**How to apply:** Make the banner global across website pages, with a real browser prompt when available and platform-specific manual installation instructions otherwise. Never interpret a missing install prompt as proof that the app is installed.
