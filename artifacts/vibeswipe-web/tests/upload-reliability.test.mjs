@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { PROFILE_PHOTO_ACCEPT, photoDimensions, photoUploadCanRetry, uploadProfilePhotoBytes, validatePhotoFile } from '../src/lib/profile-photo-upload.ts';
+import { PROFILE_PHOTO_ACCEPT, photoDimensions, photoUploadCanRetry, readPhotoBytes, sniffPhotoFormat, uploadProfilePhotoBytes, validatePhotoFile } from '../src/lib/profile-photo-upload.ts';
 import { userErrorMessage } from '../src/lib/user-errors.ts';
 
 test('photo picker accepts JPEG, JPG, PNG and WebP, including generic mobile MIME types', () => {
@@ -13,14 +13,33 @@ test('photo picker accepts JPEG, JPG, PNG and WebP, including generic mobile MIM
   assert.doesNotThrow(() => validatePhotoFile({ size: 200, type: 'image/png', name: 'photo.png' }));
   assert.doesNotThrow(() => validatePhotoFile({ size: 200, type: 'image/webp', name: 'photo.webp' }));
   assert.doesNotThrow(() => validatePhotoFile({ size: 200, type: 'application/octet-stream', name: 'photo.webp' }));
+  assert.doesNotThrow(() => validatePhotoFile({ size: 200, type: 'application/x-android-uri', name: 'picker-file.jpg' }));
+  assert.doesNotThrow(() => validatePhotoFile({ size: 200, type: 'application/octet-stream', name: 'IMG_1234' }));
+  assert.doesNotThrow(() => validatePhotoFile({ size: 200, type: 'image/heic', name: 'photo.heic' }));
 });
 
-test('photo validation rejects empty, oversize and unsupported files', () => {
+test('photo validation checks size before inspecting the actual file bytes', () => {
   assert.throws(() => validatePhotoFile({ size: 0, type: 'image/jpeg', name: 'photo.jpg' }), /empty/);
   assert.throws(() => validatePhotoFile({ size: 16 * 1024 * 1024, type: 'image/jpeg', name: 'photo.jpg' }), /15 MB/);
-  assert.throws(() => validatePhotoFile({ size: 200, type: 'video/mp4', name: 'movie.mp4' }), /JPG\/JPEG, PNG, or WebP/);
-  assert.doesNotThrow(() => validatePhotoFile({ size: 200, type: '', name: 'photo.JPG' }));
-  assert.throws(() => validatePhotoFile({ size: 200, type: 'image/heic', name: 'photo.heic' }), /JPG\/JPEG, PNG, or WebP/);
+  assert.doesNotThrow(() => validatePhotoFile({ size: 200, type: 'application/x-android-uri', name: 'picker-file' }));
+  assert.equal(sniffPhotoFormat(new Uint8Array([0, 1, 2, 3])), null);
+});
+
+test('photo format is detected from file bytes rather than trusting picker MIME metadata', () => {
+  assert.equal(sniffPhotoFormat(Uint8Array.from([0xff, 0xd8, 0xff, 0x00])), 'image/jpeg');
+  assert.equal(sniffPhotoFormat(Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])), 'image/png');
+  assert.equal(sniffPhotoFormat(Uint8Array.from([...Buffer.from('RIFF'), 0, 0, 0, 0, ...Buffer.from('WEBP')])), 'image/webp');
+  assert.equal(sniffPhotoFormat(Uint8Array.from([...Buffer.from([0, 0, 0, 24]), ...Buffer.from('ftyp'), ...Buffer.from('heic'), 0, 0, 0, 0])), 'image/heic');
+  assert.equal(sniffPhotoFormat(Uint8Array.from([1, 2, 3, 4])), null);
+});
+
+test('photo picker reads Android-style streams when arrayBuffer is unavailable', async () => {
+  const blob = new Blob(['phone photo bytes']);
+  const file = {
+    arrayBuffer: async () => { throw new Error('array buffer not available'); },
+    stream: () => blob.stream(),
+  };
+  assert.equal(Buffer.from(await readPhotoBytes(file)).toString(), 'phone photo bytes');
 });
 
 test('phone pictures keep their aspect ratio without upscaling', () => {
@@ -34,6 +53,8 @@ test('photo retry is offered for recoverable failures, not bad files', () => {
   assert.equal(photoUploadCanRetry({ code: 'PHOTO_PERMISSION' }), true);
   assert.equal(photoUploadCanRetry({ status: 503 }), true);
   assert.equal(photoUploadCanRetry({ code: 'PHOTO_TYPE' }), false);
+  assert.equal(photoUploadCanRetry({ code: 'PHOTO_FORMAT' }), false);
+  assert.equal(photoUploadCanRetry({ code: 'PHOTO_HEIC_CONVERT' }), false);
   assert.equal(photoUploadCanRetry({ code: 'PHOTO_DECODE' }), false);
   assert.equal(photoUploadCanRetry({ code: 'PHOTO_SIZE' }), false);
 });

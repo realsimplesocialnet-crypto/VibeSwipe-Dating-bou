@@ -11,18 +11,63 @@ export class PhotoUploadError extends Error {
   }
 }
 
-export const PROFILE_PHOTO_ACCEPT = 'image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp';
+export const PROFILE_PHOTO_ACCEPT = 'image/jpeg,image/png,image/webp,image/heic,image/heif,image/x-heic,image/x-heif,.jpg,.jpeg,.png,.webp,.heic,.heif';
+
+export type PhotoFormat = 'image/jpeg' | 'image/png' | 'image/webp' | 'image/heic';
+
+export function sniffPhotoFormat(bytes: Uint8Array): PhotoFormat | null {
+  if (bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return 'image/jpeg';
+  if (bytes.length >= 8 && bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47 &&
+    bytes[4] === 0x0d && bytes[5] === 0x0a && bytes[6] === 0x1a && bytes[7] === 0x0a) return 'image/png';
+  if (bytes.length >= 12 && String.fromCharCode(...bytes.subarray(0, 4)) === 'RIFF' &&
+    String.fromCharCode(...bytes.subarray(8, 12)) === 'WEBP') return 'image/webp';
+  if (bytes.length >= 12 && String.fromCharCode(...bytes.subarray(4, 8)) === 'ftyp') {
+    const brands = new Set<string>();
+    for (let offset = 8; offset + 4 <= Math.min(bytes.length, 64); offset += 4) {
+      brands.add(String.fromCharCode(...bytes.subarray(offset, offset + 4)));
+    }
+    if ([...brands].some(brand => /^(heic|heix|hevc|hevx|mif1|msf1|heif|heim|heis|hevm|hevs|mif2)$/i.test(brand))) return 'image/heic';
+  }
+  return null;
+}
+
+export async function readPhotoBytes(file: File): Promise<Uint8Array> {
+  try {
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    if (bytes.length) return bytes;
+  } catch {
+    // Android's document/photo providers may expose a stream before a stable buffer.
+  }
+  try {
+    const reader = file.stream().getReader();
+    const chunks: Uint8Array[] = [];
+    let total = 0;
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      chunks.push(value);
+      total += value.byteLength;
+    }
+    if (total) {
+      const bytes = new Uint8Array(total);
+      let offset = 0;
+      for (const chunk of chunks) {
+        bytes.set(chunk, offset);
+        offset += chunk.byteLength;
+      }
+      return bytes;
+    }
+  } catch {
+    // Report one actionable message below rather than a browser-specific exception.
+  }
+  throw new PhotoUploadError('PHOTO_READ', 'Your phone couldn’t provide the photo data. Choose the photo again or save a copy to your device first.');
+}
 
 export function validatePhotoFile(file: Pick<File, 'size' | 'type' | 'name'>): void {
   if (file.size < 1) throw new PhotoUploadError('PHOTO_EMPTY', 'This photo is empty. Choose another picture.');
   if (file.size > 15 * 1024 * 1024) throw new PhotoUploadError('PHOTO_SIZE', 'Choose a photo smaller than 15 MB.');
-  const type = file.type.toLowerCase().split(';')[0].trim();
-  const imageType = /^(image\/(jpeg|jpg|pjpeg|png|webp))$/.test(type);
-  const imageName = /\.(jpe?g|png|webp)$/i.test(file.name);
-  const browserDidNotReportType = !type || type === 'application/octet-stream';
-  if (!imageType && !(browserDidNotReportType && imageName)) {
-    throw new PhotoUploadError('PHOTO_TYPE', 'Choose a JPG/JPEG, PNG, or WebP photo.');
-  }
+  // MIME type and file name are unreliable for Android Photo Picker results.
+  // The actual bytes are checked with sniffPhotoFormat before upload instead.
 }
 
 export function photoDimensions(width: number, height: number): { width: number; height: number } {
@@ -32,12 +77,30 @@ export function photoDimensions(width: number, height: number): { width: number;
 
 export function photoUploadCanRetry(error: unknown): boolean {
   if (!error || typeof error !== 'object' || !('code' in error) || typeof error.code !== 'string') return true;
-  return !/^PHOTO_(TYPE|EMPTY|SIZE|DECODE)$/.test(error.code);
+  return !/^PHOTO_(TYPE|EMPTY|SIZE|FORMAT|DECODE|HEIC_CONVERT)$/.test(error.code);
 }
 
-/** Decode locally and resize phone-camera files before sending any bytes. */
+/** Read the picker file, verify its actual format, convert, and resize it before upload. */
 export async function prepareProfilePhoto(file: File): Promise<File> {
   validatePhotoFile(file);
+  const bytes = await readPhotoBytes(file);
+  let format = sniffPhotoFormat(bytes);
+  if (!format) {
+    throw new PhotoUploadError('PHOTO_FORMAT', 'This file is not a readable JPG/JPEG, PNG, WebP, or HEIC/HEIF image. Choose another photo.');
+  }
+  const stableBytes = new Uint8Array(bytes.byteLength);
+  stableBytes.set(bytes);
+  let sourceBlob: Blob = new Blob([stableBytes.buffer], { type: format });
+  if (format === 'image/heic') {
+    try {
+      const { heicTo } = await import('heic-to');
+      sourceBlob = await heicTo({ blob: sourceBlob, type: 'image/jpeg', quality: 0.9 });
+      format = 'image/jpeg';
+    } catch {
+      throw new PhotoUploadError('PHOTO_HEIC_CONVERT', 'This HEIC/HEIF photo could not be converted on this device. Save or export it as a JPEG and try again.');
+    }
+  }
+  const decodedFile = new File([sourceBlob], file.name, { type: format, lastModified: file.lastModified });
   let bitmap: ImageBitmap | undefined;
   let image: HTMLImageElement | undefined;
   let url: string | undefined;
@@ -45,26 +108,26 @@ export async function prepareProfilePhoto(file: File): Promise<File> {
   try {
     if (typeof createImageBitmap === 'function') {
       try {
-        bitmap = await createImageBitmap(file);
+        bitmap = await createImageBitmap(decodedFile);
       } catch {
         // Safari and older mobile browsers can decode the same supported file
         // through an image element even when createImageBitmap is unavailable.
       }
     }
     if (!bitmap) {
-      url = URL.createObjectURL(file);
+      url = URL.createObjectURL(decodedFile);
       image = new Image();
       await new Promise<void>((resolve, reject) => {
         timer = setTimeout(() => reject(new PhotoUploadError('PHOTO_DECODE_TIMEOUT', 'This picture took too long to open. Choose another photo.')), 20_000);
         image!.onload = () => resolve();
-        image!.onerror = () => reject(new PhotoUploadError('PHOTO_DECODE', 'This photo couldn’t be opened. Choose a JPG/JPEG, PNG, or WebP picture.'));
+        image!.onerror = () => reject(new PhotoUploadError('PHOTO_DECODE', 'This photo couldn’t be opened. Choose a readable JPG/JPEG, PNG, WebP, or HEIC/HEIF picture.'));
         image!.src = url!;
       });
     }
     const source = bitmap ?? image!;
     const sourceWidth = bitmap?.width ?? image!.naturalWidth;
     const sourceHeight = bitmap?.height ?? image!.naturalHeight;
-    if (!sourceWidth || !sourceHeight) throw new PhotoUploadError('PHOTO_DECODE', 'This photo couldn’t be opened. Choose a JPG/JPEG, PNG, or WebP picture.');
+    if (!sourceWidth || !sourceHeight) throw new PhotoUploadError('PHOTO_DECODE', 'This photo couldn’t be opened. Choose a readable JPG/JPEG, PNG, WebP, or HEIC/HEIF picture.');
     const canvas = document.createElement('canvas');
     const dimensions = photoDimensions(sourceWidth, sourceHeight);
     canvas.width = dimensions.width;
