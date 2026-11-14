@@ -1,0 +1,16 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "4KjU6u-76k3ZxmHM6PfKP"
+uri = "file://attached_assets/generated_images/vibeswipe-profile-pink-peach-mockup.png"
+type = "image"
+title = "VibeSwipe Profile Mockup"
+description = "Pink-to-peach profile design with circular portrait, white profile card, and pink Edit profile button."
+logical_id = "cfb86a87-0034-4840-9df8-8176f3f70eed"
+content_hash = "sha256:f4fd86eb3fda2d435a83b6a9ead2f794be31b6c11e2254e78d3d8341af1f7db7"
+size = 1012792
+mtime_ms = 1794674555976
+storage_uri = "gcs://replit-rams-assets-picard/rams/assets/repl:10568a97-c1ca-4404-b0f1-6a360d301b91/cfb86a87-0034-4840-9df8-8176f3f70eed/55b7d327-8fef-4e72-b81d-ed1ec72cbcbd"
+storage_version_token = "1794674576578272"
+content_type = "image/png"
