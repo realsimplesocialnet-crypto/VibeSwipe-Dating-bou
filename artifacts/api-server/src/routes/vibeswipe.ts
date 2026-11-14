@@ -1636,7 +1636,8 @@ router.get(
 );
 
 router.post(
-  "/vibeswipe/matches/:matchId/messages",
+  // Keep cached website/PWA clients working while they update their API client.
+  ["/vibeswipe/matches/:matchId/messages", "/vibeswipe/matches/:matchId"],
   async (req, res): Promise<void> => {
     const params = SendMessageParams.safeParse(req.params);
     const body = SendMessageBody.safeParse(req.body);

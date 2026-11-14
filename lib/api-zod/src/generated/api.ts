@@ -736,6 +736,48 @@ export const GetMatchesResponse = zod.array(GetMatchesResponseItem)
 
 
 /**
+ * @summary Send a message in a match
+ */
+export const SendMessageParams = zod.object({
+  "matchId": zod.coerce.string().uuid()
+})
+
+export const sendMessageBodyContentMax = 2000;
+
+export const sendMessageBodyMediaReferenceMax = 100;
+
+export const sendMessageBodyMediaDurationMax = 60;
+
+
+
+export const SendMessageBody = zod.object({
+  "content": zod.string().min(1).max(sendMessageBodyContentMax).optional(),
+  "mediaReference": zod.string().min(1).max(sendMessageBodyMediaReferenceMax).optional(),
+  "mediaType": zod.enum(['image', 'video', 'audio']).optional(),
+  "mediaDuration": zod.number().int().min(1).max(sendMessageBodyMediaDurationMax).optional()
+})
+
+export const sendMessageResponseMediaReferenceMax = 100;
+
+export const sendMessageResponseMediaDurationMax = 60;
+
+
+
+export const SendMessageResponse = zod.object({
+  "id": zod.string().uuid(),
+  "matchId": zod.string().uuid(),
+  "senderId": zod.string(),
+  "content": zod.string(),
+  "createdAt": zod.coerce.date(),
+  "mediaReference": zod.string().max(sendMessageResponseMediaReferenceMax).nullish(),
+  "mediaType": zod.union([zod.literal('image'),zod.literal('video'),zod.literal('audio'),zod.literal(null)]).nullish(),
+  "mediaDuration": zod.number().int().min(1).max(sendMessageResponseMediaDurationMax).nullish(),
+  "deletedForEveryone": zod.boolean(),
+  "isRead": zod.boolean()
+})
+
+
+/**
  * @summary Get messages for a match
  */
 export const GetMessagesParams = zod.object({
@@ -786,48 +828,6 @@ export const UnmatchMatchParams = zod.object({
 })
 
 export const UnmatchMatchResponse = zod.void()
-
-
-/**
- * @summary Send a message in a match
- */
-export const SendMessageParams = zod.object({
-  "matchId": zod.coerce.string().uuid()
-})
-
-export const sendMessageBodyContentMax = 2000;
-
-export const sendMessageBodyMediaReferenceMax = 100;
-
-export const sendMessageBodyMediaDurationMax = 60;
-
-
-
-export const SendMessageBody = zod.object({
-  "content": zod.string().min(1).max(sendMessageBodyContentMax).optional(),
-  "mediaReference": zod.string().min(1).max(sendMessageBodyMediaReferenceMax).optional(),
-  "mediaType": zod.enum(['image', 'video', 'audio']).optional(),
-  "mediaDuration": zod.number().int().min(1).max(sendMessageBodyMediaDurationMax).optional()
-})
-
-export const sendMessageResponseMediaReferenceMax = 100;
-
-export const sendMessageResponseMediaDurationMax = 60;
-
-
-
-export const SendMessageResponse = zod.object({
-  "id": zod.string().uuid(),
-  "matchId": zod.string().uuid(),
-  "senderId": zod.string(),
-  "content": zod.string(),
-  "createdAt": zod.coerce.date(),
-  "mediaReference": zod.string().max(sendMessageResponseMediaReferenceMax).nullish(),
-  "mediaType": zod.union([zod.literal('image'),zod.literal('video'),zod.literal('audio'),zod.literal(null)]).nullish(),
-  "mediaDuration": zod.number().int().min(1).max(sendMessageResponseMediaDurationMax).nullish(),
-  "deletedForEveryone": zod.boolean(),
-  "isRead": zod.boolean()
-})
 
 
 /**

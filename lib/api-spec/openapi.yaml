@@ -417,6 +417,30 @@ paths:
                 type: array
                 items: { $ref: "#/components/schemas/Match" }
   /vibeswipe/matches/{matchId}/messages:
+    post:
+      operationId: sendMessage
+      tags: [vibeswipe]
+      summary: Send a message in a match
+      parameters:
+        - in: path
+          name: matchId
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MessageInput"
+      responses:
+        "201":
+          description: Message sent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Message"
+        "403":
+          description: Not a participant in the match
     get:
       operationId: getMessages
       tags: [vibeswipe]
@@ -474,30 +498,6 @@ paths:
       responses:
         "204":
           description: Match removed for both participants
-        "403":
-          description: Not a participant in the match
-    post:
-      operationId: sendMessage
-      tags: [vibeswipe]
-      summary: Send a message in a match
-      parameters:
-        - in: path
-          name: matchId
-          required: true
-          schema: { type: string, format: uuid }
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/MessageInput"
-      responses:
-        "201":
-          description: Message sent
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Message"
         "403":
           description: Not a participant in the match
   /vibeswipe/matches/{matchId}/messages/events:

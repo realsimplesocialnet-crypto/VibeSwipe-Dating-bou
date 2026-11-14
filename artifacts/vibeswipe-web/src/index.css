@@ -77,6 +77,14 @@ html[data-theme="light"] .text-\[\#f5edf1\] { color: hsl(var(--foreground)) !imp
 .own-profile .op-rule { height:1px; background:hsl(var(--border) / .7); }
 .own-profile .op-edit { background:#f2557d; color:#fff8fa; box-shadow:0 10px 24px rgba(242,85,125,.28); }
 .own-profile .op-edit:hover { background:#f46a8d; }
+html[data-theme="light"] .chat-surface.chat-new-match:not(.chat-dark) {
+  background: linear-gradient(155deg, #fff3f5, #ffe8ed 62%, #fff3ee);
+}
+.chat-empty-intro button[data-testid^="button-chat-icebreaker-"] {
+  min-height: 66px;
+  border-color: transparent;
+  box-shadow: 0 5px 20px hsl(340 45% 45% / .07);
+}
 .own-profile .op-chip { background:hsl(var(--accent)); color:hsl(var(--accent-foreground)); }
 .own-profile .op-thumb { background:hsl(var(--muted)); }
 .own-profile .op-ghost { background:hsl(var(--card) / .55); border:1px solid hsl(var(--border) / .7); backdrop-filter:blur(10px); }

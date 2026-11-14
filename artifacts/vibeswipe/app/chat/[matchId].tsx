@@ -167,7 +167,7 @@ export default function ChatScreen() {
   const blocked = !!match?.blockedByMe || !!match?.blockedMe;
   const chatAccent = [ChatTheme.blue, ChatTheme.purple, ChatTheme.green].some((theme) => theme === match?.chatTheme)
     ? mediaTheme(match!.chatTheme, colors.primary) : colors.primary;
-  const themedBackground = colors.background;
+  const themedBackground = messages.data?.length === 0 ? colors.profileGradientMiddle : colors.background;
   const themedForeground = colors.foreground;
 
   useEffect(() => {
@@ -304,14 +304,14 @@ export default function ChatScreen() {
     if (!media) setDraft("");
     try {
       const payload = media
-        ? { content: content || "", mediaReference: media.reference, mediaType: media.type, ...(media.duration ? { mediaDuration: media.duration } : {}) }
+        ? { ...(content.trim() ? { content: content.trim() } : {}), mediaReference: media.reference, mediaType: media.type, ...(media.duration ? { mediaDuration: media.duration } : {}) }
         : { content: content.trim() };
       const message = await sendMessage.mutateAsync({ matchId, data: payload });
       addMessage(message);
       updateTyping.mutate({ matchId, data: { isTyping: false } });
       setError("");
     } catch {
-      if (!media) setDraft(oldDraft);
+      if (!media) setDraft(current => current && current !== oldDraft ? [oldDraft, current].filter(Boolean).join("\n") : oldDraft);
       setError("Message could not be sent. Please try again.");
     }
   }
@@ -642,10 +642,9 @@ export default function ChatScreen() {
         ListHeaderComponent={otherIsTyping ? <Text style={[styles.typing, { color: colors.mutedForeground }]}>{match.profile.name} is typing…</Text> : undefined}
         ListEmptyComponent={!messages.isError && !blocked ? (
           <View style={styles.icebreakerWrap} testID="chat-empty-conversation">
-            <Ionicons name="chatbubble-ellipses" size={92} color={colors.primary} style={styles.emptyIcon} />
-            <Text style={[styles.emptyTitle, { color: colors.foreground }]}>A good conversation starts here</Text>
-            <Text style={[styles.emptySubtitle, { color: colors.mutedForeground }]}>A mutual match is an open door.</Text>
-            <Text style={[styles.emptySubtitle, { color: colors.primary }]}>Make the first message yours.</Text>
+            <Ionicons name="heart" size={56} color={colors.primary} style={[styles.emptyIcon, { opacity: 0.5 }]} />
+            <Text style={[styles.emptyTitle, { color: colors.primary, fontFamily: Platform.OS === "ios" ? "Georgia" : "serif" }]}>A good conversation starts here</Text>
+            <Text style={[styles.emptySubtitle, { color: colors.mutedForeground }]}>Break the ice with a question</Text>
             <View style={styles.suggestionsHeading}><Ionicons name="sparkles-outline" size={22} color={colors.primary} /><Text style={[styles.suggestionsLabel, { color: colors.mutedForeground }]}>Suggested questions</Text></View>
             {icebreakers.isLoading ? <ActivityIndicator color={colors.primary} accessibilityLabel="Loading suggested questions" /> : null}
             {icebreakers.isError ? <Pressable onPress={() => void icebreakers.refetch()} testID="retry-chat-suggestions"><Text style={[styles.error, { color: colors.destructive }]}>Couldn’t load suggestions. Tap to retry.</Text></Pressable> : null}
@@ -887,7 +886,7 @@ const styles = StyleSheet.create({
   secondCheck: { marginLeft: -7 },
   typing: { alignSelf: "flex-start", marginHorizontal: 7, marginVertical: 8, fontSize: 12, fontStyle: "italic" },
   emptyIcon: { marginTop: 14, marginBottom: 15 },
-  emptyTitle: { maxWidth: 340, textAlign: "center", fontSize: 22, lineHeight: 29, fontWeight: "700", letterSpacing: -0.5 },
+  emptyTitle: { maxWidth: 340, textAlign: "center", fontSize: 32, lineHeight: 36, fontWeight: "500", letterSpacing: -0.5 },
   emptySubtitle: { textAlign: "center", fontSize: 15, lineHeight: 22, marginTop: 8 },
   icebreakerWrap: { alignItems: "center", paddingVertical: 6, gap: 10 },
   suggestionsHeading: { width: "100%", flexDirection: "row", alignItems: "center", gap: 8, marginTop: 24, marginBottom: 3 },
