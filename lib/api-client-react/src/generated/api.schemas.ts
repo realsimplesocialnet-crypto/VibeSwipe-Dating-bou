@@ -31,7 +31,10 @@ export interface ProfilePreferences {
 export interface Profile {
   id: string;
   name: string;
-  age: number;
+  /** @nullable */
+  age: number | null;
+  showAge: boolean;
+  showDistance: boolean;
   gender: string;
   lookingFor: string;
   bio: string;
@@ -199,14 +202,54 @@ export interface Icebreaker {
   question: string;
 }
 
+export type VibeSwipeSettingsLanguage = typeof VibeSwipeSettingsLanguage[keyof typeof VibeSwipeSettingsLanguage];
+
+
+export const VibeSwipeSettingsLanguage = {
+  en: 'en',
+} as const;
+
 export interface VibeSwipeSettings {
   incognito: boolean;
+  showAge: boolean;
+  showDistance: boolean;
+  notifyMatches: boolean;
+  notifyMessages: boolean;
+  notifyProfileViews: boolean;
+  darkMode: boolean;
+  language: VibeSwipeSettingsLanguage;
+  deactivated: boolean;
   travelMode: boolean;
   /**
      * @maxLength 100
      * @nullable
      */
   travelCity: string | null;
+}
+
+export type VibeSwipeSettingsUpdateInputLanguage = typeof VibeSwipeSettingsUpdateInputLanguage[keyof typeof VibeSwipeSettingsUpdateInputLanguage];
+
+
+export const VibeSwipeSettingsUpdateInputLanguage = {
+  en: 'en',
+} as const;
+
+export interface VibeSwipeSettingsUpdateInput {
+  incognito?: boolean;
+  showAge?: boolean;
+  showDistance?: boolean;
+  notifyMatches?: boolean;
+  notifyMessages?: boolean;
+  notifyProfileViews?: boolean;
+  darkMode?: boolean;
+  language?: VibeSwipeSettingsUpdateInputLanguage;
+  deactivated?: boolean;
+  travelMode?: boolean;
+  /**
+     * @maxLength 100
+     * @nullable
+     */
+  travelCity?: string | null;
 }
 
 export interface TravelCityOption {

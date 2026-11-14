@@ -242,7 +242,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/VibeSwipeSettings"
+              $ref: "#/components/schemas/VibeSwipeSettingsUpdateInput"
       responses:
         "200":
           description: Saved privacy settings
@@ -1101,7 +1101,9 @@ components:
       properties:
         id: { type: string }
         name: { type: string }
-        age: { type: integer }
+        age: { type: [integer, "null"] }
+        showAge: { type: boolean }
+        showDistance: { type: boolean }
         gender: { type: string }
         lookingFor: { type: string }
         bio: { type: string }
@@ -1122,7 +1124,7 @@ components:
         superLikedYou: { type: boolean }
         preferences:
           $ref: "#/components/schemas/ProfilePreferences"
-      required: [id, name, age, gender, lookingFor, bio, city, country, state, interests, occupation, occupationOther, photos, isDemo, preferences]
+      required: [id, name, age, showAge, showDistance, gender, lookingFor, bio, city, country, state, interests, occupation, occupationOther, photos, isDemo, preferences]
     ProfileInput:
       type: object
       properties:
@@ -1220,9 +1222,31 @@ components:
       type: object
       properties:
         incognito: { type: boolean }
+        showAge: { type: boolean }
+        showDistance: { type: boolean }
+        notifyMatches: { type: boolean }
+        notifyMessages: { type: boolean }
+        notifyProfileViews: { type: boolean }
+        darkMode: { type: boolean }
+        language: { type: string, enum: [en] }
+        deactivated: { type: boolean }
         travelMode: { type: boolean }
         travelCity: { type: [string, "null"], maxLength: 100 }
-      required: [incognito, travelMode, travelCity]
+      required: [incognito, showAge, showDistance, notifyMatches, notifyMessages, notifyProfileViews, darkMode, language, deactivated, travelMode, travelCity]
+    VibeSwipeSettingsUpdateInput:
+      type: object
+      properties:
+        incognito: { type: boolean }
+        showAge: { type: boolean }
+        showDistance: { type: boolean }
+        notifyMatches: { type: boolean }
+        notifyMessages: { type: boolean }
+        notifyProfileViews: { type: boolean }
+        darkMode: { type: boolean }
+        language: { type: string, enum: [en] }
+        deactivated: { type: boolean }
+        travelMode: { type: boolean }
+        travelCity: { type: [string, "null"], maxLength: 100 }
     TravelCityOption:
       type: object
       properties:

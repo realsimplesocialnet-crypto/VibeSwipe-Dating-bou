@@ -45,10 +45,11 @@ export function TravelModeSettings() {
     try {
       const saved = await update.mutateAsync({
         data: {
+          ...(settings.data ?? {}),
           incognito: settings.data?.incognito ?? false,
           travelMode: travelModeValue,
           travelCity,
-        },
+        } as NonNullable<typeof settings.data>,
       });
       queryClient.setQueryData(getGetVibeSwipeSettingsQueryKey(), saved);
       await queryClient.invalidateQueries({ queryKey: getGetDiscoverProfilesQueryKey() });

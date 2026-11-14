@@ -76,7 +76,9 @@ export const getMyProfileResponsePreferencesDistanceKmMax = 500;
 export const GetMyProfileResponse = zod.object({
   "id": zod.string(),
   "name": zod.string(),
-  "age": zod.number().int(),
+  "age": zod.number().int().nullable(),
+  "showAge": zod.boolean(),
+  "showDistance": zod.boolean(),
   "gender": zod.string(),
   "lookingFor": zod.string(),
   "bio": zod.string(),
@@ -178,7 +180,9 @@ export const saveMyProfileResponsePreferencesDistanceKmMax = 500;
 export const SaveMyProfileResponse = zod.object({
   "id": zod.string(),
   "name": zod.string(),
-  "age": zod.number().int(),
+  "age": zod.number().int().nullable(),
+  "showAge": zod.boolean(),
+  "showDistance": zod.boolean(),
   "gender": zod.string(),
   "lookingFor": zod.string(),
   "bio": zod.string(),
@@ -233,7 +237,9 @@ export const getDiscoverProfilesResponsePreferencesDistanceKmMax = 500;
 export const GetDiscoverProfilesResponseItem = zod.object({
   "id": zod.string(),
   "name": zod.string(),
-  "age": zod.number().int(),
+  "age": zod.number().int().nullable(),
+  "showAge": zod.boolean(),
+  "showDistance": zod.boolean(),
   "gender": zod.string(),
   "lookingFor": zod.string(),
   "bio": zod.string(),
@@ -359,6 +365,14 @@ export const getVibeSwipeSettingsResponseTravelCityMax = 100;
 
 export const GetVibeSwipeSettingsResponse = zod.object({
   "incognito": zod.boolean(),
+  "showAge": zod.boolean(),
+  "showDistance": zod.boolean(),
+  "notifyMatches": zod.boolean(),
+  "notifyMessages": zod.boolean(),
+  "notifyProfileViews": zod.boolean(),
+  "darkMode": zod.boolean(),
+  "language": zod.enum(['en']),
+  "deactivated": zod.boolean(),
   "travelMode": zod.boolean(),
   "travelCity": zod.string().max(getVibeSwipeSettingsResponseTravelCityMax).nullable()
 })
@@ -372,9 +386,17 @@ export const updateVibeSwipeSettingsBodyTravelCityMax = 100;
 
 
 export const UpdateVibeSwipeSettingsBody = zod.object({
-  "incognito": zod.boolean(),
-  "travelMode": zod.boolean(),
-  "travelCity": zod.string().max(updateVibeSwipeSettingsBodyTravelCityMax).nullable()
+  "incognito": zod.boolean().optional(),
+  "showAge": zod.boolean().optional(),
+  "showDistance": zod.boolean().optional(),
+  "notifyMatches": zod.boolean().optional(),
+  "notifyMessages": zod.boolean().optional(),
+  "notifyProfileViews": zod.boolean().optional(),
+  "darkMode": zod.boolean().optional(),
+  "language": zod.enum(['en']).optional(),
+  "deactivated": zod.boolean().optional(),
+  "travelMode": zod.boolean().optional(),
+  "travelCity": zod.string().max(updateVibeSwipeSettingsBodyTravelCityMax).nullish()
 })
 
 export const updateVibeSwipeSettingsResponseTravelCityMax = 100;
@@ -383,6 +405,14 @@ export const updateVibeSwipeSettingsResponseTravelCityMax = 100;
 
 export const UpdateVibeSwipeSettingsResponse = zod.object({
   "incognito": zod.boolean(),
+  "showAge": zod.boolean(),
+  "showDistance": zod.boolean(),
+  "notifyMatches": zod.boolean(),
+  "notifyMessages": zod.boolean(),
+  "notifyProfileViews": zod.boolean(),
+  "darkMode": zod.boolean(),
+  "language": zod.enum(['en']),
+  "deactivated": zod.boolean(),
   "travelMode": zod.boolean(),
   "travelCity": zod.string().max(updateVibeSwipeSettingsResponseTravelCityMax).nullable()
 })
@@ -594,7 +624,9 @@ export const GetMatchesResponseItem = zod.object({
   "profile": zod.object({
   "id": zod.string(),
   "name": zod.string(),
-  "age": zod.number().int(),
+  "age": zod.number().int().nullable(),
+  "showAge": zod.boolean(),
+  "showDistance": zod.boolean(),
   "gender": zod.string(),
   "lookingFor": zod.string(),
   "bio": zod.string(),
@@ -898,7 +930,9 @@ export const GetWhoViewedYouResponseItem = zod.object({
   "profile": zod.object({
   "id": zod.string(),
   "name": zod.string(),
-  "age": zod.number().int(),
+  "age": zod.number().int().nullable(),
+  "showAge": zod.boolean(),
+  "showDistance": zod.boolean(),
   "gender": zod.string(),
   "lookingFor": zod.string(),
   "bio": zod.string(),
@@ -952,7 +986,9 @@ export const GetNotificationsResponse = zod.object({
   "actor": zod.object({
   "id": zod.string(),
   "name": zod.string(),
-  "age": zod.number().int(),
+  "age": zod.number().int().nullable(),
+  "showAge": zod.boolean(),
+  "showDistance": zod.boolean(),
   "gender": zod.string(),
   "lookingFor": zod.string(),
   "bio": zod.string(),
@@ -1100,7 +1136,9 @@ export const getProfileByIdResponsePreferencesDistanceKmMax = 500;
 export const GetProfileByIdResponse = zod.object({
   "id": zod.string(),
   "name": zod.string(),
-  "age": zod.number().int(),
+  "age": zod.number().int().nullable(),
+  "showAge": zod.boolean(),
+  "showDistance": zod.boolean(),
   "gender": zod.string(),
   "lookingFor": zod.string(),
   "bio": zod.string(),
@@ -1140,7 +1178,9 @@ export const GetBlockedProfilesResponseItem = zod.object({
   "profile": zod.object({
   "id": zod.string(),
   "name": zod.string(),
-  "age": zod.number().int(),
+  "age": zod.number().int().nullable(),
+  "showAge": zod.boolean(),
+  "showDistance": zod.boolean(),
   "gender": zod.string(),
   "lookingFor": zod.string(),
   "bio": zod.string(),

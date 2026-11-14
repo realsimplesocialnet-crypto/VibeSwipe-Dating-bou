@@ -670,6 +670,14 @@ router.get("/vibeswipe/settings", async (req, res): Promise<void> => {
   const [profile] = await db
     .select({
       incognito: profilesTable.incognito,
+      showAge: profilesTable.showAge,
+      showDistance: profilesTable.showDistance,
+      notifyMatches: profilesTable.notifyMatches,
+      notifyMessages: profilesTable.notifyMessages,
+      notifyProfileViews: profilesTable.notifyProfileViews,
+      darkMode: profilesTable.darkMode,
+      language: profilesTable.language,
+      deactivated: profilesTable.deactivated,
       travelMode: profilesTable.travelMode,
       travelCity: profilesTable.travelCity,
     })
@@ -698,7 +706,21 @@ router.put("/vibeswipe/settings", async (req, res): Promise<void> => {
     res.status(400).json({ error: body.error.message });
     return;
   }
-  const submittedCity = body.data.travelCity?.trim();
+  const userId = currentUserId(req);
+  const [current] = await db
+    .select()
+    .from(profilesTable)
+    .where(eq(profilesTable.id, userId))
+    .limit(1);
+  if (!current) {
+    res.status(404).json({ error: "Profile not found." });
+    return;
+  }
+  const travelMode = body.data.travelMode ?? current.travelMode;
+  const submittedCity =
+    body.data.travelCity === undefined
+      ? current.travelCity
+      : body.data.travelCity?.trim() || null;
   const travelCity = submittedCity ? findRealTravelCity(submittedCity) : null;
   if (submittedCity && !travelCity) {
     res.status(400).json({ error: "Choose a real city from the suggestions." });
@@ -707,14 +729,31 @@ router.put("/vibeswipe/settings", async (req, res): Promise<void> => {
   const [profile] = await db
     .update(profilesTable)
     .set({
-      incognito: body.data.incognito,
-      travelMode: body.data.travelMode,
-      travelCity: body.data.travelMode ? travelCity : null,
+      incognito: body.data.incognito ?? current.incognito,
+      showAge: body.data.showAge ?? current.showAge,
+      showDistance: body.data.showDistance ?? current.showDistance,
+      notifyMatches: body.data.notifyMatches ?? current.notifyMatches,
+      notifyMessages: body.data.notifyMessages ?? current.notifyMessages,
+      notifyProfileViews:
+        body.data.notifyProfileViews ?? current.notifyProfileViews,
+      darkMode: body.data.darkMode ?? current.darkMode,
+      language: body.data.language ?? current.language,
+      deactivated: body.data.deactivated ?? current.deactivated,
+      travelMode,
+      travelCity: travelMode ? travelCity : null,
       updatedAt: new Date(),
     })
-    .where(eq(profilesTable.id, currentUserId(req)))
+    .where(eq(profilesTable.id, userId))
     .returning({
       incognito: profilesTable.incognito,
+      showAge: profilesTable.showAge,
+      showDistance: profilesTable.showDistance,
+      notifyMatches: profilesTable.notifyMatches,
+      notifyMessages: profilesTable.notifyMessages,
+      notifyProfileViews: profilesTable.notifyProfileViews,
+      darkMode: profilesTable.darkMode,
+      language: profilesTable.language,
+      deactivated: profilesTable.deactivated,
       travelMode: profilesTable.travelMode,
       travelCity: profilesTable.travelCity,
     });
@@ -908,7 +947,11 @@ router.get("/vibeswipe/discover", async (req, res): Promise<void> => {
   const ageMin = params.data.ageMin ?? ownProfile.preferences.ageMin;
   const ageMax = params.data.ageMax ?? ownProfile.preferences.ageMax;
   const gender = params.data.gender ?? ownProfile.preferences.gender;
-  const conditions = [gte(profilesTable.age, ageMin), lte(profilesTable.age, ageMax)];
+  const conditions = [
+    gte(profilesTable.age, ageMin),
+    lte(profilesTable.age, ageMax),
+    eq(profilesTable.deactivated, false),
+  ];
   if (gender && gender !== "Everyone") conditions.push(eq(profilesTable.gender, gender));
   const discoveryLocation = resolveDiscoveryLocation({
     travelMode: ownProfile.travelMode,
@@ -981,6 +1024,7 @@ router.get("/vibeswipe/discover", async (req, res): Promise<void> => {
     )
     .map((profile) => ({
       ...profile,
+      age: profile.showAge ? profile.age : null,
       superLikedYou: superLikedUserIds.has(profile.id),
     }))
     .sort((a, b) => {

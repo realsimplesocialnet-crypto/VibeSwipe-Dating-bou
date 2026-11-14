@@ -54,7 +54,12 @@ export async function createVibeSwipeNotification(
   }
 
   const [recipient] = await db
-    .select({ id: profilesTable.id })
+    .select({
+      id: profilesTable.id,
+      notifyMatches: profilesTable.notifyMatches,
+      notifyMessages: profilesTable.notifyMessages,
+      notifyProfileViews: profilesTable.notifyProfileViews,
+    })
     .from(profilesTable)
     .where(eq(profilesTable.id, recipientId))
     .limit(1);
@@ -99,6 +104,14 @@ export async function createVibeSwipeNotification(
       throw new Error("The notification message must belong to its actor and match.");
     }
   }
+
+  const notificationsEnabled =
+    type === "new_message"
+      ? recipient.notifyMessages
+      : type === "profile_view"
+        ? recipient.notifyProfileViews
+        : recipient.notifyMatches;
+  if (!notificationsEnabled) return;
 
   await db.insert(vibeSwipeNotificationsTable).values({
     recipientId,

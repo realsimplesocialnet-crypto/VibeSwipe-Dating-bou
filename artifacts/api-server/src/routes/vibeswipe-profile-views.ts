@@ -156,7 +156,13 @@ router.get("/vibeswipe/views", async (req, res): Promise<void> => {
       ({ profile }) =>
         profile.id !== userId && !profile.isDemo && !blockedProfileIds.has(profile.id),
     )
-    .map(({ profile, viewedAt }) => ({ profile, viewedAt }));
+    .map(({ profile, viewedAt }) => ({
+      profile: {
+        ...profile,
+        age: profile.showAge ? profile.age : null,
+      },
+      viewedAt,
+    }));
 
   res.json(GetWhoViewedYouResponse.parse(visibleRows));
 });
@@ -177,7 +183,7 @@ router.get(
       .from(profilesTable)
       .where(eq(profilesTable.id, profileId))
       .limit(1);
-    if (!profile) {
+    if (!profile || (profileId !== userId && profile.deactivated)) {
       res.status(404).json({ error: "Profile not found." });
       return;
     }
@@ -186,7 +192,12 @@ router.get(
       return;
     }
 
-    res.json(GetProfileByIdResponse.parse(profile));
+    res.json(
+      GetProfileByIdResponse.parse({
+        ...profile,
+        age: profileId === userId || profile.showAge ? profile.age : null,
+      }),
+    );
   },
 );
 

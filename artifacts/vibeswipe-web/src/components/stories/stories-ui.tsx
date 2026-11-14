@@ -18,6 +18,7 @@ import {
   type StoryItem,
   type StoryInput,
   type StoriesFeed,
+  type Profile,
 } from "@workspace/api-client-react";
 import { ArrowLeft, Check, ImagePlus, LoaderCircle, Plus, Send, ShieldCheck, Video, X } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
@@ -138,7 +139,62 @@ export function StoriesRow() {
   </section>;
 }
 
-function StoryViewer({ active, onClose }: { active: { stories: StoryItem[]; name: string; photo: string | null; matchId?: string } | null; onClose: () => void }) {
+type ActiveStory = { stories: StoryItem[]; name: string; photo: string | null; matchId?: string };
+
+export function MatchStoryAvatar({
+  matchId,
+  profile,
+  storyGroup,
+  disabled = false,
+}: {
+  matchId: string;
+  profile: Pick<Profile, "name" | "photos">;
+  storyGroup?: StoryGroup;
+  disabled?: boolean;
+}) {
+  const [, setLocation] = useLocation();
+  const [active, setActive] = useState<ActiveStory | null>(null);
+  const hasStory = Boolean(storyGroup?.stories.length);
+
+  function open() {
+    if (disabled) return;
+    if (!storyGroup?.stories.length) {
+      setLocation(`/chat/${matchId}`);
+      return;
+    }
+    setActive({
+      stories: storyGroup.stories,
+      name: storyGroup.poster.name,
+      photo: storyGroup.poster.photo,
+      matchId,
+    });
+  }
+
+  function closeAndOpenChat() {
+    setActive(null);
+    setLocation(`/chat/${matchId}`);
+  }
+
+  return <>
+    <button
+      type="button"
+      onClick={open}
+      disabled={disabled}
+      aria-label={hasStory ? `View ${profile.name}'s story, then open chat` : `Open chat with ${profile.name}`}
+      data-testid={`button-match-story-avatar-${matchId}`}
+      className="shrink-0 rounded-full disabled:cursor-not-allowed disabled:opacity-50"
+    >
+      <span className={`flex h-[50px] w-[50px] items-center justify-center rounded-full ${hasStory ? "bg-gradient-to-br from-[#f34e9a] via-[#c67be8] to-[#8265da] p-[2.5px]" : "border border-white/10 p-[2px]"}`}>
+        <span className="h-full w-full overflow-hidden rounded-full border-2 border-[#211d25]">
+          <StoryAvatar reference={profile.photos?.[0] ?? null} name={profile.name} className="h-full w-full text-sm"/>
+        </span>
+      </span>
+    </button>
+    <StoryViewer active={active} onClose={closeAndOpenChat}/>
+  </>;
+}
+
+function StoryViewer({ active, onClose }: { active: ActiveStory | null; onClose: () => void }) {
   const queryClient = useQueryClient();
   const markViewed = useMarkStoryViewed();
   const send = useSendMessage();

@@ -74,6 +74,7 @@ import type {
   TypingStatus,
   UndoReactionResult,
   VibeSwipeSettings,
+  VibeSwipeSettingsUpdateInput,
   WebPushConfig,
   WebPushSubscriptionDeleteInput,
   WebPushSubscriptionInput
@@ -1520,7 +1521,7 @@ export const getUpdateVibeSwipeSettingsUrl = () => {
 /**
  * @summary Save the signed-in user's privacy settings
  */
-export const updateVibeSwipeSettings = async (vibeSwipeSettings: VibeSwipeSettings, options?: Parameters<typeof customFetch>[1]): Promise<VibeSwipeSettings> => {
+export const updateVibeSwipeSettings = async (vibeSwipeSettingsUpdateInput: VibeSwipeSettingsUpdateInput, options?: Parameters<typeof customFetch>[1]): Promise<VibeSwipeSettings> => {
 
     const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
     if (!h) return {};
@@ -1541,7 +1542,7 @@ return customFetch<VibeSwipeSettings>(getUpdateVibeSwipeSettingsUrl(),
     ...options,
     method: 'PUT',
     headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
-    body: JSON.stringify(vibeSwipeSettings)
+    body: JSON.stringify(vibeSwipeSettingsUpdateInput)
   }
 );}
 
@@ -1579,9 +1580,9 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
   return  { mutationFn, ...mutationOptions }}
 
     export type UpdateVibeSwipeSettingsMutationResult = NonNullable<Awaited<ReturnType<typeof updateVibeSwipeSettings>>>
-    export type UpdateVibeSwipeSettingsMutationBody = BodyType<VibeSwipeSettings>
+    export type UpdateVibeSwipeSettingsMutationBody = BodyType<VibeSwipeSettingsUpdateInput>
     export type UpdateVibeSwipeSettingsMutationError = ErrorType<void>
-    export type UpdateVibeSwipeSettingsMutationVariables = {data: BodyType<VibeSwipeSettings>}
+    export type UpdateVibeSwipeSettingsMutationVariables = {data: BodyType<VibeSwipeSettingsUpdateInput>}
 
     /**
  * @summary Save the signed-in user's privacy settings

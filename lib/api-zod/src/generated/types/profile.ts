@@ -10,7 +10,10 @@ import type { ProfilePreferences } from './profilePreferences';
 export interface Profile {
   id: string;
   name: string;
-  age: number;
+  /** @nullable */
+  age: number | null;
+  showAge: boolean;
+  showDistance: boolean;
   gender: string;
   lookingFor: string;
   bio: string;

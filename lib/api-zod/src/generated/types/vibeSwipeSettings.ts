@@ -5,9 +5,18 @@
  * VibeSwipe dating profile, discovery, matching, messaging, and safety API
  * OpenAPI spec version: 0.1.0
  */
+import type { VibeSwipeSettingsLanguage } from './vibeSwipeSettingsLanguage';
 
 export interface VibeSwipeSettings {
   incognito: boolean;
+  showAge: boolean;
+  showDistance: boolean;
+  notifyMatches: boolean;
+  notifyMessages: boolean;
+  notifyProfileViews: boolean;
+  darkMode: boolean;
+  language: VibeSwipeSettingsLanguage;
+  deactivated: boolean;
   travelMode: boolean;
   /**
      * @maxLength 100
