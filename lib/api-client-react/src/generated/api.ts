@@ -48,6 +48,7 @@ import type {
   MediaUploadResult,
   Message,
   MessageInput,
+  NativePushTokenInput,
   NotificationsResponse,
   OnboardingDraft,
   OnboardingDraftInput,
@@ -68,7 +69,10 @@ import type {
   TypingInput,
   TypingStatus,
   UndoReactionResult,
-  VibeSwipeSettings
+  VibeSwipeSettings,
+  WebPushConfig,
+  WebPushSubscriptionDeleteInput,
+  WebPushSubscriptionInput
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -4206,6 +4210,459 @@ export const useMarkNotificationRead = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getMarkNotificationReadMutationOptions(options), queryClient);
+    }
+
+export const getGetWebPushConfigUrl = () => {
+
+
+
+
+  return `/api/vibeswipe/push/web/config`
+}
+
+/**
+ * @summary Get the public key needed to enable browser push notifications
+ */
+export const getWebPushConfig = async ( options?: Parameters<typeof customFetch>[1]): Promise<WebPushConfig> => {
+
+  return customFetch<WebPushConfig>(getGetWebPushConfigUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetWebPushConfigQueryKey = () => {
+    return [
+    `/api/vibeswipe/push/web/config`
+    ] as const;
+    }
+
+
+export const getGetWebPushConfigQueryOptions = <TData = Awaited<ReturnType<typeof getWebPushConfig>>, TError = ErrorType<unknown>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getWebPushConfig>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetWebPushConfigQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getWebPushConfig>>> = ({ signal }) => getWebPushConfig({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getWebPushConfig>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetWebPushConfigQueryResult = NonNullable<Awaited<ReturnType<typeof getWebPushConfig>>>
+export type GetWebPushConfigQueryError = ErrorType<unknown>
+
+
+export function useGetWebPushConfig<TData = Awaited<ReturnType<typeof getWebPushConfig>>, TError = ErrorType<unknown>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getWebPushConfig>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getWebPushConfig>>,
+          TError,
+          Awaited<ReturnType<typeof getWebPushConfig>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetWebPushConfig<TData = Awaited<ReturnType<typeof getWebPushConfig>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getWebPushConfig>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getWebPushConfig>>,
+          TError,
+          Awaited<ReturnType<typeof getWebPushConfig>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetWebPushConfig<TData = Awaited<ReturnType<typeof getWebPushConfig>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getWebPushConfig>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get the public key needed to enable browser push notifications
+ */
+
+export function useGetWebPushConfig<TData = Awaited<ReturnType<typeof getWebPushConfig>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getWebPushConfig>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetWebPushConfigQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getSaveWebPushSubscriptionUrl = () => {
+
+
+
+
+  return `/api/vibeswipe/push/web/subscription`
+}
+
+/**
+ * @summary Save the signed-in user's browser push subscription
+ */
+export const saveWebPushSubscription = async (webPushSubscriptionInput: WebPushSubscriptionInput, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<void>(getSaveWebPushSubscriptionUrl(),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(webPushSubscriptionInput)
+  }
+);}
+
+
+
+
+
+export const getSaveWebPushSubscriptionMutationKey = () => ['saveWebPushSubscription'] as const;
+
+export const getSaveWebPushSubscriptionMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof saveWebPushSubscription>>, TError,SaveWebPushSubscriptionMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof saveWebPushSubscription>>, TError,SaveWebPushSubscriptionMutationVariables, TContext> => {
+
+const mutationKey = getSaveWebPushSubscriptionMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof saveWebPushSubscription>>, SaveWebPushSubscriptionMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  saveWebPushSubscription(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SaveWebPushSubscriptionMutationResult = NonNullable<Awaited<ReturnType<typeof saveWebPushSubscription>>>
+    export type SaveWebPushSubscriptionMutationBody = BodyType<WebPushSubscriptionInput>
+    export type SaveWebPushSubscriptionMutationError = ErrorType<void>
+    export type SaveWebPushSubscriptionMutationVariables = {data: BodyType<WebPushSubscriptionInput>}
+
+    /**
+ * @summary Save the signed-in user's browser push subscription
+ */
+export const useSaveWebPushSubscription = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof saveWebPushSubscription>>, TError,SaveWebPushSubscriptionMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof saveWebPushSubscription>>,
+        TError,
+        SaveWebPushSubscriptionMutationVariables,
+        TContext
+      > => {
+      return useMutation(getSaveWebPushSubscriptionMutationOptions(options), queryClient);
+    }
+
+export const getDeleteWebPushSubscriptionUrl = () => {
+
+
+
+
+  return `/api/vibeswipe/push/web/subscription`
+}
+
+/**
+ * @summary Remove the signed-in user's browser push subscription
+ */
+export const deleteWebPushSubscription = async (webPushSubscriptionDeleteInput: WebPushSubscriptionDeleteInput, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<void>(getDeleteWebPushSubscriptionUrl(),
+  {
+    ...options,
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(webPushSubscriptionDeleteInput)
+  }
+);}
+
+
+
+
+
+export const getDeleteWebPushSubscriptionMutationKey = () => ['deleteWebPushSubscription'] as const;
+
+export const getDeleteWebPushSubscriptionMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteWebPushSubscription>>, TError,DeleteWebPushSubscriptionMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteWebPushSubscription>>, TError,DeleteWebPushSubscriptionMutationVariables, TContext> => {
+
+const mutationKey = getDeleteWebPushSubscriptionMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteWebPushSubscription>>, DeleteWebPushSubscriptionMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  deleteWebPushSubscription(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteWebPushSubscriptionMutationResult = NonNullable<Awaited<ReturnType<typeof deleteWebPushSubscription>>>
+    export type DeleteWebPushSubscriptionMutationBody = BodyType<WebPushSubscriptionDeleteInput>
+    export type DeleteWebPushSubscriptionMutationError = ErrorType<unknown>
+    export type DeleteWebPushSubscriptionMutationVariables = {data: BodyType<WebPushSubscriptionDeleteInput>}
+
+    /**
+ * @summary Remove the signed-in user's browser push subscription
+ */
+export const useDeleteWebPushSubscription = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteWebPushSubscription>>, TError,DeleteWebPushSubscriptionMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof deleteWebPushSubscription>>,
+        TError,
+        DeleteWebPushSubscriptionMutationVariables,
+        TContext
+      > => {
+      return useMutation(getDeleteWebPushSubscriptionMutationOptions(options), queryClient);
+    }
+
+export const getSaveNativePushTokenUrl = () => {
+
+
+
+
+  return `/api/vibeswipe/push/native-token`
+}
+
+/**
+ * @summary Save the signed-in user's Expo push token
+ */
+export const saveNativePushToken = async (nativePushTokenInput: NativePushTokenInput, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<void>(getSaveNativePushTokenUrl(),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(nativePushTokenInput)
+  }
+);}
+
+
+
+
+
+export const getSaveNativePushTokenMutationKey = () => ['saveNativePushToken'] as const;
+
+export const getSaveNativePushTokenMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof saveNativePushToken>>, TError,SaveNativePushTokenMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof saveNativePushToken>>, TError,SaveNativePushTokenMutationVariables, TContext> => {
+
+const mutationKey = getSaveNativePushTokenMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof saveNativePushToken>>, SaveNativePushTokenMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  saveNativePushToken(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SaveNativePushTokenMutationResult = NonNullable<Awaited<ReturnType<typeof saveNativePushToken>>>
+    export type SaveNativePushTokenMutationBody = BodyType<NativePushTokenInput>
+    export type SaveNativePushTokenMutationError = ErrorType<void>
+    export type SaveNativePushTokenMutationVariables = {data: BodyType<NativePushTokenInput>}
+
+    /**
+ * @summary Save the signed-in user's Expo push token
+ */
+export const useSaveNativePushToken = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof saveNativePushToken>>, TError,SaveNativePushTokenMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof saveNativePushToken>>,
+        TError,
+        SaveNativePushTokenMutationVariables,
+        TContext
+      > => {
+      return useMutation(getSaveNativePushTokenMutationOptions(options), queryClient);
+    }
+
+export const getDeleteNativePushTokenUrl = () => {
+
+
+
+
+  return `/api/vibeswipe/push/native-token`
+}
+
+/**
+ * @summary Remove the signed-in user's Expo push token
+ */
+export const deleteNativePushToken = async (nativePushTokenInput: NativePushTokenInput, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<void>(getDeleteNativePushTokenUrl(),
+  {
+    ...options,
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(nativePushTokenInput)
+  }
+);}
+
+
+
+
+
+export const getDeleteNativePushTokenMutationKey = () => ['deleteNativePushToken'] as const;
+
+export const getDeleteNativePushTokenMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteNativePushToken>>, TError,DeleteNativePushTokenMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteNativePushToken>>, TError,DeleteNativePushTokenMutationVariables, TContext> => {
+
+const mutationKey = getDeleteNativePushTokenMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteNativePushToken>>, DeleteNativePushTokenMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  deleteNativePushToken(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteNativePushTokenMutationResult = NonNullable<Awaited<ReturnType<typeof deleteNativePushToken>>>
+    export type DeleteNativePushTokenMutationBody = BodyType<NativePushTokenInput>
+    export type DeleteNativePushTokenMutationError = ErrorType<unknown>
+    export type DeleteNativePushTokenMutationVariables = {data: BodyType<NativePushTokenInput>}
+
+    /**
+ * @summary Remove the signed-in user's Expo push token
+ */
+export const useDeleteNativePushToken = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteNativePushToken>>, TError,DeleteNativePushTokenMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof deleteNativePushToken>>,
+        TError,
+        DeleteNativePushTokenMutationVariables,
+        TContext
+      > => {
+      return useMutation(getDeleteNativePushTokenMutationOptions(options), queryClient);
     }
 
 export const getGetProfileByIdUrl = (profileId: string,) => {

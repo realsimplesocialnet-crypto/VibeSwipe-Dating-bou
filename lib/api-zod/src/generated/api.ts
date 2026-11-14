@@ -998,6 +998,86 @@ export const MarkNotificationReadResponse = zod.void()
 
 
 /**
+ * @summary Get the public key needed to enable browser push notifications
+ */
+export const getWebPushConfigResponseApplicationServerKeyMin = 20;
+
+
+
+export const GetWebPushConfigResponse = zod.object({
+  "applicationServerKey": zod.string().min(getWebPushConfigResponseApplicationServerKeyMin)
+})
+
+
+/**
+ * @summary Save the signed-in user's browser push subscription
+ */
+export const saveWebPushSubscriptionBodyEndpointMax = 2048;
+
+export const saveWebPushSubscriptionBodyKeysP256dhMin = 40;
+export const saveWebPushSubscriptionBodyKeysP256dhMax = 200;
+
+export const saveWebPushSubscriptionBodyKeysAuthMin = 16;
+export const saveWebPushSubscriptionBodyKeysAuthMax = 100;
+
+
+
+export const SaveWebPushSubscriptionBody = zod.object({
+  "endpoint": zod.string().url().max(saveWebPushSubscriptionBodyEndpointMax),
+  "keys": zod.object({
+  "p256dh": zod.string().min(saveWebPushSubscriptionBodyKeysP256dhMin).max(saveWebPushSubscriptionBodyKeysP256dhMax),
+  "auth": zod.string().min(saveWebPushSubscriptionBodyKeysAuthMin).max(saveWebPushSubscriptionBodyKeysAuthMax)
+})
+})
+
+export const SaveWebPushSubscriptionResponse = zod.void()
+
+
+/**
+ * @summary Remove the signed-in user's browser push subscription
+ */
+export const deleteWebPushSubscriptionBodyEndpointMax = 2048;
+
+
+
+export const DeleteWebPushSubscriptionBody = zod.object({
+  "endpoint": zod.string().url().max(deleteWebPushSubscriptionBodyEndpointMax)
+})
+
+export const DeleteWebPushSubscriptionResponse = zod.void()
+
+
+/**
+ * @summary Save the signed-in user's Expo push token
+ */
+export const saveNativePushTokenBodyTokenMin = 20;
+export const saveNativePushTokenBodyTokenMax = 255;
+
+
+
+export const SaveNativePushTokenBody = zod.object({
+  "token": zod.string().min(saveNativePushTokenBodyTokenMin).max(saveNativePushTokenBodyTokenMax)
+})
+
+export const SaveNativePushTokenResponse = zod.void()
+
+
+/**
+ * @summary Remove the signed-in user's Expo push token
+ */
+export const deleteNativePushTokenBodyTokenMin = 20;
+export const deleteNativePushTokenBodyTokenMax = 255;
+
+
+
+export const DeleteNativePushTokenBody = zod.object({
+  "token": zod.string().min(deleteNativePushTokenBodyTokenMin).max(deleteNativePushTokenBodyTokenMax)
+})
+
+export const DeleteNativePushTokenResponse = zod.void()
+
+
+/**
  * @summary Get a profile opened from a notification
  */
 

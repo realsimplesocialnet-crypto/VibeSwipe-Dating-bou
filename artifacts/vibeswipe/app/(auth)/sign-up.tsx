@@ -219,6 +219,15 @@ export default function SignUpScreen() {
           <Pressable><Text style={[styles.link, { color: colors.primary }]}>Sign in</Text></Pressable>
         </Link>
       </View>
+      <View style={styles.legalLinks}>
+        <Link href="/privacy-policy" asChild>
+          <Pressable><Text style={[styles.legalLink, { color: colors.mutedForeground }]}>Privacy Policy</Text></Pressable>
+        </Link>
+        <Text style={[styles.legalLink, { color: colors.mutedForeground }]}>·</Text>
+        <Link href="/terms" asChild>
+          <Pressable><Text style={[styles.legalLink, { color: colors.mutedForeground }]}>Terms of Service</Text></Pressable>
+        </Link>
+      </View>
     </KeyboardAwareScrollViewCompat>
   );
 }
@@ -243,6 +252,8 @@ const styles = StyleSheet.create({
   submitText: { color: "#ffffff", fontSize: 15, fontWeight: "700" },
   resend: { alignItems: "center", padding: 14 },
   footer: { flexDirection: "row", justifyContent: "center", marginTop: 18 },
+  legalLinks: { flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 10, marginTop: 18 },
+  legalLink: { fontSize: 11, fontWeight: "600" },
   footerText: { fontSize: 13 },
   link: { fontSize: 13, fontWeight: "700" },
 });

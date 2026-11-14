@@ -1,5 +1,5 @@
 /* Static shell only. Never cache API, Clerk, private messages, or uploaded media. */
-const CACHE_NAME = 'vibeswipe-shell-v4';
+const CACHE_NAME = 'myage-shell-v6';
 const scopeUrl = new URL(self.registration.scope);
 const shell = [
   scopeUrl.href,
@@ -18,11 +18,55 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) => Promise.all(
       keys
-        .filter((key) => key.startsWith('vibeswipe-shell-') && key !== CACHE_NAME)
+        .filter((key) => (key.startsWith('vibeswipe-shell-') || key.startsWith('myage-shell-')) && key !== CACHE_NAME)
         .map((key) => caches.delete(key)),
     ))
       .then(() => self.clients.claim()),
   );
+});
+
+self.addEventListener('push', (event) => {
+  let payload = {};
+  try {
+    const parsed = event.data ? event.data.json() : {};
+    payload = parsed && typeof parsed === 'object' ? parsed : {};
+  } catch {
+    payload = { body: event.data?.text?.() ?? '' };
+  }
+  const title = typeof payload.title === 'string' ? payload.title : 'New message';
+  const data = payload.data && typeof payload.data === 'object' ? payload.data : {};
+  event.waitUntil(self.registration.showNotification(title, {
+    body: typeof payload.body === 'string' ? payload.body : 'You have a new message.',
+    icon: new URL('icon-192.png', scopeUrl).href,
+    badge: new URL('icon-192.png', scopeUrl).href,
+    tag: typeof data.matchId === 'string' ? `message-${data.matchId}` : 'myage-message',
+    data,
+  }));
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const requestedPath = event.notification.data?.url;
+  let target = new URL('./', scopeUrl);
+  if (typeof requestedPath === 'string') {
+    try {
+      const candidate = new URL(requestedPath, scopeUrl);
+      if (candidate.origin === scopeUrl.origin && candidate.pathname.startsWith(scopeUrl.pathname)) {
+        target = candidate;
+      }
+    } catch {
+      // Keep the safe app root when notification data is malformed.
+    }
+  }
+  event.waitUntil((async () => {
+    const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    for (const client of windows) {
+      if (new URL(client.url).origin !== scopeUrl.origin) continue;
+      const destination = await client.navigate(target.href);
+      return (destination || client).focus();
+    }
+    return self.clients.openWindow(target.href);
+  })());
 });
 
 self.addEventListener('fetch', (event) => {

@@ -21,9 +21,10 @@ import {
   vibeSwipePresenceTable,
   vibeSwipeReadReceiptsTable,
 } from "@workspace/db";
-import { and, desc, eq, or } from "drizzle-orm";
+import { and, desc, eq, or, sql } from "drizzle-orm";
 import { Router, type IRouter, type Request } from "express";
 import { requireAuth } from "../middlewares/auth";
+import { CHAT_EVENT_CHANNEL } from "../lib/chatEventStream";
 
 const router: IRouter = Router();
 const ONLINE_WINDOW_MS = 45_000;
@@ -79,6 +80,11 @@ router.put("/vibeswipe/presence", async (req, res): Promise<void> => {
   }
   const userId = currentUserId(req);
   const lastSeenAt = new Date();
+  const [previousPresence] = await db
+    .select({ isOnline: vibeSwipePresenceTable.isOnline })
+    .from(vibeSwipePresenceTable)
+    .where(eq(vibeSwipePresenceTable.userId, userId))
+    .limit(1);
   await db
     .insert(vibeSwipePresenceTable)
     .values({ userId, lastSeenAt, isOnline: body.data.isActive })
@@ -86,6 +92,24 @@ router.put("/vibeswipe/presence", async (req, res): Promise<void> => {
       target: vibeSwipePresenceTable.userId,
       set: { lastSeenAt, isOnline: body.data.isActive },
     });
+  if ((previousPresence?.isOnline ?? false) !== body.data.isActive) {
+    const userMatches = await db
+      .select({ id: matchesTable.id })
+      .from(matchesTable)
+      .where(
+        or(eq(matchesTable.userAId, userId), eq(matchesTable.userBId, userId)),
+      );
+    await Promise.all(
+      userMatches.map(({ id }) =>
+        db.execute(
+          sql`SELECT pg_notify(${CHAT_EVENT_CHANNEL}, ${JSON.stringify({
+            type: "presence",
+            matchId: id,
+          })})`,
+        ),
+      ),
+    );
+  }
   HeartbeatPresenceResponse.parse(undefined);
   res.status(204).end();
 });

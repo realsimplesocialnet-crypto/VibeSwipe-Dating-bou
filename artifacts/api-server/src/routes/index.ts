@@ -1,6 +1,7 @@
 import { Router, type IRouter } from "express";
 import healthRouter from "./health";
 import vibeswipeProfileViewsRouter from "./vibeswipe-profile-views";
+import vibeswipePushRouter from "./vibeswipe-push";
 import vibeswipeRealtimeRouter from "./vibeswipe-realtime";
 import vibeswipeRouter from "./vibeswipe";
 import vibeswipeSafetyRouter from "./vibeswipe-safety";
@@ -12,5 +13,6 @@ router.use(vibeswipeSafetyRouter);
 router.use(vibeswipeRouter);
 router.use(vibeswipeRealtimeRouter);
 router.use(vibeswipeProfileViewsRouter);
+router.use(vibeswipePushRouter);
 
 export default router;

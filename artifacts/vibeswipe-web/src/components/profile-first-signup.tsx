@@ -160,7 +160,7 @@ export function ProfileFirstSignup({ previewOnly = false }: { previewOnly?: bool
       }
       const blocking = signUp.missingFields.filter(f => f !== 'email_address');
       if (blocking.length) {
-        setConfigError(`Account setup is blocked: VibeSwipe's sign-up settings currently also require ${blocking.map(f => FIELD_LABELS[f] ?? f).join(', ')}. An administrator needs to turn this off in the authentication settings. Your answers are saved here — try again once it's updated.`);
+        setConfigError(`Account setup is blocked: Myage's sign-up settings currently also require ${blocking.map(f => FIELD_LABELS[f] ?? f).join(', ')}. An administrator needs to turn this off in the authentication settings. Your answers are saved here — try again once it's updated.`);
         return;
       }
       const sent = await signUp.verifications.sendEmailCode();
@@ -282,7 +282,7 @@ export function ProfileFirstSignup({ previewOnly = false }: { previewOnly?: bool
             onPick={o => set('city', o.name)} onEmpty={empty => setGeoEmpty(g => ({ ...g, cities: empty }))}
             emptyText={`Our location data doesn't list cities for ${a.stateName || a.countryName}. You can continue without one — your profile will show your ${a.stateName ? 'region' : 'country'}.`} placeholder="Search cities" />
         </Q>}
-        {step === 5 && <Q title="How old are you?" hint="VibeSwipe is for adults 18 and over.">
+        {step === 5 && <Q title="How old are you?" hint="Myage is for adults 18 and over.">
           <input autoFocus data-testid="input-signup-age" inputMode="numeric" type="number" min={18} max={120} value={a.age} onChange={e => set('age', e.target.value.replace(/\D/g, '').slice(0, 3))} className="field signup-input max-w-[160px]" placeholder="Age" />
           {a.age !== '' && Number(a.age) < 18 && <p className="mt-3 text-sm text-rose-300" data-testid="error-signup-age">You must be 18 or older to join.</p>}
         </Q>}
@@ -337,13 +337,14 @@ function Frame({ children }: { children: ReactNode }) {
     <header className="mx-auto flex w-full max-w-[560px] items-center justify-between px-5 pt-6">
       <Link href="/" className="inline-flex items-center gap-2.5" data-testid="link-signup-brand">
         <img src={`${basePath}/icon.png`} alt="" className="h-9 w-9 rounded-xl ring-1 ring-white/10" />
-        <span className="brand text-[20px] font-extrabold text-[#fff2f7]">vibe<span className="text-primary">swipe</span></span>
+        <span className="brand text-[20px] font-extrabold text-[#fff2f7]">My<span className="text-primary">age</span></span>
       </Link>
       <Link href="/sign-in" data-testid="link-signin-from-signup" className="min-h-[44px] content-center rounded-xl px-3 text-sm font-semibold text-muted-foreground hover:text-foreground">Sign in</Link>
     </header>
     <main className="mx-auto flex w-full max-w-[560px] flex-1 flex-col px-5 pb-[max(env(safe-area-inset-bottom),24px)] pt-8">
       <section className="flex flex-1 flex-col rounded-[24px] border border-white/[.09] bg-[#1d1a21] p-6 sm:p-8">{children}</section>
       <p className="mt-5 flex items-center justify-center gap-2 text-center text-xs text-muted-foreground"><ShieldCheck size={14} className="text-[#86d9b6]" />Adults 18+ only. Your answers stay on this device until you verify your email.</p>
+      <p className="mt-3 text-center text-xs text-muted-foreground"><Link href="/privacy-policy" className="hover:text-primary">Privacy Policy</Link><span className="px-2">·</span><Link href="/terms" className="hover:text-primary">Terms of Service</Link></p>
     </main>
   </div>;
 }

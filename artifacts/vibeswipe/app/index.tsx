@@ -5,6 +5,7 @@ import { router } from "expo-router";
 import { useEffect } from "react";
 import {
   ActivityIndicator,
+  Image,
   Pressable,
   StyleSheet,
   Text,
@@ -48,15 +49,15 @@ export default function EntryScreen() {
       <View style={styles.content}>
         <View style={styles.brandRow}>
           <View style={styles.mark}>
-            <Feather name="heart" size={23} color="#ff4e9b" />
+            <Image source={require("../assets/images/icon.png")} style={styles.markImage} />
           </View>
           <Text style={styles.brandText}>
-            <Text style={{ color: "#ffffff" }}>Vibe</Text>
-            <Text style={{ color: "#ff5ca6" }}>Swipe</Text>
+            <Text style={{ color: "#ffffff" }}>My</Text>
+            <Text style={{ color: "#ff5ca6" }}>age</Text>
           </Text>
         </View>
         <Text style={[styles.title, { color: "#ffffff" }]}>
-          Welcome to{"\n"}VibeSwipe.
+          Welcome to{"\n"}Myage.
         </Text>
         <Text style={styles.body}>
           Create your account or sign in to continue.
@@ -86,8 +87,12 @@ export default function EntryScreen() {
       <View style={styles.legal}>
         <Text style={styles.legalText}>For adults 18 and over</Text>
         <Text style={styles.bullet}>•</Text>
-        <Pressable onPress={() => router.push("/community-guidelines")} testID="community-guidelines">
-          <Text style={styles.guidelines}>Community guidelines</Text>
+        <Pressable onPress={() => router.push("/privacy-policy")} testID="privacy-policy">
+          <Text style={styles.guidelines}>Privacy Policy</Text>
+        </Pressable>
+        <Text style={styles.bullet}>•</Text>
+        <Pressable onPress={() => router.push("/terms")} testID="terms-of-service">
+          <Text style={styles.guidelines}>Terms</Text>
         </Pressable>
       </View>
     </View>
@@ -136,6 +141,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  markImage: { width: 46, height: 46, borderRadius: 17 },
   brandText: {
     fontSize: 24,
     fontWeight: "800",

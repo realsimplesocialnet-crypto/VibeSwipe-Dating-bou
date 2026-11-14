@@ -22,6 +22,7 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import { useColors } from "@/hooks/useColors";
 import { useTheme } from "@/hooks/useTheme";
+import { PushNotificationSettings } from "@/components/PushNotificationSettings";
 
 export default function SettingsScreen() {
   const colors = useColors();
@@ -229,11 +230,56 @@ export default function SettingsScreen() {
           <Feather name="chevron-right" size={18} color={colors.mutedForeground} />
         </View>
       </Pressable>
+      <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>MESSAGES</Text>
+      <PushNotificationSettings />
+      <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>LEGAL AND SAFETY</Text>
+      <Pressable
+        onPress={() => router.push("/privacy-policy")}
+        style={[styles.section, { backgroundColor: colors.card, borderColor: colors.border }]}
+        testID="button-open-privacy-policy"
+      >
+        <View style={styles.row}>
+          <Feather name="lock" size={19} color={colors.primary} />
+          <View style={styles.copy}>
+            <Text style={[styles.rowTitle, { color: colors.foreground }]}>Privacy Policy</Text>
+            <Text style={[styles.rowSub, { color: colors.mutedForeground }]}>How Myage uses and protects your information.</Text>
+          </View>
+          <Feather name="chevron-right" size={18} color={colors.mutedForeground} />
+        </View>
+      </Pressable>
+      <Pressable
+        onPress={() => router.push("/terms")}
+        style={[styles.section, { backgroundColor: colors.card, borderColor: colors.border }]}
+        testID="button-open-terms"
+      >
+        <View style={styles.row}>
+          <Feather name="book-open" size={19} color={colors.primary} />
+          <View style={styles.copy}>
+            <Text style={[styles.rowTitle, { color: colors.foreground }]}>Terms of Service</Text>
+            <Text style={[styles.rowSub, { color: colors.mutedForeground }]}>The rules for using Myage.</Text>
+          </View>
+          <Feather name="chevron-right" size={18} color={colors.mutedForeground} />
+        </View>
+      </Pressable>
+      <Pressable
+        onPress={() => router.push("/report-safety")}
+        style={[styles.section, { backgroundColor: colors.card, borderColor: colors.border }]}
+        testID="button-open-report-safety"
+      >
+        <View style={styles.row}>
+          <Feather name="shield" size={19} color={colors.primary} />
+          <View style={styles.copy}>
+            <Text style={[styles.rowTitle, { color: colors.foreground }]}>Report a scam or safety issue</Text>
+            <Text style={[styles.rowSub, { color: colors.mutedForeground }]}>Send a private report for review.</Text>
+          </View>
+          <Feather name="chevron-right" size={18} color={colors.mutedForeground} />
+        </View>
+      </Pressable>
       <Pressable onPress={() => void signOut().then(() => router.replace("/"))} style={[styles.signOut, { borderColor: colors.border }]}>
         <Feather name="log-out" size={17} color={colors.destructive} />
         <Text style={[styles.signOutText, { color: colors.destructive }]}>Sign out</Text>
       </Pressable>
-      <Text style={[styles.version, { color: colors.mutedForeground }]}>VibeSwipe · 18+</Text>
+      <Text style={[styles.version, { color: colors.mutedForeground }]}>Myage · 18+</Text>
     </View>
   );
 }

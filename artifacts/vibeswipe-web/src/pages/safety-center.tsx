@@ -143,7 +143,7 @@ export default function SafetyCenterPage() {
     if (navigator.share) {
       try {
         await navigator.share({
-          title: "VibeSwipe live location",
+          title: "Myage live location",
           text: "My live location link",
           url: link,
         });
@@ -256,7 +256,7 @@ export default function SafetyCenterPage() {
             <Shield size={22} />
           </div>
           <div>
-            <p className="text-[10px] font-extrabold uppercase tracking-[.2em] text-primary">VibeSwipe</p>
+            <p className="text-[10px] font-extrabold uppercase tracking-[.2em] text-primary">Myage</p>
             <h1 className="mt-1 text-3xl font-extrabold tracking-tight">Safety Center</h1>
             <p className="mt-2 text-sm leading-6 text-muted-foreground">
               Practical tools and guidance to help you meet with confidence.
@@ -272,7 +272,7 @@ export default function SafetyCenterPage() {
               <HeartHandshake size={18} />
             </div>
             <div>
-              <h2 className="font-bold">How to stay safe on VibeSwipe</h2>
+              <h2 className="font-bold">How to stay safe on Myage</h2>
               <p className="mt-1 text-xs text-muted-foreground">A few simple steps before you meet.</p>
             </div>
           </div>
@@ -528,12 +528,22 @@ export default function SafetyCenterPage() {
             <ChevronRight size={17} className="text-muted-foreground" />
           </Link>
           <Link
-            href="/community-guidelines"
+            href="/report-safety"
             className="mt-1 flex min-h-12 items-center gap-3 border-t border-white/[.07] pt-3 text-sm font-semibold hover:text-primary"
-            data-testid="link-community-guidelines"
+            data-testid="link-report-safety"
           >
+            <Shield size={17} className="text-primary" />
+            <span className="flex-1">Report a scam or safety issue</span>
+            <ChevronRight size={17} className="text-muted-foreground" />
+          </Link>
+          <Link href="/terms" className="mt-1 flex min-h-12 items-center gap-3 border-t border-white/[.07] pt-3 text-sm font-semibold hover:text-primary" data-testid="link-terms">
             <BookOpen size={17} className="text-primary" />
-            <span className="flex-1">Community guidelines</span>
+            <span className="flex-1">Terms of Service</span>
+            <ChevronRight size={17} className="text-muted-foreground" />
+          </Link>
+          <Link href="/privacy-policy" className="mt-1 flex min-h-12 items-center gap-3 border-t border-white/[.07] pt-3 text-sm font-semibold hover:text-primary" data-testid="link-privacy-policy">
+            <BookOpen size={17} className="text-primary" />
+            <span className="flex-1">Privacy Policy</span>
             <ChevronRight size={17} className="text-muted-foreground" />
           </Link>
           <p className="mt-2 text-[11px] leading-5 text-muted-foreground">

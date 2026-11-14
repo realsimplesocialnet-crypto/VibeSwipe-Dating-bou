@@ -5,6 +5,7 @@ import {
   primaryKey,
   text,
   timestamp,
+  uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
 import { matchesTable, messagesTable, profilesTable } from "./vibeswipe";
@@ -65,3 +66,42 @@ export const vibeSwipeNotificationsTable = pgTable(
       .on(table.recipientId, table.createdAt),
   }),
 );
+
+export const vibeSwipePushSubscriptionsTable = pgTable(
+  "vibeswipe_push_subscriptions",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => profilesTable.id, { onDelete: "cascade" }),
+    platform: text("platform").notNull(),
+    endpoint: text("endpoint"),
+    p256dh: text("p256dh"),
+    auth: text("auth"),
+    expoToken: text("expo_token"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    userIndex: index("vibeswipe_push_subscriptions_user_idx").on(table.userId),
+    endpointUnique: uniqueIndex("vibeswipe_push_subscriptions_endpoint_idx").on(
+      table.endpoint,
+    ),
+    expoTokenUnique: uniqueIndex("vibeswipe_push_subscriptions_expo_token_idx").on(
+      table.expoToken,
+    ),
+  }),
+);
+
+export const vibeSwipePushConfigTable = pgTable("vibeswipe_push_config", {
+  configKey: text("config_key").primaryKey(),
+  publicKey: text("public_key").notNull(),
+  privateKey: text("private_key").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});

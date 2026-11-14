@@ -1,21 +1,24 @@
 import { Feather } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useColors } from "@/hooks/useColors";
 
 const guidelines = [
-  ["Be respectful", "Treat every person with care. No harassment, hate speech, threats, or unwanted pressure."],
-  ["Be genuine", "Use an accurate profile and represent yourself honestly."],
-  ["Respect consent", "A match is not consent to share private information, images, or contact details."],
-  ["Keep it safe", "Do not request or send money. Report suspicious behavior and use Block when needed."],
+  ["Adults 18 and over", "Myage is for adults only. Do not create an account if you are under 18, and keep your profile information honest."],
+  ["Respect other people", "Harassment, hate speech, threats, unwanted pressure, and sharing someone’s private information are not allowed."],
+  ["No scams or fake profiles", "Do not request or send money, misrepresent who you are, impersonate another person, or use a fake profile."],
+  ["Respect consent and boundaries", "A match is not consent to share private information, images, or contact details. Use Block or Report when needed."],
+  ["Use Myage responsibly", "Do not use the service to threaten, defraud, spam, or harm others. Myage may restrict accounts that violate these rules."],
 ];
 
 export default function CommunityGuidelinesScreen() {
   const colors = useColors();
+  const insets = useSafeAreaInsets();
   return (
     <ScrollView
       style={[styles.screen, { backgroundColor: colors.background }]}
-      contentContainerStyle={styles.content}
+      contentContainerStyle={[styles.content, { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 36 }]}
       testID="screen-community-guidelines"
     >
       <View style={styles.header}>
@@ -28,13 +31,17 @@ export default function CommunityGuidelinesScreen() {
           <Feather name="arrow-left" size={20} color={colors.foreground} />
         </Pressable>
         <View>
-          <Text style={[styles.eyebrow, { color: colors.primary }]}>VIBESWIPE COMMUNITY</Text>
-          <Text style={[styles.title, { color: colors.foreground }]}>Guidelines</Text>
+          <Text style={[styles.eyebrow, { color: colors.primary }]}>MYAGE · MYAGE.BEAUTY</Text>
+          <Text style={[styles.title, { color: colors.foreground }]}>Terms of Service</Text>
         </View>
+      </View>
+      <View style={[styles.notice, { backgroundColor: colors.secondary, borderColor: colors.border }]}>
+        <Feather name="info" size={16} color={colors.primary} />
+        <Text style={[styles.noticeText, { color: colors.mutedForeground }]}>This is a plain-language summary, not legal advice. The Myage operator should review the terms for the laws that apply to the business.</Text>
       </View>
       <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
         <Text style={[styles.intro, { color: colors.mutedForeground }]}>
-          VibeSwipe is for adults looking to meet with respect, honesty, and care.
+          By creating an account or using Myage, you agree to follow these rules.
         </Text>
         {guidelines.map(([title, detail], index) => (
           <View key={title} style={[styles.item, index > 0 && { borderTopColor: colors.border }]}>
@@ -49,11 +56,19 @@ export default function CommunityGuidelinesScreen() {
         ))}
       </View>
       <Pressable
-        onPress={() => router.push("/safety-center")}
+        onPress={() => router.push("/privacy-policy")}
+        style={[styles.safetyLink, { backgroundColor: colors.secondary }]}
+      >
+        <Feather name="lock" size={17} color={colors.primary} />
+        <Text style={[styles.safetyLinkText, { color: colors.foreground }]}>Privacy Policy</Text>
+        <Feather name="chevron-right" size={17} color={colors.mutedForeground} />
+      </Pressable>
+      <Pressable
+        onPress={() => router.push("/report-safety")}
         style={[styles.safetyLink, { backgroundColor: colors.secondary }]}
       >
         <Feather name="shield" size={17} color={colors.primary} />
-        <Text style={[styles.safetyLinkText, { color: colors.foreground }]}>Back to Safety Center</Text>
+        <Text style={[styles.safetyLinkText, { color: colors.foreground }]}>Report a safety issue</Text>
         <Feather name="chevron-right" size={17} color={colors.mutedForeground} />
       </Pressable>
     </ScrollView>
@@ -62,13 +77,15 @@ export default function CommunityGuidelinesScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-  content: { padding: 20, paddingTop: 58, paddingBottom: 36, gap: 16 },
+  content: { paddingHorizontal: 20, gap: 16 },
   header: { flexDirection: "row", alignItems: "center", gap: 12 },
   back: { width: 36, height: 44, justifyContent: "center" },
   eyebrow: { fontSize: 9, letterSpacing: 1.6, fontWeight: "800", marginBottom: 4 },
   title: { fontSize: 25, fontWeight: "800" },
   card: { borderWidth: 1, borderRadius: 20, padding: 17 },
   intro: { fontSize: 13, lineHeight: 20, marginBottom: 6 },
+  notice: { borderWidth: 1, borderRadius: 14, padding: 13, flexDirection: "row", alignItems: "flex-start", gap: 9 },
+  noticeText: { flex: 1, fontSize: 12, lineHeight: 18 },
   item: { flexDirection: "row", gap: 12, paddingVertical: 14, borderTopWidth: StyleSheet.hairlineWidth },
   number: { width: 28, height: 28, borderRadius: 10, alignItems: "center", justifyContent: "center" },
   numberText: { fontSize: 12, fontWeight: "800" },

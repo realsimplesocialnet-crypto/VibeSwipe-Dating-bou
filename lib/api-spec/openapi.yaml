@@ -766,6 +766,76 @@ paths:
           description: Notification marked read
         "404":
           description: Notification not found
+  /vibeswipe/push/web/config:
+    get:
+      operationId: getWebPushConfig
+      tags: [vibeswipe]
+      summary: Get the public key needed to enable browser push notifications
+      responses:
+        "200":
+          description: Web push configuration
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WebPushConfig"
+  /vibeswipe/push/web/subscription:
+    put:
+      operationId: saveWebPushSubscription
+      tags: [vibeswipe]
+      summary: Save the signed-in user's browser push subscription
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WebPushSubscriptionInput"
+      responses:
+        "204":
+          description: Browser push subscription saved
+        "400":
+          description: Invalid or unsupported push endpoint
+    delete:
+      operationId: deleteWebPushSubscription
+      tags: [vibeswipe]
+      summary: Remove the signed-in user's browser push subscription
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WebPushSubscriptionDeleteInput"
+      responses:
+        "204":
+          description: Browser push subscription removed
+  /vibeswipe/push/native-token:
+    put:
+      operationId: saveNativePushToken
+      tags: [vibeswipe]
+      summary: Save the signed-in user's Expo push token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NativePushTokenInput"
+      responses:
+        "204":
+          description: Native push token saved
+        "400":
+          description: Invalid Expo push token
+    delete:
+      operationId: deleteNativePushToken
+      tags: [vibeswipe]
+      summary: Remove the signed-in user's Expo push token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NativePushTokenInput"
+      responses:
+        "204":
+          description: Native push token removed
   /vibeswipe/profiles/{profileId}:
     get:
       operationId: getProfileById
@@ -1227,6 +1297,32 @@ components:
           items: { $ref: "#/components/schemas/Notification" }
         unreadCounts: { $ref: "#/components/schemas/NotificationCounts" }
       required: [notifications, unreadCounts]
+    WebPushConfig:
+      type: object
+      properties:
+        applicationServerKey: { type: string, minLength: 20 }
+      required: [applicationServerKey]
+    WebPushSubscriptionInput:
+      type: object
+      properties:
+        endpoint: { type: string, format: uri, maxLength: 2048 }
+        keys:
+          type: object
+          properties:
+            p256dh: { type: string, minLength: 40, maxLength: 200 }
+            auth: { type: string, minLength: 16, maxLength: 100 }
+          required: [p256dh, auth]
+      required: [endpoint, keys]
+    WebPushSubscriptionDeleteInput:
+      type: object
+      properties:
+        endpoint: { type: string, format: uri, maxLength: 2048 }
+      required: [endpoint]
+    NativePushTokenInput:
+      type: object
+      properties:
+        token: { type: string, minLength: 20, maxLength: 255 }
+      required: [token]
     BlockInput:
       type: object
       properties:

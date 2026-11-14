@@ -151,7 +151,7 @@ export default function SafetyCenterScreen() {
   async function shareLinkWithFriend(link: string) {
     try {
       await Share.share({
-        title: "VibeSwipe live location",
+        title: "Myage live location",
         message: `My live location link: ${link}`,
         url: link,
       });
@@ -226,7 +226,7 @@ export default function SafetyCenterScreen() {
     try {
       await Linking.openSettings();
     } catch {
-      setLocationError("Open your device settings and allow location access for VibeSwipe.");
+      setLocationError("Open your device settings and allow location access for Myage.");
     }
   }
 
@@ -512,12 +512,30 @@ export default function SafetyCenterScreen() {
           <Feather name="chevron-right" size={17} color={colors.mutedForeground} />
         </Pressable>
         <Pressable
-          onPress={() => router.push("/community-guidelines")}
+          onPress={() => router.push("/terms")}
           style={[styles.linkRow, { borderTopColor: colors.border }]}
-          testID="link-community-guidelines"
+          testID="link-terms"
         >
           <Feather name="book-open" size={17} color={colors.primary} />
-          <Text style={[styles.linkText, { color: colors.foreground }]}>Community guidelines</Text>
+          <Text style={[styles.linkText, { color: colors.foreground }]}>Terms of Service</Text>
+          <Feather name="chevron-right" size={17} color={colors.mutedForeground} />
+        </Pressable>
+        <Pressable
+          onPress={() => router.push("/report-safety")}
+          style={[styles.linkRow, { borderTopColor: colors.border }]}
+          testID="link-report-safety"
+        >
+          <Feather name="shield" size={17} color={colors.primary} />
+          <Text style={[styles.linkText, { color: colors.foreground }]}>Report a scam or safety issue</Text>
+          <Feather name="chevron-right" size={17} color={colors.mutedForeground} />
+        </Pressable>
+        <Pressable
+          onPress={() => router.push("/privacy-policy")}
+          style={[styles.linkRow, { borderTopColor: colors.border }]}
+          testID="link-privacy-policy"
+        >
+          <Feather name="lock" size={17} color={colors.primary} />
+          <Text style={[styles.linkText, { color: colors.foreground }]}>Privacy Policy</Text>
           <Feather name="chevron-right" size={17} color={colors.mutedForeground} />
         </Pressable>
       </View>

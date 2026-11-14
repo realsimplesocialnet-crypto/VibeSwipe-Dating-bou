@@ -1,13 +1,18 @@
 import type { Response } from "express";
 
+export const CHAT_EVENT_CHANNEL = "vibeswipe_chat_events";
+
 type ChatStreamMessage = { id: string };
+type PendingStreamEvent<T extends ChatStreamMessage> =
+  | { type: "message"; payload: T }
+  | { type: "event"; name: string; payload: unknown };
 type StreamResponse = Pick<Response, "write"> &
   Partial<Pick<Response, "destroyed" | "writableEnded" | "end">>;
 
 type Subscriber<T extends ChatStreamMessage> = {
   response: StreamResponse;
   replaying: boolean;
-  pending: T[];
+  pending: PendingStreamEvent<T>[];
 };
 
 export function canSubscribeToChat(
@@ -52,9 +57,19 @@ export class ChatMessageStreams<T extends ChatStreamMessage> {
   publish(matchId: string, message: T): void {
     for (const subscriber of this.subscribers.get(matchId) ?? []) {
       if (subscriber.replaying) {
-        subscriber.pending.push(message);
+        subscriber.pending.push({ type: "message", payload: message });
       } else {
         this.write(subscriber.response, message);
+      }
+    }
+  }
+
+  publishEvent(matchId: string, name: "typing" | "presence"): void {
+    for (const subscriber of this.subscribers.get(matchId) ?? []) {
+      if (subscriber.replaying) {
+        subscriber.pending.push({ type: "event", name, payload: {} });
+      } else {
+        this.writeEvent(subscriber.response, name, {});
       }
     }
   }
@@ -71,8 +86,12 @@ export class ChatMessageStreams<T extends ChatStreamMessage> {
       this.write(response, message);
     }
 
-    for (const message of subscriber.pending) {
-      if (!replayedIds.has(message.id)) this.write(response, message);
+    for (const pending of subscriber.pending) {
+      if (pending.type === "event") {
+        this.writeEvent(response, pending.name, pending.payload);
+      } else if (!replayedIds.has(pending.payload.id)) {
+        this.write(response, pending.payload);
+      }
     }
     subscriber.pending = [];
     subscriber.replaying = false;
@@ -96,6 +115,15 @@ export class ChatMessageStreams<T extends ChatStreamMessage> {
     response.write(
       `id: ${message.id}\nevent: message\ndata: ${JSON.stringify(message)}\n\n`,
     );
+  }
+
+  private writeEvent(
+    response: StreamResponse,
+    name: string,
+    payload: unknown,
+  ): void {
+    if (!this.isWritable(response)) return;
+    response.write(`event: ${name}\ndata: ${JSON.stringify(payload)}\n\n`);
   }
 
   private isWritable(response: StreamResponse): boolean {

@@ -154,10 +154,19 @@ export default function SignInScreen() {
       </Pressable>
       <View style={styles.footer}>
         <Text style={[styles.footerText, { color: colors.mutedForeground }]}>
-          New to VibeSwipe?{" "}
+          New to Myage?{" "}
         </Text>
         <Link href="/(auth)/sign-up" asChild>
           <Pressable><Text style={[styles.link, { color: colors.primary }]}>Create account</Text></Pressable>
+        </Link>
+      </View>
+      <View style={styles.legalLinks}>
+        <Link href="/privacy-policy" asChild>
+          <Pressable><Text style={[styles.legalLink, { color: colors.mutedForeground }]}>Privacy Policy</Text></Pressable>
+        </Link>
+        <Text style={[styles.legalDot, { color: colors.mutedForeground }]}>·</Text>
+        <Link href="/terms" asChild>
+          <Pressable><Text style={[styles.legalLink, { color: colors.mutedForeground }]}>Terms of Service</Text></Pressable>
         </Link>
       </View>
     </KeyboardAwareScrollViewCompat>
@@ -183,4 +192,7 @@ const styles = StyleSheet.create({
   footer: { flexDirection: "row", justifyContent: "center", marginTop: 24 },
   footerText: { fontSize: 13 },
   link: { fontSize: 13, fontWeight: "700" },
+  legalLinks: { flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 10, marginTop: 20 },
+  legalLink: { fontSize: 11, fontWeight: "600" },
+  legalDot: { fontSize: 11 },
 });

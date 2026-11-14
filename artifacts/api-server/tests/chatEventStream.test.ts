@@ -48,6 +48,21 @@ test("participants receive newly published messages through the event stream", (
   ]);
 });
 
+test("typing and presence updates are delivered through the chat event stream", () => {
+  const streams = new ChatMessageStreams<TestMessage>();
+  const response = new FakeResponse();
+  streams.subscribe("match-1", response);
+  streams.replay("match-1", response, []);
+
+  streams.publishEvent("match-1", "typing");
+  streams.publishEvent("match-1", "presence");
+
+  assert.deepEqual(response.chunks, [
+    "event: typing\ndata: {}\n\n",
+    "event: presence\ndata: {}\n\n",
+  ]);
+});
+
 test("reconnect replay excludes the cursor and deduplicates messages arriving during replay", () => {
   const streams = new ChatMessageStreams<TestMessage>();
   const response = new FakeResponse();
@@ -68,13 +83,15 @@ test("reconnect replay excludes the cursor and deduplicates messages arriving du
   const replayMessages = messagesAfterCursor(messagesFromDatabase, cursor.id);
 
   streams.publish("match-1", arrivingDuringReplay);
+  streams.publishEvent("match-1", "typing");
   streams.replay("match-1", response, replayMessages);
   streams.publish("match-1", arrivingAfterReplay);
 
   assert.deepEqual(
     response.chunks.map((chunk) => chunk.match(/^id: ([^\n]+)/)?.[1]),
-    [missed.id, arrivingAfterReplay.id],
+    [missed.id, undefined, arrivingAfterReplay.id],
   );
+  assert.equal(response.chunks[1], "event: typing\ndata: {}\n\n");
   assert.equal(response.chunks.some((chunk) => chunk.includes(cursor.id)), false);
 });
 

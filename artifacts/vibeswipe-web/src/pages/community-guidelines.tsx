@@ -3,43 +3,46 @@ import { Link } from "wouter";
 
 const guidelines = [
   {
-    title: "Be respectful",
-    detail: "Treat every person with care. Harassment, hate speech, threats, and unwanted pressure are not welcome.",
+    title: "Adults 18 and over",
+    detail: "Myage is for adults only. Do not create an account if you are under 18, and keep your profile information honest.",
   },
   {
-    title: "Be genuine",
-    detail: "Use an accurate profile and represent yourself honestly.",
+    title: "Respect other people",
+    detail: "Harassment, hate speech, threats, unwanted pressure, and sharing someone’s private information are not allowed.",
   },
   {
-    title: "Respect consent",
-    detail: "A match is not consent to share private information, images, or contact details.",
+    title: "No scams or impersonation",
+    detail: "Do not request or send money, misrepresent who you are, impersonate another person, or use a fake profile.",
   },
   {
-    title: "Keep it safe",
-    detail: "Do not request or send money. Report suspicious behavior and use Block when needed.",
+    title: "Respect consent and boundaries",
+    detail: "A match is not consent to share private information, images, or contact details. Use Block or Report when needed.",
+  },
+  {
+    title: "Use Myage responsibly",
+    detail: "Do not use the service to threaten, defraud, spam, or harm others. Myage may restrict accounts that violate these rules.",
   },
 ];
 
 export default function CommunityGuidelinesPage() {
   return (
-    <main className="min-h-[100dvh] bg-background px-4 py-8 text-foreground">
-      <div className="mx-auto max-w-2xl">
-        <Link
-          href="/safety-center"
-          className="inline-flex items-center gap-2 text-xs font-semibold text-muted-foreground hover:text-foreground"
-          data-testid="link-guidelines-back"
-        >
-          <ArrowLeft size={15} /> Back to Safety Center
+    <main className="min-h-[100dvh] bg-background px-4 py-7 text-foreground" data-testid="page-terms">
+      <div className="mx-auto max-w-3xl">
+        <Link href="/" className="inline-flex items-center gap-2 text-xs font-semibold text-muted-foreground hover:text-foreground" data-testid="link-guidelines-back">
+          <ArrowLeft size={15} /> Back to Myage
         </Link>
-        <div className="mt-6 flex items-start gap-4">
+        <div className="mt-8 rounded-2xl border border-amber-300/20 bg-amber-300/[.06] px-4 py-3 text-xs leading-5 text-amber-100/80" role="note">
+          This is a plain-language summary of Myage’s rules, not legal advice. The Myage operator should review the terms for the laws that apply to the business.
+        </div>
+        <div className="mt-7 flex items-start gap-4">
           <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-accent text-primary">
             <ShieldCheck size={22} />
           </div>
           <div>
-            <p className="text-[10px] font-extrabold uppercase tracking-[.2em] text-primary">VibeSwipe community</p>
-            <h1 className="mt-1 text-3xl font-extrabold tracking-tight">Community guidelines</h1>
+            <p className="text-[10px] font-extrabold uppercase tracking-[.2em] text-primary">Myage · myage.beauty</p>
+            <h1 className="mt-1 text-3xl font-extrabold tracking-tight">Terms of Service</h1>
             <p className="mt-2 text-sm leading-6 text-muted-foreground">
-              VibeSwipe is for adults looking to meet with respect, honesty, and care.
+              Myage is an adults-only dating service. By creating an account or using Myage, you agree to follow these rules.
             </p>
           </div>
         </div>
@@ -56,6 +59,11 @@ export default function CommunityGuidelinesPage() {
             </section>
           ))}
         </div>
+        <footer className="mt-7 flex flex-wrap gap-x-5 gap-y-2 border-t border-white/[.08] pt-5 text-xs font-semibold text-muted-foreground">
+          <Link href="/privacy-policy" className="hover:text-primary">Privacy Policy</Link>
+          <Link href="/report-safety" className="hover:text-primary">Report a safety issue</Link>
+          <Link href="/" className="hover:text-primary">Myage home</Link>
+        </footer>
       </div>
     </main>
   );

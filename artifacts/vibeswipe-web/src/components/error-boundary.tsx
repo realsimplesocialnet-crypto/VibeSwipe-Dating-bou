@@ -43,7 +43,7 @@ function DefaultFallback({ error, resetError }: ErrorFallbackProps) {
           We couldn’t open this screen
         </h1>
         <p className="mt-3 text-sm leading-6 text-[#b9adb6]">
-          Try again. If this keeps happening, reopen VibeSwipe.
+          Try again. If this keeps happening, reopen Myage.
           Your saved account and profile have not been deleted.
         </p>
         {/* Dev only: messages can carry API responses and other internals. */}

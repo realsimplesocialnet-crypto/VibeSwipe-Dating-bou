@@ -31,6 +31,8 @@ import {
 import NotFound from '@/pages/not-found';
 import SafetyCenterPage from '@/pages/safety-center';
 import CommunityGuidelinesPage from '@/pages/community-guidelines';
+import PrivacyPolicyPage from '@/pages/privacy-policy';
+import ReportSafetyPage from '@/pages/report-safety';
 import PublicLocationSharePage from '@/pages/public-location-share';
 import { InstallAction } from '@/components/install-action';
 import { InstalledWelcome } from '@/components/installed-welcome';
@@ -41,6 +43,7 @@ import { ProfileFirstSignup } from '@/components/profile-first-signup';
 import { LocationChoice } from '@/components/location-choice';
 import { HobbyMultiSelect, OccupationSelect } from '@/components/profile-field-selectors';
 import { ConnectionNotice } from '@/components/connection-notice';
+import { WebPushSettings } from '@/components/WebPushSettings';
 import { useStandaloneMode } from '@/lib/app-display-mode';
 import { isDiscoverSetupRequired, isProfileMissing, shouldRetryDiscover, shouldRetryProfile } from '@/lib/profile-query-state';
 import { PROFILE_PHOTO_ACCEPT, photoUploadCanRetry, prepareProfilePhoto, uploadProfilePhotoBytes, validatePhotoFile } from '@/lib/profile-photo-upload';
@@ -74,7 +77,7 @@ const appearance = {
 function Brand({ compact = false }: { compact?: boolean }) {
   return <Link href="/" className="inline-flex items-center gap-2.5" data-testid="link-brand">
     <img src={pathFor('/icon.png')} alt="" className="h-9 w-9 rounded-xl ring-1 ring-white/10" />
-    {!compact && <span className="brand text-[21px] font-extrabold text-[#fff2f7]">vibe<span className="text-primary">swipe</span></span>}
+    {!compact && <span className="brand text-[21px] font-extrabold text-[#fff2f7]">My<span className="text-primary">age</span></span>}
   </Link>;
 }
 
@@ -138,7 +141,7 @@ function Landing() {
       <Brand/>
       <nav className="flex items-center gap-1.5 sm:gap-2">
         <Link href="/sign-in" data-testid="link-sign-in" className="rounded-xl px-3 py-2.5 text-sm font-semibold text-muted-foreground transition-colors hover:text-foreground sm:px-4">Sign in</Link>
-        <Link href="/sign-up" data-testid="link-sign-up" className="whitespace-nowrap rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-[#25111d] transition-colors hover:bg-[#ff68aa]">Join<span className="hidden sm:inline"> VibeSwipe</span></Link>
+        <Link href="/sign-up" data-testid="link-sign-up" className="whitespace-nowrap rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-[#25111d] transition-colors hover:bg-[#ff68aa]">Join<span className="hidden sm:inline"> Myage</span></Link>
       </nav>
     </header>
 
@@ -193,13 +196,13 @@ function Landing() {
     <section className="mx-auto mb-16 max-w-6xl px-5 md:px-10">
       <div className="rounded-[28px] border border-white/[.09] bg-[linear-gradient(135deg,#231d27,#2a1c26)] px-6 py-12 md:px-14 md:py-16">
         <div className="flex flex-col items-start justify-between gap-8 md:flex-row md:items-center">
-          <div><span className="text-[11px] font-bold uppercase tracking-[.2em] text-primary">The next good thing</span><h2 className="brand mt-4 text-[2.1rem] font-bold leading-[1.1] tracking-[-.045em] md:text-5xl">Make space for a spark.</h2><p className="mt-3 text-[15px] text-muted-foreground">VibeSwipe is for adults 18 and over.</p></div>
+          <div><span className="text-[11px] font-bold uppercase tracking-[.2em] text-primary">The next good thing</span><h2 className="brand mt-4 text-[2.1rem] font-bold leading-[1.1] tracking-[-.045em] md:text-5xl">Make space for a spark.</h2><p className="mt-3 text-[15px] text-muted-foreground">Myage is for adults 18 and over.</p></div>
           <Link href="/sign-up" data-testid="button-join-bottom" className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-primary px-6 py-4 font-bold text-[#24111b] transition-colors hover:bg-[#ff68aa] sm:w-auto">Create your profile <ArrowRight size={16}/></Link>
         </div>
       </div>
     </section>
 
-    <footer className="mx-auto flex max-w-6xl flex-col gap-5 border-t border-white/[.08] px-5 py-8 text-[13px] text-muted-foreground sm:flex-row sm:items-center sm:justify-between md:px-10"><Brand/><span>Genuine connection, with your safety in mind.</span><div className="flex gap-5"><Link href="/sign-in" data-testid="footer-signin" className="hover:text-foreground">Sign in</Link><Link href="/sign-up" data-testid="footer-signup" className="hover:text-foreground">Join</Link></div></footer>
+    <footer className="mx-auto flex max-w-6xl flex-col gap-5 border-t border-white/[.08] px-5 py-8 text-[13px] text-muted-foreground sm:flex-row sm:items-center sm:justify-between md:px-10"><Brand/><span>Genuine connection, with your safety in mind.</span><div className="flex flex-wrap gap-5"><Link href="/privacy-policy" data-testid="footer-privacy" className="hover:text-foreground">Privacy Policy</Link><Link href="/terms" data-testid="footer-terms" className="hover:text-foreground">Terms</Link><Link href="/sign-in" data-testid="footer-signin" className="hover:text-foreground">Sign in</Link><Link href="/sign-up" data-testid="footer-signup" className="hover:text-foreground">Join</Link></div></footer>
   </div>;
 }
 
@@ -374,13 +377,13 @@ const retryPhoto=useRef<File|null>(null);const [photoRetry,setPhotoRetry]=useSta
 useEffect(()=>()=>{if(selectedPhotoPreview)URL.revokeObjectURL(selectedPhotoPreview)},[selectedPhotoPreview]);
 async function uploadOnboardingPhoto(file?:File){if(!file||uploading)return;setError('');try{validatePhotoFile(file)}catch(error){retryPhoto.current=null;setPhotoRetry(false);setError(userErrorMessage(error,'Choose a JPG/JPEG, PNG, WebP, or HEIC/HEIF photo.'));return}retryPhoto.current=file;setPhotoRetry(false);setSelectedPhotoPreview('');setUploading(true);setUploadStatus('Reading and preparing photo…');try{const prepared=await prepareProfilePhoto(file);setSelectedPhotoPreview(URL.createObjectURL(prepared));setUploadStatus('Connecting to photo storage…');const result=await requestUpload.mutateAsync({data:{name:prepared.name,size:prepared.size,contentType:'image/jpeg',mediaType:'image'}});await uploadProfilePhotoBytes(result.uploadURL,prepared,{onAttempt:attempt=>setUploadStatus(attempt===1?'Uploading photo…':`Reconnecting… attempt ${attempt} of 3`)});update('photos',[...data.photos,result.mediaReference].slice(0,6));setSelectedPhotoPreview('');retryPhoto.current=null}catch(error){setError(userErrorMessage(error,'Your photo could not be uploaded. Choose the photo again to retry.'));setPhotoRetry(photoUploadCanRetry(error))}finally{setUploading(false);setUploadStatus('')}}
 useEffect(()=>{if(!ready)return;const key=`${step+1}:${JSON.stringify(data)}`;if(key===currentKey.current)return;autosaveTimer.current=setTimeout(()=>saveDraft.mutate({data:{step:step+1,data}},{onSuccess:d=>{currentKey.current=`${d.step}:${JSON.stringify(data)}`;qc.setQueryData(getGetOnboardingDraftQueryKey(),d);setSaved(latestDraftKey.current===key)},onError:error=>{setSaved(false);setError(userErrorMessage(error,'Your latest changes haven’t saved yet. Keep this screen open and tap Continue to try again.'))}}),650);return()=>clearTimeout(autosaveTimer.current)},[ready,step,data]);
-function validate(){if(step===0&&!data.firstName.trim())return 'Add your first name to continue.';if(step===1&&!data.lastName.trim())return 'Add your last name to continue.';if(step===2&&(!Number.isInteger(Number(data.age))||Number(data.age)<18))return 'VibeSwipe is for adults 18 and over.';if((step===3||step===4)&&!data[step===3?'gender':'lookingFor'])return 'Choose an option to continue.';if(step===5&&!data.photos?.length)return 'Add a profile photo to continue.';if(step===12&&(Number(data.ageMin)<18||Number(data.ageMax)<Number(data.ageMin)))return 'Set a valid age range.';return ''}
+function validate(){if(step===0&&!data.firstName.trim())return 'Add your first name to continue.';if(step===1&&!data.lastName.trim())return 'Add your last name to continue.';if(step===2&&(!Number.isInteger(Number(data.age))||Number(data.age)<18))return 'Myage is for adults 18 and over.';if((step===3||step===4)&&!data[step===3?'gender':'lookingFor'])return 'Choose an option to continue.';if(step===5&&!data.photos?.length)return 'Add a profile photo to continue.';if(step===12&&(Number(data.ageMin)<18||Number(data.ageMax)<Number(data.ageMin)))return 'Set a valid age range.';return ''}
 async function next(){if(uploading||saveDraft.isPending||saveProfile.isPending)return;clearTimeout(autosaveTimer.current);const message=validate();if(message){setError(message);return}setError('');try{await saveDraft.mutateAsync({data:{step:Math.min(step+2,13),data}});if(step<12){setStep(step+1);return}const profile=await saveProfile.mutateAsync({data:{name:`${data.firstName} ${data.lastName}`.trim(),age:Number(data.age),gender:data.gender,lookingFor:data.lookingFor,bio:data.bio||'',city:data.city||'',country:data.country||null,state:data.state||null,interests:normalizeHobbies(data.interests).slice(0,12),occupation:String(data.occupation||'Prefer not to say').slice(0,80),occupationOther:data.occupation==='Other'?String(data.occupationOther||'').trim().slice(0,80):'',photos:data.photos,videoUrl:null,preferences:{ageMin:Number(data.ageMin)||22,ageMax:Number(data.ageMax)||35,gender:data.lookingFor,distanceKm:Number(data.distanceKm)||50}}});qc.setQueryData(getGetMyProfileQueryKey(),profile);void qc.invalidateQueries();setLocation('/discover',{replace:true})}catch(error){setError(userErrorMessage(error,'Your setup hasn’t saved yet. Keep this screen open and tap Continue to try again.'))}}
 if(q.isError&&!ready)return <PageFrame><Retry error={q.error} text="We couldn’t load your saved setup. Check your connection and try again." onRetry={()=>void q.refetch()}/></PageFrame>;
 if(q.isLoading||!ready)return <PageFrame><PageHeading eyebrow="Your profile" title="Getting your space ready"/><Busy/></PageFrame>;
 const choices=(values:string[],key:string)=> <div className="grid grid-cols-2 gap-2">{values.map(v=><button type="button" key={v} onClick={()=>update(key,v)} data-testid={`button-choice-${key}-${v.toLowerCase().replaceAll(' ','-')}`} className={`rounded-xl border p-3 text-sm font-semibold ${data[key]===v?'border-primary/50 bg-accent text-[#ffafd1]':'border-white/10 bg-white/[.02]'}`}>{v}</button>)}</div>;
  return <PageFrame><div className="mx-auto max-w-2xl"><PageHeading eyebrow="A good start" title="Set up your profile" description="Thirteen quick steps. Your progress saves as you go."/><div className="mb-8"><div className="flex justify-between text-[10px] font-bold uppercase tracking-[.15em] text-muted-foreground"><span>Step {step+1} of 13</span><span>{saved?'Saved':saveDraft.isError?'Not saved':'Saving as you go'}</span></div><div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/10"><div className="h-full rounded-full bg-primary transition-all" style={{width:`${((step+1)/13)*100}%`}}/></div></div>
- <div className="min-h-[360px] rounded-[25px] border border-white/[.08] bg-card p-5 md:p-8"><p className="text-xs font-bold uppercase tracking-[.18em] text-primary">{setupSteps[step]}</p><h2 className="brand mt-3 text-3xl font-bold tracking-[-.04em]">{['What should we call you?','And your last name?','How old are you?','How do you describe yourself?','Who would you like to meet?','Choose a profile photo.','What would you like people to know?','Where are you from?','State or region?','Which city feels like home?','Choose your hobbies.','What do you do for work?','Set your discovery preferences.'][step]}</h2><p className="mt-2 text-sm text-muted-foreground">VibeSwipe is a space for adults 18 and over.</p><div className="mt-7 max-w-lg">
+ <div className="min-h-[360px] rounded-[25px] border border-white/[.08] bg-card p-5 md:p-8"><p className="text-xs font-bold uppercase tracking-[.18em] text-primary">{setupSteps[step]}</p><h2 className="brand mt-3 text-3xl font-bold tracking-[-.04em]">{['What should we call you?','And your last name?','How old are you?','How do you describe yourself?','Who would you like to meet?','Choose a profile photo.','What would you like people to know?','Where are you from?','State or region?','Which city feels like home?','Choose your hobbies.','What do you do for work?','Set your discovery preferences.'][step]}</h2><p className="mt-2 text-sm text-muted-foreground">Myage is a space for adults 18 and over.</p><div className="mt-7 max-w-lg">
 {step===0&&<input autoFocus data-testid="input-onboarding-first-name" value={data.firstName} onChange={e=>update('firstName',e.target.value)} placeholder="First name" className="field"/>}
 {step===1&&<input autoFocus data-testid="input-onboarding-last-name" value={data.lastName} onChange={e=>update('lastName',e.target.value)} placeholder="Last name" className="field"/>}
 {step===2&&<input data-testid="input-onboarding-age" type="number" min="18" max="120" value={data.age} onChange={e=>update('age',e.target.value)} placeholder="Age" className="field max-w-40"/>}
@@ -425,7 +428,7 @@ function SettingsPage() {
       <div className="max-w-2xl space-y-4">
         <div className="flex items-center gap-2 px-1 text-xs text-muted-foreground" data-testid="status-api-health">
           <span className={`h-2 w-2 rounded-full ${health.data?.status === "ok" ? "bg-emerald-400" : health.isError ? "bg-rose-400" : "bg-amber-300"}`} />
-          {health.data?.status === "ok" ? "VibeSwipe services are connected" : health.isError ? "Service status unavailable" : "Checking service status"}
+          {health.data?.status === "ok" ? "Myage services are connected" : health.isError ? "Service status unavailable" : "Checking service status"}
         </div>
         <div className="rounded-2xl border border-white/[.08] bg-card p-5">
           <div className="flex items-center gap-4">
@@ -435,11 +438,20 @@ function SettingsPage() {
           </div>
         </div>
         <TravelModeSettings />
+        <WebPushSettings />
         <div className="rounded-2xl border border-white/[.08] bg-card p-5">
           <div className="flex items-start gap-3"><Shield size={19} className="mt-1 text-[#8ed9b7]" /><div><h3 className="font-bold">Your safety matters</h3><p className="mt-1 text-xs leading-5 text-muted-foreground">Block and report from a profile or conversation. Blocking prevents contact. Unmatching ends a mutual connection and shared chat.</p><Link href="/matches" data-testid="link-safety-matches" className="mt-3 inline-block text-xs font-bold text-primary">Manage blocked profiles</Link></div></div>
         </div>
         <Link href="/safety-center" data-testid="link-open-safety-center" className="flex items-center gap-3 rounded-2xl border border-white/[.08] bg-card p-5 transition-colors hover:border-primary/30"><div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent text-primary"><Shield size={18} /></div><div className="flex-1"><h3 className="font-bold">Safety Center</h3><p className="mt-1 text-xs text-muted-foreground">Safety guidance, trusted contacts, and live location sharing.</p></div><ChevronRight size={18} className="text-muted-foreground" /></Link>
-        {!standalone && <div className="rounded-2xl border border-white/[.08] bg-card p-5"><div className="flex items-center justify-between gap-4"><div><h3 className="font-bold">Install VibeSwipe</h3><p className="mt-1 text-xs text-muted-foreground">Install on your home screen and open VibeSwipe as an app.</p></div><InstallAction /></div></div>}
+        <div className="rounded-2xl border border-white/[.08] bg-card p-5">
+          <h3 className="mb-3 text-xs font-bold uppercase tracking-[.16em] text-muted-foreground">Legal and safety</h3>
+          <div className="grid gap-2 sm:grid-cols-3">
+            <Link href="/privacy-policy" data-testid="settings-privacy-policy" className="rounded-xl border border-white/10 px-3 py-3 text-sm font-semibold hover:border-primary/40">Privacy Policy</Link>
+            <Link href="/terms" data-testid="settings-terms" className="rounded-xl border border-white/10 px-3 py-3 text-sm font-semibold hover:border-primary/40">Terms of Service</Link>
+            <Link href="/report-safety" data-testid="settings-report-safety" className="rounded-xl border border-white/10 px-3 py-3 text-sm font-semibold hover:border-primary/40">Report a safety issue</Link>
+          </div>
+        </div>
+        {!standalone && <div className="rounded-2xl border border-white/[.08] bg-card p-5"><div className="flex items-center justify-between gap-4"><div><h3 className="font-bold">Install Myage</h3><p className="mt-1 text-xs text-muted-foreground">Install on your home screen and open Myage as an app.</p></div><InstallAction /></div></div>}
         {settings.isError && <Retry onRetry={() => void settings.refetch()} text="Settings could not load." />}
       </div>
     </PageFrame>
@@ -491,7 +503,7 @@ function BrandedSignUp(){
     finally{setBusy(false)}
   }
   return <div className="grain flex min-h-[100dvh] items-center justify-center bg-background px-4 py-10"><div className="fixed left-6 top-6"><Brand/></div><section className="w-full max-w-[440px] rounded-[26px] border border-white/10 bg-[#211d25] p-6 shadow-2xl sm:p-8">
-    <div className="mb-7"><div className="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-accent text-primary"><Heart size={22}/></div><p className="text-[10px] font-bold uppercase tracking-[.2em] text-primary">VibeSwipe · 18+</p>{!verifying&&<><p className="mt-4 text-[10px] font-bold uppercase tracking-[.16em] text-muted-foreground">Account setup · {step==='email'?'1':'2'} of 2</p><div className="mt-2 flex gap-2" aria-label={`Step ${step==='email'?'1':'2'} of 2`}><span className="h-1 flex-1 rounded-full bg-primary"/><span className={`h-1 flex-1 rounded-full ${step==='password'?'bg-primary':'bg-white/10'}`}/></div></>}<h1 className="brand mt-2 text-3xl font-bold tracking-[-.05em]">{verifying?'Check your email':step==='email'?'Start with your email':'Create a password'}</h1><p className="mt-2 text-sm leading-6 text-muted-foreground">{verifying?`We sent a verification code to ${email.trim()}.`:step==='email'?'Enter your email to begin creating your account.':'Choose a password with at least 8 characters.'}</p></div>
+    <div className="mb-7"><img src={pathFor('/icon.png')} alt="" className="mb-5 h-12 w-12 rounded-2xl border border-white/10"/><p className="text-[10px] font-bold uppercase tracking-[.2em] text-primary">Myage · 18+</p>{!verifying&&<><p className="mt-4 text-[10px] font-bold uppercase tracking-[.16em] text-muted-foreground">Account setup · {step==='email'?'1':'2'} of 2</p><div className="mt-2 flex gap-2" aria-label={`Step ${step==='email'?'1':'2'} of 2`}><span className="h-1 flex-1 rounded-full bg-primary"/><span className={`h-1 flex-1 rounded-full ${step==='password'?'bg-primary':'bg-white/10'}`}/></div></>}<h1 className="brand mt-2 text-3xl font-bold tracking-[-.05em]">{verifying?'Check your email':step==='email'?'Start with your email':'Create a password'}</h1><p className="mt-2 text-sm leading-6 text-muted-foreground">{verifying?`We sent a verification code to ${email.trim()}.`:step==='email'?'Enter your email to begin creating your account.':'Choose a password with at least 8 characters.'}</p></div>
     <form onSubmit={submit} className="space-y-5" noValidate>
       {!verifying&&step==='email'?<label className="grid gap-2 text-xs font-semibold text-[#e7dce3]">Email address<input data-testid="input-signup-email" type="email" inputMode="email" autoComplete="email" required value={email} onChange={e=>{setEmail(e.target.value);setError('')}} className="field" placeholder="you@example.com"/>{email&& !emailValid&&<span className="text-xs font-normal text-rose-300" data-testid="error-signup-email">Enter a valid email address.</span>}</label>
       :!verifying?<><button type="button" onClick={()=>{setError('');setStep('email')}} data-testid="button-signup-back-email" className="inline-flex items-center gap-2 text-xs font-semibold text-muted-foreground hover:text-foreground"><ArrowLeft size={14}/>Change email</button>
@@ -503,6 +515,7 @@ function BrandedSignUp(){
     </form>
     <p className="mt-6 border-t border-white/[.08] pt-5 text-center text-xs text-muted-foreground">Already a member? <Link href="/sign-in" data-testid="link-signin-from-signup" className="font-bold text-primary">Sign in</Link></p>
     <p className="mt-4 text-center text-[10px] leading-5 text-muted-foreground">By continuing, you confirm you are 18 or older.</p>
+    <p className="mt-3 text-center text-[10px] text-muted-foreground"><Link href="/privacy-policy" className="hover:text-primary">Privacy Policy</Link><span className="px-2">·</span><Link href="/terms" className="hover:text-primary">Terms of Service</Link></p>
   </section></div>;
 }
 function RouteShell({component:Component}:{component:()=>ReactNode}){return <ShellPage><Component/></ShellPage>}
@@ -512,6 +525,8 @@ function ProfileRoute(){return <ShellPage><ProfilePage/></ShellPage>}
 function SettingsRoute(){return <ShellPage><SettingsPage/></ShellPage>}
 function SafetyCenterRoute(){return <ShellPage><SafetyCenterPage/></ShellPage>}
 function CommunityGuidelinesRoute(){return <CommunityGuidelinesPage/>}
+function PrivacyPolicyRoute(){return <PrivacyPolicyPage/>}
+function ReportSafetyRoute(){return <ShellPage><ReportSafetyPage/></ShellPage>}
 function PublicLocationShareRoute(){return <PublicLocationSharePage/>}
 function DiscoverRoute(){return <ShellPage><DiscoverPage/></ShellPage>}
 function MatchesRoute(){return <ShellPage><MatchesPage/></ShellPage>}
@@ -519,15 +534,16 @@ function ViewsRoute(){return <ShellPage><ViewsPage/></ShellPage>}
 function NotificationsRoute(){return <ShellPage><NotificationsPage/></ShellPage>}
 function PublicProfileRoute(){const [loc]=useLocation();return <ShellPage><PublicProfile id={loc.split('/').pop()||''}/></ShellPage>}
 function ClerkCacheSync(){const {user}=useUser();const client=useQueryClient();const previous=useRef<string|null|undefined>(undefined);useEffect(()=>{const id=user?.id??null;if(previous.current!==undefined&&previous.current!==id)client.clear();previous.current=id},[user?.id,client]);return null}
-function ClerkRoutes(){const [,setLocation]=useLocation();return <ClerkProvider publishableKey={clerkPubKey} proxyUrl={clerkProxyUrl} appearance={appearance} signInUrl={pathFor('/sign-in')} signUpUrl={pathFor('/sign-up')} localization={{signIn:{start:{title:'Welcome back',subtitle:'Your next good conversation is waiting.'}},signUp:{start:{title:'Make room for a spark',subtitle:'Create your adults-only VibeSwipe account.'}}}} routerPush={to=>setLocation(to.startsWith(basePath)?to.slice(basePath.length)||'/':to)} routerReplace={to=>setLocation(to.startsWith(basePath)?to.slice(basePath.length)||'/':to,{replace:true})}><ClerkCacheSync/><Switch>
+function ClerkRoutes(){const [,setLocation]=useLocation();return <ClerkProvider publishableKey={clerkPubKey} proxyUrl={clerkProxyUrl} appearance={appearance} signInUrl={pathFor('/sign-in')} signUpUrl={pathFor('/sign-up')} localization={{signIn:{start:{title:'Welcome back',subtitle:'Your next good conversation is waiting.'}},signUp:{start:{title:'Make room for a spark',subtitle:'Create your adults-only Myage account.'}}}} routerPush={to=>setLocation(to.startsWith(basePath)?to.slice(basePath.length)||'/':to)} routerReplace={to=>setLocation(to.startsWith(basePath)?to.slice(basePath.length)||'/':to,{replace:true})}><ClerkCacheSync/><Switch>
   <Route path="/" component={HomeRedirect}/>
   <Route path="/welcome" component={WelcomeRoute}/>
-  <Route path="/sign-in/*?"><div className="grain flex min-h-[100dvh] items-center justify-center bg-background px-4 py-10"><div className="fixed left-6 top-6"><Brand/></div><SignIn routing="path" path={pathFor('/sign-in')} signUpUrl={pathFor('/sign-up')}/></div></Route>
+  <Route path="/sign-in/*?"><div className="grain flex min-h-[100dvh] flex-col items-center justify-center bg-background px-4 py-10"><div className="fixed left-6 top-6"><Brand/></div><SignIn routing="path" path={pathFor('/sign-in')} signUpUrl={pathFor('/sign-up')}/><p className="mt-5 text-center text-xs text-muted-foreground"><Link href="/privacy-policy" className="hover:text-primary">Privacy Policy</Link><span className="px-2">·</span><Link href="/terms" className="hover:text-primary">Terms of Service</Link></p></div></Route>
   <Route path="/sign-up/*?" component={BrandedSignUp}/>
   {import.meta.env.DEV&&<Route path="/create-account-preview"><div className="border-b border-primary/20 bg-accent px-5 py-3 text-center text-xs leading-5 text-foreground" role="note">Form preview only. Email-code signup still needs the authentication setting changed.</div><ProfileFirstSignup previewOnly/></Route>}
   <Route path="/onboarding" component={OnboardingRoute}/><Route path="/discover" component={DiscoverRoute}/><Route path="/matches" component={MatchesRoute}/>
   <Route path="/chat/:matchId" component={ChatRoute}/><Route path="/views" component={ViewsRoute}/><Route path="/notifications" component={NotificationsRoute}/>
-  <Route path="/safety-center" component={SafetyCenterRoute}/><Route path="/community-guidelines" component={CommunityGuidelinesRoute}/><Route path="/safety/location" component={PublicLocationShareRoute}/>
+   <Route path="/privacy-policy" component={PrivacyPolicyRoute}/><Route path="/terms" component={CommunityGuidelinesRoute}/><Route path="/community-guidelines" component={CommunityGuidelinesRoute}/>
+   <Route path="/safety-center" component={SafetyCenterRoute}/><Route path="/report-safety" component={ReportSafetyRoute}/><Route path="/safety/location" component={PublicLocationShareRoute}/>
   <Route path="/profile" component={ProfileRoute}/><Route path="/profile/:profileId" component={PublicProfileRoute}/><Route path="/settings" component={SettingsRoute}/><Route component={NotFound}/>
 </Switch></ClerkProvider>}
 function App(){if(!clerkPubKey)throw new Error('Missing VITE_CLERK_PUBLISHABLE_KEY');return <QueryClientProvider client={queryClient}><ConnectionNotice/><WouterRouter base={basePath}><ClerkRoutes/></WouterRouter></QueryClientProvider>}

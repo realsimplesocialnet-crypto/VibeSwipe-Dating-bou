@@ -484,6 +484,43 @@ export interface NotificationsResponse {
   unreadCounts: NotificationCounts;
 }
 
+export interface WebPushConfig {
+  /** @minLength 20 */
+  applicationServerKey: string;
+}
+
+export type WebPushSubscriptionInputKeys = {
+  /**
+     * @minLength 40
+     * @maxLength 200
+     */
+  p256dh: string;
+  /**
+     * @minLength 16
+     * @maxLength 100
+     */
+  auth: string;
+};
+
+export interface WebPushSubscriptionInput {
+  /** @maxLength 2048 */
+  endpoint: string;
+  keys: WebPushSubscriptionInputKeys;
+}
+
+export interface WebPushSubscriptionDeleteInput {
+  /** @maxLength 2048 */
+  endpoint: string;
+}
+
+export interface NativePushTokenInput {
+  /**
+     * @minLength 20
+     * @maxLength 255
+     */
+  token: string;
+}
+
 export interface BlockInput {
   /** @minLength 1 */
   targetUserId: string;

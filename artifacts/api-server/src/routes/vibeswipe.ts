@@ -110,18 +110,21 @@ import { requireAuth } from "../middlewares/auth";
 import { createVibeSwipeNotification } from "../lib/vibeswipeNotifications";
 import {
   canSubscribeToChat,
+  CHAT_EVENT_CHANNEL,
   ChatMessageStreams,
   messagesAfterCursor,
 } from "../lib/chatEventStream";
+import { sendMessagePush } from "../lib/vibeswipePush";
 import { buildProfileValues } from "../lib/profileSetup";
 import { findRealTravelCity, resolveDiscoveryLocation, searchRealTravelCities } from "../lib/travelCities";
 
 const router: IRouter = Router();
 const objectStorage = new ObjectStorageService();
 const messageStreams = new ChatMessageStreams<Message>();
-const chatEventChannel = "vibeswipe_chat_events";
 type ChatEvent =
   | { type: "message"; matchId: string; messageId: string }
+  | { type: "typing"; matchId: string }
+  | { type: "presence"; matchId: string }
   | { type: "close"; matchId: string };
 type NotificationClient = { release(error?: Error | boolean): void };
 let notificationClient: NotificationClient | null = null;
@@ -187,6 +190,10 @@ async function handleChatEvent(event: ChatEvent): Promise<void> {
     closeStreams(event.matchId);
     return;
   }
+  if (event.type === "typing" || event.type === "presence") {
+    messageStreams.publishEvent(event.matchId, event.type);
+    return;
+  }
   const [message] = await db
     .select()
     .from(messagesTable)
@@ -216,6 +223,9 @@ function parseChatEvent(payload: string | undefined): ChatEvent | null {
     }
     if (event.type === "close") {
       return { type: "close", matchId: event.matchId };
+    }
+    if (event.type === "typing" || event.type === "presence") {
+      return { type: event.type, matchId: event.matchId };
     }
     if (
       event.type === "message" &&
@@ -250,10 +260,10 @@ function scheduleNotificationReconnect(): void {
 async function connectNotificationListener(): Promise<void> {
   const client = await pool.connect();
   try {
-    await client.query(`LISTEN ${chatEventChannel}`);
+    await client.query(`LISTEN ${CHAT_EVENT_CHANNEL}`);
     notificationClient = client;
     client.on("notification", (notification) => {
-      if (notification.channel !== chatEventChannel) return;
+      if (notification.channel !== CHAT_EVENT_CHANNEL) return;
       const event = parseChatEvent(notification.payload);
       if (!event) return;
       notificationQueue = notificationQueue
@@ -1511,7 +1521,7 @@ router.post(
         .set({ updatedAt: new Date() })
         .where(eq(matchesTable.id, match.id));
       await tx.execute(
-        sql`SELECT pg_notify(${chatEventChannel}, ${JSON.stringify({
+        sql`SELECT pg_notify(${CHAT_EVENT_CHANNEL}, ${JSON.stringify({
           type: "message",
           matchId: match.id,
           messageId: createdMessage.id,
@@ -1520,6 +1530,12 @@ router.post(
       return createdMessage;
     });
     await saveMatchUserState(match.id, userId, { typingUntil: null });
+    await db.execute(
+      sql`SELECT pg_notify(${CHAT_EVENT_CHANNEL}, ${JSON.stringify({
+        type: "typing",
+        matchId: match.id,
+      })})`,
+    );
     const recipientId =
       match.userAId === userId ? match.userBId : match.userAId;
     const [recipient] = await db
@@ -1539,6 +1555,18 @@ router.post(
       } catch (error) {
         req.log.error({ err: error, messageId: message.id }, "Could not save message notification");
       }
+      void sendMessagePush({
+        recipientId,
+        senderId: userId,
+        matchId: match.id,
+        content: message.content,
+        mediaType: message.mediaType,
+      }).catch((error: unknown) => {
+        req.log.error(
+          { err: error, messageId: message.id },
+          "Could not send message push notification",
+        );
+      });
     }
     res.status(201).json(SendMessageResponse.parse(projectMessage(message)));
   },
@@ -1593,7 +1621,7 @@ router.delete(
           .returning();
         if (deleted) {
           await tx.execute(
-            sql`SELECT pg_notify(${chatEventChannel}, ${JSON.stringify({
+            sql`SELECT pg_notify(${CHAT_EVENT_CHANNEL}, ${JSON.stringify({
               type: "message",
               matchId: match.id,
               messageId: deleted.id,
@@ -1673,7 +1701,7 @@ router.delete(
     await db.transaction(async (tx) => {
       await tx.delete(matchesTable).where(eq(matchesTable.id, match.id));
       await tx.execute(
-        sql`SELECT pg_notify(${chatEventChannel}, ${JSON.stringify({
+        sql`SELECT pg_notify(${CHAT_EVENT_CHANNEL}, ${JSON.stringify({
           type: "close",
           matchId: match.id,
         })})`,
@@ -1744,6 +1772,12 @@ router.put(
     await saveMatchUserState(match.id, userId, {
       typingUntil: body.data.isTyping ? new Date(Date.now() + 5_000) : null,
     });
+    await db.execute(
+      sql`SELECT pg_notify(${CHAT_EVENT_CHANNEL}, ${JSON.stringify({
+        type: "typing",
+        matchId: match.id,
+      })})`,
+    );
     UpdateTypingStatusResponse.parse(undefined);
     res.status(204).end();
   },
@@ -1888,7 +1922,7 @@ router.post("/vibeswipe/blocks", async (req, res): Promise<void> => {
       .onConflictDoNothing();
     for (const { id } of existingMatches) {
       await tx.execute(
-        sql`SELECT pg_notify(${chatEventChannel}, ${JSON.stringify({
+        sql`SELECT pg_notify(${CHAT_EVENT_CHANNEL}, ${JSON.stringify({
           type: "close",
           matchId: id,
         })})`,

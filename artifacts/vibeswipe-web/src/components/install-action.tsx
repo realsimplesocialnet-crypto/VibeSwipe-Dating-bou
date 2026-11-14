@@ -46,7 +46,7 @@ export function InstallAction({ className = '' }: { className?: string }) {
         setNotice('Installation was cancelled. You can also install from the Chrome menu.');
       }
     } catch (error) {
-      console.warn('VibeSwipe installation prompt could not open.', error);
+      console.warn('Myage installation prompt could not open.', error);
       store.clearPrompt(prompt);
       setNotice('Chrome could not open its install prompt. Use the browser menu below instead.');
       setShowHelp(true);
@@ -66,10 +66,10 @@ export function InstallAction({ className = '' }: { className?: string }) {
     {showHelp && <div id={helpId} className="absolute right-0 top-full z-50 mt-3 w-80 max-w-[calc(100vw-2.5rem)] rounded-2xl border border-white/10 bg-[#26212a] p-4 text-left text-xs leading-5 text-muted-foreground shadow-xl"
       data-testid="text-install-help">
       <div className="mb-2 flex items-start justify-between gap-3">
-        <strong className="text-sm text-foreground">Install VibeSwipe</strong>
+        <strong className="text-sm text-foreground">Install Myage</strong>
         <button onClick={() => setShowHelp(false)} aria-label="Close install instructions" className="rounded p-1 hover:bg-white/10"><X size={14}/></button>
       </div>
-      <p className="mb-3 text-foreground">Installation is optional. You can create your account and use VibeSwipe directly on this website.</p>
+      <p className="mb-3 text-foreground">Installation is optional. You can create your account and use Myage directly on this website.</p>
       {notice && <p role="status" className="mb-3 text-rose-200">{notice}</p>}
       {prompt ? <button onClick={() => void install()} disabled={busy} className="mb-3 w-full rounded-xl bg-primary px-4 py-2.5 font-bold text-[#24111b]">Install now</button>
         : <p className="mb-3">The browser hasn’t offered one-tap installation yet. Keep this page open briefly, or use its menu:</p>}

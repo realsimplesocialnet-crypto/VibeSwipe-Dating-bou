@@ -3,12 +3,14 @@ import { ClerkLoaded, ClerkProvider, useAuth } from "@clerk/expo";
 import { tokenCache } from "@clerk/expo/token-cache";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { setAuthTokenGetter, setBaseUrl, useHeartbeatPresence } from "@workspace/api-client-react";
-import { AppState } from "react-native";
+import { AppState, Platform } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
+import * as Notifications from "expo-notifications";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { PushNotificationBridge } from "@/components/PushNotificationBridge";
 import { ThemeProvider } from "@/hooks/useTheme";
 import {
   Inter_400Regular,
@@ -22,6 +24,17 @@ import * as SplashScreen from "expo-splash-screen";
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
+
+if (Platform.OS !== "web") {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowBanner: true,
+      shouldShowList: true,
+      shouldPlaySound: true,
+      shouldSetBadge: true,
+    }),
+  });
+}
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 15_000, retry: 1 } },
@@ -42,6 +55,8 @@ function RootLayoutNav() {
       <Stack.Screen name="edit-profile" />
       <Stack.Screen name="settings" />
       <Stack.Screen name="safety-center" />
+      <Stack.Screen name="privacy-policy" />
+      <Stack.Screen name="terms" />
       <Stack.Screen name="community-guidelines" />
       <Stack.Screen name="notifications" />
       <Stack.Screen name="profile/[profileId]" />
@@ -57,7 +72,12 @@ function AuthRouteGuard() {
     const section = segments[0];
     const authScreen =
       section === "(auth)" || section === "sign-in" || section === "sign-up";
-    const publicScreen = !section || authScreen;
+    const publicScreen =
+      !section ||
+      authScreen ||
+      section === "privacy-policy" ||
+      section === "terms" ||
+      section === "community-guidelines";
     if (!isSignedIn && !publicScreen) router.replace("/");
     if (isSignedIn && authScreen) router.replace("/");
   }, [isLoaded, isSignedIn, segments]);
@@ -76,6 +96,7 @@ function AuthenticatedApi({ children }: { children: React.ReactNode }) {
   if (!ready) return null;
   return (
     <QueryClientProvider client={queryClient}>
+      <PushNotificationBridge />
       <PresenceHeartbeat />
       {children}
     </QueryClientProvider>
