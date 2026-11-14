@@ -4,7 +4,6 @@ import {
   getGetMatchesQueryKey,
   useBlockProfile,
   useDeleteChat,
-  useGetBlockedProfiles,
   useGetMatches,
   useReportProfile,
   useUnblockProfile,
@@ -49,7 +48,6 @@ export default function ChatsScreen() {
   const colors = useColors();
   const queryClient = useQueryClient();
   const matches = useGetMatches({ query: { refetchInterval: 10_000 } });
-  const blockedProfiles = useGetBlockedProfiles();
   const blockProfile = useBlockProfile();
   const unblockProfile = useUnblockProfile();
   const reportProfile = useReportProfile();
@@ -196,46 +194,8 @@ export default function ChatsScreen() {
             </View>
           );
         }}
-        ListFooterComponent={
-          <View style={styles.blockedSection}>
-            <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Blocked profiles</Text>
-            {blockedProfiles.isLoading ? <ActivityIndicator color={colors.primary} /> : null}
-            {blockedProfiles.isError ? (
-              <Pressable onPress={() => void blockedProfiles.refetch()}>
-                <Text style={[styles.last, { color: colors.destructive }]}>Couldn’t load blocked profiles. Tap to retry.</Text>
-              </Pressable>
-            ) : null}
-            {!blockedProfiles.isLoading && !blockedProfiles.isError && !blockedProfiles.data?.length ? (
-              <Text style={[styles.last, { color: colors.mutedForeground }]}>Profiles you block will appear here.</Text>
-            ) : null}
-            {blockedProfiles.data?.map(({ profile }) => (
-              <View key={profile.id} style={[styles.blockedRow, { backgroundColor: colors.card, borderColor: colors.border }]}>
-                <ProfileAvatar profile={profile} size={46} />
-                <View style={styles.copy}>
-                  <Text style={[styles.name, { color: colors.foreground }]}>{profile.name}</Text>
-                  <Text style={[styles.blockedLabel, { color: colors.destructive }]}>Blocked</Text>
-                </View>
-                <Pressable
-                  testID={`unblock-${profile.id}`}
-                  disabled={unblockProfile.isPending}
-                  onPress={() => void unblock({ profile, blockedByMe: true })}
-                  style={[styles.unblockButton, { borderColor: colors.border }]}
-                >
-                  <Text style={[styles.unblockText, { color: colors.primary }]}>Unblock</Text>
-                </Pressable>
-                <Pressable
-                  accessibilityLabel={`More actions for ${profile.name}`}
-                  onPress={() => openActions({ profile, blockedByMe: true })}
-                  style={styles.actionTrigger}
-                >
-                  <Feather name="more-horizontal" size={20} color={colors.mutedForeground} />
-                </Pressable>
-              </View>
-            ))}
-          </View>
-        }
         refreshing={matches.isRefetching}
-        onRefresh={() => void Promise.all([matches.refetch(), blockedProfiles.refetch()])}
+        onRefresh={() => void matches.refetch()}
       />
       <Modal
         visible={actionTarget !== null}
@@ -358,11 +318,7 @@ const styles = StyleSheet.create({
   emptyTitle: { fontSize: 17, fontWeight: "700" },
   errorBox: { paddingVertical: 12 },
   errorText: { fontSize: 13 },
-  blockedSection: { paddingTop: 26, gap: 11 },
   sectionTitle: { fontSize: 17, fontWeight: "700", marginBottom: 2 },
-  blockedRow: { minHeight: 68, flexDirection: "row", alignItems: "center", gap: 11, borderWidth: StyleSheet.hairlineWidth, borderRadius: 14, paddingHorizontal: 11, marginBottom: 8 },
-  unblockButton: { minHeight: 34, justifyContent: "center", borderWidth: 1, borderRadius: 9, paddingHorizontal: 11 },
-  unblockText: { fontSize: 12, fontWeight: "700" },
   modalScrim: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.58)", padding: 12 },
   actionSheet: { maxHeight: "82%", borderWidth: StyleSheet.hairlineWidth, borderRadius: 22, paddingHorizontal: 18, paddingTop: 18, paddingBottom: 24 },
   sheetHeading: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingBottom: 12 },

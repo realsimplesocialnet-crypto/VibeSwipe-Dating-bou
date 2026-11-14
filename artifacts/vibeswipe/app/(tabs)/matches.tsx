@@ -4,7 +4,6 @@ import {
   getGetMatchesQueryKey,
   useBlockProfile,
   useDeleteChat,
-  useGetBlockedProfiles,
   useGetIcebreakers,
   useGetMatches,
   useReportProfile,
@@ -52,7 +51,6 @@ export default function MatchesScreen() {
   const queryClient = useQueryClient();
   const matches = useGetMatches();
   const icebreakers = useGetIcebreakers();
-  const blockedProfiles = useGetBlockedProfiles();
   const blockProfile = useBlockProfile();
   const unblockProfile = useUnblockProfile();
   const reportProfile = useReportProfile();
@@ -167,14 +165,30 @@ export default function MatchesScreen() {
           <View style={[styles.emptyIcon, { backgroundColor: colors.accent }]}>
             <Feather name="heart" size={25} color={colors.primary} />
           </View>
-          <Text style={[styles.emptyTitle, { color: colors.foreground }]}>Your matches will show here</Text>
-          <Text style={[styles.empty, { color: colors.mutedForeground }]}>When you both like each other, you can start a chat.</Text>
+          <Text style={[styles.emptyTitle, { color: colors.foreground }]}>Your first match is out there</Text>
+          <Text style={[styles.empty, { color: colors.mutedForeground }]}>When you both like each other, you can start a conversation.</Text>
+          <Pressable
+            testID="explore-profiles-empty"
+            onPress={() => router.push("/")}
+            style={[styles.exploreButton, { backgroundColor: colors.primary }]}
+          >
+            <Text style={styles.exploreButtonText}>Explore profiles</Text>
+            <Feather name="arrow-right" size={17} color="#26111b" />
+          </Pressable>
         </View>
       ) : null}
       <FlatList
         data={data}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
+        ListEmptyComponent={
+          !matches.isLoading && !matches.isError ? (
+            <View style={[styles.matchesPlaceholder, { borderColor: colors.border }]}>
+              <Text style={[styles.sectionTitle, styles.placeholderTitle, { color: colors.mutedForeground }]}>Your matches</Text>
+              <Text style={[styles.last, { color: colors.mutedForeground }]}>New matches will appear here.</Text>
+            </View>
+          ) : undefined
+        }
         renderItem={({ item }) => {
           const isBlocked = item.blockedByMe || item.blockedMe;
           const status = item.blockedByMe ? "Blocked" : item.blockedMe ? "Blocked you" : null;
@@ -232,46 +246,8 @@ export default function MatchesScreen() {
             </View>
           );
         }}
-        ListFooterComponent={
-          <View style={styles.blockedSection}>
-            <Text style={[styles.sectionTitle, { color: colors.foreground }]}>Blocked profiles</Text>
-            {blockedProfiles.isLoading ? <ActivityIndicator color={colors.primary} /> : null}
-            {blockedProfiles.isError ? (
-              <Pressable onPress={() => void blockedProfiles.refetch()}>
-                <Text style={[styles.last, { color: colors.destructive }]}>Couldn’t load blocked profiles. Tap to retry.</Text>
-              </Pressable>
-            ) : null}
-            {!blockedProfiles.isLoading && !blockedProfiles.isError && !blockedProfiles.data?.length ? (
-              <Text style={[styles.last, { color: colors.mutedForeground }]}>Profiles you block will appear here.</Text>
-            ) : null}
-            {blockedProfiles.data?.map(({ profile }) => (
-              <View key={profile.id} style={[styles.blockedRow, { backgroundColor: colors.card, borderColor: colors.border }]}>
-                <ProfileAvatar profile={profile} size={46} />
-                <View style={styles.copy}>
-                  <Text style={[styles.name, { color: colors.foreground }]}>{profile.name}</Text>
-                  <Text style={[styles.blockedLabel, { color: colors.destructive }]}>Blocked</Text>
-                </View>
-                <Pressable
-                  testID={`unblock-${profile.id}`}
-                  disabled={unblockProfile.isPending}
-                  onPress={() => void unblock({ profile, blockedByMe: true })}
-                  style={[styles.unblockButton, { borderColor: colors.border }]}
-                >
-                  <Text style={[styles.unblockText, { color: colors.primary }]}>Unblock</Text>
-                </Pressable>
-                <Pressable
-                  accessibilityLabel={`More actions for ${profile.name}`}
-                  onPress={() => openActions({ profile, blockedByMe: true })}
-                  style={styles.actionTrigger}
-                >
-                  <Feather name="more-horizontal" size={20} color={colors.mutedForeground} />
-                </Pressable>
-              </View>
-            ))}
-          </View>
-        }
         refreshing={matches.isRefetching}
-        onRefresh={() => void Promise.all([matches.refetch(), blockedProfiles.refetch()])}
+        onRefresh={() => void matches.refetch()}
       />
       <Modal
         visible={actionTarget !== null}
@@ -402,11 +378,11 @@ const styles = StyleSheet.create({
   emptyIcon: { width: 62, height: 62, borderRadius: 22, alignItems: "center", justifyContent: "center" },
   emptyTitle: { fontSize: 17, fontWeight: "700", textAlign: "center" },
   empty: { fontSize: 13, textAlign: "center", lineHeight: 20, marginTop: 5 },
-  blockedSection: { paddingTop: 26, gap: 11 },
+  exploreButton: { minHeight: 48, borderRadius: 15, paddingHorizontal: 18, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 9, marginTop: 12 },
+  exploreButtonText: { color: "#26111b", fontSize: 14, fontWeight: "800" },
+  matchesPlaceholder: { borderWidth: 1, borderRadius: 16, padding: 16, marginTop: 8, gap: 5 },
+  placeholderTitle: { fontSize: 10, letterSpacing: 1, textTransform: "uppercase" },
   sectionTitle: { fontSize: 17, fontWeight: "700", marginBottom: 2 },
-  blockedRow: { minHeight: 68, flexDirection: "row", alignItems: "center", gap: 11, borderWidth: StyleSheet.hairlineWidth, borderRadius: 14, paddingHorizontal: 11, marginBottom: 8 },
-  unblockButton: { minHeight: 34, justifyContent: "center", borderWidth: 1, borderRadius: 9, paddingHorizontal: 11 },
-  unblockText: { fontSize: 12, fontWeight: "700" },
   modalScrim: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.58)", padding: 12 },
   actionSheet: { maxHeight: "82%", borderWidth: StyleSheet.hairlineWidth, borderRadius: 22, paddingHorizontal: 18, paddingTop: 18, paddingBottom: 24 },
   sheetHeading: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingBottom: 12 },
