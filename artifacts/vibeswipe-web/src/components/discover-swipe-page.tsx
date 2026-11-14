@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { listCities, listCountries, type GeoOption } from "@/lib/geo-data";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link, Redirect } from "wouter";
 import {
@@ -43,6 +44,7 @@ export function DiscoverSwipePage() {
   const [ageMin, setAgeMin] = useState(22);
   const [ageMax, setAgeMax] = useState(35);
   const [gender, setGender] = useState<string | undefined>(undefined);
+  const [country, setCountry] = useState<GeoOption | null>(null);
   const [city, setCity] = useState("");
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [optionsOpen, setOptionsOpen] = useState(false);
@@ -53,8 +55,14 @@ export function DiscoverSwipePage() {
   const settings = useGetVibeSwipeSettings({ query: { queryKey: getGetVibeSwipeSettingsQueryKey() } });
 
   const params = useMemo(
-    () => ({ ageMin, ageMax, ...(gender ? { gender } : {}), ...(city.trim() ? { city: city.trim() } : {}) }),
-    [ageMin, ageMax, city, gender],
+    () => ({
+      ageMin,
+      ageMax,
+      ...(gender ? { gender } : {}),
+      ...(country ? { country: country.name } : {}),
+      ...(city.trim() ? { city: city.trim() } : {}),
+    }),
+    [ageMin, ageMax, city, country, gender],
   );
   const discover = useGetDiscoverProfiles<Profile[]>(params, {
     query: {
@@ -82,6 +90,7 @@ export function DiscoverSwipePage() {
     if (previousTravelFilter.current !== null && previousTravelFilter.current !== filter) {
       setIndex(0);
       setCity("");
+      setCountry(null);
     }
     previousTravelFilter.current = filter;
   }, [settings.data?.travelMode, settings.data?.travelCity]);
@@ -182,7 +191,7 @@ export function DiscoverSwipePage() {
         <h1 className="brand text-2xl font-bold">That’s everyone for now</h1>
         <p className="mt-2 text-sm text-muted-foreground">Try broadening your filters or check back soon.</p>
         <button onClick={() => setFiltersOpen(true)} data-testid="button-open-filters-empty" className="mt-5 rounded-xl bg-primary px-4 py-3 font-bold text-[#27101d]">Adjust filters</button>
-        <FilterDialog open={filtersOpen} onClose={() => setFiltersOpen(false)} ageMin={ageMin} ageMax={ageMax} gender={gender} city={city} setAgeMin={setAgeMin} setAgeMax={setAgeMax} setGender={setGender} setCity={setCity} onApply={() => { setIndex(0); setFiltersOpen(false); }} />
+        <FilterDialog open={filtersOpen} onClose={() => setFiltersOpen(false)} ageMin={ageMin} ageMax={ageMax} gender={gender} country={country} city={city} travelMode={Boolean(settings.data?.travelMode)} setAgeMin={setAgeMin} setAgeMax={setAgeMax} setGender={setGender} setCountry={(value) => { setCountry(value); setCity(""); }} setCity={setCity} onApply={() => { setIndex(0); setFiltersOpen(false); }} />
       </div>
     );
   }
@@ -256,7 +265,7 @@ export function DiscoverSwipePage() {
       </article>
 
       {optionsOpen && <ProfileOptionsDialog profile={profile} onClose={() => setOptionsOpen(false)} onReport={(reason) => void reportCurrent(reason)} onBlock={() => void blockCurrent()} />}
-      <FilterDialog open={filtersOpen} onClose={() => setFiltersOpen(false)} ageMin={ageMin} ageMax={ageMax} gender={gender} city={city} setAgeMin={setAgeMin} setAgeMax={setAgeMax} setGender={setGender} setCity={setCity} onApply={() => { setIndex(0); setFiltersOpen(false); }} />
+      <FilterDialog open={filtersOpen} onClose={() => setFiltersOpen(false)} ageMin={ageMin} ageMax={ageMax} gender={gender} country={country} city={city} travelMode={Boolean(settings.data?.travelMode)} setAgeMin={setAgeMin} setAgeMax={setAgeMax} setGender={setGender} setCountry={(value) => { setCountry(value); setCity(""); }} setCity={setCity} onApply={() => { setIndex(0); setFiltersOpen(false); }} />
     </main>
   );
 }
@@ -277,16 +286,74 @@ function ProfilePhoto({ reference, alt, className }: { reference: string; alt: s
   return src ? <img src={src} alt={alt} className={className} /> : null;
 }
 
-function FilterDialog({ open, onClose, ageMin, ageMax, gender, city, setAgeMin, setAgeMax, setGender, setCity, onApply }: {
-  open: boolean; onClose: () => void; ageMin: number; ageMax: number; gender: string | undefined; city: string;
-  setAgeMin: (value: number) => void; setAgeMax: (value: number) => void; setGender: (value: string | undefined) => void; setCity: (value: string) => void; onApply: () => void;
+function FilterDialog({ open, onClose, ageMin, ageMax, gender, country, city, travelMode, setAgeMin, setAgeMax, setGender, setCountry, setCity, onApply }: {
+  open: boolean; onClose: () => void; ageMin: number; ageMax: number; gender: string | undefined; country: GeoOption | null; city: string; travelMode: boolean;
+  setAgeMin: (value: number) => void; setAgeMax: (value: number) => void; setGender: (value: string | undefined) => void; setCountry: (value: GeoOption | null) => void; setCity: (value: string) => void; onApply: () => void;
 }) {
+  const [countries, setCountries] = useState<GeoOption[]>([]);
+  const [cities, setCities] = useState<GeoOption[]>([]);
+  const [citySearch, setCitySearch] = useState(city);
+  const [citiesLoading, setCitiesLoading] = useState(false);
+  const [citiesError, setCitiesError] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    void listCountries().then(setCountries).catch(() => setCountries([]));
+  }, [open]);
+
+  useEffect(() => {
+    setCitySearch(city);
+  }, [city]);
+
+  useEffect(() => {
+    if (!open || !country) {
+      setCities([]);
+      setCitiesError(false);
+      return;
+    }
+    let active = true;
+    setCitiesLoading(true);
+    setCitiesError(false);
+    void listCities(country.code, "").then((items) => {
+      if (active) setCities(items);
+    }).catch(() => {
+      if (active) {
+        setCities([]);
+        setCitiesError(true);
+      }
+    }).finally(() => {
+      if (active) setCitiesLoading(false);
+    });
+    return () => { active = false; };
+  }, [country, open]);
+
   if (!open) return null;
+  const citySuggestions = citySearch.trim().length >= 2 && citySearch !== city
+    ? (() => {
+      const search = citySearch.trim().toLocaleLowerCase();
+      const matches = cities.filter((item) => item.name.toLocaleLowerCase().includes(search));
+      return [
+        ...matches.filter((item) => item.name.toLocaleLowerCase().startsWith(search)).sort((a, b) => a.name.localeCompare(b.name)),
+        ...matches.filter((item) => !item.name.toLocaleLowerCase().startsWith(search)).sort((a, b) => a.name.localeCompare(b.name)),
+      ].slice(0, 12);
+    })()
+    : [];
+  const needsCountrySelection = citySearch.trim() !== "" && !city;
+  const canApply = (!citySearch.trim() || Boolean(city));
   return <Dialog title="Discovery filters" onClose={onClose}><div className="space-y-5">
     <div className="grid grid-cols-2 gap-3"><label className="text-xs text-muted-foreground">Age from<input type="number" min="18" value={ageMin} onChange={(event) => setAgeMin(Number(event.target.value))} className="field mt-2" /></label><label className="text-xs text-muted-foreground">Age to<input type="number" min={ageMin} value={ageMax} onChange={(event) => setAgeMax(Number(event.target.value))} className="field mt-2" /></label></div>
     <label className="block text-xs text-muted-foreground">Interested in<select value={gender ?? ""} onChange={(event) => setGender(event.target.value || undefined)} className="field mt-2"><option value="">Use signup preference</option><option>Everyone</option><option>Woman</option><option>Man</option><option>Non-binary</option></select></label>
-    <label className="block text-xs text-muted-foreground">City<input value={city} onChange={(event) => setCity(event.target.value)} placeholder="Any city" className="field mt-2" /></label>
-    <button type="button" onClick={onApply} data-testid="button-apply-filters" className="w-full rounded-xl bg-primary py-3 font-bold text-[#27101d]">Show people</button>
+    {travelMode && <p className="rounded-xl border border-primary/20 bg-accent px-3 py-2 text-xs text-[#ffafd1]">Travel Mode is active. Turn it off in Settings to search another country.</p>}
+    <label className="block text-xs text-muted-foreground">Country<select disabled={travelMode} value={country?.code ?? ""} onChange={(event) => setCountry(countries.find((item) => item.code === event.target.value) ?? null)} className="field mt-2 disabled:opacity-50"><option value="">Use my home location</option>{countries.map((item) => <option key={item.code} value={item.code}>{item.name}</option>)}</select></label>
+    <div>
+      <label className="block text-xs text-muted-foreground">City<input value={citySearch} onChange={(event) => { setCitySearch(event.target.value); if (event.target.value !== city) setCity(""); }} disabled={!country || travelMode} placeholder={country ? "Any city" : "Select a country first"} className="field mt-2 disabled:opacity-50" /></label>
+      <p className="mt-1.5 text-[11px] text-muted-foreground">{country ? "Choose a city suggestion, or leave blank to search the whole country." : "Choose a country to search its cities."}</p>
+      {citiesLoading && <p className="mt-2 text-xs text-muted-foreground">Loading cities…</p>}
+      {citiesError && <p className="mt-2 text-xs text-rose-300">Could not load city names. Try again.</p>}
+      {citySuggestions.length > 0 && <div className="mt-2 max-h-40 overflow-y-auto rounded-xl border border-white/10 bg-black/20">{citySuggestions.map((item) => <button type="button" key={item.code} onClick={() => { setCity(item.name); setCitySearch(item.name); }} className="block w-full border-b border-white/5 px-3 py-2.5 text-left text-sm last:border-0 hover:bg-white/5">{item.name}</button>)}</div>}
+      {needsCountrySelection && citySearch.trim().length >= 2 && citySuggestions.length === 0 && !citiesLoading && !citiesError && <p className="mt-2 text-xs text-muted-foreground">No matching city. Select a suggestion or clear the field for any city.</p>}
+    </div>
+    <button type="button" onClick={onApply} disabled={!canApply} data-testid="button-apply-filters" className="w-full rounded-xl bg-primary py-3 font-bold text-[#27101d] disabled:opacity-50">Show people</button>
   </div></Dialog>;
 }
 

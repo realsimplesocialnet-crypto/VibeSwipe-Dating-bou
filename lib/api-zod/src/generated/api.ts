@@ -216,7 +216,8 @@ export const GetDiscoverProfilesQueryParams = zod.object({
   "ageMin": zod.coerce.number().int().min(getDiscoverProfilesQueryAgeMinMin).max(getDiscoverProfilesQueryAgeMinMax).optional(),
   "ageMax": zod.coerce.number().int().min(getDiscoverProfilesQueryAgeMaxMin).max(getDiscoverProfilesQueryAgeMaxMax).optional(),
   "gender": zod.coerce.string().optional(),
-  "city": zod.coerce.string().optional()
+  "city": zod.coerce.string().optional(),
+  "country": zod.coerce.string().optional()
 })
 
 export const getDiscoverProfilesResponsePreferencesAgeMinMin = 18;

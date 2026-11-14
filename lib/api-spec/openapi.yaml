@@ -116,6 +116,9 @@ paths:
         - in: query
           name: city
           schema: { type: string }
+        - in: query
+          name: country
+          schema: { type: string }
       responses:
         "200":
           description: Profiles for discovery

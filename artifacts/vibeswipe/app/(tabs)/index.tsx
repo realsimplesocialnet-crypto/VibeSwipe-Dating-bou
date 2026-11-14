@@ -19,6 +19,7 @@ import {
   type Profile,
 } from "@workspace/api-client-react";
 import { Feather } from "@expo/vector-icons";
+import { City, Country } from "country-state-city";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
 import { VideoView } from "expo-video";
@@ -43,6 +44,10 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useColors } from "@/hooks/useColors";
 import { profileImageSource } from "@/lib/media";
+
+const FILTER_COUNTRIES = Country.getAllCountries()
+  .map(({ isoCode, name }) => ({ code: isoCode, name }))
+  .sort((a, b) => a.name.localeCompare(b.name));
 import { useVideoPreloadQueue } from "@/hooks/useVideoPreloadQueue";
 
 type SwipeDirection = "pass" | "like" | "super";
@@ -244,7 +249,10 @@ export default function DiscoverScreen() {
   const [ageMin, setAgeMin] = useState(22);
   const [ageMax, setAgeMax] = useState(35);
   const [gender, setGender] = useState<string | undefined>(undefined);
+  const [selectedCountry, setSelectedCountry] = useState<(typeof FILTER_COUNTRIES)[number] | null>(null);
+  const [countrySearch, setCountrySearch] = useState("");
   const [city, setCity] = useState("");
+  const [citySearch, setCitySearch] = useState("");
   const [filterOpen, setFilterOpen] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
   const [index, setIndex] = useState(0);
@@ -254,14 +262,33 @@ export default function DiscoverScreen() {
   const [clock, setClock] = useState(Date.now());
   const viewedProfiles = useRef(new Set<string>());
   const previousTravelFilter = useRef<string | null>(null);
+  const countrySuggestions = useMemo(() => {
+    const search = countrySearch.trim().toLocaleLowerCase();
+    if (!search || selectedCountry?.name === countrySearch) return [];
+    return FILTER_COUNTRIES.filter((item) => item.name.toLocaleLowerCase().includes(search)).slice(0, 8);
+  }, [countrySearch, selectedCountry]);
+  const citiesInCountry = useMemo(() => {
+    if (!selectedCountry) return [];
+    return [...new Set((City.getCitiesOfCountry(selectedCountry.code) ?? []).map(({ name }) => name))]
+      .sort((a, b) => a.localeCompare(b));
+  }, [selectedCountry]);
+  const citySuggestions = useMemo(() => {
+    const search = citySearch.trim().toLocaleLowerCase();
+    if (!selectedCountry || search.length < 2 || city === citySearch) return [];
+    const matches = citiesInCountry.filter((name) => name.toLocaleLowerCase().includes(search));
+    return [
+      ...matches.filter((name) => name.toLocaleLowerCase().startsWith(search)),
+      ...matches.filter((name) => !name.toLocaleLowerCase().startsWith(search)),
+    ].slice(0, 8);
+  }, [citiesInCountry, city, citySearch, selectedCountry]);
   const discoverySettings = useGetVibeSwipeSettings({
     query: { queryKey: getGetVibeSwipeSettingsQueryKey() },
   });
   const topInset = Math.max(insets.top, Platform.OS === "web" ? 67 : 12);
   const actionBottom = Platform.OS === "web" ? 100 : Math.max(insets.bottom + 62, 82);
   const discoverParams = useMemo(
-    () => ({ ageMin, ageMax, ...(gender ? { gender } : {}), ...(city.trim() ? { city: city.trim() } : {}) }),
-    [ageMin, ageMax, city, gender],
+    () => ({ ageMin, ageMax, ...(gender ? { gender } : {}), ...(selectedCountry ? { country: selectedCountry.name } : {}), ...(city.trim() ? { city: city.trim() } : {}) }),
+    [ageMin, ageMax, city, gender, selectedCountry],
   );
   const discover = useGetDiscoverProfiles(discoverParams, {
     query: { refetchOnWindowFocus: false },
@@ -275,6 +302,9 @@ export default function DiscoverScreen() {
     if (previousTravelFilter.current !== null && previousTravelFilter.current !== filter) {
       setIndex(0);
       setCity("");
+      setCitySearch("");
+      setSelectedCountry(null);
+      setCountrySearch("");
     }
     previousTravelFilter.current = filter;
   }, [discoverySettings.data?.travelMode, discoverySettings.data?.travelCity]);
@@ -537,32 +567,88 @@ export default function DiscoverScreen() {
 
       <Modal visible={filterOpen} transparent animationType="slide" onRequestClose={() => setFilterOpen(false)}>
         <View style={styles.modalScrim}>
-          <View style={[styles.sheet, { backgroundColor: colors.card }]}>
+          <View style={[styles.sheet, { backgroundColor: colors.card, maxHeight: "92%" }]}>
             <View style={styles.sheetHeading}>
               <Text style={[styles.sheetTitle, { color: colors.foreground }]}>Discovery filters</Text>
               <Pressable onPress={() => setFilterOpen(false)}><Feather name="x" size={22} color={colors.foreground} /></Pressable>
             </View>
-            <Text style={[styles.label, { color: colors.foreground }]}>Age range</Text>
-            <View style={styles.ageRow}>
-              <TextInput keyboardType="number-pad" value={String(ageMin)} onChangeText={(value) => setAgeMin(Math.max(18, Number(value) || 18))} style={[styles.filterInput, { borderColor: colors.border, color: colors.foreground }]} />
-              <Text style={{ color: colors.mutedForeground }}>to</Text>
-              <TextInput keyboardType="number-pad" value={String(ageMax)} onChangeText={(value) => setAgeMax(Math.max(ageMin, Number(value) || ageMin))} style={[styles.filterInput, { borderColor: colors.border, color: colors.foreground }]} />
-            </View>
-            <Text style={[styles.label, { color: colors.foreground }]}>Interested in</Text>
-            <View style={styles.choiceRow}>
-              {["Your preference", "Everyone", "Woman", "Man"].map((item) => {
-                const selected = item === "Your preference" ? gender === undefined : gender === item;
-                return (
-                <Pressable key={item} onPress={() => setGender(item === "Your preference" ? undefined : item)} style={[styles.choice, { borderColor: selected ? colors.primary : colors.border, backgroundColor: selected ? colors.accent : "transparent" }]}>
-                  <Text style={{ color: selected ? colors.primary : colors.foreground, fontWeight: "600" }}>{item}</Text>
+            <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ gap: 10, paddingBottom: 5 }}>
+              <Text style={[styles.label, { color: colors.foreground }]}>Age range</Text>
+              <View style={styles.ageRow}>
+                <TextInput keyboardType="number-pad" value={String(ageMin)} onChangeText={(value) => setAgeMin(Math.max(18, Number(value) || 18))} style={[styles.filterInput, { borderColor: colors.border, color: colors.foreground }]} />
+                <Text style={{ color: colors.mutedForeground }}>to</Text>
+                <TextInput keyboardType="number-pad" value={String(ageMax)} onChangeText={(value) => setAgeMax(Math.max(ageMin, Number(value) || ageMin))} style={[styles.filterInput, { borderColor: colors.border, color: colors.foreground }]} />
+              </View>
+              <Text style={[styles.label, { color: colors.foreground }]}>Interested in</Text>
+              <View style={styles.choiceRow}>
+                {["Your preference", "Everyone", "Woman", "Man"].map((item) => {
+                  const selected = item === "Your preference" ? gender === undefined : gender === item;
+                  return (
+                    <Pressable key={item} onPress={() => setGender(item === "Your preference" ? undefined : item)} style={[styles.choice, { borderColor: selected ? colors.primary : colors.border, backgroundColor: selected ? colors.accent : "transparent" }]}>
+                      <Text style={{ color: selected ? colors.primary : colors.foreground, fontWeight: "600" }}>{item}</Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+              {discoverySettings.data?.travelMode ? (
+                <Text style={{ color: colors.primary, fontSize: 12 }}>
+                  Travel Mode is active. Turn it off in Settings to search another country.
+                </Text>
+              ) : null}
+              <Text style={[styles.label, { color: colors.foreground }]}>Country</Text>
+              <TextInput
+                value={countrySearch}
+                onChangeText={(value) => {
+                  setCountrySearch(value);
+                  if (value !== selectedCountry?.name) {
+                    setSelectedCountry(null);
+                    setCity("");
+                    setCitySearch("");
+                  }
+                }}
+                editable={!discoverySettings.data?.travelMode}
+                placeholder="Search country"
+                placeholderTextColor={colors.mutedForeground}
+                style={[styles.filterInput, styles.cityInput, { borderColor: colors.border, color: colors.foreground }]}
+              />
+              {selectedCountry ? (
+                <Pressable onPress={() => { setSelectedCountry(null); setCountrySearch(""); setCity(""); setCitySearch(""); }}>
+                  <Text style={{ color: colors.primary, fontSize: 12, fontWeight: "600" }}>Clear country · use home location</Text>
                 </Pressable>
-              );})}
-            </View>
-            <Text style={[styles.label, { color: colors.foreground }]}>City</Text>
-            <TextInput value={city} onChangeText={setCity} placeholder="Any city" placeholderTextColor={colors.mutedForeground} style={[styles.filterInput, styles.cityInput, { borderColor: colors.border, color: colors.foreground }]} />
-            <Pressable onPress={() => { setIndex(0); setFilterOpen(false); }} style={[styles.primaryButton, { backgroundColor: colors.primary }]}>
-              <Text style={styles.buttonWhite}>Show profiles</Text>
-            </Pressable>
+              ) : null}
+              {countrySuggestions.map((item) => (
+                <Pressable key={item.code} onPress={() => { setSelectedCountry(item); setCountrySearch(item.name); setCity(""); setCitySearch(""); }} style={[styles.filterSuggestion, { borderColor: colors.border }]}>
+                  <Text style={{ color: colors.foreground }}>{item.name}</Text>
+                </Pressable>
+              ))}
+              <Text style={[styles.label, { color: colors.foreground }]}>City</Text>
+              <TextInput
+                value={citySearch}
+                onChangeText={(value) => { setCitySearch(value); if (value !== city) setCity(""); }}
+                editable={Boolean(selectedCountry) && !discoverySettings.data?.travelMode}
+                placeholder={selectedCountry ? "Any city" : "Select a country first"}
+                placeholderTextColor={colors.mutedForeground}
+                style={[styles.filterInput, styles.cityInput, { borderColor: colors.border, color: colors.foreground, opacity: selectedCountry ? 1 : 0.5 }]}
+              />
+              <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>
+                {selectedCountry ? "Choose a city suggestion, or leave blank for the whole country." : "Choose a country to search its cities."}
+              </Text>
+              {citySuggestions.map((name) => (
+                <Pressable key={name} onPress={() => { setCity(name); setCitySearch(name); }} style={[styles.filterSuggestion, { borderColor: colors.border }]}>
+                  <Text style={{ color: colors.foreground }}>{name}</Text>
+                </Pressable>
+              ))}
+              {citySearch.trim().length >= 2 && selectedCountry && !city && citySuggestions.length === 0 ? (
+                <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>No city match. Select a suggestion or clear the field for any city.</Text>
+              ) : null}
+              <Pressable
+                disabled={Boolean(countrySearch.trim() && !selectedCountry) || Boolean(citySearch.trim() && !city)}
+                onPress={() => { setIndex(0); setFilterOpen(false); }}
+                style={[styles.primaryButton, { backgroundColor: colors.primary, opacity: (countrySearch.trim() && !selectedCountry) || (citySearch.trim() && !city) ? 0.5 : 1 }]}
+              >
+                <Text style={styles.buttonWhite}>Show profiles</Text>
+              </Pressable>
+            </ScrollView>
           </View>
         </View>
       </Modal>
@@ -682,6 +768,7 @@ const styles = StyleSheet.create({
   ageRow: { flexDirection: "row", alignItems: "center", gap: 12 },
   filterInput: { minWidth: 70, height: 44, borderWidth: 1, borderRadius: 12, paddingHorizontal: 12, textAlign: "center", fontSize: 15 },
   cityInput: { textAlign: "left", width: "100%" },
+  filterSuggestion: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10 },
   choiceRow: { flexDirection: "row", gap: 8 },
   choice: { paddingVertical: 10, paddingHorizontal: 13, borderWidth: 1, borderRadius: 14 },
   primaryButton: { height: 52, borderRadius: 16, alignItems: "center", justifyContent: "center", marginTop: 16 },

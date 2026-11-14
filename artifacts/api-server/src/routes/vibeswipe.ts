@@ -113,7 +113,7 @@ import {
   messagesAfterCursor,
 } from "../lib/chatEventStream";
 import { buildProfileValues } from "../lib/profileSetup";
-import { findRealTravelCity, resolveDiscoveryCity, searchRealTravelCities } from "../lib/travelCities";
+import { findRealTravelCity, resolveDiscoveryLocation, searchRealTravelCities } from "../lib/travelCities";
 
 const router: IRouter = Router();
 const objectStorage = new ObjectStorageService();
@@ -881,14 +881,18 @@ router.get("/vibeswipe/discover", async (req, res): Promise<void> => {
   const gender = params.data.gender ?? ownProfile.preferences.gender;
   const conditions = [gte(profilesTable.age, ageMin), lte(profilesTable.age, ageMax)];
   if (gender && gender !== "Everyone") conditions.push(eq(profilesTable.gender, gender));
-  const discoveryCity = resolveDiscoveryCity({
+  const discoveryLocation = resolveDiscoveryLocation({
     travelMode: ownProfile.travelMode,
     travelCity: ownProfile.travelCity,
+    requestedCountry: params.data.country,
     requestedCity: params.data.city,
     homeCity: ownProfile.city,
   });
-  if (discoveryCity?.trim()) {
-    conditions.push(eq(profilesTable.city, discoveryCity.trim()));
+  if (discoveryLocation.country) {
+    conditions.push(eq(profilesTable.country, discoveryLocation.country));
+  }
+  if (discoveryLocation.city) {
+    conditions.push(eq(profilesTable.city, discoveryLocation.city));
   }
 
   const [reacted, blockRows, candidates, incognitoLikes, incomingSuperLikes] =

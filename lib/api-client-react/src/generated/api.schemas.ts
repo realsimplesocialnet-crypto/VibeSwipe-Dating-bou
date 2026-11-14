@@ -591,6 +591,7 @@ ageMin?: number;
 ageMax?: number;
 gender?: string;
 city?: string;
+country?: string;
 };
 
 export type SearchTravelCitiesParams = {

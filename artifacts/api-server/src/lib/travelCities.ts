@@ -48,17 +48,23 @@ export function searchRealTravelCities(value: string, limit = 50): { name: strin
     .map(({ name }) => ({ name }));
 }
 
-export function resolveDiscoveryCity({
+export function resolveDiscoveryLocation({
   travelMode,
   travelCity,
+  requestedCountry,
   requestedCity,
   homeCity,
 }: {
   travelMode: boolean;
   travelCity: string | null;
+  requestedCountry?: string;
   requestedCity?: string;
   homeCity: string;
-}): string {
-  if (travelMode) return travelCity?.trim() || homeCity;
-  return requestedCity?.trim() || homeCity;
+}): { country: string | null; city: string | null } {
+  if (travelMode) return { country: null, city: travelCity?.trim() || homeCity };
+  const country = requestedCountry?.trim() || null;
+  return {
+    country,
+    city: requestedCity?.trim() || (country ? null : homeCity),
+  };
 }
