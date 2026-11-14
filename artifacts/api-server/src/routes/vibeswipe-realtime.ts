@@ -21,7 +21,7 @@ import {
   vibeSwipePresenceTable,
   vibeSwipeReadReceiptsTable,
 } from "@workspace/db";
-import { and, desc, eq, or, sql } from "drizzle-orm";
+import { and, desc, eq, isNull, lte, or, sql } from "drizzle-orm";
 import { Router, type IRouter, type Request } from "express";
 import { requireAuth } from "../middlewares/auth";
 import { CHAT_EVENT_CHANNEL } from "../lib/chatEventStream";
@@ -173,16 +173,25 @@ router.put(
       return;
     }
     const readAt = new Date();
-    await db
-      .insert(vibeSwipeReadReceiptsTable)
-      .values({ userId, matchId: match.id, readAt })
-      .onConflictDoUpdate({
-        target: [
-          vibeSwipeReadReceiptsTable.userId,
-          vibeSwipeReadReceiptsTable.matchId,
-        ],
-        set: { readAt },
-      });
+    await db.transaction(async (tx) => {
+      await tx
+        .insert(vibeSwipeReadReceiptsTable)
+        .values({ userId, matchId: match.id, readAt })
+        .onConflictDoUpdate({
+          target: [
+            vibeSwipeReadReceiptsTable.userId,
+            vibeSwipeReadReceiptsTable.matchId,
+          ],
+          set: { readAt },
+        });
+      await tx.update(vibeSwipeNotificationsTable).set({ readAt }).where(and(
+        eq(vibeSwipeNotificationsTable.recipientId, userId),
+        eq(vibeSwipeNotificationsTable.matchId, match.id),
+        eq(vibeSwipeNotificationsTable.type, "new_message"),
+        isNull(vibeSwipeNotificationsTable.readAt),
+        lte(vibeSwipeNotificationsTable.createdAt, readAt),
+      ));
+    });
     MarkChatReadResponse.parse(undefined);
     res.status(204).end();
   },

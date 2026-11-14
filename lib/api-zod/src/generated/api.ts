@@ -685,6 +685,8 @@ export const getMatchesResponseProfilePreferencesDiscoveryLocationCityMax = 100;
 
 export const getMatchesResponseProfilePreferencesDiscoveryLocationRadiusKmMax = 500;
 
+export const getMatchesResponseUnreadCountMin = 0;
+
 
 
 export const GetMatchesResponseItem = zod.object({
@@ -723,6 +725,8 @@ export const GetMatchesResponseItem = zod.object({
 })
 }),
   "lastMessage": zod.string().nullish(),
+  "lastMessageAt": zod.coerce.date().nullish(),
+  "unreadCount": zod.number().int().min(getMatchesResponseUnreadCountMin).optional().describe('Incoming visible messages newer than the member\'s last chat read or clear time.'),
   "updatedAt": zod.coerce.date(),
   "blockedByMe": zod.boolean(),
   "blockedMe": zod.boolean(),

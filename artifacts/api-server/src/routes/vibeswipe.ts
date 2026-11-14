@@ -1327,7 +1327,7 @@ router.get("/vibeswipe/matches", async (req, res): Promise<void> => {
     .from(matchesTable)
     .where(or(eq(matchesTable.userAId, userId), eq(matchesTable.userBId, userId)))
     .orderBy(desc(matchesTable.updatedAt));
-  const [states, blockRows] = await Promise.all([
+  const [states, blockRows, readReceipts] = await Promise.all([
     db
       .select()
       .from(matchUserStateTable)
@@ -1341,8 +1341,11 @@ router.get("/vibeswipe/matches", async (req, res): Promise<void> => {
           eq(blocksTable.blockedId, userId),
         ),
       ),
+    db.select().from(vibeSwipeReadReceiptsTable)
+      .where(eq(vibeSwipeReadReceiptsTable.userId, userId)),
   ]);
   const statesByMatch = new Map(states.map((state) => [state.matchId, state]));
+  const readAtByMatch = new Map(readReceipts.map((receipt) => [receipt.matchId, receipt.readAt]));
   const visibleRows = [];
   for (const match of rows) {
     const otherId = match.userAId === userId ? match.userBId : match.userAId;
@@ -1393,12 +1396,27 @@ router.get("/vibeswipe/matches", async (req, res): Promise<void> => {
       : [];
     const hiddenIds = new Set(hidden.map((item) => item.messageId));
     const last = lastMessages.find((message) => !hiddenIds.has(message.id));
+    const unreadConditions = [
+      eq(messagesTable.matchId, match.id),
+      eq(messagesTable.senderId, otherId),
+      eq(messagesTable.deletedForEveryone, false),
+      notInArray(messagesTable.id, db.select({ id: messageHiddenByUserTable.messageId })
+        .from(messageHiddenByUserTable).where(eq(messageHiddenByUserTable.userId, userId))),
+    ];
+    const readAt = readAtByMatch.get(match.id);
+    if (readAt) unreadConditions.push(gt(messagesTable.createdAt, readAt));
+    if (state?.clearedAt) unreadConditions.push(gt(messagesTable.createdAt, state.clearedAt));
+    const [unread] = isBlocked ? [] : await db
+      .select({ value: sql<number>`count(*)`.mapWith(Number) })
+      .from(messagesTable).where(and(...unreadConditions));
     visibleRows.push({
       id: match.id,
       profile,
       lastMessage: !isBlocked && last
         ? projectMessage(last).content
         : null,
+      lastMessageAt: !isBlocked && last ? last.createdAt.toISOString() : null,
+      unreadCount: unread?.value ?? 0,
       updatedAt: match.updatedAt,
       blockedByMe,
       blockedMe,

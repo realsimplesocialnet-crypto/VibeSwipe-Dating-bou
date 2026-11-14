@@ -150,7 +150,9 @@ export function MatchStoryAvatar({
   profile,
   storyGroup,
   disabled = false,
+  returnTo = "/matches",
 }: {
+  returnTo?: "/matches" | "/views" | "/notifications";
   matchId: string;
   profile: Pick<Profile, "name" | "photos">;
   storyGroup?: StoryGroup;
@@ -163,7 +165,7 @@ export function MatchStoryAvatar({
   function open() {
     if (disabled) return;
     if (!storyGroup?.stories.length) {
-      setLocation(`/chat/${matchId}`);
+      setLocation(`/chat/${matchId}?returnTo=${encodeURIComponent(returnTo)}`);
       return;
     }
     setActive({
@@ -176,7 +178,7 @@ export function MatchStoryAvatar({
 
   function closeAndOpenChat() {
     setActive(null);
-    setLocation(`/chat/${matchId}`);
+    setLocation(`/chat/${matchId}?returnTo=${encodeURIComponent(returnTo)}`);
   }
 
   return <>

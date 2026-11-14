@@ -9,13 +9,13 @@ import {
   getStreamMatchMessagesQueryKey, getGetTypingStatusQueryKey,
   getGetMyProfileQueryKey, getGetNotificationsQueryKey, getGetOnboardingDraftQueryKey, getGetProfileMediaQueryKey,
   getGetProfileByIdQueryKey, getGetStoriesQueryKey, getGetSuperLikeStatusQueryKey, getGetVibeSwipeSettingsQueryKey,
-  getGetWhoViewedYouQueryKey, getGetMatchPresenceQueryKey,
+  getGetMatchPresenceQueryKey,
   useActivateBoost, useBlockProfile, useClearChat,
   useClearOnboardingDraft, useCreateReaction, useDeleteChat, useDeleteMessage,
   useGetBoostStatus, useGetChatReadReceipt, useGetDailyLikeStatus,
   useGetDiscoverProfiles, useGetIcebreakers, useGetMatches, useGetMessages, useGetMyProfile,
   useGetNotifications, useGetOnboardingDraft, useGetProfileById, useGetProfileMedia, useGetStories, useGetSuperLikeStatus, useGetVibeSwipeSettings,
-  useGetTypingStatus, useGetMatchPresence, useGetWhoViewedYou, useMarkChatRead,
+  useGetTypingStatus, useGetMatchPresence, useMarkChatRead,
   useMarkNotificationRead, useRecordProfileView, useReportProfile, useSaveMyProfile,
   useSaveOnboardingDraft, useSendMessage, useTranscodeProfileVideo, useUnblockProfile,
   useUndoLastPass, useUnmatchMatch, useUpdateChatTheme, useUpdateTypingStatus, useHeartbeatPresence,
@@ -95,7 +95,7 @@ function Brand({ compact = false, small = false }: { compact?: boolean; small?: 
 
 const navItems = [
   { href: '/discover', label: 'Discover', icon: Compass }, { href: '/matches', label: 'Matches', icon: Heart },
-  { href: '/views', label: 'Views', icon: Eye }, { href: '/notifications', label: 'Activity', icon: Bell },
+  { href: '/views', label: 'Views', icon: MessageCircle }, { href: '/notifications', label: 'Activity', icon: Bell },
 ];
 
 function AppShell({ children }: { children: ReactNode }) {
@@ -318,12 +318,12 @@ function MatchesPage() {
   </PageFrame>;
 }
 
-function ChatPage({matchId}:{matchId:string}) {
-  const qc=useQueryClient(); const profile=useGetMyProfile(); const matches=useGetMatches({query:{refetchInterval:12000}}); const match=matches.data?.find(m=>m.id===matchId); const blocked=!!match?.blockedByMe||!!match?.blockedMe;
+function ChatPage({matchId,returnTo='/matches'}:{matchId:string;returnTo?:string}) {
+  const [,setLocation]=useLocation(); const qc=useQueryClient(); const profile=useGetMyProfile(); const matches=useGetMatches({query:{refetchInterval:12000}}); const match=matches.data?.find(m=>m.id===matchId); const blocked=!!match?.blockedByMe||!!match?.blockedMe;
   const msgs=useGetMessages(matchId,{query:{enabled:!!match,queryKey:getGetMessagesQueryKey(matchId),refetchInterval:10000}}); const typing=useGetTypingStatus(matchId,{query:{enabled:!!match,queryKey:['/api/vibeswipe/matches',matchId,'typing'],refetchInterval:3500}}); const receipt=useGetChatReadReceipt(matchId,{query:{enabled:!!match,queryKey:getGetChatReadReceiptQueryKey(matchId),refetchInterval:5000}}); const presence=useGetMatchPresence(matchId,{query:{enabled:!!match,queryKey:getGetMatchPresenceQueryKey(matchId),refetchInterval:15000}}); const heartbeat=useHeartbeatPresence();
   const ice=useGetIcebreakers({query:{enabled:!!match,queryKey:['/api/vibeswipe/icebreakers']}}); const send=useSendMessage(); const updateTyping=useUpdateTypingStatus(); const markRead=useMarkChatRead(); const del=useDeleteMessage(); const clear=useClearChat(); const unmatch=useUnmatchMatch(); const block=useBlockProfile(); const unblock=useUnblockProfile(); const report=useReportProfile(); const theme=useUpdateChatTheme(); const upload=useRequestChatMediaUpload(); const transcode=useTranscodeProfileVideo(); const [draft,setDraft]=useState(''); const [error,setError]=useState(''); const [actions,setActions]=useState(false); const [themeOpen,setThemeOpen]=useState(false); const [deleteTarget,setDeleteTarget]=useState<Message|null>(null); const [busy,setBusy]=useState(false); const bottom=useRef<HTMLDivElement>(null);
   const messages=(msgs.data??[]).slice().reverse(); const last=messages[messages.length-1];
-  useEffect(()=>{if(last&&last.senderId!==profile.data?.id&&!last.isRead)markRead.mutate({matchId});},[last?.id,profile.data?.id]);
+  useEffect(()=>{if(last&&last.senderId!==profile.data?.id&&!last.isRead)markRead.mutate({matchId},{onSuccess:()=>{void qc.invalidateQueries({queryKey:getGetMatchesQueryKey()});void qc.invalidateQueries({queryKey:getGetNotificationsQueryKey()})}});},[last?.id,profile.data?.id]);
   useEffect(()=>{heartbeat.mutate({data:{isActive:true}});const beat=window.setInterval(()=>heartbeat.mutate({data:{isActive:document.visibilityState==='visible'}}),30000);const visibility=()=>heartbeat.mutate({data:{isActive:document.visibilityState==='visible'}});document.addEventListener('visibilitychange',visibility);return()=>{clearInterval(beat);document.removeEventListener('visibilitychange',visibility)}},[]);
   useEffect(()=>{if(blocked)return;const t=setTimeout(()=>updateTyping.mutate({matchId,data:{isTyping:!!draft.trim()}}),300);return()=>clearTimeout(t)},[draft,blocked,matchId]);
   useEffect(()=>{
@@ -353,13 +353,13 @@ function ChatPage({matchId}:{matchId:string}) {
   useEffect(()=>{bottom.current?.scrollIntoView({behavior:'smooth'})},[messages.length]);
   if(matches.isLoading||msgs.isLoading)return <PageFrame><div className="h-16 animate-pulse rounded-2xl bg-white/[.04]"/><div className="mt-6"><Busy/></div></PageFrame>;
   if(matches.isError&&!matches.data)return <PageFrame><Retry error={matches.error} text="We couldn’t load your conversations. Check your connection and try again." onRetry={()=>void matches.refetch()}/></PageFrame>;
-  if(!match)return <PageFrame><Empty title="Conversation unavailable" detail="This chat may have ended or the match is no longer available." action={<Link href="/matches" data-testid="link-back-matches" className="rounded-xl bg-secondary px-4 py-2.5 font-bold">Back to matches</Link>}/></PageFrame>;
+  if(!match)return <PageFrame><Empty title="Conversation unavailable" detail="This chat may have ended or the match is no longer available." action={<Link href={returnTo} data-testid="link-back-matches" className="rounded-xl bg-secondary px-4 py-2.5 font-bold">{returnTo==='/views'?'Back to messages':returnTo==='/notifications'?'Back to activity':'Back to matches'}</Link>}/></PageFrame>;
   async function sendMessage(content:string, media?:{mediaReference:string;mediaType:'image'|'video'|'audio'}){if(blocked||(!content.trim()&&!media)||send.isPending)return;const old=draft;setDraft('');try{await send.mutateAsync({matchId,data:{content:content.trim(),...media}});updateTyping.mutate({matchId,data:{isTyping:false}});void qc.invalidateQueries({queryKey:getGetMessagesQueryKey(matchId)});void qc.invalidateQueries({queryKey:getGetMatchesQueryKey()});setError('')}catch(error){setDraft(old);setError(userErrorMessage(error,'Your message wasn’t sent. Your text is still in the input—try sending again.'))}}
   async function deleteMessageFor(message:Message,forEveryone:boolean){try{await del.mutateAsync({matchId,messageId:message.id,data:{forEveryone}});if(!forEveryone)qc.setQueryData<Message[]>(getGetMessagesQueryKey(matchId),current=>(current??[]).filter(item=>item.id!==message.id));await msgs.refetch()}catch{setError('Message could not be deleted. Please try again.')}finally{setDeleteTarget(null)}}
   async function attach(file?:File){if(!file||blocked||busy||send.isPending)return;const kind=file.type.startsWith('video/')?'video':file.type.startsWith('audio/')?'audio':'image';if(kind==='image'&&file.size>15*1024*1024){setError('Choose an image smaller than 15 MB.');return}if(kind==='video'&&file.size>500*1024*1024){setError('Choose a video smaller than 500 MB.');return}if(kind==='audio'&&file.size>25*1024*1024){setError('Choose an audio note smaller than 25 MB.');return}setBusy(true);setError('');try{const prepared=kind==='image'?await prepareProfilePhoto(file):file;const allowed:MediaUploadInputContentType[]=['image/jpeg','image/png','image/webp','image/heic','video/mp4','video/quicktime','audio/mp4','audio/m4a','audio/aac','audio/wav'];const fallback:MediaUploadInputContentType=kind==='image'?'image/jpeg':kind==='video'?'video/mp4':'audio/m4a';const contentType:MediaUploadInputContentType=allowed.includes(prepared.type as MediaUploadInputContentType)?prepared.type as MediaUploadInputContentType:fallback;const signed=await upload.mutateAsync({matchId,data:{name:prepared.name,size:prepared.size,contentType,mediaType:kind}});if(kind==='image')await uploadProfilePhotoBytes(signed.uploadURL,prepared);else{const res=await fetch(signed.uploadURL,{method:'PUT',headers:{'Content-Type':contentType},body:prepared});if(!res.ok)throw {status:res.status}}const mediaReference=kind==='video'?(await transcode.mutateAsync({mediaId:signed.mediaId})).mediaReference:signed.mediaReference;await sendMessage('',{mediaReference,mediaType:kind})}catch(error){setError(userErrorMessage(error,'Your attachment wasn’t sent. Choose the file again to retry.'))}finally{setBusy(false)}}
-  async function action(a:string){if(!match)return;setActions(false);try{if(a==='block'){if(match.blockedByMe)await unblock.mutateAsync({targetUserId:match.profile.id});else if(window.confirm(`Block ${match.profile.name}?`))await block.mutateAsync({data:{targetUserId:match.profile.id}})}if(a==='report')await report.mutateAsync({data:{targetUserId:match.profile.id,reason:'other'}});if(a==='clear'){if(window.confirm('Clear messages from your view?')){await clear.mutateAsync({matchId});await qc.invalidateQueries({queryKey:getGetMessagesQueryKey(matchId)})}}if(a==='unmatch'){if(window.confirm('Unmatch and remove this shared chat?')){await unmatch.mutateAsync({matchId});void qc.invalidateQueries({queryKey:getGetMatchesQueryKey()})}}if(a==='theme')setThemeOpen(true)}catch{setError('That action did not complete. Please try again.')}}
+  async function action(a:string){if(!match)return;setActions(false);try{if(a==='block'){if(match.blockedByMe)await unblock.mutateAsync({targetUserId:match.profile.id});else if(window.confirm(`Block ${match.profile.name}?`))await block.mutateAsync({data:{targetUserId:match.profile.id}})}if(a==='report')await report.mutateAsync({data:{targetUserId:match.profile.id,reason:'other'}});if(a==='clear'){if(window.confirm('Clear messages from your view?')){await clear.mutateAsync({matchId});await qc.invalidateQueries({queryKey:getGetMessagesQueryKey(matchId)})}}if(a==='unmatch'){if(window.confirm('Unmatch and remove this shared chat?')){await unmatch.mutateAsync({matchId});void qc.invalidateQueries({queryKey:getGetMatchesQueryKey()});setLocation(returnTo)}}if(a==='theme')setThemeOpen(true)}catch{setError('That action did not complete. Please try again.')}}
   return <div className="mx-auto flex h-[100dvh] max-w-[1120px] flex-col px-3 py-3 md:px-7 md:py-6">
-    <header className="flex items-center gap-3 border-b border-white/[.08] pb-4"><Link href="/matches" data-testid="link-chat-back" className="rounded-xl p-2 text-muted-foreground hover:bg-white/[.05]"><ArrowLeft size={19}/></Link><Avatar profile={match.profile} size="sm"/><div className="min-w-0 flex-1"><div className="font-bold">{match.profile.name}</div><div className="text-xs text-muted-foreground">{presence.data?.isOnline?<span className="text-emerald-300">Online</span>:presence.data?.lastSeenAt?`Last seen ${new Date(presence.data.lastSeenAt).toLocaleString()}`:'A conversation just for your mutual match'}</div></div><button onClick={()=>setActions(true)} data-testid="button-chat-actions" className="rounded-xl p-2 text-muted-foreground"><MoreHorizontal size={20}/></button></header>
+    <header className="flex items-center gap-3 border-b border-white/[.08] pb-4"><Link href={returnTo} aria-label="Back" data-testid="link-chat-back" className="rounded-xl p-2 text-muted-foreground hover:bg-white/[.05]"><ArrowLeft size={19}/></Link><Avatar profile={match.profile} size="sm"/><div className="min-w-0 flex-1"><div className="font-bold">{match.profile.name}</div><div className="text-xs text-muted-foreground">{presence.data?.isOnline?<span className="text-emerald-300">Online</span>:presence.data?.lastSeenAt?`Last seen ${new Date(presence.data.lastSeenAt).toLocaleString()}`:'A conversation just for your mutual match'}</div></div><button onClick={()=>setActions(true)} data-testid="button-chat-actions" className="rounded-xl p-2 text-muted-foreground"><MoreHorizontal size={20}/></button></header>
     {blocked&&<div className="mt-3 rounded-xl border border-rose-300/15 bg-rose-300/[.06] px-4 py-3 text-sm text-rose-200">Messaging is unavailable while this profile is blocked.</div>}
     {msgs.isError&&<button onClick={()=>void msgs.refetch()} data-testid="button-retry-messages" className="mt-2 rounded-lg bg-rose-300/10 p-2 text-xs text-rose-200">Messages failed to load. Tap to retry.</button>}
     <div className="hide-scrollbar flex-1 space-y-3 overflow-y-auto py-5">{!messages.length&&<div className="mx-auto max-w-sm py-10 text-center"><div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-accent text-primary"><MessageCircle size={22}/></div><h2 className="mt-4 font-bold">A good conversation starts here</h2><p className="mt-2 text-xs text-muted-foreground">A mutual match is an open door. Make the first message yours.</p><div className="mt-5 space-y-2">{ice.data?.slice(0,3).map(i=><button key={i.id} disabled={blocked||send.isPending} onClick={()=>void sendMessage(i.question)} data-testid={`button-chat-icebreaker-${i.id}`} className="w-full rounded-xl border border-white/10 bg-white/[.025] p-3 text-left text-xs hover:bg-white/[.05]">{i.question}</button>)}</div></div>}
@@ -374,79 +374,133 @@ function ChatPage({matchId}:{matchId:string}) {
   </div>;
 }
 
-function ViewsPage() {
-  const q = useGetWhoViewedYou({ query: { queryKey: getGetWhoViewedYouQueryKey(), refetchInterval: 30000 } });
-  return <PageFrame>
-    <div className="-mt-3" data-testid="views-page-content">
-      <h1 className="brand text-3xl font-bold tracking-[-.05em] md:text-[2.6rem]">Who viewed you</h1>
+type MatchListExtras = { unreadCount?: number; lastMessageAt?: string | null };
+function timeAgo(value?: string | null) {
+  if (!value) return '';
+  const elapsed = Math.max(0, Date.now() - new Date(value).getTime());
+  if (!Number.isFinite(elapsed)) return '';
+  if (elapsed < 60_000) return 'Just now';
+  if (elapsed < 3_600_000) return `${Math.floor(elapsed / 60_000)}m ago`;
+  if (elapsed < 86_400_000) return `${Math.floor(elapsed / 3_600_000)}h ago`;
+  if (elapsed < 604_800_000) return `${Math.floor(elapsed / 86_400_000)}d ago`;
+  return new Date(value).toLocaleDateString();
+}
+function MessagesPage() {
+  const matches = useGetMatches({ query: { queryKey: getGetMatchesQueryKey(), refetchInterval: 10000, refetchOnMount: 'always', refetchOnWindowFocus: true, staleTime: 0 } });
+  const stories = useGetStories({ query: { queryKey: getGetStoriesQueryKey(), refetchInterval: 60000 } });
+  const list = useMemo(() => (matches.data ?? []).slice().sort((a, b) => {
+    const at = new Date((a as MatchListExtras).lastMessageAt ?? a.updatedAt).getTime();
+    const bt = new Date((b as MatchListExtras).lastMessageAt ?? b.updatedAt).getTime();
+    return bt - at;
+  }), [matches.data]);
+  const unreadTotal = list.reduce((sum, m) => sum + ((m as MatchListExtras).unreadCount ?? 0), 0);
+  return <div className="messages-page min-h-[calc(100dvh-48px)] lg:min-h-[100dvh]">
+    <div className="page-in mx-auto max-w-[720px] px-4 pb-10 pt-6 md:px-8 md:pt-10" data-testid="messages-page-content">
+      <div className="flex items-end justify-between gap-4">
+        <h1 className="brand text-[2.5rem] font-extrabold leading-none tracking-[-.05em] md:text-5xl">Messages</h1>
+        {unreadTotal > 0 && <span data-testid="text-unread-total" className="mb-1 rounded-full bg-primary/15 px-3 py-1 text-xs font-bold text-primary">{unreadTotal} unread</span>}
+      </div>
+      <p className="mt-2 text-sm text-muted-foreground">Private conversations with your mutual matches.</p>
       <div className="mt-6">
-        {q.isLoading ? <Busy />
-          : q.isError ? <Retry onRetry={() => void q.refetch()} />
-          : !q.data?.length ? <Empty title="No views yet" detail="When someone opens your profile, they’ll appear here." />
-          : <div className="space-y-2">{q.data.map(v => <Link key={`${v.profile.id}-${v.viewedAt}`} href={`/profile/${v.profile.id}?returnTo=%2Fviews`} data-testid={`link-viewer-${v.profile.id}`} className="flex items-center gap-4 rounded-2xl border border-white/[.08] bg-card p-4 hover:bg-white/[.04]"><span className="shrink-0 rounded-full border border-primary/75 p-[2px]"><Avatar profile={v.profile} /></span><div className="flex-1"><div className="font-bold">{v.profile.name}, {v.profile.age}</div><div className="mt-1 text-xs text-muted-foreground">{v.profile.city || 'Nearby'} · {new Date(v.viewedAt).toLocaleString()}</div></div><ChevronRight size={18} className="text-muted-foreground" /></Link>)}</div>}
+        {matches.isLoading ? <div className="space-y-3" aria-label="Loading conversations">{[0,1,2].map(i => <div key={i} className="msg-card flex items-center gap-4 rounded-[22px] p-4"><div className="h-[68px] w-[68px] animate-pulse rounded-full bg-muted"/><div className="flex-1 space-y-2"><div className="h-4 w-32 animate-pulse rounded bg-muted"/><div className="h-3 w-48 animate-pulse rounded bg-muted"/></div></div>)}</div>
+          : matches.isError && !matches.data ? <Retry error={matches.error} text="We couldn’t load your messages. Check your connection and try again." onRetry={() => void matches.refetch()} />
+          : !list.length ? <Empty title="No conversations yet" detail="When you and someone both say yes, your conversation opens here." action={<Link href="/discover" data-testid="link-messages-discover" className="inline-flex rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground">Go to Discover</Link>} />
+          : <ul className="space-y-3">{list.map(m => {
+            const extras = m as MatchListExtras;
+            const blocked = m.blockedByMe || m.blockedMe;
+            const unread = !blocked && (extras.unreadCount ?? 0) > 0;
+            const preview = m.blockedByMe ? 'You blocked this person. Unblock from Matches to chat again.' : m.blockedMe ? 'Messaging is unavailable with this person.' : m.lastMessage || 'You matched. Say hello.';
+            return <li key={m.id} data-testid={`card-conversation-${m.id}`} className={`msg-card relative flex items-center gap-4 rounded-[22px] p-3.5 transition-transform md:p-4 ${blocked ? 'opacity-70' : 'hover:-translate-y-px'}`}>
+              <div className="msg-avatar shrink-0"><MatchStoryAvatar matchId={m.id} profile={m.profile} storyGroup={stories.data?.matches.find(g => g.matchId === m.id)} disabled={blocked} returnTo="/views" /></div>
+              {blocked
+                ? <div className="min-w-0 flex-1" data-testid={`status-conversation-blocked-${m.id}`}><div className="truncate text-[17px] font-bold">{m.profile.name}</div><div className="mt-1 text-sm text-destructive">{preview}</div></div>
+                : <Link href={`/chat/${m.id}?returnTo=%2Fviews`} data-testid={`link-conversation-${m.id}`} aria-label={`Open chat with ${m.profile.name}${unread ? `, ${extras.unreadCount} unread` : ''}`} className="flex min-w-0 flex-1 items-center gap-3 self-stretch">
+                  <div className="min-w-0 flex-1"><div className="truncate text-[17px] font-bold">{m.profile.name}</div><div className={`mt-1 truncate text-[15px] ${unread ? 'font-semibold text-foreground' : 'text-muted-foreground'}`}>{preview}</div></div>
+                  <div className="flex h-full shrink-0 flex-col items-end justify-between gap-5 self-stretch py-1">
+                    {unread ? <span aria-hidden="true" data-testid={`status-unread-${m.id}`} className="h-3 w-3 rounded-full bg-primary" /> : <span className="h-3" />}
+                    <time dateTime={extras.lastMessageAt ?? m.updatedAt} className="text-xs text-muted-foreground">{timeAgo(extras.lastMessageAt ?? m.updatedAt)}</time>
+                  </div>
+                </Link>}
+            </li>;
+          })}</ul>}
       </div>
     </div>
-  </PageFrame>;
+  </div>;
 }
 function NotificationsPage() {
   const qc = useQueryClient();
   const [, setLocation] = useLocation();
-  const q = useGetNotifications({ query: { queryKey: getGetNotificationsQueryKey(), refetchInterval: 5000 } });
+  const q = useGetNotifications({ query: { queryKey: getGetNotificationsQueryKey(), refetchInterval: 5000, refetchOnWindowFocus: true } });
+  const matches = useGetMatches({ query: { queryKey: getGetMatchesQueryKey(), refetchInterval: 15000, refetchOnWindowFocus: true } });
   const mark = useMarkNotificationRead();
+  const [notice, setNotice] = useState<{ id: string; text: string } | null>(null);
+  const timer = useRef<number | null>(null);
+  useEffect(() => () => { if (timer.current) window.clearTimeout(timer.current); }, []);
 
-  async function open(n: any) {
-    if (!n.readAt) {
-      try {
-        await mark.mutateAsync({ notificationId: n.id });
-        await qc.invalidateQueries({ queryKey: getGetNotificationsQueryKey() });
-      } catch {
-        void qc.invalidateQueries({ queryKey: getGetNotificationsQueryKey() });
-      }
-    }
-    if (n.matchId && (n.type === "new_match" || n.type === "new_message")) setLocation(`/chat/${n.matchId}`);
-    else if (n.type === "new_match") setLocation("/matches");
-    else if (n.type === "profile_view") setLocation(`/profile/${n.actor.id}/from-notifications`);
+  type Item = NonNullable<typeof q.data>['notifications'][number];
+  const currentMatch = (n: Item) => matches.data?.find(m => m.profile.id === n.actor.id);
+
+  async function markAsRead(n: Item) {
+    if (n.readAt) return;
+    try { await mark.mutateAsync({ notificationId: n.id }); } catch { /* destination stays reachable */ }
+    void qc.invalidateQueries({ queryKey: getGetNotificationsQueryKey() });
+  }
+  async function open(n: Item) {
+    await markAsRead(n);
+    const match = currentMatch(n);
+    if ((n.type === 'new_match' || n.type === 'new_message') && match && !match.blockedByMe && !match.blockedMe) setLocation(`/chat/${match.id}?returnTo=%2Fnotifications`);
+    else if (n.type === 'new_match' || n.type === 'new_message') setLocation('/matches');
+    else if (n.type === 'profile_view') setLocation(`/profile/${n.actor.id}/from-notifications`);
     else setLocation(`/profile/${n.actor.id}?returnTo=%2Fnotifications`);
   }
-
-  const actionText = (n: any) => n.type === "new_match" ? "matched with you"
-    : n.type === "new_message" ? "sent you a message"
-    : n.type === "new_like" ? "liked you" : "viewed your profile";
-  const timeAgo = (value: string) => {
-    const elapsed = Math.max(0, Date.now() - new Date(value).getTime());
-    if (!Number.isFinite(elapsed)) return "";
-    if (elapsed < 60_000) return "Just now";
-    if (elapsed < 3_600_000) return `${Math.floor(elapsed / 60_000)}m ago`;
-    if (elapsed < 86_400_000) return `${Math.floor(elapsed / 3_600_000)}h ago`;
-    if (elapsed < 604_800_000) return `${Math.floor(elapsed / 86_400_000)}d ago`;
-    return new Date(value).toLocaleDateString();
-  };
+  async function message(n: Item) {
+    if (timer.current) window.clearTimeout(timer.current);
+    setNotice({ id: n.id, text: 'Checking your match…' });
+    const fresh = await matches.refetch();
+    if (fresh.isError || !fresh.data) {
+      setNotice({ id: n.id, text: 'We couldn’t check your match right now. Check your connection and tap Send message again.' });
+      return;
+    }
+    const match = fresh.data.find(m => m.profile.id === n.actor.id);
+    void markAsRead(n);
+    if (match && (match.blockedByMe || match.blockedMe)) {
+      setNotice({ id: n.id, text: match.blockedByMe ? `You blocked ${n.actor.name}. Unblock them from Matches to message again.` : `Messaging with ${n.actor.name} isn’t available.` });
+      return;
+    }
+    if (match) { setNotice(null); setLocation(`/chat/${match.id}?returnTo=%2Fnotifications`); return; }
+    setNotice({ id: n.id, text: `Match first to message ${n.actor.name}. Opening their profile so you can like back.` });
+    timer.current = window.setTimeout(() => setLocation(`/profile/${n.actor.id}?returnTo=%2Fnotifications`), 1400);
+  }
+  const actionText = (n: Item) => n.type === 'new_match' ? 'matched with you'
+    : n.type === 'new_message' ? 'sent you a message'
+    : n.type === 'new_like' ? 'liked you' : 'viewed your profile';
+  const unread = q.data ? Object.values(q.data.unreadCounts ?? {}).reduce((a, b) => a + (b as number), 0) : 0;
 
   return <PageFrame>
     <div className="-mt-7" data-testid="notifications-page-content">
       <div className="mb-6">
         <h1 className="brand text-3xl font-bold tracking-[-.05em] md:text-[2.6rem]">Notifications</h1>
-        {q.data && <p className="mt-2 max-w-2xl text-sm text-muted-foreground">{Object.values(q.data.unreadCounts ?? {}).reduce((a: any, b: any) => a + b, 0)} unread updates</p>}
+        {q.data && <p className="mt-2 max-w-2xl text-sm text-muted-foreground">{unread} unread updates</p>}
       </div>
       {q.isLoading ? <Busy />
         : q.isError ? <Retry onRetry={() => void q.refetch()} />
         : !q.data?.notifications.length ? <Empty title="All caught up" detail="Your new matches, likes, messages, and profile views will show up here." />
         : <div className="space-y-3">
-          {q.data.notifications.map((n) => <button
-            key={n.id}
-            onClick={() => void open(n)}
-            data-testid={`button-notification-${n.id}`}
-            aria-label={`${n.actor.name} ${actionText(n)}${n.readAt ? "" : ", unread"}`}
-            className="flex w-full items-center gap-4 rounded-2xl border border-border bg-card p-4 text-left text-card-foreground transition-colors hover:bg-secondary/40"
-          >
-            <span className="shrink-0 rounded-full border border-primary/75 p-[2px]"><Avatar profile={n.actor} /></span>
-            <span className="min-w-0 flex-1">
-              <span className="block text-sm font-bold text-card-foreground"><span>{n.actor.name}</span>{" "}<span className="font-semibold">{actionText(n)}</span></span>
-              <time dateTime={n.createdAt} className="mt-1 block text-xs text-muted-foreground">{timeAgo(n.createdAt)}</time>
-            </span>
-            <ChevronRight size={18} className="shrink-0 text-muted-foreground" />
-            {!n.readAt && <span aria-label="Unread" className="h-2 w-2 shrink-0 rounded-full bg-primary" />}
-          </button>)}
+          {q.data.notifications.map((n) => <div key={n.id} data-testid={`card-notification-${n.id}`} className="rounded-2xl border border-border bg-card text-card-foreground transition-colors hover:bg-secondary/40">
+            <div className="flex items-center gap-2 p-3 sm:gap-3 sm:p-4">
+              <button type="button" onClick={() => void open(n)} data-testid={`button-notification-${n.id}`} aria-label={`${n.actor.name} ${actionText(n)}${n.readAt ? '' : ', unread'}`} className="flex min-w-0 flex-1 items-center gap-3 text-left sm:gap-4">
+                <span className="shrink-0 rounded-full border border-primary/75 p-[2px]"><Avatar profile={n.actor} /></span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-bold text-card-foreground"><span>{n.actor.name}</span>{' '}<span className="font-semibold">{actionText(n)}</span></span>
+                  <time dateTime={n.createdAt} className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">{!n.readAt && <span aria-hidden="true" className="h-2 w-2 rounded-full bg-primary" />}{timeAgo(n.createdAt)}</time>
+                </span>
+              </button>
+              <button type="button" onClick={() => void message(n)} data-testid={`button-notification-message-${n.id}`} aria-label={`Send message to ${n.actor.name}`} className="inline-flex h-10 shrink-0 items-center gap-2 rounded-full bg-primary px-3 text-xs font-bold text-primary-foreground transition-transform active:scale-95 sm:px-4 sm:text-sm">
+                <MessageCircle size={16} /><span className="hidden min-[380px]:inline">Send message</span>
+              </button>
+            </div>
+            {notice?.id === n.id && <div role="status" data-testid={`status-notification-message-${n.id}`} className="mx-3 mb-3 rounded-xl bg-accent px-3 py-2 text-xs font-semibold text-accent-foreground sm:mx-4">{notice.text}</div>}
+          </div>)}
         </div>}
     </div>
   </PageFrame>;
@@ -529,6 +583,7 @@ const choices=(values:string[],key:string)=> <div className="grid grid-cols-2 ga
 </div>{uploading&&<p role="status" className="mt-4 text-sm text-muted-foreground">{uploadStatus}</p>}{error&&<p role="alert" data-testid="text-onboarding-error" className="mt-5 text-sm text-rose-300">{error}</p>}{step===5&&photoRetry&&!uploading&&retryPhoto.current&&<button type="button" data-testid="button-retry-photo" className="mt-3 rounded-xl border border-primary/30 px-4 py-2 text-sm font-semibold text-primary" onClick={()=>void uploadOnboardingPhoto(retryPhoto.current??undefined)}>Retry upload</button>}
  <div className="mt-8 flex items-center justify-between border-t border-white/[.08] pt-5"><button disabled={step===0||uploading||saveDraft.isPending||saveProfile.isPending} onClick={()=>setStep(s=>Math.max(0,s-1))} data-testid="button-onboarding-back" className="rounded-xl border border-white/10 px-4 py-3 text-sm font-semibold disabled:opacity-35">Back</button><button disabled={uploading||saveDraft.isPending||saveProfile.isPending||(step===5&&!data.photos.length)||(step===7&&!data.country)} onClick={()=>void next()} data-testid="button-onboarding-next" className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-bold text-[#26111b] disabled:opacity-50">{saveProfile.isPending?'Saving profile…':saveDraft.isPending?'Saving…':step===12?'Finish setup':'Continue'}<ArrowRight size={16}/></button></div></div></div></PageFrame>}
 
+function Section({icon:Icon,title,children,testId}:{icon:typeof Heart;title:string;children:ReactNode;testId:string}){return <section className="pp-section" data-testid={testId}><h2 className="pp-label"><span className="pp-icon"><Icon size={15}/></span>{title}</h2><div className="mt-3">{children}</div></section>}
 function PublicProfile({id,actionReturnTo='/discover'}:{id:string;actionReturnTo?:string}){
  const q=useGetProfileById(id,{query:{queryKey:getGetProfileByIdQueryKey(id)}});const view=useRecordProfileView();const seen=useRef('');const [activePhoto,setActivePhoto]=useState(0);const [photoError,setPhotoError]=useState(false);
  const client=useQueryClient();const [,setLocation]=useLocation();const reaction=useCreateReaction();const likes=useGetDailyLikeStatus({query:{queryKey:getGetDailyLikeStatusQueryKey()}});const [likeConfirmation,setLikeConfirmation]=useState('');const [actionError,setActionError]=useState('');const [matchResult,setMatchResult]=useState<{name:string;matchId:string|null}|null>(null);const confirmationTimer=useRef<number|null>(null);
@@ -539,52 +594,46 @@ function PublicProfile({id,actionReturnTo='/discover'}:{id:string;actionReturnTo
  async function likeProfile(){if(!q.data||reaction.isPending)return;if(likes.data?.remaining===0){setActionError('You’ve reached your daily like limit. Come back in 24 hours.');return}setActionError('');try{const result=await reaction.mutateAsync({data:{toUserId:q.data.id,type:'like'}});setLikeConfirmation(`You liked ${q.data.name}`);void client.invalidateQueries({queryKey:getGetDailyLikeStatusQueryKey()});void client.invalidateQueries({queryKey:getGetMatchesQueryKey()});void client.invalidateQueries({queryKey:getGetNotificationsQueryKey()});confirmationTimer.current=window.setTimeout(()=>{setLikeConfirmation('');if(result.matched)setMatchResult({name:q.data!.name,matchId:result.matchId??null});else setLocation(actionReturnTo)},1500)}catch{setActionError('That like did not go through. Please try again.')}}
  if(q.isLoading)return <PageFrame><Busy label="Loading profile"/></PageFrame>;
  if(q.isError||!q.data)return <PageFrame><Retry onRetry={()=>void q.refetch()} text="Profile unavailable."/></PageFrame>;
- const profile=q.data;const photos=profile.photos??[];const location=[profile.city,profile.state,profile.country].filter(Boolean).join(', ');const morePhotos=photos.slice(1);
-  return <><main className="page-in w-full pb-36" data-testid="public-profile-page">
-  <section className="relative isolate h-[72svh] min-h-[500px] max-h-[840px] w-full overflow-hidden bg-[linear-gradient(145deg,#38263f,#17131a)]" data-testid="public-profile-hero" aria-label={`${profile.name}${profile.age!==null?`, ${profile.age}`:''}`}>
+ const profile=q.data;const photos=profile.photos??[];const location=[profile.city,profile.state,profile.country].filter(Boolean).join(', ');const headerLocation=[profile.city,profile.state].filter(Boolean).join(', ')||location;const morePhotos=photos.slice(1);
+ const work=profile.occupation==='Other'?(profile.occupationOther||'Other'):(profile.occupation||'Prefer not to say');
+  return <div className="public-profile min-h-[100dvh] bg-background text-foreground"><main className="page-in w-full pb-40" data-testid="public-profile-page">
+  <section className="relative isolate h-[68svh] min-h-[460px] max-h-[820px] w-full overflow-hidden bg-[linear-gradient(145deg,#38263f,#17131a)]" data-testid="public-profile-hero" aria-label={`${profile.name}${profile.age!==null?`, ${profile.age}`:''}`}>
    {photos[0]&&!photoError?<MediaImage reference={photos[0]} alt={`${profile.name}'s main profile photo`} onError={()=>setPhotoError(true)} className="absolute inset-0 h-full w-full object-cover object-center"/>:<div className="absolute inset-0 flex items-center justify-center bg-[radial-gradient(ellipse_at_50%_35%,rgba(197,112,163,.3),transparent_58%)]"><span className="brand text-8xl font-bold text-white/20">{profile.name.trim().slice(0,1).toUpperCase()||'M'}</span></div>}
-   <div aria-hidden="true" className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/35 to-transparent"/>
-   <div className="absolute inset-x-0 bottom-0 px-5 pb-8 pt-36 text-white sm:px-8 sm:pb-10">
-    <div className="mb-2 text-[10px] font-bold uppercase tracking-[.2em] text-white/75">A closer look</div>
-    <h1 className="brand max-w-3xl text-4xl font-bold leading-[1.02] tracking-[-.045em] sm:text-5xl md:text-6xl">{profile.name}{profile.age!==null&&<span className="font-medium text-white/80">, {profile.age}</span>}</h1>
-    <p className="mt-3 flex items-center gap-2 text-sm font-medium text-white/85 sm:text-base"><MapPin size={16} className="shrink-0 text-primary"/>{location||'Location not shared'}</p>
-   </div>
+   <div aria-hidden="true" className="absolute inset-0 bg-gradient-to-t from-[hsl(252_18%_8%)] via-[hsl(252_18%_8%/.25)] to-transparent"/>
+   <Link href={actionReturnTo} aria-label="Back" data-testid="link-public-profile-back-top" className="absolute left-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur-md transition-transform active:scale-95"><ArrowLeft size={19}/></Link>
+   <header className="absolute inset-x-0 bottom-0 px-5 pb-7 text-white sm:px-8 sm:pb-9">
+    <h1 data-testid="text-public-profile-name" className="brand max-w-3xl text-4xl font-bold leading-[1.02] tracking-[-.045em] sm:text-5xl md:text-6xl">{profile.name}{profile.age!==null&&<span className="font-medium text-white/80">, {profile.age}</span>}</h1>
+    <p data-testid="text-public-profile-location" className="mt-2.5 flex items-center gap-1.5 text-sm font-medium text-white/85 sm:text-base"><MapPin size={16} className="shrink-0 text-primary"/>{headerLocation||'Location not shared'}</p>
+   </header>
   </section>
-  <div className="mx-auto w-full max-w-4xl px-5 pb-10 pt-8 sm:px-8 sm:pt-10">
-   <section className="border-b border-white/[.09] pb-7 sm:pb-9">
-    <h2 className="text-[10px] font-bold uppercase tracking-[.2em] text-primary">About {profile.name}</h2>
-    <p className="mt-3 max-w-3xl whitespace-pre-wrap text-base leading-7 text-foreground/90 sm:text-lg sm:leading-8">{profile.bio||'No bio added yet.'}</p>
-   </section>
-   <section className="grid gap-x-10 gap-y-6 border-b border-white/[.09] py-7 sm:grid-cols-2 sm:py-8" aria-label="Profile details">
-    <div><h3 className="text-[10px] font-bold uppercase tracking-[.18em] text-muted-foreground">Work</h3><p className="mt-2 text-sm font-medium">{profile.occupation==='Other'?(profile.occupationOther||'Other'):(profile.occupation||'Prefer not to say')}</p></div>
-    <div><h3 className="text-[10px] font-bold uppercase tracking-[.18em] text-muted-foreground">Gender</h3><p className="mt-2 text-sm font-medium">{profile.gender||'Not shared'}</p></div>
-    <div><h3 className="text-[10px] font-bold uppercase tracking-[.18em] text-muted-foreground">Looking for</h3><p className="mt-2 text-sm font-medium">{profile.lookingFor||'Not shared'}</p></div>
-    <div><h3 className="text-[10px] font-bold uppercase tracking-[.18em] text-muted-foreground">Location</h3><p className="mt-2 text-sm font-medium">{location||'Not shared'}</p></div>
-   </section>
-   <section className="border-b border-white/[.09] py-7 sm:py-8">
-    <h3 className="text-[10px] font-bold uppercase tracking-[.18em] text-muted-foreground">Hobbies and interests</h3>
-    <div className="mt-3 flex flex-wrap gap-2">{profile.interests.map(interest=><span key={interest} className="rounded-full border border-primary/15 bg-primary/[.07] px-3.5 py-2 text-xs font-semibold text-[#ffafd1]">{interest}</span>)}{!profile.interests.length&&<span className="text-sm text-muted-foreground">No interests added yet.</span>}</div>
-   </section>
-   {morePhotos.length>0&&<section className="py-7 sm:py-8">
-    <div className="mb-3 flex items-end justify-between gap-4"><h3 className="text-[10px] font-bold uppercase tracking-[.18em] text-muted-foreground">More photos</h3>{morePhotos.length>1&&<span className="text-xs text-muted-foreground">{activePhoto+2} / {photos.length}</span>}</div>
-    <div data-testid="public-profile-gallery" className="flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-smooth pb-3" onScroll={event=>setActivePhoto(Math.round(event.currentTarget.scrollLeft/Math.max(1,event.currentTarget.clientWidth)))}>
-     {morePhotos.map((photo,index)=><div key={`${photo}-${index}`} className="min-w-full snap-center"><div className="aspect-[.9] w-full overflow-hidden bg-black/20 sm:aspect-[1.1]"><MediaImage reference={photo} alt={`${profile.name}'s photo ${index+2}`} className="h-full w-full object-cover"/></div></div>)}
+  <div className="mx-auto w-full max-w-3xl space-y-3 px-4 pt-5 sm:px-8">
+   <Section icon={UserRound} title="About" testId="section-about"><p className="whitespace-pre-wrap text-[15px] leading-7 text-foreground/90">{profile.bio||'No bio added yet.'}</p></Section>
+   <Section icon={Briefcase} title="Work" testId="section-work"><p className="pp-value">{work}</p></Section>
+   <div className="grid gap-3 sm:grid-cols-2">
+    <Section icon={Users} title="Gender" testId="section-gender"><p className="pp-value">{profile.gender||'Not shared'}</p></Section>
+    <Section icon={Heart} title="Looking for" testId="section-looking-for"><p className="pp-value">{profile.lookingFor||'Not shared'}</p></Section>
+   </div>
+   <Section icon={MapPin} title="Location" testId="section-location"><p className="pp-value">{location||'Not shared'}</p></Section>
+   <Section icon={Sparkles} title="Hobbies and interests" testId="section-interests"><div className="flex flex-wrap gap-2">{profile.interests.map(interest=><span key={interest} className="pp-pill">{interest}</span>)}{!profile.interests.length&&<span className="text-sm text-muted-foreground">No interests added yet.</span>}</div></Section>
+   {morePhotos.length>0&&<Section icon={Camera} title="More photos" testId="section-more-photos">
+    {morePhotos.length>1&&<div className="-mt-1 mb-2 text-right text-xs text-muted-foreground">{Math.min(activePhoto+1,morePhotos.length)} / {morePhotos.length}</div>}
+    <div data-testid="public-profile-gallery" className="hide-scrollbar -mx-1 flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-smooth px-1" onScroll={event=>setActivePhoto(Math.round(event.currentTarget.scrollLeft/Math.max(1,event.currentTarget.clientWidth)))}>
+     {morePhotos.map((photo,index)=><div key={`${photo}-${index}`} className="min-w-full snap-center"><div className="aspect-[4/5] w-full overflow-hidden rounded-2xl bg-muted"><MediaImage reference={photo} alt={`${profile.name}'s photo ${index+2}`} className="h-full w-full object-cover"/></div></div>)}
     </div>
-   </section>}
-    <Link href={actionReturnTo} data-testid="link-public-profile-back" className="mt-4 inline-flex min-h-11 items-center rounded-full border border-white/15 px-5 text-sm font-semibold text-foreground transition-colors hover:border-primary/40 hover:bg-primary/[.06]">Back</Link>
+   </Section>}
+   <div className="pt-3"><Link href={actionReturnTo} data-testid="link-public-profile-back" className="inline-flex min-h-11 items-center gap-2 rounded-full border border-border px-5 text-sm font-semibold text-foreground transition-colors hover:border-primary/40"><ArrowLeft size={16}/>Back</Link></div>
   </div>
  </main>
-  <div className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-[29] border-t border-border bg-background/95 px-4 py-3 backdrop-blur-xl lg:bottom-5 lg:left-[calc(248px+1.5rem)] lg:right-5 lg:rounded-2xl lg:border" aria-label="Profile actions">
-  <div className="flex items-center justify-center gap-6">
-   <button type="button" onClick={()=>void passProfile()} disabled={reaction.isPending||!!likeConfirmation||!!matchResult} data-testid="button-viewed-profile-pass" aria-label="Pass" className="flex h-12 w-12 items-center justify-center rounded-full border border-white/15 bg-[#28232d] text-rose-300 shadow-lg disabled:opacity-40"><X size={23}/></button>
-   <button type="button" onClick={()=>void likeProfile()} disabled={reaction.isPending||!!likeConfirmation||!!matchResult||likes.isLoading||likes.data?.remaining===0} data-testid="button-viewed-profile-like" aria-label={`Like ${q.data.name}`} className="flex h-14 w-14 items-center justify-center rounded-full bg-primary text-[#27101d] shadow-[0_8px_30px_rgba(243,78,154,.32)] disabled:opacity-40"><Heart size={25} fill="currentColor"/></button>
-  </div>
-  {likes.data?.remaining===0&&<p className="mt-1 text-center text-xs text-muted-foreground">Your daily likes are used up.</p>}
-  {actionError&&<p role="alert" data-testid="error-viewed-profile-action" className="mt-2 text-center text-xs text-rose-300">{actionError}</p>}
+  <div className="pointer-events-none fixed inset-x-0 bottom-[calc(1rem+env(safe-area-inset-bottom))] z-[29] flex flex-col items-center lg:bottom-8" aria-label="Profile actions" role="group">
+   <div className="flex items-center justify-center gap-7">
+    <button type="button" onClick={()=>void passProfile()} disabled={reaction.isPending||!!likeConfirmation||!!matchResult} data-testid="button-viewed-profile-pass" aria-label={`Pass on ${profile.name}`} className="pp-pass pointer-events-auto flex h-14 w-14 items-center justify-center rounded-full transition-transform active:scale-90 disabled:opacity-50"><X size={24} strokeWidth={2.6}/></button>
+    <button type="button" onClick={()=>void likeProfile()} disabled={reaction.isPending||!!likeConfirmation||!!matchResult||likes.isLoading||likes.data?.remaining===0} data-testid="button-viewed-profile-like" aria-label={`Like ${profile.name}`} className="pp-like pointer-events-auto flex h-[66px] w-[66px] items-center justify-center rounded-full transition-transform active:scale-90 disabled:opacity-50"><Heart size={28} fill="currentColor"/></button>
+   </div>
+   {(likes.data?.remaining===0||actionError)&&<p role={actionError?'alert':'status'} data-testid="error-viewed-profile-action" className="pp-toast pointer-events-auto mt-3 max-w-[92vw] rounded-full px-4 py-2 text-center text-xs font-semibold">{actionError||'Your daily likes are used up.'}</p>}
   </div>
  {likeConfirmation&&<div className="fixed inset-x-0 top-[82px] z-[60] flex justify-center px-4" role="status" aria-live="polite" data-testid="status-viewed-profile-liked"><div className="flex items-center gap-2 rounded-full border border-primary/25 bg-[#211a27]/95 px-5 py-3 text-sm font-semibold text-white shadow-2xl backdrop-blur-xl"><Heart size={17} fill="currentColor" className="text-primary"/>{likeConfirmation}</div></div>}
  {matchResult&&<Dialog title="It’s a match!" onClose={()=>{setMatchResult(null);setLocation(actionReturnTo)}}><p className="mb-5 text-sm leading-6 text-muted-foreground">You and {matchResult.name} liked each other. You can start chatting now.</p><div className="flex flex-col gap-2"><button type="button" onClick={()=>{if(matchResult.matchId)setLocation(`/chat/${matchResult.matchId}`);else setLocation('/matches')}} data-testid="button-start-match-chat" className="w-full rounded-xl bg-primary px-4 py-3 text-sm font-bold text-[#27101d]">{matchResult.matchId?'Start chatting':'View matches'}</button><button type="button" onClick={()=>{setMatchResult(null);setLocation(actionReturnTo)}} data-testid="button-match-back" className="w-full rounded-xl border border-white/10 px-4 py-3 text-sm font-semibold text-foreground">Back</button></div></Dialog>}
- </>
+ </div>
 }
 
 function OnboardingGate(){const p=useGetMyProfile({query:{retry:shouldRetryProfile}});if(p.isLoading)return <PageFrame><ProfileLoading/></PageFrame>;if(p.data)return <Redirect to="/discover"/>;if(p.isError&&!isProfileMissing(p.error))return <PageFrame><Retry text="We couldn’t check your profile. Check your connection and try again." onRetry={()=>void p.refetch()}/></PageFrame>;return <OnboardingPage/>}
@@ -641,7 +690,8 @@ function BrandedSignUp(){
   </section></div>;
 }
 function RouteShell({component:Component}:{component:()=>ReactNode}){return <ShellPage><Component/></ShellPage>}
-function ChatRoute(){const params=useParams<{matchId:string}>();return <ShellPage><ChatPage matchId={params.matchId||''}/></ShellPage>}
+const CHAT_RETURN_PATHS=['/views','/notifications','/matches'];
+function ChatRoute(){const params=useParams<{matchId:string}>();const requested=safeAppReturnPath(new URLSearchParams(window.location.search).get('returnTo'),'/matches');const returnTo=CHAT_RETURN_PATHS.includes(requested)?requested:'/matches';return <ShellPage><ChatPage matchId={params.matchId||''} returnTo={returnTo}/></ShellPage>}
 function OnboardingRoute(){return <Gate><div className="min-h-[100dvh] bg-background text-foreground"><header className="p-6"><Brand/></header><OnboardingGate/></div></Gate>}
 function ProfileRoute(){return <ShellPage><ProfilePage mode="view"/></ShellPage>}
 function ProfileEditRoute(){const requested=new URLSearchParams(window.location.search).get('returnTo');const returnTo=safeAppReturnPath(requested,'/profile');return <ShellPage><ProfilePage mode="edit" returnTo={returnTo}/></ShellPage>}
@@ -655,7 +705,7 @@ function PublicLocationShareRoute(){return <PublicLocationSharePage/>}
 function DiscoverRoute(){return <ShellPage><DiscoverPage/></ShellPage>}
 function StoryComposerRoute(){return <ShellPage><StoryComposerPage/></ShellPage>}
 function MatchesRoute(){return <ShellPage><MatchesPage/></ShellPage>}
-function ViewsRoute(){return <ShellPage><ViewsPage/></ShellPage>}
+function ViewsRoute(){return <ShellPage><MessagesPage/></ShellPage>}
 function NotificationsRoute(){return <ShellPage><NotificationsPage/></ShellPage>}
 function ViewedNotificationProfileRoute(){const params=useParams<{profileId:string}>();return <ShellPage><PublicProfile id={params.profileId||''} actionReturnTo="/notifications"/></ShellPage>}
 function PublicProfileRoute(){const params=useParams<{profileId:string}>();const returnTo=safeAppReturnPath(new URLSearchParams(window.location.search).get('returnTo'),'/discover');return <ShellPage><PublicProfile id={params.profileId||''} actionReturnTo={returnTo}/></ShellPage>}

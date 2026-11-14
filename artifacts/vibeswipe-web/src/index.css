@@ -90,3 +90,22 @@ html[data-theme="light"] .own-profile .op-chip { background:#fde4ea; color:#a830
 html[data-theme="light"] .own-profile .op-ghost { background:rgba(255,253,253,.7); border-color:rgba(255,255,255,.8); color:#2a2328; }
 html[data-theme="light"] .profile-nav { background:rgba(255,253,253,.97); border-color:#f0e4e8; }
 html[data-theme="light"] .profile-nav .text-primary { color:#f2557d; }
+/* Messages list (/views) */
+.messages-page .msg-card { background:hsl(var(--card)); border:1px solid hsl(var(--border) / .6); box-shadow:0 10px 30px hsl(252 30% 3% / .28); }
+html[data-theme="light"] .messages-page { background:linear-gradient(180deg,#fdf7fa 0%,#f8f6fa 100%); }
+html[data-theme="light"] .messages-page .msg-card { background:#fffdfe; border-color:#f1e6ec; box-shadow:0 8px 24px rgba(160,90,120,.10); }
+/* Other users' full profile: always dark, scoped */
+.public-profile {
+  color-scheme: dark;
+  --background: 252 18% 8%; --foreground: 330 17% 94%; --border: 258 12% 22%; --card: 252 16% 12%; --card-foreground: 330 17% 94%;
+  --muted: 258 13% 17%; --muted-foreground: 264 9% 68%; --accent: 333 34% 20%; --accent-foreground: 337 92% 78%; --secondary: 258 13% 18%;
+  background-color: hsl(var(--background)); color: hsl(var(--foreground));
+}
+.public-profile .pp-section { background:hsl(var(--card)); border:1px solid hsl(var(--border) / .55); border-radius:20px; padding:18px 18px 20px; }
+.public-profile .pp-label { display:flex; align-items:center; gap:10px; font-size:11px; font-weight:800; letter-spacing:.2em; text-transform:uppercase; color:hsl(var(--foreground) / .82); }
+.public-profile .pp-icon { display:inline-flex; height:28px; width:28px; align-items:center; justify-content:center; border-radius:9px; background:hsl(var(--primary) / .14); color:hsl(var(--primary)); }
+.public-profile .pp-value { font-size:15px; font-weight:600; }
+.public-profile .pp-pill { border-radius:999px; background:hsl(var(--primary) / .12); border:1px solid hsl(var(--primary) / .22); padding:7px 14px; font-size:13px; font-weight:600; color:hsl(var(--accent-foreground)); }
+.public-profile .pp-pass { background:hsl(330 20% 97% / .92); color:hsl(350 70% 52%); box-shadow:0 6px 18px hsl(252 30% 3% / .28); backdrop-filter:blur(8px); }
+.public-profile .pp-like { background:hsl(var(--primary)); color:hsl(330 40% 99%); box-shadow:0 8px 22px hsl(335 94% 50% / .32); }
+.public-profile .pp-toast { background:hsl(252 16% 14% / .9); color:hsl(330 17% 94%); border:1px solid hsl(var(--border) / .6); backdrop-filter:blur(10px); }

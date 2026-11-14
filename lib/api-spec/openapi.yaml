@@ -1326,6 +1326,13 @@ components:
         profile: { $ref: "#/components/schemas/Profile" }
         lastMessage:
           type: [string, "null"]
+        lastMessageAt:
+          type: [string, "null"]
+          format: date-time
+        unreadCount:
+          type: integer
+          minimum: 0
+          description: Incoming visible messages newer than the member's last chat read or clear time.
         updatedAt: { type: string, format: date-time }
         blockedByMe: { type: boolean }
         blockedMe: { type: boolean }

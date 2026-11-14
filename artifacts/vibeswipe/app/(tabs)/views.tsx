@@ -1,71 +1,351 @@
-import { useGetWhoViewedYou } from "@workspace/api-client-react";
+import {
+  getGetBlockedProfilesQueryKey,
+  getGetDiscoverProfilesQueryKey,
+  getGetMatchesQueryKey,
+  useBlockProfile,
+  useDeleteChat,
+  useGetMatches,
+  useReportProfile,
+  useUnblockProfile,
+  useUnmatchMatch,
+  type Profile,
+  type ReportInputReason,
+} from "@workspace/api-client-react";
 import { Feather } from "@expo/vector-icons";
+import { useQueryClient } from "@tanstack/react-query";
 import { router } from "expo-router";
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { NotificationBell } from "@/components/NotificationBell";
+import { useMemo, useState } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { ProfileAvatar } from "@/components/ProfileAvatar";
 import { useColors } from "@/hooks/useColors";
 
-export default function ViewsScreen() {
+type ActionTarget = {
+  profile: Profile;
+  matchId?: string;
+  blockedByMe: boolean;
+  blockedMe?: boolean;
+};
+
+const reportReasons: { reason: ReportInputReason; label: string }[] = [
+  { reason: "spam", label: "Spam" },
+  { reason: "fake", label: "Fake profile" },
+  { reason: "inappropriate", label: "Inappropriate content" },
+  { reason: "harassment", label: "Harassment" },
+  { reason: "other", label: "Other" },
+];
+
+function timeAgo(value?: string | null): string {
+  if (!value) return "";
+  const elapsed = Math.max(0, Date.now() - new Date(value).getTime());
+  if (!Number.isFinite(elapsed)) return "";
+  if (elapsed < 60_000) return "Just now";
+  if (elapsed < 3_600_000) return `${Math.floor(elapsed / 60_000)}m ago`;
+  if (elapsed < 86_400_000) return `${Math.floor(elapsed / 3_600_000)}h ago`;
+  if (elapsed < 604_800_000) return `${Math.floor(elapsed / 86_400_000)}d ago`;
+  return new Date(value).toLocaleDateString();
+}
+
+export default function MessagesScreen() {
   const colors = useColors();
-  const views = useGetWhoViewedYou({ query: { refetchInterval: 30_000 } });
+  const queryClient = useQueryClient();
+  const matches = useGetMatches({ query: { refetchInterval: 10_000, refetchOnMount: "always", staleTime: 0 } });
+  const blockProfile = useBlockProfile();
+  const unblockProfile = useUnblockProfile();
+  const reportProfile = useReportProfile();
+  const deleteChat = useDeleteChat();
+  const unmatch = useUnmatchMatch();
+  const [actionTarget, setActionTarget] = useState<ActionTarget | null>(null);
+  const [showReportReasons, setShowReportReasons] = useState(false);
+  const chats = useMemo(() => (matches.data ?? []).slice().sort((a, b) =>
+    new Date(b.lastMessageAt ?? b.updatedAt).getTime() - new Date(a.lastMessageAt ?? a.updatedAt).getTime()), [matches.data]);
+
+  async function refreshSafetyAndLists() {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: getGetMatchesQueryKey() }),
+      queryClient.invalidateQueries({ queryKey: getGetBlockedProfilesQueryKey() }),
+      queryClient.invalidateQueries({ queryKey: getGetDiscoverProfilesQueryKey() }),
+    ]);
+  }
+
+  async function block(target: ActionTarget) {
+    try {
+      await blockProfile.mutateAsync({ data: { targetUserId: target.profile.id } });
+      await refreshSafetyAndLists();
+    } catch {
+      Alert.alert("Could not block profile", "Please try again.");
+    }
+  }
+
+  async function unblock(target: ActionTarget) {
+    try {
+      await unblockProfile.mutateAsync({ targetUserId: target.profile.id });
+      await refreshSafetyAndLists();
+    } catch {
+      Alert.alert("Could not unblock profile", "Please try again.");
+    }
+  }
+
+  async function report(target: ActionTarget, reason: ReportInputReason) {
+    try {
+      await reportProfile.mutateAsync({ data: { targetUserId: target.profile.id, reason } });
+      Alert.alert("Report submitted", "Thank you. We’ll review this profile.");
+    } catch {
+      Alert.alert("Could not submit report", "Please try again.");
+    }
+  }
+
+  function confirmDeleteChat(target: ActionTarget) {
+    if (!target.matchId) return;
+    Alert.alert("Delete this chat?", "This hides the conversation only for you. The other person will still have their chat.", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete chat",
+        style: "destructive",
+        onPress: () => {
+          void deleteChat.mutateAsync({ matchId: target.matchId! })
+            .then(() => queryClient.invalidateQueries({ queryKey: getGetMatchesQueryKey() }))
+            .catch(() => Alert.alert("Could not delete chat", "Please try again."));
+        },
+      },
+    ]);
+  }
+
+  function confirmUnmatch(target: ActionTarget) {
+    if (!target.matchId) return;
+    Alert.alert(
+      "Unmatch?",
+      "This deletes the shared match and chat for both of you. You may see each other again in Discover.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Unmatch",
+          style: "destructive",
+          onPress: () => {
+            void unmatch.mutateAsync({ matchId: target.matchId! })
+              .then(refreshSafetyAndLists)
+              .catch(() => Alert.alert("Could not unmatch", "Please try again."));
+          },
+        },
+      ],
+    );
+  }
+
+  function openActions(target: ActionTarget) {
+    setShowReportReasons(false);
+    setActionTarget(target);
+  }
+
+  const actionBusy = blockProfile.isPending || unblockProfile.isPending || reportProfile.isPending
+    || deleteChat.isPending || unmatch.isPending;
+
   return (
     <View style={[styles.screen, { backgroundColor: colors.background }]}>
-      <View style={styles.header}>
-        <View>
-          <Text style={[styles.title, { color: colors.foreground }]}>Who viewed you</Text>
-          <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>People who opened your profile</Text>
+      <Text style={[styles.title, { color: colors.foreground }]}>Messages</Text>
+      <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>Private conversations with your mutual matches.</Text>
+      {matches.isLoading ? <ActivityIndicator color={colors.primary} style={styles.loading} /> : null}
+      {matches.isError ? (
+        <Pressable onPress={() => void matches.refetch()} style={styles.errorBox}>
+          <Text style={[styles.errorText, { color: colors.destructive }]}>Couldn’t load conversations. Tap to retry.</Text>
+        </Pressable>
+      ) : null}
+      {!matches.isLoading && !matches.isError && !chats.length ? (
+        <View style={styles.empty}>
+          <Feather name="message-circle" size={30} color={colors.primary} />
+          <Text style={[styles.emptyTitle, { color: colors.foreground }]}>No conversations yet</Text>
+          <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>Match with someone to start chatting.</Text>
         </View>
-        <NotificationBell color={colors.foreground} />
-      </View>
-      {views.isLoading ? (
-        <View style={styles.center}><ActivityIndicator color={colors.primary} /></View>
-      ) : views.isError ? (
-        <View style={styles.center}>
-          <Text style={[styles.emptyTitle, { color: colors.foreground }]}>Couldn’t load views</Text>
-          <Pressable onPress={() => void views.refetch()}><Text style={{ color: colors.primary }}>Try again</Text></Pressable>
+      ) : null}
+      <FlatList
+        data={chats}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={styles.list}
+        renderItem={({ item }) => {
+          const isBlocked = item.blockedByMe || item.blockedMe;
+          const status = item.blockedByMe ? "You blocked this person" : item.blockedMe ? "Messaging unavailable" : null;
+          const unread = !isBlocked && (item.unreadCount ?? 0) > 0;
+          const stamp = item.lastMessageAt ?? item.updatedAt;
+          return (
+            <View style={[styles.row, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              <Pressable
+                disabled={isBlocked}
+                onPress={() => router.push({ pathname: "/chat/[matchId]", params: { matchId: item.id, returnTo: "views" } } as never)}
+                style={styles.rowMain}
+                testID={`conversation-${item.id}`}
+                accessibilityRole="button"
+                accessibilityLabel={`Open chat with ${item.profile.name}${unread ? `, ${item.unreadCount} unread` : ""}`}
+              >
+                <ProfileAvatar profile={item.profile} size={64} />
+                <View style={styles.copy}>
+                  <Text numberOfLines={1} style={[styles.name, { color: colors.foreground }]}>{item.profile.name}</Text>
+                  <Text numberOfLines={1} style={[styles.last, { color: status ? colors.destructive : unread ? colors.foreground : colors.mutedForeground, fontWeight: unread ? "600" : "400" }]}>
+                    {status ?? item.lastMessage ?? "You matched. Say hello."}
+                  </Text>
+                </View>
+                <View style={styles.meta}>
+                  {unread ? <View testID={`unread-${item.id}`} style={[styles.dot, { backgroundColor: colors.primary }]} /> : <View style={styles.dotSpace} />}
+                  <Text style={[styles.time, { color: colors.mutedForeground }]}>{timeAgo(stamp)}</Text>
+                </View>
+              </Pressable>
+              <Pressable
+                accessibilityLabel={`Actions for ${item.profile.name}`}
+                testID={`conversation-actions-${item.id}`}
+                onPress={() => openActions({
+                  profile: item.profile,
+                  matchId: item.id,
+                  blockedByMe: item.blockedByMe,
+                  blockedMe: item.blockedMe,
+                })}
+                style={styles.actionTrigger}
+              >
+                <Feather name="more-horizontal" size={21} color={colors.mutedForeground} />
+              </Pressable>
+            </View>
+          );
+        }}
+        refreshing={matches.isRefetching}
+        onRefresh={() => void matches.refetch()}
+      />
+      <Modal
+        visible={actionTarget !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setActionTarget(null)}
+      >
+        <View style={styles.modalScrim}>
+          <View style={[styles.actionSheet, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <View style={styles.sheetHeading}>
+              <Text style={[styles.sheetTitle, { color: colors.foreground }]}>
+                {showReportReasons ? "Report profile" : actionTarget?.profile.name}
+              </Text>
+              <Pressable testID="close-actions" onPress={() => setActionTarget(null)} hitSlop={10}>
+                <Feather name="x" size={21} color={colors.foreground} />
+              </Pressable>
+            </View>
+            <ScrollView>
+              {showReportReasons ? reportReasons.map(({ reason, label }) => (
+                <Pressable
+                  key={reason}
+                  testID={`report-reason-${reason}`}
+                  disabled={actionBusy}
+                  onPress={() => {
+                    if (actionTarget) void report(actionTarget, reason);
+                    setActionTarget(null);
+                  }}
+                  style={[styles.actionRow, { borderTopColor: colors.border }]}
+                >
+                  <Text style={[styles.actionText, { color: colors.foreground }]}>{label}</Text>
+                  <Feather name="chevron-right" size={17} color={colors.mutedForeground} />
+                </Pressable>
+              )) : actionTarget ? (
+                <>
+                  <Pressable
+                    testID="report-profile"
+                    disabled={actionBusy}
+                    onPress={() => setShowReportReasons(true)}
+                    style={[styles.actionRow, { borderTopColor: colors.border }]}
+                  >
+                    <Text style={[styles.actionText, { color: colors.foreground }]}>Report</Text>
+                    <Feather name="chevron-right" size={17} color={colors.mutedForeground} />
+                  </Pressable>
+                  <Pressable
+                    testID={actionTarget.blockedByMe ? "unblock-profile" : "block-profile"}
+                    disabled={actionBusy}
+                    onPress={() => {
+                      const target = actionTarget;
+                      setActionTarget(null);
+                      if (target.blockedByMe) {
+                        void unblock(target);
+                      } else {
+                        Alert.alert("Block this profile?", "You will no longer see each other or be able to chat.", [
+                          { text: "Cancel", style: "cancel" },
+                          { text: "Block", style: "destructive", onPress: () => void block(target) },
+                        ]);
+                      }
+                    }}
+                    style={[styles.actionRow, { borderTopColor: colors.border }]}
+                  >
+                    <Text style={[styles.actionText, { color: actionTarget.blockedByMe ? colors.primary : colors.destructive }]}>
+                      {actionTarget.blockedByMe ? "Unblock" : "Block"}
+                    </Text>
+                    <Feather name={actionTarget.blockedByMe ? "user-check" : "slash"} size={17} color={actionTarget.blockedByMe ? colors.primary : colors.destructive} />
+                  </Pressable>
+                  {actionTarget.matchId ? (
+                    <>
+                      <Pressable
+                        testID={`delete-chat-${actionTarget.matchId}`}
+                        disabled={actionBusy}
+                        onPress={() => {
+                          const target = actionTarget;
+                          setActionTarget(null);
+                          confirmDeleteChat(target);
+                        }}
+                        style={[styles.actionRow, { borderTopColor: colors.border }]}
+                      >
+                        <Text style={[styles.actionText, { color: colors.foreground }]}>Delete chat</Text>
+                        <Feather name="trash-2" size={17} color={colors.mutedForeground} />
+                      </Pressable>
+                      <Pressable
+                        testID={`unmatch-${actionTarget.matchId}`}
+                        disabled={actionBusy}
+                        onPress={() => {
+                          const target = actionTarget;
+                          setActionTarget(null);
+                          confirmUnmatch(target);
+                        }}
+                        style={[styles.actionRow, { borderTopColor: colors.border }]}
+                      >
+                        <Text style={[styles.actionText, { color: colors.destructive }]}>Unmatch</Text>
+                        <Feather name="user-x" size={17} color={colors.destructive} />
+                      </Pressable>
+                    </>
+                  ) : null}
+                </>
+              ) : null}
+            </ScrollView>
+          </View>
         </View>
-      ) : views.data?.length ? (
-        <ScrollView contentContainerStyle={styles.list}>
-          {views.data.map((item) => (
-            <Pressable
-              key={`${item.profile.id}-${item.viewedAt}`}
-              onPress={() => router.push({ pathname: "/profile/[profileId]", params: { profileId: item.profile.id } })}
-              style={[styles.row, { backgroundColor: colors.card, borderColor: colors.border }]}
-            >
-              <ProfileAvatar profile={item.profile} size={56} />
-              <View style={styles.copy}>
-                <Text style={[styles.name, { color: colors.foreground }]}>{item.profile.name}, {item.profile.age}</Text>
-                <Text style={[styles.city, { color: colors.mutedForeground }]}>{item.profile.city || "Nearby"}</Text>
-                <Text style={[styles.time, { color: colors.mutedForeground }]}>{new Date(item.viewedAt).toLocaleString()}</Text>
-              </View>
-              <Feather name="chevron-right" size={18} color={colors.mutedForeground} />
-            </Pressable>
-          ))}
-        </ScrollView>
-      ) : (
-        <View style={styles.center}>
-          <View style={[styles.emptyIcon, { backgroundColor: colors.accent }]}><Feather name="eye" size={23} color={colors.primary} /></View>
-          <Text style={[styles.emptyTitle, { color: colors.foreground }]}>No profile views yet</Text>
-          <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>When someone opens your profile, they’ll appear here.</Text>
-        </View>
-      )}
+      </Modal>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, paddingTop: 64 },
-  header: { minHeight: 56, paddingHorizontal: 20, flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 12 },
-  title: { fontSize: 23, fontWeight: "800" },
-  subtitle: { fontSize: 12, marginTop: 4 },
-  list: { padding: 16, gap: 10, paddingBottom: 100 },
-  row: { minHeight: 82, borderWidth: 1, borderRadius: 17, padding: 12, flexDirection: "row", alignItems: "center", gap: 12 },
-  copy: { flex: 1, gap: 3 },
-  name: { fontSize: 15, fontWeight: "700" },
-  city: { fontSize: 12 },
-  time: { fontSize: 10 },
-  center: { flex: 1, alignItems: "center", justifyContent: "center", padding: 30, gap: 12 },
-  emptyIcon: { width: 54, height: 54, borderRadius: 18, alignItems: "center", justifyContent: "center" },
-  emptyTitle: { fontSize: 17, fontWeight: "700", textAlign: "center" },
+  screen: { flex: 1, paddingHorizontal: 20, paddingTop: Platform.OS === "web" ? 78 : 16, paddingBottom: 90 },
+  title: { fontSize: 34, fontWeight: "800", letterSpacing: -0.8 },
+  subtitle: { fontSize: 13, marginTop: 6, marginBottom: 16 },
+  loading: { marginTop: 40 },
+  list: { paddingBottom: 18 },
+  row: { minHeight: 96, flexDirection: "row", alignItems: "center", gap: 6, borderWidth: StyleSheet.hairlineWidth, borderRadius: 22, paddingHorizontal: 12, marginBottom: 12, shadowColor: "#7a3a5a", shadowOpacity: 0.1, shadowRadius: 14, shadowOffset: { width: 0, height: 6 }, elevation: 2 },
+  meta: { alignSelf: "stretch", alignItems: "flex-end", justifyContent: "space-between", paddingVertical: 18 },
+  dot: { width: 11, height: 11, borderRadius: 6 },
+  dotSpace: { height: 11 },
+  time: { fontSize: 12 },
+  rowMain: { flex: 1, minHeight: 78, flexDirection: "row", alignItems: "center", gap: 12 },
+  copy: { flex: 1, gap: 5 },
+  name: { fontSize: 17, fontWeight: "700" },
+  last: { fontSize: 14 },
+  blockedLabel: { fontSize: 11, fontWeight: "700" },
+  actionTrigger: { paddingHorizontal: 5, paddingVertical: 12 },
+  empty: { alignItems: "center", marginTop: 78, gap: 10 },
+  emptyTitle: { fontSize: 17, fontWeight: "700" },
+  errorBox: { paddingVertical: 12 },
+  errorText: { fontSize: 13 },
+  sectionTitle: { fontSize: 17, fontWeight: "700", marginBottom: 2 },
+  modalScrim: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.58)", padding: 12 },
+  actionSheet: { maxHeight: "82%", borderWidth: StyleSheet.hairlineWidth, borderRadius: 22, paddingHorizontal: 18, paddingTop: 18, paddingBottom: 24 },
+  sheetHeading: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingBottom: 12 },
+  sheetTitle: { fontSize: 17, fontWeight: "700" },
+  actionRow: { minHeight: 50, flexDirection: "row", alignItems: "center", justifyContent: "space-between", borderTopWidth: StyleSheet.hairlineWidth },
+  actionText: { fontSize: 15, fontWeight: "600" },
 });

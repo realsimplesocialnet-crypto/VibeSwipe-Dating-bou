@@ -70,6 +70,11 @@ const colors = {
     profileChipForeground: "#a8304f",
     photoBadge: "rgba(0,0,0,0.62)",
     photoBadgeForeground: "#ffffff",
+    // Other users' full profile floating actions (screen is always dark)
+    publicPassSurface: "rgba(255,250,252,0.92)",
+    publicPassIcon: "#e8466a",
+    publicToast: "rgba(23,19,23,0.92)",
+    publicHeroFade: "rgba(12,10,12,0.35)",
 
     // Destructive actions (delete, error states)
     destructive: "#d44358",
@@ -123,6 +128,11 @@ const colors = {
     profileChipForeground: "#ffb1c2",
     photoBadge: "rgba(0,0,0,0.62)",
     photoBadgeForeground: "#ffffff",
+    // Other users' full profile floating actions (screen is always dark)
+    publicPassSurface: "rgba(255,250,252,0.92)",
+    publicPassIcon: "#e8466a",
+    publicToast: "rgba(23,19,23,0.92)",
+    publicHeroFade: "rgba(12,10,12,0.35)",
 
     destructive: "#f05a6e",
     destructiveForeground: "#ffffff",

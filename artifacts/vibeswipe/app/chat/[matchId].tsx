@@ -95,8 +95,13 @@ export default function ChatScreen() {
   const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
   const { getToken, userId } = useAuth();
-  const { matchId: rawId } = useLocalSearchParams<{ matchId: string }>();
+  const { matchId: rawId, returnTo: rawReturn } = useLocalSearchParams<{ matchId: string; returnTo?: string }>();
   const matchId = Array.isArray(rawId) ? rawId[0] : rawId;
+  const returnKey = Array.isArray(rawReturn) ? rawReturn[0] : rawReturn;
+  const returnPath = returnKey === "views" ? "/(tabs)/views"
+    : returnKey === "activity" ? "/(tabs)/activity"
+    : returnKey === "notifications" ? "/notifications"
+    : "/(tabs)/matches";
   const matches = useGetMatches({ query: { refetchInterval: 10_000 } });
   const match = matches.data?.find((item) => item.id === matchId);
   const messages = useGetMessages(matchId ?? "", { query: { enabled: !!match } });
@@ -152,8 +157,8 @@ export default function ChatScreen() {
     : match?.chatTheme === ChatTheme.light ? "#21171c" : colors.foreground;
 
   useEffect(() => {
-    if (!matches.isLoading && matches.data && !match) router.replace("/(tabs)/matches");
-  }, [match, matches.data, matches.isLoading]);
+    if (!matches.isLoading && matches.data && !match) router.replace(returnPath as never);
+  }, [match, matches.data, matches.isLoading, returnPath]);
 
   useEffect(() => {
     let active = true;
@@ -270,8 +275,8 @@ export default function ChatScreen() {
     const latest = messages.data?.[0];
     if (!matchId || !latest || !userId || latest.senderId === userId || latest.id === lastMarkedMessage.current) return;
     lastMarkedMessage.current = latest.id;
-    markRead.mutate({ matchId });
-  }, [markRead, matchId, messages.data, userId]);
+    markRead.mutate({ matchId }, { onSuccess: () => { void queryClient.invalidateQueries({ queryKey: getGetMatchesQueryKey() }); } });
+  }, [markRead, matchId, messages.data, queryClient, userId]);
 
   useEffect(() => () => {
     if (recordingTimer.current) clearInterval(recordingTimer.current);
@@ -511,7 +516,7 @@ export default function ChatScreen() {
           try {
             await unmatch.mutateAsync({ matchId });
             await queryClient.invalidateQueries({ queryKey: getGetMatchesQueryKey() });
-            router.replace("/(tabs)/matches");
+            router.replace(returnPath as never);
           } catch {
             setError("Could not unmatch. Please try again.");
           }
@@ -553,7 +558,7 @@ export default function ChatScreen() {
       keyboardVerticalOffset={0}
     >
       <View style={[styles.header, { borderBottomColor: colors.border, paddingTop: Math.max(insets.top, Platform.OS === "web" ? 67 : 12) }]}>
-        <Pressable accessibilityRole="button" accessibilityLabel="Back to matches" onPress={() => router.replace("/(tabs)/matches")} style={styles.back}>
+        <Pressable accessibilityRole="button" accessibilityLabel="Back" onPress={() => router.replace(returnPath as never)} style={styles.back}>
           <Feather name="arrow-left" size={21} color={themedForeground} />
         </Pressable>
         <View style={styles.avatarWrap}>

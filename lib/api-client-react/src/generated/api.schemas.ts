@@ -410,6 +410,13 @@ export interface Match {
   profile: Profile;
   /** @nullable */
   lastMessage?: string | null;
+  /** @nullable */
+  lastMessageAt?: string | null;
+  /**
+     * Incoming visible messages newer than the member's last chat read or clear time.
+     * @minimum 0
+     */
+  unreadCount?: number;
   updatedAt: string;
   blockedByMe: boolean;
   blockedMe: boolean;
