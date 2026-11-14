@@ -190,9 +190,9 @@ export function DiscoverSwipePage() {
   }
   if (!profile) {
     return (
-      <div className="mx-auto max-w-[760px] px-4 py-5 text-center sm:px-6 sm:py-7">
+      <div className="mx-auto max-w-[760px] px-4 pt-3 pb-5 text-center sm:px-6 sm:pt-5 sm:pb-7">
         <StoriesRow />
-        <div className="mx-auto max-w-xl py-8"><h1 className="brand text-2xl font-bold">That’s everyone for now</h1>
+        <div className="mx-auto max-w-xl pt-10 pb-8"><h1 className="brand text-2xl font-bold">That’s everyone for now</h1>
         <p className="mt-2 text-sm text-muted-foreground">Try broadening your filters or check back soon.</p>
         <button onClick={() => setFiltersOpen(true)} data-testid="button-open-filters-empty" className="mt-5 rounded-xl bg-primary px-4 py-3 font-bold text-[#27101d]">Adjust filters</button></div>
         <FilterDialog open={filtersOpen} onClose={() => setFiltersOpen(false)} ageMin={ageMin} ageMax={ageMax} gender={gender} country={country} city={city} travelMode={Boolean(settings.data?.travelMode)} setAgeMin={setAgeMin} setAgeMax={setAgeMax} setGender={setGender} setCountry={(value) => { setCountry(value); setCity(""); }} setCity={setCity} onApply={() => { setIndex(0); setFiltersOpen(false); }} />
