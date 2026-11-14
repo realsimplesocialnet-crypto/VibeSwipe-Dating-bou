@@ -1,13 +1,26 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { photoDimensions, photoUploadCanRetry, uploadProfilePhotoBytes, validatePhotoFile } from '../src/lib/profile-photo-upload.ts';
+import { PROFILE_PHOTO_ACCEPT, photoDimensions, photoUploadCanRetry, uploadProfilePhotoBytes, validatePhotoFile } from '../src/lib/profile-photo-upload.ts';
 import { userErrorMessage } from '../src/lib/user-errors.ts';
 
-test('photo validation rejects empty, oversize and non-picture files', () => {
+test('photo picker accepts JPEG, JPG, PNG and WebP, including generic mobile MIME types', () => {
+  assert.match(PROFILE_PHOTO_ACCEPT, /image\/jpeg/);
+  assert.match(PROFILE_PHOTO_ACCEPT, /image\/png/);
+  assert.match(PROFILE_PHOTO_ACCEPT, /image\/webp/);
+  assert.match(PROFILE_PHOTO_ACCEPT, /\.jpg/);
+  assert.doesNotThrow(() => validatePhotoFile({ size: 200, type: 'image/jpeg', name: 'photo.jpeg' }));
+  assert.doesNotThrow(() => validatePhotoFile({ size: 200, type: 'image/jpg', name: 'photo.jpg' }));
+  assert.doesNotThrow(() => validatePhotoFile({ size: 200, type: 'image/png', name: 'photo.png' }));
+  assert.doesNotThrow(() => validatePhotoFile({ size: 200, type: 'image/webp', name: 'photo.webp' }));
+  assert.doesNotThrow(() => validatePhotoFile({ size: 200, type: 'application/octet-stream', name: 'photo.webp' }));
+});
+
+test('photo validation rejects empty, oversize and unsupported files', () => {
   assert.throws(() => validatePhotoFile({ size: 0, type: 'image/jpeg', name: 'photo.jpg' }), /empty/);
   assert.throws(() => validatePhotoFile({ size: 16 * 1024 * 1024, type: 'image/jpeg', name: 'photo.jpg' }), /15 MB/);
-  assert.throws(() => validatePhotoFile({ size: 200, type: 'video/mp4', name: 'movie.mp4' }), /not a video/);
+  assert.throws(() => validatePhotoFile({ size: 200, type: 'video/mp4', name: 'movie.mp4' }), /JPG\/JPEG, PNG, or WebP/);
   assert.doesNotThrow(() => validatePhotoFile({ size: 200, type: '', name: 'photo.JPG' }));
+  assert.throws(() => validatePhotoFile({ size: 200, type: 'image/heic', name: 'photo.heic' }), /JPG\/JPEG, PNG, or WebP/);
 });
 
 test('phone pictures keep their aspect ratio without upscaling', () => {

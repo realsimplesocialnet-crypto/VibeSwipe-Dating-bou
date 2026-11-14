@@ -11,13 +11,17 @@ export class PhotoUploadError extends Error {
   }
 }
 
+export const PROFILE_PHOTO_ACCEPT = 'image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp';
+
 export function validatePhotoFile(file: Pick<File, 'size' | 'type' | 'name'>): void {
   if (file.size < 1) throw new PhotoUploadError('PHOTO_EMPTY', 'This photo is empty. Choose another picture.');
   if (file.size > 15 * 1024 * 1024) throw new PhotoUploadError('PHOTO_SIZE', 'Choose a photo smaller than 15 MB.');
-  const imageType = /^image\/(jpeg|jpg|png|webp|heic|heif|gif|avif)$/i.test(file.type);
-  const imageName = /\.(jpe?g|png|webp|heic|heif|gif|avif)$/i.test(file.name);
-  if (!imageType && !(!file.type && imageName)) {
-    throw new PhotoUploadError('PHOTO_TYPE', 'Choose a JPEG, PNG, WebP, or another supported picture—not a video or document.');
+  const type = file.type.toLowerCase().split(';')[0].trim();
+  const imageType = /^(image\/(jpeg|jpg|pjpeg|png|webp))$/.test(type);
+  const imageName = /\.(jpe?g|png|webp)$/i.test(file.name);
+  const browserDidNotReportType = !type || type === 'application/octet-stream';
+  if (!imageType && !(browserDidNotReportType && imageName)) {
+    throw new PhotoUploadError('PHOTO_TYPE', 'Choose a JPG/JPEG, PNG, or WebP photo.');
   }
 }
 
@@ -34,33 +38,50 @@ export function photoUploadCanRetry(error: unknown): boolean {
 /** Decode locally and resize phone-camera files before sending any bytes. */
 export async function prepareProfilePhoto(file: File): Promise<File> {
   validatePhotoFile(file);
-  const url = URL.createObjectURL(file);
-  const image = new Image();
+  let bitmap: ImageBitmap | undefined;
+  let image: HTMLImageElement | undefined;
+  let url: string | undefined;
   let timer: ReturnType<typeof setTimeout> | undefined;
   try {
-    await new Promise<void>((resolve, reject) => {
-      timer = setTimeout(() => reject(new PhotoUploadError('PHOTO_DECODE_TIMEOUT', 'This picture took too long to open. Choose another photo.')), 20_000);
-      image.onload = () => resolve();
-      image.onerror = () => reject(new PhotoUploadError('PHOTO_DECODE', 'Your browser couldn’t open this photo. Choose a JPEG or PNG picture.'));
-      image.src = url;
-    });
-    if (!image.naturalWidth || !image.naturalHeight) throw new PhotoUploadError('PHOTO_DECODE', 'This picture could not be read. Choose another photo.');
+    if (typeof createImageBitmap === 'function') {
+      try {
+        bitmap = await createImageBitmap(file);
+      } catch {
+        // Safari and older mobile browsers can decode the same supported file
+        // through an image element even when createImageBitmap is unavailable.
+      }
+    }
+    if (!bitmap) {
+      url = URL.createObjectURL(file);
+      image = new Image();
+      await new Promise<void>((resolve, reject) => {
+        timer = setTimeout(() => reject(new PhotoUploadError('PHOTO_DECODE_TIMEOUT', 'This picture took too long to open. Choose another photo.')), 20_000);
+        image!.onload = () => resolve();
+        image!.onerror = () => reject(new PhotoUploadError('PHOTO_DECODE', 'This photo couldn’t be opened. Choose a JPG/JPEG, PNG, or WebP picture.'));
+        image!.src = url!;
+      });
+    }
+    const source = bitmap ?? image!;
+    const sourceWidth = bitmap?.width ?? image!.naturalWidth;
+    const sourceHeight = bitmap?.height ?? image!.naturalHeight;
+    if (!sourceWidth || !sourceHeight) throw new PhotoUploadError('PHOTO_DECODE', 'This photo couldn’t be opened. Choose a JPG/JPEG, PNG, or WebP picture.');
     const canvas = document.createElement('canvas');
-    const dimensions = photoDimensions(image.naturalWidth, image.naturalHeight);
+    const dimensions = photoDimensions(sourceWidth, sourceHeight);
     canvas.width = dimensions.width;
     canvas.height = dimensions.height;
     const context = canvas.getContext('2d');
     if (!context) throw new PhotoUploadError('PHOTO_PREPARE', 'Your browser couldn’t prepare this picture. Try another photo or reopen this screen.');
     context.fillStyle = '#ffffff';
     context.fillRect(0, 0, canvas.width, canvas.height);
-    context.drawImage(image, 0, 0, canvas.width, canvas.height);
+    context.drawImage(source, 0, 0, canvas.width, canvas.height);
     const blob = await new Promise<Blob>((resolve, reject) => {
       canvas.toBlob(value => value ? resolve(value) : reject(new PhotoUploadError('PHOTO_PREPARE', 'This picture could not be prepared. Choose another photo.')), 'image/jpeg', .85);
     });
     return new File([blob], 'profile-photo.jpg', { type: 'image/jpeg', lastModified: file.lastModified });
   } finally {
     if (timer) clearTimeout(timer);
-    URL.revokeObjectURL(url);
+    bitmap?.close();
+    if (url) URL.revokeObjectURL(url);
   }
 }
 
