@@ -10,7 +10,7 @@ import { and, eq, or } from "drizzle-orm";
 export type CreateVibeSwipeNotificationInput = {
   recipientId: string;
   actorId: string;
-  type: "new_match" | "new_message" | "new_like" | "profile_view";
+  type: "new_match" | "new_message" | "new_like" | "new_super_like" | "profile_view";
   matchId?: string;
   messageId?: string;
 };
@@ -27,7 +27,7 @@ export async function createVibeSwipeNotification(
     !input.recipientId.trim() ||
     typeof input.actorId !== "string" ||
     !input.actorId.trim() ||
-    !["new_match", "new_message", "new_like", "profile_view"].includes(
+    !["new_match", "new_message", "new_like", "new_super_like", "profile_view"].includes(
       input.type,
     ) ||
     (input.matchId !== undefined && !uuidPattern.test(input.matchId)) ||

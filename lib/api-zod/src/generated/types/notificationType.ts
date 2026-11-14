@@ -13,5 +13,6 @@ export const NotificationType = {
   new_match: 'new_match',
   new_message: 'new_message',
   new_like: 'new_like',
+  new_super_like: 'new_super_like',
   profile_view: 'profile_view',
 } as const;

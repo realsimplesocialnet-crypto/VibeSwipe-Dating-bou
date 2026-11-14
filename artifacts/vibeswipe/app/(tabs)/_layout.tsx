@@ -17,7 +17,7 @@ import { useGetNotifications } from '@workspace/api-client-react';
 function NativeTabLayout() {
   const notifications = useGetNotifications({ query: { refetchInterval: 5_000 } });
   const counts = notifications.data?.unreadCounts;
-  const matchBadge = counts ? counts.matches + counts.likes : 0;
+  const matchBadge = counts?.matches ?? 0;
   const messageBadge = counts?.messages ?? 0;
   const activityBadge = counts ? counts.views + counts.likes : 0;
   return (
@@ -60,7 +60,7 @@ function ClassicTabLayout() {
   const isWeb = Platform.OS === 'web';
   const notifications = useGetNotifications({ query: { refetchInterval: 5_000 } });
   const counts = notifications.data?.unreadCounts;
-  const matchBadge = counts ? counts.matches + counts.likes : 0;
+  const matchBadge = counts?.matches ?? 0;
   const messageBadge = counts?.messages ?? 0;
   const activityBadge = counts ? counts.views + counts.likes : 0;
 

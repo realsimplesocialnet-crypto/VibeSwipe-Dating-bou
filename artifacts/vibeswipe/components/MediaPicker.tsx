@@ -26,6 +26,8 @@ type Props = {
   onChange: (next: { photos: string[]; videoUrl: string | null }) => void;
   maxPhotos?: number;
   showVideo?: boolean;
+  /** Six equal slots with pink add buttons (Edit Profile). Presentation only. */
+  variant?: "default" | "grid";
 };
 
 const MAX_PHOTOS = 6;
@@ -38,6 +40,7 @@ export function MediaPicker({
   onChange,
   maxPhotos = MAX_PHOTOS,
   showVideo = true,
+  variant = "default",
 }: Props) {
   const colors = useColors();
   const { getToken } = useAuth();
@@ -48,6 +51,7 @@ export function MediaPicker({
   const [busyMessage, setBusyMessage] = useState("Uploading securely…");
   const [error, setError] = useState("");
   const photoLimit = Math.min(MAX_PHOTOS, Math.max(1, maxPhotos));
+  const [gridWidth, setGridWidth] = useState(0);
   useEffect(() => {
     let active = true;
     void getToken().then((value) => {
@@ -159,6 +163,62 @@ export function MediaPicker({
       photos: photos.filter((_, photoIndex) => photoIndex !== index),
       videoUrl,
     });
+  }
+
+  if (variant === "grid") {
+    const gap = 12;
+    const slotWidth = gridWidth > 0 ? (gridWidth - gap * 2) / 3 : 0;
+    const slotStyle = { width: slotWidth, height: slotWidth * 1.28, borderRadius: 16 };
+    return (
+      <View style={styles.wrap}>
+        <View style={[styles.photoRow, { gap }]} onLayout={(e) => setGridWidth(e.nativeEvent.layout.width)}>
+          {slotWidth > 0 ? Array.from({ length: photoLimit }, (_, index) => {
+            const photo = photos[index];
+            if (photo) {
+              return (
+                <View key={`${photo}-${index}`} style={[slotStyle, { overflow: "hidden", backgroundColor: colors.profileChip }]}>
+                  <Image source={profileImageSource(photo, token)} style={StyleSheet.absoluteFill} resizeMode="cover" accessibilityLabel={`Profile photo ${index + 1}`} />
+                  {index === 0 ? (
+                    <View style={[styles.mainBadge, { left: 6, bottom: 6, backgroundColor: colors.profileEdit }]}>
+                      <Text style={[styles.mainBadgeText, { color: colors.profileEditForeground }]}>Main photo</Text>
+                    </View>
+                  ) : null}
+                  <Pressable accessibilityRole="button" accessibilityLabel={`Remove photo ${index + 1}`} testID={`remove-photo-${index}`} hitSlop={6} onPress={() => removePhoto(index)} style={[styles.remove, { backgroundColor: colors.profileCard, top: 6, right: 6, width: 26, height: 26, borderRadius: 13 }]}>
+                    <Feather name="x" size={14} color={colors.foreground} />
+                  </Pressable>
+                </View>
+              );
+            }
+            const uploadingHere = busy && index === photos.length;
+            return (
+              <Pressable key={`empty-${index}`} accessibilityRole="button" accessibilityLabel="Add photos" testID={index === photos.length ? "add-profile-photos" : `add-profile-photo-slot-${index}`} onPress={pickPhotos} disabled={busy} style={({ pressed }) => [slotStyle, styles.gridEmpty, { borderColor: colors.profileEdit, backgroundColor: colors.profileChip, opacity: busy ? 0.6 : 1, transform: [{ scale: pressed ? 0.96 : 1 }] }]}>
+                {uploadingHere ? <ActivityIndicator color={colors.profileEdit} /> : (
+                  <View style={[styles.gridPlus, { backgroundColor: colors.profileEdit, shadowColor: colors.profileEdit }]}>
+                    <Feather name="plus" size={20} color={colors.profileEditForeground} />
+                  </View>
+                )}
+              </Pressable>
+            );
+          }) : null}
+        </View>
+        <Text testID="profile-photo-count" style={[styles.gridHelper, { color: colors.profileMuted }]}>
+          {photos.length === 0 ? "Add at least one photo before saving." : `Add up to ${photoLimit} photos to show your vibe.`}
+        </Text>
+        {busy ? <Text style={[styles.helper, { color: colors.profileMuted, textAlign: "center" }]}>{busyMessage}</Text> : null}
+        {error ? <Text accessibilityRole="alert" style={[styles.error, { color: colors.destructive, textAlign: "center" }]}>{error}</Text> : null}
+        {showVideo ? (
+          <Pressable accessibilityRole="button" testID="add-profile-video" onPress={pickVideo} disabled={busy} style={[styles.videoButton, { borderColor: colors.profileEdit, borderStyle: "dashed" }]}>
+            <Feather name={videoUrl ? "check-circle" : "video"} size={18} color={colors.profileEdit} />
+            <Text style={[styles.videoText, { color: colors.foreground }]}>{videoUrl ? "Profile video added" : "Add a video, up to 30 seconds"}</Text>
+            {videoUrl ? (
+              <Pressable accessibilityLabel="Remove profile video" onPress={() => onChange({ photos, videoUrl: null })} hitSlop={10}>
+                <Feather name="x" size={16} color={colors.profileMuted} />
+              </Pressable>
+            ) : null}
+          </Pressable>
+        ) : null}
+      </View>
+    );
   }
 
   return (
@@ -279,6 +339,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 4,
   },
+  gridEmpty: { borderWidth: 1.5, borderStyle: "dashed", alignItems: "center", justifyContent: "center" },
+  gridPlus: { width: 34, height: 34, borderRadius: 17, alignItems: "center", justifyContent: "center", shadowOpacity: 0.3, shadowRadius: 8, shadowOffset: { width: 0, height: 4 }, elevation: 3 },
+  gridHelper: { fontSize: 13, textAlign: "center" },
   addText: { fontSize: 12, fontWeight: "600" },
   videoButton: {
     minHeight: 50,

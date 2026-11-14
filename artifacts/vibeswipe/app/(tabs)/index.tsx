@@ -12,6 +12,7 @@ import {
   useGetBoostStatus,
   useGetDailyLikeStatus,
   useGetDiscoverProfiles,
+  useGetMyProfile,
   useGetSuperLikeStatus,
   useGetVibeSwipeSettings,
   useRecordProfileView,
@@ -46,6 +47,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useColors } from "@/hooks/useColors";
 import { profileImageSource } from "@/lib/media";
+import { MatchCelebration } from "@/components/MatchCelebration";
 
 const FILTER_COUNTRIES = Country.getAllCountries()
   .map(({ isoCode, name }) => ({ code: isoCode, name }))
@@ -204,7 +206,8 @@ export default function DiscoverScreen() {
   const [index, setIndex] = useState(0);
   const [banner, setBanner] = useState("");
   const [busy, setBusy] = useState(false);
-  const [matchResult, setMatchResult] = useState<{ name: string; matchId: string | null } | null>(null);
+  const [matchResult, setMatchResult] = useState<{ profile: Profile; matchId: string | null } | null>(null);
+  const myProfile = useGetMyProfile();
   const [lastPassedProfileId, setLastPassedProfileId] = useState<string | null>(null);
   const [clock, setClock] = useState(Date.now());
   const [token, setToken] = useState<string | null>(null);
@@ -280,6 +283,7 @@ export default function DiscoverScreen() {
 
   async function swipe(direction: SwipeDirection) {
     if (!profile || busy || matchResult) return;
+    const current = profile;
     if (direction === "like" && dailyLikeStatus.data?.remaining === 0) {
       setBanner("You’ve reached your daily like limit. Come back in 24 hours.");
       return;
@@ -318,7 +322,7 @@ export default function DiscoverScreen() {
           setBanner("");
           bannerTimer.current = null;
           if (result.matched) {
-            setMatchResult({ name: profile.name, matchId: result.matchId ?? null });
+            setMatchResult({ profile: current, matchId: result.matchId ?? null });
           }
         }, 1500);
       }
@@ -652,42 +656,19 @@ export default function DiscoverScreen() {
           </View>
         </View>
       </Modal>
-      <Modal visible={!!matchResult} transparent animationType="fade" onRequestClose={() => setMatchResult(null)}>
-        <View style={styles.matchModalScrim}>
-          <View style={[styles.matchModalCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <View style={[styles.matchModalIcon, { backgroundColor: colors.accent }]}>
-              <Feather name="heart" size={25} color={colors.primary} />
-            </View>
-            <Text style={[styles.matchModalTitle, { color: colors.foreground }]}>It’s a match!</Text>
-            <Text style={[styles.matchModalCopy, { color: colors.mutedForeground }]}>
-              You and {matchResult?.name} liked each other. You can start chatting now.
-            </Text>
-            <Pressable
-              testID="discover-start-match-chat"
-              accessibilityRole="button"
-              onPress={() => {
-                const matchId = matchResult?.matchId;
-                setMatchResult(null);
-                if (matchId) router.push({ pathname: "/chat/[matchId]", params: { matchId } });
-                else router.push("/(tabs)/matches");
-              }}
-              style={[styles.matchModalPrimary, { backgroundColor: colors.primary }]}
-            >
-              <Text style={[styles.matchModalPrimaryText, { color: colors.accentForeground }]}>
-                {matchResult?.matchId ? "Start chatting" : "View matches"}
-              </Text>
-            </Pressable>
-            <Pressable
-              testID="discover-continue-after-match"
-              accessibilityRole="button"
-              onPress={() => setMatchResult(null)}
-              style={[styles.matchModalSecondary, { borderColor: colors.border }]}
-            >
-              <Text style={[styles.matchModalSecondaryText, { color: colors.foreground }]}>Keep discovering</Text>
-            </Pressable>
-          </View>
-        </View>
-      </Modal>
+      <MatchCelebration
+        visible={!!matchResult}
+        self={myProfile.data ?? null}
+        other={matchResult?.profile ?? null}
+        canMessage={Boolean(matchResult?.matchId)}
+        onMessage={() => {
+          const matchId = matchResult?.matchId;
+          if (!matchId) return;
+          setMatchResult(null);
+          router.push({ pathname: "/chat/[matchId]", params: { matchId, returnTo: "discover" } });
+        }}
+        onKeepSwiping={() => setMatchResult(null)}
+      />
     </View>
   );
 }
@@ -758,15 +739,6 @@ const styles = StyleSheet.create({
   smallAction: { width: 54, height: 54, borderRadius: 27 },
   matchBanner: { position: "absolute", top: 96, left: 16, right: 16, zIndex: 5, borderRadius: 14, minHeight: 40, paddingHorizontal: 12, flexDirection: "row", alignItems: "center", gap: 8 },
   bannerText: { flex: 1, fontSize: 12, fontWeight: "600" },
-  matchModalScrim: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(0,0,0,0.72)", padding: 22 },
-  matchModalCard: { width: "100%", maxWidth: 380, alignItems: "center", borderWidth: 1, borderRadius: 26, padding: 24 },
-  matchModalIcon: { width: 58, height: 58, borderRadius: 29, alignItems: "center", justifyContent: "center" },
-  matchModalTitle: { fontSize: 28, fontWeight: "800", marginTop: 16 },
-  matchModalCopy: { fontSize: 14, lineHeight: 21, textAlign: "center", marginTop: 8 },
-  matchModalPrimary: { width: "100%", minHeight: 48, borderRadius: 14, alignItems: "center", justifyContent: "center", marginTop: 22 },
-  matchModalPrimaryText: { fontSize: 14, fontWeight: "800" },
-  matchModalSecondary: { width: "100%", minHeight: 46, borderWidth: 1, borderRadius: 14, alignItems: "center", justifyContent: "center", marginTop: 9 },
-  matchModalSecondaryText: { fontSize: 13, fontWeight: "700" },
   busyOverlay: { position: "absolute", left: 18, width: 34, height: 34, borderRadius: 17, alignItems: "center", justifyContent: "center", zIndex: 4 },
   center: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12 },
   loadingText: { fontSize: 13 },

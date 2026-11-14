@@ -1427,7 +1427,8 @@ components:
       properties:
         profile: { $ref: "#/components/schemas/Profile" }
         likedAt: { type: string, format: date-time }
-      required: [profile, likedAt]
+        isSuperLike: { type: boolean }
+      required: [profile, likedAt, isSuperLike]
     ProfileView:
       type: object
       properties:
@@ -1436,7 +1437,7 @@ components:
       required: [profile, viewedAt]
     NotificationType:
       type: string
-      enum: [new_match, new_message, new_like, profile_view]
+      enum: [new_match, new_message, new_like, new_super_like, profile_view]
     Notification:
       type: object
       properties:

@@ -4,6 +4,35 @@ import { planReactionEffects } from "../src/lib/vibeswipeReaction.ts";
 
 const accountA = "test-account-a";
 const accountB = "test-account-b";
+const superInput = {
+  fromUserId: accountA, toUserId: accountB, type: "super" as const,
+  previousType: null, reverseType: null, existingMatchId: null,
+  targetIsDemo: false, isProduction: true,
+};
+
+test("a Super Like creates a distinct notice for the recipient, not an ordinary like", () => {
+  const result = planReactionEffects(superInput);
+  assert.equal(result.matched, false);
+  assert.deepEqual(result.notifications, [
+    { recipientId: accountB, actorId: accountA, type: "new_super_like" },
+  ]);
+});
+
+test("upgrading a normal like to Super Like sends the special notice once", () => {
+  assert.equal(planReactionEffects({ ...superInput, previousType: "like" }).notifications[0]?.type, "new_super_like");
+  assert.deepEqual(planReactionEffects({ ...superInput, previousType: "super" }).notifications, []);
+});
+
+test("a mutual Super Like produces both match notices and the special recipient notice", () => {
+  const result = planReactionEffects({ ...superInput, reverseType: "like" });
+  assert.equal(result.matched, true);
+  assert.equal(result.createMatch, true);
+  assert.deepEqual(result.notifications.map(n => n.type), ["new_match", "new_match", "new_super_like"]);
+});
+
+test("Super Likes never create notifications for demonstration accounts", () => {
+  assert.deepEqual(planReactionEffects({ ...superInput, targetIsDemo: true }).notifications, []);
+});
 
 test("a like from account A creates an Activity notification for account B", () => {
   const result = planReactionEffects({

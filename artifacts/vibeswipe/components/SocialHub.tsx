@@ -34,7 +34,7 @@ function useNoticeReader() {
   const notes = useGetNotifications({ query: live });
   const mark = useMarkNotificationRead();
   return (actorId: string, type: "new_match" | "new_like" | "profile_view") => {
-    const unread = notes.data?.notifications.filter(n => n.actor.id === actorId && n.type === type && !n.readAt) ?? [];
+    const unread = notes.data?.notifications.filter(n => n.actor.id === actorId && (n.type === type || (type === "new_like" && n.type === "new_super_like")) && !n.readAt) ?? [];
     if (unread.length) void Promise.allSettled(unread.map(n => mark.mutateAsync({ notificationId: n.id })))
       .then(() => qc.invalidateQueries({ queryKey: getGetNotificationsQueryKey() }));
   };
@@ -85,6 +85,7 @@ function State({ loading, error, empty, onRetry, icon, emptyTitle, emptyText }: 
 }
 
 export function ActivityOverview() {
+  const readNotice = useNoticeReader();
   const c = useColors();
   const qc = useQueryClient();
   const insets = useSafeAreaInsets();
@@ -96,6 +97,7 @@ export function ActivityOverview() {
   const mark = useMarkNotificationRead();
   const am = useMemo(() => active(matches.data), [matches.data]);
   const msgs = useMemo(() => (notes.data?.notifications ?? []).filter(n => n.type === "new_message" && am.some(m => m.id === n.matchId && m.profile.id === n.actor.id)).slice(0, 8), [notes.data, am]);
+  const superNotices = useMemo(() => (notes.data?.notifications ?? []).filter(n => n.type === "new_super_like" && likes.data?.some(l => l.profile.id === n.actor.id && l.isSuperLike)).slice(0, 8), [notes.data, likes.data]);
   const open = async (id: string, unread: boolean) => {
     if (unread) { try { await mark.mutateAsync({ notificationId: id }); } catch { /* navigate anyway */ } void qc.invalidateQueries({ queryKey: getGetNotificationsQueryKey() }); }
     router.navigate("/(tabs)/views" as never);
@@ -117,6 +119,15 @@ export function ActivityOverview() {
             <Text numberOfLines={1} style={[s.flex, { color: n.readAt ? c.mutedForeground : c.foreground, fontWeight: n.readAt ? "400" : "700" }]}>{n.actor.name} sent you a message</Text>
             <Text style={[s.time, { color: c.mutedForeground }]}>{ago(n.createdAt)}</Text>
             {!n.readAt && <View style={[s.dot, { backgroundColor: c.primary }]} />}
+          </Pressable>
+        ))}
+        {superNotices.map(n => (
+          <Pressable key={n.id} onPress={() => { readNotice(n.actor.id, "new_like"); router.push({ pathname: "/profile/[profileId]", params: { profileId: n.actor.id } }); }} testID={`super-like-notice-${n.id}`} accessibilityRole="button" accessibilityLabel={`${n.actor.name} Super Liked you. Open profile`} style={[s.notice, { backgroundColor: c.profileCard, borderColor: c.primary }]}>
+            <View style={[s.iconBox, { backgroundColor: c.profileChip }]}><Feather name="star" size={22} color={c.primary} /></View>
+            <View style={s.flex}><Text numberOfLines={1} style={[s.name, { color: c.foreground }]}>{n.actor.name}</Text><Text style={{ color: c.primary, fontWeight: "700" }}>Super Liked you</Text></View>
+            <Text style={[s.time, { color: c.mutedForeground }]}>{ago(n.createdAt)}</Text>
+            {!n.readAt && <View style={[s.dot, { backgroundColor: c.primary }]} />}
+            <Feather name="chevron-right" size={17} color={c.primary} />
           </Pressable>
         ))}
         <View style={{ height: 18 }} />
@@ -149,7 +160,7 @@ export function InboundPeoplePage({ kind }: { kind: "likes" | "views" }) {
   const views = useGetWhoViewedYou({ query: { queryKey: getGetWhoViewedYouQueryKey(), enabled: !isLikes, ...live } });
   const q = isLikes ? likes : views;
   useRefetchOnFocus([q.refetch]);
-  const rows = useMemo(() => (isLikes ? (likes.data ?? []).map((l) => ({ profile: l.profile, at: l.likedAt })) : (views.data ?? []).map((v) => ({ profile: v.profile, at: v.viewedAt }))), [isLikes, likes.data, views.data]);
+  const rows = useMemo(() => (isLikes ? (likes.data ?? []).map((l) => ({ profile: l.profile, at: l.likedAt, isSuperLike: l.isSuperLike })) : (views.data ?? []).map((v) => ({ profile: v.profile, at: v.viewedAt, isSuperLike: false }))), [isLikes, likes.data, views.data]);
   return (
     <Screen back title={isLikes ? "Likes" : "Views"} sub={isLikes ? "People who liked you" : "People who viewed your profile"}>
       {q.isLoading || (q.isError && !q.data) || !rows.length ? (
@@ -164,9 +175,9 @@ export function InboundPeoplePage({ kind }: { kind: "likes" | "views" }) {
               <ProfileAvatar profile={r.profile} size={56} />
               <View style={s.flex}>
                 <Text numberOfLines={1} style={[s.name, { color: c.foreground }]}>{label(r.profile)}</Text>
-                <Text style={{ color: c.mutedForeground, fontSize: 13 }}>{isLikes ? "Liked you" : "Viewed your profile"} · {ago(r.at)}</Text>
+                <Text style={{ color: c.mutedForeground, fontSize: 13 }}>{isLikes ? (r.isSuperLike ? "Super Liked you" : "Liked you") : "Viewed your profile"} · {ago(r.at)}</Text>
               </View>
-              {isLikes ? <Feather name="heart" size={22} color={c.primary} /> : (
+              {isLikes ? <Feather name={r.isSuperLike ? "star" : "heart"} size={22} color={c.primary} /> : (
                 <View style={[s.pill, { backgroundColor: c.profileChip }]}><Feather name="eye" size={14} color={c.primary} /><Text style={{ color: c.primary, fontWeight: "700", fontSize: 12 }}>View</Text></View>
               )}
             </Pressable>

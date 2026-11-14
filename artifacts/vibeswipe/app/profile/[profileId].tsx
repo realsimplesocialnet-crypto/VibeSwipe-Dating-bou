@@ -1,65 +1,68 @@
 import {
   getGetDailyLikeStatusQueryKey,
+  getGetDiscoverProfilesQueryKey,
   getGetMatchesQueryKey,
   getGetNotificationsQueryKey,
+  getGetProfileByIdQueryKey,
+  getGetSuperLikeStatusQueryKey,
   useBlockProfile,
   useCreateReaction,
   useGetDailyLikeStatus,
+  useGetMyProfile,
   useGetProfileById,
+  useGetSuperLikeStatus,
   useRecordProfileView,
   useReportProfile,
 } from "@workspace/api-client-react";
 import { Feather } from "@expo/vector-icons";
+import { MatchCelebration } from "@/components/MatchCelebration";
 import { router, useLocalSearchParams } from "expo-router";
 import { useAuth } from "@clerk/expo";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Image, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
-import type { ComponentProps, ReactNode } from "react";
+import type { ComponentProps } from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { profileImageSource } from "@/lib/media";
-import palette from "@/constants/colors";
+import { useColors } from "@/hooks/useColors";
 
-// This screen always renders in the dark palette, independent of the saved app theme.
-const colors = palette.dark;
-
-function Row({ icon, title, children, testID }: { icon: ComponentProps<typeof Feather>["name"]; title: string; children: ReactNode; testID: string }) {
-  return (
-    <View testID={testID} style={[styles.card, styles.row, { backgroundColor: colors.card, borderColor: colors.border }]}>
-      <View style={[styles.iconDisc, { backgroundColor: colors.primary }]}><Feather name={icon} size={20} color={colors.card} /></View>
-      <View style={{ flex: 1 }}>
-        <Text style={[styles.label, { color: colors.primary }]}>{title}</Text>
-        {children}
-      </View>
-    </View>
-  );
-}
+type ReactionKind = "pass" | "like" | "super";
 
 export default function PublicProfileScreen() {
+  const me = useGetMyProfile();
   const { profileId } = useLocalSearchParams<{ profileId: string }>();
+  const id = profileId ?? "";
+  const colors = useColors();
   const { getToken } = useAuth();
-  const { width } = useWindowDimensions();
+  const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
   const [token, setToken] = useState<string | null>(null);
-  const [activePhoto, setActivePhoto] = useState(0);
+  const [viewer, setViewer] = useState<number | null>(null);
+  const [avatarError, setAvatarError] = useState(false);
   const [actionError, setActionError] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
   const [confirmSafety, setConfirmSafety] = useState<"block" | "report" | null>(null);
   const [safetyError, setSafetyError] = useState("");
   const [reported, setReported] = useState(false);
+  const [confirmation, setConfirmation] = useState<{ kind: "like" | "super"; text: string } | null>(null);
+  const [matchResult, setMatchResult] = useState<{ name: string; matchId: string | null } | null>(null);
   const block = useBlockProfile();
   const report = useReportProfile();
-  const [likeConfirmation, setLikeConfirmation] = useState("");
-  const [matchResult, setMatchResult] = useState<{ name: string; matchId: string | null } | null>(null);
   const reaction = useCreateReaction();
-  const dailyLikeStatus = useGetDailyLikeStatus();
-  const profile = useGetProfileById(profileId);
+  const dailyLikeStatus = useGetDailyLikeStatus({ query: { queryKey: getGetDailyLikeStatusQueryKey() } });
+  const superStatus = useGetSuperLikeStatus({ query: { queryKey: getGetSuperLikeStatusQueryKey() } });
+  const profile = useGetProfileById(id, { query: { queryKey: getGetProfileByIdQueryKey(id), enabled: !!id } });
   const recordView = useRecordProfileView();
   const confirmationTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const busy = useRef(false);
+  const mounted = useRef(true);
+  const currentId = useRef(id);
+  currentId.current = id;
+
   useEffect(() => {
-    if (profileId) recordView.mutate({ profileId });
-  }, [profileId]);
+    if (id) recordView.mutate({ profileId: id });
+  }, [id]);
   useEffect(() => {
     let active = true;
     void getToken().then((value) => {
@@ -69,44 +72,60 @@ export default function PublicProfileScreen() {
       active = false;
     };
   }, [getToken]);
-  useEffect(() => setActivePhoto(0), [profileId]);
-  useEffect(() => () => {
-    if (confirmationTimer.current) clearTimeout(confirmationTimer.current);
+  useEffect(() => {
+    setViewer(null);
+    setAvatarError(false);
+  }, [id]);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+      if (confirmationTimer.current) clearTimeout(confirmationTimer.current);
+    };
   }, []);
 
-  async function likeProfile() {
+  const likeOut = dailyLikeStatus.data?.remaining === 0;
+  const superOut = superStatus.data?.remaining === 0;
+  const locked = reaction.isPending || !!confirmation || !!matchResult;
+
+  async function react(type: ReactionKind) {
     const user = profile.data;
-    if (!user || reaction.isPending || likeConfirmation || matchResult) return;
-    if (dailyLikeStatus.data?.remaining === 0) {
-      setActionError("You’ve reached today’s like limit. Come back in 24 hours.");
-      return;
-    }
+    if (!user || busy.current || locked) return;
+    if (type === "like" && likeOut) { setActionError("You have used all of today’s likes. They reset in 24 hours."); return; }
+    if (type === "super" && superOut) { setActionError("You have used today’s Super Like. It resets in 24 hours."); return; }
+    const targetId = user.id;
+    const name = user.name;
+    busy.current = true;
     setActionError("");
     try {
-      const result = await reaction.mutateAsync({ data: { toUserId: user.id, type: "like" } });
-      void queryClient.invalidateQueries({ queryKey: getGetDailyLikeStatusQueryKey() });
+      const result = await reaction.mutateAsync({ data: { toUserId: targetId, type } });
+      if (!mounted.current || currentId.current !== targetId) { busy.current = false; return; }
+      void queryClient.invalidateQueries({ queryKey: getGetDiscoverProfilesQueryKey() });
+      if (type === "pass") { busy.current = false; router.back(); return; }
+      void queryClient.invalidateQueries({ queryKey: type === "like" ? getGetDailyLikeStatusQueryKey() : getGetSuperLikeStatusQueryKey() });
       void queryClient.invalidateQueries({ queryKey: getGetMatchesQueryKey() });
       void queryClient.invalidateQueries({ queryKey: getGetNotificationsQueryKey() });
-      setLikeConfirmation(`You liked ${user.name}`);
+      setConfirmation({ kind: type, text: type === "like" ? `You liked ${name}` : `You super liked ${name}` });
       confirmationTimer.current = setTimeout(() => {
-        setLikeConfirmation("");
-        if (result.matched) setMatchResult({ name: user.name, matchId: result.matchId ?? null });
+        confirmationTimer.current = null;
+        busy.current = false;
+        if (!mounted.current || currentId.current !== targetId) return;
+        setConfirmation(null);
+        if (result.matched) setMatchResult({ name, matchId: result.matchId ?? null });
         else router.back();
       }, 1500);
-    } catch {
-      setActionError("Your like didn’t go through. Please try again.");
-    }
-  }
-
-  async function passProfile() {
-    const user = profile.data;
-    if (!user || reaction.isPending || likeConfirmation || matchResult) return;
-    setActionError("");
-    try {
-      await reaction.mutateAsync({ data: { toUserId: user.id, type: "pass" } });
-      router.back();
-    } catch {
-      setActionError("That pass didn’t save. Please try again.");
+    } catch (error) {
+      busy.current = false;
+      if (!mounted.current || currentId.current !== targetId) return;
+      const message = error instanceof Error ? error.message : "";
+      const capped = /limit|429|remaining|already/i.test(message);
+      setActionError(
+        type === "pass" ? "That pass didn’t save. Please try again."
+          : capped ? (type === "super" ? "Your Super Like for today is already used." : "You have reached today’s like limit.")
+          : type === "super" ? "That Super Like didn’t go through. Please try again." : "Your like didn’t go through. Please try again.",
+      );
+      if (type === "like") void dailyLikeStatus.refetch();
+      if (type === "super") void superStatus.refetch();
     }
   }
 
@@ -131,178 +150,198 @@ export default function PublicProfileScreen() {
     }
   }
 
+  const bg = colors.messagesBackground;
+  const topInset = Platform.OS === "web" ? 67 : insets.top;
+  const bottomInset = Platform.OS === "web" ? 34 : insets.bottom;
+
   if (profile.isLoading) {
-    return <View style={[styles.center, { backgroundColor: colors.background }]}><ActivityIndicator color={colors.primary} /></View>;
-  }
-  if (!profile.data) {
     return (
-      <View style={[styles.center, { backgroundColor: colors.background }]}>
-        <Text style={{ color: colors.foreground }}>This profile is unavailable.</Text>
+      <View style={[styles.center, { backgroundColor: bg }]}>
+        <View style={[styles.skelAvatar, { backgroundColor: colors.profileChip }]} />
+        <View style={[styles.skelLine, { backgroundColor: colors.profileChip }]} />
+        <View style={[styles.skelCard, { backgroundColor: colors.profileCard }]} />
       </View>
     );
   }
+  if (!profile.data) {
+    return (
+      <View style={[styles.center, { backgroundColor: bg, padding: 24 }]}>
+        <Text style={[styles.value, { color: colors.foreground, textAlign: "center" }]}>This profile is unavailable.</Text>
+        <Pressable testID="public-profile-retry" accessibilityRole="button" onPress={() => void profile.refetch()} style={[styles.pillButton, { backgroundColor: colors.profileEdit }]}>
+          <Text style={[styles.pillButtonText, { color: colors.profileEditForeground }]}>Try again</Text>
+        </Pressable>
+        <Pressable testID="public-profile-back" accessibilityRole="button" onPress={() => router.back()} style={[styles.pillButton, { backgroundColor: colors.profileCard }]}>
+          <Text style={[styles.pillButtonText, { color: colors.foreground }]}>Go back</Text>
+        </Pressable>
+      </View>
+    );
+  }
+
   const user = profile.data;
   const photos = user.photos ?? [];
-  const galleryWidth = Math.max(240, Math.min(width, 720) - 32 - 26);
-  const occupation = user.occupation === "Other"
-    ? user.occupationOther || "Other"
-    : user.occupation || "Prefer not to say";
+  const work = user.occupation === "Other" ? user.occupationOther || "Other" : user.occupation || "Not shared";
   const fullLocation = [user.city, user.state, user.country].filter(Boolean).join(", ");
   const headerLocation = [user.city, user.state].filter(Boolean).join(", ") || fullLocation;
-  const topInset = Platform.OS === "web" ? 67 : insets.top;
-  const likeDisabled = reaction.isPending || !!likeConfirmation || !!matchResult || dailyLikeStatus.isLoading || dailyLikeStatus.data?.remaining === 0;
-  const toast = actionError || (dailyLikeStatus.data?.remaining === 0 ? "Your daily likes are used up." : "");
-  const actionButtons = (
-        <View pointerEvents="box-none" style={styles.actionRow} testID="public-profile-actions">
-          <Pressable
-            testID="public-profile-pass"
-            accessibilityRole="button"
-            accessibilityLabel={`Pass on ${user.name}`}
-            disabled={reaction.isPending || !!likeConfirmation || !!matchResult}
-            onPress={() => void passProfile()}
-            style={({ pressed }) => [styles.actionButton, { backgroundColor: colors.card, borderColor: colors.border, shadowColor: colors.background, opacity: reaction.isPending ? 0.5 : 1, transform: [{ scale: pressed ? 0.92 : 1 }] }]}
-          >
-            <Feather name="x" size={30} color={colors.primary} />
-          </Pressable>
-          <Pressable
-            testID="public-profile-like"
-            accessibilityRole="button"
-            accessibilityLabel={`Like ${user.name}`}
-            disabled={likeDisabled}
-            onPress={() => void likeProfile()}
-            style={({ pressed }) => [styles.actionButton, { backgroundColor: colors.primary, borderColor: colors.primary, shadowColor: colors.primary, opacity: likeDisabled && !likeConfirmation ? 0.55 : 1, transform: [{ scale: pressed ? 0.92 : 1 }] }]}
-          >
-            {reaction.isPending ? <ActivityIndicator color={colors.primaryForeground} /> : <Feather name="heart" size={30} color={colors.primaryForeground} />}
-          </Pressable>
-        </View>
-  );
+  const showAge = user.showAge && user.age !== null;
+  const facts: { icon: ComponentProps<typeof Feather>["name"]; label: string; value: string; testID: string }[] = [
+    ...(showAge ? [{ icon: "calendar" as const, label: "Age", value: String(user.age), testID: "public-profile-age" }] : []),
+    { icon: "briefcase", label: "Work", value: work, testID: "public-profile-work" },
+    { icon: "heart", label: "Looking for", value: user.lookingFor || "Not shared", testID: "public-profile-looking-for" },
+    { icon: "user", label: "Gender", value: user.gender || "Not shared", testID: "public-profile-gender" },
+  ];
+  const avatarSource = photos.length ? profileImageSource(photos[0], token) : undefined;
+  const narrow = width < 360;
+  const toast = actionError || (likeOut && superOut ? "Today’s likes and Super Like are used up." : "");
+  const viewerWidth = Math.min(width, 900);
+
+  const fab = (
+    key: ReactionKind,
+    size: number,
+    label: string,
+    disabled: boolean,
+    testID: string,
+    a11y: string,
+  ) => {
+    const pink = key === "like";
+    return (
+      <Pressable key={key} testID={testID} accessibilityRole="button" accessibilityLabel={a11y} accessibilityState={{ disabled }} disabled={disabled} onPress={() => void react(key)} style={[styles.action, { opacity: disabled && !confirmation ? 0.5 : 1 }]}>
+        {({ pressed }) => (
+          <>
+            <View style={[styles.fab, { width: size, height: size, borderRadius: size / 2, backgroundColor: pink ? colors.profileEdit : colors.profileCard, shadowColor: pink ? colors.profileEdit : colors.profileChipForeground, transform: [{ scale: pressed ? 0.93 : 1 }] }]}>
+              {pink && reaction.isPending ? <ActivityIndicator color={colors.profileEditForeground} /> : (
+                <Feather name={key === "pass" ? "x" : key === "like" ? "heart" : "star"} size={pink ? 32 : 25} color={pink ? colors.profileEditForeground : key === "super" ? colors.discoverSuperLike : colors.profileMuted} />
+              )}
+            </View>
+            <Text numberOfLines={1} style={[styles.cap, { color: colors.profileLabel, backgroundColor: colors.profileCard }]}>{label}</Text>
+          </>
+        )}
+      </Pressable>
+    );
+  };
+
   return (
-    <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={[styles.content, { paddingTop: topInset + 8 }]}>
+    <View style={{ flex: 1, backgroundColor: bg }}>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={[styles.content, { paddingTop: topInset + 8, paddingBottom: bottomInset + 170 }]}>
         <View style={styles.topRow}>
-          <Pressable testID="public-profile-back" accessibilityRole="button" accessibilityLabel="Back" onPress={() => router.back()} style={[styles.round, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <Feather name="arrow-left" size={20} color={colors.primary} />
+          <Pressable testID="public-profile-back" accessibilityRole="button" accessibilityLabel="Back" onPress={() => router.back()} style={[styles.round, { backgroundColor: colors.profileCard, shadowColor: colors.profileChipForeground }]}>
+            <Feather name="arrow-left" size={20} color={colors.foreground} />
           </Pressable>
-          <Pressable
-            testID="public-profile-more"
-            accessibilityRole="button"
-            accessibilityLabel={`More actions for ${user.name}`}
-            onPress={() => { setSafetyError(""); setConfirmSafety(null); setMenuOpen(true); }}
-            style={[styles.round, { backgroundColor: colors.card, borderColor: colors.border }]}
-          >
-            <Feather name="more-horizontal" size={20} color={colors.primary} />
+          <Text style={[styles.wordmark, { color: colors.profileEdit }]}>VIBESWIPE</Text>
+          <Pressable testID="public-profile-more" accessibilityRole="button" accessibilityLabel={`More actions for ${user.name}`} onPress={() => { setSafetyError(""); setConfirmSafety(null); setMenuOpen(true); }} style={[styles.round, { backgroundColor: colors.profileCard, shadowColor: colors.profileChipForeground }]}>
+            <Feather name="more-horizontal" size={20} color={colors.foreground} />
           </Pressable>
         </View>
-        <View style={[styles.header, { borderBottomColor: colors.border }]}>
+
+        <View style={styles.header}>
+          <Pressable testID="public-profile-avatar" accessibilityRole="imagebutton" accessibilityLabel={`Open ${user.name}'s main photo`} disabled={!photos.length} onPress={() => setViewer(0)} style={[styles.avatarRing, { borderColor: colors.profileEdit, backgroundColor: colors.profileCard, shadowColor: colors.profileChipForeground }]}>
+            {avatarSource && !avatarError ? (
+              <Image source={avatarSource} onError={() => setAvatarError(true)} style={styles.avatar} resizeMode="cover" accessibilityLabel={`${user.name}'s main photo`} />
+            ) : (
+              <Text style={[styles.initial, { color: colors.profileEdit }]}>{user.name.trim().slice(0, 1).toUpperCase()}</Text>
+            )}
+          </Pressable>
           <Text testID="public-profile-name" style={[styles.name, { color: colors.foreground }]}>
-            {user.name}{user.age !== null ? <Text style={{ color: colors.mutedForeground }}>, {user.age}</Text> : null}
+            {user.name}{showAge ? <Text style={{ color: colors.profileMuted, fontWeight: "600" }}>, {user.age}</Text> : null}
           </Text>
           <View style={styles.locationRow}>
-            <Feather name="map-pin" size={16} color={colors.primary} />
-            <Text style={[styles.city, { color: colors.mutedForeground }]}>{headerLocation || "Location not shared"}</Text>
+            <Feather name="map-pin" size={14} color={colors.profileEdit} />
+            <Text testID="public-profile-location" style={[styles.city, { color: colors.profileMuted }]}>{headerLocation || "Location not shared"}</Text>
           </View>
         </View>
-        <View style={styles.sections}>
-          <Row icon="user" title="About" testID="public-profile-about">
-            <Text style={[styles.value, { color: colors.foreground }]}>{user.bio || "No bio added yet."}</Text>
-          </Row>
-          <Row icon="briefcase" title="Work" testID="public-profile-work">
-            <Text style={[styles.value, { color: colors.foreground }]}>{occupation}</Text>
-          </Row>
-          <Row icon="users" title="Gender" testID="public-profile-gender">
-            <Text style={[styles.value, { color: colors.foreground }]}>{user.gender || "Not shared"}</Text>
-          </Row>
-          <Row icon="heart" title="Looking for" testID="public-profile-looking-for">
-            <Text style={[styles.value, { color: colors.foreground }]}>{user.lookingFor || "Not shared"}</Text>
-          </Row>
-          <Row icon="map-pin" title="Location" testID="public-profile-location">
-            <Text style={[styles.value, { color: colors.foreground }]}>{fullLocation || "Not shared"}</Text>
-          </Row>
-          <View testID="public-profile-interests" style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <View style={styles.labelRow}>
-              <Feather name="star" size={17} color={colors.primary} />
-              <Text style={[styles.label, { color: colors.primary }]}>Hobbies and interests</Text>
+
+        <View style={[styles.card, { backgroundColor: colors.profileCard, shadowColor: colors.profileChipForeground, paddingVertical: 4 }]}>
+          {facts.map((f, i) => (
+            <View key={f.label} testID={f.testID} style={[styles.factRow, i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.profileRule }]}>
+              <View style={[styles.factIcon, { backgroundColor: colors.profileChip }]}><Feather name={f.icon} size={16} color={colors.profileEdit} /></View>
+              <Text style={[styles.factLabel, { color: colors.profileMuted }]}>{f.label}</Text>
+              <Text style={[styles.factValue, { color: colors.foreground }]}>{f.value}</Text>
             </View>
-            <View style={styles.tags}>
-              {user.interests.length ? user.interests.map((item) => (
-                <Text key={item} style={[styles.tag, { color: colors.foreground, borderColor: colors.primary }]}>{item}</Text>
-              )) : <Text style={[styles.value, { color: colors.mutedForeground }]}>No interests added yet.</Text>}
+          ))}
+        </View>
+
+        <View testID="public-profile-about" style={[styles.card, { backgroundColor: colors.profileCard, shadowColor: colors.profileChipForeground, marginTop: 14 }]}>
+          <Text style={[styles.label, { color: colors.profileEdit }]}>ABOUT ME</Text>
+          <Text style={[styles.value, { color: colors.foreground, marginTop: 8 }]}>{user.bio || "No bio added yet."}</Text>
+          {user.interests.length ? (
+            <View testID="public-profile-interests" style={styles.tags}>
+              {user.interests.map((item) => (
+                <Text key={item} style={[styles.tag, { color: colors.profileChipForeground, backgroundColor: colors.profileChip }]}>{item}</Text>
+              ))}
             </View>
+          ) : null}
+          {fullLocation && fullLocation !== headerLocation ? <Text style={[styles.small, { color: colors.profileMuted }]}>Based in {fullLocation}</Text> : null}
+        </View>
+
+        <View testID="public-profile-more-photos" style={{ marginTop: 22 }}>
+          <View style={styles.photosHead}>
+            <Text style={[styles.label, { color: colors.profileEdit }]}>PHOTOS</Text>
+            <Text style={[styles.small, { color: colors.profileMuted, marginTop: 0 }]}>{photos.length}</Text>
           </View>
-          <View testID="public-profile-more-photos" style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <View style={styles.labelRow}>
-              <Feather name="image" size={17} color={colors.primary} />
-              <Text style={[styles.label, { color: colors.primary, flex: 1 }]}>More photos</Text>
-              {photos.length > 1 ? <Text style={[styles.count, { color: colors.mutedForeground }]}>{Math.min(activePhoto + 1, photos.length)} / {photos.length}</Text> : null}
-            </View>
-            {photos.length ? (
-              <View style={[styles.galleryFrame, { width: galleryWidth, backgroundColor: colors.muted }]}>
-                <ScrollView
-                  horizontal
-                  pagingEnabled
-                  nestedScrollEnabled
-                  showsHorizontalScrollIndicator={false}
-                  scrollEventThrottle={32}
-                  onScroll={(event) => setActivePhoto(Math.round(event.nativeEvent.contentOffset.x / galleryWidth))}
-                >
-                  {photos.map((photo, index) => {
-                    const source = profileImageSource(photo, token);
-                    return source ? (
-                      <Image
-                        key={`${photo}-${index}`}
-                        source={source}
-                        style={{ width: galleryWidth, height: galleryWidth * 1.2 }}
-                        resizeMode="cover"
-                        accessibilityLabel={`${user.name}'s photo ${index + 1}`}
-                      />
-                    ) : null;
-                  })}
-                </ScrollView>
-                <View pointerEvents="box-none" style={styles.galleryActions}>{actionButtons}</View>
-              </View>
-            ) : <Text style={[styles.value, { color: colors.mutedForeground }]}>No photos shared yet.</Text>}
-          </View>
-          {photos.length ? null : <View style={styles.inlineActions}>{actionButtons}</View>}
+          {photos.length ? (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.thumbRow}>
+              {photos.map((photo, index) => {
+                const source = profileImageSource(photo, token);
+                return (
+                  <Pressable key={`${photo}-${index}`} testID={`public-profile-photo-${index}`} accessibilityRole="imagebutton" accessibilityLabel={`Open photo ${index + 1} of ${photos.length}`} onPress={() => setViewer(index)} style={({ pressed }) => [styles.thumb, { backgroundColor: colors.profileChip, transform: [{ scale: pressed ? 0.96 : 1 }] }]}>
+                    {source ? <Image source={source} style={StyleSheet.absoluteFill} resizeMode="cover" /> : null}
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+          ) : <Text style={[styles.value, { color: colors.profileMuted, marginTop: 8 }]}>No photos shared yet.</Text>}
         </View>
       </ScrollView>
-      <View pointerEvents="box-none" style={[styles.toastHost, { bottom: Math.max(insets.bottom, 12) + (Platform.OS === "web" ? 34 : 8) }]}>
+
+      <View pointerEvents="box-none" style={[styles.actionHost, { bottom: bottomInset + 12 }]}>
         {toast ? (
-          <Text accessibilityRole="alert" testID="public-profile-action-error" style={[styles.toast, { backgroundColor: colors.publicToast, color: colors.foreground, borderColor: colors.border }]}>{toast}</Text>
+          <Text accessibilityRole="alert" testID="public-profile-action-error" style={[styles.toast, { backgroundColor: colors.profileCard, color: colors.foreground, shadowColor: colors.profileChipForeground }]}>{toast}</Text>
         ) : null}
+        <View pointerEvents="box-none" style={[styles.actionRow, { gap: narrow ? 14 : 28 }]} testID="public-profile-actions">
+          {fab("pass", 58, "Pass", locked, "public-profile-pass", `Pass on ${user.name}`)}
+          {fab("like", 74, likeOut ? "No likes left" : "Like to match", locked || dailyLikeStatus.isLoading || likeOut, "public-profile-like", `Like ${user.name}`)}
+          {fab("super", 58, superOut ? "Used today" : "Super Like", locked || superStatus.isLoading || superOut, "public-profile-super-like", `Super Like ${user.name}`)}
+        </View>
       </View>
-      {likeConfirmation ? (
-        <View style={[styles.confirmation, { top: Math.max(insets.top, 18) + 8, backgroundColor: colors.card, borderColor: colors.primary }]} accessibilityRole="alert" accessibilityLiveRegion="polite" testID="public-profile-like-confirmation">
-          <Feather name="heart" size={16} color={colors.primary} />
-          <Text style={[styles.confirmationText, { color: colors.foreground }]}>{likeConfirmation}</Text>
+
+      {confirmation ? (
+        <View style={[styles.confirmation, { top: topInset + 64, backgroundColor: colors.profileCard, shadowColor: colors.profileChipForeground }]} accessibilityRole="alert" accessibilityLiveRegion="polite" testID="public-profile-like-confirmation">
+          <Feather name={confirmation.kind === "super" ? "star" : "heart"} size={16} color={confirmation.kind === "super" ? colors.discoverSuperLike : colors.profileEdit} />
+          <Text style={[styles.confirmationText, { color: colors.foreground }]}>{confirmation.text}</Text>
         </View>
       ) : null}
-      <Modal visible={!!matchResult} transparent animationType="fade" onRequestClose={() => setMatchResult(null)}>
-        <View style={[styles.matchScrim, { backgroundColor: colors.photoBadge }]}>
-          <View style={[styles.matchCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <View style={[styles.matchIcon, { backgroundColor: colors.accent }]}>
-              <Feather name="heart" size={26} color={colors.primary} />
-            </View>
-            <Text style={[styles.matchTitle, { color: colors.foreground }]}>It’s a match!</Text>
-            <Text style={[styles.matchCopy, { color: colors.mutedForeground }]}>You and {matchResult?.name} liked each other. You can start chatting now.</Text>
-            <Pressable
-              testID="public-profile-start-chat"
-              accessibilityRole="button"
-              onPress={() => {
-                const matchId = matchResult?.matchId;
-                setMatchResult(null);
-                if (matchId) router.push({ pathname: "/chat/[matchId]", params: { matchId } });
-                else router.push("/(tabs)/matches");
-              }}
-              style={[styles.matchPrimary, { backgroundColor: colors.primary }]}
-            >
-              <Text style={[styles.matchPrimaryText, { color: colors.primaryForeground }]}>{matchResult?.matchId ? "Start chatting" : "View matches"}</Text>
-            </Pressable>
-            <Pressable testID="public-profile-match-back" onPress={() => { setMatchResult(null); router.back(); }} style={[styles.matchSecondary, { borderColor: colors.border }]}>
-              <Text style={[styles.matchSecondaryText, { color: colors.foreground }]}>Back</Text>
+
+      <Modal visible={viewer !== null} animationType="fade" onRequestClose={() => setViewer(null)} supportedOrientations={["portrait", "landscape"]}>
+        <View testID="public-profile-photo-viewer" style={{ flex: 1, backgroundColor: colors.chatMediaBackdrop }}>
+          <ScrollView
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            contentOffset={{ x: (viewer ?? 0) * viewerWidth, y: 0 }}
+            onMomentumScrollEnd={(e) => setViewer(Math.round(e.nativeEvent.contentOffset.x / viewerWidth))}
+            style={{ flex: 1, alignSelf: "center", width: viewerWidth }}
+          >
+            {photos.map((photo, index) => {
+              const source = profileImageSource(photo, token);
+              return (
+                <View key={`${photo}-v-${index}`} style={{ width: viewerWidth, height, alignItems: "center", justifyContent: "center" }}>
+                  {source ? <Image source={source} style={{ width: viewerWidth, height: height * 0.78 }} resizeMode="contain" accessibilityLabel={`${user.name}'s photo ${index + 1}`} /> : null}
+                </View>
+              );
+            })}
+          </ScrollView>
+          <View style={[styles.viewerTop, { top: topInset + 6 }]}>
+            <Text style={[styles.viewerCount, { color: colors.photoBadgeForeground }]}>{(viewer ?? 0) + 1} / {photos.length}</Text>
+            <Pressable testID="public-profile-photo-close" accessibilityRole="button" accessibilityLabel="Close photos" onPress={() => setViewer(null)} style={[styles.round, { backgroundColor: colors.chatMediaControl }]}>
+              <Feather name="x" size={22} color={colors.photoBadgeForeground} />
             </Pressable>
           </View>
         </View>
       </Modal>
+
+      <MatchCelebration visible={!!matchResult} self={me.data ?? null} other={profile.data ?? null} canMessage={!!matchResult?.matchId}
+        onMessage={() => { const matchId = matchResult?.matchId; if (!matchId) return; setMatchResult(null); router.push({ pathname: "/chat/[matchId]", params: { matchId } }); }}
+        onKeepSwiping={() => { setMatchResult(null); router.replace("/(tabs)"); }} />
+
       <Modal visible={menuOpen} transparent animationType="fade" onRequestClose={() => { setMenuOpen(false); setConfirmSafety(null); }}>
         <Pressable style={[styles.matchScrim, { backgroundColor: colors.photoBadge }]} onPress={() => { setMenuOpen(false); setConfirmSafety(null); }}>
           <Pressable style={[styles.matchCard, { backgroundColor: colors.card, borderColor: colors.border, alignItems: "stretch" }]} onPress={() => undefined}>
@@ -313,13 +352,7 @@ export default function PublicProfileScreen() {
                   {confirmSafety === "block" ? "They won’t be able to see you or message you, and any match will end." : "Our safety team will review this profile. They won’t be told who reported them."}
                 </Text>
                 {safetyError ? <Text accessibilityRole="alert" testID="public-profile-safety-error" style={[styles.safetyError, { color: colors.destructive }]}>{safetyError}</Text> : null}
-                <Pressable
-                  testID="public-profile-confirm-safety"
-                  accessibilityRole="button"
-                  disabled={block.isPending || report.isPending}
-                  onPress={() => void runSafety(confirmSafety)}
-                  style={[styles.matchPrimary, { backgroundColor: colors.destructive, opacity: block.isPending || report.isPending ? 0.6 : 1 }]}
-                >
+                <Pressable testID="public-profile-confirm-safety" accessibilityRole="button" disabled={block.isPending || report.isPending} onPress={() => void runSafety(confirmSafety)} style={[styles.matchPrimary, { backgroundColor: colors.destructive, opacity: block.isPending || report.isPending ? 0.6 : 1 }]}>
                   {block.isPending || report.isPending ? <ActivityIndicator color={colors.destructiveForeground} /> : <Text style={[styles.matchPrimaryText, { color: colors.destructiveForeground }]}>{confirmSafety === "block" ? "Block" : "Send report"}</Text>}
                 </Pressable>
                 <Pressable testID="public-profile-cancel-safety" onPress={() => { setConfirmSafety(null); setSafetyError(""); }} style={[styles.matchSecondary, { borderColor: colors.border }]}>
@@ -350,37 +383,52 @@ export default function PublicProfileScreen() {
   );
 }
 
+const shadow = { shadowOpacity: 0.12, shadowRadius: 14, shadowOffset: { width: 0, height: 6 }, elevation: 3 };
+
 const styles = StyleSheet.create({
-  center: { flex: 1, alignItems: "center", justifyContent: "center" },
-  content: { width: "100%", maxWidth: 720, alignSelf: "center", paddingHorizontal: 16, paddingBottom: 40 },
+  center: { flex: 1, alignItems: "center", justifyContent: "center", gap: 14 },
+  skelAvatar: { width: 128, height: 128, borderRadius: 64 },
+  skelLine: { width: 160, height: 22, borderRadius: 11 },
+  skelCard: { width: "86%", maxWidth: 420, height: 160, borderRadius: 22 },
+  pillButton: { minHeight: 46, minWidth: 160, borderRadius: 23, alignItems: "center", justifyContent: "center", paddingHorizontal: 20 },
+  pillButtonText: { fontSize: 14, fontWeight: "700" },
+  content: { width: "100%", maxWidth: 520, alignSelf: "center", paddingHorizontal: 20 },
   topRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  round: { width: 42, height: 42, borderRadius: 21, borderWidth: StyleSheet.hairlineWidth, alignItems: "center", justifyContent: "center" },
-  header: { marginTop: 12, paddingBottom: 12, borderBottomWidth: StyleSheet.hairlineWidth },
-  name: { fontSize: 36, fontWeight: "900", letterSpacing: -0.4, textTransform: "uppercase" },
-  locationRow: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 6 },
-  city: { fontSize: 15, fontWeight: "500" },
-  sections: { paddingTop: 12, gap: 8 },
-  card: { borderWidth: StyleSheet.hairlineWidth, borderRadius: 14, paddingHorizontal: 13, paddingVertical: 10, gap: 8 },
-  row: { flexDirection: "row", alignItems: "center", gap: 14 },
-  iconDisc: { width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center" },
-  labelRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-  label: { fontSize: 13, fontWeight: "800", letterSpacing: 0.5, textTransform: "uppercase" },
-  value: { fontSize: 15, lineHeight: 21, marginTop: 1 },
-  count: { fontSize: 12, fontWeight: "600" },
-  tags: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  tag: { overflow: "hidden", borderRadius: 18, borderWidth: 1, paddingHorizontal: 14, paddingVertical: 6, fontSize: 14, fontWeight: "500" },
-  galleryFrame: { borderRadius: 12, overflow: "hidden", alignSelf: "center" },
-  toastHost: { position: "absolute", left: 0, right: 0, alignItems: "center" },
-  galleryActions: { position: "absolute", left: 0, right: 0, bottom: 12, alignItems: "center" },
-  inlineActions: { paddingTop: 6, alignItems: "center" },
-  actionRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 24 },
-  actionButton: { width: 64, height: 64, borderRadius: 32, borderWidth: StyleSheet.hairlineWidth, alignItems: "center", justifyContent: "center", shadowOpacity: 0.3, shadowRadius: 10, shadowOffset: { width: 0, height: 5 }, elevation: 4 },
-  toast: { overflow: "hidden", maxWidth: "88%", borderWidth: StyleSheet.hairlineWidth, borderRadius: 18, paddingHorizontal: 14, paddingVertical: 8, fontSize: 12, fontWeight: "600", textAlign: "center" },
+  wordmark: { fontSize: 12, fontWeight: "800", letterSpacing: 2.4 },
+  round: { width: 42, height: 42, borderRadius: 21, alignItems: "center", justifyContent: "center", ...shadow },
+  header: { alignItems: "center", marginTop: 18, marginBottom: 24 },
+  avatarRing: { width: 136, height: 136, borderRadius: 68, borderWidth: 2, padding: 4, alignItems: "center", justifyContent: "center", ...shadow, shadowOpacity: 0.2 },
+  avatar: { width: "100%", height: "100%", borderRadius: 64 },
+  initial: { fontSize: 48, fontWeight: "800" },
+  name: { fontSize: 28, fontWeight: "800", letterSpacing: -0.4, marginTop: 14, textAlign: "center" },
+  locationRow: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 4 },
+  city: { fontSize: 14, fontWeight: "500" },
+  card: { borderRadius: 22, paddingHorizontal: 18, paddingVertical: 16, ...shadow, shadowOpacity: 0.08 },
+  factRow: { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 12 },
+  factIcon: { width: 34, height: 34, borderRadius: 17, alignItems: "center", justifyContent: "center" },
+  factLabel: { fontSize: 13, fontWeight: "600" },
+  factValue: { flex: 1, textAlign: "right", fontSize: 15, fontWeight: "600" },
+  label: { fontSize: 12, fontWeight: "800", letterSpacing: 1.4 },
+  value: { fontSize: 15, lineHeight: 22 },
+  small: { fontSize: 13, marginTop: 12 },
+  tags: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 14 },
+  tag: { overflow: "hidden", borderRadius: 16, paddingHorizontal: 13, paddingVertical: 6, fontSize: 13, fontWeight: "600" },
+  photosHead: { flexDirection: "row", justifyContent: "space-between", alignItems: "baseline", paddingHorizontal: 4 },
+  thumbRow: { gap: 12, paddingTop: 12, paddingBottom: 4, paddingHorizontal: 2 },
+  thumb: { width: 84, height: 104, borderRadius: 16, overflow: "hidden" },
+  actionHost: { position: "absolute", left: 0, right: 0, alignItems: "center", gap: 10, paddingHorizontal: 12 },
+  actionRow: { flexDirection: "row", alignItems: "flex-end", justifyContent: "center" },
+  action: { alignItems: "center", gap: 6 },
+  fab: { alignItems: "center", justifyContent: "center", shadowOpacity: 0.22, shadowRadius: 14, shadowOffset: { width: 0, height: 8 }, elevation: 6 },
+  cap: { overflow: "hidden", fontSize: 11, fontWeight: "700", borderRadius: 10, paddingHorizontal: 8, paddingVertical: 2 },
+  toast: { overflow: "hidden", maxWidth: "92%", borderRadius: 18, paddingHorizontal: 14, paddingVertical: 8, fontSize: 12, fontWeight: "600", textAlign: "center", ...shadow },
+  confirmation: { position: "absolute", alignSelf: "center", zIndex: 10, flexDirection: "row", alignItems: "center", gap: 8, borderRadius: 24, paddingHorizontal: 17, paddingVertical: 12, ...shadow, elevation: 8 },
+  confirmationText: { fontSize: 14, fontWeight: "700" },
+  viewerTop: { position: "absolute", left: 16, right: 16, flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  viewerCount: { fontSize: 14, fontWeight: "700" },
   menuTitle: { fontSize: 19, fontWeight: "800", marginBottom: 6 },
   menuItem: { flexDirection: "row", alignItems: "center", gap: 10, minHeight: 48, borderWidth: 1, borderRadius: 14, paddingHorizontal: 14, marginTop: 9 },
   safetyError: { fontSize: 13, fontWeight: "600", marginTop: 10 },
-  confirmation: { position: "absolute", alignSelf: "center", zIndex: 10, flexDirection: "row", alignItems: "center", gap: 8, borderWidth: 1, borderRadius: 24, paddingHorizontal: 17, paddingVertical: 12, elevation: 8 },
-  confirmationText: { fontSize: 14, fontWeight: "700" },
   matchScrim: { flex: 1, alignItems: "center", justifyContent: "center", padding: 22 },
   matchCard: { width: "100%", maxWidth: 380, alignItems: "center", borderWidth: 1, borderRadius: 26, padding: 24 },
   matchIcon: { width: 60, height: 60, borderRadius: 30, alignItems: "center", justifyContent: "center" },

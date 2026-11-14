@@ -99,6 +99,7 @@ export default function ChatScreen() {
   const matchId = Array.isArray(rawId) ? rawId[0] : rawId;
   const returnKey = Array.isArray(rawReturn) ? rawReturn[0] : rawReturn;
   const returnPath = returnKey === "messages" ? "/(tabs)/views"
+    : returnKey === "discover" ? "/(tabs)"
     : returnKey === "views" ? "/(tabs)/views"
     : returnKey === "activity" ? "/(tabs)/activity"
     : returnKey === "notifications" ? "/notifications"
@@ -575,7 +576,7 @@ export default function ChatScreen() {
       keyboardVerticalOffset={0}
     >
       <View style={[styles.header, { borderBottomColor: colors.border, paddingTop: Math.max(insets.top, Platform.OS === "web" ? 67 : 12) }]}>
-        <Pressable accessibilityRole="button" accessibilityLabel="Back" onPress={() => router.replace(returnPath as never)} style={styles.back}>
+        <Pressable accessibilityRole="button" accessibilityLabel="Back" onPress={() => router.canGoBack() ? router.back() : router.replace(returnPath as never)} style={styles.back}>
           <Feather name="arrow-left" size={21} color={themedForeground} />
         </Pressable>
         <Pressable

@@ -15,11 +15,17 @@ Leave paid upgrades out.
 
 **How to apply:** Do not add a non-working Upgrade button, payment gate, or premium banner merely to copy a screenshot.
 
-Other members' full profiles should use a dark appearance with the name and location first, compact detail cards with pink icons, then all uploaded photos in More Photos. Place a dark gray Pass button with a pink X and a pink Like button over the lower photo, with a transparent host rather than a heavy solid black action plate.
+Other members' full profiles now use the light-pink circular-portrait direction: actual name/location, clear age/work/looking-for/about details, an uploaded-photo row, and floating Pass, Like to match and Super Like controls with no solid action plate. Respect the app theme with a readable dark counterpart.
 
-**Why:** The user said the black plate looked messy while scrolling, then provided a reference with details above the photos and floating actions over the lower photo.
+**Why:** The user replaced the earlier dark details-first reference with a light-pink circular-portrait profile and three labeled floating actions.
 
 **How to apply:** Keep this public-profile direction separate from the approved pink-to-peach own-profile overview.
+
+Super Like is the floating star action and produces a distinct “Super Liked you” Activity notice, not an ordinary like notice. Activity may show these special notices alongside its short message notices and summary shortcuts. A Super Like never unlocks chat by itself.
+
+**Why:** The user explicitly clarified that Super Like is stronger than a normal like and must appear as “Super Liked you” in Activity; chat remains mutual-match-only.
+
+**How to apply:** Preserve the distinction when revising profile actions, Likes, notification summaries, or match celebrations.
 
 The default chat uses the user's light, white-and-pink reference. The header photo and name open the match's full profile. Suggested questions populate the editable draft only; selecting one must never send it automatically.
 

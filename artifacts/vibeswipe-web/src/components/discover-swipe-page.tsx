@@ -16,6 +16,7 @@ import {
   useGetBoostStatus,
   useGetDailyLikeStatus,
   useGetDiscoverProfiles,
+  useGetMyProfile,
   useGetProfileMedia,
   useGetSuperLikeStatus,
   useGetVibeSwipeSettings,
@@ -28,6 +29,7 @@ import {
 import { ArrowLeft, Heart, MapPin, MoreHorizontal, SlidersHorizontal, Star, X, Zap } from "lucide-react";
 import { isDiscoverSetupRequired, shouldRetryDiscover } from "@/lib/profile-query-state";
 import { StoriesRow } from "@/components/stories/stories-ui";
+import { MatchCelebration } from "@/components/match-celebration";
 
 const mediaUrl = (ref?: string | null) => ref
   ? ref.startsWith("http")
@@ -53,7 +55,8 @@ export function DiscoverSwipePage() {
   const [notice, setNotice] = useState("");
   const [likeConfirmation, setLikeConfirmation] = useState("");
   const [lastPass, setLastPass] = useState<string | null>(null);
-  const [matchResult, setMatchResult] = useState<{ name: string; matchId: string | null } | null>(null);
+  const [matchResult, setMatchResult] = useState<{ profile: Profile; matchId: string | null } | null>(null);
+  const myProfile = useGetMyProfile();
   const noticeTimer = useRef<number | null>(null);
   const touchStart = useRef<{ x: number; y: number } | null>(null);
   const suppressCardOpen = useRef(false);
@@ -129,11 +132,11 @@ export function DiscoverSwipePage() {
       if (result.matched) {
         void queryClient.invalidateQueries({ queryKey: getGetMatchesQueryKey() });
       }
-      if (type === "like" || result.matched) {
-        setLikeConfirmation(type === "like" ? `You liked ${current.name}` : `You and ${current.name} matched.`);
+      if (type === "like" || type === "super" || result.matched) {
+        setLikeConfirmation(result.matched ? `You and ${current.name} matched.` : type === "super" ? `You super liked ${current.name}` : `You liked ${current.name}`);
         noticeTimer.current = window.setTimeout(() => {
           setLikeConfirmation("");
-          if (result.matched) setMatchResult({ name: current.name, matchId: result.matchId ?? null });
+          if (result.matched) setMatchResult({ profile: current, matchId: result.matchId ?? null });
         }, 1500);
       }
     } catch {
@@ -279,17 +282,14 @@ export function DiscoverSwipePage() {
 
       {optionsOpen && <ProfileOptionsDialog onClose={() => setOptionsOpen(false)} onReport={(reason) => void reportCurrent(reason)} onBlock={() => void blockCurrent()} />}
       <FilterDialog open={filtersOpen} onClose={() => setFiltersOpen(false)} ageMin={ageMin} ageMax={ageMax} gender={gender} country={country} city={city} travelMode={Boolean(settings.data?.travelMode)} setAgeMin={setAgeMin} setAgeMax={setAgeMax} setGender={setGender} setCountry={(value) => { setCountry(value); setCity(""); }} setCity={setCity} onApply={() => { setIndex(0); setFiltersOpen(false); }} />
-      {matchResult && <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/70 p-5 backdrop-blur-sm" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setMatchResult(null); }}>
-        <section role="dialog" aria-modal="true" aria-labelledby="discover-match-title" className="w-full max-w-sm rounded-[28px] border border-primary/25 bg-[#211a27] p-7 text-center shadow-2xl">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-primary/15 text-primary"><Heart size={27} fill="currentColor"/></div>
-          <h2 id="discover-match-title" className="brand mt-4 text-3xl font-bold">It’s a match!</h2>
-          <p className="mt-2 text-sm leading-6 text-muted-foreground">You and {matchResult.name} liked each other. You can start chatting now.</p>
-          <div className="mt-6 flex flex-col gap-2">
-            <button type="button" onClick={() => setLocation(matchResult.matchId ? `/chat/${matchResult.matchId}` : "/matches")} data-testid="button-discover-start-match-chat" className="w-full rounded-xl bg-primary px-4 py-3 text-sm font-bold text-[#27101d]">{matchResult.matchId ? "Start chatting" : "View matches"}</button>
-            <button type="button" onClick={() => setMatchResult(null)} data-testid="button-discover-continue-after-match" className="w-full rounded-xl border border-white/10 px-4 py-3 text-sm font-semibold text-foreground">Keep discovering</button>
-          </div>
-        </section>
-      </div>}
+      <MatchCelebration
+        visible={!!matchResult}
+        self={(myProfile.data as Profile | undefined) ?? null}
+        other={matchResult?.profile ?? null}
+        canMessage={Boolean(matchResult?.matchId)}
+        onMessage={() => { const id = matchResult?.matchId; if (!id) return; setMatchResult(null); setLocation(`/chat/${id}?returnTo=%2Fdiscover`); }}
+        onKeepSwiping={() => setMatchResult(null)}
+      />
     </main>
   );
 }

@@ -10,4 +10,5 @@ import type { Profile } from './profile';
 export interface ProfileLike {
   profile: Profile;
   likedAt: Date;
+  isSuperLike: boolean;
 }

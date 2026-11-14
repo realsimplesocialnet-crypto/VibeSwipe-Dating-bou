@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { useMemo } from 'react';
 import { Link, useLocation } from 'wouter';
 import { useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, ChevronRight, Eye, Heart, MessageCircle, RefreshCw, Users } from 'lucide-react';
+import { ArrowLeft, ChevronRight, Eye, Heart, MessageCircle, RefreshCw, Star, Users } from 'lucide-react';
 import {
   getGetMatchesQueryKey, getGetNotificationsQueryKey, getGetStoriesQueryKey, getGetWhoLikedYouQueryKey, getGetWhoViewedYouQueryKey,
   useGetMatches, useGetNotifications, useGetStories, useGetWhoLikedYou, useGetWhoViewedYou, useMarkNotificationRead,
@@ -29,7 +29,7 @@ function useNoticeReader() {
   const notes = useGetNotifications({ query: live });
   const mark = useMarkNotificationRead();
   return (actorId: string, type: 'new_match' | 'new_like' | 'profile_view') => {
-    const unread = notes.data?.notifications.filter(n => n.actor.id === actorId && n.type === type && !n.readAt) ?? [];
+    const unread = notes.data?.notifications.filter(n => n.actor.id === actorId && (n.type === type || (type === 'new_like' && n.type === 'new_super_like')) && !n.readAt) ?? [];
     if (unread.length) void Promise.allSettled(unread.map(n => mark.mutateAsync({ notificationId: n.id })))
       .then(() => qc.invalidateQueries({ queryKey: getGetNotificationsQueryKey() }));
   };
@@ -56,6 +56,7 @@ function Stack({ profiles, avatar }: { profiles: Profile[]; avatar: AvatarFn }) 
 }
 
 export function ActivityOverview({ avatar }: { avatar: AvatarFn }) {
+  const readNotice = useNoticeReader();
   const qc = useQueryClient();
   const [, go] = useLocation();
   const notes = useGetNotifications({ query: { queryKey: getGetNotificationsQueryKey(), ...live } });
@@ -65,6 +66,7 @@ export function ActivityOverview({ avatar }: { avatar: AvatarFn }) {
   const mark = useMarkNotificationRead();
   const am = useMemo(() => activeMatches(matches.data), [matches.data]);
   const msgs = useMemo(() => (notes.data?.notifications ?? []).filter(n => n.type === 'new_message' && am.some(m => m.id === n.matchId && m.profile.id === n.actor.id)).slice(0, 8), [notes.data, am]);
+  const superNotices = useMemo(() => (notes.data?.notifications ?? []).filter(n => n.type === 'new_super_like' && likes.data?.some(l => l.profile.id === n.actor.id && l.isSuperLike)).slice(0, 8), [notes.data, likes.data]);
   const openMsg = async (id: string, unread: boolean) => {
     if (unread) { try { await mark.mutateAsync({ notificationId: id }); } catch { /* still navigate */ } void qc.invalidateQueries({ queryKey: getGetNotificationsQueryKey() }); }
     go('/messages');
@@ -87,6 +89,15 @@ export function ActivityOverview({ avatar }: { avatar: AvatarFn }) {
           {!n.readAt && <span className="h-2 w-2 shrink-0 rounded-full bg-primary" aria-label="Unread" />}
         </button></li>)}</ul>}
     </section>
+    {superNotices.length > 0 && <section className="mt-3 space-y-3" aria-label="Super Likes">
+      {superNotices.map(n => <Link key={n.id} href={`/profile/${n.actor.id}?returnTo=%2Fnotifications`} onClick={() => readNotice(n.actor.id, 'new_like')} data-testid={`super-like-notice-${n.id}`} className="sh-card flex items-center gap-3 rounded-[22px] border-primary/30 p-4">
+        <span className="sh-icon flex h-11 w-11 shrink-0 items-center justify-center rounded-full"><Star size={22} fill="currentColor" aria-hidden="true" /></span>
+        <span className="min-w-0 flex-1"><span className="block truncate font-bold">{n.actor.name}</span><span className="text-sm font-semibold text-primary">Super Liked you</span></span>
+        <time className="sh-muted shrink-0 text-xs" dateTime={n.createdAt}>{ago(n.createdAt)}</time>
+        {!n.readAt && <span className="h-2 w-2 shrink-0 rounded-full bg-primary" aria-label="Unread" />}
+        <ChevronRight size={17} className="text-primary" aria-hidden="true" />
+      </Link>)}
+    </section>}
     <section className="mt-8 space-y-3" aria-label="Summary">
       {cards.map(c => <Link key={c.key} href={c.href} data-testid={`link-summary-${c.key}`} aria-label={`${c.label}, ${c.n}`} className="sh-card flex items-center gap-4 rounded-[24px] p-4 transition-transform hover:-translate-y-px md:p-5">
         <div className="sh-icon relative flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl">{c.icon}{c.badge > 0 && <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 text-[11px] font-bold text-primary-foreground">{c.badge > 99 ? '99+' : c.badge}</span>}</div>
@@ -105,7 +116,7 @@ export function InboundPeoplePage({ avatar, kind }: { avatar: AvatarFn; kind: 'l
   const likes = useGetWhoLikedYou({ query: { queryKey: getGetWhoLikedYouQueryKey(), enabled: isLikes, ...live } });
   const views = useGetWhoViewedYou({ query: { queryKey: getGetWhoViewedYouQueryKey(), enabled: !isLikes, ...live } });
   const q = isLikes ? likes : views;
-  const rows = useMemo(() => isLikes ? (likes.data ?? []).map(l => ({ profile: l.profile, at: l.likedAt })) : (views.data ?? []).map(v => ({ profile: v.profile, at: v.viewedAt })), [isLikes, likes.data, views.data]);
+  const rows = useMemo(() => isLikes ? (likes.data ?? []).map(l => ({ profile: l.profile, at: l.likedAt, isSuperLike: l.isSuperLike })) : (views.data ?? []).map(v => ({ profile: v.profile, at: v.viewedAt, isSuperLike: false })), [isLikes, likes.data, views.data]);
   const rt = isLikes ? '%2Flikes' : '%2Fviews';
   return <div className="social-hub min-h-[calc(100dvh-48px)] lg:min-h-[100dvh]"><div className="page-in mx-auto max-w-[720px] px-4 pb-12 pt-6 md:px-8 md:pt-10">
     <Head back title={isLikes ? 'Likes' : 'Views'} sub={isLikes ? 'People who liked you' : 'People who viewed your profile'} />
@@ -113,8 +124,8 @@ export function InboundPeoplePage({ avatar, kind }: { avatar: AvatarFn; kind: 'l
       : !rows.length ? <Empty icon={isLikes ? <Heart size={24} fill="currentColor" /> : <Eye size={24} />} title={isLikes ? 'No likes yet' : 'No views yet'} detail={isLikes ? 'When someone likes you, they show up here.' : 'When someone opens your profile, they show up here.'} />
       : <ul className="space-y-3">{rows.map(r => <li key={`${r.profile.id}-${r.at}`}><Link href={`/profile/${r.profile.id}?returnTo=${rt}`} onClick={() => readNotice(r.profile.id, isLikes ? 'new_like' : 'profile_view')} data-testid={`link-${kind}-profile-${r.profile.id}`} aria-label={`View ${r.profile.name}'s profile`} className="sh-card flex items-center gap-4 rounded-[22px] p-3.5 transition-transform hover:-translate-y-px md:p-4">
         <div className="h-14 w-14 shrink-0 overflow-hidden rounded-full">{avatar(r.profile)}</div>
-        <div className="min-w-0 flex-1"><div className="truncate text-[17px] font-bold">{r.profile.name}{r.profile.age !== null && r.profile.showAge !== false ? `, ${r.profile.age}` : ''}</div><div className="sh-muted text-sm">{isLikes ? 'Liked you' : 'Viewed your profile'} <span aria-hidden="true">·</span> <time dateTime={r.at}>{ago(r.at)}</time></div></div>
-        {isLikes ? <Heart size={22} fill="currentColor" className="shrink-0 text-primary" aria-hidden="true" /> : <span className="sh-pill inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold"><Eye size={15} aria-hidden="true" />View</span>}
+        <div className="min-w-0 flex-1"><div className="truncate text-[17px] font-bold">{r.profile.name}{r.profile.age !== null && r.profile.showAge !== false ? `, ${r.profile.age}` : ''}</div><div className="sh-muted text-sm">{isLikes ? (r.isSuperLike ? 'Super Liked you' : 'Liked you') : 'Viewed your profile'} <span aria-hidden="true">·</span> <time dateTime={r.at}>{ago(r.at)}</time></div></div>
+        {isLikes ? (r.isSuperLike ? <Star size={22} fill="currentColor" className="shrink-0 text-primary" aria-hidden="true" /> : <Heart size={22} fill="currentColor" className="shrink-0 text-primary" aria-hidden="true" />) : <span className="sh-pill inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold"><Eye size={15} aria-hidden="true" />View</span>}
       </Link></li>)}</ul>}
   </div></div>;
 }

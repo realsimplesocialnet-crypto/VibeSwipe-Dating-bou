@@ -94,22 +94,34 @@ html[data-theme="light"] .profile-nav .text-primary { color:#f2557d; }
 .messages-page .msg-card { background:hsl(var(--card)); border:1px solid hsl(var(--border) / .6); box-shadow:0 10px 30px hsl(252 30% 3% / .28); }
 html[data-theme="light"] .messages-page { background:linear-gradient(180deg,#fdf7fa 0%,#f8f6fa 100%); }
 html[data-theme="light"] .messages-page .msg-card { background:#fffdfe; border-color:#f1e6ec; box-shadow:0 8px 24px rgba(160,90,120,.10); }
-/* Other users' full profile: always dark, scoped */
 .public-profile {
-  color-scheme: dark;
-  --background: 252 18% 8%; --foreground: 330 17% 94%; --border: 258 12% 22%; --card: 252 16% 12%; --card-foreground: 330 17% 94%;
-  --muted: 258 13% 17%; --muted-foreground: 264 9% 68%; --accent: 333 34% 20%; --accent-foreground: 337 92% 78%; --secondary: 258 13% 18%;
-  background-color: hsl(var(--background)); color: hsl(var(--foreground));
+  --pp-bg: 340 33% 12%; --pp-card: 335 20% 16%; --pp-soft: 335 22% 21%; --pp-line: 335 14% 24%; --pp-fg: 330 30% 96%; --pp-muted: 330 10% 72%;
+  --pp-pink: 343 88% 66%; --pp-gold: 41 82% 58%; --pp-shadow: 340 60% 3%;
+  background: radial-gradient(120% 60% at 50% 0%, hsl(338 30% 18%), hsl(var(--pp-bg)) 70%); color: hsl(var(--pp-fg)); font-family: "Plus Jakarta Sans", "DM Sans", system-ui, sans-serif;
 }
-.public-profile .pp-pill { border-radius:999px; background:transparent; border:1px solid hsl(var(--primary) / .7); padding:7px 14px; font-size:13px; font-weight:600; color:hsl(var(--foreground)); }
-.public-profile .pp-like { background:hsl(var(--primary)); color:hsl(330 40% 99%); box-shadow:0 8px 22px hsl(335 94% 50% / .32); }
-.public-profile .pp-toast { background:hsl(252 16% 14% / .9); color:hsl(330 17% 94%); border:1px solid hsl(var(--border) / .6); backdrop-filter:blur(10px); }
-.public-profile .pp-round { display:flex; height:42px; width:42px; align-items:center; justify-content:center; border-radius:999px; background:hsl(var(--card)); border:1px solid hsl(var(--border) / .6); color:hsl(var(--primary)); transition:transform .15s; }
+html[data-theme="light"] .public-profile {
+  --pp-bg: 345 80% 96%; --pp-card: 345 100% 99.5%; --pp-soft: 345 70% 92%; --pp-line: 345 40% 92%; --pp-fg: 335 25% 14%; --pp-muted: 335 10% 44%;
+  --pp-pink: 343 84% 60%; --pp-gold: 38 88% 50%; --pp-shadow: 340 60% 45%;
+  background: linear-gradient(180deg, hsl(345 85% 95%) 0%, hsl(var(--pp-bg)) 45%, hsl(350 70% 97%) 100%); color-scheme: light;
+}
+.public-profile .pp-wordmark { font-size:13px; font-weight:800; letter-spacing:.18em; text-transform:uppercase; color:hsl(var(--pp-pink)); }
+.public-profile .pp-round { display:flex; height:42px; width:42px; align-items:center; justify-content:center; border-radius:999px; background:hsl(var(--pp-card)); color:hsl(var(--pp-fg)); box-shadow:0 4px 14px hsl(var(--pp-shadow) / .12); transition:transform .15s; }
 .public-profile .pp-round:active { transform:scale(.94); }
-.public-profile .pp-card { background:hsl(var(--card)); border:1px solid hsl(var(--border) / .55); border-radius:14px; padding:10px 14px; }
-.public-profile .pp-card .pp-label { display:flex; align-items:center; gap:8px; font-size:13px; font-weight:800; letter-spacing:.04em; text-transform:uppercase; color:hsl(var(--primary)); }
-.public-profile .pp-card .pp-icon { display:inline-flex; flex-shrink:0; height:44px; width:44px; align-items:center; justify-content:center; border-radius:999px; background:hsl(var(--primary)); color:hsl(var(--card)); }
-.public-profile .pp-pass { background:hsl(var(--card)); color:hsl(var(--primary)); border:1px solid hsl(var(--border) / .7); box-shadow:0 6px 16px hsl(252 30% 3% / .35); backdrop-filter:none; }
+.public-profile .pp-avatar { display:flex; height:136px; width:136px; align-items:center; justify-content:center; border-radius:999px; padding:4px; background:hsl(var(--pp-card)); color:hsl(var(--pp-pink)); box-shadow:0 0 0 2px hsl(var(--pp-pink) / .55), 0 14px 34px hsl(var(--pp-shadow) / .22); }
+.public-profile .pp-card { background:hsl(var(--pp-card)); border-radius:22px; padding:16px 18px; box-shadow:0 8px 26px hsl(var(--pp-shadow) / .09); }
+.public-profile .pp-label { font-size:12px; font-weight:800; letter-spacing:.12em; text-transform:uppercase; color:hsl(var(--pp-pink)); }
+.public-profile .pp-icon { display:inline-flex; flex-shrink:0; height:34px; width:34px; align-items:center; justify-content:center; border-radius:999px; background:hsl(var(--pp-soft)); color:hsl(var(--pp-pink)); }
+.public-profile .pp-pill { border-radius:999px; background:hsl(var(--pp-soft)); padding:6px 13px; font-size:13px; font-weight:600; color:hsl(var(--pp-fg)); }
+.public-profile .pp-thumb { flex-shrink:0; height:104px; width:84px; overflow:hidden; border-radius:16px; background:hsl(var(--pp-soft)); box-shadow:0 6px 16px hsl(var(--pp-shadow) / .12); transition:transform .15s; }
+.public-profile .pp-thumb:active { transform:scale(.96); }
+.public-profile .pp-action { pointer-events:auto; display:flex; flex-direction:column; align-items:center; gap:6px; }
+.public-profile .pp-action:disabled { opacity:.5; }
+.public-profile .pp-fab { display:flex; align-items:center; justify-content:center; border-radius:999px; transition:transform .15s ease; }
+.public-profile .pp-action:not(:disabled):active .pp-fab { transform:scale(.92); }
+.public-profile .pp-fab-white { background:hsl(var(--pp-card)); box-shadow:0 10px 26px hsl(var(--pp-shadow) / .18); }
+.public-profile .pp-fab-pink { background:hsl(var(--pp-pink)); color:hsl(345 100% 99%); box-shadow:0 12px 28px hsl(var(--pp-pink) / .38); }
+.public-profile .pp-cap { white-space:nowrap; font-size:11px; font-weight:700; color:hsl(var(--pp-fg)); background:hsl(var(--pp-card) / .85); border-radius:999px; padding:2px 8px; }
+.public-profile .pp-toast, .public-profile .pp-confirm { background:hsl(var(--pp-card)); color:hsl(var(--pp-fg)); box-shadow:0 10px 28px hsl(var(--pp-shadow) / .2); }
 .chat-surface { --chat-bg: 340 33% 99%; --chat-card: 0 0% 100%; --chat-fg: 230 35% 14%; --chat-muted: 230 8% 46%; --chat-border: 330 14% 91%; --chat-soft: 335 45% 96%; --chat-pink: 344 82% 62%; color-scheme: light; background: hsl(var(--chat-bg)); color: hsl(var(--chat-fg)); }
 .chat-surface.chat-dark { --chat-bg: 300 9% 5%; --chat-card: 300 10% 8%; --chat-fg: 330 40% 97%; --chat-muted: 330 8% 68%; --chat-border: 315 8% 18%; --chat-soft: 315 9% 13%; color-scheme: dark; }
 .notifications-shell { background-image:linear-gradient(145deg,hsl(327 22% 14%),hsl(275 18% 9%) 65%,hsl(23 18% 12%)); }
@@ -129,3 +141,24 @@ html[data-theme="light"] .discover-sticky { background:linear-gradient(135deg,rg
 html[data-theme="light"] .messages-shell { --card:0 0% 100%; --primary:340 85% 61%; --primary-foreground:0 0% 100%; background:#ffedf1; }
 html[data-theme="light"] .messages-shell .messages-page { background:transparent; }
 html[data-theme="light"] .messages-shell .msg-card { background:#fff; border-color:rgba(255,255,255,.8); box-shadow:0 5px 13px rgba(123,56,83,.09); }
+
+/* Edit Profile (own, edit mode) */
+.profile-edit { --pe-bg:335 22% 9%; --pe-card:335 16% 14%; --pe-soft:335 20% 20%; --pe-fg:330 30% 96%; --pe-muted:330 10% 70%; --pe-pink:343 88% 66%; --pe-shadow:340 60% 3%; background:hsl(var(--pe-bg)); color:hsl(var(--pe-fg)); }
+html[data-theme="light"] .profile-edit { --pe-bg:345 80% 96%; --pe-card:345 100% 99.5%; --pe-soft:345 70% 93%; --pe-fg:335 25% 14%; --pe-muted:335 10% 44%; --pe-pink:343 84% 60%; --pe-shadow:340 60% 45%; --card:345 100% 99.5%; --border:345 40% 90%; background:linear-gradient(180deg,hsl(345 85% 95%),hsl(var(--pe-bg)) 50%); color-scheme:light; }
+.profile-edit .pe-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:18px; }
+.profile-edit .pe-title { font-size:22px; font-weight:800; letter-spacing:-.01em; }
+.profile-edit .pe-round { display:flex; height:40px; width:40px; align-items:center; justify-content:center; border-radius:999px; background:hsl(var(--pe-card)); box-shadow:0 4px 14px hsl(var(--pe-shadow) / .12); }
+.profile-edit .pe-card { background:hsl(var(--pe-card)); border-radius:22px; padding:18px; box-shadow:0 8px 26px hsl(var(--pe-shadow) / .09); }
+.profile-edit .pe-label { font-size:12px; font-weight:800; letter-spacing:.12em; text-transform:uppercase; color:hsl(var(--pe-pink)); }
+.profile-edit .pe-slot { aspect-ratio:.78; border-radius:16px; background:hsl(var(--pe-soft)); }
+.profile-edit .pe-empty { display:flex; align-items:center; justify-content:center; border:1.5px dashed hsl(var(--pe-pink) / .4); transition:transform .15s; }
+.profile-edit .pe-empty:not(:disabled):active { transform:scale(.96); }
+.profile-edit .pe-empty:disabled { opacity:.55; }
+.profile-edit .pe-plus { display:flex; height:32px; width:32px; align-items:center; justify-content:center; border-radius:999px; background:hsl(var(--pe-pink)); color:hsl(345 100% 99%); font-size:22px; font-weight:600; line-height:1; box-shadow:0 6px 14px hsl(var(--pe-pink) / .35); }
+.profile-edit .pe-main { position:absolute; left:6px; bottom:6px; border-radius:999px; background:hsl(var(--pe-pink)); color:hsl(345 100% 99%); padding:3px 8px; font-size:10px; font-weight:800; }
+.profile-edit .pe-x { position:absolute; right:6px; top:6px; display:flex; height:26px; width:26px; align-items:center; justify-content:center; border-radius:999px; background:hsl(345 100% 99%); color:hsl(335 25% 14%); box-shadow:0 3px 10px hsl(340 60% 10% / .25); }
+.profile-edit .pe-savebar { position:fixed; inset-inline:0; bottom:0; z-index:40; display:flex; flex-direction:column; align-items:center; gap:8px; padding:12px 16px calc(14px + env(safe-area-inset-bottom)); background:linear-gradient(to top, hsl(var(--pe-bg)) 55%, hsl(var(--pe-bg) / 0)); }
+.profile-edit .pe-save { width:100%; max-width:528px; height:54px; border-radius:999px; background:hsl(var(--pe-pink)); color:hsl(345 100% 99%); font-size:16px; font-weight:800; box-shadow:0 12px 28px hsl(var(--pe-pink) / .35); transition:transform .15s; }
+.profile-edit .pe-save:not(:disabled):active { transform:scale(.98); }
+.profile-edit .pe-save:disabled { opacity:.6; }
+.profile-edit .pe-error { max-width:528px; width:100%; border-radius:14px; background:hsl(var(--pe-card)); color:hsl(352 70% 50%); padding:8px 14px; font-size:13px; font-weight:600; text-align:center; box-shadow:0 6px 18px hsl(var(--pe-shadow) / .12); }

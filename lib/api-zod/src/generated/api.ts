@@ -1047,7 +1047,8 @@ export const GetWhoLikedYouResponseItem = zod.object({
 }).optional()
 })
 }),
-  "likedAt": zod.coerce.date()
+  "likedAt": zod.coerce.date(),
+  "isSuperLike": zod.boolean()
 })
 export const GetWhoLikedYouResponse = zod.array(GetWhoLikedYouResponseItem)
 
@@ -1144,7 +1145,7 @@ export const getNotificationsResponseUnreadCountsLikesMin = 0;
 export const GetNotificationsResponse = zod.object({
   "notifications": zod.array(zod.object({
   "id": zod.string().uuid(),
-  "type": zod.enum(['new_match', 'new_message', 'new_like', 'profile_view']),
+  "type": zod.enum(['new_match', 'new_message', 'new_like', 'new_super_like', 'profile_view']),
   "actor": zod.object({
   "id": zod.string(),
   "name": zod.string(),

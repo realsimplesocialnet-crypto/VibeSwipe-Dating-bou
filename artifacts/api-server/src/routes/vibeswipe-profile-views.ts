@@ -131,7 +131,7 @@ router.post(
 router.get("/vibeswipe/likes", async (req, res): Promise<void> => {
   const userId = currentUserId(req);
   const rows = await db
-    .select({ profile: profilesTable, likedAt: reactionsTable.createdAt })
+    .select({ profile: profilesTable, likedAt: reactionsTable.createdAt, type: reactionsTable.type })
     .from(reactionsTable)
     .innerJoin(profilesTable, eq(reactionsTable.fromUserId, profilesTable.id))
     .where(and(eq(reactionsTable.toUserId, userId), inArray(reactionsTable.type, ["like", "super"])))
@@ -147,9 +147,10 @@ router.get("/vibeswipe/likes", async (req, res): Promise<void> => {
     block.blockerId === userId ? block.blockedId : block.blockerId));
   res.json(GetWhoLikedYouResponse.parse(rows
     .filter(({ profile }) => canShowIncomingProfile(profile, userId, blockedIds))
-    .map(({ profile, likedAt }) => ({
+    .map(({ profile, likedAt, type }) => ({
       profile: { ...profile, age: profile.showAge ? profile.age : null },
       likedAt,
+      isSuperLike: type === "super",
     }))));
 });
 
