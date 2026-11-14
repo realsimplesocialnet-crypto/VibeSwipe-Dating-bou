@@ -5,11 +5,13 @@ import vibeswipePushRouter from "./vibeswipe-push";
 import vibeswipeRealtimeRouter from "./vibeswipe-realtime";
 import vibeswipeRouter from "./vibeswipe";
 import vibeswipeSafetyRouter from "./vibeswipe-safety";
+import vibeswipeStoriesRouter from "./vibeswipe-stories";
 
 const router: IRouter = Router();
 
 router.use(healthRouter);
 router.use(vibeswipeSafetyRouter);
+router.use(vibeswipeStoriesRouter);
 router.use(vibeswipeRouter);
 router.use(vibeswipeRealtimeRouter);
 router.use(vibeswipeProfileViewsRouter);

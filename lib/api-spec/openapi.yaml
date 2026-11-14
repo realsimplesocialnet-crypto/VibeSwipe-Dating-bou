@@ -973,6 +973,110 @@ paths:
           description: Media is not visible to the signed-in user
         "404":
           description: Media not found
+  /vibeswipe/stories:
+    get:
+      operationId: getStories
+      tags: [vibeswipe]
+      summary: List active stories from the signed-in user and mutual matches
+      responses:
+        "200":
+          description: Active own and matched-user stories, ordered by newest story
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StoriesFeed"
+    post:
+      operationId: createStory
+      tags: [vibeswipe]
+      summary: Post a story that expires after 24 hours
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StoryInput"
+      responses:
+        "201":
+          description: Story created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StoryCreated"
+        "400":
+          description: Invalid story or incomplete video upload
+  /vibeswipe/stories/{storyId}:
+    delete:
+      operationId: deleteStory
+      tags: [vibeswipe]
+      summary: Delete the signed-in user's story
+      parameters:
+        - in: path
+          name: storyId
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "204":
+          description: Story deleted
+        "404":
+          description: Story not found
+  /vibeswipe/stories/{storyId}/view:
+    post:
+      operationId: markStoryViewed
+      tags: [vibeswipe]
+      summary: Record that the signed-in user viewed an active matched story
+      parameters:
+        - in: path
+          name: storyId
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "204":
+          description: Story view recorded
+        "403":
+          description: Story is not visible to this user
+        "404":
+          description: Story expired or not found
+  /vibeswipe/stories/uploads/request-url:
+    post:
+      operationId: requestStoryMediaUpload
+      tags: [vibeswipe]
+      summary: Request a private upload URL for a story photo or video
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MediaUploadInput"
+      responses:
+        "200":
+          description: Private upload URL and media reference
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MediaUploadResult"
+        "400":
+          description: Unsupported or oversized story media
+  /vibeswipe/stories/uploads/{mediaId}/transcode:
+    post:
+      operationId: transcodeStoryVideo
+      tags: [vibeswipe]
+      summary: Compress a story video and enforce the 15 second limit
+      parameters:
+        - in: path
+          name: mediaId
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Compressed video metadata
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StoryVideoTranscodeResult"
+        "400":
+          description: Video exceeds story duration or size limits
+        "404":
+          description: Uploaded video was not found
 components:
   securitySchemes:
     bearerAuth:
@@ -1358,6 +1462,67 @@ components:
         mediaReference: { type: string }
         size: { type: integer, minimum: 1, maximum: 52428800 }
         duration: { type: number, exclusiveMinimum: 0, maximum: 30 }
+        width: { type: integer, minimum: 1, maximum: 1280 }
+        height: { type: integer, minimum: 1, maximum: 1280 }
+      required: [mediaReference, size, duration, width, height]
+    StoryPoster:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        photo: { type: [string, "null"] }
+      required: [id, name, photo]
+    StoryItem:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        mediaUrl: { type: [string, "null"], maxLength: 100 }
+        mediaType: { type: [string, "null"], enum: [image, video, null] }
+        caption: { type: string, maxLength: 500 }
+        backgroundColor: { type: [string, "null"], pattern: "^#[0-9a-fA-F]{6}$" }
+        createdAt: { type: string, format: date-time }
+        expiresAt: { type: string, format: date-time }
+        viewed: { type: boolean }
+      required: [id, mediaUrl, mediaType, caption, backgroundColor, createdAt, expiresAt, viewed]
+    StoryGroup:
+      type: object
+      properties:
+        matchId: { type: string, format: uuid }
+        poster: { $ref: "#/components/schemas/StoryPoster" }
+        stories:
+          type: array
+          items: { $ref: "#/components/schemas/StoryItem" }
+      required: [matchId, poster, stories]
+    StoriesFeed:
+      type: object
+      properties:
+        ownStories:
+          type: array
+          items: { $ref: "#/components/schemas/StoryItem" }
+        matches:
+          type: array
+          items: { $ref: "#/components/schemas/StoryGroup" }
+      required: [ownStories, matches]
+    StoryInput:
+      type: object
+      properties:
+        mediaUrl: { type: string, minLength: 1, maxLength: 100 }
+        mediaType: { type: string, enum: [image, video] }
+        caption: { type: string, maxLength: 500 }
+        backgroundColor: { type: string, pattern: "^#[0-9a-fA-F]{6}$" }
+    StoryCreated:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        createdAt: { type: string, format: date-time }
+        expiresAt: { type: string, format: date-time }
+      required: [id, createdAt, expiresAt]
+    StoryVideoTranscodeResult:
+      type: object
+      properties:
+        mediaReference: { type: string }
+        size: { type: integer, minimum: 1, maximum: 52428800 }
+        duration: { type: number, exclusiveMinimum: 0, maximum: 15 }
         width: { type: integer, minimum: 1, maximum: 1280 }
         height: { type: integer, minimum: 1, maximum: 1280 }
       required: [mediaReference, size, duration, width, height]

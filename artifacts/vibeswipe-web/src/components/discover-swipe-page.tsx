@@ -27,6 +27,7 @@ import {
 } from "@workspace/api-client-react";
 import { ArrowLeft, Heart, MapPin, MoreHorizontal, SlidersHorizontal, Star, X, Zap } from "lucide-react";
 import { isDiscoverSetupRequired, shouldRetryDiscover } from "@/lib/profile-query-state";
+import { StoriesRow } from "@/components/stories/stories-ui";
 
 const mediaUrl = (ref?: string | null) => ref
   ? ref.startsWith("http")
@@ -189,10 +190,11 @@ export function DiscoverSwipePage() {
   }
   if (!profile) {
     return (
-      <div className="mx-auto max-w-xl px-4 py-12 text-center">
-        <h1 className="brand text-2xl font-bold">That’s everyone for now</h1>
+      <div className="mx-auto max-w-[760px] px-4 py-5 text-center sm:px-6 sm:py-7">
+        <StoriesRow />
+        <div className="mx-auto max-w-xl py-8"><h1 className="brand text-2xl font-bold">That’s everyone for now</h1>
         <p className="mt-2 text-sm text-muted-foreground">Try broadening your filters or check back soon.</p>
-        <button onClick={() => setFiltersOpen(true)} data-testid="button-open-filters-empty" className="mt-5 rounded-xl bg-primary px-4 py-3 font-bold text-[#27101d]">Adjust filters</button>
+        <button onClick={() => setFiltersOpen(true)} data-testid="button-open-filters-empty" className="mt-5 rounded-xl bg-primary px-4 py-3 font-bold text-[#27101d]">Adjust filters</button></div>
         <FilterDialog open={filtersOpen} onClose={() => setFiltersOpen(false)} ageMin={ageMin} ageMax={ageMax} gender={gender} country={country} city={city} travelMode={Boolean(settings.data?.travelMode)} setAgeMin={setAgeMin} setAgeMax={setAgeMax} setGender={setGender} setCountry={(value) => { setCountry(value); setCity(""); }} setCity={setCity} onApply={() => { setIndex(0); setFiltersOpen(false); }} />
       </div>
     );
@@ -200,6 +202,7 @@ export function DiscoverSwipePage() {
 
   return (
     <main className="mx-auto w-full max-w-[680px] px-4 pb-8 pt-5 sm:px-6 sm:pt-7">
+      <StoriesRow />
       <header className="mb-4 flex items-center justify-between gap-3">
         <div>
           <h1 className="brand text-2xl font-bold tracking-[-.04em]">Meet someone new</h1>

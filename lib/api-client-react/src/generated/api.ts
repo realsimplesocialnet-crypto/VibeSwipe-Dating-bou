@@ -64,6 +64,10 @@ import type {
   ReadReceiptStatus,
   ReportInput,
   SearchTravelCitiesParams,
+  StoriesFeed,
+  StoryCreated,
+  StoryInput,
+  StoryVideoTranscodeResult,
   SuperLikeStatus,
   TravelCityOption,
   TypingInput,
@@ -5379,4 +5383,503 @@ export function useGetProfileMedia<TData = Awaited<ReturnType<typeof getProfileM
 
 
 
+
+export const getGetStoriesUrl = () => {
+
+
+
+
+  return `/api/vibeswipe/stories`
+}
+
+/**
+ * @summary List active stories from the signed-in user and mutual matches
+ */
+export const getStories = async ( options?: Parameters<typeof customFetch>[1]): Promise<StoriesFeed> => {
+
+  return customFetch<StoriesFeed>(getGetStoriesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetStoriesQueryKey = () => {
+    return [
+    `/api/vibeswipe/stories`
+    ] as const;
+    }
+
+
+export const getGetStoriesQueryOptions = <TData = Awaited<ReturnType<typeof getStories>>, TError = ErrorType<unknown>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getStories>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetStoriesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getStories>>> = ({ signal }) => getStories({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getStories>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetStoriesQueryResult = NonNullable<Awaited<ReturnType<typeof getStories>>>
+export type GetStoriesQueryError = ErrorType<unknown>
+
+
+export function useGetStories<TData = Awaited<ReturnType<typeof getStories>>, TError = ErrorType<unknown>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getStories>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getStories>>,
+          TError,
+          Awaited<ReturnType<typeof getStories>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetStories<TData = Awaited<ReturnType<typeof getStories>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getStories>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getStories>>,
+          TError,
+          Awaited<ReturnType<typeof getStories>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetStories<TData = Awaited<ReturnType<typeof getStories>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getStories>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary List active stories from the signed-in user and mutual matches
+ */
+
+export function useGetStories<TData = Awaited<ReturnType<typeof getStories>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getStories>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetStoriesQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateStoryUrl = () => {
+
+
+
+
+  return `/api/vibeswipe/stories`
+}
+
+/**
+ * @summary Post a story that expires after 24 hours
+ */
+export const createStory = async (storyInput: StoryInput, options?: Parameters<typeof customFetch>[1]): Promise<StoryCreated> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<StoryCreated>(getCreateStoryUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(storyInput)
+  }
+);}
+
+
+
+
+
+export const getCreateStoryMutationKey = () => ['createStory'] as const;
+
+export const getCreateStoryMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createStory>>, TError,CreateStoryMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createStory>>, TError,CreateStoryMutationVariables, TContext> => {
+
+const mutationKey = getCreateStoryMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createStory>>, CreateStoryMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  createStory(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateStoryMutationResult = NonNullable<Awaited<ReturnType<typeof createStory>>>
+    export type CreateStoryMutationBody = BodyType<StoryInput>
+    export type CreateStoryMutationError = ErrorType<void>
+    export type CreateStoryMutationVariables = {data: BodyType<StoryInput>}
+
+    /**
+ * @summary Post a story that expires after 24 hours
+ */
+export const useCreateStory = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createStory>>, TError,CreateStoryMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof createStory>>,
+        TError,
+        CreateStoryMutationVariables,
+        TContext
+      > => {
+      return useMutation(getCreateStoryMutationOptions(options), queryClient);
+    }
+
+export const getDeleteStoryUrl = (storyId: string,) => {
+
+
+
+
+  return `/api/vibeswipe/stories/${storyId}`
+}
+
+/**
+ * @summary Delete the signed-in user's story
+ */
+export const deleteStory = async (storyId: string, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getDeleteStoryUrl(storyId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeleteStoryMutationKey = () => ['deleteStory'] as const;
+
+export const getDeleteStoryMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteStory>>, TError,DeleteStoryMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteStory>>, TError,DeleteStoryMutationVariables, TContext> => {
+
+const mutationKey = getDeleteStoryMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteStory>>, DeleteStoryMutationVariables> = (props) => {
+          const {storyId} = props ?? {};
+
+          return  deleteStory(storyId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteStoryMutationResult = NonNullable<Awaited<ReturnType<typeof deleteStory>>>
+
+    export type DeleteStoryMutationError = ErrorType<void>
+    export type DeleteStoryMutationVariables = {storyId: string}
+
+    /**
+ * @summary Delete the signed-in user's story
+ */
+export const useDeleteStory = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteStory>>, TError,DeleteStoryMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof deleteStory>>,
+        TError,
+        DeleteStoryMutationVariables,
+        TContext
+      > => {
+      return useMutation(getDeleteStoryMutationOptions(options), queryClient);
+    }
+
+export const getMarkStoryViewedUrl = (storyId: string,) => {
+
+
+
+
+  return `/api/vibeswipe/stories/${storyId}/view`
+}
+
+/**
+ * @summary Record that the signed-in user viewed an active matched story
+ */
+export const markStoryViewed = async (storyId: string, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getMarkStoryViewedUrl(storyId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getMarkStoryViewedMutationKey = () => ['markStoryViewed'] as const;
+
+export const getMarkStoryViewedMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof markStoryViewed>>, TError,MarkStoryViewedMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof markStoryViewed>>, TError,MarkStoryViewedMutationVariables, TContext> => {
+
+const mutationKey = getMarkStoryViewedMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof markStoryViewed>>, MarkStoryViewedMutationVariables> = (props) => {
+          const {storyId} = props ?? {};
+
+          return  markStoryViewed(storyId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type MarkStoryViewedMutationResult = NonNullable<Awaited<ReturnType<typeof markStoryViewed>>>
+
+    export type MarkStoryViewedMutationError = ErrorType<void>
+    export type MarkStoryViewedMutationVariables = {storyId: string}
+
+    /**
+ * @summary Record that the signed-in user viewed an active matched story
+ */
+export const useMarkStoryViewed = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof markStoryViewed>>, TError,MarkStoryViewedMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof markStoryViewed>>,
+        TError,
+        MarkStoryViewedMutationVariables,
+        TContext
+      > => {
+      return useMutation(getMarkStoryViewedMutationOptions(options), queryClient);
+    }
+
+export const getRequestStoryMediaUploadUrl = () => {
+
+
+
+
+  return `/api/vibeswipe/stories/uploads/request-url`
+}
+
+/**
+ * @summary Request a private upload URL for a story photo or video
+ */
+export const requestStoryMediaUpload = async (mediaUploadInput: MediaUploadInput, options?: Parameters<typeof customFetch>[1]): Promise<MediaUploadResult> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<MediaUploadResult>(getRequestStoryMediaUploadUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(mediaUploadInput)
+  }
+);}
+
+
+
+
+
+export const getRequestStoryMediaUploadMutationKey = () => ['requestStoryMediaUpload'] as const;
+
+export const getRequestStoryMediaUploadMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof requestStoryMediaUpload>>, TError,RequestStoryMediaUploadMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof requestStoryMediaUpload>>, TError,RequestStoryMediaUploadMutationVariables, TContext> => {
+
+const mutationKey = getRequestStoryMediaUploadMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof requestStoryMediaUpload>>, RequestStoryMediaUploadMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  requestStoryMediaUpload(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RequestStoryMediaUploadMutationResult = NonNullable<Awaited<ReturnType<typeof requestStoryMediaUpload>>>
+    export type RequestStoryMediaUploadMutationBody = BodyType<MediaUploadInput>
+    export type RequestStoryMediaUploadMutationError = ErrorType<void>
+    export type RequestStoryMediaUploadMutationVariables = {data: BodyType<MediaUploadInput>}
+
+    /**
+ * @summary Request a private upload URL for a story photo or video
+ */
+export const useRequestStoryMediaUpload = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof requestStoryMediaUpload>>, TError,RequestStoryMediaUploadMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof requestStoryMediaUpload>>,
+        TError,
+        RequestStoryMediaUploadMutationVariables,
+        TContext
+      > => {
+      return useMutation(getRequestStoryMediaUploadMutationOptions(options), queryClient);
+    }
+
+export const getTranscodeStoryVideoUrl = (mediaId: string,) => {
+
+
+
+
+  return `/api/vibeswipe/stories/uploads/${mediaId}/transcode`
+}
+
+/**
+ * @summary Compress a story video and enforce the 15 second limit
+ */
+export const transcodeStoryVideo = async (mediaId: string, options?: Parameters<typeof customFetch>[1]): Promise<StoryVideoTranscodeResult> => {
+
+  return customFetch<StoryVideoTranscodeResult>(getTranscodeStoryVideoUrl(mediaId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getTranscodeStoryVideoMutationKey = () => ['transcodeStoryVideo'] as const;
+
+export const getTranscodeStoryVideoMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof transcodeStoryVideo>>, TError,TranscodeStoryVideoMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof transcodeStoryVideo>>, TError,TranscodeStoryVideoMutationVariables, TContext> => {
+
+const mutationKey = getTranscodeStoryVideoMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof transcodeStoryVideo>>, TranscodeStoryVideoMutationVariables> = (props) => {
+          const {mediaId} = props ?? {};
+
+          return  transcodeStoryVideo(mediaId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type TranscodeStoryVideoMutationResult = NonNullable<Awaited<ReturnType<typeof transcodeStoryVideo>>>
+
+    export type TranscodeStoryVideoMutationError = ErrorType<void>
+    export type TranscodeStoryVideoMutationVariables = {mediaId: string}
+
+    /**
+ * @summary Compress a story video and enforce the 15 second limit
+ */
+export const useTranscodeStoryVideo = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof transcodeStoryVideo>>, TError,TranscodeStoryVideoMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof transcodeStoryVideo>>,
+        TError,
+        TranscodeStoryVideoMutationVariables,
+        TContext
+      > => {
+      return useMutation(getTranscodeStoryVideoMutationOptions(options), queryClient);
+    }
 

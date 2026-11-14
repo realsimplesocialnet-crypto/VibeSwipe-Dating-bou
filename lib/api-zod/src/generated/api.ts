@@ -1269,3 +1269,144 @@ export const GetProfileMediaParams = zod.object({
 export const GetProfileMediaResponse = zod.unknown()
 
 
+/**
+ * @summary List active stories from the signed-in user and mutual matches
+ */
+export const getStoriesResponseOwnStoriesItemMediaUrlMax = 100;
+
+export const getStoriesResponseOwnStoriesItemCaptionMax = 500;
+
+export const getStoriesResponseOwnStoriesItemBackgroundColorRegExp = new RegExp('^#[0-9a-fA-F]{6}$');
+export const getStoriesResponseMatchesItemStoriesItemMediaUrlMax = 100;
+
+export const getStoriesResponseMatchesItemStoriesItemCaptionMax = 500;
+
+export const getStoriesResponseMatchesItemStoriesItemBackgroundColorRegExp = new RegExp('^#[0-9a-fA-F]{6}$');
+
+
+export const GetStoriesResponse = zod.object({
+  "ownStories": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "mediaUrl": zod.string().max(getStoriesResponseOwnStoriesItemMediaUrlMax).nullable(),
+  "mediaType": zod.union([zod.literal('image'),zod.literal('video'),zod.literal(null)]).nullable(),
+  "caption": zod.string().max(getStoriesResponseOwnStoriesItemCaptionMax),
+  "backgroundColor": zod.string().regex(getStoriesResponseOwnStoriesItemBackgroundColorRegExp).nullable(),
+  "createdAt": zod.coerce.date(),
+  "expiresAt": zod.coerce.date(),
+  "viewed": zod.boolean()
+})),
+  "matches": zod.array(zod.object({
+  "matchId": zod.string().uuid(),
+  "poster": zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "photo": zod.string().nullable()
+}),
+  "stories": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "mediaUrl": zod.string().max(getStoriesResponseMatchesItemStoriesItemMediaUrlMax).nullable(),
+  "mediaType": zod.union([zod.literal('image'),zod.literal('video'),zod.literal(null)]).nullable(),
+  "caption": zod.string().max(getStoriesResponseMatchesItemStoriesItemCaptionMax),
+  "backgroundColor": zod.string().regex(getStoriesResponseMatchesItemStoriesItemBackgroundColorRegExp).nullable(),
+  "createdAt": zod.coerce.date(),
+  "expiresAt": zod.coerce.date(),
+  "viewed": zod.boolean()
+}))
+}))
+})
+
+
+/**
+ * @summary Post a story that expires after 24 hours
+ */
+export const createStoryBodyMediaUrlMax = 100;
+
+export const createStoryBodyCaptionMax = 500;
+
+export const createStoryBodyBackgroundColorRegExp = new RegExp('^#[0-9a-fA-F]{6}$');
+
+
+export const CreateStoryBody = zod.object({
+  "mediaUrl": zod.string().min(1).max(createStoryBodyMediaUrlMax).optional(),
+  "mediaType": zod.enum(['image', 'video']).optional(),
+  "caption": zod.string().max(createStoryBodyCaptionMax).optional(),
+  "backgroundColor": zod.string().regex(createStoryBodyBackgroundColorRegExp).optional()
+})
+
+export const CreateStoryResponse = zod.object({
+  "id": zod.string().uuid(),
+  "createdAt": zod.coerce.date(),
+  "expiresAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Delete the signed-in user's story
+ */
+export const DeleteStoryParams = zod.object({
+  "storyId": zod.coerce.string().uuid()
+})
+
+export const DeleteStoryResponse = zod.void()
+
+
+/**
+ * @summary Record that the signed-in user viewed an active matched story
+ */
+export const MarkStoryViewedParams = zod.object({
+  "storyId": zod.coerce.string().uuid()
+})
+
+export const MarkStoryViewedResponse = zod.void()
+
+
+/**
+ * @summary Request a private upload URL for a story photo or video
+ */
+export const requestStoryMediaUploadBodyNameMax = 255;
+
+export const requestStoryMediaUploadBodySizeMax = 524288000;
+
+
+
+export const RequestStoryMediaUploadBody = zod.object({
+  "name": zod.string().min(1).max(requestStoryMediaUploadBodyNameMax),
+  "size": zod.number().int().min(1).max(requestStoryMediaUploadBodySizeMax),
+  "contentType": zod.enum(['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'video/mp4', 'video/quicktime', 'audio/mp4', 'audio/m4a', 'audio/aac', 'audio/wav']),
+  "mediaType": zod.enum(['image', 'video', 'audio'])
+})
+
+export const RequestStoryMediaUploadResponse = zod.object({
+  "uploadURL": zod.string().url(),
+  "mediaId": zod.string().uuid(),
+  "mediaReference": zod.string()
+})
+
+
+/**
+ * @summary Compress a story video and enforce the 15 second limit
+ */
+export const TranscodeStoryVideoParams = zod.object({
+  "mediaId": zod.coerce.string().uuid()
+})
+
+export const transcodeStoryVideoResponseSizeMax = 52428800;
+
+export const transcodeStoryVideoResponseDurationExclusiveMin = 0;
+export const transcodeStoryVideoResponseDurationMax = 15;
+
+export const transcodeStoryVideoResponseWidthMax = 1280;
+
+export const transcodeStoryVideoResponseHeightMax = 1280;
+
+
+
+export const TranscodeStoryVideoResponse = zod.object({
+  "mediaReference": zod.string(),
+  "size": zod.number().int().min(1).max(transcodeStoryVideoResponseSizeMax),
+  "duration": zod.number().gt(transcodeStoryVideoResponseDurationExclusiveMin).max(transcodeStoryVideoResponseDurationMax),
+  "width": zod.number().int().min(1).max(transcodeStoryVideoResponseWidthMax),
+  "height": zod.number().int().min(1).max(transcodeStoryVideoResponseHeightMax)
+})
+
+

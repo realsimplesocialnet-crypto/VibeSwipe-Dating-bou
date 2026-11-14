@@ -77,6 +77,7 @@ import {
   profilesTable,
   reactionsTable,
   reportsTable,
+  storiesTable,
   vibeSwipeReadReceiptsTable,
 } from "@workspace/db";
 import {
@@ -117,6 +118,8 @@ import {
 import { sendMessagePush } from "../lib/vibeswipePush";
 import { buildProfileValues } from "../lib/profileSetup";
 import { findRealTravelCity, resolveDiscoveryLocation, searchRealTravelCities } from "../lib/travelCities";
+import { getUnblockedMatchBetween } from "../lib/vibeswipeStories";
+import { canViewStory } from "../lib/vibeswipeStoryRules";
 
 const router: IRouter = Router();
 const objectStorage = new ObjectStorageService();
@@ -2073,7 +2076,10 @@ router.post(
       const result = await transcodeProfileVideo(file);
       await db
         .update(mediaAssetsTable)
-        .set({ contentType: "video/mp4" })
+        .set({
+          contentType: "video/mp4",
+          durationSeconds: result.duration,
+        })
         .where(eq(mediaAssetsTable.id, asset.id));
       res.json(
         TranscodeProfileVideoResponse.parse({
@@ -2122,6 +2128,27 @@ router.get(
       res.status(404).json({ error: "Media not found." });
       return;
     }
+    const [activeStory] = await db
+      .select({ userId: storiesTable.userId })
+      .from(storiesTable)
+      .where(
+        and(
+          eq(storiesTable.mediaUrl, `media:${asset.id}`),
+          gt(storiesTable.expiresAt, new Date()),
+        ),
+      )
+      .limit(1);
+    const storyMatch =
+      activeStory && activeStory.userId !== userId
+        ? await getUnblockedMatchBetween(userId, activeStory.userId)
+        : null;
+    const storyVisible = activeStory
+      ? canViewStory({
+          viewerId: userId,
+          ownerId: activeStory.userId,
+          hasUnblockedMatch: !!storyMatch,
+        })
+      : false;
     if (asset.matchId) {
       const match = await getMatchForUser(asset.matchId, userId);
       if (!match || (await isBlockedBetween(match.userAId, match.userBId))) {
@@ -2145,7 +2172,7 @@ router.get(
           return;
         }
       }
-    } else if (asset.ownerId !== userId) {
+    } else if (asset.ownerId !== userId && !storyVisible) {
       const [ownerProfile] = await db
         .select()
         .from(profilesTable)
@@ -2164,6 +2191,7 @@ router.get(
       const response = await objectStorage.downloadObject(file, 300);
       res.status(response.status);
       response.headers.forEach((value, key) => res.setHeader(key, value));
+      if (activeStory) res.setHeader("Cache-Control", "private, no-store");
       if (response.body) {
         Readable.fromWeb(response.body as ReadableStream<Uint8Array>).pipe(res);
       } else {

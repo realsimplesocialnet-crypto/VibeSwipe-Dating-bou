@@ -9,6 +9,7 @@ import type { File } from "@google-cloud/storage";
 export const MAX_PROFILE_VIDEO_BYTES = 50 * 1024 * 1024;
 export const MAX_PROFILE_VIDEO_DURATION_SECONDS = 30;
 export const MAX_PROFILE_VIDEO_SOURCE_BYTES = 500 * 1024 * 1024;
+export const MAX_STORY_VIDEO_DURATION_SECONDS = 15;
 
 export class ProfileVideoValidationError extends Error {
   constructor(message: string) {
@@ -24,15 +25,22 @@ export type TranscodedProfileVideo = {
   height: number;
 };
 
-export function validateTranscodedProfileVideo(video: TranscodedProfileVideo): void {
+export function validateTranscodedProfileVideo(
+  video: TranscodedProfileVideo,
+  maxDurationSeconds = MAX_PROFILE_VIDEO_DURATION_SECONDS,
+): void {
   if (!Number.isFinite(video.size) || video.size <= 0) {
     throw new ProfileVideoValidationError("This video could not be compressed.");
   }
   if (video.size > MAX_PROFILE_VIDEO_BYTES) {
     throw new ProfileVideoValidationError("The compressed video must be 50 MB or smaller.");
   }
-  if (video.duration > MAX_PROFILE_VIDEO_DURATION_SECONDS) {
-    throw new ProfileVideoValidationError("Profile videos must be 30 seconds or shorter.");
+  if (video.duration > maxDurationSeconds) {
+    throw new ProfileVideoValidationError(
+      maxDurationSeconds === MAX_STORY_VIDEO_DURATION_SECONDS
+        ? "Story videos must be 15 seconds or shorter."
+        : "Profile videos must be 30 seconds or shorter.",
+    );
   }
   if (Math.max(video.width, video.height) > 1280 || Math.min(video.width, video.height) > 720) {
     throw new ProfileVideoValidationError("The compressed video exceeds the 720p limit.");
@@ -99,7 +107,15 @@ async function probeVideo(path: string): Promise<TranscodedProfileVideo> {
 
 export async function transcodeProfileVideo(
   source: File,
+  maxDurationSeconds = MAX_PROFILE_VIDEO_DURATION_SECONDS,
 ): Promise<TranscodedProfileVideo> {
+  if (
+    !Number.isFinite(maxDurationSeconds) ||
+    maxDurationSeconds <= 0 ||
+    maxDurationSeconds > MAX_PROFILE_VIDEO_DURATION_SECONDS
+  ) {
+    throw new ProfileVideoValidationError("The video duration limit is invalid.");
+  }
   const [sourceMetadata] = await source.getMetadata();
   const sourceSize = Number(sourceMetadata.size);
   if (
@@ -121,7 +137,7 @@ export async function transcodeProfileVideo(
       "-map", "0:a?",
       "-vf",
       "scale=w='if(gte(iw,ih),min(1280,iw),min(720,iw))':h='if(gte(iw,ih),min(720,ih),min(1280,ih))':force_original_aspect_ratio=decrease:force_divisible_by=2",
-      "-t", "31",
+      "-t", String(maxDurationSeconds + 1),
       "-c:v", "libx264",
       "-preset", "veryfast",
       "-crf", "26",
@@ -134,7 +150,10 @@ export async function transcodeProfileVideo(
 
     const outputStats = await stat(outputPath);
     const video = await probeVideo(outputPath);
-    validateTranscodedProfileVideo({ ...video, size: outputStats.size });
+    validateTranscodedProfileVideo(
+      { ...video, size: outputStats.size },
+      maxDurationSeconds,
+    );
 
     const destination = source.createWriteStream({
       resumable: false,

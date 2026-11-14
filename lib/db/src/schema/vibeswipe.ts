@@ -1,5 +1,6 @@
 import {
   boolean,
+  doublePrecision,
   integer,
   jsonb,
   pgTable,
@@ -246,6 +247,7 @@ export const mediaAssetsTable = pgTable("vibeswipe_media_assets", {
   objectPath: text("object_path").notNull().unique(),
   mediaType: text("media_type").notNull(),
   contentType: text("content_type").notNull(),
+  durationSeconds: doublePrecision("duration_seconds"),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),

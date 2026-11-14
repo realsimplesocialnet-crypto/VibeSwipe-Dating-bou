@@ -1,6 +1,7 @@
 import app from "./app";
 import { logger } from "./lib/logger";
 import { cleanupAbandonedProfileMedia } from "./lib/profileMediaCleanup";
+import { cleanupExpiredStories } from "./lib/vibeswipeStories";
 
 const rawPort = process.env["PORT"];
 
@@ -21,9 +22,21 @@ const runProfileMediaCleanup = async (): Promise<void> => {
   if (cleanupRunning) return;
   cleanupRunning = true;
   try {
-    const deleted = await cleanupAbandonedProfileMedia();
-    if (deleted > 0) {
-      logger.info({ deleted }, "Removed abandoned profile media uploads");
+    const [abandonedMediaDeleted, expiredStoriesDeleted] = await Promise.all([
+      cleanupAbandonedProfileMedia(),
+      cleanupExpiredStories(),
+    ]);
+    if (abandonedMediaDeleted > 0) {
+      logger.info(
+        { deleted: abandonedMediaDeleted },
+        "Removed abandoned profile media uploads",
+      );
+    }
+    if (expiredStoriesDeleted > 0) {
+      logger.info(
+        { deleted: expiredStoriesDeleted },
+        "Removed expired stories",
+      );
     }
   } catch (err) {
     logger.error({ err }, "Failed to clean up abandoned profile media uploads");

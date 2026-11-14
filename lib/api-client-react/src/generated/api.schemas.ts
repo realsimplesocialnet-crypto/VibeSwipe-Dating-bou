@@ -615,6 +615,107 @@ export interface ProfileVideoTranscodeResult {
   height: number;
 }
 
+export interface StoryPoster {
+  id: string;
+  name: string;
+  /** @nullable */
+  photo: string | null;
+}
+
+/**
+ * @nullable
+ */
+export type StoryItemMediaType = typeof StoryItemMediaType[keyof typeof StoryItemMediaType] | null;
+
+
+export const StoryItemMediaType = {
+  image: 'image',
+  video: 'video',
+} as const;
+
+export interface StoryItem {
+  id: string;
+  /**
+     * @maxLength 100
+     * @nullable
+     */
+  mediaUrl: string | null;
+  /** @nullable */
+  mediaType: StoryItemMediaType;
+  /** @maxLength 500 */
+  caption: string;
+  /**
+     * @nullable
+     * @pattern ^#[0-9a-fA-F]{6}$
+     */
+  backgroundColor: string | null;
+  createdAt: string;
+  expiresAt: string;
+  viewed: boolean;
+}
+
+export interface StoryGroup {
+  matchId: string;
+  poster: StoryPoster;
+  stories: StoryItem[];
+}
+
+export interface StoriesFeed {
+  ownStories: StoryItem[];
+  matches: StoryGroup[];
+}
+
+export type StoryInputMediaType = typeof StoryInputMediaType[keyof typeof StoryInputMediaType];
+
+
+export const StoryInputMediaType = {
+  image: 'image',
+  video: 'video',
+} as const;
+
+export interface StoryInput {
+  /**
+     * @minLength 1
+     * @maxLength 100
+     */
+  mediaUrl?: string;
+  mediaType?: StoryInputMediaType;
+  /** @maxLength 500 */
+  caption?: string;
+  /** @pattern ^#[0-9a-fA-F]{6}$ */
+  backgroundColor?: string;
+}
+
+export interface StoryCreated {
+  id: string;
+  createdAt: string;
+  expiresAt: string;
+}
+
+export interface StoryVideoTranscodeResult {
+  mediaReference: string;
+  /**
+     * @minimum 1
+     * @maximum 52428800
+     */
+  size: number;
+  /**
+     * @maximum 15
+     * @exclusiveMinimum 0
+     */
+  duration: number;
+  /**
+     * @minimum 1
+     * @maximum 1280
+     */
+  width: number;
+  /**
+     * @minimum 1
+     * @maximum 1280
+     */
+  height: number;
+}
+
 export type GetDiscoverProfilesParams = {
 /**
  * @minimum 18

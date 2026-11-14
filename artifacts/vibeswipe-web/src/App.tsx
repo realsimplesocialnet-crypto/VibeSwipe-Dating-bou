@@ -38,6 +38,7 @@ import { InstallAction } from '@/components/install-action';
 import { InstalledWelcome } from '@/components/installed-welcome';
 import { TravelModeSettings } from '@/components/travel-mode-settings';
 import { DiscoverSwipePage } from '@/components/discover-swipe-page';
+import { StoryComposerPage } from '@/components/stories/stories-ui';
 import { SignupPasswordField } from '@/components/signup-password-field';
 import { ProfileFirstSignup } from '@/components/profile-first-signup';
 import { LocationChoice } from '@/components/location-choice';
@@ -529,6 +530,7 @@ function PrivacyPolicyRoute(){return <PrivacyPolicyPage/>}
 function ReportSafetyRoute(){return <ShellPage><ReportSafetyPage/></ShellPage>}
 function PublicLocationShareRoute(){return <PublicLocationSharePage/>}
 function DiscoverRoute(){return <ShellPage><DiscoverPage/></ShellPage>}
+function StoryComposerRoute(){return <ShellPage><StoryComposerPage/></ShellPage>}
 function MatchesRoute(){return <ShellPage><MatchesPage/></ShellPage>}
 function ViewsRoute(){return <ShellPage><ViewsPage/></ShellPage>}
 function NotificationsRoute(){return <ShellPage><NotificationsPage/></ShellPage>}
@@ -540,7 +542,7 @@ function ClerkRoutes(){const [,setLocation]=useLocation();return <ClerkProvider 
   <Route path="/sign-in/*?"><div className="grain flex min-h-[100dvh] flex-col items-center justify-center bg-background px-4 py-10"><div className="fixed left-6 top-6"><Brand/></div><SignIn routing="path" path={pathFor('/sign-in')} signUpUrl={pathFor('/sign-up')}/><p className="mt-5 text-center text-xs text-muted-foreground"><Link href="/privacy-policy" className="hover:text-primary">Privacy Policy</Link><span className="px-2">·</span><Link href="/terms" className="hover:text-primary">Terms of Service</Link></p></div></Route>
   <Route path="/sign-up/*?" component={BrandedSignUp}/>
   {import.meta.env.DEV&&<Route path="/create-account-preview"><div className="border-b border-primary/20 bg-accent px-5 py-3 text-center text-xs leading-5 text-foreground" role="note">Form preview only. Email-code signup still needs the authentication setting changed.</div><ProfileFirstSignup previewOnly/></Route>}
-  <Route path="/onboarding" component={OnboardingRoute}/><Route path="/discover" component={DiscoverRoute}/><Route path="/matches" component={MatchesRoute}/>
+  <Route path="/onboarding" component={OnboardingRoute}/><Route path="/discover" component={DiscoverRoute}/><Route path="/stories/new" component={StoryComposerRoute}/><Route path="/matches" component={MatchesRoute}/>
   <Route path="/chat/:matchId" component={ChatRoute}/><Route path="/views" component={ViewsRoute}/><Route path="/notifications" component={NotificationsRoute}/>
    <Route path="/privacy-policy" component={PrivacyPolicyRoute}/><Route path="/terms" component={CommunityGuidelinesRoute}/><Route path="/community-guidelines" component={CommunityGuidelinesRoute}/>
    <Route path="/safety-center" component={SafetyCenterRoute}/><Route path="/report-safety" component={ReportSafetyRoute}/><Route path="/safety/location" component={PublicLocationShareRoute}/>
