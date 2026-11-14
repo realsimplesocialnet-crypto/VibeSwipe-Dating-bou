@@ -460,10 +460,46 @@ function SettingsPage() {
 }
 
 function PublicProfile({id}:{id:string}){
- const q=useGetProfileById(id,{query:{queryKey:getGetProfileByIdQueryKey(id)}});const view=useRecordProfileView();const seen=useRef('');const [activePhoto,setActivePhoto]=useState(0);
+ const q=useGetProfileById(id,{query:{queryKey:getGetProfileByIdQueryKey(id)}});const view=useRecordProfileView();const seen=useRef('');const [activePhoto,setActivePhoto]=useState(0);const [photoError,setPhotoError]=useState(false);
  useEffect(()=>{if(q.data?.id&&seen.current!==q.data.id){seen.current=q.data.id;view.mutate({profileId:q.data.id})}},[q.data?.id]);
- useEffect(()=>setActivePhoto(0),[q.data?.id]);
- return <PageFrame>{q.isLoading?<Busy/>:q.isError||!q.data?<Retry onRetry={()=>void q.refetch()} text="Profile unavailable."/>:<><PageHeading eyebrow="A closer look" title={`${q.data.name}, ${q.data.age}`} description={[q.data.city,q.data.state,q.data.country].filter(Boolean).join(', ')}/><div className="max-w-2xl overflow-hidden rounded-3xl border border-white/10 bg-card"><div data-testid="public-profile-gallery" className="flex snap-x snap-mandatory overflow-x-auto scroll-smooth" onScroll={event=>setActivePhoto(Math.round(event.currentTarget.scrollLeft/Math.max(1,event.currentTarget.clientWidth)))}>{(q.data.photos??[]).map((photo,index)=><div key={`${photo}-${index}`} className="min-w-full snap-center"><div className="aspect-[.82] w-full bg-black/20"><MediaImage reference={photo} alt={`${q.data.name}'s photo ${index+1}`} className="h-full w-full object-cover"/></div></div>)}</div>{q.data.photos?.length>1&&<div className="px-5 pt-3 text-xs text-muted-foreground">{activePhoto+1} / {q.data.photos.length} photos · swipe to view</div>}<section className="space-y-6 p-6"><div><h2 className="text-[10px] font-bold uppercase tracking-[.18em] text-primary">About {q.data.name}</h2><p className="mt-2 whitespace-pre-wrap text-sm leading-7 text-muted-foreground">{q.data.bio||'No bio added yet.'}</p></div><div className="grid gap-4 sm:grid-cols-2"><div><h3 className="text-[10px] font-bold uppercase tracking-[.18em] text-muted-foreground">Location</h3><p className="mt-2 text-sm">{[q.data.city,q.data.state,q.data.country].filter(Boolean).join(', ')||'Not shared'}</p></div><div><h3 className="text-[10px] font-bold uppercase tracking-[.18em] text-muted-foreground">Work</h3><p className="mt-2 text-sm">{q.data.occupation==='Other'?(q.data.occupationOther||'Other'):(q.data.occupation||'Prefer not to say')}</p></div><div><h3 className="text-[10px] font-bold uppercase tracking-[.18em] text-muted-foreground">Gender</h3><p className="mt-2 text-sm">{q.data.gender||'Not shared'}</p></div><div><h3 className="text-[10px] font-bold uppercase tracking-[.18em] text-muted-foreground">Looking for</h3><p className="mt-2 text-sm">{q.data.lookingFor||'Not shared'}</p></div></div><div><h3 className="text-[10px] font-bold uppercase tracking-[.18em] text-muted-foreground">Hobbies and interests</h3><div className="mt-3 flex flex-wrap gap-2">{q.data.interests.map(i=><span key={i} className="rounded-full bg-accent px-3 py-2 text-xs text-[#ffafd1]">{i}</span>)}{!q.data.interests.length&&<span className="text-sm text-muted-foreground">No interests added yet.</span>}</div></div><Link href="/discover" data-testid="link-public-profile-discover" className="inline-flex rounded-xl bg-primary px-4 py-3 text-sm font-bold text-[#26111b]">Back to Discover</Link></section></div></>}</PageFrame>
+ useEffect(()=>{setActivePhoto(0);setPhotoError(false)},[q.data?.id,q.data?.photos?.[0]]);
+ if(q.isLoading)return <PageFrame><Busy label="Loading profile"/></PageFrame>;
+ if(q.isError||!q.data)return <PageFrame><Retry onRetry={()=>void q.refetch()} text="Profile unavailable."/></PageFrame>;
+ const profile=q.data;const photos=profile.photos??[];const location=[profile.city,profile.state,profile.country].filter(Boolean).join(', ');const morePhotos=photos.slice(1);
+ return <main className="page-in w-full pb-8" data-testid="public-profile-page">
+  <section className="relative isolate h-[72svh] min-h-[500px] max-h-[840px] w-full overflow-hidden bg-[linear-gradient(145deg,#38263f,#17131a)]" data-testid="public-profile-hero" aria-label={`${profile.name}, ${profile.age}`}>
+   {photos[0]&&!photoError?<MediaImage reference={photos[0]} alt={`${profile.name}'s main profile photo`} onError={()=>setPhotoError(true)} className="absolute inset-0 h-full w-full object-cover object-center"/>:<div className="absolute inset-0 flex items-center justify-center bg-[radial-gradient(ellipse_at_50%_35%,rgba(197,112,163,.3),transparent_58%)]"><span className="brand text-8xl font-bold text-white/20">{profile.name.trim().slice(0,1).toUpperCase()||'M'}</span></div>}
+   <div aria-hidden="true" className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/35 to-transparent"/>
+   <div className="absolute inset-x-0 bottom-0 px-5 pb-8 pt-36 text-white sm:px-8 sm:pb-10">
+    <div className="mb-2 text-[10px] font-bold uppercase tracking-[.2em] text-white/75">A closer look</div>
+    <h1 className="brand max-w-3xl text-4xl font-bold leading-[1.02] tracking-[-.045em] sm:text-5xl md:text-6xl">{profile.name}<span className="font-medium text-white/80">, {profile.age}</span></h1>
+    <p className="mt-3 flex items-center gap-2 text-sm font-medium text-white/85 sm:text-base"><MapPin size={16} className="shrink-0 text-primary"/>{location||'Location not shared'}</p>
+   </div>
+  </section>
+  <div className="mx-auto w-full max-w-4xl px-5 pb-10 pt-8 sm:px-8 sm:pt-10">
+   <section className="border-b border-white/[.09] pb-7 sm:pb-9">
+    <h2 className="text-[10px] font-bold uppercase tracking-[.2em] text-primary">About {profile.name}</h2>
+    <p className="mt-3 max-w-3xl whitespace-pre-wrap text-base leading-7 text-foreground/90 sm:text-lg sm:leading-8">{profile.bio||'No bio added yet.'}</p>
+   </section>
+   <section className="grid gap-x-10 gap-y-6 border-b border-white/[.09] py-7 sm:grid-cols-2 sm:py-8" aria-label="Profile details">
+    <div><h3 className="text-[10px] font-bold uppercase tracking-[.18em] text-muted-foreground">Work</h3><p className="mt-2 text-sm font-medium">{profile.occupation==='Other'?(profile.occupationOther||'Other'):(profile.occupation||'Prefer not to say')}</p></div>
+    <div><h3 className="text-[10px] font-bold uppercase tracking-[.18em] text-muted-foreground">Gender</h3><p className="mt-2 text-sm font-medium">{profile.gender||'Not shared'}</p></div>
+    <div><h3 className="text-[10px] font-bold uppercase tracking-[.18em] text-muted-foreground">Looking for</h3><p className="mt-2 text-sm font-medium">{profile.lookingFor||'Not shared'}</p></div>
+    <div><h3 className="text-[10px] font-bold uppercase tracking-[.18em] text-muted-foreground">Location</h3><p className="mt-2 text-sm font-medium">{location||'Not shared'}</p></div>
+   </section>
+   <section className="border-b border-white/[.09] py-7 sm:py-8">
+    <h3 className="text-[10px] font-bold uppercase tracking-[.18em] text-muted-foreground">Hobbies and interests</h3>
+    <div className="mt-3 flex flex-wrap gap-2">{profile.interests.map(interest=><span key={interest} className="rounded-full border border-primary/15 bg-primary/[.07] px-3.5 py-2 text-xs font-semibold text-[#ffafd1]">{interest}</span>)}{!profile.interests.length&&<span className="text-sm text-muted-foreground">No interests added yet.</span>}</div>
+   </section>
+   {morePhotos.length>0&&<section className="py-7 sm:py-8">
+    <div className="mb-3 flex items-end justify-between gap-4"><h3 className="text-[10px] font-bold uppercase tracking-[.18em] text-muted-foreground">More photos</h3>{morePhotos.length>1&&<span className="text-xs text-muted-foreground">{activePhoto+2} / {photos.length}</span>}</div>
+    <div data-testid="public-profile-gallery" className="flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-smooth pb-3" onScroll={event=>setActivePhoto(Math.round(event.currentTarget.scrollLeft/Math.max(1,event.currentTarget.clientWidth)))}>
+     {morePhotos.map((photo,index)=><div key={`${photo}-${index}`} className="min-w-full snap-center"><div className="aspect-[.9] w-full overflow-hidden bg-black/20 sm:aspect-[1.1]"><MediaImage reference={photo} alt={`${profile.name}'s photo ${index+2}`} className="h-full w-full object-cover"/></div></div>)}
+    </div>
+   </section>}
+   <Link href="/discover" data-testid="link-public-profile-discover" className="mt-4 inline-flex min-h-11 items-center rounded-full border border-white/15 px-5 text-sm font-semibold text-foreground transition-colors hover:border-primary/40 hover:bg-primary/[.06]">Back to Discover</Link>
+  </div>
+ </main>
 }
 
 function OnboardingGate(){const p=useGetMyProfile({query:{retry:shouldRetryProfile}});if(p.isLoading)return <PageFrame><ProfileLoading/></PageFrame>;if(p.data)return <Redirect to="/discover"/>;if(p.isError&&!isProfileMissing(p.error))return <PageFrame><Retry text="We couldn’t check your profile. Check your connection and try again." onRetry={()=>void p.refetch()}/></PageFrame>;return <OnboardingPage/>}
