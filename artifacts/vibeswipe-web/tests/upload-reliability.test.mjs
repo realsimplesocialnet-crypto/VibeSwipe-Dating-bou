@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { photoDimensions, uploadProfilePhotoBytes, validatePhotoFile } from '../src/lib/profile-photo-upload.ts';
+import { photoDimensions, photoUploadCanRetry, uploadProfilePhotoBytes, validatePhotoFile } from '../src/lib/profile-photo-upload.ts';
 import { userErrorMessage } from '../src/lib/user-errors.ts';
 
 test('photo validation rejects empty, oversize and non-picture files', () => {
@@ -14,6 +14,15 @@ test('phone pictures keep their aspect ratio without upscaling', () => {
   assert.deepEqual(photoDimensions(4032, 3024), { width: 1600, height: 1200 });
   assert.deepEqual(photoDimensions(3024, 4032), { width: 1200, height: 1600 });
   assert.deepEqual(photoDimensions(400, 500), { width: 400, height: 500 });
+});
+
+test('photo retry is offered for recoverable failures, not bad files', () => {
+  assert.equal(photoUploadCanRetry({ code: 'PHOTO_NETWORK' }), true);
+  assert.equal(photoUploadCanRetry({ code: 'PHOTO_PERMISSION' }), true);
+  assert.equal(photoUploadCanRetry({ status: 503 }), true);
+  assert.equal(photoUploadCanRetry({ code: 'PHOTO_TYPE' }), false);
+  assert.equal(photoUploadCanRetry({ code: 'PHOTO_DECODE' }), false);
+  assert.equal(photoUploadCanRetry({ code: 'PHOTO_SIZE' }), false);
 });
 
 test('a temporary storage failure retries the same PUT and succeeds', async () => {

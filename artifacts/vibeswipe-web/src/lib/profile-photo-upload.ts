@@ -26,6 +26,11 @@ export function photoDimensions(width: number, height: number): { width: number;
   return { width: Math.max(1, Math.round(width * scale)), height: Math.max(1, Math.round(height * scale)) };
 }
 
+export function photoUploadCanRetry(error: unknown): boolean {
+  if (!error || typeof error !== 'object' || !('code' in error) || typeof error.code !== 'string') return true;
+  return !/^PHOTO_(TYPE|EMPTY|SIZE|DECODE)$/.test(error.code);
+}
+
 /** Decode locally and resize phone-camera files before sending any bytes. */
 export async function prepareProfilePhoto(file: File): Promise<File> {
   validatePhotoFile(file);
