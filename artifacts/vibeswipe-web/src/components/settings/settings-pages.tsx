@@ -127,7 +127,7 @@ function SectionContent({ section, settings }: { section: string; settings: Full
 
   return <div className="max-w-2xl space-y-3">
     {section === "account" && <>
-      <Link href="/profile" data-testid="link-settings-edit-profile" className="setting-row">
+      <Link href="/profile/edit?returnTo=%2Fsettings%2Faccount" data-testid="link-settings-edit-profile" className="setting-row">
         <SettingIcon><UserRound size={18}/></SettingIcon><span className="min-w-0 flex-1"><strong>Edit profile</strong><small>Update your photos and the details people see.</small></span><ChevronRight size={18} className="text-muted-foreground"/>
       </Link>
       <ActionRow icon={<LockKeyhole size={18}/>} title="Change password" detail="Manage your sign-in credentials." action="Manage" onClick={()=>openUserProfile()}/>
