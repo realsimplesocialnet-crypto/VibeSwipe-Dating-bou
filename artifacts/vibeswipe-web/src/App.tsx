@@ -579,34 +579,29 @@ if(q.isError&&isProfileMissing(q.error))return <Redirect to="/onboarding"/>;
    </>}</Frame>}
 
 function ProfileEditFrame({children}:{children:ReactNode}){return <div className="profile-edit -mb-24 min-h-[100dvh] lg:mb-0"><div className="page-in mx-auto max-w-[560px] px-4 pt-[calc(1rem+env(safe-area-inset-top))]">{children}</div></div>}
-function OwnProfileFrame({children}:{children:ReactNode}){return <div className="own-profile -mb-24 min-h-[calc(100dvh-48px)] pb-28 lg:mb-0 lg:min-h-[100dvh] lg:pb-12"><div className="page-in mx-auto max-w-[620px] px-4 pt-6 md:pt-10">{children}</div></div>}
+function OwnProfileFrame({children}:{children:ReactNode}){useEffect(()=>{const el=document.documentElement;el.classList.add('op-lock');return()=>el.classList.remove('op-lock')},[]);return <div className="own-profile op-fit -mb-24 lg:mb-0"><div className="page-in mx-auto flex h-full max-w-[560px] flex-col px-4 pt-3 md:pt-6">{children}</div></div>}
 function genderIcon(g:string){const v=g.toLowerCase();if(/^(man|male|men)\b/.test(v))return Mars;if(/^(woman|female|women)\b/.test(v))return Venus;return NonBinary}
 function OwnProfileOverview({profile,travelCity}:{profile:Profile;travelCity?:string|null}){
   const [broken,setBroken]=useState(false);useEffect(()=>setBroken(false),[profile.photos?.[0]]);
-  const GenderIcon=genderIcon(profile.gender||'');const cityLine=[profile.city,profile.state].filter(Boolean).join(', ');
+  const GenderIcon=genderIcon(profile.gender||'');const place=[[profile.city,profile.state].filter(Boolean).join(', '),profile.country].filter(Boolean).join(' · ');
   const work=profile.occupation==='Other'?(profile.occupationOther||'Other'):(profile.occupation||'Prefer not to say');
-  return <div data-testid="section-own-profile">
-    <div className="flex justify-end"><Link href="/settings?returnTo=%2Fprofile" data-testid="link-profile-settings" aria-label="Settings" className="op-ghost inline-flex items-center gap-2 rounded-full px-3.5 py-2 text-sm font-semibold transition-transform active:scale-95"><Settings size={16}/>Settings</Link></div>
-    <div className="relative mt-2 flex justify-center"><div className="op-portrait relative z-[2] h-[176px] w-[176px] overflow-hidden rounded-full sm:h-[200px] sm:w-[200px]">{profile.photos?.[0]&&!broken?<MediaImage reference={profile.photos[0]} onError={()=>setBroken(true)} className="h-full w-full object-cover" alt={`${profile.name}'s profile photo`}/>:<span className="flex h-full items-center justify-center text-5xl font-bold text-primary">{profile.name?.slice(0,1)?.toUpperCase()}</span>}</div></div>
-    <section className="op-card relative z-[1] -mt-[88px] rounded-[32px] px-5 pb-7 pt-[104px] sm:-mt-[100px] sm:px-8 sm:pt-[118px]">
-      <div className="text-center">
-        <h1 data-testid="text-profile-name" className="brand text-[30px] font-extrabold leading-tight tracking-[-.03em] sm:text-[34px]">{profile.name}{profile.age!==null?`, ${profile.age}`:''}</h1>
-        {cityLine&&<p data-testid="text-profile-city" className="op-muted mt-2 text-[16px]">{cityLine}</p>}
-        {profile.country&&<p data-testid="text-profile-country" className="op-muted mt-0.5 text-[16px]">{profile.country}</p>}
-        {profile.gender&&<p data-testid="text-profile-gender" className="op-muted mt-2 inline-flex items-center gap-2 text-[16px]"><GenderIcon size={18} aria-hidden="true"/>{profile.gender}</p>}
-        {travelCity&&<div className="mx-auto mt-3 flex w-fit items-center gap-1.5 rounded-full bg-primary/12 px-3 py-1.5 text-xs font-semibold text-primary" data-testid="badge-travel"><Navigation size={13}/>Traveling in {travelCity}</div>}
-        <Link href="/profile/edit?returnTo=%2Fprofile" data-testid="button-edit-profile" className="op-edit mx-auto mt-5 flex h-[52px] w-full max-w-[300px] items-center justify-center gap-2 rounded-full text-[17px] font-bold transition-transform hover:-translate-y-px active:scale-[.98]"><Pencil size={16}/>Edit profile</Link>
-      </div>
-      <div className="mt-7">
-        <h3 className="op-label">A little about me</h3><p data-testid="text-profile-bio" className="mt-2 whitespace-pre-wrap text-[15px] leading-7">{profile.bio||'Add a bio so people can get to know you.'}</p>
-        <div className="op-rule my-4"/>
-        <h3 className="op-label flex items-center gap-2"><Briefcase size={12}/>Work / occupation</h3><p data-testid="text-profile-occupation" className="mt-2 text-[15px]">{work}</p>
-        <div className="op-rule my-4"/>
-        <h3 className="op-label">Hobbies</h3>{profile.interests.length?<div className="mt-3 flex flex-wrap gap-2">{profile.interests.map(i=><span key={i} className="op-chip rounded-full px-3.5 py-1.5 text-[13px] font-semibold">{i}</span>)}</div>:<p className="op-muted mt-2 text-sm">Add a few hobbies to your profile.</p>}
-        <div className="op-rule my-4"/>
-        <div className="flex items-center justify-between"><h3 className="op-label">Photos <span className="op-muted ml-1 normal-case tracking-normal">{profile.photos.length}/6</span></h3><Link href="/profile/edit?returnTo=%2Fprofile" data-testid="link-manage-photos" className="inline-flex items-center gap-1.5 text-xs font-bold text-primary"><Camera size={14}/>Manage</Link></div>
-        <div className="mt-3 grid grid-cols-3 gap-2">{profile.photos.map((p,i)=><div key={`${p}-${i}`} className="op-thumb relative aspect-[.8] overflow-hidden rounded-2xl"><MediaImage reference={p} alt={`Profile photo ${i+1}`} className="h-full w-full object-cover"/>{i===0&&<span className="absolute bottom-1.5 left-1.5 rounded-md bg-black/60 px-1.5 py-0.5 text-[10px] font-bold text-white">Main</span>}</div>)}</div>
-      </div>
+  const bio=profile.bio||'Add a bio so people can get to know you.';const shown=profile.interests.slice(0,5);const more=profile.interests.length-shown.length;
+  return <div data-testid="section-own-profile" className="flex min-h-0 flex-1 flex-col gap-[clamp(6px,1.4dvh,14px)] pb-[clamp(8px,1.6dvh,16px)]">
+    <div className="flex shrink-0 items-center justify-between"><h2 data-testid="text-my-profile-heading" className="op-title">My Profile</h2><Link href="/settings?returnTo=%2Fprofile" data-testid="link-profile-settings" aria-label="Settings" className="op-ghost inline-flex items-center gap-2 rounded-full px-3.5 py-2 text-sm font-semibold transition-transform active:scale-95"><Settings size={16}/>Settings</Link></div>
+    <section className="op-card flex shrink-0 flex-col items-center rounded-[26px] px-4 py-[clamp(10px,2dvh,22px)] text-center">
+      <div className="op-portrait op-avatar overflow-hidden rounded-full">{profile.photos?.[0]&&!broken?<MediaImage reference={profile.photos[0]} onError={()=>setBroken(true)} className="h-full w-full object-cover" alt={`${profile.name}'s profile photo`}/>:<span className="flex h-full items-center justify-center text-4xl font-bold text-primary">{profile.name?.slice(0,1)?.toUpperCase()}</span>}</div>
+      <h1 data-testid="text-profile-name" title={profile.name} className="brand mt-2 max-w-full truncate text-[clamp(22px,3.4dvh,30px)] font-extrabold leading-tight tracking-[-.03em]">{profile.name}{profile.age!==null?`, ${profile.age}`:''}</h1>
+      {place&&<p data-testid="text-profile-city" title={place} className="op-muted max-w-full truncate text-[14px]">{place}</p>}
+      {(profile.gender||travelCity)&&<div className="mt-1 flex max-w-full items-center justify-center gap-2 text-[13px]">{profile.gender&&<span data-testid="text-profile-gender" className="op-muted inline-flex items-center gap-1.5"><GenderIcon size={15} aria-hidden="true"/>{profile.gender}</span>}{travelCity&&<span className="inline-flex min-w-0 items-center gap-1 truncate rounded-full bg-primary/12 px-2.5 py-0.5 text-xs font-semibold text-primary" data-testid="badge-travel" title={`Traveling in ${travelCity}`}><Navigation size={12}/>Traveling in {travelCity}</span>}</div>}
+      <Link href="/profile/edit?returnTo=%2Fprofile" data-testid="button-edit-profile" className="op-edit mt-[clamp(8px,1.6dvh,16px)] flex h-[clamp(40px,6dvh,50px)] w-full max-w-[280px] items-center justify-center gap-2 rounded-full text-[16px] font-bold transition-transform active:scale-[.98]"><Pencil size={16}/>Edit profile</Link>
+    </section>
+    <div className="grid shrink-0 grid-cols-2 gap-[clamp(6px,1.2dvh,12px)]">
+      <section className="op-section min-w-0"><h3 className="op-label"><span className="op-ico"><UserRound size={13}/></span>About</h3><p data-testid="text-profile-bio" title={bio} className="mt-1.5 line-clamp-2 text-[13.5px] leading-5">{bio}</p></section>
+      <section className="op-section min-w-0"><h3 className="op-label"><span className="op-ico"><Briefcase size={13}/></span>Work</h3><p data-testid="text-profile-occupation" title={work} className="mt-1.5 line-clamp-2 text-[13.5px] leading-5">{work}</p></section>
+    </div>
+    <section className="op-section shrink-0"><h3 className="op-label"><span className="op-ico"><Heart size={13}/></span>Hobbies</h3>{profile.interests.length?<div className="mt-2 flex h-[28px] flex-wrap gap-1.5 overflow-hidden" title={profile.interests.join(', ')} aria-label={`Hobbies: ${profile.interests.join(', ')}`}>{shown.map(i=><span key={i} className="op-chip max-w-[46%] truncate rounded-full px-3 py-1 text-[12.5px] font-semibold">{i}</span>)}{more>0&&<Link href="/profile/edit?returnTo=%2Fprofile" data-testid="link-more-hobbies" className="op-chip rounded-full px-3 py-1 text-[12.5px] font-bold">+{more}</Link>}</div>:<p className="op-muted mt-1.5 text-[13px]">Add a few hobbies to your profile.</p>}</section>
+    <section className="op-section shrink-0"><div className="flex items-center justify-between"><h3 className="op-label"><span className="op-ico"><Camera size={13}/></span>Photos <span className="op-muted ml-0.5 text-xs font-semibold tracking-normal">{profile.photos.length}/6</span></h3><Link href="/profile/edit?returnTo=%2Fprofile" data-testid="link-manage-photos" className="op-manage inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold"><Camera size={12}/>Manage</Link></div>
+      {profile.photos.length?<div className="mt-2 grid grid-cols-6 gap-1.5">{profile.photos.slice(0,6).map((p,i)=><div key={`${p}-${i}`} className="op-thumb relative aspect-square overflow-hidden rounded-xl"><MediaImage reference={p} alt={`Profile photo ${i+1}${i===0?' (main)':''}`} className="h-full w-full object-cover"/>{i===0&&<span className="absolute inset-x-0 bottom-0 bg-[#f2557d] text-center text-[9px] font-bold leading-[14px] text-white">Main</span>}</div>)}</div>:<p className="op-muted mt-1.5 text-[13px]">Add photos in Edit profile.</p>}
     </section>
   </div>;
 }
