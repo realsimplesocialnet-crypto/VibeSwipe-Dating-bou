@@ -51,11 +51,17 @@ export function DiscoverSwipePage() {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [optionsOpen, setOptionsOpen] = useState(false);
   const [notice, setNotice] = useState("");
+  const [likeConfirmation, setLikeConfirmation] = useState("");
   const [lastPass, setLastPass] = useState<string | null>(null);
+  const [matchResult, setMatchResult] = useState<{ name: string; matchId: string | null } | null>(null);
+  const noticeTimer = useRef<number | null>(null);
   const touchStart = useRef<{ x: number; y: number } | null>(null);
   const suppressCardOpen = useRef(false);
   const previousTravelFilter = useRef<string | null>(null);
   const settings = useGetVibeSwipeSettings({ query: { queryKey: getGetVibeSwipeSettingsQueryKey() } });
+  useEffect(() => () => {
+    if (noticeTimer.current !== null) window.clearTimeout(noticeTimer.current);
+  }, []);
 
   const params = useMemo(
     () => ({
@@ -106,12 +112,13 @@ export function DiscoverSwipePage() {
   }, [profile?.id]);
 
   async function swipe(type: "pass" | "like" | "super") {
-    if (!profile || reaction.isPending) return;
+    if (!profile || reaction.isPending || likeConfirmation || matchResult) return;
     if (type === "like" && likes.data?.remaining === 0) {
       setNotice("You’ve reached your daily like limit. Come back in 24 hours.");
       return;
     }
     const current = profile;
+    if (noticeTimer.current !== null) window.clearTimeout(noticeTimer.current);
     setIndex((value) => value + 1);
     setNotice("");
     try {
@@ -120,8 +127,14 @@ export function DiscoverSwipePage() {
       if (type === "like") void queryClient.invalidateQueries({ queryKey: getGetDailyLikeStatusQueryKey() });
       if (type === "super") void queryClient.invalidateQueries({ queryKey: getGetSuperLikeStatusQueryKey() });
       if (result.matched) {
-        await queryClient.invalidateQueries({ queryKey: getGetMatchesQueryKey() });
-        setNotice(`You and ${current.name} matched.`);
+        void queryClient.invalidateQueries({ queryKey: getGetMatchesQueryKey() });
+      }
+      if (type === "like" || result.matched) {
+        setLikeConfirmation(type === "like" ? `You liked ${current.name}` : `You and ${current.name} matched.`);
+        noticeTimer.current = window.setTimeout(() => {
+          setLikeConfirmation("");
+          if (result.matched) setMatchResult({ name: current.name, matchId: result.matchId ?? null });
+        }, 1500);
       }
     } catch {
       setIndex((value) => Math.max(0, value - 1));
@@ -228,6 +241,7 @@ export function DiscoverSwipePage() {
       </header>
 
       {notice && <div role="status" data-testid="status-discover" className="mb-3 rounded-xl border border-primary/20 bg-accent px-4 py-3 text-sm text-[#ffafd1]">{notice}<button onClick={() => setNotice("")} aria-label="Dismiss message" className="float-right"><X size={16} /></button></div>}
+      {likeConfirmation && <div className="fixed inset-x-0 top-[calc(env(safe-area-inset-top)+1rem)] z-[60] flex justify-center px-4" role="status" aria-live="polite" data-testid="status-discover-liked"><div className="flex items-center gap-2 rounded-full border border-primary/25 bg-[#211a27]/95 px-5 py-3 text-sm font-semibold text-white shadow-2xl backdrop-blur-xl"><Heart size={17} fill="currentColor" className="text-primary"/>{likeConfirmation}</div></div>}
 
       <article
         className="relative mx-auto flex h-[68dvh] min-h-[420px] max-h-[700px] w-full max-w-[520px] flex-col overflow-hidden rounded-[28px] border border-white/10 bg-[#17141b] shadow-xl touch-pan-y"
@@ -246,12 +260,12 @@ export function DiscoverSwipePage() {
         }}
         onClick={() => {
           if (suppressCardOpen.current) return;
-          setLocation(`/profile/${profile.id}`);
+           setLocation(`/profile/${profile.id}?returnTo=%2Fdiscover`);
         }}
         onKeyDown={(event) => {
           if (event.target === event.currentTarget && (event.key === "Enter" || event.key === " ")) {
             event.preventDefault();
-            setLocation(`/profile/${profile.id}`);
+             setLocation(`/profile/${profile.id}?returnTo=%2Fdiscover`);
           }
         }}
         data-testid={`card-discover-${profile.id}`}
@@ -272,15 +286,26 @@ export function DiscoverSwipePage() {
         </div>
 
         <div className="z-[3] flex shrink-0 items-center justify-center gap-4 border-t border-white/[.08] bg-[#141117]/95 px-4 py-3 backdrop-blur-xl">
-          <button type="button" onClick={(event) => { event.stopPropagation(); void swipe("pass"); }} disabled={reaction.isPending} data-testid="button-pass-profile" aria-label="Pass" className="flex h-12 w-12 items-center justify-center rounded-full border border-white/15 bg-[#28232d] text-rose-300 disabled:opacity-40"><X size={23} /></button>
+          <button type="button" onClick={(event) => { event.stopPropagation(); void swipe("pass"); }} disabled={reaction.isPending || !!likeConfirmation || !!matchResult} data-testid="button-pass-profile" aria-label="Pass" className="flex h-12 w-12 items-center justify-center rounded-full border border-white/15 bg-[#28232d] text-rose-300 disabled:opacity-40"><X size={23} /></button>
           <button type="button" onClick={(event) => { event.stopPropagation(); void undoLastSwipe(); }} disabled={!lastPass || undo.isPending} data-testid="button-undo-pass" aria-label="Undo last pass" className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-[#28232d] text-muted-foreground disabled:opacity-40"><ArrowLeft size={17} /></button>
-          <div className="flex flex-col items-center"><button type="button" onClick={(event) => { event.stopPropagation(); void swipe("super"); }} disabled={reaction.isPending || superLikes.data?.remaining === 0} data-testid="button-super-like" aria-label="Super like" className="flex h-12 w-12 items-center justify-center rounded-full bg-[#f3c75c] text-[#211a11] shadow-lg disabled:opacity-40"><Star size={21} /></button><span className="mt-1 text-[10px] text-muted-foreground">{superLikes.data?.remaining ?? "—"} left</span></div>
-          <button type="button" onClick={(event) => { event.stopPropagation(); void swipe("like"); }} disabled={reaction.isPending || likes.data?.remaining === 0} data-testid="button-like-profile" aria-label="Like" className="flex h-14 w-14 items-center justify-center rounded-full bg-primary text-[#27101d] shadow-[0_8px_30px_rgba(243,78,154,.32)] disabled:opacity-40"><Heart size={25} fill="currentColor" /></button>
+          <div className="flex flex-col items-center"><button type="button" onClick={(event) => { event.stopPropagation(); void swipe("super"); }} disabled={reaction.isPending || !!likeConfirmation || !!matchResult || superLikes.data?.remaining === 0} data-testid="button-super-like" aria-label="Super like" className="flex h-12 w-12 items-center justify-center rounded-full bg-[#f3c75c] text-[#211a11] shadow-lg disabled:opacity-40"><Star size={21} /></button><span className="mt-1 text-[10px] text-muted-foreground">{superLikes.data?.remaining ?? "—"} left</span></div>
+          <button type="button" onClick={(event) => { event.stopPropagation(); void swipe("like"); }} disabled={reaction.isPending || !!likeConfirmation || !!matchResult || likes.data?.remaining === 0} data-testid="button-like-profile" aria-label="Like" className="flex h-14 w-14 items-center justify-center rounded-full bg-primary text-[#27101d] shadow-[0_8px_30px_rgba(243,78,154,.32)] disabled:opacity-40"><Heart size={25} fill="currentColor" /></button>
         </div>
       </article>
 
       {optionsOpen && <ProfileOptionsDialog onClose={() => setOptionsOpen(false)} onReport={(reason) => void reportCurrent(reason)} onBlock={() => void blockCurrent()} />}
       <FilterDialog open={filtersOpen} onClose={() => setFiltersOpen(false)} ageMin={ageMin} ageMax={ageMax} gender={gender} country={country} city={city} travelMode={Boolean(settings.data?.travelMode)} setAgeMin={setAgeMin} setAgeMax={setAgeMax} setGender={setGender} setCountry={(value) => { setCountry(value); setCity(""); }} setCity={setCity} onApply={() => { setIndex(0); setFiltersOpen(false); }} />
+      {matchResult && <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/70 p-5 backdrop-blur-sm" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setMatchResult(null); }}>
+        <section role="dialog" aria-modal="true" aria-labelledby="discover-match-title" className="w-full max-w-sm rounded-[28px] border border-primary/25 bg-[#211a27] p-7 text-center shadow-2xl">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-primary/15 text-primary"><Heart size={27} fill="currentColor"/></div>
+          <h2 id="discover-match-title" className="brand mt-4 text-3xl font-bold">It’s a match!</h2>
+          <p className="mt-2 text-sm leading-6 text-muted-foreground">You and {matchResult.name} liked each other. You can start chatting now.</p>
+          <div className="mt-6 flex flex-col gap-2">
+            <button type="button" onClick={() => setLocation(matchResult.matchId ? `/chat/${matchResult.matchId}` : "/matches")} data-testid="button-discover-start-match-chat" className="w-full rounded-xl bg-primary px-4 py-3 text-sm font-bold text-[#27101d]">{matchResult.matchId ? "Start chatting" : "View matches"}</button>
+            <button type="button" onClick={() => setMatchResult(null)} data-testid="button-discover-continue-after-match" className="w-full rounded-xl border border-white/10 px-4 py-3 text-sm font-semibold text-foreground">Keep discovering</button>
+          </div>
+        </section>
+      </div>}
     </main>
   );
 }
