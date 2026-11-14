@@ -37,10 +37,10 @@ test('the native header opens the real match profile without sending anything', 
   assert.doesNotMatch(action, /\bsend\(|mutate(?:Async)?\(/);
 });
 
-test('Messages replaces Views and old website links reach the single conversation list', () => {
+test('Messages stays the conversation tab while Views opens separately under Activity', () => {
   assert.match(web, /href: '\/messages', label: 'Messages', icon: MessageCircle/);
   assert.doesNotMatch(web, /label: 'Views'/);
-  assert.match(web, /function ViewsRoute\(\)\{return <Redirect to="\/messages"\/>\}/);
+  assert.match(web, /function ViewsRoute\(\).*<InboundPeoplePage kind="views"/);
   assert.doesNotMatch(web, /link-matches-messages|link-messages-back/);
 });
 

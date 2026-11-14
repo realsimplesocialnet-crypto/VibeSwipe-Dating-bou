@@ -993,6 +993,66 @@ export const RecordProfileViewResponse = zod.void()
 
 
 /**
+ * @summary List current incoming likes for the signed-in user
+ */
+export const getWhoLikedYouResponseProfilePreferencesAgeMinMin = 18;
+export const getWhoLikedYouResponseProfilePreferencesAgeMinMax = 120;
+
+export const getWhoLikedYouResponseProfilePreferencesAgeMaxMin = 18;
+export const getWhoLikedYouResponseProfilePreferencesAgeMaxMax = 120;
+
+export const getWhoLikedYouResponseProfilePreferencesDistanceKmMax = 500;
+
+export const getWhoLikedYouResponseProfilePreferencesDiscoveryLocationCountryMax = 100;
+
+export const getWhoLikedYouResponseProfilePreferencesDiscoveryLocationStateMax = 100;
+
+export const getWhoLikedYouResponseProfilePreferencesDiscoveryLocationCityMax = 100;
+
+export const getWhoLikedYouResponseProfilePreferencesDiscoveryLocationRadiusKmMax = 500;
+
+
+
+export const GetWhoLikedYouResponseItem = zod.object({
+  "profile": zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "age": zod.number().int().nullable(),
+  "showAge": zod.boolean(),
+  "showDistance": zod.boolean(),
+  "gender": zod.string(),
+  "lookingFor": zod.string(),
+  "bio": zod.string(),
+  "city": zod.string(),
+  "country": zod.string().nullable(),
+  "state": zod.string().nullable(),
+  "interests": zod.array(zod.string()),
+  "occupation": zod.string(),
+  "occupationOther": zod.string(),
+  "photos": zod.array(zod.string()),
+  "videoUrl": zod.string().nullish(),
+  "isDemo": zod.boolean(),
+  "superLikedYou": zod.boolean().optional(),
+  "preferences": zod.object({
+  "ageMin": zod.number().int().min(getWhoLikedYouResponseProfilePreferencesAgeMinMin).max(getWhoLikedYouResponseProfilePreferencesAgeMinMax),
+  "ageMax": zod.number().int().min(getWhoLikedYouResponseProfilePreferencesAgeMaxMin).max(getWhoLikedYouResponseProfilePreferencesAgeMaxMax),
+  "gender": zod.string(),
+  "distanceKm": zod.number().int().min(1).max(getWhoLikedYouResponseProfilePreferencesDistanceKmMax),
+  "discoveryLocation": zod.object({
+  "scope": zod.enum(['city', 'state', 'country', 'radius']),
+  "country": zod.string().max(getWhoLikedYouResponseProfilePreferencesDiscoveryLocationCountryMax).nullable(),
+  "state": zod.string().max(getWhoLikedYouResponseProfilePreferencesDiscoveryLocationStateMax).nullable(),
+  "city": zod.string().max(getWhoLikedYouResponseProfilePreferencesDiscoveryLocationCityMax).nullable(),
+  "radiusKm": zod.number().int().min(1).max(getWhoLikedYouResponseProfilePreferencesDiscoveryLocationRadiusKmMax).nullable()
+}).optional()
+})
+}),
+  "likedAt": zod.coerce.date()
+})
+export const GetWhoLikedYouResponse = zod.array(GetWhoLikedYouResponseItem)
+
+
+/**
  * @summary List people who opened the signed-in user's profile
  */
 export const getWhoViewedYouResponseProfilePreferencesAgeMinMin = 18;

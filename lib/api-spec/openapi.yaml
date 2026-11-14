@@ -726,6 +726,19 @@ paths:
           description: Profile view recorded
         "404":
           description: Profile not found
+  /vibeswipe/likes:
+    get:
+      operationId: getWhoLikedYou
+      tags: [vibeswipe]
+      summary: List current incoming likes for the signed-in user
+      responses:
+        "200":
+          description: Real unblocked members who liked the signed-in user
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/ProfileLike" }
   /vibeswipe/views:
     get:
       operationId: getWhoViewedYou
@@ -1409,6 +1422,12 @@ components:
       properties:
         readAt: { type: [string, "null"], format: date-time }
       required: [readAt]
+    ProfileLike:
+      type: object
+      properties:
+        profile: { $ref: "#/components/schemas/Profile" }
+        likedAt: { type: string, format: date-time }
+      required: [profile, likedAt]
     ProfileView:
       type: object
       properties:

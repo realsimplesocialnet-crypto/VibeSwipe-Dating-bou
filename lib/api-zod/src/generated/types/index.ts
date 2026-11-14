@@ -49,6 +49,7 @@ export * from './presenceHeartbeatInput';
 export * from './presenceStatus';
 export * from './profile';
 export * from './profileInput';
+export * from './profileLike';
 export * from './profilePreferences';
 export * from './profileVideoTranscodeResult';
 export * from './profileView';

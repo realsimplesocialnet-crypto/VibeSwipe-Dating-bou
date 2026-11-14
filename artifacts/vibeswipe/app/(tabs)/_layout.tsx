@@ -119,6 +119,7 @@ function ClassicTabLayout() {
         name="matches"
         options={{
           title: 'Matches',
+          headerShown: false,
           tabBarBadge: matchBadge || undefined,
           tabBarIcon: ({ color }) => <Feather name="heart" size={21} color={typeof color === 'string' ? color : colors.primary} />,
         }}

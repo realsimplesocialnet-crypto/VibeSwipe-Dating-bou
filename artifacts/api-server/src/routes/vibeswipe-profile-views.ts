@@ -3,19 +3,22 @@ import {
   GetProfileByIdParams,
   GetProfileByIdResponse,
   GetWhoViewedYouResponse,
+  GetWhoLikedYouResponse,
   RecordProfileViewParams,
 } from "@workspace/api-zod";
 import {
   blocksTable,
   db,
   profilesTable,
+  reactionsTable,
   vibeswipeProfileViewsTable,
   vibeSwipeNotificationsTable,
 } from "@workspace/db";
-import { and, desc, eq, isNull, or } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, or } from "drizzle-orm";
 import { Router, type IRouter, type Request } from "express";
 import { requireAuth } from "../middlewares/auth";
 import { createVibeSwipeNotification } from "../lib/vibeswipeNotifications";
+import { canShowIncomingProfile } from "../lib/incomingProfileVisibility";
 
 const router: IRouter = Router();
 
@@ -125,6 +128,31 @@ router.post(
   },
 );
 
+router.get("/vibeswipe/likes", async (req, res): Promise<void> => {
+  const userId = currentUserId(req);
+  const rows = await db
+    .select({ profile: profilesTable, likedAt: reactionsTable.createdAt })
+    .from(reactionsTable)
+    .innerJoin(profilesTable, eq(reactionsTable.fromUserId, profilesTable.id))
+    .where(and(eq(reactionsTable.toUserId, userId), inArray(reactionsTable.type, ["like", "super"])))
+    .orderBy(desc(reactionsTable.createdAt));
+  const blocks = await db.select({
+    blockerId: blocksTable.blockerId,
+    blockedId: blocksTable.blockedId,
+  }).from(blocksTable).where(or(
+    eq(blocksTable.blockerId, userId),
+    eq(blocksTable.blockedId, userId),
+  ));
+  const blockedIds = new Set(blocks.map((block) =>
+    block.blockerId === userId ? block.blockedId : block.blockerId));
+  res.json(GetWhoLikedYouResponse.parse(rows
+    .filter(({ profile }) => canShowIncomingProfile(profile, userId, blockedIds))
+    .map(({ profile, likedAt }) => ({
+      profile: { ...profile, age: profile.showAge ? profile.age : null },
+      likedAt,
+    }))));
+});
+
 router.get("/vibeswipe/views", async (req, res): Promise<void> => {
   const userId = currentUserId(req);
   const rows = await db
@@ -154,7 +182,7 @@ router.get("/vibeswipe/views", async (req, res): Promise<void> => {
   const visibleRows = rows
     .filter(
       ({ profile }) =>
-        profile.id !== userId && !profile.isDemo && !blockedProfileIds.has(profile.id),
+        canShowIncomingProfile(profile, userId, blockedProfileIds),
     )
     .map(({ profile, viewedAt }) => ({
       profile: {

@@ -1,5 +1,5 @@
-import { NotificationsList } from "@/components/NotificationsList";
+import { Redirect } from "expo-router";
 
 export default function NotificationsScreen() {
-  return <NotificationsList />;
+  return <Redirect href="/(tabs)/activity" />;
 }

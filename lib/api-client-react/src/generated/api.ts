@@ -56,6 +56,7 @@ import type {
   PresenceStatus,
   Profile,
   ProfileInput,
+  ProfileLike,
   ProfileVideoTranscodeResult,
   ProfileView,
   PublicLocationShare,
@@ -3940,6 +3941,107 @@ export const useRecordProfileView = <TError = ErrorType<void>,
       > => {
       return useMutation(getRecordProfileViewMutationOptions(options), queryClient);
     }
+
+export const getGetWhoLikedYouUrl = () => {
+
+
+
+
+  return `/api/vibeswipe/likes`
+}
+
+/**
+ * @summary List current incoming likes for the signed-in user
+ */
+export const getWhoLikedYou = async ( options?: Parameters<typeof customFetch>[1]): Promise<ProfileLike[]> => {
+
+  return customFetch<ProfileLike[]>(getGetWhoLikedYouUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetWhoLikedYouQueryKey = () => {
+    return [
+    `/api/vibeswipe/likes`
+    ] as const;
+    }
+
+
+export const getGetWhoLikedYouQueryOptions = <TData = Awaited<ReturnType<typeof getWhoLikedYou>>, TError = ErrorType<unknown>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getWhoLikedYou>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetWhoLikedYouQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getWhoLikedYou>>> = ({ signal }) => getWhoLikedYou({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getWhoLikedYou>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetWhoLikedYouQueryResult = NonNullable<Awaited<ReturnType<typeof getWhoLikedYou>>>
+export type GetWhoLikedYouQueryError = ErrorType<unknown>
+
+
+export function useGetWhoLikedYou<TData = Awaited<ReturnType<typeof getWhoLikedYou>>, TError = ErrorType<unknown>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getWhoLikedYou>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getWhoLikedYou>>,
+          TError,
+          Awaited<ReturnType<typeof getWhoLikedYou>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetWhoLikedYou<TData = Awaited<ReturnType<typeof getWhoLikedYou>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getWhoLikedYou>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getWhoLikedYou>>,
+          TError,
+          Awaited<ReturnType<typeof getWhoLikedYou>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetWhoLikedYou<TData = Awaited<ReturnType<typeof getWhoLikedYou>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getWhoLikedYou>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary List current incoming likes for the signed-in user
+ */
+
+export function useGetWhoLikedYou<TData = Awaited<ReturnType<typeof getWhoLikedYou>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getWhoLikedYou>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetWhoLikedYouQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export const getGetWhoViewedYouUrl = () => {
 

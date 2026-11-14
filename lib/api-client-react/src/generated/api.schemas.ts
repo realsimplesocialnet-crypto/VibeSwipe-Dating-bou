@@ -526,6 +526,11 @@ export interface ReadReceiptStatus {
   readAt: string | null;
 }
 
+export interface ProfileLike {
+  profile: Profile;
+  likedAt: string;
+}
+
 export interface ProfileView {
   profile: Profile;
   viewedAt: string;

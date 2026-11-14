@@ -43,6 +43,7 @@ import { ProfileFirstSignup } from '@/components/profile-first-signup';
 import { LocationChoice } from '@/components/location-choice';
 import { HobbyMultiSelect, OccupationSelect } from '@/components/profile-field-selectors';
 import { ConnectionNotice } from '@/components/connection-notice';
+import { ActivityOverview, InboundPeoplePage, MutualMatchesPage } from '@/components/social-hub';
 import { isDiscoverSetupRequired, isProfileMissing, shouldRetryDiscover, shouldRetryProfile } from '@/lib/profile-query-state';
 import { PROFILE_PHOTO_ACCEPT, photoUploadCanRetry, prepareProfilePhoto, uploadProfilePhotoBytes, validatePhotoFile } from '@/lib/profile-photo-upload';
 import { userErrorMessage } from '@/lib/user-errors';
@@ -100,21 +101,23 @@ const navItems = [
 
 function AppShell({ children }: { children: ReactNode }) {
   const [location] = useLocation();
-  const showMainNavigation = ['/discover', '/matches', '/messages', '/notifications', '/profile'].includes(location);
+  const showMainNavigation = ['/discover', '/matches', '/messages', '/notifications', '/views', '/likes', '/profile'].includes(location);
+  const isSocialPage = ['/matches', '/messages', '/notifications', '/views', '/likes'].includes(location);
+  const activeLocation = ['/views', '/likes'].includes(location) ? '/notifications' : location;
   const settingsReturnTo = `${location}${window.location.search}${window.location.hash}`;
   const { user } = useUser();
   const profile = useGetMyProfile();
-  const activityHeader = useGetNotifications({query:{enabled:location==='/notifications'||location==='/messages',queryKey:getGetNotificationsQueryKey()}});
+  const activityHeader = useGetNotifications({query:{enabled:isSocialPage,queryKey:getGetNotificationsQueryKey()}});
   const hasUnreadActivity = Object.values(activityHeader.data?.unreadCounts??{}).some(count=>count>0);
   const { signOut } = useClerk();
   const activeName = profile.data?.name || user?.firstName || 'Your profile';
-  return <div className={`min-h-[100dvh] bg-background text-foreground ${location==='/notifications'?'notifications-shell':''} ${location==='/messages'?'messages-shell':''} ${location==='/discover'?'discover-shell':''}`}>
+  return <div className={`min-h-[100dvh] bg-background text-foreground ${isSocialPage?'messages-shell':''} ${location==='/discover'?'discover-shell':''}`}>
     {showMainNavigation && <>
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-[248px] flex-col border-r border-border bg-background px-5 py-6 lg:flex">
         <Brand small />
         <div className="mb-4 mt-11 px-3 text-[10px] font-bold uppercase tracking-[.2em] text-muted-foreground">Your space</div>
         <nav className="space-y-1">
-          {navItems.map(({ href, label, icon: Icon }) => <Link key={href} href={href} data-testid={`nav-${label.toLowerCase()}`} className={`flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold transition-colors ${location === href || (href === '/matches' && location.startsWith('/chat/')) ? 'bg-accent text-[#ff80b6]' : 'text-muted-foreground hover:bg-white/[.04] hover:text-foreground'}`}><Icon size={18}/>{label}</Link>)}
+          {navItems.map(({ href, label, icon: Icon }) => <Link key={href} href={href} data-testid={`nav-${label.toLowerCase()}`} className={`flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold transition-colors ${activeLocation === href ? 'bg-accent text-[#ff80b6]' : 'text-muted-foreground hover:bg-white/[.04] hover:text-foreground'}`}><Icon size={18}/>{label}</Link>)}
         </nav>
         <div className="mt-auto space-y-2 border-t border-white/[.08] pt-4">
           <Link href="/profile" data-testid="nav-profile" className={`flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold ${location === '/profile' ? 'bg-accent text-[#ff80b6]' : 'text-muted-foreground hover:bg-white/[.04]'}`}><UserRound size={18}/><span className="truncate">{activeName}</span></Link>
@@ -124,12 +127,12 @@ function AppShell({ children }: { children: ReactNode }) {
         </div>
       </aside>
       <header className={`${location==='/discover'?'hidden':'flex'} sticky top-[var(--install-banner-height,0px)] z-20 h-12 items-center justify-between border-b border-border bg-background/90 px-4 backdrop-blur-xl lg:hidden`}>
-        {location==='/notifications'||location==='/messages'?<><div className="flex items-center gap-2">{location==='/messages'?<span aria-hidden="true" className="text-[30px] font-black leading-none tracking-[-.1em] text-foreground">M</span>:<Brand compact/>}<span className="brand text-lg font-extrabold">vibe<span className="text-primary">swipe</span></span></div><Link href="/notifications" aria-label={hasUnreadActivity?'Unread notifications':'Notifications'} className="relative text-foreground"><Bell size={24}/>{hasUnreadActivity&&<span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-primary"/>}</Link></>:<><Brand compact/><span className="brand text-base font-extrabold">vibe<span className="text-primary">swipe</span></span><InstallAction compact/></>}
+        {isSocialPage?<><div className="flex items-center gap-2"><span aria-hidden="true" className="text-[30px] font-black leading-none tracking-[-.1em] text-foreground">M</span><span className="brand text-lg font-extrabold">vibe<span className="text-primary">swipe</span></span></div><Link href="/notifications" aria-label={hasUnreadActivity?'Unread activity':'Activity'} className="relative text-foreground"><Bell size={24}/>{hasUnreadActivity&&<span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-primary"/>}</Link></>:<><Brand compact/><span className="brand text-base font-extrabold">vibe<span className="text-primary">swipe</span></span><InstallAction compact/></>}
       </header>
     </>}
     <main className={showMainNavigation ? "min-h-[calc(100dvh-48px)] pb-24 lg:ml-[248px] lg:min-h-[100dvh] lg:pb-0" : "min-h-[100dvh]"}>{children}</main>
     {showMainNavigation && <nav className={`${location==='/profile'?'profile-nav ':''}fixed inset-x-0 bottom-0 z-30 flex justify-around border-t border-border bg-background/95 px-2 pb-[max(env(safe-area-inset-bottom),8px)] pt-2 backdrop-blur-xl lg:hidden`}>
-      {navItems.map(({ href, label, icon: Icon }) => <Link key={href} href={href} data-testid={`mobile-nav-${label.toLowerCase()}`} className={`flex min-w-[62px] flex-col items-center gap-1 rounded-xl px-3 py-1.5 text-[10px] font-semibold ${location === href || (href === '/matches' && location.startsWith('/chat/')) ? 'text-primary' : 'text-muted-foreground'}`}><Icon size={19}/>{label}</Link>)}
+      {navItems.map(({ href, label, icon: Icon }) => <Link key={href} href={href} data-testid={`mobile-nav-${label.toLowerCase()}`} className={`flex min-w-0 flex-1 flex-col items-center gap-1 rounded-xl px-1 py-1.5 text-[10px] font-semibold ${activeLocation === href ? 'text-primary' : 'text-muted-foreground'}`}><Icon size={19}/>{label}</Link>)}
       <Link href="/profile" data-testid="mobile-nav-profile" className={`flex min-w-[62px] flex-col items-center gap-1 rounded-xl px-3 py-1.5 text-[10px] font-semibold ${location === '/profile' ? 'text-primary' : 'text-muted-foreground'}`}><UserRound size={19}/>Profile</Link>
     </nav>}
   </div>;
@@ -749,7 +752,7 @@ function ReportSafetyRoute(){return <ShellPage><ReportSafetyPage/></ShellPage>}
 function PublicLocationShareRoute(){return <PublicLocationSharePage/>}
 function DiscoverRoute(){return <ShellPage><DiscoverPage/></ShellPage>}
 function StoryComposerRoute(){return <ShellPage><StoryComposerPage/></ShellPage>}
-function MatchesRoute(){return <ShellPage><MatchesPage/></ShellPage>}
+function MatchesRoute(){return <ShellPage><MutualMatchesPage avatar={p=><Avatar profile={p}/>}/></ShellPage>}
 function VisitorsPage(){
   const visitors=useGetWhoViewedYou({query:{refetchInterval:30000,refetchOnMount:'always'}});
   return <PageFrame><section className="-mt-3" data-testid="visitors-page">
@@ -758,9 +761,10 @@ function VisitorsPage(){
     {visitors.isLoading?<Busy/>:visitors.isError&&!visitors.data?<Retry text="We couldn’t load your profile visitors. Please try again." onRetry={()=>void visitors.refetch()}/>:!visitors.data?.length?<p className="py-8 text-center text-sm text-muted-foreground">No profile views yet.</p>:<ul className="space-y-3">{visitors.data.map(({profile})=><li key={profile.id}><Link href={`/profile/${profile.id}?returnTo=%2Fviews`} data-testid={`card-visitor-${profile.id}`} className="visitor-card flex items-center gap-4 rounded-[24px] border border-border/50 bg-card px-4 py-5 shadow-[0_4px_18px_rgba(90,40,65,.05)]"><span className="shrink-0 rounded-full border border-primary/70 p-[3px]"><Avatar profile={profile}/></span><span className="min-w-0 flex-1"><span className="block text-[17px] font-bold leading-6 text-foreground">{profile.name}{profile.age!=null?`, ${profile.age}`:''}<Heart size={16} aria-hidden="true" fill="currentColor" className="ml-2 inline text-primary"/></span><span className="mt-1 flex items-start gap-1.5 text-sm text-muted-foreground"><MapPin size={15} className="mt-0.5 shrink-0 text-primary"/>{profile.city?.trim()||profile.state?.trim()||profile.country?.trim()||'Location not shared'}</span></span><ChevronRight size={21} className="shrink-0 text-primary"/></Link></li>)}</ul>}
   </section></PageFrame>;
 }
-function ViewsRoute(){return <Redirect to="/messages"/>}
+function ViewsRoute(){return <ShellPage><InboundPeoplePage kind="views" avatar={p=><Avatar profile={p}/>}/></ShellPage>}
+function LikesRoute(){return <ShellPage><InboundPeoplePage kind="likes" avatar={p=><Avatar profile={p}/>}/></ShellPage>}
 function MessagesRoute(){return <ShellPage><MessagesPage/></ShellPage>}
-function NotificationsRoute(){return <ShellPage><NotificationsPage/></ShellPage>}
+function NotificationsRoute(){return <ShellPage><ActivityOverview avatar={p=><Avatar profile={p}/>}/></ShellPage>}
 function ViewedNotificationProfileRoute(){const params=useParams<{profileId:string}>();return <ShellPage><PublicProfile id={params.profileId||''} actionReturnTo="/notifications"/></ShellPage>}
 function PublicProfileRoute(){const params=useParams<{profileId:string}>();const returnTo=safeAppReturnPath(new URLSearchParams(window.location.search).get('returnTo'),'/discover');return <ShellPage><PublicProfile id={params.profileId||''} actionReturnTo={returnTo}/></ShellPage>}
 function SettingsThemeSync() {
@@ -783,7 +787,7 @@ function ClerkRoutes(){const [,setLocation]=useLocation();return <ClerkProvider 
   <Route path="/sign-up/*?" component={BrandedSignUp}/>
   {import.meta.env.DEV&&<Route path="/create-account-preview"><div className="border-b border-primary/20 bg-accent px-5 py-3 text-center text-xs leading-5 text-foreground" role="note">Form preview only. Email-code signup still needs the authentication setting changed.</div><ProfileFirstSignup previewOnly/></Route>}
   <Route path="/onboarding" component={OnboardingRoute}/><Route path="/discover" component={DiscoverRoute}/><Route path="/stories/new" component={StoryComposerRoute}/><Route path="/matches" component={MatchesRoute}/>
-  <Route path="/chat/:matchId" component={ChatRoute}/><Route path="/views" component={ViewsRoute}/><Route path="/messages" component={MessagesRoute}/><Route path="/notifications" component={NotificationsRoute}/>
+  <Route path="/chat/:matchId" component={ChatRoute}/><Route path="/views" component={ViewsRoute}/><Route path="/likes" component={LikesRoute}/><Route path="/messages" component={MessagesRoute}/><Route path="/notifications" component={NotificationsRoute}/>
    <Route path="/privacy-policy" component={PrivacyPolicyRoute}/><Route path="/terms" component={CommunityGuidelinesRoute}/><Route path="/community-guidelines" component={CommunityGuidelinesRoute}/>
    <Route path="/safety-center" component={SafetyCenterRoute}/><Route path="/report-safety" component={ReportSafetyRoute}/><Route path="/safety/location" component={PublicLocationShareRoute}/>
   <Route path="/profile" component={ProfileRoute}/><Route path="/profile/edit" component={ProfileEditRoute}/><Route path="/profile/:profileId/from-notifications" component={ViewedNotificationProfileRoute}/><Route path="/profile/:profileId" component={PublicProfileRoute}/><Route path="/settings" component={SettingsRoute}/><Route path="/settings/:section" component={SettingsSectionRoute}/><Route component={NotFound}/>

@@ -3,11 +3,11 @@ name: Messages and public profiles
 description: User's intentional navigation labels and separate visual direction for other members' profiles.
 ---
 
-Messages replaces Views in the bottom navigation. The five labels are Discover, Matches, Messages, Activity, Profile. Messages is the main and only conversation list, showing real mutual matches, real previews and timestamps, and unread counts. Activity continues to show profile views and likes and offers message shortcuts, while mutual matching remains required for chat.
+Keep exactly five bottom tabs: Discover, Matches, Messages, Activity, Profile. Messages is the main and only conversation list, showing real mutual matches, real previews and timestamps, and unread counts. Activity is an overview only: short message notices open Messages, and summaries link to separate Matches, Likes and Views screens. Individual likes and views belong on their separate pages, reached from Activity, with Activity still highlighted. Matches shows mutual matches rather than conversation previews. Chat remains mutual-match-only.
 
-**Why:** The user explicitly said to remove Views, replace it with Messages, and make this the main and only place for messages.
+**Why:** The user explicitly said, “Use five tabs with Activity shortcuts. Bottom navigation should be: Discover, Matches, Messages, Activity, Profile. Views and Likes should open from Activity, not as separate bottom tabs.”
 
-**How to apply:** Do not restore the Views label or add a second Messages list elsewhere. Existing entry-point links may open the same conversation destination.
+**How to apply:** Do not restore Views as a bottom tab, mix detailed social lists into Activity, or add a second Messages list elsewhere. Existing message entry-point links should open the same Messages destination.
 
 Leave paid upgrades out.
 
