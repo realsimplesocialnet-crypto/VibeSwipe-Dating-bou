@@ -204,9 +204,7 @@ export function DiscoverSwipePage() {
   if (!profile) {
     return (
       <div className="mx-auto max-w-[760px] px-4 pt-3 pb-5 text-center sm:px-6 sm:pt-5 sm:pb-7">
-        <div className="relative -top-7">
-          <StoriesRow />
-        </div>
+        <StoriesRow />
         <div className="mx-auto max-w-xl pt-10 pb-8"><h1 className="brand text-2xl font-bold">That’s everyone for now</h1>
         <p className="mt-2 text-sm text-muted-foreground">Try broadening your filters or check back soon.</p>
         <button onClick={() => setFiltersOpen(true)} data-testid="button-open-filters-empty" className="mt-5 rounded-xl bg-primary px-4 py-3 font-bold text-[#27101d]">Adjust filters</button></div>

@@ -123,19 +123,19 @@ export function StoriesRow() {
             <span className="relative block h-[68px] w-[68px]">
               {own.length > 0
                 ? <button type="button" onClick={() => setActive({ stories: own, name: profile.data?.name || "Your story", photo: profile.data?.photos?.[0] ?? null })} data-testid="button-own-story" aria-label="View your story" className="group absolute inset-0 h-full w-full rounded-full">
-                    <span className={`flex h-full w-full items-center justify-center rounded-full p-[2.5px] transition-transform group-hover:scale-[1.04] ${own.some((story) => !story.viewed) ? "bg-gradient-to-br from-[#ef9bc7] via-[#bd8ae1] to-[#8e79d5]" : "bg-white/25"}`}>
-                      <span className="h-full w-full overflow-hidden rounded-full border-[2px] border-[#17141b]"><StoryAvatar reference={profile.data?.photos?.[0] ?? null} name={profile.data?.name ?? "You"} className="h-full w-full text-xl"/></span>
+                    <span className={`flex h-full w-full items-center justify-center rounded-full p-[2px] transition-transform group-hover:scale-[1.04] ${own.some((story) => !story.viewed) ? "bg-gradient-to-br from-[#ef9bc7] via-[#bd8ae1] to-[#8e79d5]" : "bg-white/25"}`}>
+                      <span className="h-full w-full overflow-hidden rounded-full"><StoryAvatar reference={profile.data?.photos?.[0] ?? null} name={profile.data?.name ?? "You"} className="h-full w-full text-xl"/></span>
                     </span>
                   </button>
-                : <Link href="/stories/new" data-testid="button-own-story" aria-label="Add your story" className="group absolute inset-0 rounded-full border border-white/15 p-[2px] transition-transform hover:scale-[1.04]">
-                    <span className="block h-full w-full overflow-hidden rounded-full"><StoryAvatar reference={profile.data?.photos?.[0] ?? null} name={profile.data?.name ?? "You"} className="h-full w-full text-xl"/></span>
+                : <Link href="/stories/new" data-testid="button-own-story" aria-label="Add your story" className="group absolute inset-0 overflow-hidden rounded-full transition-transform hover:scale-[1.04]">
+                    <StoryAvatar reference={profile.data?.photos?.[0] ?? null} name={profile.data?.name ?? "You"} className="h-full w-full text-xl"/>
                   </Link>}
               <Link href="/stories/new" data-testid="link-create-story" aria-label="Add a story" className="absolute -bottom-0.5 -right-0.5 z-[1] flex h-6 w-6 items-center justify-center rounded-full border-2 border-[#17141b] bg-primary text-[#25131f] transition-transform hover:scale-110"><Plus size={14}/></Link>
             </span>
             <span className="w-full truncate text-[11px] font-medium text-foreground">Your story</span>
           </div>
           {matches.map((group) => <button type="button" key={group.matchId} onClick={() => setActive({ stories: group.stories, name: group.poster.name, photo: group.poster.photo, matchId: group.matchId })} data-testid={`button-story-${group.matchId}`} aria-label={`View ${group.poster.name}'s story`} className="group flex w-[72px] shrink-0 flex-col items-center gap-1.5 text-center">
-            <span className={`flex h-[68px] w-[68px] items-center justify-center rounded-full p-[2.5px] transition-transform group-hover:scale-[1.04] ${group.stories.some((story) => !story.viewed) ? "bg-gradient-to-br from-[#ef9bc7] via-[#bd8ae1] to-[#8e79d5]" : "bg-white/25"}`}><span className="h-full w-full overflow-hidden rounded-full border-[2px] border-[#17141b]"><StoryAvatar reference={group.poster.photo} name={group.poster.name} className="h-full w-full text-xl"/></span></span>
+            <span className={`flex h-[68px] w-[68px] items-center justify-center overflow-hidden rounded-full p-[2px] transition-transform group-hover:scale-[1.04] ${group.stories.some((story) => !story.viewed) ? "bg-gradient-to-br from-[#ef9bc7] via-[#bd8ae1] to-[#8e79d5]" : "bg-white/25"}`}><span className="h-full w-full overflow-hidden rounded-full"><StoryAvatar reference={group.poster.photo} name={group.poster.name} className="h-full w-full text-xl"/></span></span>
             <span className="w-full truncate text-[11px] font-medium text-foreground">{group.poster.name.split(/\s+/)[0].slice(0, 12)}</span>
           </button>)}
         </div>}
