@@ -437,11 +437,11 @@ function NotificationsPage() {
             onClick={() => void open(n)}
             data-testid={`button-notification-${n.id}`}
             aria-label={`${n.actor.name} ${actionText(n)}${n.readAt ? "" : ", unread"}`}
-            className="flex w-full items-center gap-4 rounded-2xl border border-white/[.08] bg-card p-4 text-left transition-colors hover:bg-white/[.04]"
+            className="flex w-full items-center gap-4 rounded-2xl border border-border bg-card p-4 text-left text-card-foreground transition-colors hover:bg-secondary/40"
           >
             <span className="shrink-0 rounded-full border border-primary/75 p-[2px]"><Avatar profile={n.actor} /></span>
             <span className="min-w-0 flex-1">
-              <span className="block text-sm font-bold text-white"><span>{n.actor.name}</span>{" "}<span className="font-semibold">{actionText(n)}</span></span>
+              <span className="block text-sm font-bold text-card-foreground"><span>{n.actor.name}</span>{" "}<span className="font-semibold">{actionText(n)}</span></span>
               <time dateTime={n.createdAt} className="mt-1 block text-xs text-muted-foreground">{timeAgo(n.createdAt)}</time>
             </span>
             <ChevronRight size={18} className="shrink-0 text-muted-foreground" />
