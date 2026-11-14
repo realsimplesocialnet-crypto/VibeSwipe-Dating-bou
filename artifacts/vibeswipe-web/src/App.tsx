@@ -34,6 +34,7 @@ import CommunityGuidelinesPage from '@/pages/community-guidelines';
 import PublicLocationSharePage from '@/pages/public-location-share';
 import { InstallAction } from '@/components/install-action';
 import { InstalledWelcome } from '@/components/installed-welcome';
+import { DiscoverSwipePage } from '@/components/discover-swipe-page';
 import { SignupPasswordField } from '@/components/signup-password-field';
 import { ProfileFirstSignup } from '@/components/profile-first-signup';
 import { LocationChoice } from '@/components/location-choice';
@@ -221,7 +222,7 @@ function MediaImage({reference,className,alt,onError}:{reference?:string;classNa
 }
 function Empty({ title, detail, action }: { title: string; detail: string; action?: ReactNode }) { return <div className="rounded-[24px] border border-dashed border-white/10 bg-white/[.02] px-6 py-14 text-center"><div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-accent text-primary"><Sparkles size={23}/></div><h3 className="mt-5 text-lg font-bold">{title}</h3><p className="mx-auto mt-2 max-w-md text-sm leading-6 text-muted-foreground">{detail}</p>{action&&<div className="mt-5">{action}</div>}</div>; }
 
-function DiscoverPage() {
+export function LegacyDiscoverPage() {
   const qc=useQueryClient(); const [index,setIndex]=useState(0); const [ageMin,setAgeMin]=useState(22); const [ageMax,setAgeMax]=useState(35); const [gender,setGender]=useState('Everyone'); const [city,setCity]=useState(''); const [filters,setFilters]=useState(false); const [detail,setDetail]=useState(false); const [notice,setNotice]=useState(''); const [lastPass,setLastPass]=useState<string|null>(null);
   const params=useMemo(()=>({ageMin,ageMax,gender,...(city.trim()?{city:city.trim()}:{})}),[ageMin,ageMax,gender,city]);
   const discover=useGetDiscoverProfiles<Profile[]>(params,{query:{queryKey:getGetDiscoverProfilesQueryKey(params),refetchOnWindowFocus:false,retry:shouldRetryDiscover}});
@@ -268,6 +269,7 @@ function DiscoverPage() {
     {filters&&<Dialog title="Discovery filters" onClose={()=>setFilters(false)}><div className="space-y-5"><div className="grid grid-cols-2 gap-3"><label className="text-xs text-muted-foreground">Age from<input data-testid="input-filter-age-min" type="number" min="18" value={ageMin} onChange={e=>setAgeMin(Number(e.target.value))} className="field mt-2"/></label><label className="text-xs text-muted-foreground">Age to<input data-testid="input-filter-age-max" type="number" min={ageMin} value={ageMax} onChange={e=>setAgeMax(Number(e.target.value))} className="field mt-2"/></label></div><label className="block text-xs text-muted-foreground">Interested in<select data-testid="select-filter-gender" value={gender} onChange={e=>setGender(e.target.value)} className="field mt-2"><option>Everyone</option><option>Woman</option><option>Man</option><option>Non-binary</option></select></label><label className="block text-xs text-muted-foreground">City<input data-testid="input-filter-city" value={city} onChange={e=>setCity(e.target.value)} placeholder="Any city" className="field mt-2"/></label><button onClick={()=>{setIndex(0);setFilters(false)}} data-testid="button-apply-filters" className="w-full rounded-xl bg-primary py-3 font-bold text-[#27101d]">Show people</button></div></Dialog>}
   </PageFrame>;
 }
+function DiscoverPage(){return <DiscoverSwipePage/>}
 function Dialog({ title, children, onClose }: { title:string; children:ReactNode; onClose:()=>void }) { return <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/65 p-0 backdrop-blur-sm sm:items-center sm:p-5" role="presentation" onMouseDown={e=>{if(e.target===e.currentTarget)onClose()}}><section className="max-h-[90dvh] w-full max-w-lg overflow-y-auto rounded-t-[26px] border border-white/10 bg-[#211d25] p-5 shadow-2xl sm:rounded-[26px] sm:p-7"><div className="mb-6 flex items-center justify-between"><h2 className="brand text-2xl font-bold">{title}</h2><button onClick={onClose} data-testid="button-close-dialog" aria-label="Close" className="rounded-lg p-2 text-muted-foreground hover:bg-white/5"><X size={19}/></button></div>{children}</section></div>; }
 
 function MatchesPage() {

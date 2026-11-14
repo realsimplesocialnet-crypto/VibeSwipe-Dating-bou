@@ -31,6 +31,7 @@ import {
   PanResponder,
   Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -41,7 +42,6 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useColors } from "@/hooks/useColors";
 import { profileImageSource } from "@/lib/media";
 import { useVideoPreloadQueue } from "@/hooks/useVideoPreloadQueue";
-import { NotificationBell } from "@/components/NotificationBell";
 
 type SwipeDirection = "pass" | "like" | "super";
 
@@ -73,7 +73,7 @@ function SwipeCard({
     () =>
       PanResponder.create({
         onMoveShouldSetPanResponder: (_, gesture) =>
-          Math.abs(gesture.dx) > 8 || Math.abs(gesture.dy) > 8,
+          Math.abs(gesture.dx) > 12 && Math.abs(gesture.dx) > Math.abs(gesture.dy) * 1.2,
         onPanResponderMove: (_, gesture) => pan.setValue({ x: gesture.dx, y: gesture.dy }),
         onPanResponderRelease: (_, gesture) => {
           const direction: SwipeDirection | null =
@@ -112,63 +112,116 @@ function SwipeCard({
     ],
   };
   const poster = profileImageSource(profile.photos[0], token);
+  const heroHeight = Math.max(340, Math.min(560, height * 0.62));
 
   return (
     <Animated.View
       {...responder.panHandlers}
       style={[styles.card, { backgroundColor: colors.discoverBackground }, cardTransform]}
     >
-      {poster ? <Image source={poster} style={StyleSheet.absoluteFill} resizeMode="cover" /> : null}
-      {player && Platform.OS !== "web" ? (
-        <VideoView
-          player={player}
-          style={[StyleSheet.absoluteFill, { opacity: firstFrame ? 1 : 0 }]}
-          contentFit="cover"
-          nativeControls={false}
-          onFirstFrameRender={() => setFirstFrame(true)}
-        />
-      ) : null}
-      <LinearGradient
-        colors={[colors.discoverGradientTop, colors.discoverGradientMiddle, colors.discoverGradientBottom]}
-        locations={[0.22, 0.54, 1]}
-        style={StyleSheet.absoluteFill}
-        pointerEvents="none"
-      />
-      {profile.superLikedYou ? (
-        <View style={styles.superLikedBadge}>
-          <Feather name="star" size={14} color="#FFD166" />
-          <Text style={styles.superLikedText}>Super liked you</Text>
-        </View>
-      ) : null}
-      {profile.videoUrl ? (
-        <Pressable
-          accessibilityLabel={muted ? "Turn video sound on" : "Mute video"}
-          testID="video-sound-toggle"
-          onPress={() => {
-            const next = !muted;
-            setMuted(next);
-            if (player) player.muted = next;
-          }}
-          style={[styles.soundButton, { top: topInset + 58, backgroundColor: colors.discoverControl }]}
-        >
-          <Feather name={muted ? "volume-x" : "volume-2"} size={17} color={colors.discoverForeground} />
-        </Pressable>
-      ) : null}
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={`View ${profile.name}'s profile`}
-        onPress={onPressDetails}
-        style={[styles.cardCopy, { bottom: actionBottom + 88 }]}
+      <ScrollView
+        style={styles.profileScroll}
+        contentContainerStyle={{ paddingBottom: actionBottom + 104 }}
+        nestedScrollEnabled
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
       >
-        <View style={styles.nameLine}>
-          <Text numberOfLines={1} style={[styles.name, { color: colors.discoverForeground }]}>{profile.name}</Text>
-          <Text style={[styles.age, { color: colors.discoverMuted }]}>{profile.age}</Text>
+        <View style={[styles.photoHero, { height: heroHeight, backgroundColor: colors.card }]}>
+          {poster ? <Image source={poster} style={StyleSheet.absoluteFill} resizeMode="cover" /> : null}
+          {player && Platform.OS !== "web" ? (
+            <VideoView
+              player={player}
+              style={[StyleSheet.absoluteFill, { opacity: firstFrame ? 1 : 0 }]}
+              contentFit="cover"
+              nativeControls={false}
+              onFirstFrameRender={() => setFirstFrame(true)}
+            />
+          ) : null}
+          <LinearGradient
+            colors={[colors.discoverGradientTop, colors.discoverGradientMiddle, colors.discoverGradientBottom]}
+            locations={[0.22, 0.54, 1]}
+            style={StyleSheet.absoluteFill}
+            pointerEvents="none"
+          />
+          {profile.superLikedYou ? (
+            <View style={[styles.superLikedBadge, { top: topInset + 58 }]}>
+              <Feather name="star" size={14} color="#FFD166" />
+              <Text style={styles.superLikedText}>Super liked you</Text>
+            </View>
+          ) : null}
+          {profile.videoUrl ? (
+            <Pressable
+              accessibilityLabel={muted ? "Turn video sound on" : "Mute video"}
+              testID="video-sound-toggle"
+              onPress={() => {
+                const next = !muted;
+                setMuted(next);
+                if (player) player.muted = next;
+              }}
+              style={[styles.soundButton, { top: topInset + 58, backgroundColor: colors.discoverControl }]}
+            >
+              <Feather name={muted ? "volume-x" : "volume-2"} size={17} color={colors.discoverForeground} />
+            </Pressable>
+          ) : null}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Profile options for ${profile.name}`}
+            testID="profile-options"
+            onPress={onPressDetails}
+            style={[styles.profileOptions, { top: topInset + (profile.videoUrl ? 108 : 58), backgroundColor: colors.discoverControl, borderColor: colors.discoverControlBorder }]}
+          >
+            <Feather name="more-horizontal" size={19} color={colors.discoverForeground} />
+          </Pressable>
+          <View style={styles.heroCopy}>
+            <View style={styles.nameLine}>
+              <Text numberOfLines={1} style={[styles.name, { color: colors.discoverForeground }]}>{profile.name}</Text>
+              <Text style={[styles.age, { color: colors.discoverMuted }]}>{profile.age}</Text>
+            </View>
+            <View style={styles.locationLine}>
+              <Feather name="map-pin" size={13} color={colors.discoverMuted} />
+              <Text style={[styles.location, { color: colors.discoverMuted }]}>{profile.city || "Nearby"}</Text>
+            </View>
+            {profile.interests.length ? (
+              <View style={styles.interests}>
+                {profile.interests.slice(0, 3).map((interest) => (
+                  <Text key={interest} style={[styles.interestTag, { backgroundColor: colors.discoverControl, color: colors.discoverForeground }]}>
+                    {interest}
+                  </Text>
+                ))}
+              </View>
+            ) : null}
+          </View>
         </View>
-        <View style={styles.locationLine}>
-          <Feather name="map-pin" size={13} color={colors.discoverMuted} />
-          <Text style={[styles.location, { color: colors.discoverMuted }]}>{profile.city || "Nearby"}</Text>
+        <View style={[styles.profileDetails, { backgroundColor: colors.discoverBackground }]}>
+          <Text style={[styles.sectionLabel, { color: colors.primary }]}>About {profile.name}</Text>
+          <Text style={[styles.profileBio, { color: colors.discoverMuted }]}>{profile.bio || "No bio added yet."}</Text>
+          {profile.photos.length > 1 ? (
+            <>
+              <Text style={[styles.sectionLabel, styles.sectionGap, { color: colors.discoverMuted }]}>More photos</Text>
+              <View style={styles.photoGrid}>
+                {profile.photos.slice(1).map((photo, index) => {
+                  const source = profileImageSource(photo, token);
+                  return source ? (
+                    <Image key={`${photo}-${index}`} source={source} style={styles.extraPhoto} resizeMode="cover" />
+                  ) : null;
+                })}
+              </View>
+            </>
+          ) : null}
+          {profile.interests.length ? (
+            <>
+              <Text style={[styles.sectionLabel, styles.sectionGap, { color: colors.discoverMuted }]}>Interests</Text>
+              <View style={styles.interests}>
+                {profile.interests.map((interest) => (
+                  <Text key={interest} style={[styles.interestTag, { backgroundColor: colors.discoverControl, color: colors.discoverForeground }]}>
+                    {interest}
+                  </Text>
+                ))}
+              </View>
+            </>
+          ) : null}
         </View>
-      </Pressable>
+      </ScrollView>
     </Animated.View>
   );
 }
@@ -401,47 +454,36 @@ export default function DiscoverScreen() {
           topInset={topInset}
           actionBottom={actionBottom}
         />
-        <Pressable
-          testID="open-filters"
-          accessibilityRole="button"
-          accessibilityLabel="Open discovery filters"
-          onPress={() => setFilterOpen(true)}
-          style={[
-            styles.filterButton,
-            { top: topInset + 8, backgroundColor: colors.discoverControl, borderColor: colors.discoverControlBorder },
-          ]}
-        >
-          <Feather name="sliders" size={18} color={colors.discoverForeground} />
-        </Pressable>
-        <View style={[styles.notificationSpot, { top: topInset + 8, right: 72 }]}>
-          <NotificationBell color={colors.discoverForeground} />
-        </View>
-        <Pressable
-          testID="boost-profile"
-          accessibilityRole="button"
-          accessibilityLabel={boostLabel}
-          disabled={!boostStatus.data?.available || activateBoost.isPending}
-          onPress={() => void startBoost()}
-          style={[
-            styles.boostButton,
-            {
-              top: topInset + 8,
-              backgroundColor: colors.discoverControl,
-              borderColor: colors.discoverControlBorder,
-              opacity: !boostStatus.data?.available || activateBoost.isPending ? 0.88 : 1,
-            },
-          ]}
-        >
-          <Feather name="zap" size={15} color="#FFD166" />
-          <Text numberOfLines={1} style={[styles.boostText, { color: colors.discoverForeground }]}>{boostLabel}</Text>
-        </Pressable>
-        <View style={[styles.dailyLikeBadge, { top: topInset + 62, backgroundColor: colors.discoverControl }]}>
-          <Feather name="heart" size={12} color={colors.discoverLike} />
-          <Text style={[styles.dailyLikeText, { color: colors.discoverForeground }]}>
-            {dailyLikeStatus.data?.remaining === 0
-              ? "You’ve reached your daily like limit. Come back in 24 hours."
-              : `${dailyLikeStatus.data?.remaining ?? "—"} likes left`}
-          </Text>
+        <View style={[styles.discoverHeader, { top: topInset + 8 }]}>
+          <View style={styles.headerCopy}>
+            <Text style={[styles.headerTitle, { color: colors.discoverForeground }]}>Meet someone new</Text>
+            <Text style={[styles.headerLikes, { color: colors.discoverMuted }]}>
+              {dailyLikeStatus.data?.remaining === 0
+                ? "Daily like limit reached"
+                : `${dailyLikeStatus.data?.remaining ?? "—"} likes left`}
+            </Text>
+          </View>
+          <View style={styles.headerActions}>
+            <Pressable
+              testID="boost-profile"
+              accessibilityRole="button"
+              accessibilityLabel={boostLabel}
+              disabled={!boostStatus.data?.available || activateBoost.isPending}
+              onPress={() => void startBoost()}
+              style={[styles.headerIcon, { backgroundColor: colors.discoverControl, borderColor: colors.discoverControlBorder, opacity: !boostStatus.data?.available || activateBoost.isPending ? 0.68 : 1 }]}
+            >
+              <Feather name="zap" size={16} color="#FFD166" />
+            </Pressable>
+            <Pressable
+              testID="open-filters"
+              accessibilityRole="button"
+              accessibilityLabel="Open discovery filters"
+              onPress={() => setFilterOpen(true)}
+              style={[styles.headerIcon, { backgroundColor: colors.discoverControl, borderColor: colors.discoverControlBorder }]}
+            >
+              <Feather name="sliders" size={17} color={colors.discoverForeground} />
+            </Pressable>
+          </View>
         </View>
         {banner ? (
           <Pressable
@@ -455,30 +497,22 @@ export default function DiscoverScreen() {
         ) : null}
         <View style={[styles.actions, { bottom: actionBottom }]}>
           <ActionButton label="Pass" icon="x" color={colors.discoverForeground} background={colors.discoverPass} onPress={() => void swipe("pass")} testID="pass-profile" />
+          <Pressable
+            testID="undo-pass"
+            accessibilityRole="button"
+            accessibilityLabel="Undo your most recent pass"
+            disabled={!lastPassedProfileId || undoLastPass.isPending}
+            onPress={() => void undoPass()}
+            style={({ pressed }) => [styles.undoButton, { backgroundColor: colors.discoverControl, borderColor: colors.discoverControlBorder, opacity: lastPassedProfileId && !undoLastPass.isPending ? (pressed ? 0.72 : 1) : 0.42 }]}
+          >
+            <Feather name="rotate-ccw" size={18} color={colors.discoverForeground} />
+          </Pressable>
           <View style={styles.superLikeAction}>
             <ActionButton label="Super like" icon="star" color={colors.discoverSuperLikeForeground} background={colors.discoverSuperLike} onPress={() => void swipe("super")} testID="super-like-profile" small disabled={superLikeStatus.data?.remaining === 0} />
             <Text style={[styles.superLikeCount, { color: colors.discoverMuted }]}>{superLikeStatus.data?.remaining ?? "—"} left</Text>
           </View>
           <ActionButton label="Like" icon="heart" color={colors.discoverForeground} background={colors.discoverLike} onPress={() => void swipe("like")} testID="like-profile" disabled={dailyLikeStatus.data?.remaining === 0} />
         </View>
-        <Pressable
-          testID="undo-pass"
-          accessibilityRole="button"
-          accessibilityLabel="Undo your most recent pass"
-          disabled={!lastPassedProfileId || undoLastPass.isPending}
-          onPress={() => void undoPass()}
-          style={[
-            styles.undoButton,
-            {
-              bottom: actionBottom + 8,
-              backgroundColor: colors.discoverControl,
-              borderColor: colors.discoverControlBorder,
-              opacity: lastPassedProfileId && !undoLastPass.isPending ? 1 : 0.45,
-            },
-          ]}
-        >
-          <Feather name="rotate-ccw" size={18} color={colors.discoverForeground} />
-        </Pressable>
         {busy ? (
           <View style={[styles.busyOverlay, { top: topInset + 66, backgroundColor: colors.discoverControl }]}>
             <ActivityIndicator color={colors.discoverForeground} />
@@ -579,18 +613,27 @@ function ActionButton({
 
 const styles = StyleSheet.create({
   screen: { flex: 1, paddingHorizontal: 0, paddingBottom: 0 },
-  filterButton: { position: "absolute", zIndex: 5, right: 18, width: 44, height: 44, borderRadius: 22, borderWidth: 1, alignItems: "center", justifyContent: "center" },
-  notificationSpot: { position: "absolute", zIndex: 6, width: 42, height: 42 },
-  boostButton: { position: "absolute", zIndex: 6, left: 18, height: 42, maxWidth: 190, paddingHorizontal: 12, borderRadius: 22, borderWidth: 1, flexDirection: "row", alignItems: "center", gap: 7 },
-  boostText: { fontSize: 11, fontWeight: "700", flexShrink: 1 },
-  dailyLikeBadge: { position: "absolute", zIndex: 3, left: 54, right: 54, minHeight: 30, borderRadius: 15, paddingHorizontal: 10, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6 },
-  dailyLikeText: { fontSize: 10, fontWeight: "700", textAlign: "center", flexShrink: 1 },
+  discoverHeader: { position: "absolute", zIndex: 7, left: 18, right: 18, flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 14 },
+  headerCopy: { flex: 1 },
+  headerTitle: { fontSize: 17, fontWeight: "800", letterSpacing: -0.25 },
+  headerLikes: { fontSize: 11, fontWeight: "600", marginTop: 3 },
+  headerActions: { flexDirection: "row", gap: 8 },
+  headerIcon: { width: 40, height: 40, borderRadius: 20, borderWidth: 1, alignItems: "center", justifyContent: "center" },
   superLikedBadge: { position: "absolute", top: 136, left: 20, zIndex: 3, flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "rgba(20,17,20,0.76)", borderRadius: 18, paddingHorizontal: 12, paddingVertical: 8 },
   superLikedText: { color: "#fff", fontSize: 12, fontWeight: "700" },
-  undoButton: { position: "absolute", zIndex: 5, left: 22, width: 46, height: 46, borderRadius: 23, borderWidth: 1, alignItems: "center", justifyContent: "center" },
+  undoButton: { width: 48, height: 48, borderRadius: 24, borderWidth: 1, alignItems: "center", justifyContent: "center" },
   deck: { flex: 1, position: "relative", minHeight: 250 },
   card: { flex: 1, borderRadius: 0, overflow: "hidden" },
-  cardCopy: { position: "absolute", left: 25, right: 25 },
+  profileScroll: { flex: 1 },
+  photoHero: { width: "100%", overflow: "hidden" },
+  heroCopy: { position: "absolute", left: 22, right: 22, bottom: 24 },
+  profileOptions: { position: "absolute", right: 18, width: 40, height: 40, borderRadius: 20, borderWidth: 1, alignItems: "center", justifyContent: "center", zIndex: 4 },
+  profileDetails: { paddingHorizontal: 22, paddingTop: 20, paddingBottom: 24 },
+  sectionLabel: { fontSize: 10, fontWeight: "800", letterSpacing: 1.5, textTransform: "uppercase" },
+  sectionGap: { marginTop: 22, marginBottom: 10 },
+  profileBio: { fontSize: 14, lineHeight: 22, marginTop: 9 },
+  photoGrid: { flexDirection: "row", flexWrap: "wrap", gap: 9, marginTop: 11 },
+  extraPhoto: { width: "48%", aspectRatio: 0.82, borderRadius: 14 },
   locationLine: { flexDirection: "row", gap: 6, alignItems: "center", marginTop: 9 },
   location: { fontSize: 13, fontWeight: "500" },
   nameLine: { flexDirection: "row", alignItems: "baseline", gap: 10 },
@@ -598,7 +641,7 @@ const styles = StyleSheet.create({
   age: { fontSize: 23, fontWeight: "500" },
   interests: { flexDirection: "row", flexWrap: "wrap", gap: 7, marginTop: 12 },
   soundButton: { position: "absolute", right: 20, width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center", zIndex: 3 },
-  actions: { position: "absolute", left: 0, right: 0, zIndex: 4, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 26 },
+  actions: { position: "absolute", left: 0, right: 0, zIndex: 4, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 12 },
   superLikeAction: { alignItems: "center", justifyContent: "center" },
   superLikeCount: { fontSize: 10, fontWeight: "700", marginTop: -2 },
   actionWrap: { width: 68, height: 68, alignItems: "center", justifyContent: "center" },
