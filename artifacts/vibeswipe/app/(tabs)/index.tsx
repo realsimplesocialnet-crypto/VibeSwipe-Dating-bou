@@ -19,10 +19,11 @@ import {
   type Profile,
 } from "@workspace/api-client-react";
 import { Feather } from "@expo/vector-icons";
+import { useAuth } from "@clerk/expo";
 import { City, Country } from "country-state-city";
+import { router } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Haptics from "expo-haptics";
-import { VideoView } from "expo-video";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -48,32 +49,28 @@ import { profileImageSource } from "@/lib/media";
 const FILTER_COUNTRIES = Country.getAllCountries()
   .map(({ isoCode, name }) => ({ code: isoCode, name }))
   .sort((a, b) => a.name.localeCompare(b.name));
-import { useVideoPreloadQueue } from "@/hooks/useVideoPreloadQueue";
-
 type SwipeDirection = "pass" | "like" | "super";
 
 function SwipeCard({
   profile,
-  player,
   token,
   onSwipe,
   onPressDetails,
+  onOpenProfile,
   topInset,
   actionBottom,
 }: {
   profile: Profile;
-  player: ReturnType<typeof useVideoPreloadQueue>["player"];
   token: string | null;
   onSwipe: (direction: SwipeDirection) => void;
   onPressDetails: () => void;
+  onOpenProfile: () => void;
   topInset: number;
   actionBottom: number;
 }) {
   const colors = useColors();
   const { width, height } = useWindowDimensions();
   const pan = useRef(new Animated.ValueXY()).current;
-  const [firstFrame, setFirstFrame] = useState(false);
-  const [muted, setMuted] = useState(true);
   const swipeRef = useRef(onSwipe);
   swipeRef.current = onSwipe;
   const responder = useMemo(
@@ -119,7 +116,7 @@ function SwipeCard({
     ],
   };
   const poster = profileImageSource(profile.photos[0], token);
-  const heroHeight = Math.max(340, Math.min(560, height * 0.62));
+  const heroHeight = Math.max(340, Math.min(560, height - topInset - actionBottom - 170));
 
   return (
     <Animated.View
@@ -135,20 +132,18 @@ function SwipeCard({
       >
         <View style={[styles.photoHero, { height: heroHeight, backgroundColor: colors.card }]}>
           {poster ? <Image source={poster} style={StyleSheet.absoluteFill} resizeMode="cover" /> : null}
-          {player && Platform.OS !== "web" ? (
-            <VideoView
-              player={player}
-              style={[StyleSheet.absoluteFill, { opacity: firstFrame ? 1 : 0 }]}
-              contentFit="cover"
-              nativeControls={false}
-              onFirstFrameRender={() => setFirstFrame(true)}
-            />
-          ) : null}
           <LinearGradient
             colors={[colors.discoverGradientTop, colors.discoverGradientMiddle, colors.discoverGradientBottom]}
             locations={[0.22, 0.54, 1]}
             style={StyleSheet.absoluteFill}
             pointerEvents="none"
+          />
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Open ${profile.name}'s full profile`}
+            testID="open-full-profile"
+            onPress={onOpenProfile}
+            style={StyleSheet.absoluteFill}
           />
           {profile.superLikedYou ? (
             <View style={[styles.superLikedBadge, { top: topInset + 58 }]}>
@@ -156,30 +151,16 @@ function SwipeCard({
               <Text style={styles.superLikedText}>Super liked you</Text>
             </View>
           ) : null}
-          {profile.videoUrl ? (
-            <Pressable
-              accessibilityLabel={muted ? "Turn video sound on" : "Mute video"}
-              testID="video-sound-toggle"
-              onPress={() => {
-                const next = !muted;
-                setMuted(next);
-                if (player) player.muted = next;
-              }}
-              style={[styles.soundButton, { top: topInset + 58, backgroundColor: colors.discoverControl }]}
-            >
-              <Feather name={muted ? "volume-x" : "volume-2"} size={17} color={colors.discoverForeground} />
-            </Pressable>
-          ) : null}
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={`Profile options for ${profile.name}`}
             testID="profile-options"
             onPress={onPressDetails}
-            style={[styles.profileOptions, { top: topInset + (profile.videoUrl ? 108 : 58), backgroundColor: colors.discoverControl, borderColor: colors.discoverControlBorder }]}
+            style={[styles.profileOptions, { top: topInset + 58, backgroundColor: colors.discoverControl, borderColor: colors.discoverControlBorder }]}
           >
             <Feather name="more-horizontal" size={19} color={colors.discoverForeground} />
           </Pressable>
-          <View style={styles.heroCopy}>
+          <Pressable accessibilityRole="button" accessibilityLabel={`View ${profile.name}'s full profile`} testID="open-full-profile-details" onPress={onOpenProfile} style={styles.heroCopy}>
             <View style={styles.nameLine}>
               <Text numberOfLines={1} style={[styles.name, { color: colors.discoverForeground }]}>{profile.name}</Text>
               <Text style={[styles.age, { color: colors.discoverMuted }]}>{profile.age}</Text>
@@ -188,45 +169,14 @@ function SwipeCard({
               <Feather name="map-pin" size={13} color={colors.discoverMuted} />
               <Text style={[styles.location, { color: colors.discoverMuted }]}>{profile.city || "Nearby"}</Text>
             </View>
-            {profile.interests.length ? (
+            {profile.interests[0] ? (
               <View style={styles.interests}>
-                {profile.interests.slice(0, 3).map((interest) => (
-                  <Text key={interest} style={[styles.interestTag, { backgroundColor: colors.discoverControl, color: colors.discoverForeground }]}>
-                    {interest}
-                  </Text>
-                ))}
+                <Text style={[styles.interestTag, { backgroundColor: colors.discoverControl, color: colors.discoverForeground }]}>
+                  {profile.interests[0]}
+                </Text>
               </View>
             ) : null}
-          </View>
-        </View>
-        <View style={[styles.profileDetails, { backgroundColor: colors.discoverBackground }]}>
-          <Text style={[styles.sectionLabel, { color: colors.primary }]}>About {profile.name}</Text>
-          <Text style={[styles.profileBio, { color: colors.discoverMuted }]}>{profile.bio || "No bio added yet."}</Text>
-          {profile.photos.length > 1 ? (
-            <>
-              <Text style={[styles.sectionLabel, styles.sectionGap, { color: colors.discoverMuted }]}>More photos</Text>
-              <View style={styles.photoGrid}>
-                {profile.photos.slice(1).map((photo, index) => {
-                  const source = profileImageSource(photo, token);
-                  return source ? (
-                    <Image key={`${photo}-${index}`} source={source} style={styles.extraPhoto} resizeMode="cover" />
-                  ) : null;
-                })}
-              </View>
-            </>
-          ) : null}
-          {profile.interests.length ? (
-            <>
-              <Text style={[styles.sectionLabel, styles.sectionGap, { color: colors.discoverMuted }]}>Interests</Text>
-              <View style={styles.interests}>
-                {profile.interests.map((interest) => (
-                  <Text key={interest} style={[styles.interestTag, { backgroundColor: colors.discoverControl, color: colors.discoverForeground }]}>
-                    {interest}
-                  </Text>
-                ))}
-              </View>
-            </>
-          ) : null}
+          </Pressable>
         </View>
       </ScrollView>
     </Animated.View>
@@ -235,6 +185,7 @@ function SwipeCard({
 
 export default function DiscoverScreen() {
   const colors = useColors();
+  const { getToken } = useAuth();
   const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
   const reaction = useCreateReaction();
@@ -260,6 +211,7 @@ export default function DiscoverScreen() {
   const [busy, setBusy] = useState(false);
   const [lastPassedProfileId, setLastPassedProfileId] = useState<string | null>(null);
   const [clock, setClock] = useState(Date.now());
+  const [token, setToken] = useState<string | null>(null);
   const viewedProfiles = useRef(new Set<string>());
   const previousTravelFilter = useRef<string | null>(null);
   const countrySuggestions = useMemo(() => {
@@ -295,7 +247,15 @@ export default function DiscoverScreen() {
   });
   const profiles = discover.data ?? [];
   const profile = profiles[index];
-  const { player, token } = useVideoPreloadQueue(profiles, index);
+  useEffect(() => {
+    let active = true;
+    void getToken().then((value) => {
+      if (active) setToken(value);
+    });
+    return () => {
+      active = false;
+    };
+  }, [getToken]);
   useEffect(() => {
     if (!discoverySettings.data) return;
     const filter = `${discoverySettings.data.travelMode}:${discoverySettings.data.travelCity ?? ""}`;
@@ -492,10 +452,10 @@ export default function DiscoverScreen() {
         <SwipeCard
           key={profile.id}
           profile={profile}
-          player={player}
           token={token}
           onSwipe={(direction) => void swipe(direction)}
           onPressDetails={() => setDetailOpen(true)}
+          onOpenProfile={() => router.push({ pathname: "/profile/[profileId]", params: { profileId: profile.id } })}
           topInset={topInset}
           actionBottom={actionBottom}
         />

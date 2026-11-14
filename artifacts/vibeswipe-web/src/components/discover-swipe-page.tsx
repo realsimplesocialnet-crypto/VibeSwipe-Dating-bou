@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { listCities, listCountries, type GeoOption } from "@/lib/geo-data";
 import { useQueryClient } from "@tanstack/react-query";
-import { Link, Redirect } from "wouter";
+import { Link, Redirect, useLocation } from "wouter";
 import {
   getGetBoostStatusQueryKey,
   getGetDailyLikeStatusQueryKey,
@@ -40,6 +40,7 @@ const mediaUrl = (ref?: string | null) => ref
 
 export function DiscoverSwipePage() {
   const queryClient = useQueryClient();
+  const [, setLocation] = useLocation();
   const [index, setIndex] = useState(0);
   const [ageMin, setAgeMin] = useState(22);
   const [ageMax, setAgeMax] = useState(35);
@@ -51,6 +52,7 @@ export function DiscoverSwipePage() {
   const [notice, setNotice] = useState("");
   const [lastPass, setLastPass] = useState<string | null>(null);
   const touchStart = useRef<{ x: number; y: number } | null>(null);
+  const suppressCardOpen = useRef(false);
   const previousTravelFilter = useRef<string | null>(null);
   const settings = useGetVibeSwipeSettings({ query: { queryKey: getGetVibeSwipeSettingsQueryKey() } });
 
@@ -223,44 +225,53 @@ export function DiscoverSwipePage() {
       {notice && <div role="status" data-testid="status-discover" className="mb-3 rounded-xl border border-primary/20 bg-accent px-4 py-3 text-sm text-[#ffafd1]">{notice}<button onClick={() => setNotice("")} aria-label="Dismiss message" className="float-right"><X size={16} /></button></div>}
 
       <article
-        className="relative mx-auto h-[68dvh] min-h-[420px] max-h-[700px] w-full max-w-[520px] overflow-y-auto overscroll-contain rounded-[28px] border border-white/10 bg-[#17141b] shadow-xl touch-pan-y"
+        className="relative mx-auto flex h-[68dvh] min-h-[420px] max-h-[700px] w-full max-w-[520px] flex-col overflow-hidden rounded-[28px] border border-white/10 bg-[#17141b] shadow-xl touch-pan-y"
         onTouchStart={(event) => { touchStart.current = { x: event.touches[0].clientX, y: event.touches[0].clientY }; }}
         onTouchEnd={(event) => {
           const start = touchStart.current;
           if (!start) return;
           const dx = event.changedTouches[0].clientX - start.x;
           const dy = event.changedTouches[0].clientY - start.y;
+          if (Math.abs(dx) > 12 || Math.abs(dy) > 12) {
+            suppressCardOpen.current = true;
+            window.setTimeout(() => { suppressCardOpen.current = false; }, 350);
+          }
           if (Math.abs(dx) > 90 && Math.abs(dx) > Math.abs(dy) * 1.2) void swipe(dx > 0 ? "like" : "pass");
           touchStart.current = null;
         }}
+        onClick={() => {
+          if (suppressCardOpen.current) return;
+          setLocation(`/profile/${profile.id}`);
+        }}
+        onKeyDown={(event) => {
+          if (event.target === event.currentTarget && (event.key === "Enter" || event.key === " ")) {
+            event.preventDefault();
+            setLocation(`/profile/${profile.id}`);
+          }
+        }}
         data-testid={`card-discover-${profile.id}`}
-        aria-label={`${profile.name}, ${profile.age}`}
+        aria-label={`${profile.name}, ${profile.age}. Tap to view full profile.`}
+        tabIndex={0}
       >
-        <div className="relative h-[60dvh] min-h-[350px] max-h-[560px]">
+        <div className="relative min-h-0 flex-1">
           {profile.photos?.[0]
             ? <ProfilePhoto reference={profile.photos[0]} alt={`${profile.name}, ${profile.age}`} className="absolute inset-0 h-full w-full object-cover" />
             : <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_25%,#9f6076,#382b3a_55%,#1b1820)]" />}
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#130f16] via-[#17121a]/10 to-[#17121a]/10" />
           {profile.superLikedYou && <span className="absolute left-4 top-4 flex items-center gap-2 rounded-full bg-black/45 px-3 py-2 text-xs font-bold text-amber-200 backdrop-blur"><Star size={14} />Super liked you</span>}
-          <button type="button" onClick={() => setOptionsOpen(true)} data-testid="button-profile-details" aria-label={`Profile options for ${profile.name}`} className="absolute right-4 top-4 rounded-full border border-white/20 bg-black/40 p-2.5 text-white backdrop-blur"><MoreHorizontal size={19} /></button>
-          <div className="absolute inset-x-5 bottom-5">
+          <button type="button" onClick={(event) => { event.stopPropagation(); setOptionsOpen(true); }} data-testid="button-profile-details" aria-label={`Profile options for ${profile.name}`} className="absolute right-4 top-4 z-[2] rounded-full border border-white/20 bg-black/40 p-2.5 text-white backdrop-blur"><MoreHorizontal size={19} /></button>
+          <div className="pointer-events-none absolute inset-x-5 bottom-5">
             <div className="flex items-end gap-2"><h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">{profile.name}</h2><span className="pb-0.5 text-xl text-white/80 sm:text-2xl">{profile.age}</span></div>
             <div className="mt-2 flex items-center gap-1.5 text-sm text-white/80"><MapPin size={14} />{profile.city || "Nearby"}{profile.country ? `, ${profile.country}` : ""}</div>
-            {!!profile.interests?.length && <div className="mt-3 flex flex-wrap gap-2">{profile.interests.slice(0, 4).map((interest) => <span key={interest} className="rounded-full border border-white/20 bg-black/25 px-3 py-1 text-xs text-white backdrop-blur">{interest}</span>)}</div>}
+            {!!profile.interests?.length && <div className="mt-3 flex flex-wrap gap-2"><span className="rounded-full border border-white/20 bg-black/25 px-3 py-1 text-xs text-white backdrop-blur">{profile.interests[0]}</span></div>}
           </div>
         </div>
 
-        <section className="space-y-5 px-5 py-5">
-          <div><h3 className="text-[10px] font-bold uppercase tracking-[.18em] text-primary">About {profile.name}</h3><p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-white/80">{profile.bio || "No bio added yet."}</p></div>
-          {profile.photos?.length > 1 && <div><h3 className="mb-3 text-[10px] font-bold uppercase tracking-[.18em] text-muted-foreground">More photos</h3><div className="grid grid-cols-2 gap-2">{profile.photos.slice(1).map((photo, photoIndex) => <ProfilePhoto key={`${photo}-${photoIndex}`} reference={photo} alt={`${profile.name}'s photo ${photoIndex + 2}`} className="aspect-[.82] w-full rounded-xl object-cover" />)}</div></div>}
-          {!!profile.interests?.length && <div><h3 className="mb-3 text-[10px] font-bold uppercase tracking-[.18em] text-muted-foreground">Interests</h3><div className="flex flex-wrap gap-2">{profile.interests.map((interest) => <span key={interest} className="rounded-full border border-primary/20 bg-accent px-3 py-1.5 text-xs text-[#ffafd1]">{interest}</span>)}</div></div>}
-        </section>
-
-        <div className="sticky bottom-0 z-[3] flex items-center justify-center gap-4 border-t border-white/[.08] bg-[#141117]/95 px-4 py-3 backdrop-blur-xl">
-          <button type="button" onClick={() => void swipe("pass")} disabled={reaction.isPending} data-testid="button-pass-profile" aria-label="Pass" className="flex h-12 w-12 items-center justify-center rounded-full border border-white/15 bg-[#28232d] text-rose-300 disabled:opacity-40"><X size={23} /></button>
-          <button type="button" onClick={() => void undoLastSwipe()} disabled={!lastPass || undo.isPending} data-testid="button-undo-pass" aria-label="Undo last pass" className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-[#28232d] text-muted-foreground disabled:opacity-40"><ArrowLeft size={17} /></button>
-          <div className="flex flex-col items-center"><button type="button" onClick={() => void swipe("super")} disabled={reaction.isPending || superLikes.data?.remaining === 0} data-testid="button-super-like" aria-label="Super like" className="flex h-12 w-12 items-center justify-center rounded-full bg-[#f3c75c] text-[#211a11] shadow-lg disabled:opacity-40"><Star size={21} /></button><span className="mt-1 text-[10px] text-muted-foreground">{superLikes.data?.remaining ?? "—"} left</span></div>
-          <button type="button" onClick={() => void swipe("like")} disabled={reaction.isPending || likes.data?.remaining === 0} data-testid="button-like-profile" aria-label="Like" className="flex h-14 w-14 items-center justify-center rounded-full bg-primary text-[#27101d] shadow-[0_8px_30px_rgba(243,78,154,.32)] disabled:opacity-40"><Heart size={25} fill="currentColor" /></button>
+        <div className="z-[3] flex shrink-0 items-center justify-center gap-4 border-t border-white/[.08] bg-[#141117]/95 px-4 py-3 backdrop-blur-xl">
+          <button type="button" onClick={(event) => { event.stopPropagation(); void swipe("pass"); }} disabled={reaction.isPending} data-testid="button-pass-profile" aria-label="Pass" className="flex h-12 w-12 items-center justify-center rounded-full border border-white/15 bg-[#28232d] text-rose-300 disabled:opacity-40"><X size={23} /></button>
+          <button type="button" onClick={(event) => { event.stopPropagation(); void undoLastSwipe(); }} disabled={!lastPass || undo.isPending} data-testid="button-undo-pass" aria-label="Undo last pass" className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-[#28232d] text-muted-foreground disabled:opacity-40"><ArrowLeft size={17} /></button>
+          <div className="flex flex-col items-center"><button type="button" onClick={(event) => { event.stopPropagation(); void swipe("super"); }} disabled={reaction.isPending || superLikes.data?.remaining === 0} data-testid="button-super-like" aria-label="Super like" className="flex h-12 w-12 items-center justify-center rounded-full bg-[#f3c75c] text-[#211a11] shadow-lg disabled:opacity-40"><Star size={21} /></button><span className="mt-1 text-[10px] text-muted-foreground">{superLikes.data?.remaining ?? "—"} left</span></div>
+          <button type="button" onClick={(event) => { event.stopPropagation(); void swipe("like"); }} disabled={reaction.isPending || likes.data?.remaining === 0} data-testid="button-like-profile" aria-label="Like" className="flex h-14 w-14 items-center justify-center rounded-full bg-primary text-[#27101d] shadow-[0_8px_30px_rgba(243,78,154,.32)] disabled:opacity-40"><Heart size={25} fill="currentColor" /></button>
         </div>
       </article>
 

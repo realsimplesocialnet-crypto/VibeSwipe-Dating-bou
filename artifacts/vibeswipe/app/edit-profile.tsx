@@ -1,13 +1,15 @@
-import { useGetMyProfile, useSaveMyProfile } from "@workspace/api-client-react";
+import { getGetMyProfileQueryKey, useGetMyProfile, useSaveMyProfile } from "@workspace/api-client-react";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { useQueryClient } from "@tanstack/react-query";
 import { MediaPicker } from "@/components/MediaPicker";
 import { HobbyMultiSelect, OccupationSelect } from "@/components/ProfileChoiceFields";
 import { useColors } from "@/hooks/useColors";
 
 export default function EditProfileScreen() {
   const colors = useColors();
+  const queryClient = useQueryClient();
   const profile = useGetMyProfile();
   const saveProfile = useSaveMyProfile();
   const [form, setForm] = useState({
@@ -46,7 +48,7 @@ export default function EditProfileScreen() {
       return;
     }
     try {
-      await saveProfile.mutateAsync({
+      const savedProfile = await saveProfile.mutateAsync({
         data: {
           name: form.name.trim(), age: Number(form.age), gender: form.gender,
           lookingFor: form.lookingFor, bio: form.bio.trim(), city: form.city.trim(),
@@ -58,6 +60,8 @@ export default function EditProfileScreen() {
           preferences: { ageMin: form.ageMin, ageMax: form.ageMax, gender: form.lookingFor, distanceKm: form.distanceKm },
         },
       });
+      queryClient.setQueryData(getGetMyProfileQueryKey(), savedProfile);
+      void queryClient.invalidateQueries({ queryKey: getGetMyProfileQueryKey() });
       router.back();
     } catch {
       Alert.alert("Couldn’t save changes", "Please try again.");

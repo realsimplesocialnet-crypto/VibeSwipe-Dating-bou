@@ -11,19 +11,31 @@ import { Feather } from "@expo/vector-icons";
 import { useAuth } from "@clerk/expo";
 import { useQueryClient } from "@tanstack/react-query";
 import { router } from "expo-router";
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Alert } from "react-native";
 import { ProfileAvatar } from "@/components/ProfileAvatar";
 import { useColors } from "@/hooks/useColors";
+import { profileImageSource } from "@/lib/media";
+import { useEffect, useState } from "react";
 
 export default function ProfileScreen() {
   const colors = useColors();
-  const { signOut } = useAuth();
+  const { signOut, getToken } = useAuth();
+  const [mediaToken, setMediaToken] = useState<string | null>(null);
   const profile = useGetMyProfile();
   const settings = useGetVibeSwipeSettings();
   const blockedProfiles = useGetBlockedProfiles();
   const unblockProfile = useUnblockProfile();
   const queryClient = useQueryClient();
+  useEffect(() => {
+    let active = true;
+    void getToken().then((value) => {
+      if (active) setMediaToken(value);
+    });
+    return () => {
+      active = false;
+    };
+  }, [getToken]);
 
   async function unblock(profileId: string) {
     try {
@@ -75,11 +87,21 @@ export default function ProfileScreen() {
       <View style={styles.tags}>
         {user.interests.length ? user.interests.map((item) => <Text key={item} style={[styles.tag, { backgroundColor: colors.accent, color: colors.accentForeground }]}>{item}</Text>) : <Text style={[styles.bio, { color: colors.mutedForeground }]}>Add a few interests to your profile.</Text>}
       </View>
-      <Text style={[styles.section, { color: colors.foreground }]}>Your media</Text>
+       <View style={styles.photoHeading}>
+         <View>
+           <Text style={[styles.section, { color: colors.foreground, marginTop: 16 }]}>Photos</Text>
+           <Text style={[styles.blockedHint, { color: colors.mutedForeground }]}>{user.photos.length}/6 · first photo is your main photo</Text>
+         </View>
+         <Pressable accessibilityRole="button" accessibilityLabel="Manage profile photos" onPress={() => router.push("/edit-profile")} style={[styles.managePhotos, { borderColor: colors.border }]}>
+           <Feather name="edit-2" size={14} color={colors.primary} />
+           <Text style={[styles.managePhotosText, { color: colors.primary }]}>Manage</Text>
+         </Pressable>
+       </View>
       <View style={styles.mediaRow}>
         {user.photos.map((photo, index) => (
           <View key={`${photo}-${index}`} style={[styles.mediaThumb, { backgroundColor: colors.card }]}>
-            {index === 0 ? <ProfileAvatar profile={user} size={74} /> : <Feather name="image" size={20} color={colors.mutedForeground} />}
+            {profileImageSource(photo, mediaToken) ? <Image source={profileImageSource(photo, mediaToken)} style={styles.mediaImage} resizeMode="cover" /> : <Feather name="image" size={20} color={colors.mutedForeground} />}
+            {index === 0 ? <View style={styles.mainPhotoBadge}><Text style={styles.mainPhotoBadgeText}>Main</Text></View> : null}
           </View>
         ))}
         {user.videoUrl ? <View style={[styles.mediaThumb, { backgroundColor: colors.accent }]}><Feather name="video" size={20} color={colors.primary} /></View> : null}
@@ -140,7 +162,13 @@ const styles = StyleSheet.create({
   tags: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   tag: { overflow: "hidden", borderRadius: 20, paddingHorizontal: 12, paddingVertical: 8, fontSize: 12, fontWeight: "600" },
   mediaRow: { flexDirection: "row", flexWrap: "wrap", gap: 9 },
-  mediaThumb: { width: 74, height: 86, borderRadius: 14, alignItems: "center", justifyContent: "center", overflow: "hidden" },
+  photoHeading: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  managePhotos: { flexDirection: "row", gap: 6, alignItems: "center", borderWidth: 1, borderRadius: 12, paddingHorizontal: 11, paddingVertical: 8 },
+  managePhotosText: { fontSize: 11, fontWeight: "700" },
+  mediaThumb: { width: 88, height: 108, borderRadius: 14, alignItems: "center", justifyContent: "center", overflow: "hidden", position: "relative" },
+  mediaImage: { width: "100%", height: "100%" },
+  mainPhotoBadge: { position: "absolute", left: 5, bottom: 5, borderRadius: 8, backgroundColor: "rgba(0,0,0,0.72)", paddingHorizontal: 6, paddingVertical: 3 },
+  mainPhotoBadgeText: { color: "#ffffff", fontSize: 9, fontWeight: "700" },
   blockedSection: { marginTop: 26, borderWidth: 1, borderRadius: 18, padding: 16 },
   blockedHint: { fontSize: 12, lineHeight: 18 },
   blockedLoading: { marginVertical: 12 },

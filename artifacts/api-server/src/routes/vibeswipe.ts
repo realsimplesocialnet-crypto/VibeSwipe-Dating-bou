@@ -100,6 +100,7 @@ import {
   ObjectStorageService,
 } from "../lib/objectStorage";
 import { removeUnreferencedProfileMedia } from "../lib/profileMediaCleanup";
+import { removedProfilePhotoMediaIds } from "../lib/profileMediaReferences";
 import {
   MAX_PROFILE_VIDEO_SOURCE_BYTES,
   ProfileVideoValidationError,
@@ -587,6 +588,13 @@ router.put("/vibeswipe/me", async (req, res): Promise<void> => {
   }
   const values = buildProfileValues(userId, body);
   const result = await db.transaction(async (tx) => {
+    const [existingProfile] = await tx
+      .select({ photos: profilesTable.photos })
+      .from(profilesTable)
+      .where(eq(profilesTable.id, userId))
+      .for("update")
+      .limit(1);
+    const removedMediaIds = removedProfilePhotoMediaIds(existingProfile?.photos ?? [], body.photos);
     const uniqueMediaIds = [...new Set(mediaIds)];
     if (uniqueMediaIds.length > 0) {
       const ownedMedia = await tx
@@ -620,7 +628,7 @@ router.put("/vibeswipe/me", async (req, res): Promise<void> => {
     await tx
       .delete(profileSetupDraftsTable)
       .where(eq(profileSetupDraftsTable.userId, userId));
-    return { invalidMedia: false as const, profile };
+    return { invalidMedia: false as const, profile, removedMediaIds };
   });
   if ("invalidPhoto" in result && result.invalidPhoto) {
     res.status(400).json({ error: "Choose a profile picture, not a video." });
@@ -633,6 +641,14 @@ router.put("/vibeswipe/me", async (req, res): Promise<void> => {
   if (!result.profile) {
     res.status(500).json({ error: "Profile could not be saved." });
     return;
+  }
+  for (const mediaId of result.removedMediaIds) {
+    try {
+      await removeUnreferencedProfileMedia(mediaId, userId);
+    } catch (error) {
+      // The profile update is committed; leave failed object deletions for the cleanup retry.
+      logger.error({ err: error, mediaId }, "Could not remove a deleted profile photo");
+    }
   }
   res.json(SaveMyProfileResponse.parse(result.profile));
 });

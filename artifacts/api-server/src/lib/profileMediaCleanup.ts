@@ -17,6 +17,7 @@ async function deleteIfUnreferenced(
   tx: Parameters<Parameters<typeof db.transaction>[0]>[0],
   mediaId: string,
   olderThan?: Date,
+  expectedOwnerId?: string,
 ): Promise<boolean> {
   const [asset] = await tx
     .select()
@@ -26,6 +27,7 @@ async function deleteIfUnreferenced(
         eq(mediaAssetsTable.id, mediaId),
         isNull(mediaAssetsTable.matchId),
         olderThan ? lt(mediaAssetsTable.createdAt, olderThan) : undefined,
+        expectedOwnerId ? eq(mediaAssetsTable.ownerId, expectedOwnerId) : undefined,
       ),
     )
     .for("update")
@@ -69,8 +71,9 @@ async function deleteIfUnreferenced(
 
 export async function removeUnreferencedProfileMedia(
   mediaId: string,
+  expectedOwnerId?: string,
 ): Promise<boolean> {
-  return db.transaction((tx) => deleteIfUnreferenced(tx, mediaId));
+  return db.transaction((tx) => deleteIfUnreferenced(tx, mediaId, undefined, expectedOwnerId));
 }
 
 export async function cleanupAbandonedProfileMedia(): Promise<number> {

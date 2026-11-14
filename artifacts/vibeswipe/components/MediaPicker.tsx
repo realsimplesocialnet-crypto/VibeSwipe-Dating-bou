@@ -171,8 +171,13 @@ export function MediaPicker({
               style={styles.photo}
               resizeMode="cover"
             />
+              {index === 0 ? (
+                <View style={styles.mainBadge}>
+                  <Text style={styles.mainBadgeText}>Main</Text>
+                </View>
+              ) : null}
             <Pressable
-              accessibilityLabel="Remove photo"
+                accessibilityLabel={`Remove photo ${index + 1}`}
               testID={`remove-photo-${index}`}
               style={styles.remove}
               onPress={() => removePhoto(index)}
@@ -196,6 +201,9 @@ export function MediaPicker({
           </Pressable>
         )}
       </View>
+      <Text testID="profile-photo-count" style={[styles.helper, { color: colors.mutedForeground }]}>
+        {photos.length}/{photoLimit} photos · the first photo is your main photo
+      </Text>
       {showVideo ? <Pressable
         accessibilityRole="button"
         testID="add-profile-video"
@@ -248,6 +256,8 @@ const styles = StyleSheet.create({
   photoRow: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
   photoSlot: { width: 76, height: 92, borderRadius: 14, overflow: "hidden" },
   photo: { width: "100%", height: "100%", backgroundColor: "#211b20" },
+  mainBadge: { position: "absolute", left: 4, bottom: 4, borderRadius: 9, backgroundColor: "rgba(0,0,0,0.72)", paddingHorizontal: 6, paddingVertical: 3 },
+  mainBadgeText: { color: "#ffffff", fontSize: 9, fontWeight: "700" },
   remove: {
     position: "absolute",
     top: 5,
