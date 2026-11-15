@@ -248,7 +248,7 @@ export type FaceVerificationResultReviewStatus = typeof FaceVerificationResultRe
 
 
 export const FaceVerificationResultReviewStatus = {
-  awaiting_review: 'awaiting_review',
+  approved: 'approved',
 } as const;
 
 export interface FaceVerificationResult {

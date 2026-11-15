@@ -59,6 +59,9 @@ router.post("/vibeswipe/verification/sessions", async (req, res): Promise<void> 
     if (!photo) return { error: "Upload your own verification photo first. Chat attachments cannot be used.", status: 400 } as const;
     const [usage] = await tx.select({ total: count() }).from(sessions).where(and(eq(sessions.userId, userId), gt(sessions.createdAt, new Date(Date.now() - 3_600_000))));
     if (usage.total >= 5) return { error: "You have used five verification attempts this hour. Please try again later.", status: 429 } as const;
+    await tx.update(sessions).set({ status: "cancelled", rejectionReason: "A newer verification was started." }).where(and(
+      eq(sessions.userId, userId), inArray(sessions.status, ["pending", "processing", "awaiting_review"]),
+    ));
     const [session] = await tx.insert(sessions).values({
       userId, mainPhoto: profile.photos[0] ?? "", referencePhoto: body.data.photoReference, expiresAt: new Date(Date.now() + 5 * 60_000),
     }).returning();
@@ -138,11 +141,11 @@ router.post("/vibeswipe/verification/sessions/:sessionId",
     } catch (error) {
       await db.update(sessions).set({ status: "failed" }).where(and(eq(sessions.id, session.id), eq(sessions.status, "processing")));
       if (error instanceof FaceVerificationError) {
-        res.status(error.status).json({ error: error.message }); return;
+        res.status(error.status).json({ error: error.message, checked: committed }); return;
       }
       // Never log the selfie, profile photo, provider response, or token.
       req.log.warn("Face verification could not complete");
-      res.status(503).json({ error: "Verification could not complete. Please try again." });
+      res.status(503).json({ error: "Verification could not complete. Please try again.", checked: committed });
       return;
     } finally {
       if (verifiedPhotoPath && !committed) {

@@ -1363,7 +1363,7 @@ export const getCompleteFaceVerificationUrl = (sessionId: string,) => {
 }
 
 /**
- * @summary Submit a fresh camera JPEG for checks and administrator review; never grants a badge
+ * @summary Verify a live selfie and matching photos, then automatically activate the badge
  */
 export const completeFaceVerification = async (sessionId: string,
     completeFaceVerificationBody: Blob, options?: Parameters<typeof customFetch>[1]): Promise<FaceVerificationResult> => {
@@ -1430,7 +1430,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type CompleteFaceVerificationMutationVariables = {sessionId: string;data: BodyType<Blob>}
 
     /**
- * @summary Submit a fresh camera JPEG for checks and administrator review; never grants a badge
+ * @summary Verify a live selfie and matching photos, then automatically activate the badge
  */
 export const useCompleteFaceVerification = <TError = ErrorType<void>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof completeFaceVerification>>, TError,CompleteFaceVerificationMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
@@ -1441,6 +1441,80 @@ export const useCompleteFaceVerification = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getCompleteFaceVerificationMutationOptions(options), queryClient);
+    }
+
+export const getFinalizeFaceVerificationUrl = () => {
+
+
+
+
+  return `/api/vibeswipe/verification/finalize`
+}
+
+/**
+ * @summary Finish a previously checked verification without repeating the selfie or requiring administrator approval
+ */
+export const finalizeFaceVerification = async ( options?: Parameters<typeof customFetch>[1]): Promise<FaceVerificationResult> => {
+
+  return customFetch<FaceVerificationResult>(getFinalizeFaceVerificationUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getFinalizeFaceVerificationMutationKey = () => ['finalizeFaceVerification'] as const;
+
+export const getFinalizeFaceVerificationMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof finalizeFaceVerification>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof finalizeFaceVerification>>, TError,void, TContext> => {
+
+const mutationKey = getFinalizeFaceVerificationMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof finalizeFaceVerification>>, void> = () => {
+
+
+          return  finalizeFaceVerification(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type FinalizeFaceVerificationMutationResult = NonNullable<Awaited<ReturnType<typeof finalizeFaceVerification>>>
+
+    export type FinalizeFaceVerificationMutationError = ErrorType<void>
+
+
+    /**
+ * @summary Finish a previously checked verification without repeating the selfie or requiring administrator approval
+ */
+export const useFinalizeFaceVerification = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof finalizeFaceVerification>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof finalizeFaceVerification>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getFinalizeFaceVerificationMutationOptions(options), queryClient);
     }
 
 export const getGetAdminVerificationRequestsUrl = (params?: GetAdminVerificationRequestsParams,) => {

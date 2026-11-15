@@ -465,7 +465,7 @@ export const StartFaceVerificationResponse = zod.object({
 
 
 /**
- * @summary Submit a fresh camera JPEG for checks and administrator review; never grants a badge
+ * @summary Verify a live selfie and matching photos, then automatically activate the badge
  */
 export const CompleteFaceVerificationParams = zod.object({
   "sessionId": zod.coerce.string().uuid()
@@ -473,7 +473,16 @@ export const CompleteFaceVerificationParams = zod.object({
 
 export const CompleteFaceVerificationResponse = zod.object({
   "verified": zod.boolean(),
-  "reviewStatus": zod.enum(['awaiting_review'])
+  "reviewStatus": zod.enum(['approved'])
+})
+
+
+/**
+ * @summary Finish a previously checked verification without repeating the selfie or requiring administrator approval
+ */
+export const FinalizeFaceVerificationResponse = zod.object({
+  "verified": zod.boolean(),
+  "reviewStatus": zod.enum(['approved'])
 })
 
 

@@ -4,7 +4,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, BadgeCheck, Camera, Check, Clock3, Lightbulb, LoaderCircle, LockKeyhole, RotateCcw, ScanFace, ShieldCheck, UserRound, Users, Hand, ImagePlus, Upload, XCircle } from 'lucide-react';
 import {
   getGetDiscoverProfilesQueryKey, getGetFaceVerificationStatusQueryKey, getGetMatchesQueryKey, getGetMyProfileQueryKey, getGetProfileMediaQueryKey,
-  useCompleteFaceVerification, useGetFaceVerificationStatus, useGetMyProfile, useGetProfileMedia, useRequestProfileMediaUpload, useStartFaceVerification,
+  useCompleteFaceVerification, useFinalizeFaceVerification, useGetFaceVerificationStatus, useGetMyProfile, useGetProfileMedia, useRequestProfileMediaUpload, useStartFaceVerification,
 } from '@workspace/api-client-react';
 import { userErrorMessage } from '@/lib/user-errors';
 import { PROFILE_PHOTO_ACCEPT, photoUploadCanRetry, prepareProfilePhoto, uploadProfilePhotoBytes } from '@/lib/profile-photo-upload';
@@ -86,6 +86,9 @@ export default function FaceVerificationPage() {
   const status = useGetFaceVerificationStatus({ query: { queryKey: getGetFaceVerificationStatusQueryKey(), staleTime: 0, refetchInterval: q => (awaitingLocal || q.state.data?.reviewStatus === 'awaiting_review') && !q.state.data?.verified ? 20_000 : false, refetchIntervalInBackground: false } });
   const start = useStartFaceVerification();
   const complete = useCompleteFaceVerification();
+  const finalize = useFinalizeFaceVerification();
+  const resumeAttempted = useRef(false);
+  const [startAgain, setStartAgain] = useState(false);
   const requestUpload = useRequestProfileMediaUpload();
   const [choice, setChoice] = useState<Choice | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -180,9 +183,8 @@ export default function FaceVerificationPage() {
       }
       const result = await complete.mutateAsync({ sessionId: s.sessionId, data: blob });
       session.current = null;
-      if (result.reviewStatus === 'awaiting_review') {
-        setAwaitingLocal(true);
-        setPhase('awaiting');
+      if (result.verified) {
+        setPhase('intro');
         await qc.invalidateQueries({ queryKey: getGetFaceVerificationStatusQueryKey() });
       } else {
         setError('We couldn’t confirm it’s you this time. Try again facing the camera in good light.');
@@ -193,17 +195,39 @@ export default function FaceVerificationPage() {
       const st = e && typeof e === 'object' && 'status' in e ? (e as { status: unknown }).status : undefined;
       setError(apiMessage(e, st === 410 || st === 404 ? 'Your verification session expired. Start again for a fresh one.' : 'Verification didn’t go through. Please try again.'));
       setPhase('failed');
+      if (e && typeof e === 'object' && 'data' in e && (e.data as { checked?: boolean })?.checked) {
+        resumeAttempted.current = true;
+        await qc.invalidateQueries({ queryKey: getGetFaceVerificationStatusQueryKey() });
+      }
     } finally { busy.current = false; }
   }
 
   const p = profile.data;
   const s = status.data;
   const loading = profile.isLoading || status.isLoading;
-  const verified = s?.verified === true;
-  const awaiting = !verified && (s?.reviewStatus === 'awaiting_review' || (phase === 'awaiting' && s?.reviewStatus !== 'rejected' && s?.reviewStatus !== 'cancelled'));
+  const verified = s?.verified === true || complete.data?.verified === true || finalize.data?.verified === true;
+  const awaiting = !verified && !startAgain && s?.reviewStatus === 'awaiting_review';
   const rejected = !awaiting && s?.reviewStatus === 'rejected';
   const gallery = (p?.photos ?? []).filter(r => MEDIA_REF.test(r));
   useEffect(() => { if (verified || (s && s.reviewStatus !== 'awaiting_review' && s.reviewStatus !== 'none')) setAwaitingLocal(false); }, [verified, s]);
+  async function finishCheckedPhoto() {
+    if (busy.current) return;
+    busy.current = true;
+    setError('');
+    try {
+      const result = await finalize.mutateAsync();
+      if (!result.verified) throw new Error('Verification was not confirmed.');
+      await qc.invalidateQueries({ queryKey: getGetFaceVerificationStatusQueryKey() });
+    } catch (e) {
+      setError(apiMessage(e, 'Your photo checks could not finish. Please try again.'));
+    } finally { busy.current = false; }
+  }
+  useEffect(() => {
+    if (awaiting && s?.available && !resumeAttempted.current) {
+      resumeAttempted.current = true;
+      void finishCheckedPhoto();
+    }
+  }, [awaiting, s?.available]);
   useEffect(() => { if (verified) {
     void qc.invalidateQueries({ queryKey: getGetMyProfileQueryKey() });
     void qc.invalidateQueries({ queryKey: getGetDiscoverProfilesQueryKey() });
@@ -223,22 +247,23 @@ export default function FaceVerificationPage() {
           <div className="relative h-36 w-36 overflow-hidden rounded-full ring-4 ring-primary/70"><MainPhoto reference={p?.photos?.[0]} name={p?.name ?? ''}/></div>
           <div className="-mt-5 flex h-11 w-11 items-center justify-center rounded-full bg-primary text-primary-foreground ring-4 ring-background"><BadgeCheck size={22}/></div>
           <h2 className="brand mt-5 text-3xl font-extrabold">You’re verified</h2>
-          <p className="mt-2 max-w-xs text-sm leading-6 text-muted-foreground">An administrator approved your photo. Your blue badge is visible to other members. It confirms your main profile photo, not your legal identity.</p>
+          <p className="mt-2 max-w-xs text-sm leading-6 text-muted-foreground">Your face checks passed. Your verified main photo and blue badge are visible to other members. This does not verify your legal identity.</p>
           <Link href="/settings" data-testid="link-verify-done" className="mt-8 w-full rounded-full bg-primary py-4 text-center font-bold text-primary-foreground">Done</Link>
         </section>
       : !s?.available ? <div role="status" className="rounded-3xl border border-border bg-card p-6 text-center text-sm text-muted-foreground"><ShieldCheck className="mx-auto mb-3 text-primary"/>Face verification isn’t available right now. Please check back later.</div>
       : awaiting ? <section className="page-in flex flex-1 flex-col items-center justify-center text-center" role="status" data-testid="state-awaiting-review">
           <div className="relative h-36 w-36 overflow-hidden rounded-full ring-2 ring-primary/40"><MainPhoto reference={choice?.reference} preview={choice?.preview} name={p?.name ?? ''}/></div>
           <div className="-mt-5 flex h-11 w-11 items-center justify-center rounded-full bg-secondary text-primary ring-4 ring-background"><Clock3 size={20}/></div>
-          <h2 className="brand mt-5 text-2xl font-extrabold">Awaiting administrator approval</h2>
-          <p className="mt-2 max-w-xs text-sm leading-6 text-muted-foreground">Your camera check passed. An administrator now reviews the photo. You are not verified yet, and no badge shows until it is approved.</p>
+          <h2 className="brand mt-5 text-2xl font-extrabold">Finishing your verification</h2>
+          <p className="mt-2 max-w-xs text-sm leading-6 text-muted-foreground">Your selfie check passed. We’re checking your gallery photos against the same face. No administrator approval is needed.</p>
           <ul className="mt-6 w-full space-y-2 text-left text-sm">
             <li className="flex items-center gap-3 rounded-2xl bg-card px-4 py-3 ring-1 ring-border"><Check size={16} className="text-primary"/>Camera check passed</li>
-            <li className="flex items-center gap-3 rounded-2xl bg-card px-4 py-3 ring-1 ring-primary/40"><LoaderCircle size={16} className="animate-spin text-primary"/>Administrator review in progress</li>
-            <li className="flex items-center gap-3 rounded-2xl bg-card/60 px-4 py-3 text-muted-foreground ring-1 ring-border"><BadgeCheck size={16}/>Badge appears after approval</li>
+            <li className="flex items-center gap-3 rounded-2xl bg-card px-4 py-3 ring-1 ring-primary/40"><ShieldCheck size={16} className="text-primary"/>Gallery face checks</li>
+            <li className="flex items-center gap-3 rounded-2xl bg-card/60 px-4 py-3 text-muted-foreground ring-1 ring-border"><BadgeCheck size={16}/>Blue tick activates automatically when checks pass</li>
           </ul>
-          <p className="mt-4 text-xs text-muted-foreground">We check for a decision automatically. You can leave this page.</p>
-          <button type="button" disabled className="mt-6 w-full rounded-full bg-primary/40 py-4 font-bold text-primary-foreground" data-testid="button-submit-disabled">Submitted for review</button>
+          {error && <p role="alert" className="mt-4 text-sm text-destructive">{error}</p>}
+          <button type="button" disabled={finalize.isPending} onClick={() => void finishCheckedPhoto()} className="mt-6 w-full rounded-full bg-primary py-4 font-bold text-primary-foreground disabled:opacity-50" data-testid="button-finish-verification">{finalize.isPending ? 'Checking your photos…' : 'Finish verification'}</button>
+          {error && <button type="button" onClick={() => { setStartAgain(true); setPhase('intro'); }} className="mt-3 text-sm font-semibold text-primary">Choose another photo</button>}
           <Link href="/settings" data-testid="link-verify-leave" className="mt-3 text-sm font-semibold text-primary">Back to settings</Link>
         </section>
       : (phase === 'live' || phase === 'opening') ? <section className="flex flex-1 flex-col" aria-label="Camera">
@@ -264,11 +289,11 @@ export default function FaceVerificationPage() {
       : <section className="space-y-5">
           {rejected && <div role="alert" data-testid="state-rejected" className="page-in flex gap-3 rounded-2xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm">
             <XCircle size={18} className="mt-0.5 shrink-0 text-destructive"/>
-            <div><p className="font-bold">Your last request wasn’t approved</p><p className="mt-1 text-muted-foreground" data-testid="text-rejection-reason">{s?.rejectionReason || 'No reason was given.'} You can choose a photo and try again.</p></div>
+            <div><p className="font-bold">Your last verification did not pass</p><p className="mt-1 text-muted-foreground" data-testid="text-rejection-reason">{s?.rejectionReason || 'Please choose a clear photo of yourself.'} You can choose a photo and try again.</p></div>
           </div>}
           <div>
             <p className="text-[10px] font-bold uppercase tracking-[.2em] text-primary">1. Choose the photo to verify</p>
-            <p className="mt-1 text-sm leading-5 text-muted-foreground">If approved, this photo becomes your main profile photo. Your other gallery photos stay. Nothing changes on your profile until then.</p>
+            <p className="mt-1 text-sm leading-5 text-muted-foreground">Once your face checks pass, this photo becomes your main profile photo and your blue tick appears automatically. Your other photos must match the same face.</p>
             <div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-4">
               {gallery.map((ref, i) => { const on = choice?.reference === ref; return <button key={ref} type="button" onClick={() => setChoice({ reference: ref, source: 'gallery' })} aria-pressed={on} aria-label={`Use gallery photo ${i + 1}`} data-testid={`button-choose-photo-${i}`} className={`relative aspect-[3/4] overflow-hidden rounded-2xl bg-accent transition-transform active:scale-95 ${on ? 'ring-[3px] ring-primary' : 'ring-1 ring-border opacity-80 hover:opacity-100'}`}>
                 <MediaPhoto reference={ref} name={p?.name ?? ''}/>
@@ -282,7 +307,7 @@ export default function FaceVerificationPage() {
             </div>
             <input ref={fileRef} type="file" accept={PROFILE_PHOTO_ACCEPT} className="hidden" onChange={e => void pickUpload(e.target.files?.[0])} data-testid="input-verification-photo"/>
             {uploadError && <p role="alert" className="mt-2 text-sm text-destructive">{uploadError}</p>}
-            {choice && <p className="page-in mt-2 text-xs text-muted-foreground" data-testid="text-choice-note">{choice.source === 'upload' ? 'New photo uploaded privately. On approval it replaces your main photo; your other photos stay.' : 'On approval this gallery photo moves to your main slot; your other photos stay.'}</p>}
+            {choice && <p className="page-in mt-2 text-xs text-muted-foreground" data-testid="text-choice-note">{choice.source === 'upload' ? 'Uploaded privately. After successful checks it replaces your main photo.' : 'After successful checks this photo becomes your main profile photo.'}</p>}
             {!gallery.length && !choice && <p className="mt-2 flex items-center gap-2 text-xs text-muted-foreground"><ImagePlus size={14}/>No gallery photos yet. Upload one that clearly shows your face.</p>}
           </div>
 
@@ -291,7 +316,7 @@ export default function FaceVerificationPage() {
           <div>
             <p className="text-[10px] font-bold uppercase tracking-[.2em] text-primary">2. Take one live still selfie</p>
             <h2 className="brand mt-1 text-2xl font-extrabold">Show it’s really you</h2>
-            <p className="mt-1 text-sm text-muted-foreground">We take a single still photo from your camera and check it is a live person matching the photo you chose. Then an administrator reviews it before any badge appears.</p>
+            <p className="mt-1 text-sm text-muted-foreground">We take a single still photo from your camera and check it is a live person matching the photo you chose. Successful checks activate your blue tick automatically.</p>
             <p className="mt-2 text-xs text-muted-foreground">Changing your main profile photo later means verifying again. This badge does not verify your legal identity.</p>
             <ul className="mt-4 space-y-2.5">{tips.map(({ icon: Icon, text }) => <li key={text} className="flex items-center gap-3 text-sm"><span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-accent text-primary"><Icon size={17}/></span>{text}</li>)}</ul>
           </div>
