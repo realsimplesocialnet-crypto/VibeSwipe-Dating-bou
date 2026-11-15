@@ -79,7 +79,7 @@ export function ActivityOverview({ avatar }: { avatar: AvatarFn }) {
     go('/messages');
   };
   const cards = [
-    { key: 'matches', href: '/matches', label: 'Mutual Matches', sub: 'People you both said yes to', icon: <Users size={20} />, q: matches, n: am.length, ps: am.map(m => m.profile), badge: notes.data?.unreadCounts.matches ?? 0 },
+    { key: 'matches', href: '/matches', label: 'Matches', sub: 'People you both liked — open to chat', icon: <Users size={20} />, q: matches, n: am.length, ps: am.map(m => m.profile), badge: notes.data?.unreadCounts.matches ?? 0 },
     { key: 'likes', href: '/likes', label: 'Likes', sub: 'People who liked you', icon: <Heart size={20} fill="currentColor" />, q: likes, n: likes.data?.length ?? 0, ps: (likes.data ?? []).map(l => l.profile), badge: notes.data?.unreadCounts.likes ?? 0 },
     { key: 'views', href: '/views', label: 'Views', sub: 'People who viewed your profile', icon: <Eye size={20} />, q: views, n: views.data?.length ?? 0, ps: (views.data ?? []).map(v => v.profile), badge: notes.data?.unreadCounts.views ?? 0 },
   ];
@@ -161,7 +161,7 @@ export function MutualMatchesPage(_props: { avatar: AvatarFn }) {
   const stories = useGetStories({ query: { queryKey: getGetStoriesQueryKey(), refetchInterval: 60000 } });
   const list = useMemo(() => activeMatches(matches.data), [matches.data]);
   return <div className="social-hub min-h-[calc(100dvh-48px)] lg:min-h-[100dvh]"><div className="page-in mx-auto max-w-[720px] px-4 pb-12 pt-6 md:px-8 md:pt-10">
-    <Head title="Matches" />
+    <Head title="Matches" back />
     <SeenError seen={seen} />
     {matches.isLoading ? <Skel /> : matches.isError && !matches.data ? <Err text="We couldn't load your matches." onRetry={() => void matches.refetch()} />
       : !list.length ? <Link href="/discover" data-testid="link-empty-discover" className="inline-flex rounded-2xl bg-primary px-5 py-3 font-bold text-primary-foreground">Explore profiles</Link>

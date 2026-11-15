@@ -38,6 +38,18 @@ test("Reels entry stays in navigation and saved videos are reached inside Reels"
   assert.ok(read("../src/pages/reels-feed.tsx").includes('data-testid="link-reels-saved"'));
 });
 
+test("five bottom tabs keep Reels while Matches is reached through Activity", () => {
+  const app = read("../src/App.tsx");
+  const navigation = app.split("const navItems = [")[1].split("];")[0];
+  assert.deepEqual([...navigation.matchAll(/label: '([^']+)'/g)].map(m => m[1]),
+    ["Discover", "Reels", "Messages", "Activity"]);
+  assert.match(app, /data-testid="mobile-nav-profile"/);
+  assert.ok(!navigation.includes("href: '/matches'"));
+  const activity = read("../src/components/social-hub.tsx");
+  assert.match(activity, /key: 'matches', href: '\/matches', label: 'Matches'/);
+  assert.match(activity, /<Head title="Matches" back \/>/);
+});
+
 test("a shared Reel message carries an openable link the chat recognises", () => {
   const url = reelShareUrl("https://vibe.example", "/", id);
   assert.equal(url, `https://vibe.example/reels/${id}`);

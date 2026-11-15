@@ -3,11 +3,11 @@ name: Messages and public profiles
 description: User's intentional navigation labels and separate visual direction for other members' profiles.
 ---
 
-Keep exactly five bottom tabs: Discover, Matches, Messages, Activity, Profile. Messages is the main and only conversation list, showing real mutual matches, real previews and timestamps, and unread counts. Activity is an overview only: short message notices open Messages, and summaries link to separate Matches, Likes and Views screens. Individual likes and views belong on their separate pages, reached from Activity, with Activity still highlighted. Matches shows mutual matches rather than conversation previews. Chat remains mutual-match-only.
+Keep exactly five bottom tabs: Discover, Reels, Messages, Activity, Profile. Matches belongs inside Activity, not in the bottom bar. Messages is the main and only conversation list, showing real mutual matches, real previews and timestamps, and unread counts. Activity is an overview only: short message notices open Messages, and summaries link to separate Matches, Likes and Views screens. Individual matches, likes and views belong on their separate pages, reached from Activity, with Activity still highlighted. Matches shows mutual matches rather than conversation previews. Chat remains mutual-match-only.
 
-**Why:** The user explicitly said, “Use five tabs with Activity shortcuts. Bottom navigation should be: Discover, Matches, Messages, Activity, Profile. Views and Likes should open from Activity, not as separate bottom tabs.”
+**Why:** After adding Reels, the user said six navigation buttons felt cramped and asked to remove Matches from the bar and put it inside Activity.
 
-**How to apply:** Do not restore Views as a bottom tab, mix detailed social lists into Activity, or add a second Messages list elsewhere. Existing message entry-point links should open the same Messages destination.
+**How to apply:** Do not restore Matches or Views as bottom tabs, mix detailed social lists into Activity, or add a second Messages list elsewhere. Matches needs a clear Activity shortcut and a Back-to-Activity action. Existing message entry-point links should open the same Messages destination.
 
 Leave paid upgrades out.
 

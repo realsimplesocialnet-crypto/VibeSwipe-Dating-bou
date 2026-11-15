@@ -110,7 +110,7 @@ function Brand({ compact = false, small = false }: { compact?: boolean; small?: 
 }
 
 const navItems = [
-  { href: '/discover', label: 'Discover', icon: Compass }, { href: '/matches', label: 'Matches', icon: Heart },
+  { href: '/discover', label: 'Discover', icon: Compass },
   { href: '/reels', label: 'Reels', icon: Clapperboard },
   { href: '/messages', label: 'Messages', icon: MessageCircle }, { href: '/notifications', label: 'Activity', icon: Bell },
 ];
@@ -121,7 +121,7 @@ function AppShell({ children }: { children: ReactNode }) {
   const mobileNavRef = useRef<HTMLElement>(null);
   const showMainNavigation = ['/discover', '/matches', '/messages', '/notifications', '/views', '/likes', '/profile'].includes(location);
   const isSocialPage = ['/matches', '/messages', '/notifications', '/views', '/likes'].includes(location);
-  const activeLocation = ['/views', '/likes'].includes(location) ? '/notifications' : location;
+  const activeLocation = ['/matches', '/views', '/likes'].includes(location) ? '/notifications' : location;
   const settingsReturnTo = `${location}${window.location.search}${window.location.hash}`;
   const { user } = useUser();
   const profile = useGetMyProfile();

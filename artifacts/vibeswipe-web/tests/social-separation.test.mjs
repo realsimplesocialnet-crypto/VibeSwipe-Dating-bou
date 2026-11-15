@@ -36,7 +36,7 @@ test('Matches shows only real unblocked mutual matches and no message previews',
 });
 
 test('separate Likes and Views pages retain the Activity highlight without extra bottom tabs', () => {
-  assert.match(app, /const activeLocation = \['\/views', '\/likes'\]\.includes\(location\) \? '\/notifications' : location/);
+  assert.match(app, /const activeLocation = \['\/matches', '\/views', '\/likes'\]\.includes\(location\) \? '\/notifications' : location/);
   assert.match(app, /path="\/likes" component=\{LikesRoute\}/);
   assert.match(app, /<ActivityOverview avatar=/);
   assert.match(app, /<MutualMatchesPage avatar=/);
