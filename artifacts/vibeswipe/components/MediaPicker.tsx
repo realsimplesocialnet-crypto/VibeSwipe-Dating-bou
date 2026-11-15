@@ -1,6 +1,7 @@
 import {
   useRequestProfileMediaUpload,
   useTranscodeProfileVideo,
+  checkAdditionalProfilePhoto,
   type MediaUploadInputContentType,
 } from "@workspace/api-client-react";
 import { useAuth } from "@clerk/expo";
@@ -102,6 +103,10 @@ export function MediaPicker({
       setBusyMessage("Compressing video…");
       await transcodeVideo.mutateAsync({ mediaId: result.mediaId });
     }
+    if (mediaType === "image") {
+      setBusyMessage("Checking photo…");
+      return (await checkAdditionalProfilePhoto(result.mediaId)).mediaReference;
+    }
     return result.mediaReference;
   }
 
@@ -127,7 +132,8 @@ export function MediaPicker({
       );
       onChange({ photos: [...photos, ...uploaded], videoUrl });
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Photo upload failed.");
+      const data = (caught as { data?: { error?: string } })?.data;
+      setError(data?.error ?? (caught instanceof Error ? caught.message : "Photo upload failed."));
     } finally {
       setBusy(false);
     }

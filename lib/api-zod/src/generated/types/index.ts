@@ -25,6 +25,7 @@ export * from './boostStatus';
 export * from './chatTheme';
 export * from './chatThemeInput';
 export * from './chatThemeResult';
+export * from './checkAdditionalProfilePhoto200';
 export * from './dailyLikeStatus';
 export * from './deleteMessageInput';
 export * from './discoveryLocationPreference';

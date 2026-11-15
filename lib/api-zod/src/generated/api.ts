@@ -1793,6 +1793,18 @@ export const RequestProfileMediaUploadResponse = zod.object({
 
 
 /**
+ * @summary Check an uploaded photo against the verified main face before adding it
+ */
+export const CheckAdditionalProfilePhotoParams = zod.object({
+  "mediaId": zod.coerce.string().uuid()
+})
+
+export const CheckAdditionalProfilePhotoResponse = zod.object({
+  "mediaReference": zod.string()
+})
+
+
+/**
  * @summary Compress an uploaded profile video for playback
  */
 export const TranscodeProfileVideoParams = zod.object({

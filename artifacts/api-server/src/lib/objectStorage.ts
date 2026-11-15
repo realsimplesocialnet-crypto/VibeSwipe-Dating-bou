@@ -162,13 +162,14 @@ export class ObjectStorageService {
   }
 
   /** Seal the checked main-photo bytes away from any previously issued upload URL. */
-  async storeVerifiedProfilePhoto(bytes: Buffer, owner: string, contentType: string): Promise<string> {
+  async storeVerifiedProfilePhoto(bytes: Buffer, owner: string, contentType: string, verifiedAgainst?: string): Promise<string> {
     const objectPath = `/objects/verified-profile/${randomUUID()}`;
     const file = this.getObjectEntityFileHandle(objectPath);
     try {
       await file.save(bytes, {
         resumable: false,
         contentType,
+        ...(verifiedAgainst ? { metadata: { metadata: { verifiedAgainst } } } : {}),
         preconditionOpts: { ifGenerationMatch: 0 },
       });
       await setObjectAclPolicy(file, { owner, visibility: 'private' });

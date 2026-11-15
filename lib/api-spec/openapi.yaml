@@ -1157,6 +1157,30 @@ paths:
                 $ref: "#/components/schemas/MediaUploadResult"
         "400":
           description: Unsupported media or invalid file size
+  /vibeswipe/uploads/{mediaId}/face-check:
+    post:
+      operationId: checkAdditionalProfilePhoto
+      tags: [vibeswipe]
+      summary: Check an uploaded photo against the verified main face before adding it
+      parameters:
+        - in: path
+          name: mediaId
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Allowed private media reference, sealed against later replacement when checked
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [mediaReference]
+                properties:
+                  mediaReference: { type: string }
+        "422":
+          description: Photo does not match the verified face or cannot be checked
+        "503":
+          description: Face checking unavailable; photo is not accepted
   /vibeswipe/uploads/{mediaId}/transcode:
     post:
       operationId: transcodeProfileVideo

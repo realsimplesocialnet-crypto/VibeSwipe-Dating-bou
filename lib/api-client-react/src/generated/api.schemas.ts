@@ -1196,3 +1196,7 @@ export type GetPublicLocationShareParams = {
 token: string;
 };
 
+export type CheckAdditionalProfilePhoto200 = {
+  mediaReference: string;
+};
+

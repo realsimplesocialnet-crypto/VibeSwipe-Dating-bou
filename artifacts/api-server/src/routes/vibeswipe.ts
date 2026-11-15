@@ -26,6 +26,8 @@ import {
   GetMessagesResponse,
   GetMyProfileResponse,
   GetProfileMediaParams,
+  CheckAdditionalProfilePhotoParams,
+  CheckAdditionalProfilePhotoResponse,
   GetTypingStatusParams,
   GetTypingStatusResponse,
   Message,
@@ -122,6 +124,8 @@ import {
 } from "../lib/chatEventStream";
 import { sendMessagePush } from "../lib/vibeswipePush";
 import { buildProfileValues } from "../lib/profileSetup";
+import { checkAdditionalPhoto } from "../lib/additional-photo-check";
+import { FaceVerificationError } from "../lib/luxand";
 import {
   distanceBetweenCities,
   findRealTravelCity,
@@ -547,21 +551,47 @@ router.put("/vibeswipe/me", async (req, res): Promise<void> => {
     ...body.photos,
     ...(body.videoUrl ? [body.videoUrl] : []),
   ];
-  const mediaIds = references
-    .filter((value) => value.startsWith("media:"))
-    .map((value) => value.slice("media:".length));
   if (references.some((value) => !value.startsWith("media:"))) {
     res.status(400).json({ error: "Upload profile media before saving it." });
     return;
   }
+  const [photoSnapshot] = await db.select({
+    photos: profilesTable.photos, isVerified: profilesTable.isVerified,
+  }).from(profilesTable).where(eq(profilesTable.id, userId)).limit(1);
+  if (photoSnapshot?.isVerified) {
+    if (!photoSnapshot.photos[0]) {
+      res.status(409).json({ error: "Your verified main photo is missing. Please verify your main photo again." });
+      return;
+    }
+    try {
+      // Also enforce on Save: calling the API directly cannot bypass upload checks.
+      // Check every extra photo, including older gallery photos without match evidence.
+      const checked: string[] = [];
+      for (const reference of body.photos) {
+        checked.push(await checkAdditionalPhoto(userId, reference, photoSnapshot.photos[0]));
+      }
+      body.photos = checked;
+    } catch (error) {
+      if (!(error instanceof FaceVerificationError)) throw error;
+      res.status(error.status).json({ error: error.message });
+      return;
+    }
+  }
+  const mediaIds = [...body.photos, ...(body.videoUrl ? [body.videoUrl] : [])]
+    .map(value => value.slice("media:".length));
   const values = buildProfileValues(userId, body);
   const result = await db.transaction(async (tx) => {
     const [existingProfile] = await tx
-      .select({ photos: profilesTable.photos })
+      .select({ photos: profilesTable.photos, isVerified: profilesTable.isVerified })
       .from(profilesTable)
       .where(eq(profilesTable.id, userId))
       .for("update")
       .limit(1);
+    // Provider calls run outside the transaction; reject stale verification/main-photo
+    // snapshots rather than publishing against a different face after a concurrent edit.
+    if (existingProfile?.isVerified !== photoSnapshot?.isVerified || existingProfile?.photos[0] !== photoSnapshot?.photos[0]) {
+      return { invalidMedia: true as const, stalePhotos: true as const };
+    }
     const removedMediaIds = removedProfilePhotoMediaIds(existingProfile?.photos ?? [], body.photos);
     const uniqueMediaIds = [...new Set(mediaIds)];
     if (uniqueMediaIds.length > 0) {
@@ -613,6 +643,10 @@ router.put("/vibeswipe/me", async (req, res): Promise<void> => {
       .where(eq(profileSetupDraftsTable.userId, userId));
     return { invalidMedia: false as const, profile, removedMediaIds };
   });
+  if ("stalePhotos" in result && result.stalePhotos) {
+    res.status(409).json({ error: "Your main photo or verification changed. Refresh your profile and try again." });
+    return;
+  }
   if ("invalidPhoto" in result && result.invalidPhoto) {
     res.status(400).json({ error: "Choose a profile picture, not a video." });
     return;
@@ -2314,6 +2348,23 @@ router.post(
     );
   },
 );
+
+router.post("/vibeswipe/uploads/:mediaId/face-check", async (req, res): Promise<void> => {
+  const parsed = CheckAdditionalProfilePhotoParams.safeParse(req.params);
+  if (!parsed.success) { res.status(400).json({ error: "Choose a valid uploaded photo." }); return; }
+  const userId = currentUserId(req);
+  const [profile] = await db.select().from(profilesTable).where(eq(profilesTable.id, userId)).limit(1);
+  if (profile?.isVerified && !profile.photos[0]) {
+    res.status(409).json({ error: "Verify your main photo again before adding pictures." }); return;
+  }
+  try {
+    const mediaReference = await checkAdditionalPhoto(userId, `media:${parsed.data.mediaId}`, profile?.isVerified ? profile.photos[0] : null);
+    res.json(CheckAdditionalProfilePhotoResponse.parse({ mediaReference }));
+  } catch (error) {
+    if (!(error instanceof FaceVerificationError)) throw error;
+    res.status(error.status).json({ error: error.message });
+  }
+});
 
 router.post(
   "/vibeswipe/uploads/:mediaId/transcode",

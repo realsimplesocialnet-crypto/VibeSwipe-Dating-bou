@@ -7,6 +7,30 @@ export class FaceVerificationError extends Error {
 }
 
 type JsonObject = Record<string, unknown>;
+export const PHOTO_FACE_MISMATCH = "This photo doesn’t match your verified face. Please upload a photo of yourself.";
+
+/** Similarity only: additional gallery pictures do not require a new live selfie. */
+export async function matchAdditionalProfilePhoto(
+  main: Uint8Array, candidate: Uint8Array, mainType: string, candidateType: string,
+  request: typeof fetch = fetch,
+): Promise<void> {
+  const token = process.env.LUXAND_API_TOKEN?.trim();
+  if (!token) throw new FaceVerificationError(503, "Photo checking is temporarily unavailable. Please try again later.");
+  const body = new FormData();
+  body.append("face1", new Blob([new Uint8Array(main)], { type: mainType }), "verified-main");
+  body.append("face2", new Blob([new Uint8Array(candidate)], { type: candidateType }), "additional-photo");
+  try {
+    const response = await request("https://api.luxand.cloud/photo/similarity", {
+      method: "POST", headers: { token }, body, redirect: "error", signal: AbortSignal.timeout(30_000),
+    });
+    if (response.status === 400 || response.status === 422) throw new FaceVerificationError(422, PHOTO_FACE_MISMATCH);
+    if (!response.ok) throw new FaceVerificationError(503, "Photo checking is temporarily unavailable. Please try again later.");
+    if (!faceMatchPassed(await response.json())) throw new FaceVerificationError(422, PHOTO_FACE_MISMATCH);
+  } catch (error) {
+    if (error instanceof FaceVerificationError) throw error;
+    throw new FaceVerificationError(503, "Photo checking could not be completed. Please try again.");
+  }
+}
 function object(value: unknown): value is JsonObject {
   return !!value && typeof value === "object" && !Array.isArray(value);
 }

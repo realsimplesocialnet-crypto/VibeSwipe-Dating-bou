@@ -35,6 +35,7 @@ import type {
   BoostStatus,
   ChatThemeInput,
   ChatThemeResult,
+  CheckAdditionalProfilePhoto200,
   DailyLikeStatus,
   DeleteMessageInput,
   EmergencyContact,
@@ -6466,6 +6467,80 @@ export const useRequestProfileMediaUpload = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getRequestProfileMediaUploadMutationOptions(options), queryClient);
+    }
+
+export const getCheckAdditionalProfilePhotoUrl = (mediaId: string,) => {
+
+
+
+
+  return `/api/vibeswipe/uploads/${mediaId}/face-check`
+}
+
+/**
+ * @summary Check an uploaded photo against the verified main face before adding it
+ */
+export const checkAdditionalProfilePhoto = async (mediaId: string, options?: Parameters<typeof customFetch>[1]): Promise<CheckAdditionalProfilePhoto200> => {
+
+  return customFetch<CheckAdditionalProfilePhoto200>(getCheckAdditionalProfilePhotoUrl(mediaId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getCheckAdditionalProfilePhotoMutationKey = () => ['checkAdditionalProfilePhoto'] as const;
+
+export const getCheckAdditionalProfilePhotoMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof checkAdditionalProfilePhoto>>, TError,CheckAdditionalProfilePhotoMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof checkAdditionalProfilePhoto>>, TError,CheckAdditionalProfilePhotoMutationVariables, TContext> => {
+
+const mutationKey = getCheckAdditionalProfilePhotoMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof checkAdditionalProfilePhoto>>, CheckAdditionalProfilePhotoMutationVariables> = (props) => {
+          const {mediaId} = props ?? {};
+
+          return  checkAdditionalProfilePhoto(mediaId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CheckAdditionalProfilePhotoMutationResult = NonNullable<Awaited<ReturnType<typeof checkAdditionalProfilePhoto>>>
+
+    export type CheckAdditionalProfilePhotoMutationError = ErrorType<void>
+    export type CheckAdditionalProfilePhotoMutationVariables = {mediaId: string}
+
+    /**
+ * @summary Check an uploaded photo against the verified main face before adding it
+ */
+export const useCheckAdditionalProfilePhoto = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof checkAdditionalProfilePhoto>>, TError,CheckAdditionalProfilePhotoMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof checkAdditionalProfilePhoto>>,
+        TError,
+        CheckAdditionalProfilePhotoMutationVariables,
+        TContext
+      > => {
+      return useMutation(getCheckAdditionalProfilePhotoMutationOptions(options), queryClient);
     }
 
 export const getTranscodeProfileVideoUrl = (mediaId: string,) => {
