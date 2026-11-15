@@ -163,7 +163,10 @@ html:has(.discover-deck) body { position: fixed; inset: 0; width: 100%; }
   position: fixed;
   inset-inline: 0;
   top: var(--install-banner-height, 0px);
-  height: calc(100dvh - var(--install-banner-height, 0px));
+  /* Installed iOS can report a shorter dvh after the browser/keyboard closes.
+     Pin both viewport edges instead, so the navigation cannot stop above home. */
+  bottom: 0;
+  height: auto;
   padding-top: env(safe-area-inset-top, 0px);
   min-height: 0;
   display: flex;

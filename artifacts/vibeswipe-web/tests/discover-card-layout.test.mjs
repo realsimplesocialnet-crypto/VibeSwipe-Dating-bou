@@ -19,6 +19,15 @@ test("actions reserve space outside the photo and fit narrow mobile widths", () 
   assert.match(rule, /gap: clamp/);
   assert.ok(component.indexOf("</article>") < component.indexOf('aria-label="Profile actions"'));
 });
+test("installed iPhone Discover fills the fixed viewport instead of trusting a stale dynamic height", () => {
+  const shell = css.match(/\.discover-shell:has\(\.discover-deck\) \{([^}]+)\}/)?.[1];
+  assert.match(shell, /position: fixed/);
+  assert.match(shell, /bottom: 0/);
+  assert.match(shell, /height: auto/);
+  assert.match(shell, /min-height: 0/);
+  assert.doesNotMatch(shell, /100dvh/);
+  assert.match(css, /\.discover-shell:has\(\.discover-deck\) > nav \{ position: relative; bottom: auto; flex-shrink: 0; \}/);
+});
 test("swipe animations support pass, like, super like and reduced motion", () => {
   for (const direction of ["pass", "like", "super"]) assert.ok(css.includes(`article[data-swipe="${direction}"]`));
   assert.match(css, /prefers-reduced-motion: reduce/);
