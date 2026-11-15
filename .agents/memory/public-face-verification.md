@@ -15,6 +15,18 @@ The user clarified that members submit a specific photo during verification, eve
 
 **How to apply:** Bind verification to the selected verification photo and promote that exact photo only after approval. Do not treat the remaining gallery photos as individually verified or claim unsupported motion detection.
 
+Once a main photo is verified, any additional profile photo must match that verified face before it can be published. Nonmatching pictures must be rejected, not allowed with a warning.
+
+**Why:** The user identified that a verified member could otherwise add photos of other people.
+
+**How to apply:** Enforce matching on the server as well as during uploads, preserving the existing profile on failure.
+
+Keep the verification provider's name out of the verification screen and use short consent wording. Keep processing details available in the Privacy Policy.
+
+**Why:** The user explicitly said, “Don't mention the app name that we use.”
+
+**How to apply:** Keep the provider as an implementation detail in the verification UI, without hiding photo-processing consent.
+
 Luxand's public marketing pages omit the actual code widgets. Their dashboard publishes readable examples under `/docs/liveness.html` and `/docs/similarity.html`, with linked widget files under `/docs/widgets/javascript/`. The JavaScript similarity example erroneously calls `/photo/landmarks`; the official Python widget confirms `/photo/similarity`. Use the documented `similar` boolean plus score, not the landmarks response.
 
 **Why:** The published JavaScript typo would silently call the wrong capability. Liveness and similarity are single-photo checks; instructions to hold still are supported, but a cosmetic head-turn animation does not prove motion.

@@ -76,7 +76,7 @@ const tips = [
   { icon: Hand, text: 'Keep your face uncovered — no mask or sunglasses' },
   { icon: Lightbulb, text: 'Find soft, even light in front of you' },
   { icon: Users, text: 'Only you in the frame' },
-  { icon: Camera, text: 'Hold still for one still photo. No head turns or video needed' },
+  { icon: Camera, text: 'Hold still for your camera photo' },
 ];
 
 export default function FaceVerificationPage() {
@@ -298,7 +298,7 @@ export default function FaceVerificationPage() {
 
           <label className="flex cursor-pointer gap-3 rounded-2xl bg-card p-4 text-[13px] leading-5 text-muted-foreground ring-1 ring-border has-[:checked]:ring-primary/60">
             <input type="checkbox" checked={consent} onChange={e => setConsent(e.target.checked)} data-testid="checkbox-consent" aria-label="I consent to face verification" className="mt-0.5 h-5 w-5 shrink-0 accent-[hsl(var(--primary))]"/>
-            <span><LockKeyhole size={13} className="mr-1 inline text-primary"/>I agree that my live selfie and the photo I chose are sent to Luxand.cloud to check liveness and that the faces match. Myage does not save the selfie. The chosen photo is shown privately to an administrator for approval.</span>
+            <span><LockKeyhole size={13} className="mr-1 inline text-primary"/>I agree to have my photo and live selfie checked to confirm this is me.</span>
           </label>
 
           <button type="button" onClick={() => void openCamera()} disabled={!consent || !choice || uploading} data-testid={phase === 'failed' ? 'button-retry-verification' : 'button-open-camera'} aria-label={phase === 'failed' ? 'Try verification again' : 'Open camera'} className="flex w-full items-center justify-center gap-2 rounded-full bg-primary py-4 font-bold text-primary-foreground transition-transform active:scale-[.98] disabled:opacity-45">

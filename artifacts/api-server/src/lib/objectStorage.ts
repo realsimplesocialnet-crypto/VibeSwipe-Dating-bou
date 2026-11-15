@@ -169,10 +169,13 @@ export class ObjectStorageService {
       await file.save(bytes, {
         resumable: false,
         contentType,
-        ...(verifiedAgainst ? { metadata: { metadata: { verifiedAgainst } } } : {}),
         preconditionOpts: { ifGenerationMatch: 0 },
       });
       await setObjectAclPolicy(file, { owner, visibility: 'private' });
+      if (verifiedAgainst) {
+        const [metadata] = await file.getMetadata();
+        await file.setMetadata({ metadata: { ...metadata.metadata, verifiedAgainst } });
+      }
       return objectPath;
     } catch (error) {
       await file.delete({ ignoreNotFound: true }).catch(() => undefined);

@@ -4,6 +4,11 @@ export function userErrorMessage(error: unknown, fallback: string): string {
     return 'You’re offline. Reconnect to the internet, then try again. Keep this screen open to keep your latest changes.';
   }
   if (error && typeof error === 'object') {
+    // Only this explicit public validation message may pass through from the API.
+    // Never display arbitrary response bodies or provider errors.
+    const photoMessage = "This photo doesn’t match your verified face. Please upload a photo of yourself.";
+    if ('data' in error && error.data && typeof error.data === 'object' &&
+        'error' in error.data && error.data.error === photoMessage) return photoMessage;
     if ('userMessage' in error && typeof error.userMessage === 'string') return error.userMessage;
     const status = 'status' in error ? error.status : undefined;
     if (status === 401) return 'Your session has expired. Sign in again to continue.';

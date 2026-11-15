@@ -10,6 +10,7 @@ import { Router, type IRouter } from "express";
 import { createAdminGuard } from "../lib/admin-access";
 import { canApproveVerification, promoteVerificationPhoto } from "../lib/face-verification-policy";
 import { FaceVerificationError } from "../lib/luxand";
+import { checkAdditionalPhoto } from "../lib/additional-photo-check";
 import { ObjectStorageService } from "../lib/objectStorage";
 
 const router: IRouter = Router();
@@ -77,6 +78,22 @@ router.post("/vibeswipe/admin/verification-requests/:requestId/decision", async 
   if (!request) { res.status(404).json({ error: "Verification request not found." }); return; }
   const actorId = getAuth(req).userId!;
   try {
+    let gallerySnapshot: string[] | null = null;
+    let checkedPhotos: string[] | null = null;
+    if (body.data.decision === "approve") {
+      if (request.status !== "awaiting_review" || !request.sealedPhoto || !request.referencePhoto) {
+        throw new FaceVerificationError(409, "This request is no longer awaiting review.");
+      }
+      const [member] = await db.select().from(profilesTable).where(eq(profilesTable.id, request.userId)).limit(1);
+      if (!member) throw new FaceVerificationError(404, "Member not found.");
+      gallerySnapshot = member.photos;
+      checkedPhotos = [];
+      // Do not grant a badge while unchecked pre-existing or recently added
+      // gallery photos can still show a different person beside the main photo.
+      for (const photo of promoteVerificationPhoto(member.photos, request.referencePhoto, request.sealedPhoto)) {
+        checkedPhotos.push(await checkAdditionalPhoto(member.id, photo, request.sealedPhoto));
+      }
+    }
     const status = await db.transaction(async tx => {
       // All verification writers lock the profile first, then the session.
       const [profile] = await tx.select().from(profilesTable).where(eq(profilesTable.id, request.userId)).for("update").limit(1);
@@ -95,8 +112,11 @@ router.post("/vibeswipe/admin/verification-requests/:requestId/decision", async 
           eq(mediaAssetsTable.mediaType, "image"), isNull(mediaAssetsTable.matchId),
         )).limit(1);
         if (!asset || !current.referencePhoto) throw new FaceVerificationError(409, "The checked photo is unavailable. The member must verify again.");
+        if (!checkedPhotos || JSON.stringify(profile.photos) !== JSON.stringify(gallerySnapshot)) {
+          throw new FaceVerificationError(409, "The gallery changed while photos were checked. Refresh and review again.");
+        }
         await tx.update(profilesTable).set({
-          isVerified: true, photos: promoteVerificationPhoto(profile.photos, current.referencePhoto, current.sealedPhoto!), updatedAt: new Date(),
+          isVerified: true, photos: checkedPhotos, updatedAt: new Date(),
         }).where(eq(profilesTable.id, profile.id));
       }
       const result = approve ? "approved" as const : "rejected" as const;

@@ -56,6 +56,10 @@ export default function FaceVerificationScreen() {
       setError(typeof data?.error === "string" ? data.error : e instanceof Error ? e.message : "Verification failed. Please try again.");
     } finally { lock.current = false; setBusy(false); }
   }
+  if (!status.data) return <SafeAreaView style={{ flex: 1, backgroundColor: colors.background, padding: 22, gap: 20 }} edges={["top", "bottom"]}>
+    <Pressable onPress={() => router.back()} accessibilityLabel="Back"><Feather name="arrow-left" size={24} color={colors.text}/></Pressable>
+    {status.isError ? <Pressable onPress={() => void status.refetch()}><Text style={{ color: colors.text }}>Verification could not load. Tap to try again.</Text></Pressable> : <ActivityIndicator color={colors.primary}/>}
+  </SafeAreaView>;
   return <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={["top", "bottom"]}>
     <ScrollView contentContainerStyle={{ padding: 22, gap: 20 }}>
       <Pressable onPress={() => router.back()} accessibilityLabel="Back" style={{ paddingVertical: 10 }}><Feather name="arrow-left" size={24} color={colors.text}/></Pressable>
@@ -73,8 +77,8 @@ export default function FaceVerificationScreen() {
         <Text style={{ color: colors.text }}>Or upload a different verification photo</Text>
         <MediaPicker photos={selectedPhoto ? [selectedPhoto] : []} videoUrl={null} maxPhotos={1} showVideo={false} onChange={({ photos }) => { setSelectedPhoto(photos[0] ?? ""); setConsent(false); }}/>
         <Text style={{ color: colors.text, fontSize: 16, lineHeight: 25 }}>Face the camera straight on, in good light. Remove sunglasses or anything covering your face. Only you should be in the frame. Hold still and take a fresh selfie.</Text>
-        <Text style={{ color: colors.text, fontSize: 14, lineHeight: 22 }}>Luxand.cloud checks a still selfie for liveness and a match to your selected photo. This is not a video or head-turn check. Myage does not save your live camera capture. Only administrator approval changes your main photo and adds the badge.</Text>
-        <View style={{ flexDirection: "row", gap: 12, alignItems: "center" }}><Switch accessibilityLabel="I consent to face verification" value={consent} onValueChange={setConsent} disabled={busy} trackColor={{ true: colors.primary }}/><Text style={{ flex: 1, color: colors.text }}>I agree to send these photos to Luxand.cloud for face verification.</Text></View>
+        <Text style={{ color: colors.text, fontSize: 14, lineHeight: 22 }}>Your photo and camera selfie are checked to confirm they match. Your live camera capture is not saved by Myage. Only administrator approval changes your main photo and adds the badge.</Text>
+        <View style={{ flexDirection: "row", gap: 12, alignItems: "center" }}><Switch accessibilityLabel="I consent to face verification" value={consent} onValueChange={setConsent} disabled={busy} trackColor={{ true: colors.primary }}/><Text style={{ flex: 1, color: colors.text }}>I agree to have my photo and live selfie checked to confirm this is me.</Text></View>
         {error ? <Text accessibilityRole="alert" style={{ color: colors.primary }}>{error}</Text> : null}
         <Pressable accessibilityLabel="Take verification selfie" disabled={!consent || !selectedPhoto || busy} onPress={() => void capture()} style={{ padding: 18, borderRadius: 24, alignItems: "center", backgroundColor: colors.primary, opacity: !consent || !selectedPhoto || busy ? 0.5 : 1 }}>{busy ? <ActivityIndicator color="#fff"/> : <Text style={{ color: "#fff", fontWeight: "700" }}>{error ? "Try again" : "Open camera"}</Text>}</Pressable>
       </>}
