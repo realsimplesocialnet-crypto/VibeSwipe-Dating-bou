@@ -26,7 +26,7 @@ import {
 import { Link, Redirect, Route, Switch, useLocation, useParams, Router as WouterRouter } from 'wouter';
 import {
   ArrowLeft, ArrowRight, Bell, Check, ChevronDown, ChevronRight, CircleHelp, Compass, Eye, EyeOff,
-  Heart, ImagePlus, LogOut, MapPin, MessageCircle, MoreHorizontal, Navigation, Search, Settings,
+  Heart, ImagePlus, MapPin, MessageCircle, MoreHorizontal, Navigation, Search, Settings,
   Shield, SlidersHorizontal, Mars, Venus, NonBinary, Briefcase, Pencil, Camera, Sparkles, Star, UserRound, Users, Volume2, X, Zap, Flag, Ban, Images, Coffee, CupSoda, Music, ImageIcon, MessageCircleMore,
 } from 'lucide-react';
 import NotFound from '@/pages/not-found';
@@ -114,7 +114,6 @@ function AppShell({ children }: { children: ReactNode }) {
   const profile = useGetMyProfile();
   const activityHeader = useGetNotifications({query:{enabled:isSocialPage,queryKey:getGetNotificationsQueryKey()}});
   const hasUnreadActivity = Object.values(activityHeader.data?.unreadCounts??{}).some(count=>count>0);
-  const { signOut } = useClerk();
   const activeName = profile.data?.name || user?.firstName || 'Your profile';
   return <div className={`min-h-[100dvh] bg-background text-foreground ${isSocialPage?'messages-shell':''} ${location==='/discover'?'discover-shell':''}`}>
     {showMainNavigation && <>
@@ -128,7 +127,6 @@ function AppShell({ children }: { children: ReactNode }) {
           <Link href="/profile" data-testid="nav-profile" className={`flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold ${location === '/profile' ? 'bg-accent text-[#ff80b6]' : 'text-muted-foreground hover:bg-white/[.04]'}`}><UserRound size={18}/><span className="truncate">{activeName}</span></Link>
           <Link href={`/settings?returnTo=${encodeURIComponent(settingsReturnTo)}`} data-testid="nav-settings" className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-muted-foreground hover:bg-white/[.04]"><Settings size={18}/>Settings</Link>
           <InstallAction className="px-1 pt-2"/>
-          <button onClick={() => void signOut({ redirectUrl: pathFor('/') })} data-testid="button-sign-out" className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm text-muted-foreground hover:bg-white/[.04]"><LogOut size={17}/>Sign out</button>
         </div>
       </aside>
       <header className={`${location==='/discover'?'hidden':'flex'} sticky top-[var(--install-banner-height,0px)] z-20 h-12 items-center justify-between border-b border-border bg-background/90 px-4 backdrop-blur-xl lg:hidden`}>

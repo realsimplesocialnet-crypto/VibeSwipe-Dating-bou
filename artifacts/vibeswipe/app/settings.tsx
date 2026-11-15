@@ -29,8 +29,21 @@ import { DiscoveryLocationSettings } from "@/components/DiscoveryLocationSetting
 export default function SettingsScreen() {
   const colors = useColors();
   const { signOut } = useAuth();
+  const [loggingOut, setLoggingOut] = useState(false);
   const { scheme, setScheme } = useTheme();
   const queryClient = useQueryClient();
+  async function logout() {
+    if (loggingOut) return;
+    setLoggingOut(true);
+    try {
+      await signOut();
+      queryClient.clear();
+      router.replace("/");
+    } catch {
+      Alert.alert("Couldn’t log out", "Please check your connection and try again.");
+      setLoggingOut(false);
+    }
+  }
   const settings = useGetVibeSwipeSettings();
   const updateSettings = useUpdateVibeSwipeSettings();
   const [incognito, setIncognito] = useState(false);
@@ -311,9 +324,12 @@ export default function SettingsScreen() {
           <Feather name="chevron-right" size={18} color={colors.mutedForeground} />
         </View>
       </Pressable>
-      <Pressable onPress={() => void signOut().then(() => router.replace("/"))} style={[styles.signOut, { borderColor: colors.border }]}>
+      <Pressable onPress={() => void logout()} disabled={loggingOut}
+        testID="button-settings-log-out" accessibilityRole="button"
+        accessibilityState={{ disabled: loggingOut, busy: loggingOut }}
+        style={[styles.signOut, { borderColor: colors.border, opacity: loggingOut ? .5 : 1 }]}>
         <Feather name="log-out" size={17} color={colors.destructive} />
-        <Text style={[styles.signOutText, { color: colors.destructive }]}>Sign out</Text>
+        <Text style={[styles.signOutText, { color: colors.destructive }]}>{loggingOut ? "Logging out…" : "Log out"}</Text>
       </Pressable>
       <Text style={[styles.version, { color: colors.mutedForeground }]}>Myage · 18+</Text>
     </ScrollView>

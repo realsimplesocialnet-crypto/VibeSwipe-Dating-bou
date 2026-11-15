@@ -3,7 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useClerk } from "@clerk/react";
 import {
   ArrowLeft, ChevronRight, Eye, EyeOff, Globe2, LockKeyhole, MapPin, Moon, Shield,
-  SlidersHorizontal, UserRound, Bell, Heart, MessageCircle, ShieldCheck, FileText, UserX, Check, LoaderCircle,
+  SlidersHorizontal, UserRound, Bell, Heart, MessageCircle, ShieldCheck, FileText, UserX, Check, LoaderCircle, LogOut,
 } from "lucide-react";
 import {
   getGetBlockedProfilesQueryKey, getGetDiscoverProfilesQueryKey, getGetMyProfileQueryKey, getGetVibeSwipeSettingsQueryKey,
@@ -58,6 +58,20 @@ function safeReturnPath(value: string | null, fallback: string) {
 
 export function SettingsIndexPage() {
   const [location] = useLocation();
+  const { signOut } = useClerk();
+  const [loggingOut, setLoggingOut] = useState(false);
+  const [logoutError, setLogoutError] = useState("");
+  async function logout() {
+    if (loggingOut) return;
+    setLoggingOut(true);
+    setLogoutError("");
+    try {
+      await signOut({ redirectUrl: import.meta.env.BASE_URL });
+    } catch {
+      setLogoutError("Couldn’t log out. Please check your connection and try again.");
+      setLoggingOut(false);
+    }
+  }
   const returnTo = safeReturnPath(new URLSearchParams(window.location.search).get("returnTo"), "/profile");
   const currentPath = `${location}${window.location.search}${window.location.hash}`;
   return <SettingsFrame>
@@ -70,7 +84,15 @@ export function SettingsIndexPage() {
       {sections.map(({ id, label, icon: Icon }) => <Link key={id} href={`/settings/${id}?returnTo=${encodeURIComponent(currentPath)}`} data-testid={`link-settings-${id}`} className="group flex min-h-[64px] items-center gap-4 py-4 text-[15px] font-semibold transition-colors hover:text-primary">
         <SettingIcon><Icon size={18}/></SettingIcon><span className="flex-1">{label}</span><ChevronRight size={18} className="text-muted-foreground transition-transform group-hover:translate-x-1 group-hover:text-primary"/>
       </Link>)}
+      <button type="button" onClick={() => void logout()} disabled={loggingOut}
+        data-testid="button-settings-log-out" aria-busy={loggingOut}
+        className="flex min-h-[64px] w-full items-center gap-4 py-4 text-left text-[15px] font-semibold text-destructive transition-opacity hover:opacity-75 disabled:cursor-wait disabled:opacity-50">
+        <SettingIcon><LogOut size={18} className="text-destructive"/></SettingIcon>
+        <span className="flex-1">{loggingOut ? "Logging out…" : "Log out"}</span>
+        {loggingOut && <LoaderCircle size={18} className="animate-spin"/>}
+      </button>
     </nav>
+    {logoutError && <p role="alert" className="mt-4 max-w-2xl text-sm text-destructive">{logoutError}</p>}
   </SettingsFrame>;
 }
 
