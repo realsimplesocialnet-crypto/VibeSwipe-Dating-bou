@@ -9,11 +9,11 @@ Self-service face verification must confirm that a live person matches their sub
 
 **How to apply:** Require both liveness and a match against the specific photo submitted for verification. Do not claim that merely uploading a photo, displaying camera instructions, or completing a client-side animation verifies a person.
 
-The user clarified that members submit a specific photo during verification, even if they already uploaded multiple signup photos. After successful checks and the owner's explicit administrator approval, that verification photo becomes the main public profile photo with the blue tick. Passing camera checks must only queue the request, never automatically grant the badge or change the main photo. The live camera capture is evidence for matching, not the replacement profile picture. The requested liveness interaction includes genuinely turning the head left and right; passive still-photo checking must not be described as that interaction.
+Members submit a specific photo during verification, even if they already uploaded multiple signup photos. After successful liveness, face-match, and gallery checks, that verification photo automatically becomes the main public profile photo with the blue tick. No administrator approval is required. The live camera capture is evidence for matching, not the replacement profile picture. The requested liveness interaction includes genuinely turning the head left and right; passive still-photo checking must not be described as that interaction.
 
-**Why:** The user explicitly distinguished signup gallery photos, the photo submitted for verification, and the camera capture used to prove that the person matches it.
+**Why:** The user distinguished signup/gallery photos from the verification photo, then explicitly replaced manual approval: “Once your face is verified ... There's no need to approve it again.”
 
-**How to apply:** Bind verification to the selected verification photo and promote that exact photo only after approval. Do not treat the remaining gallery photos as individually verified or claim unsupported motion detection.
+**How to apply:** Bind verification to the selected photo and promote it automatically after the server checks pass. Resume previously checked requests without another selfie. Do not claim unsupported motion detection.
 
 Once a main photo is verified, any additional profile photo must match that verified face before it can be published. Nonmatching pictures must be rejected, not allowed with a warning.
 

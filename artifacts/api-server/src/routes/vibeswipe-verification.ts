@@ -2,6 +2,7 @@ import { getAuth } from "@clerk/express";
 import {
   CompleteFaceVerificationParams, CompleteFaceVerificationResponse,
   GetFaceVerificationStatusResponse, StartFaceVerificationBody, StartFaceVerificationResponse,
+  FinalizeFaceVerificationResponse,
 } from "@workspace/api-zod";
 import { db, faceVerificationSessionsTable as sessions, mediaAssetsTable, profilesTable } from "@workspace/db";
 import { and, count, desc, eq, gt, inArray, isNull } from "drizzle-orm";
@@ -9,6 +10,7 @@ import express, { Router, type IRouter, type ErrorRequestHandler } from "express
 import { requireAuth } from "../middlewares/auth";
 import { ObjectStorageService } from "../lib/objectStorage";
 import { FaceVerificationError, isCameraJpeg, verifyLiveProfilePhoto } from "../lib/luxand";
+import { activateCheckedFace } from "../lib/automatic-face-verification";
 
 const router: IRouter = Router();
 const storage = new ObjectStorageService();
@@ -38,7 +40,7 @@ router.get("/vibeswipe/verification", async (req, res): Promise<void> => {
 router.post("/vibeswipe/verification/sessions", async (req, res): Promise<void> => {
   const body = StartFaceVerificationBody.safeParse(req.body);
   if (!body.success || body.data.consent !== true || !canVerifyPhoto(body.data.photoReference)) {
-    res.status(400).json({ error: "Choose your verification photo and consent to sending it with a live selfie to Luxand.cloud." }); return;
+    res.status(400).json({ error: "Choose your verification photo and agree to the photo and live selfie checks." }); return;
   }
   if (!process.env.LUXAND_API_TOKEN) {
     res.status(503).json({ error: "Face verification is not available yet. Please try again later." }); return;
@@ -50,8 +52,6 @@ router.post("/vibeswipe/verification/sessions", async (req, res): Promise<void> 
     if (!profile) return { error: "Upload and save your profile photo first.", status: 400 } as const;
     if (profile.deactivated || profile.adminSuspended || profile.isDemo) return { error: "This account cannot verify.", status: 409 } as const;
     if (profile.isVerified) return { error: "Your profile is already verified.", status: 409 } as const;
-    const [waiting] = await tx.select({ id: sessions.id }).from(sessions).where(and(eq(sessions.userId, userId), eq(sessions.status, "awaiting_review"))).limit(1);
-    if (waiting) return { error: "Your photo is already awaiting administrator approval.", status: 409 } as const;
     const [photo] = await tx.select({ id: mediaAssetsTable.id }).from(mediaAssetsTable).where(and(
       eq(mediaAssetsTable.id, body.data.photoReference.slice(6)), eq(mediaAssetsTable.ownerId, userId),
       eq(mediaAssetsTable.mediaType, "image"), isNull(mediaAssetsTable.matchId),
@@ -127,15 +127,14 @@ router.post("/vibeswipe/verification/sessions/:sessionId",
         }
         const [active] = await tx.select().from(sessions).where(eq(sessions.id, session.id)).for("update").limit(1);
         if (active?.status !== "processing") throw new FaceVerificationError(409, "This verification was cancelled. Please start again.");
-        const [waiting] = await tx.select({ id: sessions.id }).from(sessions).where(and(eq(sessions.userId, userId), eq(sessions.status, "awaiting_review"))).limit(1);
-        if (waiting) throw new FaceVerificationError(409, "A request is already awaiting administrator approval.");
         const [sealedAsset] = await tx.insert(mediaAssetsTable).values({
           ownerId: userId, objectPath: sealedPhotoPath, mediaType: "image", contentType: asset.contentType,
         }).returning({ id: mediaAssetsTable.id });
-        // Passing camera checks never changes the public photo or grants a badge.
+        // Durable checked evidence allows retrying activation without another selfie.
         await tx.update(sessions).set({ status: "awaiting_review", sealedPhoto: `media:${sealedAsset.id}`, checkedAt: new Date() }).where(eq(sessions.id, session.id));
       });
       committed = true;
+      await activateCheckedFace(userId, session.id);
     } catch (error) {
       await db.update(sessions).set({ status: "failed" }).where(and(eq(sessions.id, session.id), eq(sessions.status, "processing")));
       if (error instanceof FaceVerificationError) {
@@ -152,9 +151,21 @@ router.post("/vibeswipe/verification/sessions/:sessionId",
         });
       }
     }
-    res.json(CompleteFaceVerificationResponse.parse({ verified: false, reviewStatus: "awaiting_review" }));
+    res.json(CompleteFaceVerificationResponse.parse({ verified: true, reviewStatus: "approved" }));
   },
 );
+router.post("/vibeswipe/verification/finalize", async (req, res): Promise<void> => {
+  try {
+    await activateCheckedFace(getAuth(req).userId!);
+    res.json(FinalizeFaceVerificationResponse.parse({ verified: true, reviewStatus: "approved" }));
+  } catch (error) {
+    if (error instanceof FaceVerificationError) {
+      res.status(error.status).json({ error: error.message }); return;
+    }
+    req.log.warn("Checked face activation could not complete");
+    res.status(503).json({ error: "Photo checking could not complete. Please try again." });
+  }
+});
 const uploadError: ErrorRequestHandler = (error, _req, res, next) => {
   if (error?.type === "entity.too.large") { res.status(413).json({ error: "Your selfie must be smaller than 5 MB." }); return; }
   next(error);

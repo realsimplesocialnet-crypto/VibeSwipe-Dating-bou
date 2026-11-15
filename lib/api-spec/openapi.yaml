@@ -209,7 +209,7 @@ paths:
     post:
       operationId: completeFaceVerification
       tags: [vibeswipe]
-      summary: Submit a fresh camera JPEG for checks and administrator review; never grants a badge
+      summary: Verify a live selfie and matching photos, then automatically activate the badge
       parameters:
         - in: path
           name: sessionId
@@ -222,7 +222,7 @@ paths:
             schema: { type: string, format: binary }
       responses:
         "200":
-          description: Camera checks passed and the selected photo is awaiting administrator approval
+          description: Face checks passed and the selected main photo and badge are active
           content:
             application/json:
               schema:
@@ -233,6 +233,22 @@ paths:
         "413": { description: Selfie is too large }
         "422": { description: Liveness or face matching failed; take a new selfie }
         "503": { description: The verification service could not complete the check }
+  /vibeswipe/verification/finalize:
+    post:
+      operationId: finalizeFaceVerification
+      tags: [vibeswipe]
+      summary: Finish a previously checked verification without repeating the selfie or requiring administrator approval
+      responses:
+        "200":
+          description: Verified photo and badge activated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FaceVerificationResult"
+        "401": { description: Sign in required }
+        "409": { description: No valid checked verification or the profile changed }
+        "422": { description: A gallery photo does not match the verified face }
+        "503": { description: Photo checking is temporarily unavailable }
   /vibeswipe/admin/verification-requests:
     get:
       operationId: getAdminVerificationRequests
@@ -1745,7 +1761,7 @@ components:
       required: [verified, reviewStatus]
       properties:
         verified: { type: boolean }
-        reviewStatus: { type: string, enum: [awaiting_review] }
+        reviewStatus: { type: string, enum: [approved] }
     FaceVerificationReview:
       type: object
       required: [id, userId, name, age, status, submittedAt, reviewedAt, rejectionReason, photoAvailable]
