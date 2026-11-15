@@ -38,3 +38,9 @@ Reels must play automatically, with controls to pause and mute or unmute.
 **Why:** The user explicitly said, “Reels play automatically. The person can stop or mute.”
 
 **How to apply:** Start the visible video muted and inline to meet mobile browser autoplay rules, pause off-screen videos, and show a clear play action if the browser blocks autoplay. Do not replace the requested playback behavior with static previews.
+
+Reels must support videos of three minutes or longer, not inherit the short profile-video duration cap.
+
+**Why:** The user corrected the initial limit with “Video 3 minutes or more.”
+
+**How to apply:** Preserve the full Reel during processing rather than clipping it. Keep upload-size/resource safeguards separate from video length, and do not change profile or Story limits as a side effect.

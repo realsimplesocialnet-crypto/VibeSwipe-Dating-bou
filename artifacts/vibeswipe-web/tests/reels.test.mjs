@@ -22,6 +22,13 @@ test("only supported, bounded videos are accepted for upload", () => {
   assert.match(reelFileProblem({ name: "a.jpg", type: "image/jpeg", size: 10 }), /MP4 or MOV/);
 });
 
+test("Reels composer uses full-length processing rather than the short profile-video endpoint", () => {
+  const composer = read("../src/pages/reel-composer.tsx");
+  assert.match(composer, /useTranscodeReelVideo/);
+  assert.doesNotMatch(composer, /useTranscodeProfileVideo|REEL_MAX_SECONDS/);
+  assert.match(composer, /3 minutes or longer/);
+});
+
 test("media urls stay on the protected endpoint and return paths stay in-app", () => {
   assert.equal(reelMediaUrl(`media:${id}`), `/api/vibeswipe/media/${id}`);
   assert.equal(reelMediaUrl("https://elsewhere.example/v.mp4"), "");

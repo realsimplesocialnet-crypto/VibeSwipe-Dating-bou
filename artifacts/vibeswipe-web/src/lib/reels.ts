@@ -1,6 +1,5 @@
 // Shared Reels helpers. Kept framework-free so they can be unit tested.
 export const REEL_MAX_SOURCE_BYTES = 500 * 1024 * 1024;
-export const REEL_MAX_SECONDS = 30;
 const UUID = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
 const SHARED_REEL = new RegExp(`/reels/(${UUID})(?![0-9a-f-])`, "i");
 

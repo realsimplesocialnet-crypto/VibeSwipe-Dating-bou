@@ -27,15 +27,19 @@ export type TranscodedProfileVideo = {
 
 export function validateTranscodedProfileVideo(
   video: TranscodedProfileVideo,
-  maxDurationSeconds = MAX_PROFILE_VIDEO_DURATION_SECONDS,
+  maxDurationSeconds: number | null = MAX_PROFILE_VIDEO_DURATION_SECONDS,
+  maxSizeBytes = MAX_PROFILE_VIDEO_BYTES,
 ): void {
   if (!Number.isFinite(video.size) || video.size <= 0) {
     throw new ProfileVideoValidationError("This video could not be compressed.");
   }
-  if (video.size > MAX_PROFILE_VIDEO_BYTES) {
-    throw new ProfileVideoValidationError("The compressed video must be 50 MB or smaller.");
+  if (video.size > maxSizeBytes) {
+    throw new ProfileVideoValidationError(`The compressed video must be ${maxSizeBytes / 1024 / 1024} MB or smaller.`);
   }
-  if (video.duration > maxDurationSeconds) {
+  if (!Number.isFinite(video.duration) || video.duration <= 0) {
+    throw new ProfileVideoValidationError("This video could not be read.");
+  }
+  if (maxDurationSeconds !== null && video.duration > maxDurationSeconds) {
     throw new ProfileVideoValidationError(
       maxDurationSeconds === MAX_STORY_VIDEO_DURATION_SECONDS
         ? "Story videos must be 15 seconds or shorter."
@@ -52,12 +56,12 @@ type ProbeResult = {
   format?: { duration?: string };
 };
 
-function run(command: string, args: string[]): Promise<string> {
+function run(command: string, args: string[], timeoutMs = 120_000): Promise<string> {
   return new Promise((resolve, reject) => {
     const child = spawn(command, args, { stdio: ["ignore", "pipe", "pipe"] });
     let stdout = "";
     let stderr = "";
-    const timer = setTimeout(() => child.kill("SIGKILL"), 120_000);
+    const timer = setTimeout(() => child.kill("SIGKILL"), timeoutMs);
     timer.unref();
     child.stdout.setEncoding("utf8");
     child.stderr.setEncoding("utf8");
@@ -116,6 +120,15 @@ export async function transcodeProfileVideo(
   ) {
     throw new ProfileVideoValidationError("The video duration limit is invalid.");
   }
+  return transcodeVideo(source, maxDurationSeconds);
+}
+
+/** Reels preserve the complete video; file size and processing time remain bounded. */
+export async function transcodeReelVideo(source: File): Promise<TranscodedProfileVideo> {
+  return transcodeVideo(source, null);
+}
+
+async function transcodeVideo(source: File, maxDurationSeconds: number | null): Promise<TranscodedProfileVideo> {
   const [sourceMetadata] = await source.getMetadata();
   const sourceSize = Number(sourceMetadata.size);
   if (
@@ -137,7 +150,7 @@ export async function transcodeProfileVideo(
       "-map", "0:a?",
       "-vf",
       "scale=w='if(gte(iw,ih),min(1280,iw),min(720,iw))':h='if(gte(iw,ih),min(720,ih),min(1280,ih))':force_original_aspect_ratio=decrease:force_divisible_by=2",
-      "-t", String(maxDurationSeconds + 1),
+      ...(maxDurationSeconds === null ? [] : ["-t", String(maxDurationSeconds + 1)]),
       "-c:v", "libx264",
       "-preset", "veryfast",
       "-crf", "26",
@@ -146,13 +159,14 @@ export async function transcodeProfileVideo(
       "-b:a", "128k",
       "-movflags", "+faststart",
       outputPath,
-    ]);
+    ], maxDurationSeconds === null ? 600_000 : 120_000);
 
     const outputStats = await stat(outputPath);
     const video = await probeVideo(outputPath);
     validateTranscodedProfileVideo(
       { ...video, size: outputStats.size },
       maxDurationSeconds,
+      maxDurationSeconds === null ? MAX_PROFILE_VIDEO_SOURCE_BYTES : MAX_PROFILE_VIDEO_BYTES,
     );
 
     const destination = source.createWriteStream({

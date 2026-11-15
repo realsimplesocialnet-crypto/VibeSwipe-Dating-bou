@@ -89,6 +89,7 @@ import type {
   ReelEngagement,
   ReelInput,
   ReelPage,
+  ReelVideoTranscodeResult,
   ReportInput,
   SearchTravelCitiesParams,
   StoriesFeed,
@@ -7420,6 +7421,80 @@ export const useCreateReel = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getCreateReelMutationOptions(options), queryClient);
+    }
+
+export const getTranscodeReelVideoUrl = (mediaId: string,) => {
+
+
+
+
+  return `/api/vibeswipe/reels/uploads/${mediaId}/transcode`
+}
+
+/**
+ * @summary Process a full-length Reel without the short profile-video duration limit
+ */
+export const transcodeReelVideo = async (mediaId: string, options?: Parameters<typeof customFetch>[1]): Promise<ReelVideoTranscodeResult> => {
+
+  return customFetch<ReelVideoTranscodeResult>(getTranscodeReelVideoUrl(mediaId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getTranscodeReelVideoMutationKey = () => ['transcodeReelVideo'] as const;
+
+export const getTranscodeReelVideoMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof transcodeReelVideo>>, TError,TranscodeReelVideoMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof transcodeReelVideo>>, TError,TranscodeReelVideoMutationVariables, TContext> => {
+
+const mutationKey = getTranscodeReelVideoMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof transcodeReelVideo>>, TranscodeReelVideoMutationVariables> = (props) => {
+          const {mediaId} = props ?? {};
+
+          return  transcodeReelVideo(mediaId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type TranscodeReelVideoMutationResult = NonNullable<Awaited<ReturnType<typeof transcodeReelVideo>>>
+
+    export type TranscodeReelVideoMutationError = ErrorType<void>
+    export type TranscodeReelVideoMutationVariables = {mediaId: string}
+
+    /**
+ * @summary Process a full-length Reel without the short profile-video duration limit
+ */
+export const useTranscodeReelVideo = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof transcodeReelVideo>>, TError,TranscodeReelVideoMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof transcodeReelVideo>>,
+        TError,
+        TranscodeReelVideoMutationVariables,
+        TContext
+      > => {
+      return useMutation(getTranscodeReelVideoMutationOptions(options), queryClient);
     }
 
 export const getGetSavedReelsUrl = (params?: GetSavedReelsParams,) => {

@@ -27,6 +27,6 @@ export function reelAssetProblem(asset: {
 } | undefined, userId: string): string | null {
   if (!asset || asset.ownerId !== userId || asset.matchId) return "This video upload is not available to your account.";
   if (asset.mediaType !== "video") return "Reels must be videos.";
-  if (asset.contentType !== "video/mp4" || asset.durationSeconds === null) return "Your video is still processing. Try posting again in a moment.";
+  if (asset.contentType !== "video/mp4" || asset.durationSeconds === null || !Number.isFinite(asset.durationSeconds) || asset.durationSeconds <= 0) return "Your video is still processing. Try posting again in a moment.";
   return null;
 }

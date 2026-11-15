@@ -1367,6 +1367,31 @@ paths:
           description: Video not processed or invalid caption
         "403":
           description: Upload is not owned by this account
+  /vibeswipe/reels/uploads/{mediaId}/transcode:
+    post:
+      operationId: transcodeReelVideo
+      tags: [vibeswipe]
+      summary: Process a full-length Reel without the short profile-video duration limit
+      parameters:
+        - in: path
+          name: mediaId
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Full-length processed video metadata
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReelVideoTranscodeResult"
+        "400":
+          description: Invalid video or video exceeds the upload-size limit
+        "404":
+          description: Owned unpublished video was not found
+        "409":
+          description: Video has already been published
+        "500":
+          description: Video processing failed
   /vibeswipe/reels/saved:
     get:
       operationId: getSavedReels
@@ -2144,6 +2169,15 @@ components:
         mediaId: { type: string, format: uuid }
         mediaReference: { type: string }
       required: [uploadURL, mediaId, mediaReference]
+    ReelVideoTranscodeResult:
+      type: object
+      properties:
+        mediaReference: { type: string }
+        size: { type: integer, minimum: 1, maximum: 524288000 }
+        duration: { type: number, exclusiveMinimum: 0 }
+        width: { type: integer, minimum: 1, maximum: 1280 }
+        height: { type: integer, minimum: 1, maximum: 1280 }
+      required: [mediaReference, size, duration, width, height]
     ProfileVideoTranscodeResult:
       type: object
       properties:

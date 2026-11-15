@@ -945,6 +945,27 @@ export interface MediaUploadResult {
   mediaReference: string;
 }
 
+export interface ReelVideoTranscodeResult {
+  mediaReference: string;
+  /**
+     * @minimum 1
+     * @maximum 524288000
+     */
+  size: number;
+  /** @exclusiveMinimum 0 */
+  duration: number;
+  /**
+     * @minimum 1
+     * @maximum 1280
+     */
+  width: number;
+  /**
+     * @minimum 1
+     * @maximum 1280
+     */
+  height: number;
+}
+
 export interface ProfileVideoTranscodeResult {
   mediaReference: string;
   /**

@@ -2052,6 +2052,32 @@ export const CreateReelResponse = zod.object({
 
 
 /**
+ * @summary Process a full-length Reel without the short profile-video duration limit
+ */
+export const TranscodeReelVideoParams = zod.object({
+  "mediaId": zod.coerce.string().uuid()
+})
+
+export const transcodeReelVideoResponseSizeMax = 524288000;
+
+export const transcodeReelVideoResponseDurationExclusiveMin = 0;
+
+export const transcodeReelVideoResponseWidthMax = 1280;
+
+export const transcodeReelVideoResponseHeightMax = 1280;
+
+
+
+export const TranscodeReelVideoResponse = zod.object({
+  "mediaReference": zod.string(),
+  "size": zod.number().int().min(1).max(transcodeReelVideoResponseSizeMax),
+  "duration": zod.number().gt(transcodeReelVideoResponseDurationExclusiveMin),
+  "width": zod.number().int().min(1).max(transcodeReelVideoResponseWidthMax),
+  "height": zod.number().int().min(1).max(transcodeReelVideoResponseHeightMax)
+})
+
+
+/**
  * @summary Reels privately saved by the signed-in user
  */
 export const getSavedReelsQueryCursorMax = 200;

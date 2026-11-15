@@ -4,6 +4,7 @@ import {
   DeleteReelCommentParams, DeleteReelParams, GetMyReelsQueryParams, GetMyReelsResponse, GetReelCommentsParams,
   GetReelCommentsResponse, GetReelParams, GetReelResponse, GetReelsFeedQueryParams, GetReelsFeedResponse,
   GetSavedReelsQueryParams, GetSavedReelsResponse, LikeReelParams, LikeReelResponse,
+  TranscodeReelVideoParams, TranscodeReelVideoResponse,
 } from "@workspace/api-zod";
 import {
   blocksTable, db, mediaAssetsTable, profilesTable, reelCommentsTable, reelLikesTable, reelSavesTable, reelsTable, storiesTable,
@@ -14,11 +15,43 @@ import { requireAuth } from "../middlewares/auth";
 import { cleanReelCaption, decodeReelCursor, encodeReelCursor, reelAssetProblem, reelLocation } from "../lib/reel-cursor";
 import { visibleReelCondition } from "../lib/reels-visibility";
 import { removeUnreferencedProfileMedia } from "../lib/profileMediaCleanup";
+import { ObjectNotFoundError, ObjectStorageService } from "../lib/objectStorage";
+import { ProfileVideoValidationError, transcodeReelVideo } from "../lib/profileVideoTranscoder";
 
 const router: IRouter = Router();
 router.use("/vibeswipe/reels", requireAuth);
 
 const PAGE_SIZE = 6;
+const reelStorage = new ObjectStorageService();
+
+router.post("/vibeswipe/reels/uploads/:mediaId/transcode", async (req, res): Promise<void> => {
+  const params = TranscodeReelVideoParams.safeParse(req.params);
+  if (!params.success) { res.status(400).json({ error: "Invalid video upload." }); return; }
+  const userId = uid(req);
+  const [asset] = await db.select().from(mediaAssetsTable).where(and(
+    eq(mediaAssetsTable.id, params.data.mediaId), eq(mediaAssetsTable.ownerId, userId),
+  )).limit(1);
+  if (!asset || asset.matchId) { res.status(404).json({ error: "Your unpublished video upload was not found." }); return; }
+  if (asset.mediaType !== "video") { res.status(400).json({ error: "Choose a video." }); return; }
+  const reference = `media:${asset.id}`;
+  const [publishedReel] = await db.select({ id: reelsTable.id }).from(reelsTable).where(eq(reelsTable.mediaId, asset.id)).limit(1);
+  const [publishedStory] = await db.select({ id: storiesTable.id }).from(storiesTable).where(eq(storiesTable.mediaUrl, reference)).limit(1);
+  const [publishedProfile] = await db.select({ id: profilesTable.id }).from(profilesTable).where(eq(profilesTable.videoUrl, reference)).limit(1);
+  if (publishedReel || publishedStory || publishedProfile) {
+    res.status(409).json({ error: "This video has already been published. Upload a new copy to process it." }); return;
+  }
+  try {
+    const file = await reelStorage.getObjectEntityFile(asset.objectPath);
+    const result = await transcodeReelVideo(file);
+    await db.update(mediaAssetsTable).set({ contentType: "video/mp4", durationSeconds: result.duration }).where(eq(mediaAssetsTable.id, asset.id));
+    res.json(TranscodeReelVideoResponse.parse({ mediaReference: reference, ...result }));
+  } catch (error) {
+    if (error instanceof ObjectNotFoundError) { res.status(404).json({ error: "Your video upload was not found." }); return; }
+    if (error instanceof ProfileVideoValidationError) { res.status(400).json({ error: error.message }); return; }
+    req.log.error({ err: error, mediaId: asset.id }, "Could not process Reel video");
+    res.status(500).json({ error: "Your video could not be processed. Please try again." });
+  }
+});
 
 function uid(req: Request): string {
   const userId = getAuth(req).userId;
