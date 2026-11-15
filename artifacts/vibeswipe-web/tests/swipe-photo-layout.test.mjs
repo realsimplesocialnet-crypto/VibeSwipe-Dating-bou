@@ -4,6 +4,7 @@ import { readFile } from "node:fs/promises";
 
 const web = await readFile(new URL("../src/components/discover-swipe-page.tsx", import.meta.url), "utf8");
 const native = await readFile(new URL("../../vibeswipe/app/(tabs)/index.tsx", import.meta.url), "utf8");
+const css = await readFile(new URL("../src/index.css", import.meta.url), "utf8");
 
 test("swipe photo reserves a stable portrait frame instead of resizing with browser chrome", () => {
   const card = web.match(/<article\s+className="([^"]+)"/)?.[1] ?? "";
@@ -27,4 +28,30 @@ test("native swipe photo uses the same fixed ratio, authenticated source, and to
   assert.match(native, /PositionedImage key=\{profile.id\} source=\{heroSource\}.*contentFit="cover" contentPosition="top"/);
   assert.match(native, /const poster = profileImageSource\(profile.photos\[0\], token\)/);
   assert.doesNotMatch(native, /const heroHeight =/);
+});
+
+test("Discover locks document scrolling and reserves real navigation space", () => {
+  assert.match(css, /html:has\(\.discover-deck\)[^{]*\{[^}]*overflow: hidden;[^}]*overscroll-behavior: none/s);
+  assert.match(css, /\.discover-shell:has\(\.discover-deck\) \{[^}]*position: fixed;[^}]*height: calc\(100dvh - var\(--install-banner-height, 0px\)\);/s);
+  assert.match(css, /\.discover-shell:has\(\.discover-deck\) > main \{[^}]*min-height: 0;[^}]*padding-bottom: 0;[^}]*overflow: hidden;/s);
+  assert.match(css, /\.discover-shell:has\(\.discover-deck\) > nav \{ position: relative; bottom: auto; flex-shrink: 0; \}/);
+  assert.match(web, /discover-deck mx-auto flex h-full min-h-0/);
+});
+
+test("photo fits the remaining slot without moving behind Stories or covering actions", () => {
+  assert.match(css, /\.discover-card-slot \{[^}]*container-type: size;[^}]*flex: 1;[^}]*min-height: 0;/s);
+  assert.match(css, /\.discover-card-slot > article \{[^}]*height: min\(100cqh, 125cqw\);[^}]*width: auto;[^}]*touch-action: none;/s);
+  assert.match(css, /\.discover-deck > \.discover-actions \{ flex-shrink: 0;/);
+  assert.match(web, /<\/article>\s*<\/div>\s*<div className="discover-actions/);
+  for (const [width, height] of [[320,568],[390,844],[412,915],[430,932],[768,1024],[1440,900]]) {
+    for (const banner of [0,64,100]) {
+      const slotWidth = Math.min(560, width - 32);
+      const slotHeight = Math.max(0, height - banner - 228 - 88 - 68);
+      const photoHeight = Math.min(slotHeight, slotWidth * 1.25);
+      const photoWidth = photoHeight * .8;
+      assert.ok(photoHeight <= slotHeight);
+      assert.ok(photoWidth <= slotWidth + .001);
+      assert.ok(photoHeight + 228 + 88 + 68 + banner <= height + .001);
+    }
+  }
 });

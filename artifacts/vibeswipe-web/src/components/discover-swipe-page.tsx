@@ -224,12 +224,13 @@ export function DiscoverSwipePage() {
   }
 
   return (
-    <main className="mx-auto w-full max-w-[680px] px-4 pb-8 sm:px-6">
+    <main className="discover-deck mx-auto flex h-full min-h-0 w-full max-w-[680px] flex-col px-4 sm:px-6">
       {stickyHeader}
 
       {notice && <div role="status" data-testid="status-discover" className="mb-3 rounded-xl border border-primary/20 bg-accent px-4 py-3 text-sm text-[#ffafd1]">{notice}<button onClick={() => setNotice("")} aria-label="Dismiss message" className="float-right"><X size={16} /></button></div>}
       {likeConfirmation && <div className="fixed inset-x-0 top-[calc(env(safe-area-inset-top)+1rem)] z-[60] flex justify-center px-4" role="status" aria-live="polite" data-testid="status-discover-liked"><div className="flex items-center gap-2 rounded-full border border-primary/25 bg-[#211a27]/95 px-5 py-3 text-sm font-semibold text-white shadow-2xl backdrop-blur-xl"><Heart size={17} fill="currentColor" className="text-primary"/>{likeConfirmation}</div></div>}
 
+      <div className="discover-card-slot" data-testid="discover-card-slot">
       <article
         className="relative isolate mx-auto flex aspect-[4/5] w-full max-w-[560px] flex-col overflow-hidden rounded-[30px] border border-white/10 bg-[#17141b] shadow-xl touch-pan-y"
         onTouchStart={(event) => { touchStart.current = { x: event.touches[0].clientX, y: event.touches[0].clientY }; }}
@@ -273,7 +274,8 @@ export function DiscoverSwipePage() {
         </div>
 
       </article>
-        <div className="flex items-center justify-center gap-5 px-4 py-5">
+      </div>
+        <div className="discover-actions flex items-center justify-center gap-5 px-4 py-5">
           <button type="button" onClick={(event) => { event.stopPropagation(); void swipe("pass"); }} disabled={reaction.isPending || !!likeConfirmation || !!matchResult} data-testid="button-pass-profile" aria-label="Pass" className="flex h-14 w-14 items-center justify-center rounded-full bg-card text-foreground shadow-lg disabled:opacity-40"><X size={27} /></button>
           <button type="button" onClick={(event) => { event.stopPropagation(); void undoLastSwipe(); }} disabled={!lastPass || undo.isPending} data-testid="button-undo-pass" aria-label="Undo last pass" className="flex h-10 w-10 items-center justify-center rounded-full bg-card text-muted-foreground shadow-sm disabled:opacity-40"><ArrowLeft size={18} /></button>
           <button type="button" onClick={(event) => { event.stopPropagation(); void swipe("super"); }} disabled={reaction.isPending || !!likeConfirmation || !!matchResult || superLikes.data?.remaining === 0} data-testid="button-super-like" aria-label={`Super like, ${superLikes.data?.remaining??"unknown"} left`} className="flex h-14 w-14 items-center justify-center rounded-full bg-card text-amber-400 shadow-lg disabled:opacity-40"><Star size={29} fill="currentColor"/></button>

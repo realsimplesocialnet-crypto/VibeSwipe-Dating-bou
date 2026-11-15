@@ -152,6 +152,62 @@ html[data-theme="light"] .notifications-shell { --card:0 0% 100%; --card-foregro
 html[data-theme="light"] .notifications-shell .notification-card { box-shadow:0 5px 18px rgba(131,70,94,.08); border-color:rgba(255,255,255,.65); }
 .visitors-shell h1 { font-family:Georgia,"Times New Roman",serif; }
 .discover-shell { background-image:linear-gradient(145deg,hsl(327 22% 14%),hsl(275 18% 9%) 65%,hsl(23 18% 12%)); }
+/* Discover is a screen-sized deck, not a document scrolling behind a sticky header.
+   Let the actual header, banner, and navigation determine the photo's space. */
+html:has(.discover-deck), html:has(.discover-deck) body {
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+html:has(.discover-deck) body { position: fixed; inset: 0; width: 100%; }
+.discover-shell:has(.discover-deck) {
+  position: fixed;
+  inset-inline: 0;
+  top: var(--install-banner-height, 0px);
+  height: calc(100dvh - var(--install-banner-height, 0px));
+  padding-top: env(safe-area-inset-top, 0px);
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.discover-shell:has(.discover-deck) > main {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  padding-bottom: 0;
+  overflow: hidden;
+}
+.discover-shell:has(.discover-deck) > nav { position: relative; bottom: auto; flex-shrink: 0; }
+.discover-deck > .discover-sticky {
+  position: relative;
+  z-index: 40;
+  top: auto;
+  flex-shrink: 0;
+  margin-bottom: 8px;
+  padding-top: 8px;
+  backdrop-filter: none;
+}
+.discover-deck [data-testid="section-stories"] { margin-bottom: 0; }
+.discover-card-slot {
+  container-type: size;
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  max-width: 560px;
+  margin-inline: auto;
+  align-items: center;
+  justify-content: center;
+}
+.discover-card-slot > article {
+  flex: none;
+  height: min(100cqh, 125cqw);
+  width: auto;
+  max-width: 100%;
+  touch-action: none;
+}
+.discover-deck > .discover-actions { flex-shrink: 0; padding-block: 12px; }
 html[data-theme="light"] .discover-shell { background-image:linear-gradient(135deg,#fde1ec 0%,#fbdedc 48%,#ffe5c9 100%); }
 .discover-sticky { background:linear-gradient(135deg,hsl(327 22% 14% / .97),hsl(275 18% 9% / .97)); backdrop-filter:blur(14px); }
 html[data-theme="light"] .discover-sticky { background:linear-gradient(135deg,rgba(253,225,236,.97),rgba(251,222,220,.97)); }
