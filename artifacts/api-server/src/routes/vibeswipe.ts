@@ -1022,7 +1022,7 @@ router.get("/vibeswipe/discover", async (req, res): Promise<void> => {
     baseConditions.push(eq(profilesTable.gender, gender));
   }
 
-  const [reacted, blockRows, incognitoLikes, incomingSuperLikes] = await Promise.all([
+  const [reacted, blockRows, incognitoLikes, incomingSuperLikes, existingMatches] = await Promise.all([
     db
       .select({ id: reactionsTable.toUserId, type: reactionsTable.type })
       .from(reactionsTable)
@@ -1054,13 +1054,20 @@ router.get("/vibeswipe/discover", async (req, res): Promise<void> => {
           eq(reactionsTable.type, "super"),
         ),
       ),
+    db.select({ userAId: matchesTable.userAId, userBId: matchesTable.userBId })
+      .from(matchesTable)
+      .where(or(eq(matchesTable.userAId, userId), eq(matchesTable.userBId, userId))),
   ]);
-  const excludedIds = discoveryExcludedIds({
+  const exclusionInput = {
     viewerId: userId, reactions: reacted, blocks: blockRows,
     includePassed: params.data.includePassed === "true",
     hasRequestedLocation: Boolean(params.data.country?.trim() || params.data.state?.trim() || params.data.city?.trim()),
     travelMode: ownProfile.travelMode,
-  });
+  };
+  const matchedIds = existingMatches.flatMap(match => [match.userAId, match.userBId]);
+  let excludedIds = discoveryExcludedIds(exclusionInput);
+  for (const id of matchedIds) excludedIds.add(id);
+  let recyclingPasses = false;
   const allowedIncognitoIds = new Set(incognitoLikes.map((row) => row.id));
   const superLikedUserIds = new Set(incomingSuperLikes.map((row) => row.id));
 
@@ -1108,16 +1115,19 @@ router.get("/vibeswipe/discover", async (req, res): Promise<void> => {
       .select()
       .from(profilesTable)
       .where(and(...conditions))
-      .orderBy(desc(sql`CASE WHEN ${profilesTable.boostEndTime} > NOW() THEN 1 ELSE 0 END`), profilesTable.id);
+      .orderBy(
+        ...(recyclingPasses ? [sql`COALESCE((SELECT r.created_at FROM vibeswipe_reactions r WHERE r.from_user_id = ${userId} AND r.to_user_id = ${profilesTable.id}), '-infinity'::timestamptz) ASC`] : []),
+        desc(sql`CASE WHEN ${profilesTable.boostEndTime} > NOW() THEN 1 ELSE 0 END`), profilesTable.id);
     return limit === undefined ? query : query.limit(limit);
   };
 
-  let candidates: Awaited<ReturnType<typeof queryCandidates>> = [];
   const smartDefault = automaticDiscovery({
     travelMode: ownProfile.travelMode, requestedCountry: params.data.country,
     requestedState: params.data.state,
     requestedCity: params.data.city, preference: ownProfile.preferences.discoveryLocation,
   });
+  const loadCandidates = async () => {
+  let candidates: Awaited<ReturnType<typeof queryCandidates>> = [];
   if (smartDefault) {
     const regionalValues = ownProfile.country ? regionalCountryValues(ownProfile.country) : [];
     candidates = await smartDiscoveryPool(minimumDiscoveryPool(process.env.VIBESWIPE_DISCOVERY_MIN_POOL_SIZE),
@@ -1190,6 +1200,17 @@ router.get("/vibeswipe/discover", async (req, res): Promise<void> => {
       .sort((a, b) => a.distance - b.distance)
       .map((entry) => entry.profile)
       .slice(0, 100);
+  }
+
+  return candidates;
+  };
+  let candidates = await loadCandidates();
+  if (!candidates.length && reacted.some(row => row.type === "pass")) {
+    // Retry the SAME location/age/gender/privacy query, changing only pass exclusions.
+    recyclingPasses = true;
+    excludedIds = discoveryExcludedIds({ ...exclusionInput, recyclePassed: true });
+    for (const id of matchedIds) excludedIds.add(id);
+    candidates = await loadCandidates();
   }
 
   const profiles = candidates

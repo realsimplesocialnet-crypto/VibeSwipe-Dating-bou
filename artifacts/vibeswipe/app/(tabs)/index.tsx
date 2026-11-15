@@ -248,7 +248,7 @@ export default function DiscoverScreen() {
   const discover = useGetDiscoverProfiles(discoverParams, {
     query: { queryKey: [...getGetDiscoverProfilesQueryKey(discoverParams), feedKey], refetchOnWindowFocus: false, refetchInterval: 30_000 },
   });
-  const { profiles, index, setIndex } = useDiscoveryDeck(discover.data, feedKey);
+  const { profiles, index, setIndex, refill } = useDiscoveryDeck(discover.data, feedKey);
   const profile = profiles[index];
   const worldwide = Boolean(profile?.discoveryExpanded || discover.data?.some(p => p.discoveryExpanded));
   const tailRequested = useRef("");
@@ -256,7 +256,8 @@ export default function DiscoverScreen() {
     const tailKey = `${feedKey}:${index}`;
     if (index < 1 || index < profiles.length - 2 || busy || discover.isFetching || tailRequested.current === tailKey) return;
     tailRequested.current = tailKey;
-    void discover.refetch();
+    const exhausted = index >= profiles.length;
+    void discover.refetch().then(result => { if (exhausted && !result.isError) refill(result.data); });
   }, [feedKey, index, profiles.length, busy, discover.isFetching]);
   useEffect(() => {
     let active = true;
@@ -458,17 +459,20 @@ export default function DiscoverScreen() {
         <View style={[styles.emptyIcon, { backgroundColor: colors.accent }]}>
           <Feather name="compass" size={26} color={colors.primary} />
         </View>
-        <Text style={[styles.emptyTitle, { color: colors.foreground }]}>{discover.isFetching || busy ? "Finding more people…" : "You’re all caught up"}</Text>
+        <Text style={[styles.emptyTitle, { color: colors.foreground }]}>{discover.isFetching || busy ? "Finding more people…" : "No matching profiles right now"}</Text>
         <Text style={[styles.emptyCopy, { color: colors.mutedForeground }]}>
-          {discover.isFetching || busy ? "Checking for more matching profiles." : "Try widening your age range or changing your filters."}
+          {discover.isFetching || busy ? "Checking for more matching profiles." : "Skipped profiles return automatically. Try another location or age range to meet more people."}
         </Text>
         <Pressable onPress={() => setFilterOpen(true)} style={[styles.primarySmall, { backgroundColor: colors.primary }]}>
           <Text style={styles.buttonWhite}>Adjust filters</Text>
         </Pressable>
         <Pressable
+          disabled={busy || discover.isFetching}
           onPress={async () => {
+            if (busy) return;
             await queryClient.invalidateQueries({ queryKey: getGetDiscoverProfilesQueryKey(discoverParams) });
-            await discover.refetch();
+            const result = await discover.refetch();
+            if (!result.isError) refill(result.data);
           }}
           style={[styles.primarySmall, { backgroundColor: colors.card, borderColor: colors.border, borderWidth: 1 }]}
         >

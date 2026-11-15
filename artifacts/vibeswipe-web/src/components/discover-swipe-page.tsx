@@ -87,7 +87,7 @@ export function DiscoverSwipePage() {
       refetchInterval: 30_000,
     },
   });
-  const { profiles, index, setIndex } = useDiscoveryDeck(discover.data, feedKey);
+  const { profiles, index, setIndex, refill } = useDiscoveryDeck(discover.data, feedKey);
   const profile = profiles[index];
   const worldwide = Boolean(profile?.discoveryExpanded || discover.data?.some(p => p.discoveryExpanded));
   const reaction = useCreateReaction();
@@ -105,7 +105,10 @@ export function DiscoverSwipePage() {
     const tailKey = `${feedKey}:${index}`;
     if (index < 1 || index < profiles.length - 2 || reaction.isPending || discover.isFetching || tailRequested.current === tailKey) return;
     tailRequested.current = tailKey;
-    void discover.refetch();
+    const exhausted = index >= profiles.length;
+    // A prefetch started before the last swipe can contain that now-liked card.
+    // Only start a new round from a request sent after the stack was exhausted.
+    void discover.refetch().then(result => { if (exhausted && !result.isError) refill(result.data); });
   }, [feedKey, index, profiles.length, reaction.isPending, discover.isFetching]);
   const matchOverlay = <MatchCelebration
     visible={!!matchResult} self={(myProfile.data as Profile | undefined) ?? null}
@@ -239,7 +242,7 @@ export function DiscoverSwipePage() {
     return (
       <div className="mx-auto max-w-xl px-4 py-12 text-center">
         <p className="text-sm text-muted-foreground">Discovery could not load right now.</p>
-        <button onClick={() => void discover.refetch()} className="mt-4 rounded-xl bg-secondary px-4 py-2.5 text-sm font-semibold">Try again</button>
+        <button onClick={() => void discover.refetch().then(result => { if (!result.isError) refill(result.data); })} className="mt-4 rounded-xl bg-secondary px-4 py-2.5 text-sm font-semibold">Try again</button>
       </div>
     );
   }
@@ -247,9 +250,11 @@ export function DiscoverSwipePage() {
     return (
       <div className="mx-auto max-w-[680px] px-4 pb-5 text-center sm:px-6 sm:pb-7">
         {stickyHeader}
-        <div className="mx-auto max-w-xl pt-10 pb-8"><h1 className="brand text-2xl font-bold">{discover.isFetching || reaction.isPending ? "Finding more people…" : "That’s everyone for now"}</h1>
-        <p className="mt-2 text-sm text-muted-foreground">{discover.isFetching || reaction.isPending ? "Checking for more matching profiles." : "Try broadening your filters or check back soon."}</p>
-        <button onClick={() => setFiltersOpen(true)} data-testid="button-open-filters-empty" className="mt-5 rounded-xl bg-primary px-4 py-3 font-bold text-[#27101d]">Adjust filters</button></div>
+        <div className="mx-auto max-w-xl pt-10 pb-8"><h1 className="brand text-2xl font-bold">{discover.isFetching || reaction.isPending ? "Finding more people…" : "No matching profiles right now"}</h1>
+        <p className="mt-2 text-sm text-muted-foreground">{discover.isFetching || reaction.isPending ? "Checking for more matching profiles." : "Skipped profiles return automatically. Try another location or age range to meet more people."}</p>
+        <button onClick={() => setFiltersOpen(true)} data-testid="button-open-filters-empty" className="mt-5 rounded-xl bg-primary px-4 py-3 font-bold text-[#27101d]">Adjust filters</button>
+        <button disabled={discover.isFetching} onClick={() => void discover.refetch().then(result => { if (!result.isError) refill(result.data); })}
+          data-testid="button-refresh-discovery" className="ml-3 mt-5 rounded-xl bg-secondary px-4 py-3 font-bold disabled:opacity-50">Try again</button></div>
         {matchOverlay}
         <FilterDialog open={filtersOpen} onClose={() => setFiltersOpen(false)} value={filterValues} travelMode={Boolean(settings.data?.travelMode)} onApply={applyFilters} />
       </div>

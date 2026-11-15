@@ -16,6 +16,14 @@ export function reconcileDiscoveryDeck<T extends Member>(previous: T[], incoming
   })];
 }
 
+/** Start another round only after the previous stack is exhausted. */
+export function continueDiscoveryDeck<T extends Member>(previous: T[], incoming: T[], index: number) {
+  if (index >= previous.length && incoming.length) {
+    return { profiles: [...new Map(incoming.map(member => [member.id, member])).values()], index: 0 };
+  }
+  return { profiles: reconcileDiscoveryDeck(previous, incoming, index), index };
+}
+
 // Bind the consumer's React instance: Expo and web have separate React runtimes.
 export function createUseDiscoveryDeck(useState: StateHook) {
   return function useDiscoveryDeck<T extends Member>(data: T[] | undefined, key: string) {
@@ -33,6 +41,14 @@ export function createUseDiscoveryDeck(useState: StateHook) {
     const setIndex: SetState<number> = next => setSaved(current => ({
       ...current, index: typeof next === "function" ? next(current.index) : next,
     }));
-    return { profiles: deck.profiles, index: deck.index, setIndex };
+    const refill = (incoming: T[] | undefined) => {
+      if (!incoming) return;
+      setSaved(current => {
+        // Ignore a response for filters/account that changed while fetching.
+        if (current.key !== key) return current;
+        return { ...current, source: incoming, ...continueDiscoveryDeck(current.profiles, incoming, current.index) };
+      });
+    };
+    return { profiles: deck.profiles, index: deck.index, setIndex, refill };
   };
 }
