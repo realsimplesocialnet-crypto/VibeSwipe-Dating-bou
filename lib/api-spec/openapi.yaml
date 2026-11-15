@@ -15,6 +15,76 @@ tags:
 security:
   - bearerAuth: []
 paths:
+  /vibeswipe/admin/session:
+    get:
+      operationId: getAdminSession
+      tags: [vibeswipe]
+      responses:
+        "200":
+          description: Verified administrator identity
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AdminSession" }
+  /vibeswipe/admin/dashboard:
+    get:
+      operationId: getAdminDashboard
+      tags: [vibeswipe]
+      parameters:
+        - { name: section, in: query, schema: { type: string, enum: [overview, users, chats, online, connections, user, chat], default: overview } }
+        - { name: q, in: query, schema: { type: string, maxLength: 150 } }
+        - { name: page, in: query, schema: { type: integer, minimum: 1, maximum: 100000, default: 1 } }
+        - { name: from, in: query, schema: { type: string, pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' } }
+        - { name: to, in: query, schema: { type: string, pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' } }
+        - { name: userId, in: query, schema: { type: string, maxLength: 150 } }
+        - { name: chatId, in: query, schema: { type: string, format: uuid } }
+      responses:
+        "200":
+          description: Paginated administration data. Dates use UTC and online means a heartbeat within 45 seconds.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AdminDashboard" }
+  /vibeswipe/admin/actions:
+    post:
+      operationId: adminModerationAction
+      tags: [vibeswipe]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AdminModerationInput" }
+      responses:
+        "200":
+          description: Action recorded and applied
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AdminActionResult" }
+  /vibeswipe/admin/export:
+    get:
+      operationId: getAdminChatExport
+      tags: [vibeswipe]
+      parameters:
+        - { name: chatId, in: query, required: true, schema: { type: string, format: uuid } }
+        - { name: format, in: query, required: true, schema: { type: string, enum: [txt, json] } }
+        - { name: from, in: query, schema: { type: string, pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' } }
+        - { name: to, in: query, schema: { type: string, pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' } }
+      responses:
+        "200":
+          description: Complete selected history, limited to 50000 messages with explicit rejection above that limit
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AdminChatExport" }
+  /vibeswipe/admin/media/{mediaId}:
+    get:
+      operationId: getAdminMedia
+      tags: [vibeswipe]
+      parameters:
+        - { name: mediaId, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200":
+          description: Authorized private media; never publicly cached
+          content:
+            application/octet-stream:
+              schema: { type: string, format: binary }
   /healthz:
     get:
       operationId: healthCheck
@@ -1111,6 +1181,128 @@ components:
       type: http
       scheme: bearer
   schemas:
+    AdminSession:
+      type: object
+      required: [userId, name, email, timezone]
+      properties:
+        userId: { type: string }
+        name: { type: string }
+        email: { type: string }
+        timezone: { type: string }
+    AdminUser:
+      type: object
+      required: [id, name, age, city, state, country, gender, bio, occupation, interests, photos, verified, suspended, deactivated, online, connectionCount, joinedAt, lastSeenAt, username, phone, email]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        age: { type: integer }
+        city: { type: string }
+        state: { type: [string, "null"] }
+        country: { type: [string, "null"] }
+        gender: { type: string }
+        bio: { type: string }
+        occupation: { type: string }
+        interests: { type: array, items: { type: string } }
+        photos: { type: array, items: { type: string } }
+        verified: { type: boolean }
+        suspended: { type: boolean }
+        deactivated: { type: boolean }
+        online: { type: boolean }
+        connectionCount: { type: integer }
+        joinedAt: { type: string }
+        lastSeenAt: { type: [string, "null"] }
+        username: { type: [string, "null"] }
+        phone: { type: [string, "null"] }
+        email: { type: [string, "null"] }
+    AdminChat:
+      type: object
+      required: [id, userAId, userBId, userAName, userBName, createdAt, lastMessageAt, messageCount, lastMessage]
+      properties:
+        id: { type: string }
+        userAId: { type: string }
+        userBId: { type: string }
+        userAName: { type: string }
+        userBName: { type: string }
+        createdAt: { type: string }
+        lastMessageAt: { type: [string, "null"] }
+        messageCount: { type: integer }
+        lastMessage: { type: [string, "null"] }
+    AdminMessage:
+      type: object
+      required: [id, senderId, senderName, content, mediaReference, mediaType, deleted, createdAt]
+      properties:
+        id: { type: string }
+        senderId: { type: string }
+        senderName: { type: string }
+        content: { type: string }
+        mediaReference: { type: [string, "null"] }
+        mediaType: { type: [string, "null"] }
+        deleted: { type: boolean }
+        createdAt: { type: string }
+    AdminConnection:
+      type: object
+      required: [id, userAId, userBId, userAName, userBName, status, mutualCount, createdAt]
+      properties:
+        id: { type: string }
+        userAId: { type: string }
+        userBId: { type: string }
+        userAName: { type: string }
+        userBName: { type: string }
+        status: { type: string, enum: [mutual, pending_like, pending_super_like] }
+        mutualCount: { type: integer }
+        createdAt: { type: string }
+    AdminActivity:
+      type: object
+      required: [id, description, createdAt]
+      properties:
+        id: { type: string }
+        description: { type: string }
+        createdAt: { type: string }
+    AdminStats:
+      type: object
+      required: [totalUsers, onlineUsers, activeChats, signupsToday, totalMatches, pendingLikes]
+      properties:
+        totalUsers: { type: integer }
+        onlineUsers: { type: integer }
+        activeChats: { type: integer }
+        signupsToday: { type: integer }
+        totalMatches: { type: integer }
+        pendingLikes: { type: integer }
+    AdminDashboard:
+      type: object
+      required: [section, page, pageSize, total, users, chats, messages, connections, activity, stats, selectedUser, selectedChat]
+      properties:
+        section: { type: string }
+        page: { type: integer }
+        pageSize: { type: integer }
+        total: { type: integer }
+        users: { type: array, items: { $ref: "#/components/schemas/AdminUser" } }
+        chats: { type: array, items: { $ref: "#/components/schemas/AdminChat" } }
+        messages: { type: array, items: { $ref: "#/components/schemas/AdminMessage" } }
+        connections: { type: array, items: { $ref: "#/components/schemas/AdminConnection" } }
+        activity: { type: array, items: { $ref: "#/components/schemas/AdminActivity" } }
+        stats: { $ref: "#/components/schemas/AdminStats" }
+        selectedUser: { anyOf: [{ $ref: "#/components/schemas/AdminUser" }, { type: "null" }] }
+        selectedChat: { anyOf: [{ $ref: "#/components/schemas/AdminChat" }, { type: "null" }] }
+    AdminModerationInput:
+      type: object
+      required: [action, targetId]
+      properties:
+        action: { type: string, enum: [verify, unverify, block, unblock, delete_user, delete_chat, delete_message, remove_connection] }
+        targetId: { type: string, minLength: 1, maxLength: 150 }
+        confirmation: { type: string, maxLength: 30 }
+    AdminActionResult:
+      type: object
+      required: [message]
+      properties:
+        message: { type: string }
+    AdminChatExport:
+      type: object
+      required: [filename, content, mimeType]
+      properties:
+        filename: { type: string }
+        content: { type: string }
+        mimeType: { type: string }
     HealthStatus:
       type: object
       properties:

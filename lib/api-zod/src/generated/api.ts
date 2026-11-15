@@ -8,6 +8,181 @@
 import * as zod from 'zod';
 
 
+export const GetAdminSessionResponse = zod.object({
+  "userId": zod.string(),
+  "name": zod.string(),
+  "email": zod.string(),
+  "timezone": zod.string()
+})
+
+
+export const getAdminDashboardQuerySectionDefault = `overview`;
+export const getAdminDashboardQueryQMax = 150;
+
+export const getAdminDashboardQueryPageDefault = 1;
+export const getAdminDashboardQueryPageMax = 100000;
+
+export const getAdminDashboardQueryUserIdMax = 150;
+
+
+
+export const GetAdminDashboardQueryParams = zod.object({
+  "section": zod.enum(['overview', 'users', 'chats', 'online', 'connections', 'user', 'chat']).default(getAdminDashboardQuerySectionDefault),
+  "q": zod.coerce.string().max(getAdminDashboardQueryQMax).optional(),
+  "page": zod.coerce.number().int().min(1).max(getAdminDashboardQueryPageMax).default(getAdminDashboardQueryPageDefault),
+  "from": zod.date().optional(),
+  "to": zod.date().optional(),
+  "userId": zod.coerce.string().max(getAdminDashboardQueryUserIdMax).optional(),
+  "chatId": zod.coerce.string().uuid().optional()
+})
+
+export const GetAdminDashboardResponse = zod.object({
+  "section": zod.string(),
+  "page": zod.number().int(),
+  "pageSize": zod.number().int(),
+  "total": zod.number().int(),
+  "users": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "age": zod.number().int(),
+  "city": zod.string(),
+  "state": zod.string().nullable(),
+  "country": zod.string().nullable(),
+  "gender": zod.string(),
+  "bio": zod.string(),
+  "occupation": zod.string(),
+  "interests": zod.array(zod.string()),
+  "photos": zod.array(zod.string()),
+  "verified": zod.boolean(),
+  "suspended": zod.boolean(),
+  "deactivated": zod.boolean(),
+  "online": zod.boolean(),
+  "connectionCount": zod.number().int(),
+  "joinedAt": zod.string(),
+  "lastSeenAt": zod.string().nullable(),
+  "username": zod.string().nullable(),
+  "phone": zod.string().nullable(),
+  "email": zod.string().nullable()
+})),
+  "chats": zod.array(zod.object({
+  "id": zod.string(),
+  "userAId": zod.string(),
+  "userBId": zod.string(),
+  "userAName": zod.string(),
+  "userBName": zod.string(),
+  "createdAt": zod.string(),
+  "lastMessageAt": zod.string().nullable(),
+  "messageCount": zod.number().int(),
+  "lastMessage": zod.string().nullable()
+})),
+  "messages": zod.array(zod.object({
+  "id": zod.string(),
+  "senderId": zod.string(),
+  "senderName": zod.string(),
+  "content": zod.string(),
+  "mediaReference": zod.string().nullable(),
+  "mediaType": zod.string().nullable(),
+  "deleted": zod.boolean(),
+  "createdAt": zod.string()
+})),
+  "connections": zod.array(zod.object({
+  "id": zod.string(),
+  "userAId": zod.string(),
+  "userBId": zod.string(),
+  "userAName": zod.string(),
+  "userBName": zod.string(),
+  "status": zod.enum(['mutual', 'pending_like', 'pending_super_like']),
+  "mutualCount": zod.number().int(),
+  "createdAt": zod.string()
+})),
+  "activity": zod.array(zod.object({
+  "id": zod.string(),
+  "description": zod.string(),
+  "createdAt": zod.string()
+})),
+  "stats": zod.object({
+  "totalUsers": zod.number().int(),
+  "onlineUsers": zod.number().int(),
+  "activeChats": zod.number().int(),
+  "signupsToday": zod.number().int(),
+  "totalMatches": zod.number().int(),
+  "pendingLikes": zod.number().int()
+}),
+  "selectedUser": zod.union([zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "age": zod.number().int(),
+  "city": zod.string(),
+  "state": zod.string().nullable(),
+  "country": zod.string().nullable(),
+  "gender": zod.string(),
+  "bio": zod.string(),
+  "occupation": zod.string(),
+  "interests": zod.array(zod.string()),
+  "photos": zod.array(zod.string()),
+  "verified": zod.boolean(),
+  "suspended": zod.boolean(),
+  "deactivated": zod.boolean(),
+  "online": zod.boolean(),
+  "connectionCount": zod.number().int(),
+  "joinedAt": zod.string(),
+  "lastSeenAt": zod.string().nullable(),
+  "username": zod.string().nullable(),
+  "phone": zod.string().nullable(),
+  "email": zod.string().nullable()
+}),zod.null()]),
+  "selectedChat": zod.union([zod.object({
+  "id": zod.string(),
+  "userAId": zod.string(),
+  "userBId": zod.string(),
+  "userAName": zod.string(),
+  "userBName": zod.string(),
+  "createdAt": zod.string(),
+  "lastMessageAt": zod.string().nullable(),
+  "messageCount": zod.number().int(),
+  "lastMessage": zod.string().nullable()
+}),zod.null()])
+})
+
+
+export const adminModerationActionBodyTargetIdMax = 150;
+
+export const adminModerationActionBodyConfirmationMax = 30;
+
+
+
+export const AdminModerationActionBody = zod.object({
+  "action": zod.enum(['verify', 'unverify', 'block', 'unblock', 'delete_user', 'delete_chat', 'delete_message', 'remove_connection']),
+  "targetId": zod.string().min(1).max(adminModerationActionBodyTargetIdMax),
+  "confirmation": zod.string().max(adminModerationActionBodyConfirmationMax).optional()
+})
+
+export const AdminModerationActionResponse = zod.object({
+  "message": zod.string()
+})
+
+
+export const GetAdminChatExportQueryParams = zod.object({
+  "chatId": zod.coerce.string().uuid(),
+  "format": zod.enum(['txt', 'json']),
+  "from": zod.date().optional(),
+  "to": zod.date().optional()
+})
+
+export const GetAdminChatExportResponse = zod.object({
+  "filename": zod.string(),
+  "content": zod.string(),
+  "mimeType": zod.string()
+})
+
+
+export const GetAdminMediaParams = zod.object({
+  "mediaId": zod.coerce.string().uuid()
+})
+
+export const GetAdminMediaResponse = zod.unknown()
+
+
 /**
  * Returns server health status
  * @summary Health check

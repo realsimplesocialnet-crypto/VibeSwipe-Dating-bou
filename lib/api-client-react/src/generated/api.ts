@@ -25,6 +25,11 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  AdminActionResult,
+  AdminChatExport,
+  AdminDashboard,
+  AdminModerationInput,
+  AdminSession,
   BlockInput,
   BlockedProfile,
   BoostStatus,
@@ -34,6 +39,8 @@ import type {
   DeleteMessageInput,
   EmergencyContact,
   EmergencyContactInput,
+  GetAdminChatExportParams,
+  GetAdminDashboardParams,
   GetDiscoverProfilesParams,
   GetPublicLocationShareParams,
   HealthStatus,
@@ -108,6 +115,482 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   }
   return result;
 };
+
+export const getGetAdminSessionUrl = () => {
+
+
+
+
+  return `/api/vibeswipe/admin/session`
+}
+
+export const getAdminSession = async ( options?: Parameters<typeof customFetch>[1]): Promise<AdminSession> => {
+
+  return customFetch<AdminSession>(getGetAdminSessionUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdminSessionQueryKey = () => {
+    return [
+    `/api/vibeswipe/admin/session`
+    ] as const;
+    }
+
+
+export const getGetAdminSessionQueryOptions = <TData = Awaited<ReturnType<typeof getAdminSession>>, TError = ErrorType<unknown>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAdminSession>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminSessionQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminSession>>> = ({ signal }) => getAdminSession({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminSession>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetAdminSessionQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminSession>>>
+export type GetAdminSessionQueryError = ErrorType<unknown>
+
+
+export function useGetAdminSession<TData = Awaited<ReturnType<typeof getAdminSession>>, TError = ErrorType<unknown>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAdminSession>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getAdminSession>>,
+          TError,
+          Awaited<ReturnType<typeof getAdminSession>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetAdminSession<TData = Awaited<ReturnType<typeof getAdminSession>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAdminSession>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getAdminSession>>,
+          TError,
+          Awaited<ReturnType<typeof getAdminSession>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetAdminSession<TData = Awaited<ReturnType<typeof getAdminSession>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAdminSession>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useGetAdminSession<TData = Awaited<ReturnType<typeof getAdminSession>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAdminSession>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetAdminSessionQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetAdminDashboardUrl = (params?: GetAdminDashboardParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/vibeswipe/admin/dashboard?${stringifiedParams}` : `/api/vibeswipe/admin/dashboard`
+}
+
+export const getAdminDashboard = async (params?: GetAdminDashboardParams, options?: Parameters<typeof customFetch>[1]): Promise<AdminDashboard> => {
+
+  return customFetch<AdminDashboard>(getGetAdminDashboardUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdminDashboardQueryKey = (params?: GetAdminDashboardParams,) => {
+    return [
+    `/api/vibeswipe/admin/dashboard`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetAdminDashboardQueryOptions = <TData = Awaited<ReturnType<typeof getAdminDashboard>>, TError = ErrorType<unknown>>(params?: GetAdminDashboardParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAdminDashboard>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminDashboardQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminDashboard>>> = ({ signal }) => getAdminDashboard(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminDashboard>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetAdminDashboardQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminDashboard>>>
+export type GetAdminDashboardQueryError = ErrorType<unknown>
+
+
+export function useGetAdminDashboard<TData = Awaited<ReturnType<typeof getAdminDashboard>>, TError = ErrorType<unknown>>(
+ params: undefined |  GetAdminDashboardParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAdminDashboard>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getAdminDashboard>>,
+          TError,
+          Awaited<ReturnType<typeof getAdminDashboard>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetAdminDashboard<TData = Awaited<ReturnType<typeof getAdminDashboard>>, TError = ErrorType<unknown>>(
+ params?: GetAdminDashboardParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAdminDashboard>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getAdminDashboard>>,
+          TError,
+          Awaited<ReturnType<typeof getAdminDashboard>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetAdminDashboard<TData = Awaited<ReturnType<typeof getAdminDashboard>>, TError = ErrorType<unknown>>(
+ params?: GetAdminDashboardParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAdminDashboard>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useGetAdminDashboard<TData = Awaited<ReturnType<typeof getAdminDashboard>>, TError = ErrorType<unknown>>(
+ params?: GetAdminDashboardParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAdminDashboard>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetAdminDashboardQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getAdminModerationActionUrl = () => {
+
+
+
+
+  return `/api/vibeswipe/admin/actions`
+}
+
+export const adminModerationAction = async (adminModerationInput: AdminModerationInput, options?: Parameters<typeof customFetch>[1]): Promise<AdminActionResult> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<AdminActionResult>(getAdminModerationActionUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(adminModerationInput)
+  }
+);}
+
+
+
+
+
+export const getAdminModerationActionMutationKey = () => ['adminModerationAction'] as const;
+
+export const getAdminModerationActionMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminModerationAction>>, TError,AdminModerationActionMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof adminModerationAction>>, TError,AdminModerationActionMutationVariables, TContext> => {
+
+const mutationKey = getAdminModerationActionMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof adminModerationAction>>, AdminModerationActionMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  adminModerationAction(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AdminModerationActionMutationResult = NonNullable<Awaited<ReturnType<typeof adminModerationAction>>>
+    export type AdminModerationActionMutationBody = BodyType<AdminModerationInput>
+    export type AdminModerationActionMutationError = ErrorType<unknown>
+    export type AdminModerationActionMutationVariables = {data: BodyType<AdminModerationInput>}
+
+    export const useAdminModerationAction = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminModerationAction>>, TError,AdminModerationActionMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof adminModerationAction>>,
+        TError,
+        AdminModerationActionMutationVariables,
+        TContext
+      > => {
+      return useMutation(getAdminModerationActionMutationOptions(options), queryClient);
+    }
+
+export const getGetAdminChatExportUrl = (params: GetAdminChatExportParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/vibeswipe/admin/export?${stringifiedParams}` : `/api/vibeswipe/admin/export`
+}
+
+export const getAdminChatExport = async (params: GetAdminChatExportParams, options?: Parameters<typeof customFetch>[1]): Promise<AdminChatExport> => {
+
+  return customFetch<AdminChatExport>(getGetAdminChatExportUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdminChatExportQueryKey = (params?: GetAdminChatExportParams,) => {
+    return [
+    `/api/vibeswipe/admin/export`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetAdminChatExportQueryOptions = <TData = Awaited<ReturnType<typeof getAdminChatExport>>, TError = ErrorType<unknown>>(params: GetAdminChatExportParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAdminChatExport>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminChatExportQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminChatExport>>> = ({ signal }) => getAdminChatExport(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminChatExport>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetAdminChatExportQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminChatExport>>>
+export type GetAdminChatExportQueryError = ErrorType<unknown>
+
+
+export function useGetAdminChatExport<TData = Awaited<ReturnType<typeof getAdminChatExport>>, TError = ErrorType<unknown>>(
+ params: GetAdminChatExportParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAdminChatExport>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getAdminChatExport>>,
+          TError,
+          Awaited<ReturnType<typeof getAdminChatExport>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetAdminChatExport<TData = Awaited<ReturnType<typeof getAdminChatExport>>, TError = ErrorType<unknown>>(
+ params: GetAdminChatExportParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAdminChatExport>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getAdminChatExport>>,
+          TError,
+          Awaited<ReturnType<typeof getAdminChatExport>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetAdminChatExport<TData = Awaited<ReturnType<typeof getAdminChatExport>>, TError = ErrorType<unknown>>(
+ params: GetAdminChatExportParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAdminChatExport>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useGetAdminChatExport<TData = Awaited<ReturnType<typeof getAdminChatExport>>, TError = ErrorType<unknown>>(
+ params: GetAdminChatExportParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAdminChatExport>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetAdminChatExportQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetAdminMediaUrl = (mediaId: string,) => {
+
+
+
+
+  return `/api/vibeswipe/admin/media/${mediaId}`
+}
+
+export const getAdminMedia = async (mediaId: string, options?: Parameters<typeof customFetch>[1]): Promise<Blob> => {
+
+  return customFetch<Blob>(getGetAdminMediaUrl(mediaId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdminMediaQueryKey = (mediaId: string,) => {
+    return [
+    `/api/vibeswipe/admin/media/${mediaId}`
+    ] as const;
+    }
+
+
+export const getGetAdminMediaQueryOptions = <TData = Awaited<ReturnType<typeof getAdminMedia>>, TError = ErrorType<unknown>>(mediaId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAdminMedia>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminMediaQueryKey(mediaId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminMedia>>> = ({ signal }) => getAdminMedia(mediaId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: mediaId !== null && mediaId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminMedia>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetAdminMediaQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminMedia>>>
+export type GetAdminMediaQueryError = ErrorType<unknown>
+
+
+export function useGetAdminMedia<TData = Awaited<ReturnType<typeof getAdminMedia>>, TError = ErrorType<unknown>>(
+ mediaId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAdminMedia>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getAdminMedia>>,
+          TError,
+          Awaited<ReturnType<typeof getAdminMedia>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetAdminMedia<TData = Awaited<ReturnType<typeof getAdminMedia>>, TError = ErrorType<unknown>>(
+ mediaId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAdminMedia>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getAdminMedia>>,
+          TError,
+          Awaited<ReturnType<typeof getAdminMedia>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetAdminMedia<TData = Awaited<ReturnType<typeof getAdminMedia>>, TError = ErrorType<unknown>>(
+ mediaId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAdminMedia>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useGetAdminMedia<TData = Awaited<ReturnType<typeof getAdminMedia>>, TError = ErrorType<unknown>>(
+ mediaId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAdminMedia>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetAdminMediaQueryOptions(mediaId,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export const getHealthCheckUrl = () => {
 

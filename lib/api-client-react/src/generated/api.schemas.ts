@@ -5,6 +5,155 @@
  * VibeSwipe dating profile, discovery, matching, messaging, and safety API
  * OpenAPI spec version: 0.1.0
  */
+export interface AdminSession {
+  userId: string;
+  name: string;
+  email: string;
+  timezone: string;
+}
+
+export interface AdminUser {
+  id: string;
+  name: string;
+  age: number;
+  city: string;
+  /** @nullable */
+  state: string | null;
+  /** @nullable */
+  country: string | null;
+  gender: string;
+  bio: string;
+  occupation: string;
+  interests: string[];
+  photos: string[];
+  verified: boolean;
+  suspended: boolean;
+  deactivated: boolean;
+  online: boolean;
+  connectionCount: number;
+  joinedAt: string;
+  /** @nullable */
+  lastSeenAt: string | null;
+  /** @nullable */
+  username: string | null;
+  /** @nullable */
+  phone: string | null;
+  /** @nullable */
+  email: string | null;
+}
+
+export interface AdminChat {
+  id: string;
+  userAId: string;
+  userBId: string;
+  userAName: string;
+  userBName: string;
+  createdAt: string;
+  /** @nullable */
+  lastMessageAt: string | null;
+  messageCount: number;
+  /** @nullable */
+  lastMessage: string | null;
+}
+
+export interface AdminMessage {
+  id: string;
+  senderId: string;
+  senderName: string;
+  content: string;
+  /** @nullable */
+  mediaReference: string | null;
+  /** @nullable */
+  mediaType: string | null;
+  deleted: boolean;
+  createdAt: string;
+}
+
+export type AdminConnectionStatus = typeof AdminConnectionStatus[keyof typeof AdminConnectionStatus];
+
+
+export const AdminConnectionStatus = {
+  mutual: 'mutual',
+  pending_like: 'pending_like',
+  pending_super_like: 'pending_super_like',
+} as const;
+
+export interface AdminConnection {
+  id: string;
+  userAId: string;
+  userBId: string;
+  userAName: string;
+  userBName: string;
+  status: AdminConnectionStatus;
+  mutualCount: number;
+  createdAt: string;
+}
+
+export interface AdminActivity {
+  id: string;
+  description: string;
+  createdAt: string;
+}
+
+export interface AdminStats {
+  totalUsers: number;
+  onlineUsers: number;
+  activeChats: number;
+  signupsToday: number;
+  totalMatches: number;
+  pendingLikes: number;
+}
+
+export interface AdminDashboard {
+  section: string;
+  page: number;
+  pageSize: number;
+  total: number;
+  users: AdminUser[];
+  chats: AdminChat[];
+  messages: AdminMessage[];
+  connections: AdminConnection[];
+  activity: AdminActivity[];
+  stats: AdminStats;
+  selectedUser: AdminUser | null;
+  selectedChat: AdminChat | null;
+}
+
+export type AdminModerationInputAction = typeof AdminModerationInputAction[keyof typeof AdminModerationInputAction];
+
+
+export const AdminModerationInputAction = {
+  verify: 'verify',
+  unverify: 'unverify',
+  block: 'block',
+  unblock: 'unblock',
+  delete_user: 'delete_user',
+  delete_chat: 'delete_chat',
+  delete_message: 'delete_message',
+  remove_connection: 'remove_connection',
+} as const;
+
+export interface AdminModerationInput {
+  action: AdminModerationInputAction;
+  /**
+     * @minLength 1
+     * @maxLength 150
+     */
+  targetId: string;
+  /** @maxLength 30 */
+  confirmation?: string;
+}
+
+export interface AdminActionResult {
+  message: string;
+}
+
+export interface AdminChatExport {
+  filename: string;
+  content: string;
+  mimeType: string;
+}
+
 export interface HealthStatus {
   status: string;
 }
@@ -818,6 +967,54 @@ export interface StoryVideoTranscodeResult {
      */
   height: number;
 }
+
+export type GetAdminDashboardParams = {
+section?: GetAdminDashboardSection;
+/**
+ * @maxLength 150
+ */
+q?: string;
+/**
+ * @minimum 1
+ * @maximum 100000
+ */
+page?: number;
+from?: string;
+to?: string;
+/**
+ * @maxLength 150
+ */
+userId?: string;
+chatId?: string;
+};
+
+export type GetAdminDashboardSection = typeof GetAdminDashboardSection[keyof typeof GetAdminDashboardSection];
+
+
+export const GetAdminDashboardSection = {
+  overview: 'overview',
+  users: 'users',
+  chats: 'chats',
+  online: 'online',
+  connections: 'connections',
+  user: 'user',
+  chat: 'chat',
+} as const;
+
+export type GetAdminChatExportParams = {
+chatId: string;
+format: GetAdminChatExportFormat;
+from?: string;
+to?: string;
+};
+
+export type GetAdminChatExportFormat = typeof GetAdminChatExportFormat[keyof typeof GetAdminChatExportFormat];
+
+
+export const GetAdminChatExportFormat = {
+  txt: 'txt',
+  json: 'json',
+} as const;
 
 export type GetDiscoverProfilesParams = {
 /**

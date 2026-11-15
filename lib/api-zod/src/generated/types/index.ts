@@ -6,6 +6,19 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from './adminActionResult';
+export * from './adminActivity';
+export * from './adminChat';
+export * from './adminChatExport';
+export * from './adminConnection';
+export * from './adminConnectionStatus';
+export * from './adminDashboard';
+export * from './adminMessage';
+export * from './adminModerationInput';
+export * from './adminModerationInputAction';
+export * from './adminSession';
+export * from './adminStats';
+export * from './adminUser';
 export * from './blockedProfile';
 export * from './blockInput';
 export * from './boostStatus';
@@ -18,6 +31,10 @@ export * from './discoveryLocationPreference';
 export * from './discoveryLocationPreferenceScope';
 export * from './emergencyContact';
 export * from './emergencyContactInput';
+export * from './getAdminChatExportFormat';
+export * from './getAdminChatExportParams';
+export * from './getAdminDashboardParams';
+export * from './getAdminDashboardSection';
 export * from './getDiscoverProfilesParams';
 export * from './getPublicLocationShareParams';
 export * from './healthStatus';

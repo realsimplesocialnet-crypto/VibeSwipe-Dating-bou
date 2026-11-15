@@ -51,6 +51,8 @@ export const profilesTable = pgTable("vibeswipe_profiles", {
   darkMode: boolean("dark_mode").notNull().default(true),
   language: text("language").notNull().default("en"),
   deactivated: boolean("deactivated").notNull().default(false),
+  adminSuspended: boolean("admin_suspended").notNull().default(false),
+  isVerified: boolean("is_verified").notNull().default(false),
   travelMode: boolean("travel_mode").notNull().default(false),
   travelCity: text("travel_city"),
   boostStartTime: timestamp("boost_start_time", { withTimezone: true }),

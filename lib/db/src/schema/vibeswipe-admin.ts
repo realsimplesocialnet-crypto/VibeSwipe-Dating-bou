@@ -1,0 +1,15 @@
+import { pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+
+export const adminAuditTable = pgTable("vibeswipe_admin_audit", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  actorId: text("actor_id").notNull(),
+  action: text("action").notNull(),
+  targetId: text("target_id").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+// No FK: private-object cleanup must survive deletion of its owning account/chat.
+export const adminMediaDeletionTable = pgTable("vibeswipe_admin_media_deletions", {
+  objectPath: text("object_path").primaryKey(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
