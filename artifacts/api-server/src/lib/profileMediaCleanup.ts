@@ -4,8 +4,9 @@ import {
   messagesTable,
   profileSetupDraftsTable,
   profilesTable,
+  faceVerificationSessionsTable,
 } from "@workspace/db";
-import { and, asc, eq, gt, isNull, lt, or, sql } from "drizzle-orm";
+import { and, asc, eq, gt, inArray, isNull, lt, or, sql } from "drizzle-orm";
 import { logger } from "./logger";
 import { ObjectStorageService } from "./objectStorage";
 
@@ -36,6 +37,16 @@ async function deleteIfUnreferenced(
   if (!asset) return false;
 
   const mediaReference = `media:${asset.id}`;
+  // Queue photos are private, not public gallery references. Keep them until
+  // review ends; active capture attempts also retain their selected source.
+  const [verificationReference] = await tx.select({ id: faceVerificationSessionsTable.id })
+    .from(faceVerificationSessionsTable).where(or(
+      and(eq(faceVerificationSessionsTable.sealedPhoto, mediaReference), eq(faceVerificationSessionsTable.status, "awaiting_review")),
+      and(eq(faceVerificationSessionsTable.referencePhoto, mediaReference),
+        inArray(faceVerificationSessionsTable.status, ["pending", "processing"]),
+        gt(faceVerificationSessionsTable.expiresAt, new Date())),
+    )).limit(1);
+  if (verificationReference) return false;
   const [profileReference] = await tx
     .select({ id: profilesTable.id })
     .from(profilesTable)

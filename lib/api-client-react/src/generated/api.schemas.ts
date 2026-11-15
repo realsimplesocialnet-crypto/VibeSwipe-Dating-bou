@@ -215,12 +215,28 @@ export interface ProfilePreferences {
 
 export interface FaceVerificationConsent {
   consent: boolean;
+  /** @pattern ^media:[0-9a-fA-F-]{36}$ */
+  photoReference: string;
 }
+
+export type FaceVerificationStatusReviewStatus = typeof FaceVerificationStatusReviewStatus[keyof typeof FaceVerificationStatusReviewStatus];
+
+
+export const FaceVerificationStatusReviewStatus = {
+  none: 'none',
+  awaiting_review: 'awaiting_review',
+  approved: 'approved',
+  rejected: 'rejected',
+  cancelled: 'cancelled',
+} as const;
 
 export interface FaceVerificationStatus {
   available: boolean;
   verified: boolean;
   hasPhoto: boolean;
+  reviewStatus: FaceVerificationStatusReviewStatus;
+  /** @nullable */
+  rejectionReason: string | null;
 }
 
 export interface FaceVerificationSession {
@@ -228,8 +244,75 @@ export interface FaceVerificationSession {
   expiresAt: string;
 }
 
+export type FaceVerificationResultReviewStatus = typeof FaceVerificationResultReviewStatus[keyof typeof FaceVerificationResultReviewStatus];
+
+
+export const FaceVerificationResultReviewStatus = {
+  awaiting_review: 'awaiting_review',
+} as const;
+
 export interface FaceVerificationResult {
   verified: boolean;
+  reviewStatus: FaceVerificationResultReviewStatus;
+}
+
+export type FaceVerificationReviewStatus = typeof FaceVerificationReviewStatus[keyof typeof FaceVerificationReviewStatus];
+
+
+export const FaceVerificationReviewStatus = {
+  awaiting_review: 'awaiting_review',
+  approved: 'approved',
+  rejected: 'rejected',
+  cancelled: 'cancelled',
+} as const;
+
+export interface FaceVerificationReview {
+  id: string;
+  userId: string;
+  name: string;
+  age: number;
+  status: FaceVerificationReviewStatus;
+  submittedAt: string;
+  /** @nullable */
+  reviewedAt: string | null;
+  /** @nullable */
+  rejectionReason: string | null;
+  photoAvailable: boolean;
+}
+
+export interface FaceVerificationQueue {
+  requests: FaceVerificationReview[];
+  page: number;
+  pageSize: number;
+  total: number;
+}
+
+export type FaceVerificationDecisionDecision = typeof FaceVerificationDecisionDecision[keyof typeof FaceVerificationDecisionDecision];
+
+
+export const FaceVerificationDecisionDecision = {
+  approve: 'approve',
+  reject: 'reject',
+} as const;
+
+export interface FaceVerificationDecision {
+  decision: FaceVerificationDecisionDecision;
+  confirmed: boolean;
+  /** @maxLength 300 */
+  reason?: string;
+}
+
+export type FaceVerificationDecisionResultStatus = typeof FaceVerificationDecisionResultStatus[keyof typeof FaceVerificationDecisionResultStatus];
+
+
+export const FaceVerificationDecisionResultStatus = {
+  approved: 'approved',
+  rejected: 'rejected',
+} as const;
+
+export interface FaceVerificationDecisionResult {
+  status: FaceVerificationDecisionResultStatus;
+  message: string;
 }
 
 export interface Profile {
@@ -1045,6 +1128,24 @@ export type GetAdminChatExportFormat = typeof GetAdminChatExportFormat[keyof typ
 export const GetAdminChatExportFormat = {
   txt: 'txt',
   json: 'json',
+} as const;
+
+export type GetAdminVerificationRequestsParams = {
+/**
+ * @minimum 1
+ */
+page?: number;
+status?: GetAdminVerificationRequestsStatus;
+};
+
+export type GetAdminVerificationRequestsStatus = typeof GetAdminVerificationRequestsStatus[keyof typeof GetAdminVerificationRequestsStatus];
+
+
+export const GetAdminVerificationRequestsStatus = {
+  awaiting_review: 'awaiting_review',
+  approved: 'approved',
+  rejected: 'rejected',
+  cancelled: 'cancelled',
 } as const;
 
 export type GetDiscoverProfilesParams = {

@@ -10,6 +10,7 @@ import {
   profilesTable,
   reactionsTable,
   vibeSwipePresenceTable,
+  faceVerificationSessionsTable,
 } from "@workspace/db";
 import { and, desc, eq, gte, ilike, inArray, lt, or, sql } from "drizzle-orm";
 import { Router, type IRouter, type Request } from "express";
@@ -409,8 +410,16 @@ router.post("/vibeswipe/admin/actions", async (req, res): Promise<void> => {
     if (targetId === actorId) { res.status(400).json({ error: "Administrators cannot moderate their own account." }); return; }
     const [target] = await db.select({ id: profilesTable.id }).from(profilesTable).where(eq(profilesTable.id, targetId)).limit(1);
     if (!target) { res.status(404).json({ error: "User not found." }); return; }
-    if (action === "verify" || action === "unverify") {
-      await db.update(profilesTable).set({ isVerified: action === "verify" }).where(eq(profilesTable.id, targetId));
+    if (action === "verify") {
+      res.status(409).json({ error: "Review and approve the checked photo in the Verification queue. Direct badge grants are disabled." }); return;
+    } else if (action === "unverify") {
+      await db.transaction(async tx => {
+        await tx.update(profilesTable).set({ isVerified: false }).where(eq(profilesTable.id, targetId));
+        await tx.update(faceVerificationSessionsTable).set({ status: "cancelled", rejectionReason: "Verification was removed by the administrator." }).where(and(
+          eq(faceVerificationSessionsTable.userId, targetId),
+          inArray(faceVerificationSessionsTable.status, ["pending", "processing", "awaiting_review"]),
+        ));
+      });
     } else if (action === "block" || action === "unblock") {
       if (action === "block") {
         await db.update(profilesTable).set({ adminSuspended: true }).where(eq(profilesTable.id, targetId));

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'wouter';
 import type { AdminUser } from '@workspace/api-client-react';
 import { BadgeCheck, Ban, ShieldOff, Trash2, Undo2 } from 'lucide-react';
 import { useModeration } from './admin-hooks';
@@ -21,9 +22,9 @@ export function UserActions({ u, compact = false, onDeleted }: { u: AdminUser; c
   const base = `inline-flex items-center justify-center gap-1.5 rounded-lg border font-bold transition-colors disabled:opacity-40 ${compact ? 'h-8 px-2.5 text-[11px]' : 'h-10 px-3.5 text-xs'}`;
   return <>
     <div className="flex flex-wrap gap-2">
-      <button type="button" disabled={pending} onClick={() => void run(u.verified ? 'unverify' : 'verify', u.id)} data-testid={`button-${u.verified ? 'unverify' : 'verify'}-${u.id}`} className={`${base} border-[var(--a-line)] hover:bg-white/5`}>
-        {u.verified ? <><ShieldOff size={13} />Unverify</> : <><BadgeCheck size={13} className="text-[#ff8cc0]" />Verify</>}
-      </button>
+      {u.verified
+        ? <button type="button" disabled={pending} onClick={() => void run('unverify', u.id)} data-testid={`button-unverify-${u.id}`} className={`${base} border-[var(--a-line)] hover:bg-white/5`}><ShieldOff size={13} />Unverify</button>
+        : <Link href="/admin/verifications" data-testid={`button-verify-${u.id}`} title="Badges are only awarded by approving a photo verification request" className={`${base} border-[var(--a-line)] hover:bg-white/5`}><BadgeCheck size={13} className="text-[#ff8cc0]" />Review queue</Link>}
       {u.suspended
         ? <button type="button" disabled={pending} onClick={() => void run('unblock', u.id)} data-testid={`button-unblock-${u.id}`} className={`${base} border-[#7fd6b0]/30 text-[#9fe6c6] hover:bg-[#7fd6b0]/10`}><Undo2 size={13} />Unblock</button>
         : <button type="button" disabled={pending} onClick={() => setReq({ title: `Block ${u.name}?`, detail: 'They will be signed out of discovery and cannot message matches until you unblock them. Their data stays intact.', confirmLabel: 'Block member', tone: 'neutral', onConfirm: () => run('block', u.id) })} data-testid={`button-block-${u.id}`} className={`${base} border-[#f2b766]/30 text-[#f6c987] hover:bg-[#f2b766]/10`}><Ban size={13} />Block</button>}

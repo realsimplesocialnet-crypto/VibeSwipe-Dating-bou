@@ -9,12 +9,14 @@ import vibeswipeAdminRouter from "./vibeswipe-admin";
 import vibeswipeSafetyRouter from "./vibeswipe-safety";
 import vibeswipeStoriesRouter from "./vibeswipe-stories";
 import vibeswipeVerificationRouter from "./vibeswipe-verification";
+import vibeswipeVerificationAdminRouter from "./vibeswipe-verification-admin";
 
 const router: IRouter = Router();
 
 router.use(healthRouter);
 router.use(onboardingArtRouter);
 router.use(vibeswipeAdminRouter);
+router.use(vibeswipeVerificationAdminRouter);
 router.use(vibeswipeSafetyRouter);
 router.use(vibeswipeStoriesRouter);
 router.use(vibeswipeVerificationRouter);

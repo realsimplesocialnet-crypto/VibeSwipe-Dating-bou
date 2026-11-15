@@ -65,6 +65,7 @@ import {
 import {
   blocksTable,
   db,
+  faceVerificationSessionsTable,
   dailyLikeUsageTable,
   icebreakersTable,
   matchUserStateTable,
@@ -596,6 +597,17 @@ router.put("/vibeswipe/me", async (req, res): Promise<void> => {
       })
       .returning();
     if (!profile) return { invalidMedia: false as const, profile: null };
+    const mainPhotoChanged = existingProfile?.photos[0] !== body.photos[0];
+    const removedPhotos = existingProfile?.photos.filter(photo => !body.photos.includes(photo)) ?? [];
+    if (mainPhotoChanged || removedPhotos.length) {
+      await tx.update(faceVerificationSessionsTable).set({
+        status: "cancelled", rejectionReason: "Your profile photos changed. Please submit verification again.",
+      }).where(and(
+        eq(faceVerificationSessionsTable.userId, userId),
+        inArray(faceVerificationSessionsTable.status, ["pending", "processing", "awaiting_review"]),
+        mainPhotoChanged ? undefined : inArray(faceVerificationSessionsTable.referencePhoto, removedPhotos),
+      ));
+    }
     await tx
       .delete(profileSetupDraftsTable)
       .where(eq(profileSetupDraftsTable.userId, userId));

@@ -209,7 +209,7 @@ paths:
     post:
       operationId: completeFaceVerification
       tags: [vibeswipe]
-      summary: Submit a fresh camera JPEG; only the server can award the verified badge
+      summary: Submit a fresh camera JPEG for checks and administrator review; never grants a badge
       parameters:
         - in: path
           name: sessionId
@@ -222,7 +222,7 @@ paths:
             schema: { type: string, format: binary }
       responses:
         "200":
-          description: Liveness and profile-photo matching passed
+          description: Camera checks passed and the selected photo is awaiting administrator approval
           content:
             application/json:
               schema:
@@ -233,6 +233,62 @@ paths:
         "413": { description: Selfie is too large }
         "422": { description: Liveness or face matching failed; take a new selfie }
         "503": { description: The verification service could not complete the check }
+  /vibeswipe/admin/verification-requests:
+    get:
+      operationId: getAdminVerificationRequests
+      tags: [vibeswipe-admin]
+      summary: Administrator-only photo verification review queue
+      parameters:
+        - { in: query, name: page, schema: { type: integer, minimum: 1, default: 1 } }
+        - { in: query, name: status, schema: { type: string, enum: [awaiting_review, approved, rejected, cancelled], default: awaiting_review } }
+      responses:
+        "200":
+          description: Paginated verification requests with passed camera checks
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FaceVerificationQueue"
+        "401": { description: Sign in required }
+        "403": { description: Administrator access required }
+  /vibeswipe/admin/verification-requests/{requestId}/photo:
+    get:
+      operationId: getAdminVerificationPhoto
+      tags: [vibeswipe-admin]
+      summary: Privately view the exact photo submitted for approval
+      parameters:
+        - { in: path, name: requestId, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200":
+          description: Submitted photo; never a camera selfie
+          content:
+            image/jpeg:
+              schema: { type: string, format: binary }
+        "401": { description: Sign in required }
+        "403": { description: Administrator access required }
+        "404": { description: Photo unavailable }
+  /vibeswipe/admin/verification-requests/{requestId}/decision:
+    post:
+      operationId: reviewFaceVerification
+      tags: [vibeswipe-admin]
+      summary: Explicit owner-admin approval promotes the checked photo and grants the badge
+      parameters:
+        - { in: path, name: requestId, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/FaceVerificationDecision" }
+      responses:
+        "200":
+          description: Approved or rejected
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FaceVerificationDecisionResult" }
+        "400": { description: Invalid decision }
+        "401": { description: Sign in required }
+        "403": { description: Administrator access required }
+        "404": { description: Request not found }
+        "409": { description: Request already decided or profile changed }
   /vibeswipe/discover:
     get:
       operationId: getDiscoverProfiles
@@ -1404,16 +1460,19 @@ components:
       required: [ageMin, ageMax, gender, distanceKm]
     FaceVerificationConsent:
       type: object
-      required: [consent]
+      required: [consent, photoReference]
       properties:
         consent: { type: boolean }
+        photoReference: { type: string, pattern: '^media:[0-9a-fA-F-]{36}$' }
     FaceVerificationStatus:
       type: object
-      required: [available, verified, hasPhoto]
+      required: [available, verified, hasPhoto, reviewStatus, rejectionReason]
       properties:
         available: { type: boolean }
         verified: { type: boolean }
         hasPhoto: { type: boolean }
+        reviewStatus: { type: string, enum: [none, awaiting_review, approved, rejected, cancelled] }
+        rejectionReason: { type: [string, "null"] }
     FaceVerificationSession:
       type: object
       required: [sessionId, expiresAt]
@@ -1422,9 +1481,44 @@ components:
         expiresAt: { type: string, format: date-time }
     FaceVerificationResult:
       type: object
-      required: [verified]
+      required: [verified, reviewStatus]
       properties:
         verified: { type: boolean }
+        reviewStatus: { type: string, enum: [awaiting_review] }
+    FaceVerificationReview:
+      type: object
+      required: [id, userId, name, age, status, submittedAt, reviewedAt, rejectionReason, photoAvailable]
+      properties:
+        id: { type: string, format: uuid }
+        userId: { type: string }
+        name: { type: string }
+        age: { type: integer }
+        status: { type: string, enum: [awaiting_review, approved, rejected, cancelled] }
+        submittedAt: { type: string, format: date-time }
+        reviewedAt: { type: [string, "null"] }
+        rejectionReason: { type: [string, "null"] }
+        photoAvailable: { type: boolean }
+    FaceVerificationQueue:
+      type: object
+      required: [requests, page, pageSize, total]
+      properties:
+        requests: { type: array, items: { $ref: "#/components/schemas/FaceVerificationReview" } }
+        page: { type: integer }
+        pageSize: { type: integer }
+        total: { type: integer }
+    FaceVerificationDecision:
+      type: object
+      required: [decision, confirmed]
+      properties:
+        decision: { type: string, enum: [approve, reject] }
+        confirmed: { type: boolean }
+        reason: { type: string, maxLength: 300 }
+    FaceVerificationDecisionResult:
+      type: object
+      required: [status, message]
+      properties:
+        status: { type: string, enum: [approved, rejected] }
+        message: { type: string }
     Profile:
       type: object
       properties:

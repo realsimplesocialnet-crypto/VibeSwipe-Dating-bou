@@ -8,4 +8,6 @@
 
 export interface FaceVerificationConsent {
   consent: boolean;
+  /** @pattern ^media:[0-9a-fA-F-]{36}$ */
+  photoReference: string;
 }

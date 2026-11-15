@@ -5,7 +5,9 @@
  * VibeSwipe dating profile, discovery, matching, messaging, and safety API
  * OpenAPI spec version: 0.1.0
  */
+import type { FaceVerificationResultReviewStatus } from './faceVerificationResultReviewStatus';
 
 export interface FaceVerificationResult {
   verified: boolean;
+  reviewStatus: FaceVerificationResultReviewStatus;
 }

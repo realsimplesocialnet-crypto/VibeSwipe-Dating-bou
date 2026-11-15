@@ -441,15 +441,21 @@ export const SaveMyProfileResponse = zod.object({
 export const GetFaceVerificationStatusResponse = zod.object({
   "available": zod.boolean(),
   "verified": zod.boolean(),
-  "hasPhoto": zod.boolean()
+  "hasPhoto": zod.boolean(),
+  "reviewStatus": zod.enum(['none', 'awaiting_review', 'approved', 'rejected', 'cancelled']),
+  "rejectionReason": zod.string().nullable()
 })
 
 
 /**
  * @summary Consent to processing and start a short-lived, photo-bound verification session
  */
+export const startFaceVerificationBodyPhotoReferenceRegExp = new RegExp('^media:[0-9a-fA-F-]{36}$');
+
+
 export const StartFaceVerificationBody = zod.object({
-  "consent": zod.boolean()
+  "consent": zod.boolean(),
+  "photoReference": zod.string().regex(startFaceVerificationBodyPhotoReferenceRegExp)
 })
 
 export const StartFaceVerificationResponse = zod.object({
@@ -459,14 +465,78 @@ export const StartFaceVerificationResponse = zod.object({
 
 
 /**
- * @summary Submit a fresh camera JPEG; only the server can award the verified badge
+ * @summary Submit a fresh camera JPEG for checks and administrator review; never grants a badge
  */
 export const CompleteFaceVerificationParams = zod.object({
   "sessionId": zod.coerce.string().uuid()
 })
 
 export const CompleteFaceVerificationResponse = zod.object({
-  "verified": zod.boolean()
+  "verified": zod.boolean(),
+  "reviewStatus": zod.enum(['awaiting_review'])
+})
+
+
+/**
+ * @summary Administrator-only photo verification review queue
+ */
+export const getAdminVerificationRequestsQueryPageDefault = 1;
+
+export const getAdminVerificationRequestsQueryStatusDefault = `awaiting_review`;
+
+export const GetAdminVerificationRequestsQueryParams = zod.object({
+  "page": zod.coerce.number().int().min(1).default(getAdminVerificationRequestsQueryPageDefault),
+  "status": zod.enum(['awaiting_review', 'approved', 'rejected', 'cancelled']).default(getAdminVerificationRequestsQueryStatusDefault)
+})
+
+export const GetAdminVerificationRequestsResponse = zod.object({
+  "requests": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "userId": zod.string(),
+  "name": zod.string(),
+  "age": zod.number().int(),
+  "status": zod.enum(['awaiting_review', 'approved', 'rejected', 'cancelled']),
+  "submittedAt": zod.coerce.date(),
+  "reviewedAt": zod.string().nullable(),
+  "rejectionReason": zod.string().nullable(),
+  "photoAvailable": zod.boolean()
+})),
+  "page": zod.number().int(),
+  "pageSize": zod.number().int(),
+  "total": zod.number().int()
+})
+
+
+/**
+ * @summary Privately view the exact photo submitted for approval
+ */
+export const GetAdminVerificationPhotoParams = zod.object({
+  "requestId": zod.coerce.string().uuid()
+})
+
+export const GetAdminVerificationPhotoResponse = zod.unknown()
+
+
+/**
+ * @summary Explicit owner-admin approval promotes the checked photo and grants the badge
+ */
+export const ReviewFaceVerificationParams = zod.object({
+  "requestId": zod.coerce.string().uuid()
+})
+
+export const reviewFaceVerificationBodyReasonMax = 300;
+
+
+
+export const ReviewFaceVerificationBody = zod.object({
+  "decision": zod.enum(['approve', 'reject']),
+  "confirmed": zod.boolean(),
+  "reason": zod.string().max(reviewFaceVerificationBodyReasonMax).optional()
+})
+
+export const ReviewFaceVerificationResponse = zod.object({
+  "status": zod.enum(['approved', 'rejected']),
+  "message": zod.string()
 })
 
 

@@ -9,7 +9,7 @@ Self-service face verification must confirm that a live person matches their sub
 
 **How to apply:** Require both liveness and a match against the specific photo submitted for verification. Do not claim that merely uploading a photo, displaying camera instructions, or completing a client-side animation verifies a person.
 
-The user clarified that members submit a specific photo during verification, even if they already uploaded multiple signup photos. After successful checks and approval, that verification photo becomes the main public profile photo with the blue tick. The live camera capture is evidence for matching, not the replacement profile picture. The requested liveness interaction includes genuinely turning the head left and right; passive still-photo checking must not be described as that interaction. Whether approval is automatic or requires the owner remains to be clarified.
+The user clarified that members submit a specific photo during verification, even if they already uploaded multiple signup photos. After successful checks and the owner's explicit administrator approval, that verification photo becomes the main public profile photo with the blue tick. Passing camera checks must only queue the request, never automatically grant the badge or change the main photo. The live camera capture is evidence for matching, not the replacement profile picture. The requested liveness interaction includes genuinely turning the head left and right; passive still-photo checking must not be described as that interaction.
 
 **Why:** The user explicitly distinguished signup gallery photos, the photo submitted for verification, and the camera capture used to prove that the person matches it.
 

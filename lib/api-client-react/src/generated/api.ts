@@ -40,11 +40,15 @@ import type {
   EmergencyContact,
   EmergencyContactInput,
   FaceVerificationConsent,
+  FaceVerificationDecision,
+  FaceVerificationDecisionResult,
+  FaceVerificationQueue,
   FaceVerificationResult,
   FaceVerificationSession,
   FaceVerificationStatus,
   GetAdminChatExportParams,
   GetAdminDashboardParams,
+  GetAdminVerificationRequestsParams,
   GetDiscoverProfilesParams,
   GetPublicLocationShareParams,
   HealthStatus,
@@ -1348,7 +1352,7 @@ export const getCompleteFaceVerificationUrl = (sessionId: string,) => {
 }
 
 /**
- * @summary Submit a fresh camera JPEG; only the server can award the verified badge
+ * @summary Submit a fresh camera JPEG for checks and administrator review; never grants a badge
  */
 export const completeFaceVerification = async (sessionId: string,
     completeFaceVerificationBody: Blob, options?: Parameters<typeof customFetch>[1]): Promise<FaceVerificationResult> => {
@@ -1415,7 +1419,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type CompleteFaceVerificationMutationVariables = {sessionId: string;data: BodyType<Blob>}
 
     /**
- * @summary Submit a fresh camera JPEG; only the server can award the verified badge
+ * @summary Submit a fresh camera JPEG for checks and administrator review; never grants a badge
  */
 export const useCompleteFaceVerification = <TError = ErrorType<void>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof completeFaceVerification>>, TError,CompleteFaceVerificationMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
@@ -1426,6 +1430,304 @@ export const useCompleteFaceVerification = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getCompleteFaceVerificationMutationOptions(options), queryClient);
+    }
+
+export const getGetAdminVerificationRequestsUrl = (params?: GetAdminVerificationRequestsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/vibeswipe/admin/verification-requests?${stringifiedParams}` : `/api/vibeswipe/admin/verification-requests`
+}
+
+/**
+ * @summary Administrator-only photo verification review queue
+ */
+export const getAdminVerificationRequests = async (params?: GetAdminVerificationRequestsParams, options?: Parameters<typeof customFetch>[1]): Promise<FaceVerificationQueue> => {
+
+  return customFetch<FaceVerificationQueue>(getGetAdminVerificationRequestsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdminVerificationRequestsQueryKey = (params?: GetAdminVerificationRequestsParams,) => {
+    return [
+    `/api/vibeswipe/admin/verification-requests`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetAdminVerificationRequestsQueryOptions = <TData = Awaited<ReturnType<typeof getAdminVerificationRequests>>, TError = ErrorType<void>>(params?: GetAdminVerificationRequestsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAdminVerificationRequests>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminVerificationRequestsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminVerificationRequests>>> = ({ signal }) => getAdminVerificationRequests(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminVerificationRequests>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetAdminVerificationRequestsQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminVerificationRequests>>>
+export type GetAdminVerificationRequestsQueryError = ErrorType<void>
+
+
+export function useGetAdminVerificationRequests<TData = Awaited<ReturnType<typeof getAdminVerificationRequests>>, TError = ErrorType<void>>(
+ params: undefined |  GetAdminVerificationRequestsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAdminVerificationRequests>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getAdminVerificationRequests>>,
+          TError,
+          Awaited<ReturnType<typeof getAdminVerificationRequests>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetAdminVerificationRequests<TData = Awaited<ReturnType<typeof getAdminVerificationRequests>>, TError = ErrorType<void>>(
+ params?: GetAdminVerificationRequestsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAdminVerificationRequests>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getAdminVerificationRequests>>,
+          TError,
+          Awaited<ReturnType<typeof getAdminVerificationRequests>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetAdminVerificationRequests<TData = Awaited<ReturnType<typeof getAdminVerificationRequests>>, TError = ErrorType<void>>(
+ params?: GetAdminVerificationRequestsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAdminVerificationRequests>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Administrator-only photo verification review queue
+ */
+
+export function useGetAdminVerificationRequests<TData = Awaited<ReturnType<typeof getAdminVerificationRequests>>, TError = ErrorType<void>>(
+ params?: GetAdminVerificationRequestsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAdminVerificationRequests>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetAdminVerificationRequestsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetAdminVerificationPhotoUrl = (requestId: string,) => {
+
+
+
+
+  return `/api/vibeswipe/admin/verification-requests/${requestId}/photo`
+}
+
+/**
+ * @summary Privately view the exact photo submitted for approval
+ */
+export const getAdminVerificationPhoto = async (requestId: string, options?: Parameters<typeof customFetch>[1]): Promise<Blob> => {
+
+  return customFetch<Blob>(getGetAdminVerificationPhotoUrl(requestId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdminVerificationPhotoQueryKey = (requestId: string,) => {
+    return [
+    `/api/vibeswipe/admin/verification-requests/${requestId}/photo`
+    ] as const;
+    }
+
+
+export const getGetAdminVerificationPhotoQueryOptions = <TData = Awaited<ReturnType<typeof getAdminVerificationPhoto>>, TError = ErrorType<void>>(requestId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAdminVerificationPhoto>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminVerificationPhotoQueryKey(requestId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminVerificationPhoto>>> = ({ signal }) => getAdminVerificationPhoto(requestId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: requestId !== null && requestId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminVerificationPhoto>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetAdminVerificationPhotoQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminVerificationPhoto>>>
+export type GetAdminVerificationPhotoQueryError = ErrorType<void>
+
+
+export function useGetAdminVerificationPhoto<TData = Awaited<ReturnType<typeof getAdminVerificationPhoto>>, TError = ErrorType<void>>(
+ requestId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAdminVerificationPhoto>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getAdminVerificationPhoto>>,
+          TError,
+          Awaited<ReturnType<typeof getAdminVerificationPhoto>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetAdminVerificationPhoto<TData = Awaited<ReturnType<typeof getAdminVerificationPhoto>>, TError = ErrorType<void>>(
+ requestId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAdminVerificationPhoto>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getAdminVerificationPhoto>>,
+          TError,
+          Awaited<ReturnType<typeof getAdminVerificationPhoto>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetAdminVerificationPhoto<TData = Awaited<ReturnType<typeof getAdminVerificationPhoto>>, TError = ErrorType<void>>(
+ requestId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAdminVerificationPhoto>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Privately view the exact photo submitted for approval
+ */
+
+export function useGetAdminVerificationPhoto<TData = Awaited<ReturnType<typeof getAdminVerificationPhoto>>, TError = ErrorType<void>>(
+ requestId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAdminVerificationPhoto>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetAdminVerificationPhotoQueryOptions(requestId,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getReviewFaceVerificationUrl = (requestId: string,) => {
+
+
+
+
+  return `/api/vibeswipe/admin/verification-requests/${requestId}/decision`
+}
+
+/**
+ * @summary Explicit owner-admin approval promotes the checked photo and grants the badge
+ */
+export const reviewFaceVerification = async (requestId: string,
+    faceVerificationDecision: FaceVerificationDecision, options?: Parameters<typeof customFetch>[1]): Promise<FaceVerificationDecisionResult> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<FaceVerificationDecisionResult>(getReviewFaceVerificationUrl(requestId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(faceVerificationDecision)
+  }
+);}
+
+
+
+
+
+export const getReviewFaceVerificationMutationKey = () => ['reviewFaceVerification'] as const;
+
+export const getReviewFaceVerificationMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reviewFaceVerification>>, TError,ReviewFaceVerificationMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof reviewFaceVerification>>, TError,ReviewFaceVerificationMutationVariables, TContext> => {
+
+const mutationKey = getReviewFaceVerificationMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof reviewFaceVerification>>, ReviewFaceVerificationMutationVariables> = (props) => {
+          const {requestId,data} = props ?? {};
+
+          return  reviewFaceVerification(requestId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ReviewFaceVerificationMutationResult = NonNullable<Awaited<ReturnType<typeof reviewFaceVerification>>>
+    export type ReviewFaceVerificationMutationBody = BodyType<FaceVerificationDecision>
+    export type ReviewFaceVerificationMutationError = ErrorType<void>
+    export type ReviewFaceVerificationMutationVariables = {requestId: string;data: BodyType<FaceVerificationDecision>}
+
+    /**
+ * @summary Explicit owner-admin approval promotes the checked photo and grants the badge
+ */
+export const useReviewFaceVerification = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reviewFaceVerification>>, TError,ReviewFaceVerificationMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof reviewFaceVerification>>,
+        TError,
+        ReviewFaceVerificationMutationVariables,
+        TContext
+      > => {
+      return useMutation(getReviewFaceVerificationMutationOptions(options), queryClient);
     }
 
 export const getGetDiscoverProfilesUrl = (params?: GetDiscoverProfilesParams,) => {

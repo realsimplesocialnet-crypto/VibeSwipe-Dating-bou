@@ -16,6 +16,7 @@ import { UsersSection } from '@/components/admin/sections/users';
 import { ChatsSection } from '@/components/admin/sections/chats';
 import { ConnectionsSection } from '@/components/admin/sections/connections';
 import { OnlineSection } from '@/components/admin/sections/online';
+import { VerificationsSection } from '@/components/admin/sections/verifications';
 import { SettingsSection } from '@/components/admin/sections/settings';
 import NotFound from '@/pages/not-found';
 
@@ -93,6 +94,7 @@ export default function AdminPage() {
     section === 'users' ? <UsersSection /> :
     section === 'chats' ? <ChatsSection /> :
     section === 'connections' ? <ConnectionsSection /> :
+    section === 'verifications' ? <VerificationsSection /> :
     section === 'online' ? <OnlineSection /> :
     <SettingsSection session={session.data} onSignOut={doSignOut} />;
 
