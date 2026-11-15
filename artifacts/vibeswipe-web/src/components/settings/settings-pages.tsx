@@ -15,6 +15,7 @@ import { Link, useLocation, useParams } from "wouter";
 import { TravelModeSettings } from "@/components/travel-mode-settings";
 import { DiscoveryLocationSettings } from "@/components/settings/discovery-location-settings";
 import { WebPushSettings } from "@/components/WebPushSettings";
+import { QuickmavoShopMenuItem } from "@/components/settings/quickmavo-shop";
 
 type FullSettings = VibeSwipeSettings & {
   showAge: boolean;
@@ -84,6 +85,7 @@ export function SettingsIndexPage() {
       {sections.map(({ id, label, icon: Icon }) => <Link key={id} href={`/settings/${id}?returnTo=${encodeURIComponent(currentPath)}`} data-testid={`link-settings-${id}`} className="group flex min-h-[64px] items-center gap-4 py-4 text-[15px] font-semibold transition-colors hover:text-primary">
         <SettingIcon><Icon size={18}/></SettingIcon><span className="flex-1">{label}</span><ChevronRight size={18} className="text-muted-foreground transition-transform group-hover:translate-x-1 group-hover:text-primary"/>
       </Link>)}
+      <QuickmavoShopMenuItem />
       <button type="button" onClick={() => void logout()} disabled={loggingOut}
         data-testid="button-settings-log-out" aria-busy={loggingOut}
         className="flex min-h-[64px] w-full items-center gap-4 py-4 text-left text-[15px] font-semibold text-destructive transition-opacity hover:opacity-75 disabled:cursor-wait disabled:opacity-50">

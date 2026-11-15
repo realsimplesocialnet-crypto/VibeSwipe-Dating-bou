@@ -13,3 +13,4 @@
 - [Chat media loading](chat-media-loading.md) — Photos/videos require an explicit Load action; never download originals just to create a preview.
 - [Onboarding motion](onboarding-motion.md) — Use real moving onboarding previews; retain live signup controls and inspect image-to-video output for embedded letterboxing.
 - [Smart discovery locality](smart-discovery.md) — Expand sparse default feeds worldwide, country then continent first; explicit saved/manual location filters remain strict.
+- [Optional Quickmavo shop](quickmavo-shop.md) — Settings-only cross-promotion, explicit Cancel/Continue confirmation, and an easy return; never interrupt Discover or chat.

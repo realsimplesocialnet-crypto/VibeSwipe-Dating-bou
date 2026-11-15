@@ -25,6 +25,7 @@ import { useColors } from "@/hooks/useColors";
 import { useTheme } from "@/hooks/useTheme";
 import { PushNotificationSettings } from "@/components/PushNotificationSettings";
 import { DiscoveryLocationSettings } from "@/components/DiscoveryLocationSettings";
+import { QuickmavoShopMenuItem } from "@/components/QuickmavoShopMenuItem";
 
 export default function SettingsScreen() {
   const colors = useColors();
@@ -324,6 +325,7 @@ export default function SettingsScreen() {
           <Feather name="chevron-right" size={18} color={colors.mutedForeground} />
         </View>
       </Pressable>
+      <QuickmavoShopMenuItem />
       <Pressable onPress={() => void logout()} disabled={loggingOut}
         testID="button-settings-log-out" accessibilityRole="button"
         accessibilityState={{ disabled: loggingOut, busy: loggingOut }}
