@@ -151,9 +151,9 @@ function AppShell({ children }: { children: ReactNode }) {
     </>}
     <main className={showMainNavigation ? "min-h-[100dvh] pb-24 lg:ml-[248px] lg:pb-0" : "min-h-[100dvh]"}>{children}</main>
     {profile.data?.id&&<WebPushSettings key={profile.data.id} compact visible={showMainNavigation} accountId={profile.data.id}/>}
-    {showMainNavigation && <nav ref={mobileNavRef} className={`${location==='/profile'?'profile-nav ':''}fixed inset-x-0 bottom-0 z-30 flex justify-around bg-background/95 px-2 pb-[max(env(safe-area-inset-bottom),8px)] pt-2 backdrop-blur-xl lg:hidden`}>
-      {navItems.map(({ href, label, icon: Icon }) => <Link key={href} href={href} data-testid={`mobile-nav-${label.toLowerCase()}`} className={`flex min-w-0 flex-1 flex-col items-center gap-1 rounded-xl px-1 py-1.5 text-[10px] font-semibold ${activeLocation === href ? 'text-primary' : 'text-muted-foreground'}`}><Icon size={19}/>{label}</Link>)}
-      <Link href="/profile" data-testid="mobile-nav-profile" className={`flex min-w-0 flex-1 flex-col items-center gap-1 rounded-xl px-1 py-1.5 text-[10px] font-semibold ${location === '/profile' ? 'text-primary' : 'text-muted-foreground'}`}><UserRound size={19}/>Profile</Link>
+    {showMainNavigation && <nav ref={mobileNavRef} aria-label="Primary" className={`${location==='/profile'?'profile-nav ':''}mobile-nav fixed inset-x-0 bottom-0 z-30 flex justify-around bg-background/95 px-2 pb-[max(env(safe-area-inset-bottom),8px)] pt-2 backdrop-blur-xl lg:hidden`}>
+      {navItems.map(({ href, label, icon: Icon }) => <Link key={href} href={href} data-testid={`mobile-nav-${label.toLowerCase()}`} aria-current={activeLocation === href ? 'page' : undefined} className={`mnav-item ${activeLocation === href ? 'is-active text-primary' : 'text-muted-foreground'}`}><span className="mnav-icon"><Icon size={19} strokeWidth={activeLocation === href ? 2.25 : 1.85}/></span><span className="mnav-label">{label}</span></Link>)}
+      <Link href="/profile" data-testid="mobile-nav-profile" aria-current={location === '/profile' ? 'page' : undefined} className={`mnav-item ${location === '/profile' ? 'is-active text-primary' : 'text-muted-foreground'}`}><span className="mnav-icon"><UserRound size={19} strokeWidth={location === '/profile' ? 2.25 : 1.85}/></span><span className="mnav-label">Profile</span></Link>
     </nav>}
   </div>;
 }
