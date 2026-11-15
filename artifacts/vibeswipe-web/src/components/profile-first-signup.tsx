@@ -336,7 +336,7 @@ function errorLinksToSignIn(msg: string) { return msg.startsWith('An account alr
 function Frame({ children }: { children: ReactNode }) {
   return <div className="onboarding-video-form grain flex min-h-[100dvh] flex-col bg-background">
     <OnboardingVideoBackground form/>
-    <header className="mx-auto flex w-full max-w-[560px] items-center justify-between px-5 pt-6">
+    <header className="mx-auto flex w-full max-w-[560px] items-center justify-between px-5 pt-[calc(env(safe-area-inset-top,0px)+20px)]">
       <Link href="/" className="inline-flex items-center gap-2.5" data-testid="link-signup-brand">
         <img src={`${basePath}/icon.png`} alt="" className="h-9 w-9 rounded-xl ring-1 ring-white/10" />
         <span className="brand text-[20px] font-extrabold text-[#fff2f7]">My<span className="text-primary">age</span></span>

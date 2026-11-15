@@ -225,7 +225,7 @@ export function DiscoverSwipePage() {
   }
 
   const stickyHeader = <div className="discover-sticky sticky top-[var(--install-banner-height,0px)] z-30 -mx-4 mb-4 px-4 pb-1 pt-3 sm:-mx-6 sm:px-6" data-testid="discover-sticky-header">
-    <header className="mb-3 rounded-[28px] border border-border/40 bg-card/95 px-3 py-2.5 shadow-sm">
+    <header className="mb-3 rounded-[28px] bg-card/95 px-3 py-2.5 shadow-sm">
       <div className="flex min-h-11 items-center gap-2.5">{!profile && <StoriesRow mode="own"/>}<span className="min-w-0 flex-1 text-[11px] text-muted-foreground" data-testid="text-discover-likes">{likes.data?.remaining??"—"} likes left</span><Link href="/reels?returnTo=%2Fdiscover" aria-label="Open Reels" data-testid="link-open-reels" className="flex h-10 w-9 shrink-0 items-center justify-center text-primary"><Clapperboard size={22}/></Link><button type="button" onClick={()=>setFiltersOpen(true)} aria-label="Discovery filters" data-testid="button-discovery-filters" className="flex h-10 w-9 shrink-0 items-center justify-center text-primary"><SlidersHorizontal size={22}/></button></div>
       <div className="mt-1.5 flex items-center justify-between pl-1"><h1 className="text-[13px] font-semibold text-foreground">Meet someone new</h1><button type="button" onClick={()=>void startBoost()} disabled={!boost.data?.available||activateBoost.isPending} aria-label={boost.data?.active?"Boost active":"Activate boost"} data-testid="button-activate-boost" className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-semibold text-primary disabled:opacity-40"><Zap size={12}/>Boost</button></div>
     </header>
@@ -269,7 +269,7 @@ export function DiscoverSwipePage() {
         key={profile.id}
         data-swipe={swipeMotion ?? "idle"}
         aria-busy={!!swipeMotion}
-        className="relative isolate flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden rounded-[30px] border border-white/10 bg-[#17141b] shadow-xl"
+        className="relative isolate flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden rounded-[30px] bg-[#17141b] shadow-xl"
         onTouchStart={(event) => { touchStart.current = { x: event.touches[0].clientX, y: event.touches[0].clientY }; }}
         onTouchEnd={(event) => {
           const start = touchStart.current;

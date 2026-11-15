@@ -15,6 +15,18 @@ Back controls must sit below the iPhone clock/notch and return to the screen the
 
 **How to apply:** Account for the device's safe area once, keep Back easy to tap, and preserve the entry destination through settings sections and verification.
 
+Discover's bottom tabs must stay at the same screen position as Matches, including after switching tabs and using the iPhone Home Screen app. Check the rendered interaction before declaring this fixed.
+
+**Why:** The user repeatedly showed Discover alone leaving a large bottom gap and said to check it before asking them to try again.
+
+**How to apply:** Compare actual tab bounds across routes. Do not treat CSS source assertions or a logged-out screenshot as proof that authenticated iPhone layout works.
+
+Avoid visible divider lines above the bottom tabs and extra outlines around Discover's header and photo card; keep the rounded surfaces.
+
+**Why:** After showing Discover and Matches, the user said, “I dont like all those line.”
+
+**How to apply:** Keep these main-screen surfaces continuous without removing functional input boundaries or selected-state indicators elsewhere.
+
 Keep Discover's branding, Stories, swipe card, actions, and bottom navigation within one screen. Do not let the swipe card scroll underneath Stories. When a swipe card is present, put the user's own story entry in the labelled Stories row, not as a separate personal avatar beside the branding. On iPhone home-screen launches, keep the action row directly above the bottom tabs without a large empty strip below them.
 
 **Why:** The user clarified with screenshots that the card moving underneath the sticky Stories area was cutting off the head and hiding the action buttons. They later confirmed the raised controls happened only on Discover; Matches, Messages, and Activity were already positioned correctly.

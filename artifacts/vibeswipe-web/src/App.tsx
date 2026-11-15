@@ -116,6 +116,8 @@ const navItems = [
 
 function AppShell({ children }: { children: ReactNode }) {
   const [location] = useLocation();
+  const shellRef = useRef<HTMLDivElement>(null);
+  const mobileNavRef = useRef<HTMLElement>(null);
   const showMainNavigation = ['/discover', '/matches', '/messages', '/notifications', '/views', '/likes', '/profile'].includes(location);
   const isSocialPage = ['/matches', '/messages', '/notifications', '/views', '/likes'].includes(location);
   const activeLocation = ['/views', '/likes'].includes(location) ? '/notifications' : location;
@@ -123,7 +125,16 @@ function AppShell({ children }: { children: ReactNode }) {
   const { user } = useUser();
   const profile = useGetMyProfile();
   const activeName = profile.data?.name || user?.firstName || 'Your profile';
-  return <div className={`app-shell min-h-[100dvh] bg-background text-foreground ${isSocialPage?'messages-shell':''} ${location==='/discover'?'discover-shell':''} ${location==='/profile'?'profile-shell':''}`}>
+  useEffect(() => {
+    if (!showMainNavigation || !mobileNavRef.current) return;
+    const measure = () => shellRef.current?.style.setProperty('--mobile-nav-height', `${mobileNavRef.current?.offsetHeight ?? 0}px`);
+    measure();
+    const observer = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(measure) : null;
+    observer?.observe(mobileNavRef.current);
+    window.addEventListener('resize', measure);
+    return () => { observer?.disconnect(); window.removeEventListener('resize', measure); };
+  }, [showMainNavigation, location]);
+  return <div ref={shellRef} className={`app-shell min-h-[100dvh] bg-background text-foreground ${isSocialPage?'messages-shell':''} ${location==='/discover'?'discover-shell':''} ${location==='/profile'?'profile-shell':''}`}>
     {showMainNavigation && <>
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-[248px] flex-col border-r border-border bg-background px-5 py-6 lg:flex">
         <div className="mb-4 mt-2 px-3 text-[10px] font-bold uppercase tracking-[.2em] text-muted-foreground">Your space</div>
@@ -139,7 +150,7 @@ function AppShell({ children }: { children: ReactNode }) {
     </>}
     <main className={showMainNavigation ? "min-h-[100dvh] pb-24 lg:ml-[248px] lg:pb-0" : "min-h-[100dvh]"}>{children}</main>
     {profile.data?.id&&<WebPushSettings key={profile.data.id} compact visible={showMainNavigation} accountId={profile.data.id}/>}
-    {showMainNavigation && <nav className={`${location==='/profile'?'profile-nav ':''}fixed inset-x-0 bottom-0 z-30 flex justify-around border-t border-border bg-background/95 px-2 pb-[max(env(safe-area-inset-bottom),8px)] pt-2 backdrop-blur-xl lg:hidden`}>
+    {showMainNavigation && <nav ref={mobileNavRef} className={`${location==='/profile'?'profile-nav ':''}fixed inset-x-0 bottom-0 z-30 flex justify-around bg-background/95 px-2 pb-[max(env(safe-area-inset-bottom),8px)] pt-2 backdrop-blur-xl lg:hidden`}>
       {navItems.map(({ href, label, icon: Icon }) => <Link key={href} href={href} data-testid={`mobile-nav-${label.toLowerCase()}`} className={`flex min-w-0 flex-1 flex-col items-center gap-1 rounded-xl px-1 py-1.5 text-[10px] font-semibold ${activeLocation === href ? 'text-primary' : 'text-muted-foreground'}`}><Icon size={19}/>{label}</Link>)}
       <Link href="/profile" data-testid="mobile-nav-profile" className={`flex min-w-[62px] flex-col items-center gap-1 rounded-xl px-3 py-1.5 text-[10px] font-semibold ${location === '/profile' ? 'text-primary' : 'text-muted-foreground'}`}><UserRound size={19}/>Profile</Link>
     </nav>}
@@ -651,8 +662,8 @@ if(q.isLoading||!ready)return <PageFrame><PageHeading eyebrow="Your profile" tit
 const choices=(values:string[],key:string)=> <div className="grid grid-cols-2 gap-2">{values.map(v=><button type="button" key={v} onClick={()=>update(key,v)} data-testid={`button-choice-${key}-${v.toLowerCase().replaceAll(' ','-')}`} className={`rounded-xl border p-3 text-sm font-semibold ${data[key]===v?'border-primary/50 bg-accent text-[#ffafd1]':'border-white/10 bg-white/[.02]'}`}>{v}</button>)}</div>;
  return <PageFrame><div className="mx-auto max-w-2xl"><PageHeading eyebrow="A good start" title="Set up your profile" description="Thirteen quick steps. Your progress saves as you go."/><div className="mb-8"><div className="flex justify-between text-[10px] font-bold uppercase tracking-[.15em] text-muted-foreground"><span>Step {step+1} of 13</span><span>{saved?'Saved':saveDraft.isError?'Not saved':'Saving as you go'}</span></div><div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/10"><div className="h-full rounded-full bg-primary transition-all" style={{width:`${((step+1)/13)*100}%`}}/></div></div>
  <div className="min-h-[360px] rounded-[25px] border border-white/[.08] bg-card p-5 md:p-8"><p className="text-xs font-bold uppercase tracking-[.18em] text-primary">{setupSteps[step]}</p><h2 className="brand mt-3 text-3xl font-bold tracking-[-.04em]">{['What should we call you?','And your last name?','How old are you?','How do you describe yourself?','Who would you like to meet?','Choose a profile photo.','What would you like people to know?','Where are you from?','State or region?','Which city feels like home?','Choose your hobbies.','What do you do for work?','Set your discovery preferences.'][step]}</h2><p className="mt-2 text-sm text-muted-foreground">Myage is a space for adults 18 and over.</p><div className="mt-7 max-w-lg">
-{step===0&&<input autoFocus data-testid="input-onboarding-first-name" value={data.firstName} onChange={e=>update('firstName',e.target.value)} placeholder="First name" className="field"/>}
-{step===1&&<input autoFocus data-testid="input-onboarding-last-name" value={data.lastName} onChange={e=>update('lastName',e.target.value)} placeholder="Last name" className="field"/>}
+{step===0&&<input data-testid="input-onboarding-first-name" autoComplete="given-name" value={data.firstName} onChange={e=>update('firstName',e.target.value)} placeholder="First name" className="field"/>}
+{step===1&&<input data-testid="input-onboarding-last-name" autoComplete="family-name" value={data.lastName} onChange={e=>update('lastName',e.target.value)} placeholder="Last name" className="field"/>}
 {step===2&&<input data-testid="input-onboarding-age" type="number" min="18" max="120" value={data.age} onChange={e=>update('age',e.target.value)} placeholder="Age" className="field max-w-40"/>}
 {step===3&&choices(['Woman','Man','Non-binary','Another identity'],'gender')}
 {step===4&&choices(['Everyone','Women','Men','Non-binary people'],'lookingFor')}
@@ -665,7 +676,7 @@ const choices=(values:string[],key:string)=> <div className="grid grid-cols-2 ga
 {step===11&&<OccupationSelect value={String(data.occupation||'Prefer not to say')} otherValue={String(data.occupationOther||'')} onChange={value=>update('occupation',value)} onOtherChange={value=>update('occupationOther',value)} testIdPrefix="onboarding"/>}
 {step===12&&<div className="space-y-5"><div className="grid grid-cols-2 gap-3"><Field label="Age from"><input data-testid="input-onboarding-age-min" type="number" min="18" value={data.ageMin} onChange={e=>update('ageMin',e.target.value)} className="field"/></Field><Field label="Age to"><input data-testid="input-onboarding-age-max" type="number" value={data.ageMax} onChange={e=>update('ageMax',e.target.value)} className="field"/></Field></div><Field label={`Distance · ${data.distanceKm} km`}><input data-testid="input-onboarding-distance" type="range" min="1" max="500" value={data.distanceKm} onChange={e=>update('distanceKm',Number(e.target.value))} className="w-full accent-[#f34e9a]"/></Field></div>}
 </div>{uploading&&<p role="status" className="mt-4 text-sm text-muted-foreground">{uploadStatus}</p>}{error&&<p role="alert" data-testid="text-onboarding-error" className="mt-5 text-sm text-rose-300">{error}</p>}{step===5&&photoRetry&&!uploading&&retryPhoto.current&&<button type="button" data-testid="button-retry-photo" className="mt-3 rounded-xl border border-primary/30 px-4 py-2 text-sm font-semibold text-primary" onClick={()=>void uploadOnboardingPhoto(retryPhoto.current??undefined)}>Retry upload</button>}
- <div className="mt-8 flex items-center justify-between border-t border-white/[.08] pt-5"><button disabled={step===0||uploading||saveDraft.isPending||saveProfile.isPending} onClick={()=>setStep(s=>Math.max(0,s-1))} data-testid="button-onboarding-back" className="rounded-xl border border-white/10 px-4 py-3 text-sm font-semibold disabled:opacity-35">Back</button><button disabled={uploading||saveDraft.isPending||saveProfile.isPending||(step===5&&!data.photos.length)||(step===7&&!data.country)} onClick={()=>void next()} data-testid="button-onboarding-next" className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-bold text-[#26111b] disabled:opacity-50">{saveProfile.isPending?'Saving profile…':saveDraft.isPending?'Saving…':step===12?'Finish setup':'Continue'}<ArrowRight size={16}/></button></div></div></div></PageFrame>}
+ <div className="profile-setup-controls mt-8 flex items-center justify-between gap-3 border-t border-white/[.08] pt-5"><button disabled={step===0||uploading||saveDraft.isPending||saveProfile.isPending} onClick={()=>setStep(s=>Math.max(0,s-1))} data-testid="button-onboarding-back" className="min-h-11 rounded-xl border border-white/10 px-4 py-3 text-sm font-semibold disabled:opacity-35">Back</button><button disabled={uploading||saveDraft.isPending||saveProfile.isPending||(step===5&&!data.photos.length)||(step===7&&!data.country)} onClick={()=>void next()} data-testid="button-onboarding-next" className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-bold text-[#26111b] disabled:opacity-50">{saveProfile.isPending?'Saving profile…':saveDraft.isPending?'Saving…':step===12?'Finish setup':'Continue'}<ArrowRight size={16}/></button></div></div></div></PageFrame>}
 
 function Row({icon:Icon,title,children,testId}:{icon:typeof Heart;title:string;children:ReactNode;testId:string}){return <section className="pp-card flex items-center gap-3.5" data-testid={testId}><span className="pp-icon"><Icon size={22}/></span><div className="min-w-0 flex-1 text-[15px] leading-6 text-foreground"><h2 className="pp-label">{title}</h2>{children}</div></section>}
 function PublicProfile({id,actionReturnTo='/discover'}:{id:string;actionReturnTo?:string}){
@@ -787,7 +798,7 @@ function BrandedSignUp(){
     }catch(e){setError(e instanceof Error?e.message:'Your account could not be created. Please try again.')}
     finally{setBusy(false)}
   }
-  return <div className="onboarding-video-form grain flex min-h-[100dvh] items-center justify-center bg-background px-4 py-10"><OnboardingVideoBackground form/><div className="fixed left-6 top-6"><Brand/></div><section className="w-full max-w-[440px] rounded-[26px] border border-white/10 bg-[#211d25] p-6 shadow-2xl sm:p-8">
+  return <div className="onboarding-video-form auth-sign-up grain flex min-h-[100dvh] items-center justify-center bg-background px-4"><OnboardingVideoBackground form/><div className="auth-sign-up-brand"><Brand/></div><section className="w-full max-w-[440px] rounded-[26px] border border-white/10 bg-[#211d25] p-6 shadow-2xl sm:p-8">
     <div className="mb-7"><img src={pathFor('/icon.png')} alt="" className="mb-5 h-12 w-12 rounded-2xl border border-white/10"/><p className="text-[10px] font-bold uppercase tracking-[.2em] text-primary">Myage · 18+</p>{!verifying&&<><p className="mt-4 text-[10px] font-bold uppercase tracking-[.16em] text-muted-foreground">Account setup · {step==='email'?'1':'2'} of 2</p><div className="mt-2 flex gap-2" aria-label={`Step ${step==='email'?'1':'2'} of 2`}><span className="h-1 flex-1 rounded-full bg-primary"/><span className={`h-1 flex-1 rounded-full ${step==='password'?'bg-primary':'bg-white/10'}`}/></div></>}<h1 className="brand mt-2 text-3xl font-bold tracking-[-.05em]">{verifying?'Check your email':step==='email'?'Start with your email':'Create a password'}</h1><p className="mt-2 text-sm leading-6 text-muted-foreground">{verifying?`We sent a verification code to ${email.trim()}.`:step==='email'?'Enter your email to begin creating your account.':'Choose a password with at least 8 characters.'}</p></div>
     <form onSubmit={submit} className="space-y-5" noValidate>
       {!verifying&&step==='email'?<label className="grid gap-2 text-xs font-semibold text-[#e7dce3]">Email address<input data-testid="input-signup-email" type="email" inputMode="email" autoComplete="email" required value={email} onChange={e=>{setEmail(e.target.value);setError('')}} className="field" placeholder="you@example.com"/>{email&& !emailValid&&<span className="text-xs font-normal text-rose-300" data-testid="error-signup-email">Enter a valid email address.</span>}</label>
@@ -806,7 +817,7 @@ function BrandedSignUp(){
 function RouteShell({component:Component}:{component:()=>ReactNode}){return <ShellPage><Component/></ShellPage>}
 const CHAT_RETURN_PATHS=['/views','/messages','/notifications','/matches','/discover','/likes'];
 function ChatRoute(){const params=useParams<{matchId:string}>();const requested=safeAppReturnPath(new URLSearchParams(window.location.search).get('returnTo'),'/matches');const returnTo=CHAT_RETURN_PATHS.includes(requested)||requested.startsWith('/profile/')?requested:'/matches';return <ShellPage><ChatPage matchId={params.matchId||''} returnTo={returnTo}/></ShellPage>}
-function OnboardingRoute(){return <Gate><div className="onboarding-video-form min-h-[100dvh] bg-background text-foreground"><OnboardingVideoBackground form/><OnboardingGate/></div></Gate>}
+function OnboardingRoute(){return <Gate><div className="onboarding-video-form profile-setup-shell min-h-[100dvh] bg-background text-foreground"><OnboardingVideoBackground form/><OnboardingGate/></div></Gate>}
 function ProfileRoute(){return <ShellPage><ProfilePage mode="view"/></ShellPage>}
 function ProfileEditRoute(){const requested=new URLSearchParams(window.location.search).get('returnTo');const returnTo=safeAppReturnPath(requested,'/profile');return <ShellPage><ProfilePage mode="edit" returnTo={returnTo}/></ShellPage>}
 function SettingsRoute(){return <ShellPage><SettingsIndexPage/></ShellPage>}

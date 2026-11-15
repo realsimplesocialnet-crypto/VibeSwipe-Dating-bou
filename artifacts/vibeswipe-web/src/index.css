@@ -211,7 +211,6 @@ html:has(.discover-deck), html:has(.discover-deck) body {
   overflow: hidden;
   overscroll-behavior: none;
 }
-html:has(.discover-deck) body { position: fixed; inset: 0; width: 100%; }
 .discover-shell:has(.discover-deck) {
   position: fixed;
   inset-inline: 0;
@@ -231,10 +230,11 @@ html:has(.discover-deck) body { position: fixed; inset: 0; width: 100%; }
   flex-direction: column;
   flex: 1;
   min-height: 0;
-  padding-bottom: 0;
+  padding-bottom: var(--mobile-nav-height, calc(64px + env(safe-area-inset-bottom, 0px)));
   overflow: hidden;
 }
-.discover-shell:has(.discover-deck) > nav { position: relative; bottom: auto; flex-shrink: 0; }
+/* Use the same viewport-fixed navigation as Matches. Fixing body and making
+   only Discover's nav relative can anchor it above the iPhone's bottom edge. */
 .discover-deck > .discover-sticky {
   position: relative;
   z-index: 40;

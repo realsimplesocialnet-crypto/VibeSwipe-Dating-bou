@@ -33,8 +33,8 @@ test("native swipe photo uses the same fixed ratio, authenticated source, and to
 test("Discover locks document scrolling and reserves real navigation space", () => {
   assert.match(css, /html:has\(\.discover-deck\)[^{]*\{[^}]*overflow: hidden;[^}]*overscroll-behavior: none/s);
   assert.match(css, /\.discover-shell:has\(\.discover-deck\) \{[^}]*position: fixed;[^}]*top: var\(--install-banner-height, 0px\);[^}]*bottom: 0;[^}]*height: auto;/s);
-  assert.match(css, /\.discover-shell:has\(\.discover-deck\) > main \{[^}]*min-height: 0;[^}]*padding-bottom: 0;[^}]*overflow: hidden;/s);
-  assert.match(css, /\.discover-shell:has\(\.discover-deck\) > nav \{ position: relative; bottom: auto; flex-shrink: 0; \}/);
+  assert.match(css, /\.discover-shell:has\(\.discover-deck\) > main \{[^}]*min-height: 0;[^}]*padding-bottom: var\(--mobile-nav-height,[^;]+;[^}]*overflow: hidden;/s);
+  assert.doesNotMatch(css, /\.discover-shell:has\(\.discover-deck\) > nav \{ position: relative/);
   assert.match(web, /discover-deck mx-auto flex h-full min-h-0/);
 });
 
