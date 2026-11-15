@@ -13,6 +13,12 @@ Both normal website visits and home-screen launches on iPhone and Android should
 
 Use PWA installation, not an APK download, for the website install banner. Show the install option to returning mobile website visitors after refresh as well as new visitors, even when no automatic browser install prompt fires. Keep it available until installation is detected, and do not let old dismissal flags suppress it for returning users.
 
+Browser visitors must be able to close the install banner until the next refresh. Remember confirmed installations, including home-screen launches, so installed users are not repeatedly asked to add it again.
+
+**Why:** The user reported permanent install prompts on installed Android and iPhone apps and explicitly wanted Cancel for website visitors, with the prompt eligible again after refresh.
+
+**How to apply:** Distinguish temporary dismissal from remembered installation. iPhone Safari does not reliably expose a separate Home Screen installation to a normal browser tab; offer an explicit “Already installed” option rather than claiming universal detection.
+
 **Why:** The user clarified “just show PWA install something” and said previous website users could not see the install option.
 
 **How to apply:** Make the banner global across website pages, with a real browser prompt when available and platform-specific manual installation instructions otherwise. Never interpret a missing install prompt as proof that the app is installed.

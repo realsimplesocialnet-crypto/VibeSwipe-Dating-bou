@@ -8,6 +8,9 @@
   "display": "standalone",
   "display_override": ["standalone", "minimal-ui", "browser"],
   "prefer_related_applications": false,
+  "related_applications": [
+    { "platform": "webapp", "url": "manifest.json?v=7" }
+  ],
   "orientation": "any",
   "background_color": "#15131a",
   "theme_color": "#15131a",

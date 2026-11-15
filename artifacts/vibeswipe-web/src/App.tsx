@@ -94,7 +94,8 @@ const appearance = {
     headerTitle: 'text-[#fff2f7] font-bold', headerSubtitle: 'text-[#b9adb6]', socialButtonsBlockButtonText: 'text-[#f6edf2]',
     formFieldLabel: 'text-[#e7dce3]', footerActionLink: 'text-[#ff6bad]', footerActionText: 'text-[#a99ca6]',
     dividerText: 'text-[#a99ca6]', identityPreviewEditButton: 'text-[#ff6bad]', formFieldSuccessText: 'text-[#8dd6b4]',
-    alertText: 'text-[#ffe6ea]', logoBox: 'rounded-xl', logoImage: 'rounded-lg', socialButtonsBlockButton: 'border-white/10 bg-[#2b2630]',
+    alertText: 'text-[#ffe6ea]', logoBox: 'rounded-xl', logoImage: 'rounded-lg',
+    socialButtons: { display: 'none' as const }, socialButtonsBlockButton: { display: 'none' as const }, socialButtonsIconButton: { display: 'none' as const }, dividerRow: { display: 'none' as const },
     formButtonPrimary: 'bg-[#f34e9a] hover:bg-[#ff68aa] text-[#21111a]', formFieldInput: 'bg-[#19161c] border-white/10 text-[#f5edf1]',
     footerAction: 'bg-transparent', dividerLine: 'bg-white/10', alert: 'bg-[#40252d] border-[#7e3b4a]',
     otpCodeFieldInput: 'bg-[#19161c] border-white/10 text-white', formFieldRow: 'gap-2', main: 'bg-transparent',
@@ -862,7 +863,7 @@ function ClerkRoutes(){const [,setLocation]=useLocation();return <ClerkProvider 
   <Route path="/" component={HomeRedirect}/>
   <Route path="/welcome" component={WelcomeRoute}/>
   <Route path="/admin" component={AdminPage}/><Route path="/admin/:section" component={AdminPage}/>
-  <Route path="/sign-in/*?"><div className="grain flex min-h-[100dvh] flex-col items-center justify-center bg-background px-4 py-10"><div className="fixed left-6 top-6"><Brand/></div><SignIn routing="path" path={pathFor('/sign-in')} signUpUrl={pathFor('/sign-up')}/><p className="mt-5 text-center text-xs text-muted-foreground"><Link href="/privacy-policy" className="hover:text-primary">Privacy Policy</Link><span className="px-2">·</span><Link href="/terms" className="hover:text-primary">Terms of Service</Link></p></div></Route>
+  <Route path="/sign-in/*?"><div className="auth-sign-in grain flex min-h-[100dvh] flex-col bg-background px-4"><header className="mb-6 shrink-0 px-2" data-testid="header-sign-in-brand"><Brand/></header><main className="flex w-full flex-1 flex-col items-center justify-center"><SignIn routing="path" path={pathFor('/sign-in')} signUpUrl={pathFor('/sign-up')}/><p className="mt-5 text-center text-xs text-muted-foreground"><Link href="/privacy-policy" className="hover:text-primary">Privacy Policy</Link><span className="px-2">·</span><Link href="/terms" className="hover:text-primary">Terms of Service</Link></p></main></div></Route>
   <Route path="/sign-up/*?" component={BrandedSignUp}/>
   {import.meta.env.DEV&&<Route path="/create-account-preview"><div className="border-b border-primary/20 bg-accent px-5 py-3 text-center text-xs leading-5 text-foreground" role="note">Form preview only. Email-code signup still needs the authentication setting changed.</div><ProfileFirstSignup previewOnly/></Route>}
   <Route path="/onboarding" component={OnboardingRoute}/><Route path="/discover" component={DiscoverRoute}/><Route path="/stories/new" component={StoryComposerRoute}/><Route path="/reels" component={ReelsRoute}/><Route path="/reels/new" component={ReelComposerRoute}/><Route path="/reels/saved" component={ReelsLibraryRoute}/><Route path="/reels/:reelId" component={ReelRoute}/><Route path="/matches" component={MatchesRoute}/>

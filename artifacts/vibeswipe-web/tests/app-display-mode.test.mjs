@@ -13,6 +13,7 @@ test('iPhone home-screen mode works even without standalone media query support'
 test('Android standalone and fullscreen windows are app launches', () => {
   assert.equal(isStandaloneApp(browser('standalone'), {}), true);
   assert.equal(isStandaloneApp(browser('fullscreen'), {}), true);
+  assert.equal(isStandaloneApp(browser('minimal-ui'), {}), true);
 });
 
 test('a normal Safari or Chrome tab remains the website', () => {

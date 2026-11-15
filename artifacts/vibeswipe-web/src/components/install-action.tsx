@@ -6,32 +6,49 @@ type InstallPrompt = Event & {
   prompt: () => Promise<void>;
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }>;
 };
-type InstallState = { prompt: InstallPrompt | null; installed: boolean };
+type InstallState = { prompt: InstallPrompt | null; installed: boolean; bannerDismissed: boolean; checkingInstalled: boolean };
 type InstallStore = {
   getSnapshot: () => InstallState;
   subscribe: (notify: () => void) => () => void;
   clearPrompt: (prompt: InstallPrompt) => void;
+  dismissBanner: () => void;
+  confirmInstalled: () => void;
 };
 declare global {
   interface Window { vibeSwipeInstall?: InstallStore }
 }
-const unavailable: InstallState = { prompt: null, installed: false };
+const unavailable: InstallState = { prompt: null, installed: false, bannerDismissed: false, checkingInstalled: false };
+let fallbackState = unavailable;
+const fallbackListeners = new Set<() => void>();
+try {
+  const remembered = window.localStorage.getItem('myage:pwa-installed:v1');
+  if (remembered === 'confirmed' || remembered === 'manual') fallbackState = { ...unavailable, installed: true };
+} catch { /* Storage may be restricted. Dismissal must still work. */ }
+const publishFallback = (next: InstallState) => {
+  fallbackState = next;
+  fallbackListeners.forEach(notify => notify());
+};
 const fallback: InstallStore = {
-  getSnapshot: () => unavailable,
-  subscribe: () => () => {},
+  getSnapshot: () => fallbackState,
+  subscribe: notify => { fallbackListeners.add(notify); return () => { fallbackListeners.delete(notify); }; },
   clearPrompt: () => {},
+  dismissBanner: () => publishFallback({ ...fallbackState, bannerDismissed: true }),
+  confirmInstalled: () => {
+    try { window.localStorage.setItem('myage:pwa-installed:v1', 'manual'); } catch { /* Keep the current page usable. */ }
+    publishFallback({ ...fallbackState, installed: true });
+  },
 };
 
 export function MobileInstallBanner() {
-  // Never depend on beforeinstallprompt or an old dismissal flag: returning
-  // visitors still need the manual install instructions when no prompt fires.
+  // Browser visitors may dismiss until refresh; installed launches stay clear.
   return isMobileBrowser(navigator) ? <InstallAction banner /> : null;
 }
 
 export function InstallAction({ className = '', compact = false, banner = false }: { className?: string; compact?: boolean; banner?: boolean }) {
   const standalone = useStandaloneMode();
-  const store = window.vibeSwipeInstall ?? fallback;
-  const { prompt, installed } = useSyncExternalStore(store.subscribe, store.getSnapshot);
+  const store = window.vibeSwipeInstall?.dismissBanner ? window.vibeSwipeInstall : fallback;
+  const { prompt, installed, bannerDismissed, checkingInstalled } = useSyncExternalStore(store.subscribe, store.getSnapshot);
+  const hidden = standalone || installed || checkingInstalled || (banner && bannerDismissed);
   const [showHelp, setShowHelp] = useState(false);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState('');
@@ -41,7 +58,11 @@ export function InstallAction({ className = '', compact = false, banner = false 
     || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
   useEffect(() => {
-    if (!banner || standalone || installed) return;
+    if (!banner) return;
+    if (hidden) {
+      document.documentElement.style.removeProperty('--install-banner-height');
+      return;
+    }
     const updateHeight = () => {
       document.documentElement.style.setProperty('--install-banner-height', `${bannerRef.current?.offsetHeight ?? 0}px`);
     };
@@ -54,7 +75,7 @@ export function InstallAction({ className = '', compact = false, banner = false 
       window.removeEventListener('resize', updateHeight);
       document.documentElement.style.removeProperty('--install-banner-height');
     };
-  }, [banner, standalone, installed]);
+  }, [banner, hidden]);
 
   async function install() {
     if (!prompt) { setShowHelp((value) => !value); return; }
@@ -79,7 +100,7 @@ export function InstallAction({ className = '', compact = false, banner = false 
     }
   }
 
-  if (standalone || installed) return null;
+  if (hidden) return null;
   return <div ref={bannerRef} data-testid={banner ? 'mobile-install-banner' : undefined}
     className={banner ? 'sticky top-0 z-40 border-b border-primary/20 bg-card text-card-foreground shadow-sm' : `relative ${className}`}>
     <div className={banner ? 'mx-auto flex max-w-6xl items-center gap-3 px-4 py-3' : undefined}>
@@ -89,6 +110,8 @@ export function InstallAction({ className = '', compact = false, banner = false 
       className={`inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-xl ${banner ? 'min-h-11 bg-primary px-3 text-xs font-bold text-primary-foreground hover:opacity-90' : `border border-border bg-secondary/40 ${compact ? 'h-11 w-11' : 'px-3.5 py-2.5'} text-sm font-semibold text-foreground hover:bg-secondary`} disabled:opacity-50`}>
       <Download size={16}/>{!compact && <span>{busy ? 'Opening…' : banner || prompt ? 'Install app' : 'Install options'}</span>}
     </button>
+    {banner && <button type="button" onClick={store.dismissBanner} aria-label="Dismiss install banner" data-testid="button-dismiss-install-banner"
+      className="flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-secondary"><X size={18}/></button>}
     </div>
     {!compact && !banner && <p className="mt-0.5 text-center text-[10px] leading-3 text-muted-foreground">Optional</p>}
     {showHelp && <div id={helpId} role="region" aria-label="App installation instructions" className={`absolute right-0 top-full z-50 ${banner ? 'mr-3' : ''} mt-3 w-80 max-w-[calc(100vw-2.5rem)] rounded-2xl border border-border bg-card p-4 text-left text-xs leading-5 text-muted-foreground shadow-xl`}
@@ -98,6 +121,7 @@ export function InstallAction({ className = '', compact = false, banner = false 
         <button onClick={() => setShowHelp(false)} aria-label="Close install instructions" className="rounded p-1 hover:bg-white/10"><X size={14}/></button>
       </div>
       <p className="mb-3 text-foreground">Installation is optional. You can create your account and use Myage directly on this website.</p>
+      <button type="button" onClick={store.confirmInstalled} data-testid="button-already-installed" className="mb-3 min-h-11 font-semibold text-primary underline">Already installed? Hide install reminders</button>
       {notice && <p role="status" className="mb-3 text-destructive">{notice}</p>}
       {prompt ? <button onClick={() => void install()} disabled={busy} className="mb-3 w-full rounded-xl bg-primary px-4 py-2.5 font-bold text-[#24111b]">Install now</button>
         : <p className="mb-3">The browser hasn’t offered one-tap installation yet. Keep this page open briefly, or use its menu:</p>}

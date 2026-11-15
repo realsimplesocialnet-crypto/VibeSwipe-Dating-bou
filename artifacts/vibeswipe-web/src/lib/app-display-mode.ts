@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from 'react';
 
-const modes = ['(display-mode: standalone)', '(display-mode: fullscreen)'];
+const modes = ['(display-mode: standalone)', '(display-mode: fullscreen)', '(display-mode: minimal-ui)'];
 
 export function isMobileBrowser(browserNavigator: {
   userAgent?: string;
