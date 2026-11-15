@@ -98,3 +98,17 @@ mtime_ms = 1794735606757
 storage_uri = "gcs://replit-rams-assets-picard/rams/assets/repl:10568a97-c1ca-4404-b0f1-6a360d301b91/fc7b07cb-0f96-43c2-ab3b-afa394206875/7a0354e9-2fd8-42e6-9df6-aaea011f1cec"
 storage_version_token = "1794735662704701"
 content_type = "video/mp4"
+
+[[outputs]]
+id = "KrvP5zHUKztYcpadOmppz"
+uri = "file://generated-artifacts/vibeswipe-reels-concept.jpg"
+type = "image"
+title = "VibeSwipe Reels — design preview"
+description = "A proposed Reels screen with a large video area, pink accents, profile details and video actions. Keeps your existing five bottom tabs. Picture preview only; the app has not been changed."
+logical_id = "85f06d51-a165-4b04-b998-f41bb354ba2c"
+content_hash = "sha256:15de05a2f3dc6ec29b459c5ca961b0b3823ee0029ebff52eb50e56ab05d9722c"
+size = 107945
+mtime_ms = 1794764366263
+storage_uri = "gcs://replit-rams-assets-picard/rams/assets/repl:10568a97-c1ca-4404-b0f1-6a360d301b91/85f06d51-a165-4b04-b998-f41bb354ba2c/884f2476-6f43-48a6-a543-7597aefa7a10"
+storage_version_token = "1794764384950862"
+content_type = "image/jpeg"
