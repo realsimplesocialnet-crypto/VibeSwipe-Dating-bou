@@ -54,6 +54,8 @@ export function DiscoverSwipePage() {
   const [notice, setNotice] = useState("");
   const [likeConfirmation, setLikeConfirmation] = useState("");
   const [lastPass, setLastPass] = useState<string | null>(null);
+  const [swipeMotion, setSwipeMotion] = useState<"pass" | "like" | "super" | null>(null);
+  const swipeLock = useRef(false);
   const [matchResult, setMatchResult] = useState<{ profile: Profile; matchId: string | null } | null>(null);
   const myProfile = useGetMyProfile();
   const filterValues: DiscoveryFilters = appliedFilters ?? {
@@ -62,6 +64,7 @@ export function DiscoverSwipePage() {
     gender: undefined, country: null, state: null, city: "", includePassed: false,
   };
   function applyFilters(value: DiscoveryFilters) {
+    if (swipeLock.current) return;
     setAppliedFilters(value);
     setFiltersOpen(false);
   }
@@ -129,17 +132,23 @@ export function DiscoverSwipePage() {
   }, [profile?.id]);
 
   async function swipe(type: "pass" | "like" | "super") {
-    if (!profile || reaction.isPending || likeConfirmation || matchResult) return;
+    if (!profile || swipeLock.current || reaction.isPending || likeConfirmation || matchResult) return;
     if (type === "like" && likes.data?.remaining === 0) {
       setNotice("You’ve reached your daily like limit. Come back in 24 hours.");
       return;
     }
     const current = profile;
     if (noticeTimer.current !== null) window.clearTimeout(noticeTimer.current);
-    setIndex((value) => value + 1);
+    swipeLock.current = true;
+    setSwipeMotion(type);
     setNotice("");
     try {
-      const result = await reaction.mutateAsync({ data: { toUserId: current.id, type } });
+      const duration = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 220;
+      const [result] = await Promise.all([
+        reaction.mutateAsync({ data: { toUserId: current.id, type } }),
+        new Promise<void>(resolve => window.setTimeout(resolve, duration)),
+      ]);
+      setIndex((value) => value + 1);
       setLastPass(type === "pass" ? current.id : null);
       if (type === "like") void queryClient.invalidateQueries({ queryKey: getGetDailyLikeStatusQueryKey() });
       if (type === "super") void queryClient.invalidateQueries({ queryKey: getGetSuperLikeStatusQueryKey() });
@@ -155,17 +164,20 @@ export function DiscoverSwipePage() {
       }
     } catch (error) {
       if ((error as { status?: number }).status === 404) {
+        setIndex((value) => value + 1);
         setNotice("This profile is no longer available. Finding someone new.");
         void discover.refetch();
         return;
       }
-      setIndex((value) => Math.max(0, value - 1));
       setNotice("That swipe did not save. Try again.");
+    } finally {
+      setSwipeMotion(null);
+      swipeLock.current = false;
     }
   }
 
   async function undoLastSwipe() {
-    if (!lastPass || undo.isPending) return;
+    if (!lastPass || undo.isPending || swipeLock.current) return;
     try {
       const result = await undo.mutateAsync();
       if (result.undone && result.targetUserId === lastPass) {
@@ -254,7 +266,10 @@ export function DiscoverSwipePage() {
 
       <div className="discover-card-slot" data-testid="discover-card-slot">
       <article
-        className="relative isolate mx-auto flex aspect-[4/5] w-full max-w-[560px] flex-col overflow-hidden rounded-[30px] border border-white/10 bg-[#17141b] shadow-xl touch-pan-y"
+        key={profile.id}
+        data-swipe={swipeMotion ?? "idle"}
+        aria-busy={!!swipeMotion}
+        className="relative isolate flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden rounded-[30px] border border-white/10 bg-[#17141b] shadow-xl"
         onTouchStart={(event) => { touchStart.current = { x: event.touches[0].clientX, y: event.touches[0].clientY }; }}
         onTouchEnd={(event) => {
           const start = touchStart.current;
@@ -269,11 +284,11 @@ export function DiscoverSwipePage() {
           touchStart.current = null;
         }}
         onClick={() => {
-          if (suppressCardOpen.current) return;
+          if (suppressCardOpen.current || swipeLock.current) return;
            setLocation(`/profile/${profile.id}?returnTo=%2Fdiscover`);
         }}
         onKeyDown={(event) => {
-          if (event.target === event.currentTarget && (event.key === "Enter" || event.key === " ")) {
+          if (!swipeLock.current && event.target === event.currentTarget && (event.key === "Enter" || event.key === " ")) {
             event.preventDefault();
              setLocation(`/profile/${profile.id}?returnTo=%2Fdiscover`);
           }
@@ -289,15 +304,15 @@ export function DiscoverSwipePage() {
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#130f16] via-[#17121a]/10 to-[#17121a]/10" />
           <button type="button" onClick={(event) => { event.stopPropagation(); setOptionsOpen(true); }} data-testid="button-profile-details" aria-label={`Profile options for ${profile.name}`} className="absolute right-4 top-4 z-[2] rounded-full border border-white/20 bg-black/40 p-2.5 text-white backdrop-blur"><MoreHorizontal size={19} /></button>
           <div className="pointer-events-none absolute inset-x-5 bottom-5">
-            <div className="flex items-end gap-2"><h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">{profile.name}<VerifiedBadge verified={profile.isVerified}/></h2>{profile.age !== null && <span className="pb-0.5 text-xl text-white/80 sm:text-2xl">{profile.age}</span>}</div>
-            <div className="mt-2 flex items-center gap-1.5 text-sm text-white/80"><MapPin size={14} />{[profile.city, profile.state, profile.country].filter(Boolean).join(", ") || "Nearby"}</div>
+            <div className="flex min-w-0 items-end justify-between gap-3"><h2 className="min-w-0 break-words text-3xl font-bold leading-tight tracking-tight text-white sm:text-4xl">{profile.name}<VerifiedBadge verified={profile.isVerified}/></h2>{profile.age !== null && <span className="shrink-0 pb-0.5 text-xl text-white/80 sm:text-2xl">{profile.age}</span>}</div>
+            <div className="mt-2 flex min-w-0 items-center gap-1.5 text-sm text-white/80"><MapPin size={14} className="shrink-0" /><span className="truncate">{[profile.city, profile.state, profile.country].filter(Boolean).join(", ") || "Nearby"}</span></div>
             {!!profile.interests?.length && <div className="mt-3 flex flex-wrap gap-2"><span className="rounded-full border border-white/20 bg-black/25 px-3 py-1 text-xs text-white backdrop-blur">{profile.interests[0]}</span></div>}
           </div>
         </div>
 
       </article>
       </div>
-        <div className="discover-actions flex items-center justify-center gap-5 px-4 py-5">
+        <div className="discover-actions flex items-center justify-center" aria-label="Profile actions" aria-busy={!!swipeMotion}>
           <button type="button" onClick={(event) => { event.stopPropagation(); void swipe("pass"); }} disabled={reaction.isPending || !!likeConfirmation || !!matchResult} data-testid="button-pass-profile" aria-label="Pass" className="flex h-14 w-14 items-center justify-center rounded-full bg-card text-foreground shadow-lg disabled:opacity-40"><X size={27} /></button>
           <button type="button" onClick={(event) => { event.stopPropagation(); void undoLastSwipe(); }} disabled={!lastPass || undo.isPending} data-testid="button-undo-pass" aria-label="Undo last pass" className="flex h-10 w-10 items-center justify-center rounded-full bg-card text-muted-foreground shadow-sm disabled:opacity-40"><ArrowLeft size={18} /></button>
           <button type="button" onClick={(event) => { event.stopPropagation(); void swipe("super"); }} disabled={reaction.isPending || !!likeConfirmation || !!matchResult || superLikes.data?.remaining === 0} data-testid="button-super-like" aria-label={`Super like, ${superLikes.data?.remaining??"unknown"} left`} className="flex h-14 w-14 items-center justify-center rounded-full bg-card text-amber-400 shadow-lg disabled:opacity-40"><Star size={29} fill="currentColor"/></button>
