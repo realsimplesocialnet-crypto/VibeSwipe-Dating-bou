@@ -311,6 +311,7 @@ html[data-theme="light"] .profile-edit { --pe-bg:345 80% 96%; --pe-card:345 100%
 /* Compact messenger conversation */
 .app-shell > header { padding-top: calc(.75rem + env(safe-area-inset-top, 0px)); }
 .app-shell:not(.discover-shell):not(.profile-shell) { padding-top:env(safe-area-inset-top,0px); }
+.app-shell:not(.discover-shell):not(.profile-shell):has(.settings-frame) { padding-top:0; }
 .chat-surface > header { padding-top: calc(.5rem + env(safe-area-inset-top, 0px)); }
 .chat-surface .chat-wallpaper { background: hsl(var(--chat-soft) / .55); }
 .chat-surface.chat-dark .chat-wallpaper { background: hsl(var(--chat-bg)); }

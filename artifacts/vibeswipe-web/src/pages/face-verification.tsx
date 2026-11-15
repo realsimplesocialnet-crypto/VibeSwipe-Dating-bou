@@ -8,6 +8,7 @@ import {
 } from '@workspace/api-client-react';
 import { userErrorMessage } from '@/lib/user-errors';
 import { PROFILE_PHOTO_ACCEPT, photoUploadCanRetry, prepareProfilePhoto, uploadProfilePhotoBytes } from '@/lib/profile-photo-upload';
+import { settingsBackTarget } from '@/lib/settings-navigation';
 
 type Phase = 'intro' | 'opening' | 'live' | 'submitting' | 'failed' | 'awaiting';
 type Choice = { reference: string; source: 'gallery' | 'upload'; preview?: string };
@@ -80,6 +81,7 @@ const tips = [
 ];
 
 export default function FaceVerificationPage() {
+  const backTo = settingsBackTarget(new URLSearchParams(window.location.search).get('returnTo'), '/verify-profile', window.location.origin);
   const qc = useQueryClient();
   const profile = useGetMyProfile();
   const [awaitingLocal, setAwaitingLocal] = useState(false);
@@ -237,7 +239,7 @@ export default function FaceVerificationPage() {
   return <div className="page-in min-h-[100dvh] bg-[radial-gradient(120%_60%_at_50%_0%,hsl(var(--accent)),hsl(var(--background))_65%)] text-foreground">
     <div className="mx-auto flex min-h-[100dvh] max-w-lg flex-col px-5 pb-[max(env(safe-area-inset-bottom),24px)] pt-5">
       <header className="mb-6 grid grid-cols-[44px_1fr_44px] items-center">
-        <Link href="/settings" onClick={release} aria-label="Back to settings" data-testid="link-verify-back" className="flex h-11 w-11 items-center justify-center rounded-full bg-card text-primary ring-1 ring-border transition-transform hover:-translate-x-0.5"><ArrowLeft size={19}/></Link>
+        <Link href={backTo} replace onClick={release} aria-label="Back to settings" data-testid="link-verify-back" className="flex h-11 w-11 items-center justify-center rounded-full bg-card text-primary ring-1 ring-border transition-transform hover:-translate-x-0.5"><ArrowLeft size={19}/></Link>
         <h1 className="brand text-center text-xl font-extrabold">Face verification</h1><span/>
       </header>
 
@@ -248,7 +250,7 @@ export default function FaceVerificationPage() {
           <div className="-mt-5 flex h-11 w-11 items-center justify-center rounded-full bg-primary text-primary-foreground ring-4 ring-background"><BadgeCheck size={22}/></div>
           <h2 className="brand mt-5 text-3xl font-extrabold">You’re verified</h2>
           <p className="mt-2 max-w-xs text-sm leading-6 text-muted-foreground">Your face checks passed. Your verified main photo and blue badge are visible to other members. This does not verify your legal identity.</p>
-          <Link href="/settings" data-testid="link-verify-done" className="mt-8 w-full rounded-full bg-primary py-4 text-center font-bold text-primary-foreground">Done</Link>
+          <Link href={backTo} replace data-testid="link-verify-done" className="mt-8 w-full rounded-full bg-primary py-4 text-center font-bold text-primary-foreground">Done</Link>
         </section>
       : !s?.available ? <div role="status" className="rounded-3xl border border-border bg-card p-6 text-center text-sm text-muted-foreground"><ShieldCheck className="mx-auto mb-3 text-primary"/>Face verification isn’t available right now. Please check back later.</div>
       : awaiting ? <section className="page-in flex flex-1 flex-col items-center justify-center text-center" role="status" data-testid="state-awaiting-review">
@@ -264,7 +266,7 @@ export default function FaceVerificationPage() {
           {error && <p role="alert" className="mt-4 text-sm text-destructive">{error}</p>}
           <button type="button" disabled={finalize.isPending} onClick={() => void finishCheckedPhoto()} className="mt-6 w-full rounded-full bg-primary py-4 font-bold text-primary-foreground disabled:opacity-50" data-testid="button-finish-verification">{finalize.isPending ? 'Checking your photos…' : 'Finish verification'}</button>
           {error && <button type="button" onClick={() => { setStartAgain(true); setPhase('intro'); }} className="mt-3 text-sm font-semibold text-primary">Choose another photo</button>}
-          <Link href="/settings" data-testid="link-verify-leave" className="mt-3 text-sm font-semibold text-primary">Back to settings</Link>
+          <Link href={backTo} replace data-testid="link-verify-leave" className="mt-3 text-sm font-semibold text-primary">Back to settings</Link>
         </section>
       : (phase === 'live' || phase === 'opening') ? <section className="flex flex-1 flex-col" aria-label="Camera">
           <div className="relative mx-auto aspect-[3/4] w-full overflow-hidden rounded-[32px] bg-[#120f15] ring-1 ring-border">

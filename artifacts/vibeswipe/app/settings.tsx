@@ -4,6 +4,7 @@ import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import {
   Alert,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -26,8 +27,10 @@ import { useTheme } from "@/hooks/useTheme";
 import { PushNotificationSettings } from "@/components/PushNotificationSettings";
 import { DiscoveryLocationSettings } from "@/components/DiscoveryLocationSettings";
 import { QuickmavoShopMenuItem } from "@/components/QuickmavoShopMenuItem";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function SettingsScreen() {
+  const insets = useSafeAreaInsets();
   const colors = useColors();
   const { signOut } = useAuth();
   const [loggingOut, setLoggingOut] = useState(false);
@@ -140,9 +143,9 @@ export default function SettingsScreen() {
   }
 
   return (
-    <ScrollView keyboardShouldPersistTaps="handled" style={{ backgroundColor: colors.background }} contentContainerStyle={styles.scrollContent}>
+    <ScrollView keyboardShouldPersistTaps="handled" style={{ backgroundColor: colors.background }} contentContainerStyle={[styles.scrollContent, { paddingTop: (Platform.OS === "web" ? 67 : insets.top) + 12, paddingBottom: Math.max(insets.bottom, 16) + 24 }]}>
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.back}>
+        <Pressable onPress={() => router.canGoBack() ? router.back() : router.replace("/(tabs)/profile")} accessibilityRole="button" accessibilityLabel="Back to profile" testID="button-settings-back" style={styles.back}>
           <Feather name="arrow-left" size={20} color={colors.foreground} />
         </Pressable>
         <Text style={[styles.title, { color: colors.foreground }]}>Settings</Text>
@@ -342,9 +345,9 @@ export default function SettingsScreen() {
 }
 
 const styles = StyleSheet.create({
-  scrollContent: { flexGrow: 1, padding: 20, paddingTop: 58, paddingBottom: 60 },
+  scrollContent: { flexGrow: 1, padding: 20 },
   header: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 26 },
-  back: { width: 36, height: 40, justifyContent: "center" },
+  back: { width: 44, height: 44, justifyContent: "center" },
   title: { fontSize: 25, fontWeight: "700" },
   section: { borderWidth: 1, borderRadius: 18, padding: 15, marginBottom: 20 },
   row: { flexDirection: "row", alignItems: "center", gap: 11 },

@@ -16,6 +16,7 @@ import { TravelModeSettings } from "@/components/travel-mode-settings";
 import { DiscoveryLocationSettings } from "@/components/settings/discovery-location-settings";
 import { WebPushSettings } from "@/components/WebPushSettings";
 import { QuickmavoShopMenuItem } from "@/components/settings/quickmavo-shop";
+import { settingsBackTarget } from "@/lib/settings-navigation";
 
 type FullSettings = VibeSwipeSettings & {
   showAge: boolean;
@@ -46,17 +47,6 @@ const settingDefaults: FullSettings = {
   deactivated: false, travelMode: false, travelCity: null,
 };
 
-function safeReturnPath(value: string | null, fallback: string) {
-  if (!value || value.startsWith("//")) return fallback;
-  try {
-    const resolved = new URL(value, window.location.origin);
-    if (resolved.origin !== window.location.origin) return fallback;
-    return `${resolved.pathname}${resolved.search}${resolved.hash}`;
-  } catch {
-    return fallback;
-  }
-}
-
 export function SettingsIndexPage() {
   const [location] = useLocation();
   const { signOut } = useClerk();
@@ -73,16 +63,16 @@ export function SettingsIndexPage() {
       setLoggingOut(false);
     }
   }
-  const returnTo = safeReturnPath(new URLSearchParams(window.location.search).get("returnTo"), "/profile");
+  const returnTo = settingsBackTarget(new URLSearchParams(window.location.search).get("returnTo"), location, window.location.origin);
   const currentPath = `${location}${window.location.search}${window.location.hash}`;
   return <SettingsFrame>
-    <Link href={returnTo} data-testid="link-settings-back-profile" className="mb-7 inline-flex items-center gap-2 rounded-lg text-sm font-semibold text-muted-foreground transition-colors hover:text-foreground"><ArrowLeft size={17}/>Back</Link>
+    <Link href={returnTo} replace data-testid="link-settings-back-profile" className="mb-5 inline-flex min-h-11 min-w-11 items-center gap-2 rounded-lg px-2 text-sm font-semibold text-muted-foreground transition-colors hover:text-foreground"><ArrowLeft size={19}/>Back</Link>
     <div className="mb-8">
       <p className="text-[10px] font-bold uppercase tracking-[.2em] text-primary">Your comfort</p>
       <h1 className="brand mt-2 text-3xl font-bold tracking-[-.05em] md:text-[2.6rem]">Settings</h1>
     </div>
     <nav aria-label="Settings sections" className="max-w-2xl divide-y divide-white/[.07] border-y border-white/[.07]">
-      <Link href="/verify-profile" data-testid="link-settings-face-verification" className="flex min-h-[64px] items-center gap-4 py-4 text-[15px] font-semibold hover:text-primary">
+      <Link href={`/verify-profile?returnTo=${encodeURIComponent(currentPath)}`} data-testid="link-settings-face-verification" className="flex min-h-[64px] items-center gap-4 py-4 text-[15px] font-semibold hover:text-primary">
         <SettingIcon><ShieldCheck size={18}/></SettingIcon><span className="flex-1">Face verification<span className="mt-1 block text-xs font-normal text-muted-foreground">Confirm your profile photo and get a verified badge</span></span><ChevronRight size={18}/>
       </Link>
       {sections.map(({ id, label, icon: Icon }) => <Link key={id} href={`/settings/${id}?returnTo=${encodeURIComponent(currentPath)}`} data-testid={`link-settings-${id}`} className="group flex min-h-[64px] items-center gap-4 py-4 text-[15px] font-semibold transition-colors hover:text-primary">
@@ -104,16 +94,16 @@ export function SettingsIndexPage() {
 export function SettingsSectionPage() {
   const { section = "" } = useParams<{ section: string }>();
   const [location] = useLocation();
-  const backTo = safeReturnPath(new URLSearchParams(window.location.search).get("returnTo"), "/settings");
+  const backTo = settingsBackTarget(new URLSearchParams(window.location.search).get("returnTo"), location, window.location.origin);
   const editReturnTo = `${location}${window.location.search}${window.location.hash}`;
   const selected = sections.find((item) => item.id === section);
   const query = useGetVibeSwipeSettings({ query: { queryKey: getGetVibeSwipeSettingsQueryKey() } });
-  if (!selected) return <SettingsFrame><Link href={backTo} className="inline-flex items-center gap-2 text-sm text-muted-foreground"><ArrowLeft size={17}/>Back</Link><p className="mt-8">This settings section isn’t available.</p></SettingsFrame>;
+  if (!selected) return <SettingsFrame><Link href={backTo} replace className="inline-flex min-h-11 items-center gap-2 text-sm text-muted-foreground"><ArrowLeft size={17}/>Back</Link><p className="mt-8">This settings section isn’t available.</p></SettingsFrame>;
   const saved = { ...settingDefaults, ...(query.data as Partial<FullSettings> | undefined) };
   if (section === "notifications") return <div className="-mx-0 min-h-[calc(100dvh-66px)] bg-[#fdeef2] text-[#2b1d24] dark:bg-transparent dark:text-foreground"><SettingsFrame>
     <div className="mx-auto max-w-xl">
       <div className="mb-6 grid grid-cols-[44px_1fr_44px] items-center">
-        <Link href={backTo} aria-label="Back" data-testid="link-settings-back" className="flex h-11 w-11 items-center justify-center rounded-full bg-[#fffafb] text-[#e0507f] shadow-[0_6px_18px_-8px_rgba(224,80,127,.45)] transition-transform hover:-translate-x-0.5 dark:bg-white/[.06] dark:text-primary dark:shadow-none"><ArrowLeft size={19}/></Link>
+        <Link href={backTo} replace aria-label="Back" data-testid="link-settings-back" className="flex h-11 w-11 items-center justify-center rounded-full bg-[#fffafb] text-[#e0507f] shadow-[0_6px_18px_-8px_rgba(224,80,127,.45)] transition-transform hover:-translate-x-0.5 dark:bg-white/[.06] dark:text-primary dark:shadow-none"><ArrowLeft size={19}/></Link>
         <h1 className="text-center text-2xl font-bold tracking-[-.03em] text-[#e0507f] dark:text-primary md:text-[1.8rem]">Notification settings</h1>
         <span/>
       </div>
@@ -124,7 +114,7 @@ export function SettingsSectionPage() {
     </div>
   </SettingsFrame></div>;
   return <SettingsFrame>
-    <Link href={backTo} data-testid="link-settings-back" className="mb-7 inline-flex items-center gap-2 rounded-lg text-sm font-semibold text-muted-foreground transition-colors hover:text-foreground"><ArrowLeft size={17}/>Back</Link>
+    <Link href={backTo} replace data-testid="link-settings-back" className="mb-5 inline-flex min-h-11 min-w-11 items-center gap-2 rounded-lg px-2 text-sm font-semibold text-muted-foreground transition-colors hover:text-foreground"><ArrowLeft size={19}/>Back</Link>
     <header className="mb-7">
       <p className="text-[10px] font-bold uppercase tracking-[.2em] text-primary">Settings</p>
       <h1 className="brand mt-2 text-3xl font-bold tracking-[-.05em] md:text-[2.6rem]">{selected.label}</h1>
@@ -136,7 +126,7 @@ export function SettingsSectionPage() {
 }
 
 function SettingsFrame({ children }: { children: ReactNode }) {
-  return <div className="page-in mx-auto min-h-[calc(100dvh-66px)] max-w-[1200px] px-4 py-7 md:px-8 md:py-10">{children}</div>;
+  return <div className="settings-frame page-in mx-auto min-h-[100dvh] max-w-[1200px] px-4 pb-[max(env(safe-area-inset-bottom),28px)] pt-[calc(env(safe-area-inset-top,0px)+16px)] md:px-8">{children}</div>;
 }
 
 function SectionContent({ section, settings, editReturnTo }: { section: string; settings: FullSettings; editReturnTo: string }) {
