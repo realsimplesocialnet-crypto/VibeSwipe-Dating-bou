@@ -3,6 +3,7 @@ import { logger } from "./lib/logger";
 import { cleanupAbandonedProfileMedia } from "./lib/profileMediaCleanup";
 import { cleanupExpiredStories } from "./lib/vibeswipeStories";
 import { ensureAdminSchema } from "./lib/admin-schema";
+import { cleanupAdminMediaDeletions } from "./lib/adminMediaCleanup";
 
 const rawPort = process.env["PORT"];
 
@@ -23,9 +24,10 @@ const runProfileMediaCleanup = async (): Promise<void> => {
   if (cleanupRunning) return;
   cleanupRunning = true;
   try {
-    const [abandonedMediaDeleted, expiredStoriesDeleted] = await Promise.all([
+    const [abandonedMediaDeleted, expiredStoriesDeleted, adminMediaDeleted] = await Promise.all([
       cleanupAbandonedProfileMedia(),
       cleanupExpiredStories(),
+      cleanupAdminMediaDeletions(),
     ]);
     if (abandonedMediaDeleted > 0) {
       logger.info(
@@ -38,6 +40,9 @@ const runProfileMediaCleanup = async (): Promise<void> => {
         { deleted: expiredStoriesDeleted },
         "Removed expired stories",
       );
+    }
+    if (adminMediaDeleted > 0) {
+      logger.info({ deleted: adminMediaDeleted }, "Removed media queued by account moderation");
     }
   } catch (err) {
     logger.error({ err }, "Failed to clean up abandoned profile media uploads");

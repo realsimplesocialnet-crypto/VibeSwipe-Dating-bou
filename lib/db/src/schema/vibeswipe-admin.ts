@@ -11,5 +11,11 @@ export const adminAuditTable = pgTable("vibeswipe_admin_audit", {
 // No FK: private-object cleanup must survive deletion of its owning account/chat.
 export const adminMediaDeletionTable = pgTable("vibeswipe_admin_media_deletions", {
   objectPath: text("object_path").primaryKey(),
+  mediaId: uuid("media_id"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const adminDeletedUsersTable = pgTable("vibeswipe_admin_deleted_users", {
+  userId: text("user_id").primaryKey(),
+  deletedAt: timestamp("deleted_at", { withTimezone: true }).notNull().defaultNow(),
 });

@@ -13,6 +13,9 @@ export async function ensureAdminSchema(): Promise<void> {
       action text NOT NULL, target_id text NOT NULL, created_at timestamptz NOT NULL DEFAULT now())`);
     await client.query(`CREATE TABLE IF NOT EXISTS vibeswipe_admin_media_deletions (
       object_path text PRIMARY KEY, created_at timestamptz NOT NULL DEFAULT now())`);
+    await client.query("ALTER TABLE vibeswipe_admin_media_deletions ADD COLUMN IF NOT EXISTS media_id uuid");
+    await client.query(`CREATE TABLE IF NOT EXISTS vibeswipe_admin_deleted_users (
+      user_id text PRIMARY KEY, deleted_at timestamptz NOT NULL DEFAULT now())`);
     await client.query("CREATE INDEX IF NOT EXISTS vibeswipe_admin_audit_created_idx ON vibeswipe_admin_audit(created_at DESC)");
     await client.query("COMMIT");
   } catch (error) {

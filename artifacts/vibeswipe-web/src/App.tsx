@@ -30,6 +30,7 @@ import {
   Shield, SlidersHorizontal, Mars, Venus, NonBinary, Briefcase, Pencil, Camera, Sparkles, Star, UserRound, Users, Volume2, X, Zap, Flag, Ban, Images, Coffee, CupSoda, Music, ImageIcon, MessageCircleMore,
 } from 'lucide-react';
 import NotFound from '@/pages/not-found';
+import AdminPage from '@/pages/admin';
 import SafetyCenterPage from '@/pages/safety-center';
 import CommunityGuidelinesPage from '@/pages/community-guidelines';
 import PrivacyPolicyPage from '@/pages/privacy-policy';
@@ -840,6 +841,7 @@ function ClerkCacheSync(){const {user}=useUser();const client=useQueryClient();c
 function ClerkRoutes(){const [,setLocation]=useLocation();return <ClerkProvider publishableKey={clerkPubKey} proxyUrl={clerkProxyUrl} appearance={appearance} signInUrl={pathFor('/sign-in')} signUpUrl={pathFor('/sign-up')} localization={{signIn:{start:{title:'Welcome back',subtitle:'Your next good conversation is waiting.'}},signUp:{start:{title:'Make room for a spark',subtitle:'Create your adults-only Myage account.'}}}} routerPush={to=>setLocation(to.startsWith(basePath)?to.slice(basePath.length)||'/':to)} routerReplace={to=>setLocation(to.startsWith(basePath)?to.slice(basePath.length)||'/':to,{replace:true})}><ClerkCacheSync/><SettingsThemeSync/><Switch>
   <Route path="/" component={HomeRedirect}/>
   <Route path="/welcome" component={WelcomeRoute}/>
+  <Route path="/admin" component={AdminPage}/><Route path="/admin/:section" component={AdminPage}/>
   <Route path="/sign-in/*?"><div className="grain flex min-h-[100dvh] flex-col items-center justify-center bg-background px-4 py-10"><div className="fixed left-6 top-6"><Brand/></div><SignIn routing="path" path={pathFor('/sign-in')} signUpUrl={pathFor('/sign-up')}/><p className="mt-5 text-center text-xs text-muted-foreground"><Link href="/privacy-policy" className="hover:text-primary">Privacy Policy</Link><span className="px-2">·</span><Link href="/terms" className="hover:text-primary">Terms of Service</Link></p></div></Route>
   <Route path="/sign-up/*?" component={BrandedSignUp}/>
   {import.meta.env.DEV&&<Route path="/create-account-preview"><div className="border-b border-primary/20 bg-accent px-5 py-3 text-center text-xs leading-5 text-foreground" role="note">Form preview only. Email-code signup still needs the authentication setting changed.</div><ProfileFirstSignup previewOnly/></Route>}
@@ -849,5 +851,6 @@ function ClerkRoutes(){const [,setLocation]=useLocation();return <ClerkProvider 
    <Route path="/safety-center" component={SafetyCenterRoute}/><Route path="/report-safety" component={ReportSafetyRoute}/><Route path="/safety/location" component={PublicLocationShareRoute}/>
   <Route path="/profile" component={ProfileRoute}/><Route path="/profile/edit" component={ProfileEditRoute}/><Route path="/profile/:profileId/from-notifications" component={ViewedNotificationProfileRoute}/><Route path="/profile/:profileId" component={PublicProfileRoute}/><Route path="/settings" component={SettingsRoute}/><Route path="/settings/:section" component={SettingsSectionRoute}/><Route component={NotFound}/>
 </Switch></ClerkProvider>}
-function App(){if(!clerkPubKey)throw new Error('Missing VITE_CLERK_PUBLISHABLE_KEY');return <QueryClientProvider client={queryClient}><ConnectionNotice/><WouterRouter base={basePath}><MobileInstallBanner/><ClerkRoutes/></WouterRouter></QueryClientProvider>}
+function ConsumerInstallBanner(){const [location]=useLocation();return location.startsWith('/admin')?null:<MobileInstallBanner/>}
+function App(){if(!clerkPubKey)throw new Error('Missing VITE_CLERK_PUBLISHABLE_KEY');return <QueryClientProvider client={queryClient}><ConnectionNotice/><WouterRouter base={basePath}><ConsumerInstallBanner/><ClerkRoutes/></WouterRouter></QueryClientProvider>}
 export default App;
