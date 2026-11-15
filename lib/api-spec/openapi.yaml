@@ -168,6 +168,71 @@ paths:
                 $ref: "#/components/schemas/Profile"
         "400":
           description: Invalid profile
+  /vibeswipe/verification:
+    get:
+      operationId: getFaceVerificationStatus
+      tags: [vibeswipe]
+      summary: Get the signed-in member's face verification status
+      responses:
+        "200":
+          description: Availability and current badge
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FaceVerificationStatus"
+        "401": { description: Sign in required }
+        "404": { description: Complete your profile first }
+  /vibeswipe/verification/sessions:
+    post:
+      operationId: startFaceVerification
+      tags: [vibeswipe]
+      summary: Consent to processing and start a short-lived, photo-bound verification session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FaceVerificationConsent"
+      responses:
+        "201":
+          description: Capture a fresh camera selfie before the session expires
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FaceVerificationSession"
+        "400": { description: Explicit consent and a main profile photo are required }
+        "401": { description: Sign in required }
+        "409": { description: Account is unavailable or already verified }
+        "429": { description: Too many attempts; try again later }
+        "503": { description: Verification is not configured }
+  /vibeswipe/verification/sessions/{sessionId}:
+    post:
+      operationId: completeFaceVerification
+      tags: [vibeswipe]
+      summary: Submit a fresh camera JPEG; only the server can award the verified badge
+      parameters:
+        - in: path
+          name: sessionId
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          image/jpeg:
+            schema: { type: string, format: binary }
+      responses:
+        "200":
+          description: Liveness and profile-photo matching passed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FaceVerificationResult"
+        "400": { description: A valid JPEG of up to 5 MiB is required }
+        "401": { description: Sign in required }
+        "409": { description: "Session is expired, already used, or the profile photo changed" }
+        "413": { description: Selfie is too large }
+        "422": { description: Liveness or face matching failed; take a new selfie }
+        "503": { description: The verification service could not complete the check }
   /vibeswipe/discover:
     get:
       operationId: getDiscoverProfiles
@@ -1337,6 +1402,29 @@ components:
         discoveryLocation:
           $ref: "#/components/schemas/DiscoveryLocationPreference"
       required: [ageMin, ageMax, gender, distanceKm]
+    FaceVerificationConsent:
+      type: object
+      required: [consent]
+      properties:
+        consent: { type: boolean }
+    FaceVerificationStatus:
+      type: object
+      required: [available, verified, hasPhoto]
+      properties:
+        available: { type: boolean }
+        verified: { type: boolean }
+        hasPhoto: { type: boolean }
+    FaceVerificationSession:
+      type: object
+      required: [sessionId, expiresAt]
+      properties:
+        sessionId: { type: string, format: uuid }
+        expiresAt: { type: string, format: date-time }
+    FaceVerificationResult:
+      type: object
+      required: [verified]
+      properties:
+        verified: { type: boolean }
     Profile:
       type: object
       properties:
@@ -1362,6 +1450,9 @@ components:
         videoUrl:
           type: [string, "null"]
         isDemo: { type: boolean }
+        isVerified:
+          type: boolean
+          description: Public verification badge; never writable through profile input.
         superLikedYou: { type: boolean }
         discoveryExpanded:
           type: boolean

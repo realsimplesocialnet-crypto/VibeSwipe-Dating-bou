@@ -242,6 +242,7 @@ export default function PublicProfileScreen() {
           </Pressable>
           <Text testID="public-profile-name" style={[styles.name, { color: colors.foreground }]}>
             {user.name}{showAge ? <Text style={{ color: colors.profileMuted, fontWeight: "600" }}>, {user.age}</Text> : null}
+            {user.isVerified && <Feather name="check-circle" size={21} color="#2997e8" accessibilityLabel="Verified profile"/>}
           </Text>
           <View style={styles.locationRow}>
             <Feather name="map-pin" size={14} color={colors.profileEdit} />

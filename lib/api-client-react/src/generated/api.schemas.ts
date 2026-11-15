@@ -213,6 +213,25 @@ export interface ProfilePreferences {
   discoveryLocation?: DiscoveryLocationPreference;
 }
 
+export interface FaceVerificationConsent {
+  consent: boolean;
+}
+
+export interface FaceVerificationStatus {
+  available: boolean;
+  verified: boolean;
+  hasPhoto: boolean;
+}
+
+export interface FaceVerificationSession {
+  sessionId: string;
+  expiresAt: string;
+}
+
+export interface FaceVerificationResult {
+  verified: boolean;
+}
+
 export interface Profile {
   id: string;
   name: string;
@@ -235,6 +254,8 @@ export interface Profile {
   /** @nullable */
   videoUrl?: string | null;
   isDemo: boolean;
+  /** Public verification badge; never writable through profile input. */
+  isVerified?: boolean;
   superLikedYou?: boolean;
   /** The default discovery batch includes members outside the home country because the eligible local pool is below the minimum. */
   discoveryExpanded?: boolean;

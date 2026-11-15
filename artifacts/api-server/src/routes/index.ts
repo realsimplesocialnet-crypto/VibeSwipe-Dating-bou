@@ -8,6 +8,7 @@ import vibeswipeRouter from "./vibeswipe";
 import vibeswipeAdminRouter from "./vibeswipe-admin";
 import vibeswipeSafetyRouter from "./vibeswipe-safety";
 import vibeswipeStoriesRouter from "./vibeswipe-stories";
+import vibeswipeVerificationRouter from "./vibeswipe-verification";
 
 const router: IRouter = Router();
 
@@ -16,6 +17,7 @@ router.use(onboardingArtRouter);
 router.use(vibeswipeAdminRouter);
 router.use(vibeswipeSafetyRouter);
 router.use(vibeswipeStoriesRouter);
+router.use(vibeswipeVerificationRouter);
 router.use(vibeswipeRouter);
 router.use(vibeswipeRealtimeRouter);
 router.use(vibeswipeProfileViewsRouter);

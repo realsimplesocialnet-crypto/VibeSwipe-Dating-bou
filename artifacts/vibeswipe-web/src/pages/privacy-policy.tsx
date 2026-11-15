@@ -3,6 +3,10 @@ import { Link } from "wouter";
 
 const sections = [
   {
+    title: "Optional face verification",
+    body: "If you choose face verification and consent, your live camera selfie and current main profile photo are sent to Luxand.cloud for liveness detection and face matching. Myage does not save the selfie, facial templates, or biometric scores. Short-lived attempt records help prevent abuse. Luxand processes the images under its own privacy terms. A successful check gives your profile a public verified badge; it is not proof of legal identity. Changing your main photo requires verification again. You can continue using the app without this optional check.",
+  },
+  {
     title: "Information Myage collects",
     body: "Myage stores the account and profile information you provide, including your name, age, gender, dating preferences, biography, interests, work, profile photos, and registered city, state, and country. When you use the service, it also processes likes, matches, profile views, messages and attachments, online status, and safety actions such as blocks and reports. Emergency contacts and temporary live-location details are processed only if you choose those Safety Center features.",
   },

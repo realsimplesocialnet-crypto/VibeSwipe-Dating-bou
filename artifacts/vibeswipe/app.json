@@ -24,6 +24,13 @@
         }
       ],
       "expo-notifications",
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "Allow Myage to take a live selfie for face verification.",
+          "photosPermission": "Allow Myage to choose your profile photos."
+        }
+      ],
       "expo-secure-store",
       "expo-web-browser",
       "expo-video",

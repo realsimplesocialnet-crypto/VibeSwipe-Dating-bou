@@ -588,7 +588,11 @@ router.put("/vibeswipe/me", async (req, res): Promise<void> => {
       .values(values)
       .onConflictDoUpdate({
         target: profilesTable.id,
-        set: values,
+        set: {
+          ...values,
+          // A badge confirms ownership of the main photo, not arbitrary future photos.
+          ...(existingProfile?.photos[0] !== body.photos[0] ? { isVerified: false } : {}),
+        },
       })
       .returning();
     if (!profile) return { invalidMedia: false as const, profile: null };

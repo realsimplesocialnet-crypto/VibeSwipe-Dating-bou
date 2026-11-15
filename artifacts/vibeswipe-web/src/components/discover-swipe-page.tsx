@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { discoveryFilterParams, type DiscoveryFilters } from "@/lib/discovery-filters";
 import { DiscoveryFilterForm } from "@/components/discovery-filter-form";
+import { VerifiedBadge } from "@/components/verified-badge";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link, Redirect, useLocation } from "wouter";
 import {
@@ -288,7 +289,7 @@ export function DiscoverSwipePage() {
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#130f16] via-[#17121a]/10 to-[#17121a]/10" />
           <button type="button" onClick={(event) => { event.stopPropagation(); setOptionsOpen(true); }} data-testid="button-profile-details" aria-label={`Profile options for ${profile.name}`} className="absolute right-4 top-4 z-[2] rounded-full border border-white/20 bg-black/40 p-2.5 text-white backdrop-blur"><MoreHorizontal size={19} /></button>
           <div className="pointer-events-none absolute inset-x-5 bottom-5">
-            <div className="flex items-end gap-2"><h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">{profile.name}</h2>{profile.age !== null && <span className="pb-0.5 text-xl text-white/80 sm:text-2xl">{profile.age}</span>}</div>
+            <div className="flex items-end gap-2"><h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">{profile.name}<VerifiedBadge verified={profile.isVerified}/></h2>{profile.age !== null && <span className="pb-0.5 text-xl text-white/80 sm:text-2xl">{profile.age}</span>}</div>
             <div className="mt-2 flex items-center gap-1.5 text-sm text-white/80"><MapPin size={14} />{[profile.city, profile.state, profile.country].filter(Boolean).join(", ") || "Nearby"}</div>
             {!!profile.interests?.length && <div className="mt-3 flex flex-wrap gap-2"><span className="rounded-full border border-white/20 bg-black/25 px-3 py-1 text-xs text-white backdrop-blur">{profile.interests[0]}</span></div>}
           </div>

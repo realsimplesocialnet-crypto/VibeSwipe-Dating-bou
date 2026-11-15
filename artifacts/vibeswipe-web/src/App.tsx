@@ -36,6 +36,8 @@ import CommunityGuidelinesPage from '@/pages/community-guidelines';
 import PrivacyPolicyPage from '@/pages/privacy-policy';
 import ReportSafetyPage from '@/pages/report-safety';
 import PublicLocationSharePage from '@/pages/public-location-share';
+import FaceVerificationPage from '@/pages/face-verification';
+import { VerifiedBadge } from '@/components/verified-badge';
 import { InstallAction, MobileInstallBanner } from '@/components/install-action';
 import { InstalledWelcome } from '@/components/installed-welcome';
 import { DiscoverSwipePage } from '@/components/discover-swipe-page';
@@ -614,7 +616,7 @@ function OwnProfileOverview({profile,travelCity}:{profile:Profile;travelCity?:st
     <div className="flex shrink-0 items-center justify-between"><h2 data-testid="text-my-profile-heading" className="op-title">My Profile</h2><Link href="/settings?returnTo=%2Fprofile" data-testid="link-profile-settings" aria-label="Settings" className="op-ghost inline-flex items-center gap-2 rounded-full px-3.5 py-2 text-sm font-semibold transition-transform active:scale-95"><Settings size={16}/>Settings</Link></div>
     <section className="op-card flex shrink-0 flex-col items-center rounded-[26px] px-4 py-[clamp(10px,2dvh,22px)] text-center">
       <div className="op-portrait op-avatar overflow-hidden rounded-full">{profile.photos?.[0]&&!broken?<MediaImage reference={profile.photos[0]} onError={()=>setBroken(true)} className="h-full w-full object-cover" alt={`${profile.name}'s profile photo`}/>:<span className="flex h-full items-center justify-center text-4xl font-bold text-primary">{profile.name?.slice(0,1)?.toUpperCase()}</span>}</div>
-      <h1 data-testid="text-profile-name" title={profile.name} className="brand mt-2 max-w-full truncate text-[clamp(22px,3.4dvh,30px)] font-extrabold leading-tight tracking-[-.03em]">{profile.name}{profile.age!==null?`, ${profile.age}`:''}</h1>
+      <h1 data-testid="text-profile-name" title={profile.name} className="brand mt-2 max-w-full truncate text-[clamp(22px,3.4dvh,30px)] font-extrabold leading-tight tracking-[-.03em]">{profile.name}{profile.age!==null?`, ${profile.age}`:''}<VerifiedBadge verified={profile.isVerified}/></h1>
       {place&&<p data-testid="text-profile-city" title={place} className="op-muted max-w-full truncate text-[14px]">{place}</p>}
       {(profile.gender||travelCity)&&<div className="mt-1 flex max-w-full items-center justify-center gap-2 text-[13px]">{profile.gender&&<span data-testid="text-profile-gender" className="op-muted inline-flex items-center gap-1.5"><GenderIcon size={15} aria-hidden="true"/>{profile.gender}</span>}{travelCity&&<span className="inline-flex min-w-0 items-center gap-1 truncate rounded-full bg-primary/12 px-2.5 py-0.5 text-xs font-semibold text-primary" data-testid="badge-travel" title={`Traveling in ${travelCity}`}><Navigation size={12}/>Traveling in {travelCity}</span>}</div>}
       <Link href="/profile/edit?returnTo=%2Fprofile" data-testid="button-edit-profile" className="op-edit mt-[clamp(8px,1.6dvh,16px)] flex h-[clamp(40px,6dvh,50px)] w-full max-w-[280px] items-center justify-center gap-2 rounded-full text-[16px] font-bold transition-transform active:scale-[.98]"><Pencil size={16}/>Edit profile</Link>
@@ -709,7 +711,7 @@ function PublicProfile({id,actionReturnTo='/discover'}:{id:string;actionReturnTo
     <button type="button" disabled={!photos.length} onClick={()=>setViewer(0)} aria-label={`Open ${profile.name}'s main photo`} data-testid="button-public-profile-avatar" className="pp-avatar">
      {photos.length&&!photoError?<MediaImage reference={photos[0]} alt={`${profile.name}'s main photo`} onError={()=>setPhotoError(true)} className="h-full w-full rounded-full object-cover"/>:<span className="brand text-5xl font-bold">{profile.name.trim().slice(0,1).toUpperCase()}</span>}
     </button>
-    <h1 data-testid="text-public-profile-name" className="mt-4 break-words text-[1.75rem] font-extrabold leading-tight tracking-[-.02em]">{profile.name}{profile.showAge&&profile.age!==null&&<span className="font-semibold text-[hsl(var(--pp-muted))]">, {profile.age}</span>}</h1>
+    <h1 data-testid="text-public-profile-name" className="mt-4 break-words text-[1.75rem] font-extrabold leading-tight tracking-[-.02em]">{profile.name}{profile.showAge&&profile.age!==null&&<span className="font-semibold text-[hsl(var(--pp-muted))]">, {profile.age}</span>}<VerifiedBadge verified={profile.isVerified}/></h1>
     <p data-testid="text-public-profile-location" className="mt-1 flex items-center gap-1.5 text-[14px] text-[hsl(var(--pp-muted))]"><MapPin size={15} className="shrink-0 text-[hsl(var(--pp-pink))]"/>{headerLocation||'Location not shared'}</p>
    </header>
    <section className="pp-card mt-7 divide-y divide-[hsl(var(--pp-line))] !py-1" data-testid="section-facts">
@@ -806,6 +808,7 @@ function OnboardingRoute(){return <Gate><div className="onboarding-video-form mi
 function ProfileRoute(){return <ShellPage><ProfilePage mode="view"/></ShellPage>}
 function ProfileEditRoute(){const requested=new URLSearchParams(window.location.search).get('returnTo');const returnTo=safeAppReturnPath(requested,'/profile');return <ShellPage><ProfilePage mode="edit" returnTo={returnTo}/></ShellPage>}
 function SettingsRoute(){return <ShellPage><SettingsIndexPage/></ShellPage>}
+function FaceVerificationRoute(){return <ShellPage><FaceVerificationPage/></ShellPage>}
 function SettingsSectionRoute(){return <ShellPage><SettingsSectionPage/></ShellPage>}
 function SafetyCenterRoute(){return <ShellPage><SafetyCenterPage/></ShellPage>}
 function CommunityGuidelinesRoute(){return <CommunityGuidelinesPage/>}
@@ -853,7 +856,7 @@ function ClerkRoutes(){const [,setLocation]=useLocation();return <ClerkProvider 
   <Route path="/chat/:matchId" component={ChatRoute}/><Route path="/views" component={ViewsRoute}/><Route path="/likes" component={LikesRoute}/><Route path="/messages" component={MessagesRoute}/><Route path="/notifications" component={NotificationsRoute}/>
    <Route path="/privacy-policy" component={PrivacyPolicyRoute}/><Route path="/terms" component={CommunityGuidelinesRoute}/><Route path="/community-guidelines" component={CommunityGuidelinesRoute}/>
    <Route path="/safety-center" component={SafetyCenterRoute}/><Route path="/report-safety" component={ReportSafetyRoute}/><Route path="/safety/location" component={PublicLocationShareRoute}/>
-  <Route path="/profile" component={ProfileRoute}/><Route path="/profile/edit" component={ProfileEditRoute}/><Route path="/profile/:profileId/from-notifications" component={ViewedNotificationProfileRoute}/><Route path="/profile/:profileId" component={PublicProfileRoute}/><Route path="/settings" component={SettingsRoute}/><Route path="/settings/:section" component={SettingsSectionRoute}/><Route component={NotFound}/>
+  <Route path="/profile" component={ProfileRoute}/><Route path="/profile/edit" component={ProfileEditRoute}/><Route path="/profile/:profileId/from-notifications" component={ViewedNotificationProfileRoute}/><Route path="/profile/:profileId" component={PublicProfileRoute}/><Route path="/verify-profile" component={FaceVerificationRoute}/><Route path="/settings" component={SettingsRoute}/><Route path="/settings/:section" component={SettingsSectionRoute}/><Route component={NotFound}/>
 </Switch></ClerkProvider>}
 function ConsumerInstallBanner(){const [location]=useLocation();return location.startsWith('/admin')?null:<MobileInstallBanner/>}
 function App(){if(!clerkPubKey)throw new Error('Missing VITE_CLERK_PUBLISHABLE_KEY');return <QueryClientProvider client={queryClient}><ConnectionNotice/><WouterRouter base={basePath}><ConsumerInstallBanner/><ClerkRoutes/></WouterRouter></QueryClientProvider>}

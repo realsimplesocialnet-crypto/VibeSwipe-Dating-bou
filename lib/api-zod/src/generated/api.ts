@@ -280,6 +280,7 @@ export const GetMyProfileResponse = zod.object({
   "photos": zod.array(zod.string()),
   "videoUrl": zod.string().nullish(),
   "isDemo": zod.boolean(),
+  "isVerified": zod.boolean().optional().describe('Public verification badge; never writable through profile input.'),
   "superLikedYou": zod.boolean().optional(),
   "discoveryExpanded": zod.boolean().optional().describe('The default discovery batch includes members outside the home country because the eligible local pool is below the minimum.'),
   "preferences": zod.object({
@@ -415,6 +416,7 @@ export const SaveMyProfileResponse = zod.object({
   "photos": zod.array(zod.string()),
   "videoUrl": zod.string().nullish(),
   "isDemo": zod.boolean(),
+  "isVerified": zod.boolean().optional().describe('Public verification badge; never writable through profile input.'),
   "superLikedYou": zod.boolean().optional(),
   "discoveryExpanded": zod.boolean().optional().describe('The default discovery batch includes members outside the home country because the eligible local pool is below the minimum.'),
   "preferences": zod.object({
@@ -430,6 +432,41 @@ export const SaveMyProfileResponse = zod.object({
   "radiusKm": zod.number().int().min(1).max(saveMyProfileResponsePreferencesDiscoveryLocationRadiusKmMax).nullable()
 }).optional()
 })
+})
+
+
+/**
+ * @summary Get the signed-in member's face verification status
+ */
+export const GetFaceVerificationStatusResponse = zod.object({
+  "available": zod.boolean(),
+  "verified": zod.boolean(),
+  "hasPhoto": zod.boolean()
+})
+
+
+/**
+ * @summary Consent to processing and start a short-lived, photo-bound verification session
+ */
+export const StartFaceVerificationBody = zod.object({
+  "consent": zod.boolean()
+})
+
+export const StartFaceVerificationResponse = zod.object({
+  "sessionId": zod.string().uuid(),
+  "expiresAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Submit a fresh camera JPEG; only the server can award the verified badge
+ */
+export const CompleteFaceVerificationParams = zod.object({
+  "sessionId": zod.coerce.string().uuid()
+})
+
+export const CompleteFaceVerificationResponse = zod.object({
+  "verified": zod.boolean()
 })
 
 
@@ -490,6 +527,7 @@ export const GetDiscoverProfilesResponseItem = zod.object({
   "photos": zod.array(zod.string()),
   "videoUrl": zod.string().nullish(),
   "isDemo": zod.boolean(),
+  "isVerified": zod.boolean().optional().describe('Public verification badge; never writable through profile input.'),
   "superLikedYou": zod.boolean().optional(),
   "discoveryExpanded": zod.boolean().optional().describe('The default discovery batch includes members outside the home country because the eligible local pool is below the minimum.'),
   "preferences": zod.object({
@@ -898,6 +936,7 @@ export const GetMatchesResponseItem = zod.object({
   "photos": zod.array(zod.string()),
   "videoUrl": zod.string().nullish(),
   "isDemo": zod.boolean(),
+  "isVerified": zod.boolean().optional().describe('Public verification badge; never writable through profile input.'),
   "superLikedYou": zod.boolean().optional(),
   "discoveryExpanded": zod.boolean().optional().describe('The default discovery batch includes members outside the home country because the eligible local pool is below the minimum.'),
   "preferences": zod.object({
@@ -1219,6 +1258,7 @@ export const GetWhoLikedYouResponseItem = zod.object({
   "photos": zod.array(zod.string()),
   "videoUrl": zod.string().nullish(),
   "isDemo": zod.boolean(),
+  "isVerified": zod.boolean().optional().describe('Public verification badge; never writable through profile input.'),
   "superLikedYou": zod.boolean().optional(),
   "discoveryExpanded": zod.boolean().optional().describe('The default discovery batch includes members outside the home country because the eligible local pool is below the minimum.'),
   "preferences": zod.object({
@@ -1281,6 +1321,7 @@ export const GetWhoViewedYouResponseItem = zod.object({
   "photos": zod.array(zod.string()),
   "videoUrl": zod.string().nullish(),
   "isDemo": zod.boolean(),
+  "isVerified": zod.boolean().optional().describe('Public verification badge; never writable through profile input.'),
   "superLikedYou": zod.boolean().optional(),
   "discoveryExpanded": zod.boolean().optional().describe('The default discovery batch includes members outside the home country because the eligible local pool is below the minimum.'),
   "preferences": zod.object({
@@ -1353,6 +1394,7 @@ export const GetNotificationsResponse = zod.object({
   "photos": zod.array(zod.string()),
   "videoUrl": zod.string().nullish(),
   "isDemo": zod.boolean(),
+  "isVerified": zod.boolean().optional().describe('Public verification badge; never writable through profile input.'),
   "superLikedYou": zod.boolean().optional(),
   "discoveryExpanded": zod.boolean().optional().describe('The default discovery batch includes members outside the home country because the eligible local pool is below the minimum.'),
   "preferences": zod.object({
@@ -1533,6 +1575,7 @@ export const GetProfileByIdResponse = zod.object({
   "photos": zod.array(zod.string()),
   "videoUrl": zod.string().nullish(),
   "isDemo": zod.boolean(),
+  "isVerified": zod.boolean().optional().describe('Public verification badge; never writable through profile input.'),
   "superLikedYou": zod.boolean().optional(),
   "discoveryExpanded": zod.boolean().optional().describe('The default discovery batch includes members outside the home country because the eligible local pool is below the minimum.'),
   "preferences": zod.object({
@@ -1591,6 +1634,7 @@ export const GetBlockedProfilesResponseItem = zod.object({
   "photos": zod.array(zod.string()),
   "videoUrl": zod.string().nullish(),
   "isDemo": zod.boolean(),
+  "isVerified": zod.boolean().optional().describe('Public verification badge; never writable through profile input.'),
   "superLikedYou": zod.boolean().optional(),
   "discoveryExpanded": zod.boolean().optional().describe('The default discovery batch includes members outside the home country because the eligible local pool is below the minimum.'),
   "preferences": zod.object({

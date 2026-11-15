@@ -4,6 +4,7 @@ import { Image, StyleSheet, Text, View } from "react-native";
 import type { Profile } from "@workspace/api-client-react";
 import { profileImageSource } from "@/lib/media";
 import { useColors } from "@/hooks/useColors";
+import { Feather } from "@expo/vector-icons";
 
 export function ProfileAvatar({
   profile,
@@ -34,6 +35,7 @@ export function ProfileAvatar({
           {profile.name.slice(0, 1).toUpperCase()}
         </Text>
       )}
+      {profile.isVerified && <View accessibilityLabel="Verified profile" style={{ position: "absolute", bottom: size * 0.14, right: size * 0.14, backgroundColor: "white", borderRadius: 20, padding: 1 }}><Feather name="check-circle" size={Math.max(12, size * 0.2)} color="#2997e8"/></View>}
     </View>
   );
 }

@@ -325,6 +325,9 @@ export default function SettingsScreen() {
           <Feather name="chevron-right" size={18} color={colors.mutedForeground} />
         </View>
       </Pressable>
+      <Pressable accessibilityRole="button" accessibilityLabel="Face verification" onPress={() => router.push("/verify-profile")} style={{ padding: 18, borderRadius: 18, backgroundColor: colors.card, flexDirection: "row", alignItems: "center", gap: 12 }}>
+        <Feather name="check-circle" size={23} color={colors.primary}/><Text style={{ color: colors.foreground, fontWeight: "700" }}>Face verification</Text><Feather name="chevron-right" size={19} color={colors.primary}/>
+      </Pressable>
       <QuickmavoShopMenuItem />
       <Pressable onPress={() => void logout()} disabled={loggingOut}
         testID="button-settings-log-out" accessibilityRole="button"

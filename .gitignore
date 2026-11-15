@@ -51,6 +51,7 @@ Thumbs.db
 .github/instructions/nx.instructions.md
 
 # Replit
+/generated-artifacts/
 .cache/
 .local/
 /attached_assets/generated_images/

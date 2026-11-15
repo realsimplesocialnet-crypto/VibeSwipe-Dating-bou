@@ -29,6 +29,8 @@ export interface Profile {
   /** @nullable */
   videoUrl?: string | null;
   isDemo: boolean;
+  /** Public verification badge; never writable through profile input. */
+  isVerified?: boolean;
   superLikedYou?: boolean;
   /** The default discovery batch includes members outside the home country because the eligible local pool is below the minimum. */
   discoveryExpanded?: boolean;

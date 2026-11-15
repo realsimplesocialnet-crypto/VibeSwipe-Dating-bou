@@ -161,6 +161,24 @@ export class ObjectStorageService {
     await objectFile.delete({ ignoreNotFound: true });
   }
 
+  /** Seal the checked main-photo bytes away from any previously issued upload URL. */
+  async storeVerifiedProfilePhoto(bytes: Buffer, owner: string, contentType: string): Promise<string> {
+    const objectPath = `/objects/verified-profile/${randomUUID()}`;
+    const file = this.getObjectEntityFileHandle(objectPath);
+    try {
+      await file.save(bytes, {
+        resumable: false,
+        contentType,
+        preconditionOpts: { ifGenerationMatch: 0 },
+      });
+      await setObjectAclPolicy(file, { owner, visibility: 'private' });
+      return objectPath;
+    } catch (error) {
+      await file.delete({ ignoreNotFound: true }).catch(() => undefined);
+      throw error;
+    }
+  }
+
   private getObjectEntityFileHandle(objectPath: string): File {
     if (!objectPath.startsWith('/objects/')) {
       throw new ObjectNotFoundError();
