@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { MessageMediaType } from './messageMediaType';
+import type { MessageStoryReply } from './messageStoryReply';
 
 export interface Message {
   id: string;
@@ -27,4 +28,5 @@ export interface Message {
   mediaDuration?: number | null;
   deletedForEveryone: boolean;
   isRead: boolean;
+  storyReply?: MessageStoryReply | null;
 }

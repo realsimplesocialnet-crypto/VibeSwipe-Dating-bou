@@ -191,6 +191,8 @@ export const messagesTable = pgTable("vibeswipe_messages", {
   mediaReference: text("media_reference"),
   mediaType: text("media_type"),
   mediaDuration: integer("media_duration"),
+  // Server-verified story reply context; no FK so expired story cleanup is unaffected.
+  storyReplyId: uuid("story_reply_id"),
   deletedForEveryone: boolean("deleted_for_everyone").notNull().default(false),
   deletedAt: timestamp("deleted_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true })

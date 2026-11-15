@@ -252,3 +252,14 @@ html[data-theme="light"] .profile-edit { --pe-bg:345 80% 96%; --pe-card:345 100%
 .profile-edit .pe-save:not(:disabled):active { transform:scale(.98); }
 .profile-edit .pe-save:disabled { opacity:.6; }
 .profile-edit .pe-error { max-width:528px; width:100%; border-radius:14px; background:hsl(var(--pe-card)); color:hsl(352 70% 50%); padding:8px 14px; font-size:13px; font-weight:600; text-align:center; box-shadow:0 6px 18px hsl(var(--pe-shadow) / .12); }
+/* Compact messenger conversation */
+.app-shell > header { padding-top: calc(.75rem + env(safe-area-inset-top, 0px)); }
+.chat-surface > header { padding-top: calc(.5rem + env(safe-area-inset-top, 0px)); }
+.chat-surface .chat-wallpaper { background: hsl(var(--chat-soft) / .55); }
+.chat-surface.chat-dark .chat-wallpaper { background: hsl(var(--chat-bg)); }
+.voice-seek { appearance:none; -webkit-appearance:none; background:transparent; }
+.voice-seek::-webkit-slider-runnable-track { height:3px; border-radius:3px; background:linear-gradient(to right, currentColor var(--voice-progress,0%), color-mix(in srgb, currentColor 28%, transparent) var(--voice-progress,0%)); }
+.voice-seek::-moz-range-track { height:3px; border-radius:3px; background:color-mix(in srgb, currentColor 28%, transparent); }
+.voice-seek::-moz-range-progress { height:3px; border-radius:3px; background:currentColor; }
+.voice-seek::-webkit-slider-thumb { -webkit-appearance:none; margin-top:-5.5px; height:14px; width:14px; border-radius:999px; background:currentColor; border:0; }
+.voice-seek::-moz-range-thumb { height:14px; width:14px; border-radius:999px; background:currentColor; border:0; }

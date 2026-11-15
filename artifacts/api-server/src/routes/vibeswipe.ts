@@ -26,6 +26,7 @@ import {
   GetMessagesResponse,
   GetMyProfileResponse,
   GetProfileMediaParams,
+  GetMediaPreviewParams,
   CheckAdditionalProfilePhotoParams,
   CheckAdditionalProfilePhotoResponse,
   GetTypingStatusParams,
@@ -107,6 +108,7 @@ import {
   ObjectStorageService,
 } from "../lib/objectStorage";
 import { removeUnreferencedProfileMedia } from "../lib/profileMediaCleanup";
+import { evictMediaPreview, getMediaPreview, PreviewBusyError, PreviewUnreadableError } from "../lib/mediaPreview";
 import { removedProfilePhotoMediaIds } from "../lib/profileMediaReferences";
 import {
   MAX_PROFILE_VIDEO_SOURCE_BYTES,
@@ -224,7 +226,15 @@ async function handleChatEvent(event: ChatEvent): Promise<void> {
       ),
     )
     .limit(1);
-  if (message) writeMessageToStreams(event.matchId, projectMessage(message));
+  if (message) {
+    if (message.storyReplyId) {
+      const [match] = await db.select({ userAId: matchesTable.userAId, userBId: matchesTable.userBId })
+        .from(matchesTable).where(eq(matchesTable.id, event.matchId)).limit(1);
+      if (match) writeMessageToStreams(event.matchId, (await attachStoryReplies([projectMessage(message)], match))[0]);
+    } else {
+      writeMessageToStreams(event.matchId, projectMessage(message));
+    }
+  }
 }
 
 function parseChatEvent(payload: string | undefined): ChatEvent | null {
@@ -331,7 +341,38 @@ function projectMessage(
     mediaDuration: deleted ? null : row.mediaDuration,
     deletedForEveryone: deleted,
     isRead,
+    storyReply: !deleted && row.storyReplyId
+      ? { storyId: row.storyReplyId, storyOwnerId: "", available: false, mediaReference: null, mediaType: null, backgroundColor: null }
+      : null,
   };
+}
+
+/** Fill story reply context from the server's story rows; media only while the story is still active. */
+async function attachStoryReplies(messages: Message[], match: { userAId: string; userBId: string }): Promise<Message[]> {
+  const ids = [...new Set(messages.map(message => message.storyReply?.storyId).filter((id): id is string => Boolean(id)))];
+  if (!ids.length) return messages;
+  const stories = await db.select().from(storiesTable).where(inArray(storiesTable.id, ids));
+  const byId = new Map(stories.map(story => [story.id, story]));
+  const now = Date.now();
+  return messages.map(message => {
+    if (!message.storyReply) return message;
+    const story = byId.get(message.storyReply.storyId);
+    if (!story || (story.userId !== match.userAId && story.userId !== match.userBId)) {
+      return { ...message, storyReply: { ...message.storyReply, storyOwnerId: message.senderId === match.userAId ? match.userBId : match.userAId } };
+    }
+    const active = story.expiresAt.getTime() > now;
+    return {
+      ...message,
+      storyReply: {
+        storyId: story.id,
+        storyOwnerId: story.userId,
+        available: active,
+        mediaReference: active ? story.mediaUrl : null,
+        mediaType: active ? (story.mediaType as "image" | "video" | null) : null,
+        backgroundColor: active ? story.backgroundColor : null,
+      },
+    };
+  });
 }
 
 async function seedDemoProfiles(): Promise<void> {
@@ -1582,20 +1623,17 @@ router.get(
         ),
       )
       .limit(1);
-    res.json(
-      GetMessagesResponse.parse(
-        messages
-          .filter((message) => !hiddenIds.has(message.id))
-          .map((message) =>
-            projectMessage(
-              message,
-              message.senderId === userId &&
-                !!readReceipt?.readAt &&
-                message.createdAt <= readReceipt.readAt,
-            ),
-          ),
-      ),
-    );
+    const projected = messages
+      .filter((message) => !hiddenIds.has(message.id))
+      .map((message) =>
+        projectMessage(
+          message,
+          message.senderId === userId &&
+            !!readReceipt?.readAt &&
+            message.createdAt <= readReceipt.readAt,
+        ),
+      );
+    res.json(GetMessagesResponse.parse(await attachStoryReplies(projected, match)));
   },
 );
 
@@ -1725,9 +1763,9 @@ router.get(
     messageStreams.replay(
       match.id,
       res,
-      missedMessages
+      await attachStoryReplies(missedMessages
         .filter((message) => !hiddenIds.has(message.id))
-        .map((message) => projectMessage(message)),
+        .map((message) => projectMessage(message)), match),
     );
     if (res.destroyed || res.writableEnded) cleanup();
   },
@@ -1767,6 +1805,20 @@ router.post(
     if (body.data.mediaDuration !== undefined && mediaType !== "audio") {
       res.status(400).json({ error: "Only audio attachments have a duration." });
       return;
+    }
+    let storyReplyId: string | null = null;
+    if (body.data.storyId) {
+      const partnerId = match.userAId === userId ? match.userBId : match.userAId;
+      const [story] = await db
+        .select({ id: storiesTable.id, userId: storiesTable.userId, expiresAt: storiesTable.expiresAt })
+        .from(storiesTable)
+        .where(eq(storiesTable.id, body.data.storyId))
+        .limit(1);
+      if (!story || story.userId !== partnerId || story.expiresAt.getTime() <= Date.now()) {
+        res.status(403).json({ error: "This story is no longer available to reply to." });
+        return;
+      }
+      storyReplyId = story.id;
     }
     if (mediaReference) {
       const mediaId = /^media:([0-9a-f-]{36})$/i.exec(mediaReference)?.[1];
@@ -1815,6 +1867,7 @@ router.post(
           mediaReference: mediaReference ?? null,
           mediaType: mediaType ?? null,
           mediaDuration: body.data.mediaDuration ?? null,
+          storyReplyId,
         })
         .returning();
       await tx
@@ -1831,7 +1884,7 @@ router.post(
       return { message: createdMessage, created: true };
     });
     if (!created) {
-      res.status(201).json(SendMessageResponse.parse(projectMessage(message)));
+      res.status(201).json(SendMessageResponse.parse((await attachStoryReplies([projectMessage(message)], match))[0]));
       return;
     }
     await saveMatchUserState(match.id, userId, { typingUntil: null });
@@ -1876,7 +1929,7 @@ router.post(
         );
       });
     }
-    res.status(201).json(SendMessageResponse.parse(projectMessage(message)));
+    res.status(201).json(SendMessageResponse.parse((await attachStoryReplies([projectMessage(message)], match))[0]));
   },
 );
 
@@ -2429,24 +2482,11 @@ router.post(
   },
 );
 
-router.get(
-  "/vibeswipe/media/:mediaId",
-  async (req: Request, res: Response): Promise<void> => {
-    const params = GetProfileMediaParams.safeParse(req.params);
-    if (!params.success) {
-      res.status(400).json({ error: "Invalid media reference." });
-      return;
-    }
-    const userId = currentUserId(req);
-    const [asset] = await db
-      .select()
-      .from(mediaAssetsTable)
-      .where(eq(mediaAssetsTable.id, params.data.mediaId))
-      .limit(1);
-    if (!asset) {
-      res.status(404).json({ error: "Media not found." });
-      return;
-    }
+/** Shared read authorization for an original and its preview (match, block, deletion, story expiry). */
+async function authorizeMediaRead(
+  userId: string,
+  asset: typeof mediaAssetsTable.$inferSelect,
+): Promise<{ ok: true; privateMedia: boolean } | { ok: false; error: string }> {
     const [activeStory] = await db
       .select({ userId: storiesTable.userId })
       .from(storiesTable)
@@ -2471,8 +2511,7 @@ router.get(
     if (asset.matchId) {
       const match = await getMatchForUser(asset.matchId, userId);
       if (!match || (await isBlockedBetween(match.userAId, match.userBId))) {
-        res.status(403).json({ error: "Chat media is unavailable to this account." });
-        return;
+        return { ok: false, error: "Chat media is unavailable to this account." };
       }
       if (asset.ownerId !== userId) {
         const [referencingMessage] = await db
@@ -2487,8 +2526,7 @@ router.get(
           )
           .limit(1);
         if (!referencingMessage) {
-          res.status(403).json({ error: "Chat media is not attached to a message." });
-          return;
+          return { ok: false, error: "Chat media is not attached to a message." };
         }
       }
     } else if (asset.ownerId !== userId && !storyVisible && !(await canViewReelMedia(userId, asset.id))) {
@@ -2501,16 +2539,98 @@ router.get(
         ownerProfile?.photos.includes(`media:${asset.id}`) ||
         ownerProfile?.videoUrl === `media:${asset.id}`;
       if (!referenced || (await isBlockedBetween(userId, asset.ownerId))) {
-        res.status(403).json({ error: "Media is not visible to this account." });
+        return { ok: false, error: "Media is not visible to this account." };
+      }
+    }
+  return { ok: true, privateMedia: Boolean(activeStory || asset.matchId) };
+}
+
+router.get(
+  "/vibeswipe/media/:mediaId/preview",
+  async (req: Request, res: Response): Promise<void> => {
+    const params = GetMediaPreviewParams.safeParse(req.params);
+    if (!params.success) {
+      res.status(400).json({ error: "Invalid media reference." });
+      return;
+    }
+    const userId = currentUserId(req);
+    const [asset] = await db
+      .select()
+      .from(mediaAssetsTable)
+      .where(eq(mediaAssetsTable.id, params.data.mediaId))
+      .limit(1);
+    if (!asset) {
+      evictMediaPreview(params.data.mediaId);
+      res.status(404).json({ error: "Media not found." });
+      return;
+    }
+    const access = await authorizeMediaRead(userId, asset);
+    if (!access.ok) {
+      res.status(403).json({ error: access.error });
+      return;
+    }
+    if (asset.mediaType !== "image" && asset.mediaType !== "video") {
+      res.status(415).json({ error: "This media has no visual preview." });
+      return;
+    }
+    try {
+      const file = await objectStorage.getObjectEntityFile(asset.objectPath);
+      const bytes = await getMediaPreview(asset.id, asset.mediaType, () => file.createReadStream());
+      res.setHeader("Content-Type", "image/jpeg");
+      res.setHeader("Content-Length", String(bytes.length));
+      // Private: the browser may keep it for this session, shared caches may not.
+      res.setHeader("Cache-Control", "private, max-age=600");
+      res.status(200).end(bytes);
+    } catch (error) {
+      if (error instanceof ObjectNotFoundError) {
+        evictMediaPreview(asset.id);
+        res.status(404).json({ error: "Media has not finished uploading." });
         return;
       }
+      if (error instanceof PreviewBusyError) {
+        res.setHeader("Retry-After", "3");
+        res.status(503).json({ error: "Previews are busy. Try again shortly." });
+        return;
+      }
+      if (error instanceof PreviewUnreadableError) {
+        res.status(422).json({ error: "This media could not be previewed." });
+        return;
+      }
+      req.log.error({ err: error }, "Failed to build media preview");
+      res.status(500).json({ error: "Could not build media preview." });
+    }
+  },
+);
+
+router.get(
+  "/vibeswipe/media/:mediaId",
+  async (req: Request, res: Response): Promise<void> => {
+    const params = GetProfileMediaParams.safeParse(req.params);
+    if (!params.success) {
+      res.status(400).json({ error: "Invalid media reference." });
+      return;
+    }
+    const userId = currentUserId(req);
+    const [asset] = await db
+      .select()
+      .from(mediaAssetsTable)
+      .where(eq(mediaAssetsTable.id, params.data.mediaId))
+      .limit(1);
+    if (!asset) {
+      res.status(404).json({ error: "Media not found." });
+      return;
+    }
+    const access = await authorizeMediaRead(userId, asset);
+    if (!access.ok) {
+      res.status(403).json({ error: access.error });
+      return;
     }
     try {
       const file = await objectStorage.getObjectEntityFile(asset.objectPath);
       const response = await objectStorage.downloadObject(file, 300, req.get("range"));
       res.status(response.status);
       response.headers.forEach((value, key) => res.setHeader(key, value));
-      if (activeStory || asset.matchId) res.setHeader("Cache-Control", "private, no-store");
+      if (access.privateMedia) res.setHeader("Cache-Control", "private, no-store");
       if (response.body) {
         const stream = Readable.fromWeb(response.body as ReadableStream<Uint8Array>);
         res.on("close", () => stream.destroy());

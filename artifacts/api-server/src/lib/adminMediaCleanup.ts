@@ -1,3 +1,4 @@
+import { evictMediaPreview } from "./mediaPreview";
 import {
   adminMediaDeletionTable,
   db,
@@ -36,6 +37,7 @@ export async function cleanupAdminMediaDeletions(): Promise<number> {
       if (remainingMessages.length) continue;
     }
     await storage.deleteObjectEntity(queued.objectPath);
+    if (mediaId) evictMediaPreview(mediaId);
     await db.delete(mediaAssetsTable).where(eq(mediaAssetsTable.objectPath, queued.objectPath));
     await db.delete(adminMediaDeletionTable).where(eq(adminMediaDeletionTable.objectPath, queued.objectPath));
     deleted += 1;

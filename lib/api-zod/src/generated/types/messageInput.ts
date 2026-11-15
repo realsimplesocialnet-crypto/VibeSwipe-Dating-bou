@@ -8,6 +8,8 @@
 import type { MessageInputMediaType } from './messageInputMediaType';
 
 export interface MessageInput {
+  /** Reply to this active story by the other match participant */
+  storyId?: string;
   /**
      * @minLength 1
      * @maxLength 2000

@@ -13,21 +13,21 @@
 .reel-flash { position: absolute; left: 50%; top: 50%; z-index: 3; display: flex; height: 76px; width: 76px; align-items: center; justify-content: center; border-radius: 999px; background: rgb(0 0 0 / .45); transform: translate(-50%, -50%); animation: reel-flash .52s ease-out forwards; pointer-events: none; }
 @keyframes reel-flash { from { opacity: 1; transform: translate(-50%, -50%) scale(.8); } to { opacity: 0; transform: translate(-50%, -50%) scale(1.15); } }
 .reel-blocked { position: absolute; left: 50%; top: 50%; z-index: 4; display: flex; max-width: 80%; flex-direction: column; align-items: center; gap: 10px; border-radius: 22px; background: rgb(12 10 15 / .78); padding: 16px 20px; text-align: center; font-size: 14px; font-weight: 600; transform: translate(-50%, -50%); backdrop-filter: blur(10px); }
-.reel-rail { position: absolute; right: 10px; bottom: 132px; z-index: 2; display: flex; flex-direction: column; align-items: center; gap: 18px; }
-.reel-rail.is-compact { bottom: 18px; gap: 10px; }
+.reel-rail { position: absolute; right: 10px; bottom: calc(env(safe-area-inset-bottom) + 132px); z-index: 2; display: flex; flex-direction: column; align-items: center; gap: 18px; }
+.reel-rail.is-compact { bottom: calc(env(safe-area-inset-bottom) + 18px); gap: 10px; }
 .reel-rail button { display: flex; flex-direction: column; align-items: center; gap: 3px; min-width: 44px; color: #fff; font-size: 12px; font-weight: 600; filter: drop-shadow(0 1px 3px rgb(0 0 0 / .5)); transition: transform .15s; }
 .reel-rail button:active { transform: scale(.88); }
 .reel-rail button.is-on { color: hsl(var(--primary)); }
 .reel-rail button.is-saved { color: #fff; }
-.reel-meta { position: absolute; left: 16px; right: 74px; bottom: 34px; z-index: 2; }
-.reel-meta.is-compact { bottom: 14px; }
+.reel-meta { position: absolute; left: 16px; right: 74px; bottom: calc(env(safe-area-inset-bottom) + 34px); z-index: 2; }
+.reel-meta.is-compact { bottom: calc(env(safe-area-inset-bottom) + 14px); }
 .reel-name { display: flex; align-items: center; gap: 4px; font-size: 21px; font-weight: 800; letter-spacing: -.01em; line-height: 1.1; }
 .reel-age { font-weight: 500; font-size: 17px; color: rgb(255 255 255 / .85); }
 .reel-location { margin-top: 5px; display: flex; align-items: center; gap: 5px; font-size: 13px; color: rgb(255 255 255 / .85); }
 .reel-caption { margin-top: 12px; font-size: 14px; line-height: 1.45; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 .reel-hint { margin-top: 18px; font-size: 13px; color: rgb(255 255 255 / .8); }
 .reel-pill { display: inline-flex; align-items: center; justify-content: center; border: 1.5px solid hsl(var(--primary)); border-radius: 12px; padding: 7px 16px; font-size: 14px; font-weight: 600; color: hsl(var(--primary)); background: rgb(12 10 15 / .3); position: relative; z-index: 2; }
-.reel-progress { position: absolute; left: 16px; right: 16px; bottom: 14px; z-index: 2; height: 3px; border-radius: 3px; background: rgb(255 255 255 / .22); overflow: hidden; }
+.reel-progress { position: absolute; left: 16px; right: 16px; bottom: calc(env(safe-area-inset-bottom) + 14px); z-index: 2; height: 3px; border-radius: 3px; background: rgb(255 255 255 / .22); overflow: hidden; }
 .reel-progress > div { height: 100%; background: hsl(var(--primary)); transform-origin: left; transform: scaleX(0); transition: transform .25s linear; }
 .reel-avatar { flex: none; display: inline-flex; align-items: center; justify-content: center; overflow: hidden; border-radius: 999px; border: 2px solid hsl(var(--primary)); background: #3a2636; font-weight: 800; color: #fff; }
 .reel-avatar img { height: 100%; width: 100%; object-fit: cover; }
@@ -43,7 +43,14 @@
 .reels-empty-mark { display: flex; height: 64px; width: 64px; align-items: center; justify-content: center; border-radius: 20px; border: 1.5px solid hsl(var(--primary) / .6); color: hsl(var(--primary)); }
 .reels-primary { display: inline-flex; min-height: 48px; align-items: center; justify-content: center; gap: 8px; border-radius: 16px; background: hsl(var(--primary)); padding: 0 24px; font-weight: 800; color: hsl(var(--primary-foreground)); }
 .reels-more, .reels-end { scroll-snap-align: end; padding: 18px; text-align: center; font-size: 13px; color: rgb(255 255 255 / .55); }
-.reel-comments { flex: 0 0 auto; height: min(46%, 380px); min-height: 220px; display: flex; flex-direction: column; background: #16121a; border-top: 1px solid rgb(255 255 255 / .08); border-radius: 20px 20px 0 0; animation: reel-rise .22s ease-out; }
+.reel-comments { flex: 0 0 auto; height: var(--reels-comments-height, min(40%, 300px)); min-height: 0; display: flex; flex-direction: column; overflow: hidden; background: #16121a; border-top: 1px solid rgb(255 255 255 / .08); border-radius: 20px 20px 0 0; animation: reel-rise .22s ease-out; }
+.reel-comments > header, .reel-comments > form { flex-shrink: 0; }
+.reels-root[data-comments-open="true"] .reel-video { object-fit: contain; }
+.reels-root[data-comments-open="true"] .reels-scroller { overflow-y: hidden; }
+.reels-root[data-keyboard-open="true"] .reel-comments > header { padding-top: 0; padding-bottom: 0; }
+.reels-root[data-keyboard-open="true"] .reel-comments > form { padding-top: 6px; padding-bottom: 4px; }
+.reels-root[data-keyboard-open="true"] .reel-rail,
+.reels-root[data-keyboard-open="true"] .reel-meta { display: none; }
 @keyframes reel-rise { from { transform: translateY(24px); opacity: 0; } to { transform: none; opacity: 1; } }
 .reel-sheet-backdrop { position: fixed; inset: 0; z-index: 80; display: flex; align-items: flex-end; justify-content: center; background: rgb(0 0 0 / .55); }
 .reel-sheet { width: 100%; max-width: 480px; border-radius: 24px 24px 0 0; background: #1b161f; padding: 18px 16px max(env(safe-area-inset-bottom), 18px); color: #fff; animation: reel-rise .22s ease-out; }

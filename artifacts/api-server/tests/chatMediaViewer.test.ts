@@ -18,21 +18,24 @@ test("actual photo and video bubble rendering exposes only local preview bytes, 
         contents: `
           import React from "react";
           import {renderToStaticMarkup} from "react-dom/server";
+          import {QueryClient, QueryClientProvider} from "@tanstack/react-query";
           import {ChatMediaMessage} from "./src/components/chat-media-message.tsx";
-          export const markup = type => renderToStaticMarkup(React.createElement(ChatMediaMessage,{
+          export const markup = type => { const client = new QueryClient({defaultOptions:{queries:{gcTime:Infinity,retry:false}}}); try { return renderToStaticMarkup(React.createElement(QueryClientProvider,{client},React.createElement(ChatMediaMessage,{
             reference:"media:private-media-id", fullUrl:"https://private.invalid/full-original", type
-          }));
+          }))); } finally { client.clear(); } };
         `,
         resolveDir: new URL("artifacts/vibeswipe-web/", root).pathname,
       },
       bundle: true, platform: "node", format: "cjs", jsx: "automatic", outfile: output,
       define: { "process.env.NODE_ENV": '"production"' }, logLevel: "silent",
+      // One React instance for react-dom/server, React Query and the component.
+      alias: { react: new URL("artifacts/vibeswipe-web/node_modules/react", root).pathname, "react-dom": new URL("artifacts/vibeswipe-web/node_modules/react-dom", root).pathname, "@tanstack/react-query": new URL("artifacts/vibeswipe-web/node_modules/@tanstack/react-query", root).pathname },
     });
     const { markup } = (await import(pathToFileURL(output).href)).default;
     for (const type of ["image", "video"]) {
       const html = markup(type);
-      assert.match(html, /data:image\/svg\+xml/);
-      assert.match(html, /Tap to view/);
+      assert.match(html, /data-testid="chat-media-preview"/);
+      assert.match(html, /Loading preview/);
       assert.doesNotMatch(html, /private\.invalid|private-media-id|<video|role="dialog"/);
     }
   } finally { await rm(directory, { recursive: true, force: true }); }
@@ -70,11 +73,15 @@ test("both chat message lists gate pictures/videos while keeping dedicated audio
     source("artifacts/vibeswipe/app/chat/[matchId].tsx"),
     source("artifacts/vibeswipe-web/src/components/chat-audio-message.tsx"),
   ]);
-  assert.match(web, /<ChatMediaMessage reference=\{m.mediaReference\}/);
+  const bubble = await source("artifacts/vibeswipe-web/src/components/chat-message-bubble.tsx");
+  assert.match(web, /<ChatMessageBubble key=\{m.id\}/);
+  assert.match(bubble, /<ChatMediaMessage reference=\{message.mediaReference!\}/);
   assert.doesNotMatch(web, /<MediaImage reference=\{m.mediaReference\}/);
   assert.doesNotMatch(web, /<video controls src=\{mediaUrl\(m.mediaReference\)\}/);
-  assert.match(web, /m.mediaType==='audio'&&m.mediaReference&&<ChatAudioMessage/);
-  assert.match(audio, /<audio ref=\{player\} controls preload="none"/);
+  assert.match(bubble, /<ChatAudioMessage url=\{mediaUrl\(message.mediaReference!\)\}/);
+  assert.match(audio, /<audio ref=\{player\} data-voice-note preload="none"/);
+  const media = await source("artifacts/vibeswipe-web/src/components/chat-media-message.tsx");
+  assert.match(media, /useGetMediaPreview\(id/);
   assert.match(native, /<ChatMediaMessage reference=\{item.mediaReference!\}/);
   assert.match(native, /<ChatAudioMessage reference=/);
   assert.doesNotMatch(native, /setViewingMedia|styles.imagePreview/);

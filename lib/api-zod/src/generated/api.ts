@@ -1049,6 +1049,7 @@ export const sendMessageBodyMediaReferenceMax = 100;
 
 
 export const SendMessageBody = zod.object({
+  "storyId": zod.string().uuid().optional().describe('Reply to this active story by the other match participant'),
   "content": zod.string().min(1).max(sendMessageBodyContentMax).optional(),
   "mediaReference": zod.string().min(1).max(sendMessageBodyMediaReferenceMax).optional(),
   "mediaType": zod.enum(['image', 'video', 'audio']).optional(),
@@ -1057,6 +1058,8 @@ export const SendMessageBody = zod.object({
 
 export const sendMessageResponseMediaReferenceMax = 100;
 
+
+export const sendMessageResponseStoryReplyOneMediaReferenceMax = 100;
 
 
 
@@ -1070,7 +1073,15 @@ export const SendMessageResponse = zod.object({
   "mediaType": zod.union([zod.literal('image'),zod.literal('video'),zod.literal('audio'),zod.literal(null)]).nullish(),
   "mediaDuration": zod.number().int().min(1).nullish(),
   "deletedForEveryone": zod.boolean(),
-  "isRead": zod.boolean()
+  "isRead": zod.boolean(),
+  "storyReply": zod.union([zod.object({
+  "storyId": zod.string().uuid(),
+  "storyOwnerId": zod.string(),
+  "available": zod.boolean(),
+  "mediaReference": zod.string().max(sendMessageResponseStoryReplyOneMediaReferenceMax).nullable(),
+  "mediaType": zod.union([zod.literal('image'),zod.literal('video'),zod.literal(null)]).nullable(),
+  "backgroundColor": zod.string().nullable()
+}).describe('Server-verified story context. Media fields are only present while the story is still active.'),zod.null()]).optional()
 })
 
 
@@ -1084,6 +1095,8 @@ export const GetMessagesParams = zod.object({
 export const getMessagesResponseMediaReferenceMax = 100;
 
 
+export const getMessagesResponseStoryReplyOneMediaReferenceMax = 100;
+
 
 
 export const GetMessagesResponseItem = zod.object({
@@ -1096,7 +1109,15 @@ export const GetMessagesResponseItem = zod.object({
   "mediaType": zod.union([zod.literal('image'),zod.literal('video'),zod.literal('audio'),zod.literal(null)]).nullish(),
   "mediaDuration": zod.number().int().min(1).nullish(),
   "deletedForEveryone": zod.boolean(),
-  "isRead": zod.boolean()
+  "isRead": zod.boolean(),
+  "storyReply": zod.union([zod.object({
+  "storyId": zod.string().uuid(),
+  "storyOwnerId": zod.string(),
+  "available": zod.boolean(),
+  "mediaReference": zod.string().max(getMessagesResponseStoryReplyOneMediaReferenceMax).nullable(),
+  "mediaType": zod.union([zod.literal('image'),zod.literal('video'),zod.literal(null)]).nullable(),
+  "backgroundColor": zod.string().nullable()
+}).describe('Server-verified story context. Media fields are only present while the story is still active.'),zod.null()]).optional()
 })
 export const GetMessagesResponse = zod.array(GetMessagesResponseItem)
 
@@ -1839,6 +1860,16 @@ export const GetProfileMediaParams = zod.object({
 })
 
 export const GetProfileMediaResponse = zod.unknown()
+
+
+/**
+ * @summary Small compressed JPEG thumbnail of a photo or video, with the same authorization as the original
+ */
+export const GetMediaPreviewParams = zod.object({
+  "mediaId": zod.coerce.string().uuid()
+})
+
+export const GetMediaPreviewResponse = zod.unknown()
 
 
 /**

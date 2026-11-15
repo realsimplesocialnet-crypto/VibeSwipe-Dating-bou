@@ -266,13 +266,13 @@ function StoryViewer({ active, onClose }: { active: ActiveStory | null; onClose:
     const text = reply.trim();
     if (!text || !active?.matchId || !current || send.isPending) return;
     try {
-      await send.mutateAsync({ matchId: active.matchId, data: { content: `${STORY_PREFIX}${text}` } });
+      await send.mutateAsync({ matchId: active.matchId, data: { content: `${STORY_PREFIX}${text}`, storyId: current.id } });
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: getGetStoriesQueryKey() }),
         queryClient.invalidateQueries({ queryKey: getGetMessagesQueryKey(active.matchId) }),
       ]);
-      setReply(""); setNotice("Reply sent to your chat.");
-    } catch { setNotice("Your reply didn’t send. Try again."); }
+      setReply(""); setNotice(`Reply sent. It appears in your chat with ${active.name}.`);
+    } catch (reason) { setNotice((reason as { status?: number })?.status === 403 ? "This story is no longer available to reply to." : "Your reply didn’t send. Your text is kept, try again."); }
   }
   const textOnly = !current?.mediaUrl;
   return createPortal(<AnimatePresence>

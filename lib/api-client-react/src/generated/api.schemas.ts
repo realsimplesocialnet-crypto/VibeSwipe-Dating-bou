@@ -713,6 +713,35 @@ export const MessageMediaType = {
   audio: 'audio',
 } as const;
 
+/**
+ * @nullable
+ */
+export type MessageStoryReplyMediaType = typeof MessageStoryReplyMediaType[keyof typeof MessageStoryReplyMediaType] | null;
+
+
+export const MessageStoryReplyMediaType = {
+  image: 'image',
+  video: 'video',
+} as const;
+
+/**
+ * Server-verified story context. Media fields are only present while the story is still active.
+ */
+export interface MessageStoryReply {
+  storyId: string;
+  storyOwnerId: string;
+  available: boolean;
+  /**
+     * @maxLength 100
+     * @nullable
+     */
+  mediaReference: string | null;
+  /** @nullable */
+  mediaType: MessageStoryReplyMediaType;
+  /** @nullable */
+  backgroundColor: string | null;
+}
+
 export interface Message {
   id: string;
   matchId: string;
@@ -733,6 +762,7 @@ export interface Message {
   mediaDuration?: number | null;
   deletedForEveryone: boolean;
   isRead: boolean;
+  storyReply?: MessageStoryReply | null;
 }
 
 export type MessageInputMediaType = typeof MessageInputMediaType[keyof typeof MessageInputMediaType];
@@ -745,6 +775,8 @@ export const MessageInputMediaType = {
 } as const;
 
 export interface MessageInput {
+  /** Reply to this active story by the other match participant */
+  storyId?: string;
   /**
      * @minLength 1
      * @maxLength 2000

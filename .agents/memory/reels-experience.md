@@ -21,13 +21,15 @@ Use record-and-post, not live broadcasting.
 
 **How to apply:** Offer recording or choosing a video, previewing it, and posting it. Do not add real-time streaming as part of this scope.
 
-Comments must open low down without covering the video.
+Comments must open low down without covering the video, including while the mobile keyboard is open. The playing Reel must remain visible above the comment input.
 
-**Why:** The user explicitly requested that “the comment will not cover the video.”
+**Why:** The user explicitly requested that “the comment will not cover the video,” then supplied iPhone screenshots where opening the keyboard hid it entirely.
 
 **How to apply:** Reserve space below the visible video for the comment panel and input instead of placing an opaque sheet over the video.
 
 Opening Reels must show a full-screen vertical feed with no main branding header, bottom navigation tabs, or in-app notification popups over the video. Users swipe up and down to watch more public member Reels; the feed is not limited to mutual matches.
+
+Normal viewing should reach the screen edges without a hard black strip separating the video or app background from the iPhone status area. Keep controls clear of the notch and home indicator, rather than shrinking the whole background.
 
 **Why:** The user requested full-screen viewing, no notifications showing there, and continuous up/down scrolling through anybody's Reels.
 

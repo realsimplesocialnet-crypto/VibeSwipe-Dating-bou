@@ -10,19 +10,42 @@ import { ReelSlide } from "@/components/reels/reel-slide";
 import { ReelComments } from "@/components/reels/reel-comments";
 import { ReelShareSheet } from "@/components/reels/reel-share-sheet";
 import { safeReelReturnPath } from "@/lib/reels";
+import { reelSlideIndex, reelsViewportFrame } from "@/lib/reels-viewport";
 import "@/components/reels/reels.css";
 
-function useViewportHeight() {
-  const [height, setHeight] = useState<number | null>(null);
+function useReelsViewport() {
+  const baseline = useRef(window.visualViewport?.height ?? window.innerHeight);
+  const [frame, setFrame] = useState(() => reelsViewportFrame(window.visualViewport?.height ?? window.innerHeight, window.visualViewport?.offsetTop ?? 0, window.innerHeight, false));
   useEffect(() => {
     const viewport = window.visualViewport;
-    if (!viewport) return;
-    const update = () => setHeight(Math.round(viewport.height));
+    const bodyOverflow = document.body.style.overflow;
+    const htmlOverflow = document.documentElement.style.overflow;
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+    const update = () => {
+      const focused = document.activeElement;
+      const editing = focused instanceof HTMLElement && (focused.tagName === "INPUT" || focused.tagName === "TEXTAREA" || focused.isContentEditable);
+      const height = viewport?.height ?? window.innerHeight;
+      if (!editing) baseline.current = height;
+      setFrame(reelsViewportFrame(height, viewport?.offsetTop ?? 0, Math.max(baseline.current, window.innerHeight), editing));
+    };
     update();
-    viewport.addEventListener("resize", update);
-    return () => viewport.removeEventListener("resize", update);
+    viewport?.addEventListener("resize", update);
+    viewport?.addEventListener("scroll", update);
+    window.addEventListener("resize", update);
+    document.addEventListener("focusin", update);
+    document.addEventListener("focusout", update);
+    return () => {
+      viewport?.removeEventListener("resize", update);
+      viewport?.removeEventListener("scroll", update);
+      window.removeEventListener("resize", update);
+      document.removeEventListener("focusin", update);
+      document.removeEventListener("focusout", update);
+      document.body.style.overflow = bodyOverflow;
+      document.documentElement.style.overflow = htmlOverflow;
+    };
   }, []);
-  return height;
+  return frame;
 }
 
 function usePageHidden() {
@@ -39,7 +62,7 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
   const [location, setLocation] = useLocation();
   const client = useQueryClient();
   const returnTo = safeReelReturnPath(new URLSearchParams(window.location.search).get("returnTo"));
-  const height = useViewportHeight();
+  const viewport = useReelsViewport();
   const pageHidden = usePageHidden();
   const scroller = useRef<HTMLDivElement>(null);
   const [active, setActive] = useState(0);
@@ -62,6 +85,7 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
     refetchOnWindowFocus: false,
   });
   const like = useLikeReel(); const unlike = useUnlikeReel(); const save = useSaveReel(); const unsave = useUnsaveReel(); const del = useDeleteReel();
+  const loading = feed.isLoading || (Boolean(initialReelId) && single.isLoading);
 
   const reels = useMemo(() => {
     const list: Reel[] = [];
@@ -74,13 +98,17 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
   // Track which slide is on screen.
   useEffect(() => {
     const root = scroller.current;
-    if (!root) return;
+    if (!root || loading) return;
     const observer = new IntersectionObserver((entries) => {
-      for (const entry of entries) if (entry.isIntersecting) setActive(Number((entry.target as HTMLElement).dataset.index));
+      for (const entry of entries) {
+        if (!entry.isIntersecting || entry.intersectionRatio < 0.6) continue;
+        const index = reelSlideIndex((entry.target as HTMLElement).dataset.index, reels.length);
+        if (index !== null) setActive(index);
+      }
     }, { root, threshold: 0.6 });
-    root.querySelectorAll(".reel-slide").forEach((slide) => observer.observe(slide));
+    root.querySelectorAll(".reel-slide[data-index]").forEach((slide) => observer.observe(slide));
     return () => observer.disconnect();
-  }, [reels.length]);
+  }, [loading, reels.length]);
 
   // Keep the current Reel pinned when the stage resizes (comments panel, keyboard, rotation).
   useLayoutEffect(() => {
@@ -152,11 +180,10 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
   }
 
   const back = () => setLocation(returnTo);
-  const loading = feed.isLoading || (Boolean(initialReelId) && single.isLoading);
   const commentReel = commentsFor ? reels.find((reel) => reel.id === commentsFor) : undefined;
   const ownPath = `${location}${window.location.search}`;
 
-  return <div className="reels-root" style={height ? { height } : undefined} data-testid="page-reels">
+  return <div className="reels-root" style={{ top: viewport.top, bottom: "auto", height: viewport.height, ["--reels-comments-height" as string]: `${viewport.commentsHeight}px` }} data-keyboard-open={viewport.keyboardOpen} data-comments-open={Boolean(commentReel)} data-testid="page-reels">
     <div className="reels-stage">
       <div ref={scroller} className={`reels-scroller ${commentsFor ? "is-locked" : ""}`} data-testid="reels-scroller">
         {loading ? <div className="reel-slide"><div className="reel-loading" aria-label="Loading Reels" /></div>
@@ -183,7 +210,7 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
       {notice && <p role="status" className="reels-notice" data-testid="status-reels">{notice}</p>}
       {initialReelId && single.isError && <p role="status" className="reels-notice" data-testid="status-reel-unavailable">That Reel is no longer available. Showing other Reels.</p>}
     </div>
-    {commentReel && <ReelComments reelId={commentReel.id} onClose={() => setCommentsFor(null)} onCountChange={(delta) => patch(commentReel.id, { commentCount: Math.max(0, commentReel.commentCount + delta) })} />}
+    {commentReel && <ReelComments key={commentReel.id} reelId={commentReel.id} onClose={() => setCommentsFor(null)} onCountChange={(delta) => patch(commentReel.id, { commentCount: Math.max(0, commentReel.commentCount + delta) })} />}
     {shareFor && <ReelShareSheet reel={shareFor} onClose={() => setShareFor(null)} />}
     {deleteFor && <div className="reel-sheet-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setDeleteFor(null); }}>
       <section className="reel-sheet" role="alertdialog" aria-modal="true" aria-label="Delete Reel">

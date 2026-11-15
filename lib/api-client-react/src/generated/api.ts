@@ -6728,6 +6728,107 @@ export function useGetProfileMedia<TData = Awaited<ReturnType<typeof getProfileM
 
 
 
+export const getGetMediaPreviewUrl = (mediaId: string,) => {
+
+
+
+
+  return `/api/vibeswipe/media/${mediaId}/preview`
+}
+
+/**
+ * @summary Small compressed JPEG thumbnail of a photo or video, with the same authorization as the original
+ */
+export const getMediaPreview = async (mediaId: string, options?: Parameters<typeof customFetch>[1]): Promise<Blob> => {
+
+  return customFetch<Blob>(getGetMediaPreviewUrl(mediaId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetMediaPreviewQueryKey = (mediaId: string,) => {
+    return [
+    `/api/vibeswipe/media/${mediaId}/preview`
+    ] as const;
+    }
+
+
+export const getGetMediaPreviewQueryOptions = <TData = Awaited<ReturnType<typeof getMediaPreview>>, TError = ErrorType<void>>(mediaId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMediaPreview>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetMediaPreviewQueryKey(mediaId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMediaPreview>>> = ({ signal }) => getMediaPreview(mediaId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: mediaId !== null && mediaId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMediaPreview>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetMediaPreviewQueryResult = NonNullable<Awaited<ReturnType<typeof getMediaPreview>>>
+export type GetMediaPreviewQueryError = ErrorType<void>
+
+
+export function useGetMediaPreview<TData = Awaited<ReturnType<typeof getMediaPreview>>, TError = ErrorType<void>>(
+ mediaId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMediaPreview>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getMediaPreview>>,
+          TError,
+          Awaited<ReturnType<typeof getMediaPreview>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetMediaPreview<TData = Awaited<ReturnType<typeof getMediaPreview>>, TError = ErrorType<void>>(
+ mediaId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMediaPreview>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getMediaPreview>>,
+          TError,
+          Awaited<ReturnType<typeof getMediaPreview>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetMediaPreview<TData = Awaited<ReturnType<typeof getMediaPreview>>, TError = ErrorType<void>>(
+ mediaId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMediaPreview>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Small compressed JPEG thumbnail of a photo or video, with the same authorization as the original
+ */
+
+export function useGetMediaPreview<TData = Awaited<ReturnType<typeof getMediaPreview>>, TError = ErrorType<void>>(
+ mediaId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMediaPreview>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetMediaPreviewQueryOptions(mediaId,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
 export const getGetStoriesUrl = () => {
 
 

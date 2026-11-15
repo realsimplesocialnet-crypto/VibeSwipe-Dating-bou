@@ -73,6 +73,8 @@ export * from './message';
 export * from './messageInput';
 export * from './messageInputMediaType';
 export * from './messageMediaType';
+export * from './messageStoryReply';
+export * from './messageStoryReplyMediaType';
 export * from './nativePushTokenInput';
 export * from './notification';
 export * from './notificationCounts';

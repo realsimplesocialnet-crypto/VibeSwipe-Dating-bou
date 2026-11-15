@@ -1224,6 +1224,32 @@ paths:
           description: Media is not visible to the signed-in user
         "404":
           description: Media not found
+  /vibeswipe/media/{mediaId}/preview:
+    get:
+      operationId: getMediaPreview
+      tags: [vibeswipe]
+      summary: Small compressed JPEG thumbnail of a photo or video, with the same authorization as the original
+      parameters:
+        - in: path
+          name: mediaId
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Bounded private JPEG preview (max 320px edge)
+          content:
+            image/jpeg:
+              schema: { type: string, format: binary }
+        "403":
+          description: Media is not visible to the signed-in user
+        "404":
+          description: Media not found
+        "415":
+          description: This media type has no visual preview
+        "422":
+          description: The original could not be read to make a preview
+        "503":
+          description: Preview workers are busy; retry later
   /vibeswipe/stories:
     get:
       operationId: getStories
@@ -2033,10 +2059,26 @@ components:
         mediaDuration: { type: [integer, "null"], minimum: 1 }
         deletedForEveryone: { type: boolean }
         isRead: { type: boolean }
+        storyReply:
+          oneOf:
+            - $ref: "#/components/schemas/MessageStoryReply"
+            - type: "null"
       required: [id, matchId, senderId, content, createdAt, deletedForEveryone, isRead]
+    MessageStoryReply:
+      type: object
+      description: Server-verified story context. Media fields are only present while the story is still active.
+      properties:
+        storyId: { type: string, format: uuid }
+        storyOwnerId: { type: string }
+        available: { type: boolean }
+        mediaReference: { type: [string, "null"], maxLength: 100 }
+        mediaType: { type: [string, "null"], enum: [image, video, null] }
+        backgroundColor: { type: [string, "null"] }
+      required: [storyId, storyOwnerId, available, mediaReference, mediaType, backgroundColor]
     MessageInput:
       type: object
       properties:
+        storyId: { type: string, format: uuid, description: "Reply to this active story by the other match participant" }
         content: { type: string, minLength: 1, maxLength: 2000 }
         mediaReference: { type: string, minLength: 1, maxLength: 100 }
         mediaType: { type: string, enum: [image, video, audio] }

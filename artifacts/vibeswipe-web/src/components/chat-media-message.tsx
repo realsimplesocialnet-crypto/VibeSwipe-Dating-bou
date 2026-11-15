@@ -1,9 +1,22 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Download, ImageIcon, LoaderCircle, Play, X } from "lucide-react";
-import { useGetProfileMedia } from "@workspace/api-client-react";
+import { Download, ImageIcon, LoaderCircle, Play, RotateCcw, X } from "lucide-react";
+import { getGetMediaPreviewQueryKey, useGetMediaPreview, useGetProfileMedia } from "@workspace/api-client-react";
 
-const PREVIEW_URL = `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="240" height="150"><rect width="240" height="150" rx="16" fill="#fde0ec"/></svg>')}`;
+/** Server-made thumbnail (never the original). Returns a blob URL or a failure state. */
+export function useMediaThumbnail(reference: string | null | undefined, enabled = true) {
+  const id = reference?.startsWith("media:") ? reference.slice(6) : "";
+  const query = useGetMediaPreview(id, { query: { enabled: enabled && !!id, queryKey: getGetMediaPreviewQueryKey(id), staleTime: Infinity, gcTime: 10 * 60_000,
+    retry: (count, error) => count < 3 && [503, 500, 502, 504].includes((error as { status?: number })?.status ?? 0), retryDelay: count => 1500 * (count + 1) } });
+  const [url, setUrl] = useState("");
+  useEffect(() => {
+    if (!(query.data instanceof Blob)) { setUrl(""); return; }
+    const next = URL.createObjectURL(query.data);
+    setUrl(next);
+    return () => URL.revokeObjectURL(next);
+  }, [query.data]);
+  return { url, loading: !!id && query.isLoading, failed: !id || query.isError, retry: () => void query.refetch() };
+}
 
 function LoadedMedia({ reference, fullUrl, type }: { reference: string; fullUrl: string; type: "image" | "video" }) {
   const id = reference.startsWith("media:") ? reference.slice(6) : "";
@@ -24,7 +37,8 @@ function LoadedMedia({ reference, fullUrl, type }: { reference: string; fullUrl:
     : <video src={src} controls playsInline preload="auto" onError={() => setFailed(true)} className="max-h-full max-w-full object-contain"/>;
 }
 
-export function ChatMediaMessage({ reference, fullUrl, type, previewUrl = PREVIEW_URL }: { reference: string; fullUrl: string; type: "image" | "video"; previewUrl?: string }) {
+export function ChatMediaMessage({ reference, fullUrl, type }: { reference: string; fullUrl: string; type: "image" | "video" }) {
+  const thumb = useMediaThumbnail(reference);
   const [open, setOpen] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const trigger = useRef<HTMLButtonElement>(null);
@@ -55,23 +69,30 @@ export function ChatMediaMessage({ reference, fullUrl, type, previewUrl = PREVIE
   }, [open]);
   return <>
     <button ref={trigger} type="button" aria-label={`Open ${label.toLowerCase()} preview`} data-testid="chat-media-preview"
-      className="relative mb-2 block w-60 max-w-full overflow-hidden rounded-xl border border-pink-300/30 text-center focus-visible:outline focus-visible:outline-2 focus-visible:outline-pink-400"
+      className="relative block w-[min(260px,66vw)] overflow-hidden rounded-[10px] bg-[hsl(var(--chat-soft))] text-center focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--chat-accent)]"
       onClick={show}
       onTouchStart={event => { const point = event.touches[0]; touch.current = event.touches.length === 1 ? { x: point.clientX, y: point.clientY, moved: false, time: Date.now() } : null; }}
       onTouchMove={event => { const point = event.touches[0]; if (touch.current && point && (Math.abs(point.clientX - touch.current.x) > 10 || Math.abs(point.clientY - touch.current.y) > 10)) touch.current.moved = true; }}
       onTouchCancel={() => { touch.current = null; }}
       onTouchEnd={event => { const start = touch.current; touch.current = null; if (start && !start.moved && Date.now() - start.time < 600) { event.preventDefault(); event.stopPropagation(); show(); } }}>
-      <img src={previewUrl} alt="" loading="lazy" className="h-36 w-full object-cover"/>
-      <span className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-[#b72d68]"><Icon size={32}/><span className="text-sm font-bold">{label} · Tap to view</span><span className="text-xs">Loads only when you choose</span></span>
+      {thumb.url
+        ? <img src={thumb.url} alt={`${label} thumbnail`} data-testid="img-chat-media-thumbnail" className="block max-h-[320px] min-h-24 w-full object-cover"/>
+        : <span className={`flex h-40 w-full flex-col items-center justify-center gap-1.5 text-[hsl(var(--chat-muted))] ${thumb.loading ? "animate-pulse" : ""}`}>
+            <Icon size={26}/>
+            <span className="text-xs font-semibold">{thumb.loading ? "Loading preview" : `${label} · preview unavailable`}</span>
+          </span>}
+      {type === "video" && thumb.url && <span aria-hidden className="absolute inset-0 flex items-center justify-center"><span className="flex h-11 w-11 items-center justify-center rounded-full bg-black/45 text-white backdrop-blur-sm"><Play size={20} fill="currentColor" strokeWidth={0} className="ml-0.5"/></span></span>}
+      <span className="absolute left-1.5 top-1.5 rounded-full bg-black/45 px-1.5 py-0.5 text-[10px] font-semibold text-white">{label}</span>
     </button>
+    {thumb.failed && !thumb.loading && <button type="button" onClick={thumb.retry} data-testid="button-retry-chat-thumbnail" className="mt-1 flex items-center gap-1 text-[11px] font-semibold underline opacity-80"><RotateCcw size={11}/>Retry preview</button>}
     {open && createPortal(<div ref={dialog} tabIndex={-1} role="dialog" aria-modal="true" aria-label={`${label} message viewer`} data-testid="chat-media-viewer" className="fixed inset-0 z-[1000] flex flex-col bg-background text-foreground outline-none" style={{ paddingTop: "env(safe-area-inset-top)", paddingBottom: "env(safe-area-inset-bottom)" }}>
       <header className="flex shrink-0 items-center justify-between px-4 py-3"><span className="font-bold">{label}</span><button aria-label="Close media" data-testid="button-close-chat-media" onClick={close} className="rounded-full bg-primary/10 p-3 text-primary"><X size={24}/></button></header>
       <div className="flex min-h-0 flex-1 items-center justify-center overflow-hidden p-3">
-        {loaded ? <LoadedMedia reference={reference} fullUrl={fullUrl} type={type}/> : <div className="relative w-72 max-w-full overflow-hidden rounded-2xl"><img src={previewUrl} alt={`${label} preview`} className="w-full"/><span className="absolute inset-0 flex items-center justify-center text-[#b72d68]"><Icon size={56}/></span></div>}
+        {loaded ? <LoadedMedia reference={reference} fullUrl={fullUrl} type={type}/> : <div className="relative max-h-full w-[min(420px,100%)] overflow-hidden rounded-2xl bg-muted">{thumb.url ? <img src={thumb.url} alt={`${label} preview`} className="max-h-[65dvh] w-full object-contain"/> : <div className="flex h-56 items-center justify-center text-muted-foreground"><Icon size={48}/></div>}{type === "video" && <span className="absolute inset-0 flex items-center justify-center"><span className="flex h-14 w-14 items-center justify-center rounded-full bg-black/50 text-white"><Play size={26} fill="currentColor" strokeWidth={0}/></span></span>}</div>}
       </div>
       <footer className="shrink-0 space-y-3 px-5 pb-5 pt-3 text-center">
-        {!loaded && <><p className="text-sm text-muted-foreground">The full {label.toLowerCase()} has not been loaded.</p><button data-testid="button-load-chat-media" onClick={() => setLoaded(true)} className="flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-primary font-bold text-primary-foreground"><Download size={20}/>Load</button></>}
-        <button data-testid="button-leave-chat-media" onClick={close} className="min-h-12 w-full rounded-2xl border border-border font-semibold">{loaded ? "Close" : "Leave it / Close"}</button>
+        {!loaded && <><p className="text-sm text-muted-foreground">This is a small preview. The full {label.toLowerCase()} has not been downloaded.</p><button data-testid="button-load-chat-media" onClick={() => setLoaded(true)} className="flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-primary font-bold text-primary-foreground"><Download size={20}/>Load</button></>}
+        <button data-testid="button-leave-chat-media" onClick={close} className="min-h-12 w-full rounded-2xl border border-border font-semibold">Close</button>
       </footer>
     </div>, document.body)}
   </>;

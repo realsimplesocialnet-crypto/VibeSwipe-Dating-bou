@@ -1,3 +1,4 @@
+import { evictMediaPreview } from "./mediaPreview";
 import {
   db,
   mediaAssetsTable,
@@ -84,6 +85,7 @@ async function deleteIfUnreferenced(
   if (reelReference) return false;
 
   await objectStorage.deleteObjectEntity(asset.objectPath);
+  evictMediaPreview(asset.id);
   await tx.delete(mediaAssetsTable).where(eq(mediaAssetsTable.id, asset.id));
   return true;
 }

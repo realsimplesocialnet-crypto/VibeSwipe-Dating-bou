@@ -64,7 +64,7 @@ export function ReelSlide({ reel, index, active, near, muted, pageHidden, compac
   return <section className="reel-slide" data-index={index} data-testid={`reel-slide-${reel.id}`} aria-roledescription="Reel" aria-label={`Reel by ${reel.creatorName}`}>
     <video
       ref={video}
-      src={near ? src : undefined}
+      src={active || near ? src : undefined}
       className="reel-video"
       playsInline muted loop
       preload={active ? "auto" : "metadata"}

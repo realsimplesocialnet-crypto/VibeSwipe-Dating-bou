@@ -6,8 +6,8 @@ import {
 } from "@workspace/api-client-react";
 import { VoiceNoteRecorder } from "./voice-note-recorder";
 
-export function ChatVoiceNoteRecorder({ matchId, disabled, onActiveChange }: {
-  matchId: string; disabled: boolean; onActiveChange: (active: boolean) => void;
+export function ChatVoiceNoteRecorder({ matchId, disabled, onActiveChange, hidden }: {
+  matchId: string; disabled: boolean; onActiveChange: (active: boolean) => void; hidden?: boolean;
 }) {
   const requestUpload = useRequestChatMediaUpload();
   const send = useSendMessage();
@@ -30,7 +30,7 @@ export function ChatVoiceNoteRecorder({ matchId, disabled, onActiveChange }: {
     void cache.invalidateQueries({ queryKey: getGetMatchesQueryKey() });
     uploaded.current = null;
   }
-  return <VoiceNoteRecorder disabled={disabled} onSend={sendVoice} onActiveChange={active => {
+  return <VoiceNoteRecorder hidden={hidden} disabled={disabled} onSend={sendVoice} onActiveChange={active => {
     if (!active) uploaded.current = null;
     onActiveChange(active);
   }}/>;
