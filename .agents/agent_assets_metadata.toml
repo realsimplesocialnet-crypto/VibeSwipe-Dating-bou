@@ -14,3 +14,73 @@ mtime_ms = 1794674555976
 storage_uri = "gcs://replit-rams-assets-picard/rams/assets/repl:10568a97-c1ca-4404-b0f1-6a360d301b91/cfb86a87-0034-4840-9df8-8176f3f70eed/55b7d327-8fef-4e72-b81d-ed1ec72cbcbd"
 storage_version_token = "1794674576578272"
 content_type = "image/png"
+
+[[outputs]]
+id = "g4XwPEMbA_PMiGvmaNlJF"
+uri = "file://attached_assets/generated_images/vibeswipe-onboarding-welcome.png"
+type = "image"
+title = "Create Your Profile"
+description = "VibeSwipe onboarding concept still with a beige studio and subtle blue grid."
+logical_id = "5b1a3e8f-a452-4acb-b3c3-c0473f918be0"
+content_hash = "sha256:ef646a7e4e4b8ed2c3f03e77a868f6234f03b043b8c195ed2377cd8dd8c2e9f5"
+size = 1185156
+mtime_ms = 1794734643412
+storage_uri = "gcs://replit-rams-assets-picard/rams/assets/repl:10568a97-c1ca-4404-b0f1-6a360d301b91/5b1a3e8f-a452-4acb-b3c3-c0473f918be0/c50ff2b2-8860-438d-a7ab-9077d28d6906"
+storage_version_token = "1794734748230126"
+content_type = "image/png"
+
+[[outputs]]
+id = "1nCIbbf0_dx32pt2k076A"
+uri = "file://attached_assets/generated_images/vibeswipe-onboarding-account-creation.png"
+type = "image"
+title = "Multi-step profile setup"
+description = "VibeSwipe onboarding concept still with a beige studio and subtle blue grid."
+logical_id = "b95e535c-b6d5-4ff8-97fb-353cca348786"
+content_hash = "sha256:e6609cadf46b849367f548fd7e106eb4901fd61d2288c0df4529bad6144ad3da"
+size = 1202770
+mtime_ms = 1794734642172
+storage_uri = "gcs://replit-rams-assets-picard/rams/assets/repl:10568a97-c1ca-4404-b0f1-6a360d301b91/b95e535c-b6d5-4ff8-97fb-353cca348786/6c07bdbb-6269-4a56-b5b2-b485e0e7e8a5"
+storage_version_token = "1794734748680446"
+content_type = "image/png"
+
+[[outputs]]
+id = "mwwn6L8pqAfIQXNt1dFbW"
+uri = "file://attached_assets/generated_images/vibeswipe-onboarding-success.png"
+type = "image"
+title = "Profile created successfully"
+description = "VibeSwipe onboarding concept still with a beige studio and subtle blue grid."
+logical_id = "f8f6a065-a946-4152-82f7-3eee674f7d05"
+content_hash = "sha256:1014dd1b03ea15264c8c888cc312d3248093af6a086f3319237fbbc30f4e733e"
+size = 1153985
+mtime_ms = 1794734642096
+storage_uri = "gcs://replit-rams-assets-picard/rams/assets/repl:10568a97-c1ca-4404-b0f1-6a360d301b91/f8f6a065-a946-4152-82f7-3eee674f7d05/58335b1e-d20f-4de3-b58b-480d43f97d04"
+storage_version_token = "1794734749161574"
+content_type = "image/png"
+
+[[outputs]]
+id = "4CvjLebboNxQnySZbtP1g"
+uri = "file://attached_assets/generated_images/vibeswipe-onboarding-get-started.png"
+type = "image"
+title = "Get Started / Log in"
+description = "VibeSwipe onboarding concept still with a beige studio and subtle blue grid."
+logical_id = "d7810ac6-a5f2-445b-8117-56c6abd343f5"
+content_hash = "sha256:238b4867f9fc3bf8f3e910785071a75a7ca057de75aa89cf7e473204b9d62f90"
+size = 1211974
+mtime_ms = 1794734644000
+storage_uri = "gcs://replit-rams-assets-picard/rams/assets/repl:10568a97-c1ca-4404-b0f1-6a360d301b91/d7810ac6-a5f2-445b-8117-56c6abd343f5/9dcf2222-d64f-48ba-a8a2-76f2a97e2a8c"
+storage_version_token = "1794734749664531"
+content_type = "image/png"
+
+[[outputs]]
+id = "Mmq4YNsoMw0eiYjD6Y12o"
+uri = "file://attached_assets/generated_images/vibeswipe-onboarding-background.png"
+type = "image"
+title = "Clean onboarding background"
+description = "VibeSwipe onboarding concept still with a beige studio and subtle blue grid."
+logical_id = "967dbb37-bef9-4100-b10e-6e368ec2aeaf"
+content_hash = "sha256:5deee2d0923b2d018107aac1c37e08cfa1ff14981411f9201421be150e051403"
+size = 1178862
+mtime_ms = 1794734641284
+storage_uri = "gcs://replit-rams-assets-picard/rams/assets/repl:10568a97-c1ca-4404-b0f1-6a360d301b91/967dbb37-bef9-4100-b10e-6e368ec2aeaf/40d988fc-c366-4f2f-897d-d3e38ee393fc"
+storage_version_token = "1794734750115043"
+content_type = "image/png"

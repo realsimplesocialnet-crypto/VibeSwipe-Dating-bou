@@ -22,6 +22,8 @@ export const getAdminDashboardQueryQMax = 150;
 export const getAdminDashboardQueryPageDefault = 1;
 export const getAdminDashboardQueryPageMax = 100000;
 
+export const getAdminDashboardQueryFromRegExp = new RegExp('^[0-9]{4}-[0-9]{2}-[0-9]{2}$');
+export const getAdminDashboardQueryToRegExp = new RegExp('^[0-9]{4}-[0-9]{2}-[0-9]{2}$');
 export const getAdminDashboardQueryUserIdMax = 150;
 
 
@@ -30,8 +32,8 @@ export const GetAdminDashboardQueryParams = zod.object({
   "section": zod.enum(['overview', 'users', 'chats', 'online', 'connections', 'user', 'chat']).default(getAdminDashboardQuerySectionDefault),
   "q": zod.coerce.string().max(getAdminDashboardQueryQMax).optional(),
   "page": zod.coerce.number().int().min(1).max(getAdminDashboardQueryPageMax).default(getAdminDashboardQueryPageDefault),
-  "from": zod.date().optional(),
-  "to": zod.date().optional(),
+  "from": zod.coerce.string().regex(getAdminDashboardQueryFromRegExp).optional(),
+  "to": zod.coerce.string().regex(getAdminDashboardQueryToRegExp).optional(),
   "userId": zod.coerce.string().max(getAdminDashboardQueryUserIdMax).optional(),
   "chatId": zod.coerce.string().uuid().optional()
 })
@@ -162,11 +164,15 @@ export const AdminModerationActionResponse = zod.object({
 })
 
 
+export const getAdminChatExportQueryFromRegExp = new RegExp('^[0-9]{4}-[0-9]{2}-[0-9]{2}$');
+export const getAdminChatExportQueryToRegExp = new RegExp('^[0-9]{4}-[0-9]{2}-[0-9]{2}$');
+
+
 export const GetAdminChatExportQueryParams = zod.object({
   "chatId": zod.coerce.string().uuid(),
   "format": zod.enum(['txt', 'json']),
-  "from": zod.date().optional(),
-  "to": zod.date().optional()
+  "from": zod.coerce.string().regex(getAdminChatExportQueryFromRegExp).optional(),
+  "to": zod.coerce.string().regex(getAdminChatExportQueryToRegExp).optional()
 })
 
 export const GetAdminChatExportResponse = zod.object({

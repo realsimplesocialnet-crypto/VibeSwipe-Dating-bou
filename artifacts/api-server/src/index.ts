@@ -2,6 +2,7 @@ import app from "./app";
 import { logger } from "./lib/logger";
 import { cleanupAbandonedProfileMedia } from "./lib/profileMediaCleanup";
 import { cleanupExpiredStories } from "./lib/vibeswipeStories";
+import { ensureAdminSchema } from "./lib/admin-schema";
 
 const rawPort = process.env["PORT"];
 
@@ -45,7 +46,7 @@ const runProfileMediaCleanup = async (): Promise<void> => {
   }
 };
 
-app.listen(port, (err) => {
+void ensureAdminSchema().then(() => app.listen(port, (err) => {
   if (err) {
     logger.error({ err }, "Error listening on port");
     process.exit(1);
@@ -58,4 +59,7 @@ app.listen(port, (err) => {
     60 * 60 * 1000,
   );
   cleanupTimer.unref();
+})).catch((err: unknown) => {
+  logger.error({ err }, "Unable to prepare account moderation storage");
+  process.exit(1);
 });

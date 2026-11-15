@@ -979,7 +979,13 @@ q?: string;
  * @maximum 100000
  */
 page?: number;
+/**
+ * @pattern ^[0-9]{4}-[0-9]{2}-[0-9]{2}$
+ */
 from?: string;
+/**
+ * @pattern ^[0-9]{4}-[0-9]{2}-[0-9]{2}$
+ */
 to?: string;
 /**
  * @maxLength 150
@@ -1004,7 +1010,13 @@ export const GetAdminDashboardSection = {
 export type GetAdminChatExportParams = {
 chatId: string;
 format: GetAdminChatExportFormat;
+/**
+ * @pattern ^[0-9]{4}-[0-9]{2}-[0-9]{2}$
+ */
 from?: string;
+/**
+ * @pattern ^[0-9]{4}-[0-9]{2}-[0-9]{2}$
+ */
 to?: string;
 };
 
