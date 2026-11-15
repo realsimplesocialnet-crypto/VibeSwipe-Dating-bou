@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import { Pause, Play } from "lucide-react";
 import "./onboarding-video.css";
 
 export const onboardingAsset = (name: string) =>
@@ -41,6 +40,21 @@ export function OnboardingVideoBackground({ form = false }: { form?: boolean }) 
     } else element.pause();
   }, [shouldPlay, loaded]);
 
+  useEffect(() => {
+    if (!shouldPlay || !loaded) return;
+    // Retry autoplay on an ordinary page interaction when a mobile browser
+    // requires a gesture. Never display a video-player button over the artwork.
+    const resume = () => {
+      if (video.current?.paused) void video.current.play().catch(() => {});
+    };
+    document.addEventListener("pointerdown", resume, { passive: true });
+    document.addEventListener("keydown", resume);
+    return () => {
+      document.removeEventListener("pointerdown", resume);
+      document.removeEventListener("keydown", resume);
+    };
+  }, [shouldPlay, loaded]);
+
   const toggle = () => {
     if (playing) { setChoice(false); video.current?.pause(); }
     else {
@@ -56,18 +70,17 @@ export function OnboardingVideoBackground({ form = false }: { form?: boolean }) 
     <div className={`onboarding-cinema ${form ? "onboarding-cinema-form" : ""}`} aria-hidden="true">
       <video ref={video} src={loaded ? onboardingAsset("loop-v1.mp4") : undefined}
         poster={onboardingAsset("poster-v1.webp")} autoPlay muted loop playsInline
-        preload="none" disablePictureInPicture tabIndex={-1}
+        controls={false} preload="none" disablePictureInPicture disableRemotePlayback tabIndex={-1}
         onPlaying={() => setPlaying(true)} onPause={() => setPlaying(false)}
         onError={() => { setFailed(true); setPlaying(false); }}
         data-testid="onboarding-background-video" />
       <div className="onboarding-cinema-shade" />
     </div>
     <button type="button" onClick={toggle}
-      className={`onboarding-motion-control ${form ? "onboarding-motion-control-form" : ""}`}
-      aria-label={playing ? "Pause onboarding animation" : "Play onboarding animation"}
-      title={playing ? "Pause animation" : "Play animation"}
+      className="sr-only focus:not-sr-only focus:fixed focus:right-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-white focus:px-3 focus:py-2 focus:text-black"
+      aria-label={playing ? "Pause onboarding animation" : "Resume onboarding animation"}
       data-testid="button-onboarding-motion">
-      {playing ? <Pause size={17}/> : <Play size={17}/>}
+      {playing ? "Pause background animation" : "Resume background animation"}
     </button>
   </>;
 }

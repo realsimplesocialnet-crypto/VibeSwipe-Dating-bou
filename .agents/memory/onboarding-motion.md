@@ -5,9 +5,9 @@ description: The user's onboarding animation direction and a reference-image fra
 
 Use a real moving preview during account creation, not a set of static pictures. The user requested a gently floating phone, slow decorative hearts/badges/shapes, and automatic Welcome → Create Profile → Upload Photo → Verification → Success previews, inspired by ALAT by Wema's premium onboarding presentation. Keep Get Started and Log in fixed on the welcome screen. Use the soft beige studio and subtle blue-grid direction for this onboarding artwork, not as a request to redesign the main app.
 
-**Why:** The user explicitly corrected the still-image interpretation and asked for the generated artwork to become a video running inside the app.
+**Why:** The user explicitly corrected the still-image interpretation, asked for video inside the app, and then clarified: “Don't put play button in, just animation.”
 
-**How to apply:** Keep the moving phone decorative and preserve the real interactive account forms and verification. Reduced-motion, data-saving, and playback failures may use a preview image with an explicit play control.
+**How to apply:** Autoplay the moving phone without visible play buttons or video-player controls. Keep the real interactive account forms and verification. Respect reduced-motion and data-saving preferences; accessibility-only pause/resume actions must not become visible player buttons in the normal mobile interface.
 
 Image-to-video output can contain black letterboxing from a square reference even when the output file is correctly reported as 9:16.
 

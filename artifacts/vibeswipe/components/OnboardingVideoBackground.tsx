@@ -1,9 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { AccessibilityInfo, AppState, Image, Pressable, StyleSheet, View } from "react-native";
+import { AccessibilityInfo, AppState, Image, StyleSheet, View } from "react-native";
 import { useFocusEffect } from "expo-router";
 import { useVideoPlayer, VideoView } from "expo-video";
-import { Feather } from "@expo/vector-icons";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useColors } from "@/hooks/useColors";
 
 const domain = process.env.EXPO_PUBLIC_DOMAIN;
@@ -12,7 +10,6 @@ const asset = (name: string) => `${origin}/api/vibeswipe/onboarding-art/${name}`
 
 export function OnboardingVideoBackground({ form = false }: { form?: boolean }) {
   const colors = useColors();
-  const insets = useSafeAreaInsets();
   const [reduced, setReduced] = useState(true);
   const [choice, setChoice] = useState<boolean | null>(null);
   const [focused, setFocused] = useState(false);
@@ -65,28 +62,20 @@ export function OnboardingVideoBackground({ form = false }: { form?: boolean }) 
     return () => { alive = false; };
   }, [shouldPlay, player, retry]);
 
-  return <>
-    <View pointerEvents="none" accessible={false} style={[StyleSheet.absoluteFill, { backgroundColor: "#ebdfd1" }]}>
+  return (
+    <View pointerEvents="none" accessible accessibilityRole="image"
+      accessibilityLabel="Onboarding animation preview"
+      accessibilityActions={[{ name: "toggleAnimation", label: playing ? "Pause animation" : "Resume animation" }]}
+      onAccessibilityAction={event => {
+        if (event.nativeEvent.actionName !== "toggleAnimation") return;
+        if (playing) { setChoice(false); player.pause(); }
+        else { setChoice(true); setRetry(value => value + 1); }
+      }}
+      style={[StyleSheet.absoluteFill, { backgroundColor: "#ebdfd1" }]}>
       <Image source={{ uri: asset("poster-v1.webp") }} style={StyleSheet.absoluteFill} resizeMode="cover"/>
       <VideoView player={player} style={[StyleSheet.absoluteFill, { opacity: ready ? 1 : 0 }]} contentFit="cover"
         onFirstFrameRender={() => setReady(true)} nativeControls={false} surfaceType="textureView"/>
       {form && <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.background, opacity: .86 }]}/>}
     </View>
-    <Pressable accessibilityRole="button"
-      accessibilityLabel={playing ? "Pause onboarding animation" : "Play onboarding animation"}
-      testID="onboarding-motion"
-      onPress={() => {
-        if (playing) { setChoice(false); player.pause(); }
-        else { setChoice(true); setRetry(value => value + 1); }
-      }}
-      style={[styles.control, { top: insets.top + 12 }, form ? { left: "50%", marginLeft: -22 } : { right: 18 }]}>
-      <Feather name={playing ? "pause" : "play"} size={18} color="#35293a"/>
-    </Pressable>
-  </>;
+  );
 }
-
-const styles = StyleSheet.create({
-  control: { position: "absolute", zIndex: 10, width: 44, height: 44, borderRadius: 22,
-    alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255,255,255,.92)",
-    borderWidth: 1, borderColor: "rgba(92,66,67,.12)" },
-});
