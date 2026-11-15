@@ -5,7 +5,7 @@ import {
   getGetMyReelsQueryKey, getGetReelQueryKey, getGetReelsFeedQueryKey, getGetSavedReelsQueryKey, getReelsFeed,
   useDeleteReel, useGetReel, useLikeReel, useSaveReel, useUnlikeReel, useUnsaveReel, type Reel,
 } from "@workspace/api-client-react";
-import { ArrowLeft, Clapperboard, Plus, Volume2, VolumeX } from "lucide-react";
+import { ArrowLeft, Bookmark, Clapperboard, Plus, Volume2, VolumeX } from "lucide-react";
 import { ReelSlide } from "@/components/reels/reel-slide";
 import { ReelComments } from "@/components/reels/reel-comments";
 import { ReelShareSheet } from "@/components/reels/reel-share-sheet";
@@ -203,7 +203,10 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
         <button type="button" onClick={back} aria-label="Back" data-testid="button-reels-back" className="reels-icon"><ArrowLeft size={24} /></button>
         <h1 className="reels-title">Reels</h1>
         <div className="ml-auto flex flex-col items-end gap-3">
-          <Link href={`/reels/new?returnTo=${encodeURIComponent(ownPath)}`} aria-label="Post a Reel" data-testid="link-create-reel" className="reels-plus"><Plus size={20} /></Link>
+          <div className="flex items-center gap-2">
+            <Link href={`/reels/saved?returnTo=${encodeURIComponent(ownPath)}`} aria-label="Saved Reels" data-testid="link-reels-saved" className="reels-icon"><Bookmark size={20} /></Link>
+            <Link href={`/reels/new?returnTo=${encodeURIComponent(ownPath)}`} aria-label="Post a Reel" data-testid="link-create-reel" className="reels-plus"><Plus size={20} /></Link>
+          </div>
           {reels.length > 0 && <button type="button" onClick={() => setMuted((value) => !value)} aria-label={muted ? "Turn sound on" : "Mute"} aria-pressed={!muted} data-testid="button-reels-mute" className="reels-sound">{muted ? <VolumeX size={18} /> : <Volume2 size={18} />}</button>}
         </div>
       </header>

@@ -9,6 +9,12 @@ The user liked the first Reels picture preview and wants that visual direction r
 
 **How to apply:** Use the approved picture as the visual reference rather than starting a different design without asking.
 
+The general Reels entry belongs in the main navigation, not extra Discover-header or Profile shortcuts. Keep Saved Reels accessible from within Reels.
+
+**Why:** The user requested Reels as the sixth navigation button, then clarified that it should only be there, without changing the existing colors.
+
+**How to apply:** Do not add duplicate top-level Reels shortcuts elsewhere. Preserve working shared-video links and like notifications, which open specific videos rather than duplicate the main entry.
+
 Reels are videos. Posting must offer recording with the camera or selecting an existing video, then publishing after upload and processing finish. Sharing must include people the user already chats with. Saving must make the video accessible again to that user.
 
 **Why:** The user described recording or selecting videos, posting immediately, sharing with chat partners, and finding saved videos later.

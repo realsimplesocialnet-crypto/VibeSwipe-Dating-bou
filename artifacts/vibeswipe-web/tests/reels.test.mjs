@@ -6,6 +6,14 @@ import { formatCount, reelFileProblem, reelMediaUrl, reelShareMessage, reelShare
 const id = "123e4567-e89b-42d3-a456-426614174000";
 const read = (path) => readFileSync(new URL(path, import.meta.url), "utf8");
 
+test("Reels entry stays in navigation and saved videos are reached inside Reels", () => {
+  const app = read("../src/App.tsx");
+  assert.match(app, /href: '\/reels', label: 'Reels'/);
+  assert.ok(!read("../src/components/discover-swipe-page.tsx").includes("link-open-reels"));
+  assert.ok(!app.includes("link-profile-saved-reels"));
+  assert.ok(read("../src/pages/reels-feed.tsx").includes('data-testid="link-reels-saved"'));
+});
+
 test("a shared Reel message carries an openable link the chat recognises", () => {
   const url = reelShareUrl("https://vibe.example", "/", id);
   assert.equal(url, `https://vibe.example/reels/${id}`);
