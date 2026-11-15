@@ -51,7 +51,10 @@ import type {
   GetAdminDashboardParams,
   GetAdminVerificationRequestsParams,
   GetDiscoverProfilesParams,
+  GetMyReelsParams,
   GetPublicLocationShareParams,
+  GetReelsFeedParams,
+  GetSavedReelsParams,
   HealthStatus,
   Icebreaker,
   LocationShareCreateInput,
@@ -80,6 +83,12 @@ import type {
   ReactionInput,
   ReactionResult,
   ReadReceiptStatus,
+  Reel,
+  ReelComment,
+  ReelCommentInput,
+  ReelEngagement,
+  ReelInput,
+  ReelPage,
   ReportInput,
   SearchTravelCitiesParams,
   StoriesFeed,
@@ -7215,5 +7224,1118 @@ export const useTranscodeStoryVideo = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getTranscodeStoryVideoMutationOptions(options), queryClient);
+    }
+
+export const getGetReelsFeedUrl = (params?: GetReelsFeedParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/vibeswipe/reels?${stringifiedParams}` : `/api/vibeswipe/reels`
+}
+
+/**
+ * @summary Page through public member Reels, newest first
+ */
+export const getReelsFeed = async (params?: GetReelsFeedParams, options?: Parameters<typeof customFetch>[1]): Promise<ReelPage> => {
+
+  return customFetch<ReelPage>(getGetReelsFeedUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetReelsFeedQueryKey = (params?: GetReelsFeedParams,) => {
+    return [
+    `/api/vibeswipe/reels`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetReelsFeedQueryOptions = <TData = Awaited<ReturnType<typeof getReelsFeed>>, TError = ErrorType<unknown>>(params?: GetReelsFeedParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getReelsFeed>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetReelsFeedQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getReelsFeed>>> = ({ signal }) => getReelsFeed(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getReelsFeed>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetReelsFeedQueryResult = NonNullable<Awaited<ReturnType<typeof getReelsFeed>>>
+export type GetReelsFeedQueryError = ErrorType<unknown>
+
+
+export function useGetReelsFeed<TData = Awaited<ReturnType<typeof getReelsFeed>>, TError = ErrorType<unknown>>(
+ params: undefined |  GetReelsFeedParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getReelsFeed>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getReelsFeed>>,
+          TError,
+          Awaited<ReturnType<typeof getReelsFeed>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetReelsFeed<TData = Awaited<ReturnType<typeof getReelsFeed>>, TError = ErrorType<unknown>>(
+ params?: GetReelsFeedParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getReelsFeed>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getReelsFeed>>,
+          TError,
+          Awaited<ReturnType<typeof getReelsFeed>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetReelsFeed<TData = Awaited<ReturnType<typeof getReelsFeed>>, TError = ErrorType<unknown>>(
+ params?: GetReelsFeedParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getReelsFeed>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Page through public member Reels, newest first
+ */
+
+export function useGetReelsFeed<TData = Awaited<ReturnType<typeof getReelsFeed>>, TError = ErrorType<unknown>>(
+ params?: GetReelsFeedParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getReelsFeed>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetReelsFeedQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateReelUrl = () => {
+
+
+
+
+  return `/api/vibeswipe/reels`
+}
+
+/**
+ * @summary Publish a processed private video upload as a Reel
+ */
+export const createReel = async (reelInput: ReelInput, options?: Parameters<typeof customFetch>[1]): Promise<Reel> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<Reel>(getCreateReelUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(reelInput)
+  }
+);}
+
+
+
+
+
+export const getCreateReelMutationKey = () => ['createReel'] as const;
+
+export const getCreateReelMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createReel>>, TError,CreateReelMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createReel>>, TError,CreateReelMutationVariables, TContext> => {
+
+const mutationKey = getCreateReelMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createReel>>, CreateReelMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  createReel(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateReelMutationResult = NonNullable<Awaited<ReturnType<typeof createReel>>>
+    export type CreateReelMutationBody = BodyType<ReelInput>
+    export type CreateReelMutationError = ErrorType<void>
+    export type CreateReelMutationVariables = {data: BodyType<ReelInput>}
+
+    /**
+ * @summary Publish a processed private video upload as a Reel
+ */
+export const useCreateReel = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createReel>>, TError,CreateReelMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof createReel>>,
+        TError,
+        CreateReelMutationVariables,
+        TContext
+      > => {
+      return useMutation(getCreateReelMutationOptions(options), queryClient);
+    }
+
+export const getGetSavedReelsUrl = (params?: GetSavedReelsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/vibeswipe/reels/saved?${stringifiedParams}` : `/api/vibeswipe/reels/saved`
+}
+
+/**
+ * @summary Reels privately saved by the signed-in user
+ */
+export const getSavedReels = async (params?: GetSavedReelsParams, options?: Parameters<typeof customFetch>[1]): Promise<ReelPage> => {
+
+  return customFetch<ReelPage>(getGetSavedReelsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetSavedReelsQueryKey = (params?: GetSavedReelsParams,) => {
+    return [
+    `/api/vibeswipe/reels/saved`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetSavedReelsQueryOptions = <TData = Awaited<ReturnType<typeof getSavedReels>>, TError = ErrorType<unknown>>(params?: GetSavedReelsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSavedReels>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetSavedReelsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getSavedReels>>> = ({ signal }) => getSavedReels(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getSavedReels>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetSavedReelsQueryResult = NonNullable<Awaited<ReturnType<typeof getSavedReels>>>
+export type GetSavedReelsQueryError = ErrorType<unknown>
+
+
+export function useGetSavedReels<TData = Awaited<ReturnType<typeof getSavedReels>>, TError = ErrorType<unknown>>(
+ params: undefined |  GetSavedReelsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSavedReels>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getSavedReels>>,
+          TError,
+          Awaited<ReturnType<typeof getSavedReels>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetSavedReels<TData = Awaited<ReturnType<typeof getSavedReels>>, TError = ErrorType<unknown>>(
+ params?: GetSavedReelsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSavedReels>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getSavedReels>>,
+          TError,
+          Awaited<ReturnType<typeof getSavedReels>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetSavedReels<TData = Awaited<ReturnType<typeof getSavedReels>>, TError = ErrorType<unknown>>(
+ params?: GetSavedReelsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSavedReels>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Reels privately saved by the signed-in user
+ */
+
+export function useGetSavedReels<TData = Awaited<ReturnType<typeof getSavedReels>>, TError = ErrorType<unknown>>(
+ params?: GetSavedReelsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSavedReels>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetSavedReelsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetMyReelsUrl = (params?: GetMyReelsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/vibeswipe/reels/mine?${stringifiedParams}` : `/api/vibeswipe/reels/mine`
+}
+
+/**
+ * @summary Reels posted by the signed-in user
+ */
+export const getMyReels = async (params?: GetMyReelsParams, options?: Parameters<typeof customFetch>[1]): Promise<ReelPage> => {
+
+  return customFetch<ReelPage>(getGetMyReelsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetMyReelsQueryKey = (params?: GetMyReelsParams,) => {
+    return [
+    `/api/vibeswipe/reels/mine`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetMyReelsQueryOptions = <TData = Awaited<ReturnType<typeof getMyReels>>, TError = ErrorType<unknown>>(params?: GetMyReelsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyReels>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetMyReelsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMyReels>>> = ({ signal }) => getMyReels(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMyReels>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetMyReelsQueryResult = NonNullable<Awaited<ReturnType<typeof getMyReels>>>
+export type GetMyReelsQueryError = ErrorType<unknown>
+
+
+export function useGetMyReels<TData = Awaited<ReturnType<typeof getMyReels>>, TError = ErrorType<unknown>>(
+ params: undefined |  GetMyReelsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyReels>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getMyReels>>,
+          TError,
+          Awaited<ReturnType<typeof getMyReels>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetMyReels<TData = Awaited<ReturnType<typeof getMyReels>>, TError = ErrorType<unknown>>(
+ params?: GetMyReelsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyReels>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getMyReels>>,
+          TError,
+          Awaited<ReturnType<typeof getMyReels>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetMyReels<TData = Awaited<ReturnType<typeof getMyReels>>, TError = ErrorType<unknown>>(
+ params?: GetMyReelsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyReels>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Reels posted by the signed-in user
+ */
+
+export function useGetMyReels<TData = Awaited<ReturnType<typeof getMyReels>>, TError = ErrorType<unknown>>(
+ params?: GetMyReelsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyReels>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetMyReelsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetReelUrl = (reelId: string,) => {
+
+
+
+
+  return `/api/vibeswipe/reels/${reelId}`
+}
+
+/**
+ * @summary Open one visible Reel
+ */
+export const getReel = async (reelId: string, options?: Parameters<typeof customFetch>[1]): Promise<Reel> => {
+
+  return customFetch<Reel>(getGetReelUrl(reelId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetReelQueryKey = (reelId: string,) => {
+    return [
+    `/api/vibeswipe/reels/${reelId}`
+    ] as const;
+    }
+
+
+export const getGetReelQueryOptions = <TData = Awaited<ReturnType<typeof getReel>>, TError = ErrorType<void>>(reelId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getReel>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetReelQueryKey(reelId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getReel>>> = ({ signal }) => getReel(reelId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: reelId !== null && reelId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getReel>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetReelQueryResult = NonNullable<Awaited<ReturnType<typeof getReel>>>
+export type GetReelQueryError = ErrorType<void>
+
+
+export function useGetReel<TData = Awaited<ReturnType<typeof getReel>>, TError = ErrorType<void>>(
+ reelId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getReel>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getReel>>,
+          TError,
+          Awaited<ReturnType<typeof getReel>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetReel<TData = Awaited<ReturnType<typeof getReel>>, TError = ErrorType<void>>(
+ reelId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getReel>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getReel>>,
+          TError,
+          Awaited<ReturnType<typeof getReel>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetReel<TData = Awaited<ReturnType<typeof getReel>>, TError = ErrorType<void>>(
+ reelId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getReel>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Open one visible Reel
+ */
+
+export function useGetReel<TData = Awaited<ReturnType<typeof getReel>>, TError = ErrorType<void>>(
+ reelId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getReel>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetReelQueryOptions(reelId,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getDeleteReelUrl = (reelId: string,) => {
+
+
+
+
+  return `/api/vibeswipe/reels/${reelId}`
+}
+
+/**
+ * @summary Delete a Reel posted by the signed-in user
+ */
+export const deleteReel = async (reelId: string, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getDeleteReelUrl(reelId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeleteReelMutationKey = () => ['deleteReel'] as const;
+
+export const getDeleteReelMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteReel>>, TError,DeleteReelMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteReel>>, TError,DeleteReelMutationVariables, TContext> => {
+
+const mutationKey = getDeleteReelMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteReel>>, DeleteReelMutationVariables> = (props) => {
+          const {reelId} = props ?? {};
+
+          return  deleteReel(reelId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteReelMutationResult = NonNullable<Awaited<ReturnType<typeof deleteReel>>>
+
+    export type DeleteReelMutationError = ErrorType<void>
+    export type DeleteReelMutationVariables = {reelId: string}
+
+    /**
+ * @summary Delete a Reel posted by the signed-in user
+ */
+export const useDeleteReel = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteReel>>, TError,DeleteReelMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof deleteReel>>,
+        TError,
+        DeleteReelMutationVariables,
+        TContext
+      > => {
+      return useMutation(getDeleteReelMutationOptions(options), queryClient);
+    }
+
+export const getLikeReelUrl = (reelId: string,) => {
+
+
+
+
+  return `/api/vibeswipe/reels/${reelId}/like`
+}
+
+export const likeReel = async (reelId: string, options?: Parameters<typeof customFetch>[1]): Promise<ReelEngagement> => {
+
+  return customFetch<ReelEngagement>(getLikeReelUrl(reelId),
+  {
+    ...options,
+    method: 'PUT'
+
+
+  }
+);}
+
+
+
+
+
+export const getLikeReelMutationKey = () => ['likeReel'] as const;
+
+export const getLikeReelMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof likeReel>>, TError,LikeReelMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof likeReel>>, TError,LikeReelMutationVariables, TContext> => {
+
+const mutationKey = getLikeReelMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof likeReel>>, LikeReelMutationVariables> = (props) => {
+          const {reelId} = props ?? {};
+
+          return  likeReel(reelId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type LikeReelMutationResult = NonNullable<Awaited<ReturnType<typeof likeReel>>>
+
+    export type LikeReelMutationError = ErrorType<unknown>
+    export type LikeReelMutationVariables = {reelId: string}
+
+    export const useLikeReel = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof likeReel>>, TError,LikeReelMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof likeReel>>,
+        TError,
+        LikeReelMutationVariables,
+        TContext
+      > => {
+      return useMutation(getLikeReelMutationOptions(options), queryClient);
+    }
+
+export const getUnlikeReelUrl = (reelId: string,) => {
+
+
+
+
+  return `/api/vibeswipe/reels/${reelId}/like`
+}
+
+export const unlikeReel = async (reelId: string, options?: Parameters<typeof customFetch>[1]): Promise<ReelEngagement> => {
+
+  return customFetch<ReelEngagement>(getUnlikeReelUrl(reelId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getUnlikeReelMutationKey = () => ['unlikeReel'] as const;
+
+export const getUnlikeReelMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof unlikeReel>>, TError,UnlikeReelMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof unlikeReel>>, TError,UnlikeReelMutationVariables, TContext> => {
+
+const mutationKey = getUnlikeReelMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof unlikeReel>>, UnlikeReelMutationVariables> = (props) => {
+          const {reelId} = props ?? {};
+
+          return  unlikeReel(reelId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UnlikeReelMutationResult = NonNullable<Awaited<ReturnType<typeof unlikeReel>>>
+
+    export type UnlikeReelMutationError = ErrorType<unknown>
+    export type UnlikeReelMutationVariables = {reelId: string}
+
+    export const useUnlikeReel = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof unlikeReel>>, TError,UnlikeReelMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof unlikeReel>>,
+        TError,
+        UnlikeReelMutationVariables,
+        TContext
+      > => {
+      return useMutation(getUnlikeReelMutationOptions(options), queryClient);
+    }
+
+export const getSaveReelUrl = (reelId: string,) => {
+
+
+
+
+  return `/api/vibeswipe/reels/${reelId}/save`
+}
+
+export const saveReel = async (reelId: string, options?: Parameters<typeof customFetch>[1]): Promise<ReelEngagement> => {
+
+  return customFetch<ReelEngagement>(getSaveReelUrl(reelId),
+  {
+    ...options,
+    method: 'PUT'
+
+
+  }
+);}
+
+
+
+
+
+export const getSaveReelMutationKey = () => ['saveReel'] as const;
+
+export const getSaveReelMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof saveReel>>, TError,SaveReelMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof saveReel>>, TError,SaveReelMutationVariables, TContext> => {
+
+const mutationKey = getSaveReelMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof saveReel>>, SaveReelMutationVariables> = (props) => {
+          const {reelId} = props ?? {};
+
+          return  saveReel(reelId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SaveReelMutationResult = NonNullable<Awaited<ReturnType<typeof saveReel>>>
+
+    export type SaveReelMutationError = ErrorType<unknown>
+    export type SaveReelMutationVariables = {reelId: string}
+
+    export const useSaveReel = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof saveReel>>, TError,SaveReelMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof saveReel>>,
+        TError,
+        SaveReelMutationVariables,
+        TContext
+      > => {
+      return useMutation(getSaveReelMutationOptions(options), queryClient);
+    }
+
+export const getUnsaveReelUrl = (reelId: string,) => {
+
+
+
+
+  return `/api/vibeswipe/reels/${reelId}/save`
+}
+
+export const unsaveReel = async (reelId: string, options?: Parameters<typeof customFetch>[1]): Promise<ReelEngagement> => {
+
+  return customFetch<ReelEngagement>(getUnsaveReelUrl(reelId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getUnsaveReelMutationKey = () => ['unsaveReel'] as const;
+
+export const getUnsaveReelMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof unsaveReel>>, TError,UnsaveReelMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof unsaveReel>>, TError,UnsaveReelMutationVariables, TContext> => {
+
+const mutationKey = getUnsaveReelMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof unsaveReel>>, UnsaveReelMutationVariables> = (props) => {
+          const {reelId} = props ?? {};
+
+          return  unsaveReel(reelId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UnsaveReelMutationResult = NonNullable<Awaited<ReturnType<typeof unsaveReel>>>
+
+    export type UnsaveReelMutationError = ErrorType<unknown>
+    export type UnsaveReelMutationVariables = {reelId: string}
+
+    export const useUnsaveReel = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof unsaveReel>>, TError,UnsaveReelMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof unsaveReel>>,
+        TError,
+        UnsaveReelMutationVariables,
+        TContext
+      > => {
+      return useMutation(getUnsaveReelMutationOptions(options), queryClient);
+    }
+
+export const getGetReelCommentsUrl = (reelId: string,) => {
+
+
+
+
+  return `/api/vibeswipe/reels/${reelId}/comments`
+}
+
+export const getReelComments = async (reelId: string, options?: Parameters<typeof customFetch>[1]): Promise<ReelComment[]> => {
+
+  return customFetch<ReelComment[]>(getGetReelCommentsUrl(reelId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetReelCommentsQueryKey = (reelId: string,) => {
+    return [
+    `/api/vibeswipe/reels/${reelId}/comments`
+    ] as const;
+    }
+
+
+export const getGetReelCommentsQueryOptions = <TData = Awaited<ReturnType<typeof getReelComments>>, TError = ErrorType<unknown>>(reelId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getReelComments>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetReelCommentsQueryKey(reelId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getReelComments>>> = ({ signal }) => getReelComments(reelId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: reelId !== null && reelId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getReelComments>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetReelCommentsQueryResult = NonNullable<Awaited<ReturnType<typeof getReelComments>>>
+export type GetReelCommentsQueryError = ErrorType<unknown>
+
+
+export function useGetReelComments<TData = Awaited<ReturnType<typeof getReelComments>>, TError = ErrorType<unknown>>(
+ reelId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getReelComments>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getReelComments>>,
+          TError,
+          Awaited<ReturnType<typeof getReelComments>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetReelComments<TData = Awaited<ReturnType<typeof getReelComments>>, TError = ErrorType<unknown>>(
+ reelId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getReelComments>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getReelComments>>,
+          TError,
+          Awaited<ReturnType<typeof getReelComments>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetReelComments<TData = Awaited<ReturnType<typeof getReelComments>>, TError = ErrorType<unknown>>(
+ reelId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getReelComments>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useGetReelComments<TData = Awaited<ReturnType<typeof getReelComments>>, TError = ErrorType<unknown>>(
+ reelId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getReelComments>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetReelCommentsQueryOptions(reelId,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateReelCommentUrl = (reelId: string,) => {
+
+
+
+
+  return `/api/vibeswipe/reels/${reelId}/comments`
+}
+
+export const createReelComment = async (reelId: string,
+    reelCommentInput: ReelCommentInput, options?: Parameters<typeof customFetch>[1]): Promise<ReelComment> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<ReelComment>(getCreateReelCommentUrl(reelId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(reelCommentInput)
+  }
+);}
+
+
+
+
+
+export const getCreateReelCommentMutationKey = () => ['createReelComment'] as const;
+
+export const getCreateReelCommentMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createReelComment>>, TError,CreateReelCommentMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createReelComment>>, TError,CreateReelCommentMutationVariables, TContext> => {
+
+const mutationKey = getCreateReelCommentMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createReelComment>>, CreateReelCommentMutationVariables> = (props) => {
+          const {reelId,data} = props ?? {};
+
+          return  createReelComment(reelId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateReelCommentMutationResult = NonNullable<Awaited<ReturnType<typeof createReelComment>>>
+    export type CreateReelCommentMutationBody = BodyType<ReelCommentInput>
+    export type CreateReelCommentMutationError = ErrorType<unknown>
+    export type CreateReelCommentMutationVariables = {reelId: string;data: BodyType<ReelCommentInput>}
+
+    export const useCreateReelComment = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createReelComment>>, TError,CreateReelCommentMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof createReelComment>>,
+        TError,
+        CreateReelCommentMutationVariables,
+        TContext
+      > => {
+      return useMutation(getCreateReelCommentMutationOptions(options), queryClient);
+    }
+
+export const getDeleteReelCommentUrl = (reelId: string,
+    commentId: string,) => {
+
+
+
+
+  return `/api/vibeswipe/reels/${reelId}/comments/${commentId}`
+}
+
+/**
+ * @summary Delete own comment, or any comment on own Reel
+ */
+export const deleteReelComment = async (reelId: string,
+    commentId: string, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getDeleteReelCommentUrl(reelId,commentId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeleteReelCommentMutationKey = () => ['deleteReelComment'] as const;
+
+export const getDeleteReelCommentMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteReelComment>>, TError,DeleteReelCommentMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteReelComment>>, TError,DeleteReelCommentMutationVariables, TContext> => {
+
+const mutationKey = getDeleteReelCommentMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteReelComment>>, DeleteReelCommentMutationVariables> = (props) => {
+          const {reelId,commentId} = props ?? {};
+
+          return  deleteReelComment(reelId,commentId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteReelCommentMutationResult = NonNullable<Awaited<ReturnType<typeof deleteReelComment>>>
+
+    export type DeleteReelCommentMutationError = ErrorType<void>
+    export type DeleteReelCommentMutationVariables = {reelId: string;commentId: string}
+
+    /**
+ * @summary Delete own comment, or any comment on own Reel
+ */
+export const useDeleteReelComment = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteReelComment>>, TError,DeleteReelCommentMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof deleteReelComment>>,
+        TError,
+        DeleteReelCommentMutationVariables,
+        TContext
+      > => {
+      return useMutation(getDeleteReelCommentMutationOptions(options), queryClient);
     }
 

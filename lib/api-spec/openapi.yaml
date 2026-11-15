@@ -1328,6 +1328,192 @@ paths:
           description: Video exceeds story duration or size limits
         "404":
           description: Uploaded video was not found
+  /vibeswipe/reels:
+    get:
+      operationId: getReelsFeed
+      tags: [vibeswipe]
+      summary: Page through public member Reels, newest first
+      parameters:
+        - in: query
+          name: cursor
+          required: false
+          schema: { type: string, maxLength: 200 }
+        - in: query
+          name: limit
+          required: false
+          schema: { type: integer, minimum: 1, maximum: 12 }
+      responses:
+        "200":
+          description: One page of Reels
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ReelPage" }
+    post:
+      operationId: createReel
+      tags: [vibeswipe]
+      summary: Publish a processed private video upload as a Reel
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ReelInput" }
+      responses:
+        "201":
+          description: Reel published
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Reel" }
+        "400":
+          description: Video not processed or invalid caption
+        "403":
+          description: Upload is not owned by this account
+  /vibeswipe/reels/saved:
+    get:
+      operationId: getSavedReels
+      tags: [vibeswipe]
+      summary: Reels privately saved by the signed-in user
+      parameters:
+        - in: query
+          name: cursor
+          required: false
+          schema: { type: string, maxLength: 200 }
+      responses:
+        "200":
+          description: Saved Reels page
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ReelPage" }
+  /vibeswipe/reels/mine:
+    get:
+      operationId: getMyReels
+      tags: [vibeswipe]
+      summary: Reels posted by the signed-in user
+      parameters:
+        - in: query
+          name: cursor
+          required: false
+          schema: { type: string, maxLength: 200 }
+      responses:
+        "200":
+          description: Posted Reels page
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ReelPage" }
+  /vibeswipe/reels/{reelId}:
+    get:
+      operationId: getReel
+      tags: [vibeswipe]
+      summary: Open one visible Reel
+      parameters:
+        - { in: path, name: reelId, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200":
+          description: Reel
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Reel" }
+        "404":
+          description: Reel removed or unavailable
+    delete:
+      operationId: deleteReel
+      tags: [vibeswipe]
+      summary: Delete a Reel posted by the signed-in user
+      parameters:
+        - { in: path, name: reelId, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "204":
+          description: Reel deleted
+        "404":
+          description: Reel not found
+  /vibeswipe/reels/{reelId}/like:
+    put:
+      operationId: likeReel
+      tags: [vibeswipe]
+      parameters:
+        - { in: path, name: reelId, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200":
+          description: Updated engagement
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ReelEngagement" }
+    delete:
+      operationId: unlikeReel
+      tags: [vibeswipe]
+      parameters:
+        - { in: path, name: reelId, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200":
+          description: Updated engagement
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ReelEngagement" }
+  /vibeswipe/reels/{reelId}/save:
+    put:
+      operationId: saveReel
+      tags: [vibeswipe]
+      parameters:
+        - { in: path, name: reelId, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200":
+          description: Updated engagement
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ReelEngagement" }
+    delete:
+      operationId: unsaveReel
+      tags: [vibeswipe]
+      parameters:
+        - { in: path, name: reelId, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200":
+          description: Updated engagement
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ReelEngagement" }
+  /vibeswipe/reels/{reelId}/comments:
+    get:
+      operationId: getReelComments
+      tags: [vibeswipe]
+      parameters:
+        - { in: path, name: reelId, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200":
+          description: Newest comments, oldest first
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/ReelComment" }
+    post:
+      operationId: createReelComment
+      tags: [vibeswipe]
+      parameters:
+        - { in: path, name: reelId, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ReelCommentInput" }
+      responses:
+        "201":
+          description: Comment posted
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ReelComment" }
+  /vibeswipe/reels/{reelId}/comments/{commentId}:
+    delete:
+      operationId: deleteReelComment
+      tags: [vibeswipe]
+      summary: Delete own comment, or any comment on own Reel
+      parameters:
+        - { in: path, name: reelId, required: true, schema: { type: string, format: uuid } }
+        - { in: path, name: commentId, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "204":
+          description: Comment deleted
+        "404":
+          description: Comment not found
 components:
   securitySchemes:
     bearerAuth:
@@ -2028,4 +2214,62 @@ components:
         width: { type: integer, minimum: 1, maximum: 1280 }
         height: { type: integer, minimum: 1, maximum: 1280 }
       required: [mediaReference, size, duration, width, height]
-
+    Reel:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        creatorId: { type: string }
+        creatorName: { type: string }
+        creatorAge: { type: ["integer", "null"] }
+        creatorLocation: { type: string }
+        creatorVerified: { type: boolean }
+        creatorPhoto: { type: ["string", "null"] }
+        videoReference: { type: string }
+        caption: { type: string }
+        durationSeconds: { type: ["number", "null"] }
+        likeCount: { type: integer }
+        commentCount: { type: integer }
+        likedByMe: { type: boolean }
+        savedByMe: { type: boolean }
+        isOwner: { type: boolean }
+        createdAt: { type: string, format: date-time }
+      required: [id, creatorId, creatorName, creatorAge, creatorLocation, creatorVerified, creatorPhoto, videoReference, caption, durationSeconds, likeCount, commentCount, likedByMe, savedByMe, isOwner, createdAt]
+    ReelPage:
+      type: object
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/Reel" }
+        nextCursor: { type: ["string", "null"] }
+      required: [items, nextCursor]
+    ReelInput:
+      type: object
+      properties:
+        mediaId: { type: string, format: uuid }
+        caption: { type: string, maxLength: 300 }
+      required: [mediaId]
+    ReelEngagement:
+      type: object
+      properties:
+        likedByMe: { type: boolean }
+        savedByMe: { type: boolean }
+        likeCount: { type: integer }
+        commentCount: { type: integer }
+      required: [likedByMe, savedByMe, likeCount, commentCount]
+    ReelComment:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        reelId: { type: string, format: uuid }
+        authorId: { type: string }
+        authorName: { type: string }
+        authorPhoto: { type: ["string", "null"] }
+        content: { type: string }
+        canDelete: { type: boolean }
+        createdAt: { type: string, format: date-time }
+      required: [id, reelId, authorId, authorName, authorPhoto, content, canDelete, createdAt]
+    ReelCommentInput:
+      type: object
+      properties:
+        content: { type: string, minLength: 1, maxLength: 500 }
+      required: [content]

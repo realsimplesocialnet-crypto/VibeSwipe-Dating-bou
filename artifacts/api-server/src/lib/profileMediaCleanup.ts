@@ -5,6 +5,7 @@ import {
   profileSetupDraftsTable,
   profilesTable,
   faceVerificationSessionsTable,
+  reelsTable,
 } from "@workspace/db";
 import { and, asc, eq, gt, inArray, isNull, lt, or, sql } from "drizzle-orm";
 import { logger } from "./logger";
@@ -74,6 +75,13 @@ async function deleteIfUnreferenced(
     .where(eq(messagesTable.mediaReference, mediaReference))
     .limit(1);
   if (messageReference) return false;
+
+  const [reelReference] = await tx
+    .select({ id: reelsTable.id })
+    .from(reelsTable)
+    .where(eq(reelsTable.mediaId, asset.id))
+    .limit(1);
+  if (reelReference) return false;
 
   await objectStorage.deleteObjectEntity(asset.objectPath);
   await tx.delete(mediaAssetsTable).where(eq(mediaAssetsTable.id, asset.id));

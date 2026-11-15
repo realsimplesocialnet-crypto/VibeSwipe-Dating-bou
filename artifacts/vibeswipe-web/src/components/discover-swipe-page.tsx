@@ -29,7 +29,7 @@ import {
   type Profile,
   type ReportInputReason,
 } from "@workspace/api-client-react";
-import { ArrowLeft, Heart, MapPin, MoreHorizontal, SlidersHorizontal, Star, X, Zap } from "lucide-react";
+import { ArrowLeft, Clapperboard, Heart, MapPin, MoreHorizontal, SlidersHorizontal, Star, X, Zap } from "lucide-react";
 import { isDiscoverSetupRequired, shouldRetryDiscover } from "@/lib/profile-query-state";
 import { StoriesRow } from "@/components/stories/stories-ui";
 import { MatchCelebration } from "@/components/match-celebration";
@@ -226,7 +226,7 @@ export function DiscoverSwipePage() {
 
   const stickyHeader = <div className="discover-sticky sticky top-[var(--install-banner-height,0px)] z-30 -mx-4 mb-4 px-4 pb-1 pt-3 sm:-mx-6 sm:px-6" data-testid="discover-sticky-header">
     <header className="mb-3 rounded-[28px] border border-border/40 bg-card/95 px-3 py-2.5 shadow-sm">
-      <div className="flex min-h-11 items-center gap-2.5">{!profile && <StoriesRow mode="own"/>}<div className="flex min-w-0 flex-1 items-center gap-1.5"><img src={`${import.meta.env.BASE_URL}icon.png`} alt="" className="h-7 w-7 rounded-full"/><span className="truncate text-[15px] font-extrabold tracking-tight">vibe<span className="text-primary">swipe</span></span></div><span className="shrink-0 text-[11px] text-muted-foreground" data-testid="text-discover-likes">{likes.data?.remaining??"—"} likes left</span><button type="button" onClick={()=>setFiltersOpen(true)} aria-label="Discovery filters" data-testid="button-discovery-filters" className="flex h-10 w-9 shrink-0 items-center justify-center text-primary"><SlidersHorizontal size={22}/></button></div>
+      <div className="flex min-h-11 items-center gap-2.5">{!profile && <StoriesRow mode="own"/>}<div className="flex min-w-0 flex-1 items-center gap-1.5"><img src={`${import.meta.env.BASE_URL}icon.png`} alt="" className="h-7 w-7 rounded-full"/><span className="truncate text-[15px] font-extrabold tracking-tight">vibe<span className="text-primary">swipe</span></span></div><span className="shrink-0 text-[11px] text-muted-foreground" data-testid="text-discover-likes">{likes.data?.remaining??"—"} likes left</span><Link href="/reels?returnTo=%2Fdiscover" aria-label="Open Reels" data-testid="link-open-reels" className="flex h-10 w-9 shrink-0 items-center justify-center text-primary"><Clapperboard size={22}/></Link><button type="button" onClick={()=>setFiltersOpen(true)} aria-label="Discovery filters" data-testid="button-discovery-filters" className="flex h-10 w-9 shrink-0 items-center justify-center text-primary"><SlidersHorizontal size={22}/></button></div>
       <div className="mt-1.5 flex items-center justify-between pl-1"><h1 className="text-[13px] font-semibold text-foreground">Meet someone new</h1><button type="button" onClick={()=>void startBoost()} disabled={!boost.data?.available||activateBoost.isPending} aria-label={boost.data?.active?"Boost active":"Activate boost"} data-testid="button-activate-boost" className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-semibold text-primary disabled:opacity-40"><Zap size={12}/>Boost</button></div>
     </header>
     <StoriesRow mode={profile ? "all" : "matches"}/>

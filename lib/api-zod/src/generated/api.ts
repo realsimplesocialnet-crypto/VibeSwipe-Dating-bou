@@ -1982,3 +1982,277 @@ export const TranscodeStoryVideoResponse = zod.object({
 })
 
 
+/**
+ * @summary Page through public member Reels, newest first
+ */
+export const getReelsFeedQueryCursorMax = 200;
+
+export const getReelsFeedQueryLimitMax = 12;
+
+
+
+export const GetReelsFeedQueryParams = zod.object({
+  "cursor": zod.coerce.string().max(getReelsFeedQueryCursorMax).optional(),
+  "limit": zod.coerce.number().int().min(1).max(getReelsFeedQueryLimitMax).optional()
+})
+
+export const GetReelsFeedResponse = zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "creatorId": zod.string(),
+  "creatorName": zod.string(),
+  "creatorAge": zod.number().int().nullable(),
+  "creatorLocation": zod.string(),
+  "creatorVerified": zod.boolean(),
+  "creatorPhoto": zod.string().nullable(),
+  "videoReference": zod.string(),
+  "caption": zod.string(),
+  "durationSeconds": zod.number().nullable(),
+  "likeCount": zod.number().int(),
+  "commentCount": zod.number().int(),
+  "likedByMe": zod.boolean(),
+  "savedByMe": zod.boolean(),
+  "isOwner": zod.boolean(),
+  "createdAt": zod.coerce.date()
+})),
+  "nextCursor": zod.string().nullable()
+})
+
+
+/**
+ * @summary Publish a processed private video upload as a Reel
+ */
+export const createReelBodyCaptionMax = 300;
+
+
+
+export const CreateReelBody = zod.object({
+  "mediaId": zod.string().uuid(),
+  "caption": zod.string().max(createReelBodyCaptionMax).optional()
+})
+
+export const CreateReelResponse = zod.object({
+  "id": zod.string().uuid(),
+  "creatorId": zod.string(),
+  "creatorName": zod.string(),
+  "creatorAge": zod.number().int().nullable(),
+  "creatorLocation": zod.string(),
+  "creatorVerified": zod.boolean(),
+  "creatorPhoto": zod.string().nullable(),
+  "videoReference": zod.string(),
+  "caption": zod.string(),
+  "durationSeconds": zod.number().nullable(),
+  "likeCount": zod.number().int(),
+  "commentCount": zod.number().int(),
+  "likedByMe": zod.boolean(),
+  "savedByMe": zod.boolean(),
+  "isOwner": zod.boolean(),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Reels privately saved by the signed-in user
+ */
+export const getSavedReelsQueryCursorMax = 200;
+
+
+
+export const GetSavedReelsQueryParams = zod.object({
+  "cursor": zod.coerce.string().max(getSavedReelsQueryCursorMax).optional()
+})
+
+export const GetSavedReelsResponse = zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "creatorId": zod.string(),
+  "creatorName": zod.string(),
+  "creatorAge": zod.number().int().nullable(),
+  "creatorLocation": zod.string(),
+  "creatorVerified": zod.boolean(),
+  "creatorPhoto": zod.string().nullable(),
+  "videoReference": zod.string(),
+  "caption": zod.string(),
+  "durationSeconds": zod.number().nullable(),
+  "likeCount": zod.number().int(),
+  "commentCount": zod.number().int(),
+  "likedByMe": zod.boolean(),
+  "savedByMe": zod.boolean(),
+  "isOwner": zod.boolean(),
+  "createdAt": zod.coerce.date()
+})),
+  "nextCursor": zod.string().nullable()
+})
+
+
+/**
+ * @summary Reels posted by the signed-in user
+ */
+export const getMyReelsQueryCursorMax = 200;
+
+
+
+export const GetMyReelsQueryParams = zod.object({
+  "cursor": zod.coerce.string().max(getMyReelsQueryCursorMax).optional()
+})
+
+export const GetMyReelsResponse = zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "creatorId": zod.string(),
+  "creatorName": zod.string(),
+  "creatorAge": zod.number().int().nullable(),
+  "creatorLocation": zod.string(),
+  "creatorVerified": zod.boolean(),
+  "creatorPhoto": zod.string().nullable(),
+  "videoReference": zod.string(),
+  "caption": zod.string(),
+  "durationSeconds": zod.number().nullable(),
+  "likeCount": zod.number().int(),
+  "commentCount": zod.number().int(),
+  "likedByMe": zod.boolean(),
+  "savedByMe": zod.boolean(),
+  "isOwner": zod.boolean(),
+  "createdAt": zod.coerce.date()
+})),
+  "nextCursor": zod.string().nullable()
+})
+
+
+/**
+ * @summary Open one visible Reel
+ */
+export const GetReelParams = zod.object({
+  "reelId": zod.coerce.string().uuid()
+})
+
+export const GetReelResponse = zod.object({
+  "id": zod.string().uuid(),
+  "creatorId": zod.string(),
+  "creatorName": zod.string(),
+  "creatorAge": zod.number().int().nullable(),
+  "creatorLocation": zod.string(),
+  "creatorVerified": zod.boolean(),
+  "creatorPhoto": zod.string().nullable(),
+  "videoReference": zod.string(),
+  "caption": zod.string(),
+  "durationSeconds": zod.number().nullable(),
+  "likeCount": zod.number().int(),
+  "commentCount": zod.number().int(),
+  "likedByMe": zod.boolean(),
+  "savedByMe": zod.boolean(),
+  "isOwner": zod.boolean(),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Delete a Reel posted by the signed-in user
+ */
+export const DeleteReelParams = zod.object({
+  "reelId": zod.coerce.string().uuid()
+})
+
+export const DeleteReelResponse = zod.void()
+
+
+export const LikeReelParams = zod.object({
+  "reelId": zod.coerce.string().uuid()
+})
+
+export const LikeReelResponse = zod.object({
+  "likedByMe": zod.boolean(),
+  "savedByMe": zod.boolean(),
+  "likeCount": zod.number().int(),
+  "commentCount": zod.number().int()
+})
+
+
+export const UnlikeReelParams = zod.object({
+  "reelId": zod.coerce.string().uuid()
+})
+
+export const UnlikeReelResponse = zod.object({
+  "likedByMe": zod.boolean(),
+  "savedByMe": zod.boolean(),
+  "likeCount": zod.number().int(),
+  "commentCount": zod.number().int()
+})
+
+
+export const SaveReelParams = zod.object({
+  "reelId": zod.coerce.string().uuid()
+})
+
+export const SaveReelResponse = zod.object({
+  "likedByMe": zod.boolean(),
+  "savedByMe": zod.boolean(),
+  "likeCount": zod.number().int(),
+  "commentCount": zod.number().int()
+})
+
+
+export const UnsaveReelParams = zod.object({
+  "reelId": zod.coerce.string().uuid()
+})
+
+export const UnsaveReelResponse = zod.object({
+  "likedByMe": zod.boolean(),
+  "savedByMe": zod.boolean(),
+  "likeCount": zod.number().int(),
+  "commentCount": zod.number().int()
+})
+
+
+export const GetReelCommentsParams = zod.object({
+  "reelId": zod.coerce.string().uuid()
+})
+
+export const GetReelCommentsResponseItem = zod.object({
+  "id": zod.string().uuid(),
+  "reelId": zod.string().uuid(),
+  "authorId": zod.string(),
+  "authorName": zod.string(),
+  "authorPhoto": zod.string().nullable(),
+  "content": zod.string(),
+  "canDelete": zod.boolean(),
+  "createdAt": zod.coerce.date()
+})
+export const GetReelCommentsResponse = zod.array(GetReelCommentsResponseItem)
+
+
+export const CreateReelCommentParams = zod.object({
+  "reelId": zod.coerce.string().uuid()
+})
+
+export const createReelCommentBodyContentMax = 500;
+
+
+
+export const CreateReelCommentBody = zod.object({
+  "content": zod.string().min(1).max(createReelCommentBodyContentMax)
+})
+
+export const CreateReelCommentResponse = zod.object({
+  "id": zod.string().uuid(),
+  "reelId": zod.string().uuid(),
+  "authorId": zod.string(),
+  "authorName": zod.string(),
+  "authorPhoto": zod.string().nullable(),
+  "content": zod.string(),
+  "canDelete": zod.boolean(),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Delete own comment, or any comment on own Reel
+ */
+export const DeleteReelCommentParams = zod.object({
+  "reelId": zod.coerce.string().uuid(),
+  "commentId": zod.coerce.string().uuid()
+})
+
+export const DeleteReelCommentResponse = zod.void()
+
+

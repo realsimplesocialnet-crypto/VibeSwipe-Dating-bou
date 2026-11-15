@@ -134,6 +134,7 @@ import {
 } from "../lib/travelCities";
 import { getUnblockedMatchBetween } from "../lib/vibeswipeStories";
 import { canViewStory } from "../lib/vibeswipeStoryRules";
+import { canViewReelMedia } from "../lib/reels-visibility";
 import { automaticDiscovery, countryValues, discoveryTier, minimumDiscoveryPool, regionalCountryValues, smartDiscoveryPool } from "../lib/discovery-pool";
 import { discoveryExcludedIds } from "../lib/discovery-exclusions";
 
@@ -2490,7 +2491,7 @@ router.get(
           return;
         }
       }
-    } else if (asset.ownerId !== userId && !storyVisible) {
+    } else if (asset.ownerId !== userId && !storyVisible && !(await canViewReelMedia(userId, asset.id))) {
       const [ownerProfile] = await db
         .select()
         .from(profilesTable)

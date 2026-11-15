@@ -1,0 +1,40 @@
+import { pool } from "@workspace/db";
+
+// Additive, idempotent migration for Reels; runs before serving in development and production.
+export async function ensureReelsSchema(): Promise<void> {
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    await client.query("SELECT pg_advisory_xact_lock(632191517)");
+    await client.query(`CREATE TABLE IF NOT EXISTS vibeswipe_reels (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      user_id text NOT NULL REFERENCES vibeswipe_profiles(id) ON DELETE CASCADE,
+      media_id uuid NOT NULL UNIQUE REFERENCES vibeswipe_media_assets(id) ON DELETE CASCADE,
+      caption text NOT NULL DEFAULT '',
+      duration_seconds double precision,
+      created_at timestamptz NOT NULL DEFAULT now())`);
+    await client.query("CREATE INDEX IF NOT EXISTS vibeswipe_reels_feed_idx ON vibeswipe_reels(created_at, id)");
+    await client.query(`CREATE TABLE IF NOT EXISTS vibeswipe_reel_likes (
+      reel_id uuid NOT NULL REFERENCES vibeswipe_reels(id) ON DELETE CASCADE,
+      user_id text NOT NULL REFERENCES vibeswipe_profiles(id) ON DELETE CASCADE,
+      created_at timestamptz NOT NULL DEFAULT now(),
+      CONSTRAINT vibeswipe_reel_likes_pk PRIMARY KEY (reel_id, user_id))`);
+    await client.query(`CREATE TABLE IF NOT EXISTS vibeswipe_reel_saves (
+      reel_id uuid NOT NULL REFERENCES vibeswipe_reels(id) ON DELETE CASCADE,
+      user_id text NOT NULL REFERENCES vibeswipe_profiles(id) ON DELETE CASCADE,
+      created_at timestamptz NOT NULL DEFAULT now(),
+      CONSTRAINT vibeswipe_reel_saves_pk PRIMARY KEY (reel_id, user_id))`);
+    await client.query("CREATE INDEX IF NOT EXISTS vibeswipe_reel_saves_user_idx ON vibeswipe_reel_saves(user_id, created_at)");
+    await client.query(`CREATE TABLE IF NOT EXISTS vibeswipe_reel_comments (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      reel_id uuid NOT NULL REFERENCES vibeswipe_reels(id) ON DELETE CASCADE,
+      user_id text NOT NULL REFERENCES vibeswipe_profiles(id) ON DELETE CASCADE,
+      content text NOT NULL,
+      created_at timestamptz NOT NULL DEFAULT now())`);
+    await client.query("CREATE INDEX IF NOT EXISTS vibeswipe_reel_comments_reel_idx ON vibeswipe_reel_comments(reel_id, created_at)");
+    await client.query("COMMIT");
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally { client.release(); }
+}

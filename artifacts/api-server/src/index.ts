@@ -3,6 +3,7 @@ import { logger } from "./lib/logger";
 import { cleanupAbandonedProfileMedia } from "./lib/profileMediaCleanup";
 import { cleanupExpiredStories } from "./lib/vibeswipeStories";
 import { ensureAdminSchema } from "./lib/admin-schema";
+import { ensureReelsSchema } from "./lib/reels-schema";
 import { cleanupFaceVerificationSessions, ensureFaceVerificationSchema } from "./lib/face-verification-schema";
 import { cleanupAdminMediaDeletions } from "./lib/adminMediaCleanup";
 
@@ -53,7 +54,7 @@ const runProfileMediaCleanup = async (): Promise<void> => {
   }
 };
 
-void ensureAdminSchema().then(ensureFaceVerificationSchema).then(() => app.listen(port, (err) => {
+void ensureAdminSchema().then(ensureFaceVerificationSchema).then(ensureReelsSchema).then(() => app.listen(port, (err) => {
   if (err) {
     logger.error({ err }, "Error listening on port");
     process.exit(1);

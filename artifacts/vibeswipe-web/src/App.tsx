@@ -25,7 +25,7 @@ import {
 } from '@workspace/api-client-react';
 import { Link, Redirect, Route, Switch, useLocation, useParams, Router as WouterRouter } from 'wouter';
 import {
-  ArrowLeft, ArrowRight, Bell, Check, ChevronDown, ChevronRight, CircleHelp, Compass, Eye, EyeOff,
+  ArrowLeft, ArrowRight, Bell, Clapperboard, Check, ChevronDown, ChevronRight, CircleHelp, Compass, Eye, EyeOff,
   Heart, ImagePlus, MapPin, MessageCircle, MoreHorizontal, Navigation, Search, Settings,
   Shield, SlidersHorizontal, Mars, Venus, NonBinary, Briefcase, Pencil, Camera, Sparkles, Star, UserRound, Users, Volume2, X, Zap, Flag, Ban, Images, Coffee, CupSoda, Music, ImageIcon, MessageCircleMore,
 } from 'lucide-react';
@@ -49,6 +49,10 @@ import { LocationChoice } from '@/components/location-choice';
 import { HobbyMultiSelect, OccupationSelect } from '@/components/profile-field-selectors';
 import { ConnectionNotice } from '@/components/connection-notice';
 import { WebPushSettings } from '@/components/WebPushSettings';
+import { ReelsFeedPage } from '@/pages/reels-feed';
+import { ReelComposerPage } from '@/pages/reel-composer';
+import { ReelsLibraryPage } from '@/pages/reels-library';
+import { sharedReelId } from '@/lib/reels';
 import { ChatMediaMessage } from '@/components/chat-media-message';
 import { ChatVoiceNoteRecorder } from '@/components/chat-voice-note-recorder';
 import { ChatAudioMessage } from '@/components/chat-audio-message';
@@ -333,6 +337,7 @@ function MatchesPage() {
   </PageFrame>;
 }
 
+function SharedReelContent({content,returnTo}:{content:string;returnTo:string}){const reelId=sharedReelId(content);if(!reelId)return <>{content}</>;return <Link href={`/reels/${reelId}?returnTo=${encodeURIComponent(returnTo)}`} data-testid={`link-shared-reel-${reelId}`} className="flex items-center gap-3 rounded-xl bg-black/20 px-3 py-2.5 no-underline"><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-current/30 bg-black/20"><Clapperboard size={18}/></span><span className="min-w-0"><span className="block truncate font-semibold">{content.replace(/:\s*\S+$/,'')}</span><span className="block text-xs opacity-75">Open Reel</span></span></Link>}
 function ChatPage({matchId,returnTo='/matches'}:{matchId:string;returnTo?:string}) {
   const [voiceActive,setVoiceActive]=useState(false);
   const [,setLocation]=useLocation(); const qc=useQueryClient(); const profile=useGetMyProfile(); const matches=useGetMatches({query:{refetchInterval:12000}}); const match=matches.data?.find(m=>m.id===matchId); const blocked=!!match?.blockedByMe||!!match?.blockedMe;
@@ -429,7 +434,7 @@ function ChatPage({matchId,returnTo='/matches'}:{matchId:string;returnTo?:string
           <div className="mt-3 space-y-2.5">{ice.data?.slice(0,3).map((i,n)=>{const Icon=suggestionIcons[n]??Coffee;return <button key={i.id} type="button" disabled={blocked||busy||send.isPending} onClick={()=>applySuggestion(i.question)} data-testid={`button-chat-icebreaker-${i.id}`} className="flex w-full items-center gap-4 rounded-2xl border border-[hsl(var(--chat-border))] bg-[hsl(var(--chat-card))] px-4 py-4 text-left text-[15px] text-[hsl(var(--chat-fg))] shadow-[0_2px_8px_hsl(330_30%_40%/.06)] transition-colors hover:border-[var(--chat-accent)] disabled:opacity-50"><Icon size={26} strokeWidth={1.6} className="shrink-0 text-[var(--chat-accent)]"/>{i.question}</button>})}</div>
         </div>
       </div>}
-      {messages.map(m=><div key={m.id} className={`group flex ${m.senderId===profile.data?.id?'justify-end':'justify-start'}`} data-testid={`message-${m.id}`}><div className={`max-w-[82%] rounded-2xl px-4 py-3 text-sm leading-6 md:max-w-[65%] ${m.senderId===profile.data?.id?'bg-[var(--chat-accent)] text-white':'border border-[hsl(var(--chat-border))] bg-[hsl(var(--chat-card))] text-[hsl(var(--chat-fg))]'}`}>{m.deletedForEveryone?<span className="italic opacity-70">This message was deleted.</span>:<>{(m.mediaType==='image'||m.mediaType==='video')&&m.mediaReference&&<ChatMediaMessage reference={m.mediaReference} fullUrl={mediaUrl(m.mediaReference)} type={m.mediaType}/>} {m.mediaType==='audio'&&m.mediaReference&&<ChatAudioMessage url={mediaUrl(m.mediaReference)} duration={m.mediaDuration}/>}{m.content}</>}<div className="mt-1 flex items-center justify-end gap-2 text-[10px] opacity-70">{new Date(m.createdAt).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'})}{m.senderId===profile.data?.id&&m.isRead&&<span>Read</span>}<button onClick={()=>setDeleteTarget(m)} data-testid={`button-delete-message-${m.id}`} className="hidden group-hover:inline">Delete</button></div></div></div>)}
+      {messages.map(m=><div key={m.id} className={`group flex ${m.senderId===profile.data?.id?'justify-end':'justify-start'}`} data-testid={`message-${m.id}`}><div className={`max-w-[82%] rounded-2xl px-4 py-3 text-sm leading-6 md:max-w-[65%] ${m.senderId===profile.data?.id?'bg-[var(--chat-accent)] text-white':'border border-[hsl(var(--chat-border))] bg-[hsl(var(--chat-card))] text-[hsl(var(--chat-fg))]'}`}>{m.deletedForEveryone?<span className="italic opacity-70">This message was deleted.</span>:<>{(m.mediaType==='image'||m.mediaType==='video')&&m.mediaReference&&<ChatMediaMessage reference={m.mediaReference} fullUrl={mediaUrl(m.mediaReference)} type={m.mediaType}/>} {m.mediaType==='audio'&&m.mediaReference&&<ChatAudioMessage url={mediaUrl(m.mediaReference)} duration={m.mediaDuration}/>}<SharedReelContent content={m.content} returnTo={`/chat/${matchId}`}/></>}<div className="mt-1 flex items-center justify-end gap-2 text-[10px] opacity-70">{new Date(m.createdAt).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'})}{m.senderId===profile.data?.id&&m.isRead&&<span>Read</span>}<button onClick={()=>setDeleteTarget(m)} data-testid={`button-delete-message-${m.id}`} className="hidden group-hover:inline">Delete</button></div></div></div>)}
       {typing.data?.isTyping&&<div className="text-xs italic text-[hsl(var(--chat-muted))]">{match.profile.name} is typing…</div>}<div ref={bottom}/></div>
     {receipt.data?.readAt&&<div className="px-5 pb-1 text-right text-[10px] text-[hsl(var(--chat-muted))]">Seen {new Date(receipt.data.readAt).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'})}</div>}
     {error&&<div role="alert" className="px-5 pb-2 text-xs font-medium text-rose-500">{error}</div>}
@@ -615,6 +620,7 @@ function OwnProfileOverview({profile,travelCity}:{profile:Profile;travelCity?:st
   const bio=profile.bio||'Add a bio so people can get to know you.';const shown=profile.interests.slice(0,5);const more=profile.interests.length-shown.length;
   return <div data-testid="section-own-profile" className="flex min-h-0 flex-1 flex-col gap-[clamp(6px,1.4dvh,14px)] pb-[clamp(8px,1.6dvh,16px)]">
     <div className="flex shrink-0 items-center justify-between"><h2 data-testid="text-my-profile-heading" className="op-title">My Profile</h2><Link href="/settings?returnTo=%2Fprofile" data-testid="link-profile-settings" aria-label="Settings" className="op-ghost inline-flex items-center gap-2 rounded-full px-3.5 py-2 text-sm font-semibold transition-transform active:scale-95"><Settings size={16}/>Settings</Link></div>
+    <Link href="/reels/saved" data-testid="link-profile-saved-reels" className="op-ghost mt-3 flex shrink-0 items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold"><Clapperboard size={17} className="text-primary"/><span className="flex-1">Saved Reels</span><ChevronRight size={16} className="opacity-60"/></Link>
     <section className="op-card flex shrink-0 flex-col items-center rounded-[26px] px-4 py-[clamp(10px,2dvh,22px)] text-center">
       <div className="op-portrait op-avatar overflow-hidden rounded-full">{profile.photos?.[0]&&!broken?<MediaImage reference={profile.photos[0]} onError={()=>setBroken(true)} className="h-full w-full object-cover" alt={`${profile.name}'s profile photo`}/>:<span className="flex h-full items-center justify-center text-4xl font-bold text-primary">{profile.name?.slice(0,1)?.toUpperCase()}</span>}</div>
       <h1 data-testid="text-profile-name" title={profile.name} className="brand mt-2 max-w-full truncate text-[clamp(22px,3.4dvh,30px)] font-extrabold leading-tight tracking-[-.03em]">{profile.name}{profile.age!==null?`, ${profile.age}`:''}<VerifiedBadge verified={profile.isVerified}/></h1>
@@ -817,6 +823,10 @@ function PrivacyPolicyRoute(){return <PrivacyPolicyPage/>}
 function ReportSafetyRoute(){return <ShellPage><ReportSafetyPage/></ShellPage>}
 function PublicLocationShareRoute(){return <PublicLocationSharePage/>}
 function DiscoverRoute(){return <ShellPage><DiscoverPage/></ShellPage>}
+function ReelsRoute(){return <ShellPage><ReelsFeedPage/></ShellPage>}
+function ReelRoute(){const params=useParams<{reelId:string}>();return <ShellPage><ReelsFeedPage key={params.reelId} initialReelId={params.reelId}/></ShellPage>}
+function ReelComposerRoute(){return <ShellPage><ReelComposerPage/></ShellPage>}
+function ReelsLibraryRoute(){return <ShellPage><ReelsLibraryPage/></ShellPage>}
 function StoryComposerRoute(){return <ShellPage><StoryComposerPage/></ShellPage>}
 function MatchesRoute(){return <ShellPage><MutualMatchesPage avatar={p=><Avatar profile={p}/>}/></ShellPage>}
 function VisitorsPage(){
@@ -853,12 +863,12 @@ function ClerkRoutes(){const [,setLocation]=useLocation();return <ClerkProvider 
   <Route path="/sign-in/*?"><div className="grain flex min-h-[100dvh] flex-col items-center justify-center bg-background px-4 py-10"><div className="fixed left-6 top-6"><Brand/></div><SignIn routing="path" path={pathFor('/sign-in')} signUpUrl={pathFor('/sign-up')}/><p className="mt-5 text-center text-xs text-muted-foreground"><Link href="/privacy-policy" className="hover:text-primary">Privacy Policy</Link><span className="px-2">·</span><Link href="/terms" className="hover:text-primary">Terms of Service</Link></p></div></Route>
   <Route path="/sign-up/*?" component={BrandedSignUp}/>
   {import.meta.env.DEV&&<Route path="/create-account-preview"><div className="border-b border-primary/20 bg-accent px-5 py-3 text-center text-xs leading-5 text-foreground" role="note">Form preview only. Email-code signup still needs the authentication setting changed.</div><ProfileFirstSignup previewOnly/></Route>}
-  <Route path="/onboarding" component={OnboardingRoute}/><Route path="/discover" component={DiscoverRoute}/><Route path="/stories/new" component={StoryComposerRoute}/><Route path="/matches" component={MatchesRoute}/>
+  <Route path="/onboarding" component={OnboardingRoute}/><Route path="/discover" component={DiscoverRoute}/><Route path="/stories/new" component={StoryComposerRoute}/><Route path="/reels" component={ReelsRoute}/><Route path="/reels/new" component={ReelComposerRoute}/><Route path="/reels/saved" component={ReelsLibraryRoute}/><Route path="/reels/:reelId" component={ReelRoute}/><Route path="/matches" component={MatchesRoute}/>
   <Route path="/chat/:matchId" component={ChatRoute}/><Route path="/views" component={ViewsRoute}/><Route path="/likes" component={LikesRoute}/><Route path="/messages" component={MessagesRoute}/><Route path="/notifications" component={NotificationsRoute}/>
    <Route path="/privacy-policy" component={PrivacyPolicyRoute}/><Route path="/terms" component={CommunityGuidelinesRoute}/><Route path="/community-guidelines" component={CommunityGuidelinesRoute}/>
    <Route path="/safety-center" component={SafetyCenterRoute}/><Route path="/report-safety" component={ReportSafetyRoute}/><Route path="/safety/location" component={PublicLocationShareRoute}/>
   <Route path="/profile" component={ProfileRoute}/><Route path="/profile/edit" component={ProfileEditRoute}/><Route path="/profile/:profileId/from-notifications" component={ViewedNotificationProfileRoute}/><Route path="/profile/:profileId" component={PublicProfileRoute}/><Route path="/verify-profile" component={FaceVerificationRoute}/><Route path="/settings" component={SettingsRoute}/><Route path="/settings/:section" component={SettingsSectionRoute}/><Route component={NotFound}/>
 </Switch></ClerkProvider>}
-function ConsumerInstallBanner(){const [location]=useLocation();return location.startsWith('/admin')?null:<MobileInstallBanner/>}
+function ConsumerInstallBanner(){const [location]=useLocation();return location.startsWith('/admin')||location.startsWith('/reels')?null:<MobileInstallBanner/>}
 function App(){if(!clerkPubKey)throw new Error('Missing VITE_CLERK_PUBLISHABLE_KEY');return <QueryClientProvider client={queryClient}><ConnectionNotice/><WouterRouter base={basePath}><ConsumerInstallBanner/><ClerkRoutes/></WouterRouter></QueryClientProvider>}
 export default App;

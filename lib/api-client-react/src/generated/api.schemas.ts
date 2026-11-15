@@ -1070,6 +1070,67 @@ export interface StoryVideoTranscodeResult {
   height: number;
 }
 
+export interface Reel {
+  id: string;
+  creatorId: string;
+  creatorName: string;
+  /** @nullable */
+  creatorAge: number | null;
+  creatorLocation: string;
+  creatorVerified: boolean;
+  /** @nullable */
+  creatorPhoto: string | null;
+  videoReference: string;
+  caption: string;
+  /** @nullable */
+  durationSeconds: number | null;
+  likeCount: number;
+  commentCount: number;
+  likedByMe: boolean;
+  savedByMe: boolean;
+  isOwner: boolean;
+  createdAt: string;
+}
+
+export interface ReelPage {
+  items: Reel[];
+  /** @nullable */
+  nextCursor: string | null;
+}
+
+export interface ReelInput {
+  mediaId: string;
+  /** @maxLength 300 */
+  caption?: string;
+}
+
+export interface ReelEngagement {
+  likedByMe: boolean;
+  savedByMe: boolean;
+  likeCount: number;
+  commentCount: number;
+}
+
+export interface ReelComment {
+  id: string;
+  reelId: string;
+  authorId: string;
+  authorName: string;
+  /** @nullable */
+  authorPhoto: string | null;
+  content: string;
+  canDelete: boolean;
+  createdAt: string;
+}
+
+export interface ReelCommentInput {
+  /**
+     * @minLength 1
+     * @maxLength 500
+     */
+  content: string;
+}
+
 export type GetAdminDashboardParams = {
 section?: GetAdminDashboardSection;
 /**
@@ -1198,5 +1259,31 @@ token: string;
 
 export type CheckAdditionalProfilePhoto200 = {
   mediaReference: string;
+};
+
+export type GetReelsFeedParams = {
+/**
+ * @maxLength 200
+ */
+cursor?: string;
+/**
+ * @minimum 1
+ * @maximum 12
+ */
+limit?: number;
+};
+
+export type GetSavedReelsParams = {
+/**
+ * @maxLength 200
+ */
+cursor?: string;
+};
+
+export type GetMyReelsParams = {
+/**
+ * @maxLength 200
+ */
+cursor?: string;
 };
 
