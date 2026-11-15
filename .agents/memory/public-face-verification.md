@@ -7,7 +7,13 @@ Self-service face verification must confirm that a live person matches their sub
 
 **Why:** The user asked for people to submit their picture, then verify their face to “confirm that they are the one,” with the resulting badge shown publicly.
 
-**How to apply:** Require both liveness and a match against the current profile photo. Do not claim that merely uploading a photo, displaying camera instructions, or completing a client-side animation verifies a person.
+**How to apply:** Require both liveness and a match against the specific photo submitted for verification. Do not claim that merely uploading a photo, displaying camera instructions, or completing a client-side animation verifies a person.
+
+The user clarified that members submit a specific photo during verification, even if they already uploaded multiple signup photos. After successful checks and approval, that verification photo becomes the main public profile photo with the blue tick. The live camera capture is evidence for matching, not the replacement profile picture. The requested liveness interaction includes genuinely turning the head left and right; passive still-photo checking must not be described as that interaction. Whether approval is automatic or requires the owner remains to be clarified.
+
+**Why:** The user explicitly distinguished signup gallery photos, the photo submitted for verification, and the camera capture used to prove that the person matches it.
+
+**How to apply:** Bind verification to the selected verification photo and promote that exact photo only after approval. Do not treat the remaining gallery photos as individually verified or claim unsupported motion detection.
 
 Luxand's public marketing pages omit the actual code widgets. Their dashboard publishes readable examples under `/docs/liveness.html` and `/docs/similarity.html`, with linked widget files under `/docs/widgets/javascript/`. The JavaScript similarity example erroneously calls `/photo/landmarks`; the official Python widget confirms `/photo/similarity`. Use the documented `similar` boolean plus score, not the landmarks response.
 
