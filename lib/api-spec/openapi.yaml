@@ -189,6 +189,14 @@ paths:
         - in: query
           name: country
           schema: { type: string }
+        - in: query
+          name: state
+          description: Exact state or region within the selected country.
+          schema: { type: string }
+        - in: query
+          name: includePassed
+          description: Include previously passed profiles in an explicit location search; likes, blocks, and privacy rules still apply.
+          schema: { type: string, enum: ["true", "false"] }
       responses:
         "200":
           description: Profiles for discovery

@@ -35,6 +35,7 @@ export * from './getAdminChatExportFormat';
 export * from './getAdminChatExportParams';
 export * from './getAdminDashboardParams';
 export * from './getAdminDashboardSection';
+export * from './getDiscoverProfilesIncludePassed';
 export * from './getDiscoverProfilesParams';
 export * from './getPublicLocationShareParams';
 export * from './healthStatus';

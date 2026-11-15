@@ -130,6 +130,7 @@ import {
 import { getUnblockedMatchBetween } from "../lib/vibeswipeStories";
 import { canViewStory } from "../lib/vibeswipeStoryRules";
 import { automaticDiscovery, countryValues, discoveryTier, minimumDiscoveryPool, regionalCountryValues, smartDiscoveryPool } from "../lib/discovery-pool";
+import { discoveryExcludedIds } from "../lib/discovery-exclusions";
 
 const router: IRouter = Router();
 const objectStorage = new ObjectStorageService();
@@ -903,11 +904,16 @@ router.get("/vibeswipe/discover", async (req, res): Promise<void> => {
   await seedDemoProfiles();
   const ageMin = params.data.ageMin ?? ownProfile.preferences.ageMin;
   const ageMax = params.data.ageMax ?? ownProfile.preferences.ageMax;
+  if (ageMin > ageMax) {
+    res.status(400).json({ error: "The minimum age must not exceed the maximum age." });
+    return;
+  }
   const gender = params.data.gender ?? ownProfile.preferences.gender;
   const area = resolvePreferredDiscoveryArea({
     travelMode: ownProfile.travelMode,
     travelCity: ownProfile.travelCity,
     requestedCountry: params.data.country,
+    requestedState: params.data.state,
     requestedCity: params.data.city,
     preference: ownProfile.preferences.discoveryLocation,
     homeCountry: ownProfile.country,
@@ -926,7 +932,7 @@ router.get("/vibeswipe/discover", async (req, res): Promise<void> => {
 
   const [reacted, blockRows, incognitoLikes, incomingSuperLikes] = await Promise.all([
     db
-      .select({ id: reactionsTable.toUserId })
+      .select({ id: reactionsTable.toUserId, type: reactionsTable.type })
       .from(reactionsTable)
       .where(eq(reactionsTable.fromUserId, userId)),
     db
@@ -957,11 +963,12 @@ router.get("/vibeswipe/discover", async (req, res): Promise<void> => {
         ),
       ),
   ]);
-  const excludedIds = new Set([
-    userId,
-    ...reacted.map((row) => row.id),
-    ...blockRows.flatMap((row) => [row.blockerId, row.blockedId]),
-  ]);
+  const excludedIds = discoveryExcludedIds({
+    viewerId: userId, reactions: reacted, blocks: blockRows,
+    includePassed: params.data.includePassed === "true",
+    hasRequestedLocation: Boolean(params.data.country?.trim() || params.data.state?.trim() || params.data.city?.trim()),
+    travelMode: ownProfile.travelMode,
+  });
   const allowedIncognitoIds = new Set(incognitoLikes.map((row) => row.id));
   const superLikedUserIds = new Set(incomingSuperLikes.map((row) => row.id));
 
@@ -1016,6 +1023,7 @@ router.get("/vibeswipe/discover", async (req, res): Promise<void> => {
   let candidates: Awaited<ReturnType<typeof queryCandidates>> = [];
   const smartDefault = automaticDiscovery({
     travelMode: ownProfile.travelMode, requestedCountry: params.data.country,
+    requestedState: params.data.state,
     requestedCity: params.data.city, preference: ownProfile.preferences.discoveryLocation,
   });
   if (smartDefault) {
@@ -1044,7 +1052,7 @@ router.get("/vibeswipe/discover", async (req, res): Promise<void> => {
 
     // If the city has fewer than one full stack, fill only from its saved state.
     // An explicitly saved city may widen only to its saved state.
-    if (candidates.length < 100 && area.country && area.state) {
+    if (candidates.length < 100 && area.country && area.state && !params.data.city?.trim()) {
       const stateFallbackConditions: SQL[] = [
         countryFilter!,
         stateFilter!,

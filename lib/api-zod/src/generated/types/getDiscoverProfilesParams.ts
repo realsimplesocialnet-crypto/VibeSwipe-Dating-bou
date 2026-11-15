@@ -5,6 +5,7 @@
  * VibeSwipe dating profile, discovery, matching, messaging, and safety API
  * OpenAPI spec version: 0.1.0
  */
+import type { GetDiscoverProfilesIncludePassed } from './getDiscoverProfilesIncludePassed';
 
 export type GetDiscoverProfilesParams = {
 /**
@@ -20,4 +21,12 @@ ageMax?: number;
 gender?: string;
 city?: string;
 country?: string;
+/**
+ * Exact state or region within the selected country.
+ */
+state?: string;
+/**
+ * Include previously passed profiles in an explicit location search; likes, blocks, and privacy rules still apply.
+ */
+includePassed?: GetDiscoverProfilesIncludePassed;
 };

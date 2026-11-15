@@ -67,6 +67,7 @@ export function resolvePreferredDiscoveryArea({
   travelMode,
   travelCity,
   requestedCountry,
+  requestedState,
   requestedCity,
   preference,
   homeCountry,
@@ -76,6 +77,7 @@ export function resolvePreferredDiscoveryArea({
   travelMode: boolean;
   travelCity: string | null;
   requestedCountry?: string;
+  requestedState?: string;
   requestedCity?: string;
   preference?: DiscoveryLocationPreference | null;
   homeCountry: string | null;
@@ -93,13 +95,14 @@ export function resolvePreferredDiscoveryArea({
   }
 
   const countryOverride = requestedCountry?.trim();
+  const stateOverride = requestedState?.trim();
   const cityOverride = requestedCity?.trim();
-  if (countryOverride || cityOverride) {
+  if (countryOverride || stateOverride || cityOverride) {
     const country = countryOverride || homeCountry?.trim() || null;
     return {
-      scope: cityOverride ? "city" : "country",
+      scope: cityOverride ? "city" : stateOverride ? "state" : "country",
       country,
-      state: null,
+      state: stateOverride || null,
       city: cityOverride || null,
       radiusKm: null,
     };

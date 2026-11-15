@@ -50,9 +50,9 @@ export function minimumDiscoveryPool(value: string | undefined): number {
   return threshold;
 }
 export function automaticDiscovery(input: {
-  travelMode: boolean; requestedCountry?: string; requestedCity?: string; preference?: unknown;
+  travelMode: boolean; requestedCountry?: string; requestedState?: string; requestedCity?: string; preference?: unknown;
 }): boolean {
-  return !input.travelMode && !input.requestedCountry?.trim() && !input.requestedCity?.trim() && !input.preference;
+  return !input.travelMode && !input.requestedCountry?.trim() && !input.requestedState?.trim() && !input.requestedCity?.trim() && !input.preference;
 }
 
 /** Bounded fill, with local members always before regional and worldwide ones. */

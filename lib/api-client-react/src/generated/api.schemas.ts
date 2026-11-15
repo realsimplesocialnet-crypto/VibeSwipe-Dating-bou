@@ -1040,7 +1040,23 @@ ageMax?: number;
 gender?: string;
 city?: string;
 country?: string;
+/**
+ * Exact state or region within the selected country.
+ */
+state?: string;
+/**
+ * Include previously passed profiles in an explicit location search; likes, blocks, and privacy rules still apply.
+ */
+includePassed?: GetDiscoverProfilesIncludePassed;
 };
+
+export type GetDiscoverProfilesIncludePassed = typeof GetDiscoverProfilesIncludePassed[keyof typeof GetDiscoverProfilesIncludePassed];
+
+
+export const GetDiscoverProfilesIncludePassed = {
+  true: 'true',
+  false: 'false',
+} as const;
 
 export type SearchTravelCitiesParams = {
 /**
