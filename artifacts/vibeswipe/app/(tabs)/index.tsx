@@ -1,4 +1,5 @@
 import {
+  createUseDiscoveryDeck,
   getGetBoostStatusQueryKey,
   getGetDailyLikeStatusQueryKey,
   getGetDiscoverProfilesQueryKey,
@@ -50,6 +51,7 @@ import { useColors } from "@/hooks/useColors";
 import { profileImageSource } from "@/lib/media";
 import { MatchCelebration } from "@/components/MatchCelebration";
 
+const useDiscoveryDeck = createUseDiscoveryDeck(useState);
 const FILTER_COUNTRIES = Country.getAllCountries()
   .map(({ isoCode, name }) => ({ code: isoCode, name }))
   .sort((a, b) => a.name.localeCompare(b.name));
@@ -204,7 +206,6 @@ export default function DiscoverScreen() {
   const [citySearch, setCitySearch] = useState("");
   const [filterOpen, setFilterOpen] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
-  const [index, setIndex] = useState(0);
   const [banner, setBanner] = useState("");
   const [busy, setBusy] = useState(false);
   const [matchResult, setMatchResult] = useState<{ profile: Profile; matchId: string | null } | null>(null);
@@ -243,11 +244,20 @@ export default function DiscoverScreen() {
     () => ({ ageMin, ageMax, ...(gender ? { gender } : {}), ...(selectedCountry ? { country: selectedCountry.name } : {}), ...(city.trim() ? { city: city.trim() } : {}) }),
     [ageMin, ageMax, city, gender, selectedCountry],
   );
+  const feedKey = JSON.stringify([discoverParams, discoverySettings.data?.travelMode, discoverySettings.data?.travelCity, myProfile.data?.country, myProfile.data?.preferences.discoveryLocation]);
   const discover = useGetDiscoverProfiles(discoverParams, {
-    query: { refetchOnWindowFocus: false },
+    query: { queryKey: [...getGetDiscoverProfilesQueryKey(discoverParams), feedKey], refetchOnWindowFocus: false, refetchInterval: 30_000 },
   });
-  const profiles = discover.data ?? [];
+  const { profiles, index, setIndex } = useDiscoveryDeck(discover.data, feedKey);
   const profile = profiles[index];
+  const worldwide = Boolean(profile?.discoveryExpanded || discover.data?.some(p => p.discoveryExpanded));
+  const tailRequested = useRef("");
+  useEffect(() => {
+    const tailKey = `${feedKey}:${index}`;
+    if (index < 1 || index < profiles.length - 2 || busy || discover.isFetching || tailRequested.current === tailKey) return;
+    tailRequested.current = tailKey;
+    void discover.refetch();
+  }, [feedKey, index, profiles.length, busy, discover.isFetching]);
   useEffect(() => {
     let active = true;
     void getToken().then((value) => {
@@ -327,7 +337,12 @@ export default function DiscoverScreen() {
           }
         }, 1500);
       }
-    } catch {
+    } catch (error) {
+      if ((error as { status?: number }).status === 404) {
+        setBanner("This profile is no longer available. Finding someone new.");
+        void discover.refetch();
+        return;
+      }
       if (direction === "like") await dailyLikeStatus.refetch();
       if (direction === "super") await superLikeStatus.refetch();
       if (bannerTimer.current) clearTimeout(bannerTimer.current);
@@ -358,9 +373,9 @@ export default function DiscoverScreen() {
     if (!profile) return;
     try {
       await blockProfile.mutateAsync({ data: { targetUserId: profile.id } });
+      setIndex((current) => current + 1);
       await queryClient.invalidateQueries({ queryKey: getGetDiscoverProfilesQueryKey(discoverParams) });
       setDetailOpen(false);
-      setIndex((current) => current);
     } catch {
       Alert.alert("Could not block profile", "Please try again.");
     }
@@ -427,7 +442,7 @@ export default function DiscoverScreen() {
       </View>
     );
   }
-  if (discover.isError) {
+  if (discover.isError && (!discover.data || [401, 403, 409].includes(discover.error.status))) {
     return (
       <View style={[styles.center, { backgroundColor: colors.background }]}>
         <Feather name="wifi-off" size={26} color={colors.mutedForeground} />
@@ -438,22 +453,20 @@ export default function DiscoverScreen() {
       </View>
     );
   }
-  if (!profile) {
-    return (
+  const emptyState = !profile ? (
       <View style={[styles.center, { backgroundColor: colors.background, paddingHorizontal: 30 }]}>
         <View style={[styles.emptyIcon, { backgroundColor: colors.accent }]}>
           <Feather name="compass" size={26} color={colors.primary} />
         </View>
-        <Text style={[styles.emptyTitle, { color: colors.foreground }]}>You’re all caught up</Text>
+        <Text style={[styles.emptyTitle, { color: colors.foreground }]}>{discover.isFetching || busy ? "Finding more people…" : "You’re all caught up"}</Text>
         <Text style={[styles.emptyCopy, { color: colors.mutedForeground }]}>
-          Try widening your age range or changing your filters.
+          {discover.isFetching || busy ? "Checking for more matching profiles." : "Try widening your age range or changing your filters."}
         </Text>
         <Pressable onPress={() => setFilterOpen(true)} style={[styles.primarySmall, { backgroundColor: colors.primary }]}>
           <Text style={styles.buttonWhite}>Adjust filters</Text>
         </Pressable>
         <Pressable
           onPress={async () => {
-            setIndex(0);
             await queryClient.invalidateQueries({ queryKey: getGetDiscoverProfilesQueryKey(discoverParams) });
             await discover.refetch();
           }}
@@ -462,12 +475,13 @@ export default function DiscoverScreen() {
           <Text style={[styles.buttonWhite, { color: colors.foreground }]}>Refresh profiles</Text>
         </Pressable>
       </View>
-    );
-  }
+    ) : null;
 
   return (
     <View style={[styles.screen, { backgroundColor: colors.background }]}>
-      <View style={styles.deck}>
+      {emptyState}
+      {profile && <View style={styles.deck}>
+        {worldwide && <Text accessibilityRole="text" style={{ position: "absolute", top: topInset + 64, left: 20, right: 20, zIndex: 3, color: colors.discoverForeground, fontSize: 11, textAlign: "center", backgroundColor: colors.discoverControl, padding: 6, borderRadius: 10 }}>Not many people near you yet — showing members worldwide</Text>}
         <SwipeCard
           key={profile.id}
           profile={profile}
@@ -542,8 +556,7 @@ export default function DiscoverScreen() {
             <ActivityIndicator color={colors.discoverForeground} />
           </View>
         ) : null}
-      </View>
-
+      </View>}
       <Modal visible={filterOpen} transparent animationType="slide" onRequestClose={() => setFilterOpen(false)}>
         <View style={styles.modalScrim}>
           <View style={[styles.sheet, { backgroundColor: colors.card, maxHeight: "92%" }]}>
@@ -592,7 +605,7 @@ export default function DiscoverScreen() {
               />
               {selectedCountry ? (
                 <Pressable onPress={() => { setSelectedCountry(null); setCountrySearch(""); setCity(""); setCitySearch(""); }}>
-                  <Text style={{ color: colors.primary, fontSize: 12, fontWeight: "600" }}>Clear country · use home location</Text>
+                  <Text style={{ color: colors.primary, fontSize: 12, fontWeight: "600" }}>Clear country · default feed</Text>
                 </Pressable>
               ) : null}
               {countrySuggestions.map((item) => (
@@ -622,7 +635,7 @@ export default function DiscoverScreen() {
               ) : null}
               <Pressable
                 disabled={Boolean(countrySearch.trim() && !selectedCountry) || Boolean(citySearch.trim() && !city)}
-                onPress={() => { setIndex(0); setFilterOpen(false); }}
+                onPress={() => { setFilterOpen(false); }}
                 style={[styles.primaryButton, { backgroundColor: colors.primary, opacity: (countrySearch.trim() && !selectedCountry) || (citySearch.trim() && !city) ? 0.5 : 1 }]}
               >
                 <Text style={styles.buttonWhite}>Show profiles</Text>

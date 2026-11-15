@@ -281,6 +281,7 @@ export const GetMyProfileResponse = zod.object({
   "videoUrl": zod.string().nullish(),
   "isDemo": zod.boolean(),
   "superLikedYou": zod.boolean().optional(),
+  "discoveryExpanded": zod.boolean().optional().describe('The default discovery batch includes members outside the home country because the eligible local pool is below the minimum.'),
   "preferences": zod.object({
   "ageMin": zod.number().int().min(getMyProfileResponsePreferencesAgeMinMin).max(getMyProfileResponsePreferencesAgeMinMax),
   "ageMax": zod.number().int().min(getMyProfileResponsePreferencesAgeMaxMin).max(getMyProfileResponsePreferencesAgeMaxMax),
@@ -415,6 +416,7 @@ export const SaveMyProfileResponse = zod.object({
   "videoUrl": zod.string().nullish(),
   "isDemo": zod.boolean(),
   "superLikedYou": zod.boolean().optional(),
+  "discoveryExpanded": zod.boolean().optional().describe('The default discovery batch includes members outside the home country because the eligible local pool is below the minimum.'),
   "preferences": zod.object({
   "ageMin": zod.number().int().min(saveMyProfileResponsePreferencesAgeMinMin).max(saveMyProfileResponsePreferencesAgeMinMax),
   "ageMax": zod.number().int().min(saveMyProfileResponsePreferencesAgeMaxMin).max(saveMyProfileResponsePreferencesAgeMaxMax),
@@ -432,7 +434,7 @@ export const SaveMyProfileResponse = zod.object({
 
 
 /**
- * @summary List profiles matching the signed-in user's preferences
+ * @summary Smart local-first discovery, expanding worldwide below the minimum local pool; explicit location filters remain strict
  */
 export const getDiscoverProfilesQueryAgeMinMin = 18;
 export const getDiscoverProfilesQueryAgeMinMax = 120;
@@ -487,6 +489,7 @@ export const GetDiscoverProfilesResponseItem = zod.object({
   "videoUrl": zod.string().nullish(),
   "isDemo": zod.boolean(),
   "superLikedYou": zod.boolean().optional(),
+  "discoveryExpanded": zod.boolean().optional().describe('The default discovery batch includes members outside the home country because the eligible local pool is below the minimum.'),
   "preferences": zod.object({
   "ageMin": zod.number().int().min(getDiscoverProfilesResponsePreferencesAgeMinMin).max(getDiscoverProfilesResponsePreferencesAgeMinMax),
   "ageMax": zod.number().int().min(getDiscoverProfilesResponsePreferencesAgeMaxMin).max(getDiscoverProfilesResponsePreferencesAgeMaxMax),
@@ -894,6 +897,7 @@ export const GetMatchesResponseItem = zod.object({
   "videoUrl": zod.string().nullish(),
   "isDemo": zod.boolean(),
   "superLikedYou": zod.boolean().optional(),
+  "discoveryExpanded": zod.boolean().optional().describe('The default discovery batch includes members outside the home country because the eligible local pool is below the minimum.'),
   "preferences": zod.object({
   "ageMin": zod.number().int().min(getMatchesResponseProfilePreferencesAgeMinMin).max(getMatchesResponseProfilePreferencesAgeMinMax),
   "ageMax": zod.number().int().min(getMatchesResponseProfilePreferencesAgeMaxMin).max(getMatchesResponseProfilePreferencesAgeMaxMax),
@@ -1217,6 +1221,7 @@ export const GetWhoLikedYouResponseItem = zod.object({
   "videoUrl": zod.string().nullish(),
   "isDemo": zod.boolean(),
   "superLikedYou": zod.boolean().optional(),
+  "discoveryExpanded": zod.boolean().optional().describe('The default discovery batch includes members outside the home country because the eligible local pool is below the minimum.'),
   "preferences": zod.object({
   "ageMin": zod.number().int().min(getWhoLikedYouResponseProfilePreferencesAgeMinMin).max(getWhoLikedYouResponseProfilePreferencesAgeMinMax),
   "ageMax": zod.number().int().min(getWhoLikedYouResponseProfilePreferencesAgeMaxMin).max(getWhoLikedYouResponseProfilePreferencesAgeMaxMax),
@@ -1278,6 +1283,7 @@ export const GetWhoViewedYouResponseItem = zod.object({
   "videoUrl": zod.string().nullish(),
   "isDemo": zod.boolean(),
   "superLikedYou": zod.boolean().optional(),
+  "discoveryExpanded": zod.boolean().optional().describe('The default discovery batch includes members outside the home country because the eligible local pool is below the minimum.'),
   "preferences": zod.object({
   "ageMin": zod.number().int().min(getWhoViewedYouResponseProfilePreferencesAgeMinMin).max(getWhoViewedYouResponseProfilePreferencesAgeMinMax),
   "ageMax": zod.number().int().min(getWhoViewedYouResponseProfilePreferencesAgeMaxMin).max(getWhoViewedYouResponseProfilePreferencesAgeMaxMax),
@@ -1349,6 +1355,7 @@ export const GetNotificationsResponse = zod.object({
   "videoUrl": zod.string().nullish(),
   "isDemo": zod.boolean(),
   "superLikedYou": zod.boolean().optional(),
+  "discoveryExpanded": zod.boolean().optional().describe('The default discovery batch includes members outside the home country because the eligible local pool is below the minimum.'),
   "preferences": zod.object({
   "ageMin": zod.number().int().min(getNotificationsResponseNotificationsItemActorPreferencesAgeMinMin).max(getNotificationsResponseNotificationsItemActorPreferencesAgeMinMax),
   "ageMax": zod.number().int().min(getNotificationsResponseNotificationsItemActorPreferencesAgeMaxMin).max(getNotificationsResponseNotificationsItemActorPreferencesAgeMaxMax),
@@ -1528,6 +1535,7 @@ export const GetProfileByIdResponse = zod.object({
   "videoUrl": zod.string().nullish(),
   "isDemo": zod.boolean(),
   "superLikedYou": zod.boolean().optional(),
+  "discoveryExpanded": zod.boolean().optional().describe('The default discovery batch includes members outside the home country because the eligible local pool is below the minimum.'),
   "preferences": zod.object({
   "ageMin": zod.number().int().min(getProfileByIdResponsePreferencesAgeMinMin).max(getProfileByIdResponsePreferencesAgeMinMax),
   "ageMax": zod.number().int().min(getProfileByIdResponsePreferencesAgeMaxMin).max(getProfileByIdResponsePreferencesAgeMaxMax),
@@ -1585,6 +1593,7 @@ export const GetBlockedProfilesResponseItem = zod.object({
   "videoUrl": zod.string().nullish(),
   "isDemo": zod.boolean(),
   "superLikedYou": zod.boolean().optional(),
+  "discoveryExpanded": zod.boolean().optional().describe('The default discovery batch includes members outside the home country because the eligible local pool is below the minimum.'),
   "preferences": zod.object({
   "ageMin": zod.number().int().min(getBlockedProfilesResponseProfilePreferencesAgeMinMin).max(getBlockedProfilesResponseProfilePreferencesAgeMinMax),
   "ageMax": zod.number().int().min(getBlockedProfilesResponseProfilePreferencesAgeMaxMin).max(getBlockedProfilesResponseProfilePreferencesAgeMaxMax),

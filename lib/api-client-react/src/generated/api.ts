@@ -1162,7 +1162,7 @@ export const getGetDiscoverProfilesUrl = (params?: GetDiscoverProfilesParams,) =
 }
 
 /**
- * @summary List profiles matching the signed-in user's preferences
+ * @summary Smart local-first discovery, expanding worldwide below the minimum local pool; explicit location filters remain strict
  */
 export const getDiscoverProfiles = async (params?: GetDiscoverProfilesParams, options?: Parameters<typeof customFetch>[1]): Promise<Profile[]> => {
 
@@ -1233,7 +1233,7 @@ export function useGetDiscoverProfiles<TData = Awaited<ReturnType<typeof getDisc
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
- * @summary List profiles matching the signed-in user's preferences
+ * @summary Smart local-first discovery, expanding worldwide below the minimum local pool; explicit location filters remain strict
  */
 
 export function useGetDiscoverProfiles<TData = Awaited<ReturnType<typeof getDiscoverProfiles>>, TError = ErrorType<unknown>>(

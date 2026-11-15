@@ -12,3 +12,4 @@
 - [Mobile chat keyboard](mobile-chat-keyboard.md) — Safari can pan its visible viewport; anchor the composer to that viewport without extra keyboard-time bottom inset.
 - [Chat media loading](chat-media-loading.md) — Photos/videos require an explicit Load action; never download originals just to create a preview.
 - [Onboarding motion](onboarding-motion.md) — Use real moving onboarding previews; retain live signup controls and inspect image-to-video output for embedded letterboxing.
+- [Smart discovery locality](smart-discovery.md) — Expand sparse default feeds worldwide, country then continent first; explicit saved/manual location filters remain strict.

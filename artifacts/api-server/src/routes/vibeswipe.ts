@@ -129,6 +129,7 @@ import {
 } from "../lib/travelCities";
 import { getUnblockedMatchBetween } from "../lib/vibeswipeStories";
 import { canViewStory } from "../lib/vibeswipeStoryRules";
+import { automaticDiscovery, countryValues, discoveryTier, minimumDiscoveryPool, regionalCountryValues, smartDiscoveryPool } from "../lib/discovery-pool";
 
 const router: IRouter = Router();
 const objectStorage = new ObjectStorageService();
@@ -917,6 +918,7 @@ router.get("/vibeswipe/discover", async (req, res): Promise<void> => {
     gte(profilesTable.age, ageMin),
     lte(profilesTable.age, ageMax),
     eq(profilesTable.deactivated, false),
+    eq(profilesTable.adminSuspended, false),
   ];
   if (gender && gender !== "Everyone") {
     baseConditions.push(eq(profilesTable.gender, gender));
@@ -971,7 +973,7 @@ router.get("/vibeswipe/discover", async (req, res): Promise<void> => {
     value: string,
   ): SQL => sql`LOWER(TRIM(${column})) = ${value.trim().toLocaleLowerCase()}`;
   const countryFilter = area.country
-    ? normalizedLocation(profilesTable.country, area.country)
+    ? inArray(sql`LOWER(TRIM(${profilesTable.country}))`, countryValues(area.country))
     : null;
   const stateFilter = area.state
     ? normalizedLocation(profilesTable.state, area.state)
@@ -1007,13 +1009,30 @@ router.get("/vibeswipe/discover", async (req, res): Promise<void> => {
       .select()
       .from(profilesTable)
       .where(and(...conditions))
-      .orderBy(desc(sql`CASE WHEN ${profilesTable.boostEndTime} > NOW() THEN 1 ELSE 0 END`));
+      .orderBy(desc(sql`CASE WHEN ${profilesTable.boostEndTime} > NOW() THEN 1 ELSE 0 END`), profilesTable.id);
     return limit === undefined ? query : query.limit(limit);
   };
 
   let candidates: Awaited<ReturnType<typeof queryCandidates>> = [];
+  const smartDefault = automaticDiscovery({
+    travelMode: ownProfile.travelMode, requestedCountry: params.data.country,
+    requestedCity: params.data.city, preference: ownProfile.preferences.discoveryLocation,
+  });
+  if (smartDefault) {
+    const regionalValues = ownProfile.country ? regionalCountryValues(ownProfile.country) : [];
+    candidates = await smartDiscoveryPool(minimumDiscoveryPool(process.env.VIBESWIPE_DISCOVERY_MIN_POOL_SIZE),
+      async (tier, limit, excluded) => {
+        if (tier === 0) return countryFilter ? queryCandidates([countryFilter], limit, excluded) : [];
+        if (tier === 1) return regionalValues.length
+          ? queryCandidates([inArray(sql`LOWER(TRIM(${profilesTable.country}))`, regionalValues)], limit, excluded)
+          : [];
+        return queryCandidates([], limit, excluded);
+      });
+  }
   const hasSafeLocation = Boolean(area.country || ownProfile.travelMode);
-  if (hasSafeLocation && area.scope === "city" && cityFilter) {
+  if (smartDefault) {
+    // The smart pool is already filled; explicit saved/requested areas stay strict below.
+  } else if (hasSafeLocation && area.scope === "city" && cityFilter) {
     const selectedCity = area.city!;
     const cityConditions = [
       ...(countryFilter ? [countryFilter] : []),
@@ -1024,7 +1043,7 @@ router.get("/vibeswipe/discover", async (req, res): Promise<void> => {
     candidates = [...cityProfiles];
 
     // If the city has fewer than one full stack, fill only from its saved state.
-    // Never widen the default feed into another state or country automatically.
+    // An explicitly saved city may widen only to its saved state.
     if (candidates.length < 100 && area.country && area.state) {
       const stateFallbackConditions: SQL[] = [
         countryFilter!,
@@ -1083,8 +1102,13 @@ router.get("/vibeswipe/discover", async (req, res): Promise<void> => {
       ...profile,
       age: profile.showAge ? profile.age : null,
       superLikedYou: superLikedUserIds.has(profile.id),
+      discoveryExpanded: smartDefault && candidates.some(candidate => discoveryTier(ownProfile.country, candidate.country) > 0),
     }))
     .sort((a, b) => {
+      if (smartDefault) {
+        const locationOrder = discoveryTier(ownProfile.country, a.country) - discoveryTier(ownProfile.country, b.country);
+        if (locationOrder) return locationOrder;
+      }
       const now = Date.now();
       const aBoosted = Number(Boolean(a.boostEndTime && a.boostEndTime.getTime() > now));
       const bBoosted = Number(Boolean(b.boostEndTime && b.boostEndTime.getTime() > now));

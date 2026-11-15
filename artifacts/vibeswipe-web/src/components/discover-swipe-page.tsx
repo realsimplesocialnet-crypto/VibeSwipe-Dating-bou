@@ -3,6 +3,7 @@ import { listCities, listCountries, type GeoOption } from "@/lib/geo-data";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link, Redirect, useLocation } from "wouter";
 import {
+  createUseDiscoveryDeck,
   getGetBoostStatusQueryKey,
   getGetDailyLikeStatusQueryKey,
   getGetDiscoverProfilesQueryKey,
@@ -40,11 +41,11 @@ const mediaUrl = (ref?: string | null) => ref
         ? ""
         : `/api/storage${ref.startsWith("/") ? ref : `/${ref}`}`
   : "";
+const useDiscoveryDeck = createUseDiscoveryDeck(useState);
 
 export function DiscoverSwipePage() {
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
-  const [index, setIndex] = useState(0);
   const [ageMin, setAgeMin] = useState(22);
   const [ageMax, setAgeMax] = useState(35);
   const [gender, setGender] = useState<string | undefined>(undefined);
@@ -76,15 +77,18 @@ export function DiscoverSwipePage() {
     }),
     [ageMin, ageMax, city, country, gender],
   );
+  const feedKey = JSON.stringify([params, settings.data?.travelMode, settings.data?.travelCity, myProfile.data?.country, myProfile.data?.preferences.discoveryLocation]);
   const discover = useGetDiscoverProfiles<Profile[]>(params, {
     query: {
-      queryKey: getGetDiscoverProfilesQueryKey(params),
+      queryKey: [...getGetDiscoverProfilesQueryKey(params), feedKey],
       refetchOnWindowFocus: false,
       retry: shouldRetryDiscover,
+      refetchInterval: 30_000,
     },
   });
-  const profiles = discover.data ?? [];
+  const { profiles, index, setIndex } = useDiscoveryDeck(discover.data, feedKey);
   const profile = profiles[index];
+  const worldwide = Boolean(profile?.discoveryExpanded || discover.data?.some(p => p.discoveryExpanded));
   const reaction = useCreateReaction();
   const undo = useUndoLastPass();
   const likes = useGetDailyLikeStatus({ query: { queryKey: getGetDailyLikeStatusQueryKey(), refetchInterval: 60_000 } });
@@ -95,6 +99,19 @@ export function DiscoverSwipePage() {
   const block = useBlockProfile();
   const report = useReportProfile();
   const viewed = useRef(new Set<string>());
+  const tailRequested = useRef("");
+  useEffect(() => {
+    const tailKey = `${feedKey}:${index}`;
+    if (index < 1 || index < profiles.length - 2 || reaction.isPending || discover.isFetching || tailRequested.current === tailKey) return;
+    tailRequested.current = tailKey;
+    void discover.refetch();
+  }, [feedKey, index, profiles.length, reaction.isPending, discover.isFetching]);
+  const matchOverlay = <MatchCelebration
+    visible={!!matchResult} self={(myProfile.data as Profile | undefined) ?? null}
+    other={matchResult?.profile ?? null} canMessage={Boolean(matchResult?.matchId)}
+    onMessage={() => { const id = matchResult?.matchId; if (!id) return; setMatchResult(null); setLocation(`/chat/${id}?returnTo=%2Fdiscover`); }}
+    onKeepSwiping={() => setMatchResult(null)}
+  />;
 
   useEffect(() => {
     if (!settings.data) return;
@@ -139,7 +156,12 @@ export function DiscoverSwipePage() {
           if (result.matched) setMatchResult({ profile: current, matchId: result.matchId ?? null });
         }, 1500);
       }
-    } catch {
+    } catch (error) {
+      if ((error as { status?: number }).status === 404) {
+        setNotice("This profile is no longer available. Finding someone new.");
+        void discover.refetch();
+        return;
+      }
       setIndex((value) => Math.max(0, value - 1));
       setNotice("That swipe did not save. Try again.");
     }
@@ -163,6 +185,7 @@ export function DiscoverSwipePage() {
     if (!profile) return;
     try {
       await block.mutateAsync({ data: { targetUserId: profile.id } });
+      setIndex(value => value + 1);
       setOptionsOpen(false);
       await queryClient.invalidateQueries({ queryKey: getGetDiscoverProfilesQueryKey(params) });
     } catch {
@@ -203,7 +226,7 @@ export function DiscoverSwipePage() {
     return <div className="mx-auto max-w-xl px-4 py-12 text-center text-sm text-muted-foreground">Finding people nearby…</div>;
   }
   if (discover.isError && isDiscoverSetupRequired(discover.error)) return <Redirect to="/onboarding" />;
-  if (discover.isError) {
+  if (discover.isError && (!discover.data || [401, 403, 409].includes(discover.error.status))) {
     return (
       <div className="mx-auto max-w-xl px-4 py-12 text-center">
         <p className="text-sm text-muted-foreground">Discovery could not load right now.</p>
@@ -215,10 +238,11 @@ export function DiscoverSwipePage() {
     return (
       <div className="mx-auto max-w-[680px] px-4 pb-5 text-center sm:px-6 sm:pb-7">
         {stickyHeader}
-        <div className="mx-auto max-w-xl pt-10 pb-8"><h1 className="brand text-2xl font-bold">That’s everyone for now</h1>
-        <p className="mt-2 text-sm text-muted-foreground">Try broadening your filters or check back soon.</p>
+        <div className="mx-auto max-w-xl pt-10 pb-8"><h1 className="brand text-2xl font-bold">{discover.isFetching || reaction.isPending ? "Finding more people…" : "That’s everyone for now"}</h1>
+        <p className="mt-2 text-sm text-muted-foreground">{discover.isFetching || reaction.isPending ? "Checking for more matching profiles." : "Try broadening your filters or check back soon."}</p>
         <button onClick={() => setFiltersOpen(true)} data-testid="button-open-filters-empty" className="mt-5 rounded-xl bg-primary px-4 py-3 font-bold text-[#27101d]">Adjust filters</button></div>
-        <FilterDialog open={filtersOpen} onClose={() => setFiltersOpen(false)} ageMin={ageMin} ageMax={ageMax} gender={gender} country={country} city={city} travelMode={Boolean(settings.data?.travelMode)} setAgeMin={setAgeMin} setAgeMax={setAgeMax} setGender={setGender} setCountry={(value) => { setCountry(value); setCity(""); }} setCity={setCity} onApply={() => { setIndex(0); setFiltersOpen(false); }} />
+        {matchOverlay}
+        <FilterDialog open={filtersOpen} onClose={() => setFiltersOpen(false)} ageMin={ageMin} ageMax={ageMax} gender={gender} country={country} city={city} travelMode={Boolean(settings.data?.travelMode)} setAgeMin={setAgeMin} setAgeMax={setAgeMax} setGender={setGender} setCountry={(value) => { setCountry(value); setCity(""); }} setCity={setCity} onApply={() => { setFiltersOpen(false); }} />
       </div>
     );
   }
@@ -227,6 +251,7 @@ export function DiscoverSwipePage() {
     <main className="discover-deck mx-auto flex h-full min-h-0 w-full max-w-[680px] flex-col px-4 sm:px-6">
       {stickyHeader}
 
+      <p role="status" data-testid="status-discovery-worldwide" className="mb-2 min-h-4 text-center text-xs text-muted-foreground">{worldwide ? "Not many people near you yet — showing members worldwide" : ""}</p>
       {notice && <div role="status" data-testid="status-discover" className="mb-3 rounded-xl border border-primary/20 bg-accent px-4 py-3 text-sm text-[#ffafd1]">{notice}<button onClick={() => setNotice("")} aria-label="Dismiss message" className="float-right"><X size={16} /></button></div>}
       {likeConfirmation && <div className="fixed inset-x-0 top-[calc(env(safe-area-inset-top)+1rem)] z-[60] flex justify-center px-4" role="status" aria-live="polite" data-testid="status-discover-liked"><div className="flex items-center gap-2 rounded-full border border-primary/25 bg-[#211a27]/95 px-5 py-3 text-sm font-semibold text-white shadow-2xl backdrop-blur-xl"><Heart size={17} fill="currentColor" className="text-primary"/>{likeConfirmation}</div></div>}
 
@@ -283,15 +308,8 @@ export function DiscoverSwipePage() {
         </div>
 
       {optionsOpen && <ProfileOptionsDialog onClose={() => setOptionsOpen(false)} onReport={(reason) => void reportCurrent(reason)} onBlock={() => void blockCurrent()} />}
-      <FilterDialog open={filtersOpen} onClose={() => setFiltersOpen(false)} ageMin={ageMin} ageMax={ageMax} gender={gender} country={country} city={city} travelMode={Boolean(settings.data?.travelMode)} setAgeMin={setAgeMin} setAgeMax={setAgeMax} setGender={setGender} setCountry={(value) => { setCountry(value); setCity(""); }} setCity={setCity} onApply={() => { setIndex(0); setFiltersOpen(false); }} />
-      <MatchCelebration
-        visible={!!matchResult}
-        self={(myProfile.data as Profile | undefined) ?? null}
-        other={matchResult?.profile ?? null}
-        canMessage={Boolean(matchResult?.matchId)}
-        onMessage={() => { const id = matchResult?.matchId; if (!id) return; setMatchResult(null); setLocation(`/chat/${id}?returnTo=%2Fdiscover`); }}
-        onKeepSwiping={() => setMatchResult(null)}
-      />
+      <FilterDialog open={filtersOpen} onClose={() => setFiltersOpen(false)} ageMin={ageMin} ageMax={ageMax} gender={gender} country={country} city={city} travelMode={Boolean(settings.data?.travelMode)} setAgeMin={setAgeMin} setAgeMax={setAgeMax} setGender={setGender} setCountry={(value) => { setCountry(value); setCity(""); }} setCity={setCity} onApply={() => { setFiltersOpen(false); }} />
+      {matchOverlay}
     </main>
   );
 }

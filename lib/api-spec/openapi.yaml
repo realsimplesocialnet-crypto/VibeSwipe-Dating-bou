@@ -172,7 +172,7 @@ paths:
     get:
       operationId: getDiscoverProfiles
       tags: [vibeswipe]
-      summary: List profiles matching the signed-in user's preferences
+      summary: Smart local-first discovery, expanding worldwide below the minimum local pool; explicit location filters remain strict
       parameters:
         - in: query
           name: ageMin
@@ -1355,6 +1355,9 @@ components:
           type: [string, "null"]
         isDemo: { type: boolean }
         superLikedYou: { type: boolean }
+        discoveryExpanded:
+          type: boolean
+          description: The default discovery batch includes members outside the home country because the eligible local pool is below the minimum.
         preferences:
           $ref: "#/components/schemas/ProfilePreferences"
       required: [id, name, age, showAge, showDistance, gender, lookingFor, bio, city, country, state, interests, occupation, occupationOther, photos, isDemo, preferences]

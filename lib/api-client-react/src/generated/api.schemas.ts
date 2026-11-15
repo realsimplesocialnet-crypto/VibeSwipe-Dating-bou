@@ -236,6 +236,8 @@ export interface Profile {
   videoUrl?: string | null;
   isDemo: boolean;
   superLikedYou?: boolean;
+  /** The default discovery batch includes members outside the home country because the eligible local pool is below the minimum. */
+  discoveryExpanded?: boolean;
   preferences: ProfilePreferences;
 }
 
