@@ -7,7 +7,7 @@ import {
   TranscodeReelVideoParams, TranscodeReelVideoResponse,
 } from "@workspace/api-zod";
 import {
-  blocksTable, db, mediaAssetsTable, profilesTable, reelCommentsTable, reelLikesTable, reelSavesTable, reelsTable, storiesTable,
+  blocksTable, db, mediaAssetsTable, profilesTable, reelCommentsTable, reelLikesTable, reelSavesTable, reelsTable, storiesTable, vibeSwipeNotificationsTable,
 } from "@workspace/db";
 import { and, asc, desc, eq, sql, type SQL } from "drizzle-orm";
 import { Router, type IRouter, type Request } from "express";
@@ -19,6 +19,7 @@ import { ObjectNotFoundError, ObjectStorageService } from "../lib/objectStorage"
 import { ProfileVideoValidationError, transcodeReelVideo } from "../lib/profileVideoTranscoder";
 import { processSafeReel, reelIsApproved } from "../lib/reel-safety";
 import { ReelSafetyError } from "../lib/reel-safety-policy";
+import { sendReelLikePush } from "../lib/vibeswipePush";
 
 const router: IRouter = Router();
 router.use("/vibeswipe/reels", requireAuth);
@@ -209,8 +210,25 @@ for (const kind of ["like", "save"] as const) {
     const params = LikeReelParams.safeParse(req.params);
     if (!params.success) { res.status(400).json({ error: "Invalid Reel." }); return; }
     const userId = uid(req);
-    if (!(await findVisibleReel(userId, params.data.reelId))) { res.status(404).json({ error: "This Reel is no longer available." }); return; }
-    await db.insert(table).values({ reelId: params.data.reelId, userId, createdAt: new Date() }).onConflictDoNothing();
+    const reel = await findVisibleReel(userId, params.data.reelId);
+    if (!reel) { res.status(404).json({ error: "This Reel is no longer available." }); return; }
+    const notify = await db.transaction(async tx => {
+      const inserted = await tx.insert(table).values({ reelId: reel.id, userId, createdAt: new Date() }).onConflictDoNothing().returning();
+      if (kind !== "like" || !inserted.length || reel.userId === userId) return false;
+      const [recipient] = await tx.select({
+        notifyLikes: profilesTable.notifyLikes, notifyMatches: profilesTable.notifyMatches,
+      }).from(profilesTable).where(eq(profilesTable.id, reel.userId)).limit(1);
+      if (!recipient || !(recipient.notifyLikes ?? recipient.notifyMatches)) return false;
+      const notices = await tx.insert(vibeSwipeNotificationsTable).values({
+        recipientId: reel.userId, actorId: userId, type: "reel_like", reelId: reel.id,
+      }).onConflictDoNothing().returning({ id: vibeSwipeNotificationsTable.id });
+      return notices.length > 0;
+    });
+    if (notify) {
+      const [actor] = await db.select({ name: profilesTable.name }).from(profilesTable).where(eq(profilesTable.id, userId)).limit(1);
+      void sendReelLikePush({ recipientId: reel.userId, actorName: actor?.name ?? "Someone", reelId: reel.id })
+        .catch(error => req.log.error({ err: error }, "Could not deliver Reel like push"));
+    }
     res.json(LikeReelResponse.parse(await engagement(userId, params.data.reelId)));
   });
   router.delete(`/vibeswipe/reels/:reelId/${kind}`, async (req, res): Promise<void> => {

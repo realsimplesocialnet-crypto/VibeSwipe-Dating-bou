@@ -9,7 +9,7 @@ export function NotificationBell({ color }: { color: string }) {
   });
   const counts = notifications.data?.unreadCounts;
   const unread = counts
-    ? counts.matches + counts.messages + counts.views + counts.likes
+    ? counts.matches + counts.messages + counts.views + counts.likes + (counts.reels ?? 0)
     : 0;
   return (
     <Pressable

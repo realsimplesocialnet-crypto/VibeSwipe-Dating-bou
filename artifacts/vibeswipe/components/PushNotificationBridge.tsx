@@ -79,6 +79,10 @@ export function PushNotificationBridge() {
       const identifier = response.notification.request.identifier;
       if (handledResponse.current === identifier) return;
       handledResponse.current = identifier;
+      if (response.notification.request.content.data?.type === "reel_like") {
+        router.push("/(tabs)/activity" as never);
+        return;
+      }
       const matchId = matchIdFromResponse(response);
       if (!matchId) return;
       router.push({ pathname: "/chat/[matchId]", params: { matchId } });

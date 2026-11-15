@@ -109,6 +109,7 @@ export function ActivityOverview() {
   useRefetchOnFocus([notes.refetch, matches.refetch, likes.refetch, views.refetch]);
   const mark = useMarkNotificationRead();
   const am = useMemo(() => active(matches.data), [matches.data]);
+  const reelNotices = (notes.data?.notifications ?? []).filter(n => n.type === "reel_like");
   const msgs = useMemo(() => (notes.data?.notifications ?? []).filter(n => n.type === "new_message" && am.some(m => m.id === n.matchId && m.profile.id === n.actor.id)).slice(0, 8), [notes.data, am]);
   const superNotices = useMemo(() => (notes.data?.notifications ?? []).filter(n => n.type === "new_super_like" && likes.data?.some(l => l.profile.id === n.actor.id && l.isSuperLike)).slice(0, 8), [notes.data, likes.data]);
   const open = async (id: string, unread: boolean) => {
@@ -124,6 +125,22 @@ export function ActivityOverview() {
   return (
     <Screen title="Activity">
       <ScrollView contentContainerStyle={[s.list, { paddingBottom: insets.bottom + 110 }]}>
+        {reelNotices.map(n => <Pressable key={n.id} accessibilityRole="button"
+          testID={`reel-like-notice-${n.id}`}
+          onPress={async () => {
+            if (!n.readAt) {
+              try { await mark.mutateAsync({ notificationId: n.id }); } catch { /* Still open the profile. */ }
+              void qc.invalidateQueries({ queryKey: getGetNotificationsQueryKey() });
+            }
+            router.push({ pathname: "/profile/[profileId]", params: { profileId: n.actor.id } });
+          }}
+          style={[s.notice, { backgroundColor: c.profileCard, borderColor: c.border }]}>
+          <ProfileAvatar profile={n.actor} size={40} />
+          <View style={s.flex}><Text style={[s.name, { color: c.primary }]}>{n.actor.name}</Text>
+            <Text style={{ color: c.foreground }}>liked your video</Text></View>
+          <Text style={[s.time, { color: c.mutedForeground }]}>{ago(n.createdAt)}</Text>
+          {!n.readAt && <View style={[s.dot, { backgroundColor: c.primary }]} />}
+        </Pressable>)}
         {notes.isLoading || (notes.isError && !notes.data) ? (
           <State loading={notes.isLoading} error={notes.isError} empty={false} onRetry={() => void notes.refetch()} icon="message-circle" emptyTitle="" emptyText="" />
         ) : msgs.map((n) => (

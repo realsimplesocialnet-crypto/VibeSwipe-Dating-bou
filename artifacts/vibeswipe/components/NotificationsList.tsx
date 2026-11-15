@@ -93,6 +93,7 @@ export function NotificationsList({ tabMode = false }: { tabMode?: boolean }) {
     if (item.type === "new_match") return `You matched with ${item.actor.name}`;
     if (item.type === "new_message") return `${item.actor.name} sent you a message`;
     if (item.type === "new_like") return `${item.actor.name} liked you`;
+    if (item.type === "reel_like") return `${item.actor.name} liked your video`;
     return `${item.actor.name} viewed your profile`;
   };
 
@@ -129,7 +130,7 @@ export function NotificationsList({ tabMode = false }: { tabMode?: boolean }) {
                 >
                   <View style={[styles.avatarRing, { borderColor: colors.primary }]}><ProfileAvatar profile={item.actor} size={54} /></View>
                   <View style={styles.copy}>
-                    <Text style={[styles.message, { color: colors.foreground }]}><Text style={{ color: colors.primary }}>{item.actor.name}</Text>{" "}{item.type === "new_match" ? "matched with you" : item.type === "new_message" ? "sent you a message" : item.type === "new_like" ? "liked you" : "viewed your profile"}</Text>
+                    <Text style={[styles.message, { color: colors.foreground }]}><Text style={{ color: colors.primary }}>{item.actor.name}</Text>{" "}{item.type === "reel_like" ? "liked your video" : item.type === "new_match" ? "matched with you" : item.type === "new_message" ? "sent you a message" : item.type === "new_like" ? "liked you" : "viewed your profile"}</Text>
                     <Text style={[styles.helper, { color: colors.mutedForeground }]}>{item.type === "new_match" ? "Start a conversation now!" : item.type === "new_like" ? "Tap to see who liked you" : item.type === "new_message" ? "Open your conversation" : "Take a closer look"}</Text>
                   </View>
                 </Pressable>

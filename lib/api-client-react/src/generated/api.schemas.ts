@@ -839,6 +839,7 @@ export const NotificationType = {
   new_like: 'new_like',
   new_super_like: 'new_super_like',
   profile_view: 'profile_view',
+  reel_like: 'reel_like',
 } as const;
 
 export interface Notification {
@@ -849,6 +850,8 @@ export interface Notification {
   matchId?: string | null;
   /** @nullable */
   messageId?: string | null;
+  /** @nullable */
+  reelId?: string | null;
   createdAt: string;
   /** @nullable */
   readAt: string | null;
@@ -863,6 +866,8 @@ export interface NotificationCounts {
   views: number;
   /** @minimum 0 */
   likes: number;
+  /** @minimum 0 */
+  reels?: number;
 }
 
 export interface NotificationsResponse {

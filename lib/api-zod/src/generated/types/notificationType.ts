@@ -15,4 +15,5 @@ export const NotificationType = {
   new_like: 'new_like',
   new_super_like: 'new_super_like',
   profile_view: 'profile_view',
+  reel_like: 'reel_like',
 } as const;

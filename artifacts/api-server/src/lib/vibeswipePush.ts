@@ -8,6 +8,8 @@ import { eq } from "drizzle-orm";
 import * as webPush from "web-push";
 import {
   buildMessagePushPayload,
+  buildReelLikePushPayload,
+  type VibeSwipePushPayload,
   isAllowedWebPushEndpoint,
   isValidExpoPushToken,
 } from "./vibeswipePushPayload";
@@ -71,7 +73,7 @@ async function sendWebPush(
     p256dh: string | null;
     auth: string | null;
   },
-  payload: ReturnType<typeof buildMessagePushPayload>,
+  payload: VibeSwipePushPayload,
 ): Promise<void> {
   if (
     !subscription.endpoint ||
@@ -110,7 +112,7 @@ async function sendWebPush(
 
 async function sendExpoPush(
   subscription: { id: string; expoToken: string | null },
-  payload: ReturnType<typeof buildMessagePushPayload>,
+  payload: VibeSwipePushPayload,
 ): Promise<void> {
   if (!subscription.expoToken || !isValidExpoPushToken(subscription.expoToken)) {
     return;
@@ -200,5 +202,22 @@ export async function sendMessagePush(input: {
     throw new Error(
       `${failures.length} of ${subscriptions.length} push notification deliveries failed.`,
     );
+  }
+}
+
+export async function sendReelLikePush(input: {
+  recipientId: string; actorName: string; reelId: string;
+}): Promise<void> {
+  const [recipient] = await db.select({
+    notifyLikes: profilesTable.notifyLikes, notifyMatches: profilesTable.notifyMatches,
+  }).from(profilesTable).where(eq(profilesTable.id, input.recipientId)).limit(1);
+  if (!recipient || !(recipient.notifyLikes ?? recipient.notifyMatches)) return;
+  const subscriptions = await db.select().from(vibeSwipePushSubscriptionsTable)
+    .where(eq(vibeSwipePushSubscriptionsTable.userId, input.recipientId));
+  const payload = buildReelLikePushPayload(input.actorName, input.reelId);
+  const results = await Promise.allSettled(subscriptions.map(subscription =>
+    subscription.platform === "web" ? sendWebPush(subscription, payload) : sendExpoPush(subscription, payload)));
+  if (results.some(result => result.status === "rejected")) {
+    throw new Error("Some Reel like push deliveries failed.");
   }
 }

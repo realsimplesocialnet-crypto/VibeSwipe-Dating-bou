@@ -2150,7 +2150,7 @@ components:
           items: { type: string, format: uuid }
     NotificationType:
       type: string
-      enum: [new_match, new_message, new_like, new_super_like, profile_view]
+      enum: [new_match, new_message, new_like, new_super_like, profile_view, reel_like]
     Notification:
       type: object
       properties:
@@ -2159,6 +2159,7 @@ components:
         actor: { $ref: "#/components/schemas/Profile" }
         matchId: { type: [string, "null"], format: uuid }
         messageId: { type: [string, "null"], format: uuid }
+        reelId: { type: [string, "null"], format: uuid }
         createdAt: { type: string, format: date-time }
         readAt: { type: [string, "null"], format: date-time }
       required: [id, type, actor, createdAt, readAt]
@@ -2169,6 +2170,7 @@ components:
         messages: { type: integer, minimum: 0 }
         views: { type: integer, minimum: 0 }
         likes: { type: integer, minimum: 0 }
+        reels: { type: integer, minimum: 0 }
       required: [matches, messages, views, likes]
     NotificationsResponse:
       type: object

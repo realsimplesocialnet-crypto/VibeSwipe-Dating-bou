@@ -532,6 +532,10 @@ function NotificationsPage() {
   }
   async function open(n: Item) {
     await markAsRead(n);
+    if (n.type === 'reel_like' && n.reelId) {
+      setLocation(`/reels/${n.reelId}?returnTo=%2Fnotifications`);
+      return;
+    }
     const match = currentMatch(n);
     if ((n.type === 'new_match' || n.type === 'new_message') && match && !match.blockedByMe && !match.blockedMe) setLocation(`/chat/${match.id}?returnTo=%2Fnotifications`);
     else if (n.type === 'new_match' || n.type === 'new_message') setLocation('/matches');
@@ -556,7 +560,7 @@ function NotificationsPage() {
     setNotice({ id: n.id, text: `Match first to message ${n.actor.name}. Opening their profile so you can like back.` });
     timer.current = window.setTimeout(() => setLocation(`/profile/${n.actor.id}?returnTo=%2Fnotifications`), 1400);
   }
-  const actionText = (n: Item) => n.type === 'new_match' ? 'matched with you'
+  const actionText = (n: Item) => n.type === 'reel_like' ? 'liked your video' : n.type === 'new_match' ? 'matched with you'
     : n.type === 'new_message' ? 'sent you a message'
     : n.type === 'new_like' ? 'liked you' : 'viewed your profile';
   const unread = q.data ? Object.values(q.data.unreadCounts ?? {}).reduce((a, b) => a + (b as number), 0) : 0;

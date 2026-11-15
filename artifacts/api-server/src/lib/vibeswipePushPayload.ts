@@ -1,3 +1,17 @@
+export type VibeSwipePushPayload = {
+  title: string;
+  body: string;
+  data: { type: string; url: string; matchId?: string; reelId?: string };
+};
+
+export function buildReelLikePushPayload(actorName: string, reelId: string): VibeSwipePushPayload {
+  return {
+    title: "New Reel like",
+    body: `${actorName.trim() || "Someone"} liked your video`,
+    data: { type: "reel_like", reelId, url: `reels/${encodeURIComponent(reelId)}?returnTo=%2Fnotifications` },
+  };
+}
+
 export function isAllowedWebPushEndpoint(endpoint: string): boolean {
   try {
     const url = new URL(endpoint);

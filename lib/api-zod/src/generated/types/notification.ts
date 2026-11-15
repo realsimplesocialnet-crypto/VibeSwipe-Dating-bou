@@ -16,6 +16,8 @@ export interface Notification {
   matchId?: string | null;
   /** @nullable */
   messageId?: string | null;
+  /** @nullable */
+  reelId?: string | null;
   createdAt: Date;
   /** @nullable */
   readAt: Date | null;

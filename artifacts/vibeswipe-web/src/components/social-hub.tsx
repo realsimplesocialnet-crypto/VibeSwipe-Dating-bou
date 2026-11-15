@@ -71,6 +71,7 @@ export function ActivityOverview({ avatar }: { avatar: AvatarFn }) {
   const views = useGetWhoViewedYou({ query: { queryKey: getGetWhoViewedYouQueryKey(), ...live } });
   const mark = useMarkNotificationRead();
   const am = useMemo(() => activeMatches(matches.data), [matches.data]);
+  const reelNotices = (notes.data?.notifications ?? []).filter(n => n.type === 'reel_like');
   const msgs = useMemo(() => (notes.data?.notifications ?? []).filter(n => n.type === 'new_message' && am.some(m => m.id === n.matchId && m.profile.id === n.actor.id)).slice(0, 8), [notes.data, am]);
   const superNotices = useMemo(() => (notes.data?.notifications ?? []).filter(n => n.type === 'new_super_like' && likes.data?.some(l => l.profile.id === n.actor.id && l.isSuperLike)).slice(0, 8), [notes.data, likes.data]);
   const openMsg = async (id: string, unread: boolean) => {
@@ -84,6 +85,21 @@ export function ActivityOverview({ avatar }: { avatar: AvatarFn }) {
   ];
   return <div className="social-hub min-h-[calc(100dvh-48px)] lg:min-h-[100dvh]"><div className="page-in mx-auto max-w-[720px] px-4 pb-12 pt-6 md:px-8 md:pt-10">
     <Head title="Activity" />
+    {reelNotices.length > 0 && <section className="mb-4 space-y-2" aria-label="Reel likes">
+      {reelNotices.map(n => <button key={n.id} type="button" data-testid={`reel-like-notice-${n.id}`}
+        onClick={async () => {
+          if (!n.readAt) {
+            try { await mark.mutateAsync({ notificationId: n.id }); } catch { /* Keep the Reel reachable. */ }
+            void qc.invalidateQueries({ queryKey: getGetNotificationsQueryKey() });
+          }
+          go(n.reelId ? `/reels/${n.reelId}?returnTo=%2Fnotifications` : `/profile/${n.actor.id}?returnTo=%2Fnotifications`);
+        }}
+        className="sh-card flex w-full items-center gap-3 rounded-[18px] px-4 py-3 text-left">
+        {avatar(n.actor)}<span className="min-w-0 flex-1 text-sm"><strong className="text-primary">{n.actor.name}</strong> liked your video</span>
+        <time className="sh-muted text-xs" dateTime={n.createdAt}>{ago(n.createdAt)}</time>
+        {!n.readAt && <span className="h-2 w-2 shrink-0 rounded-full bg-primary" aria-label="Unread" />}
+      </button>)}
+    </section>}
     <section aria-labelledby="sh-new-msgs">
       <h2 id="sh-new-msgs" className="sr-only">New messages</h2>
       {notes.isLoading ? <Skel /> : notes.isError && !notes.data ? <Err text="We couldn't load your activity." onRetry={() => void notes.refetch()} />

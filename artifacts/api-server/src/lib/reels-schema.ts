@@ -37,6 +37,8 @@ export async function ensureReelsSchema(): Promise<void> {
       content text NOT NULL,
       created_at timestamptz NOT NULL DEFAULT now())`);
     await client.query("CREATE INDEX IF NOT EXISTS vibeswipe_reel_comments_reel_idx ON vibeswipe_reel_comments(reel_id, created_at)");
+    await client.query("ALTER TABLE vibeswipe_notifications ADD COLUMN IF NOT EXISTS reel_id uuid REFERENCES vibeswipe_reels(id) ON DELETE CASCADE");
+    await client.query("CREATE UNIQUE INDEX IF NOT EXISTS vibeswipe_reel_like_notification_idx ON vibeswipe_notifications(recipient_id, actor_id, reel_id) WHERE type = 'reel_like'");
     await client.query("COMMIT");
   } catch (error) {
     await client.query("ROLLBACK");
