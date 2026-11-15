@@ -5,3 +5,4 @@ export { createUseMarkActivitySeen, unreadActivityIds, patchActivityReads } from
 export type { ActivityCategory } from "./activity-seen";
 export { setBaseUrl, setAuthTokenGetter } from "./custom-fetch";
 export type { AuthTokenGetter } from "./custom-fetch";
+export { MAX_VOICE_NOTE_BYTES, formatVoiceDuration } from "./voice-notes";

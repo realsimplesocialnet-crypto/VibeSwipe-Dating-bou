@@ -64,15 +64,17 @@ test("native media refreshes authorization only after Load and cancels a pending
   assert.match(component, /accessibilityLabel="Close media"/);
 });
 
-test("both chat message lists use the gated viewer for pictures/videos without altering audio", async () => {
-  const [web, native] = await Promise.all([
+test("both chat message lists gate pictures/videos while keeping dedicated audio controls", async () => {
+  const [web, native, audio] = await Promise.all([
     source("artifacts/vibeswipe-web/src/App.tsx"),
     source("artifacts/vibeswipe/app/chat/[matchId].tsx"),
+    source("artifacts/vibeswipe-web/src/components/chat-audio-message.tsx"),
   ]);
   assert.match(web, /<ChatMediaMessage reference=\{m.mediaReference\}/);
   assert.doesNotMatch(web, /<MediaImage reference=\{m.mediaReference\}/);
   assert.doesNotMatch(web, /<video controls src=\{mediaUrl\(m.mediaReference\)\}/);
-  assert.match(web, /m.mediaType==='audio'&&<audio controls/);
+  assert.match(web, /m.mediaType==='audio'&&m.mediaReference&&<ChatAudioMessage/);
+  assert.match(audio, /<audio ref=\{player\} controls preload="none"/);
   assert.match(native, /<ChatMediaMessage reference=\{item.mediaReference!\}/);
   assert.match(native, /<ChatAudioMessage reference=/);
   assert.doesNotMatch(native, /setViewingMedia|styles.imagePreview/);

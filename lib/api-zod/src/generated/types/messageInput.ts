@@ -19,9 +19,6 @@ export interface MessageInput {
      */
   mediaReference?: string;
   mediaType?: MessageInputMediaType;
-  /**
-     * @minimum 1
-     * @maximum 60
-     */
+  /** @minimum 1 */
   mediaDuration?: number;
 }

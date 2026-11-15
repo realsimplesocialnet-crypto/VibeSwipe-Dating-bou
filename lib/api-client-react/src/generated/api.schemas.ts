@@ -624,7 +624,6 @@ export interface Message {
   mediaType?: MessageMediaType;
   /**
      * @minimum 1
-     * @maximum 60
      * @nullable
      */
   mediaDuration?: number | null;
@@ -653,10 +652,7 @@ export interface MessageInput {
      */
   mediaReference?: string;
   mediaType?: MessageInputMediaType;
-  /**
-     * @minimum 1
-     * @maximum 60
-     */
+  /** @minimum 1 */
   mediaDuration?: number;
 }
 

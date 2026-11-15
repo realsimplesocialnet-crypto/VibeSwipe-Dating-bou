@@ -1734,7 +1734,19 @@ router.post(
         return;
       }
     }
-    const message = await db.transaction(async (tx) => {
+    const { message, created } = await db.transaction(async (tx) => {
+      if (mediaType === "audio" && mediaReference) {
+        // Serialize retries for this private upload. A lost send response must
+        // not create a second long voice note or notify its recipient twice.
+        await tx.select({ id: mediaAssetsTable.id }).from(mediaAssetsTable)
+          .where(eq(mediaAssetsTable.id, mediaReference.slice(6))).for("update");
+        const [existing] = await tx.select().from(messagesTable).where(and(
+          eq(messagesTable.matchId, match.id),
+          eq(messagesTable.senderId, userId),
+          eq(messagesTable.mediaReference, mediaReference),
+        )).limit(1);
+        if (existing) return { message: existing, created: false };
+      }
       const [createdMessage] = await tx
         .insert(messagesTable)
         .values({
@@ -1757,8 +1769,12 @@ router.post(
           messageId: createdMessage.id,
         })})`,
       );
-      return createdMessage;
+      return { message: createdMessage, created: true };
     });
+    if (!created) {
+      res.status(201).json(SendMessageResponse.parse(projectMessage(message)));
+      return;
+    }
     await saveMatchUserState(match.id, userId, { typingUntil: null });
     await db.execute(
       sql`SELECT pg_notify(${CHAT_EVENT_CHANNEL}, ${JSON.stringify({
@@ -2063,13 +2079,13 @@ router.post(
       return;
     }
     const maxSize =
-      body.data.mediaType === "image" ? 15 * 1024 * 1024 : 100 * 1024 * 1024;
+      body.data.mediaType === "image" ? 15 * 1024 * 1024 : body.data.mediaType === "audio" ? 500 * 1024 * 1024 : 100 * 1024 * 1024;
     if (body.data.size > maxSize) {
       res.status(400).json({
         error:
           body.data.mediaType === "image"
             ? "Choose an image smaller than 15 MB."
-            : `Choose a ${body.data.mediaType} smaller than 100 MB.`,
+            : `Choose a ${body.data.mediaType} smaller than ${body.data.mediaType === "audio" ? 500 : 100} MB.`,
       });
       return;
     }
@@ -2415,12 +2431,18 @@ router.get(
     }
     try {
       const file = await objectStorage.getObjectEntityFile(asset.objectPath);
-      const response = await objectStorage.downloadObject(file, 300);
+      const response = await objectStorage.downloadObject(file, 300, req.get("range"));
       res.status(response.status);
       response.headers.forEach((value, key) => res.setHeader(key, value));
-      if (activeStory) res.setHeader("Cache-Control", "private, no-store");
+      if (activeStory || asset.matchId) res.setHeader("Cache-Control", "private, no-store");
       if (response.body) {
-        Readable.fromWeb(response.body as ReadableStream<Uint8Array>).pipe(res);
+        const stream = Readable.fromWeb(response.body as ReadableStream<Uint8Array>);
+        res.on("close", () => stream.destroy());
+        stream.on("error", (error) => {
+          req.log.error({ err: error }, "Private media stream interrupted");
+          res.destroy();
+        });
+        stream.pipe(res);
       } else {
         res.end();
       }

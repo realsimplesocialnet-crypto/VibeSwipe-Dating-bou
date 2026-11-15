@@ -934,7 +934,6 @@ export const sendMessageBodyContentMax = 2000;
 
 export const sendMessageBodyMediaReferenceMax = 100;
 
-export const sendMessageBodyMediaDurationMax = 60;
 
 
 
@@ -942,12 +941,11 @@ export const SendMessageBody = zod.object({
   "content": zod.string().min(1).max(sendMessageBodyContentMax).optional(),
   "mediaReference": zod.string().min(1).max(sendMessageBodyMediaReferenceMax).optional(),
   "mediaType": zod.enum(['image', 'video', 'audio']).optional(),
-  "mediaDuration": zod.number().int().min(1).max(sendMessageBodyMediaDurationMax).optional()
+  "mediaDuration": zod.number().int().min(1).optional()
 })
 
 export const sendMessageResponseMediaReferenceMax = 100;
 
-export const sendMessageResponseMediaDurationMax = 60;
 
 
 
@@ -959,7 +957,7 @@ export const SendMessageResponse = zod.object({
   "createdAt": zod.coerce.date(),
   "mediaReference": zod.string().max(sendMessageResponseMediaReferenceMax).nullish(),
   "mediaType": zod.union([zod.literal('image'),zod.literal('video'),zod.literal('audio'),zod.literal(null)]).nullish(),
-  "mediaDuration": zod.number().int().min(1).max(sendMessageResponseMediaDurationMax).nullish(),
+  "mediaDuration": zod.number().int().min(1).nullish(),
   "deletedForEveryone": zod.boolean(),
   "isRead": zod.boolean()
 })
@@ -974,7 +972,6 @@ export const GetMessagesParams = zod.object({
 
 export const getMessagesResponseMediaReferenceMax = 100;
 
-export const getMessagesResponseMediaDurationMax = 60;
 
 
 
@@ -986,7 +983,7 @@ export const GetMessagesResponseItem = zod.object({
   "createdAt": zod.coerce.date(),
   "mediaReference": zod.string().max(getMessagesResponseMediaReferenceMax).nullish(),
   "mediaType": zod.union([zod.literal('image'),zod.literal('video'),zod.literal('audio'),zod.literal(null)]).nullish(),
-  "mediaDuration": zod.number().int().min(1).max(getMessagesResponseMediaDurationMax).nullish(),
+  "mediaDuration": zod.number().int().min(1).nullish(),
   "deletedForEveryone": zod.boolean(),
   "isRead": zod.boolean()
 })

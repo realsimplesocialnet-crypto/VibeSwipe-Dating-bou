@@ -14,3 +14,4 @@
 - [Onboarding motion](onboarding-motion.md) — Use real moving onboarding previews; retain live signup controls and inspect image-to-video output for embedded letterboxing.
 - [Smart discovery locality](smart-discovery.md) — Expand sparse default feeds worldwide, country then continent first; explicit saved/manual location filters remain strict.
 - [Optional Quickmavo shop](quickmavo-shop.md) — Settings-only cross-promotion, explicit Cancel/Continue confirmation, and an easy return; never interrupt Discover or chat.
+- [Long voice notes](long-voice-notes.md) — No recording-time cutoff; release sends, cancellation discards, and recipients can seek through the full private recording.

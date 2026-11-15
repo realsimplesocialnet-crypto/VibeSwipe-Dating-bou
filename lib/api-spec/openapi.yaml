@@ -1602,7 +1602,7 @@ components:
         createdAt: { type: string, format: date-time }
         mediaReference: { type: [string, "null"], maxLength: 100 }
         mediaType: { type: [string, "null"], enum: [image, video, audio, null] }
-        mediaDuration: { type: [integer, "null"], minimum: 1, maximum: 60 }
+        mediaDuration: { type: [integer, "null"], minimum: 1 }
         deletedForEveryone: { type: boolean }
         isRead: { type: boolean }
       required: [id, matchId, senderId, content, createdAt, deletedForEveryone, isRead]
@@ -1612,7 +1612,7 @@ components:
         content: { type: string, minLength: 1, maxLength: 2000 }
         mediaReference: { type: string, minLength: 1, maxLength: 100 }
         mediaType: { type: string, enum: [image, video, audio] }
-        mediaDuration: { type: integer, minimum: 1, maximum: 60 }
+        mediaDuration: { type: integer, minimum: 1 }
     DeleteMessageInput:
       type: object
       properties:

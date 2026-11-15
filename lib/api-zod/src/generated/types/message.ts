@@ -22,7 +22,6 @@ export interface Message {
   mediaType?: MessageMediaType;
   /**
      * @minimum 1
-     * @maximum 60
      * @nullable
      */
   mediaDuration?: number | null;

@@ -49,12 +49,8 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import {
-  RecordingPresets,
-  requestRecordingPermissionsAsync,
-  setAudioModeAsync,
-  useAudioRecorder,
-} from "expo-audio";
+import { MAX_VOICE_NOTE_BYTES } from "@workspace/api-client-react";
+import { VoiceNoteRecorder } from "@/components/VoiceNoteRecorder";
 import { ProfileAvatar } from "@/components/ProfileAvatar";
 import { ChatAudioMessage } from "@/components/ChatMedia";
 import { ChatMediaMessage } from "@/components/ChatMediaMessage";
@@ -71,7 +67,7 @@ const THEME_OPTIONS: { key: ChatThemeType; label: string; color: string }[] = [
 ];
 const MAX_IMAGE_BYTES = 15 * 1024 * 1024;
 const MAX_VIDEO_BYTES = 500 * 1024 * 1024;
-const MAX_AUDIO_BYTES = 25 * 1024 * 1024;
+const MAX_AUDIO_BYTES = MAX_VOICE_NOTE_BYTES;
 
 function formatTime(date: string): string {
   return new Date(date).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
@@ -143,24 +139,19 @@ export default function ChatScreen() {
   const updateTypingStatus = updateTyping.mutate;
   const markRead = useMarkChatRead();
   const deleteMessage = useDeleteMessage();
-  const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
 
   const [draft, setDraft] = useState("");
   const [authToken, setAuthToken] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [busyMedia, setBusyMedia] = useState(false);
-  const [recording, setRecording] = useState(false);
-  const [recordSeconds, setRecordSeconds] = useState(0);
+  const [voiceActive, setVoiceActive] = useState(false);
+  const uploadedVoice = useRef<{ uri: string; reference: string } | null>(null);
   const [menuVisible, setMenuVisible] = useState(false);
   const [themeVisible, setThemeVisible] = useState(false);
   const [searchVisible, setSearchVisible] = useState(false);
   const [searchText, setSearchText] = useState("");
   const [searchIndex, setSearchIndex] = useState(0);
   const typingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const recordingTimer = useRef<ReturnType<typeof setInterval> | null>(null);
-  const recordingRef = useRef(false);
-  const recordingPressRef = useRef(false);
-  const recordingTicks = useRef(0);
   const lastMarkedMessage = useRef("");
   const listRef = useRef<FlatList<Message> | null>(null);
   const inputRef = useRef<ComponentRef<typeof TextInput>>(null);
@@ -293,13 +284,15 @@ export default function ChatScreen() {
   }, [markRead, matchId, messages.data, queryClient, userId]);
 
   useEffect(() => () => {
-    if (recordingTimer.current) clearInterval(recordingTimer.current);
     if (typingTimer.current) clearTimeout(typingTimer.current);
-    if (recordingRef.current) void recorder.stop();
-  }, [recorder]);
+  }, []);
 
   async function send(content: string, media?: { reference: string; type: "image" | "video" | "audio"; duration?: number }) {
-    if (!matchId || (!content.trim() && !media) || sendMessage.isPending || blocked) return;
+    if (!matchId || sendMessage.isPending || blocked) {
+      if (media) throw new Error("Messaging is currently unavailable. Please try again.");
+      return;
+    }
+    if (!content.trim() && !media) return;
     const oldDraft = draft;
     if (!media) setDraft("");
     try {
@@ -310,9 +303,10 @@ export default function ChatScreen() {
       addMessage(message);
       updateTyping.mutate({ matchId, data: { isTyping: false } });
       setError("");
-    } catch {
+    } catch (caught) {
       if (!media) setDraft(current => current && current !== oldDraft ? [oldDraft, current].filter(Boolean).join("\n") : oldDraft);
       setError("Message could not be sent. Please try again.");
+      if (media) throw caught;
     }
   }
 
@@ -337,7 +331,12 @@ export default function ChatScreen() {
       ? contentTypeHint as MediaUploadInputContentType
       : fallbackType;
     const maxSize = type === "image" ? MAX_IMAGE_BYTES : type === "video" ? MAX_VIDEO_BYTES : MAX_AUDIO_BYTES;
-    if (size <= 0 || size > maxSize) throw new Error(type === "image" ? "Choose an image smaller than 15 MB." : type === "video" ? "Choose a video smaller than 500 MB." : "This voice note is too large to upload.");
+    if (size <= 0 || size > maxSize) throw new Error(type === "image" ? "Choose an image smaller than 15 MB." : type === "video" ? "Choose a video smaller than 500 MB." : "Voice notes have no time cutoff, but files must be smaller than 500 MB.");
+    if (type === "audio" && uploadedVoice.current?.uri === uri) {
+      await send("", { reference: uploadedVoice.current.reference, type, duration });
+      uploadedVoice.current = null;
+      return;
+    }
     const result = await requestUpload.mutateAsync({
       matchId,
       data: { name, size, contentType, mediaType: type },
@@ -352,7 +351,9 @@ export default function ChatScreen() {
       const transcoded = await transcodeVideo.mutateAsync({ mediaId: result.mediaId });
       await send("", { reference: transcoded.mediaReference || result.mediaReference, type });
     } else {
+      if (type === "audio") uploadedVoice.current = { uri, reference: result.mediaReference };
       await send("", { reference: result.mediaReference, type, ...(duration ? { duration } : {}) });
+      if (type === "audio") uploadedVoice.current = null;
     }
   }
 
@@ -376,54 +377,6 @@ export default function ChatScreen() {
       await uploadMedia(asset.uri, asset.fileName ?? `${type}-${Date.now()}`, type, asset.fileSize, undefined, asset.mimeType);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "The attachment could not be sent.");
-    } finally {
-      setBusyMedia(false);
-    }
-  }
-
-  async function startRecording() {
-    setError("");
-    try {
-      const permission = await requestRecordingPermissionsAsync();
-      if (!permission.granted) {
-        setError("Allow microphone access to record a voice note.");
-        return;
-      }
-      await setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true });
-      await recorder.prepareToRecordAsync();
-      if (!recordingPressRef.current) return;
-      recorder.record();
-      recordingRef.current = true;
-      recordingTicks.current = 0;
-      setRecordSeconds(0);
-      setRecording(true);
-      recordingTimer.current = setInterval(() => {
-        recordingTicks.current += 1;
-        setRecordSeconds(Math.min(60, recordingTicks.current));
-        if (recordingTicks.current >= 60) void stopRecording();
-      }, 1_000);
-    } catch {
-      setError("Voice recording couldn’t start. Check microphone permissions and try again.");
-    }
-  }
-
-  async function stopRecording() {
-    if (!recordingRef.current && !recorder.isRecording) return;
-    recordingRef.current = false;
-    if (recordingTimer.current) clearInterval(recordingTimer.current);
-    recordingTimer.current = null;
-    const duration = Math.max(1, Math.min(60, Math.round(recorder.currentTime)));
-    try {
-      await recorder.stop();
-      await setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true });
-      setRecording(false);
-      if (!recorder.uri) throw new Error("The recording could not be saved.");
-      setBusyMedia(true);
-      await uploadMedia(recorder.uri, `voice-${Date.now()}.m4a`, "audio", undefined, duration);
-      setRecordSeconds(duration);
-    } catch (caught) {
-      setRecording(false);
-      setError(caught instanceof Error ? caught.message : "The voice note could not be sent.");
     } finally {
       setBusyMedia(false);
     }
@@ -695,7 +648,7 @@ export default function ChatScreen() {
                     {item.content || "This message was deleted."}
                   </Text>
                 ) : item.mediaType === "audio" && item.mediaReference ? (
-                  <ChatAudioMessage reference={item.mediaReference} duration={item.mediaDuration ?? 1} token={authToken} foreground={own ? "#ffffff" : themedForeground} />
+                  <ChatAudioMessage reference={item.mediaReference} duration={item.mediaDuration ?? 1} token={authToken} getToken={getToken} foreground={own ? "#ffffff" : themedForeground} />
                 ) : (item.mediaType === "image" || item.mediaType === "video") && messageMedia ? (
                   <ChatMediaMessage reference={item.mediaReference!} type={item.mediaType}/>
                 ) : (
@@ -730,25 +683,15 @@ export default function ChatScreen() {
         </View>
       ) : (
         <View testID="chat-composer" style={[styles.composer, { borderColor: colors.border, backgroundColor: colors.card, marginBottom: keyboardVisible ? 0 : Math.max(insets.bottom, 8) }]}>
-          <Pressable accessibilityRole="button" accessibilityLabel="Attach photo or video" testID="chat-attachment" onPress={() => void chooseAttachment()} disabled={busyMedia || sendMessage.isPending} style={styles.attachButton}>
+          <Pressable accessibilityRole="button" accessibilityLabel="Attach photo or video" testID="chat-attachment" onPress={() => void chooseAttachment()} disabled={busyMedia || sendMessage.isPending || voiceActive} style={styles.attachButton}>
             {busyMedia ? <ActivityIndicator color={chatAccent} size="small" /> : <Feather name="image" size={24} color={colors.mutedForeground} />}
           </Pressable>
-          {recording ? (
-            <View style={[styles.recordingPill, { backgroundColor: colors.card, borderColor: colors.border }]}>
-              <View style={styles.recordingDot} />
-              <Text style={[styles.recordingText, { color: themedForeground }]}>Recording {recordSeconds}s / 60s</Text>
-              <Pressable accessibilityRole="button" accessibilityLabel="Send voice note" onPress={() => void stopRecording()} style={styles.recordSend}>
-                <Feather name="arrow-up" size={18} color="#ffffff" />
-              </Pressable>
-            </View>
-          ) : (
-            <>
               <TextInput
                 ref={inputRef}
                 testID="chat-message-input"
                 value={draft}
                 onChangeText={setDraft}
-                editable={!busyMedia && !sendMessage.isPending}
+                editable={!busyMedia && !sendMessage.isPending && !voiceActive}
                 placeholder="Write a message"
                 placeholderTextColor={colors.mutedForeground}
                 multiline
@@ -756,30 +699,11 @@ export default function ChatScreen() {
                 blurOnSubmit={false}
                 style={[styles.input, { color: themedForeground, backgroundColor: colors.card, borderColor: colors.border }]}
               />
-              {!draft.trim() ? (
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel="Hold to record a voice note"
-                  testID="record-voice-note"
-                  onPressIn={() => {
-                    recordingPressRef.current = true;
-                    void startRecording();
-                  }}
-                  onPressOut={() => {
-                    recordingPressRef.current = false;
-                    if (recordingRef.current) void stopRecording();
-                  }}
-                  disabled={busyMedia}
-                  style={styles.voiceButton}
-                >
-                  <Feather name="mic" size={19} color={chatAccent} />
-                </Pressable>
-              ) : null}
-              <Pressable testID="send-chat-message" accessibilityRole="button" accessibilityLabel="Send message" disabled={!draft.trim() || sendMessage.isPending || busyMedia} onPress={() => void send(draft)} style={[styles.sendButton, { backgroundColor: chatAccent, opacity: !draft.trim() || sendMessage.isPending || busyMedia ? 0.5 : 1 }]}>
+              <VoiceNoteRecorder key={matchId} disabled={busyMedia || sendMessage.isPending || blocked} onActiveChange={setVoiceActive}
+                onSend={(uri, duration) => uploadMedia(uri, `voice-${Date.now()}.m4a`, "audio", undefined, duration)} />
+              <Pressable testID="send-chat-message" accessibilityRole="button" accessibilityLabel="Send message" disabled={!draft.trim() || sendMessage.isPending || busyMedia || voiceActive} onPress={() => void send(draft)} style={[styles.sendButton, { backgroundColor: chatAccent, opacity: !draft.trim() || sendMessage.isPending || busyMedia || voiceActive ? 0.5 : 1 }]}>
                 {sendMessage.isPending ? <ActivityIndicator color={colors.primaryForeground} /> : <Text style={[styles.sendLabel, { color: colors.primaryForeground }]}>Send</Text>}
               </Pressable>
-            </>
-          )}
         </View>
       )}
 

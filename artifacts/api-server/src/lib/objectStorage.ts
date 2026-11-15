@@ -1,6 +1,7 @@
 import { randomUUID } from 'crypto';
 import { Readable } from 'stream';
 import { File, Storage } from '@google-cloud/storage';
+import { parseByteRange } from './byte-range';
 
 import {
   canAccessObject,
@@ -94,24 +95,34 @@ export class ObjectStorageService {
   async downloadObject(
     file: File,
     cacheTtlSec: number = 3600,
+    rangeHeader?: string,
   ): Promise<Response> {
     const [metadata] = await file.getMetadata();
     const aclPolicy = await getObjectAclPolicy(file);
     const isPublic = aclPolicy?.visibility === 'public';
 
-    const nodeStream = file.createReadStream();
+    const size = Number(metadata.size ?? 0);
+    const range = rangeHeader ? parseByteRange(rangeHeader, size) : undefined;
+    if (range === "invalid") {
+      return new Response(null, { status: 416, headers: { "Content-Range": `bytes */${size}`, "Accept-Ranges": "bytes" } });
+    }
+    const nodeStream = file.createReadStream(range ? { start: range.start, end: range.end } : undefined);
     const webStream = Readable.toWeb(nodeStream) as ReadableStream;
 
     const headers: Record<string, string> = {
+      'Accept-Ranges': 'bytes',
       'Content-Type':
         (metadata.contentType as string) || 'application/octet-stream',
       'Cache-Control': `${isPublic ? 'public' : 'private'}, max-age=${cacheTtlSec}`,
     };
-    if (metadata.size) {
+    if (range) {
+      headers['Content-Length'] = String(range.end - range.start + 1);
+      headers['Content-Range'] = `bytes ${range.start}-${range.end}/${size}`;
+    } else if (metadata.size) {
       headers['Content-Length'] = String(metadata.size);
     }
 
-    return new Response(webStream, { headers });
+    return new Response(webStream, { status: range ? 206 : 200, headers });
   }
 
   async getObjectEntityUploadURL(): Promise<string> {
