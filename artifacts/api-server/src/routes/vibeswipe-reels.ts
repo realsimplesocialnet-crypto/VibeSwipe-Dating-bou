@@ -17,6 +17,8 @@ import { visibleReelCondition } from "../lib/reels-visibility";
 import { removeUnreferencedProfileMedia } from "../lib/profileMediaCleanup";
 import { ObjectNotFoundError, ObjectStorageService } from "../lib/objectStorage";
 import { ProfileVideoValidationError, transcodeReelVideo } from "../lib/profileVideoTranscoder";
+import { processSafeReel, reelIsApproved } from "../lib/reel-safety";
+import { ReelSafetyError } from "../lib/reel-safety-policy";
 
 const router: IRouter = Router();
 router.use("/vibeswipe/reels", requireAuth);
@@ -41,11 +43,10 @@ router.post("/vibeswipe/reels/uploads/:mediaId/transcode", async (req, res): Pro
     res.status(409).json({ error: "This video has already been published. Upload a new copy to process it." }); return;
   }
   try {
-    const file = await reelStorage.getObjectEntityFile(asset.objectPath);
-    const result = await transcodeReelVideo(file);
-    await db.update(mediaAssetsTable).set({ contentType: "video/mp4", durationSeconds: result.duration }).where(eq(mediaAssetsTable.id, asset.id));
+    const result = await processSafeReel(asset);
     res.json(TranscodeReelVideoResponse.parse({ mediaReference: reference, ...result }));
   } catch (error) {
+    if (error instanceof ReelSafetyError) { res.status(error.status).json({ error: error.message }); return; }
     if (error instanceof ObjectNotFoundError) { res.status(404).json({ error: "Your video upload was not found." }); return; }
     if (error instanceof ProfileVideoValidationError) { res.status(400).json({ error: error.message }); return; }
     req.log.error({ err: error, mediaId: asset.id }, "Could not process Reel video");
@@ -167,6 +168,7 @@ router.post("/vibeswipe/reels", async (req, res): Promise<void> => {
   const [asset] = await db.select().from(mediaAssetsTable).where(eq(mediaAssetsTable.id, body.data.mediaId)).limit(1);
   const problem = reelAssetProblem(asset, userId);
   if (problem) { res.status(asset && asset.ownerId === userId && !asset.matchId ? 400 : 403).json({ error: problem }); return; }
+  if (!(await reelIsApproved(asset!))) { res.status(422).json({ error: "This video has not passed its safety check. Process the video before posting." }); return; }
   const [story] = await db.select({ id: storiesTable.id }).from(storiesTable)
     .where(eq(storiesTable.mediaUrl, `media:${body.data.mediaId}`)).limit(1);
   if (story) { res.status(409).json({ error: "This video is already used by a story." }); return; }

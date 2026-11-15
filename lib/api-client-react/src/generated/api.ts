@@ -7519,7 +7519,7 @@ export const getCreateReelUrl = () => {
 }
 
 /**
- * @summary Publish a processed private video upload as a Reel
+ * @summary Publish a processed private video only after automatic safety approval
  */
 export const createReel = async (reelInput: ReelInput, options?: Parameters<typeof customFetch>[1]): Promise<Reel> => {
 
@@ -7585,7 +7585,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type CreateReelMutationVariables = {data: BodyType<ReelInput>}
 
     /**
- * @summary Publish a processed private video upload as a Reel
+ * @summary Publish a processed private video only after automatic safety approval
  */
 export const useCreateReel = <TError = ErrorType<void>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createReel>>, TError,CreateReelMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
@@ -7607,7 +7607,7 @@ export const getTranscodeReelVideoUrl = (mediaId: string,) => {
 }
 
 /**
- * @summary Process a full-length Reel without the short profile-video duration limit
+ * @summary Process and automatically check a full-length Reel before publishing
  */
 export const transcodeReelVideo = async (mediaId: string, options?: Parameters<typeof customFetch>[1]): Promise<ReelVideoTranscodeResult> => {
 
@@ -7659,7 +7659,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type TranscodeReelVideoMutationVariables = {mediaId: string}
 
     /**
- * @summary Process a full-length Reel without the short profile-video duration limit
+ * @summary Process and automatically check a full-length Reel before publishing
  */
 export const useTranscodeReelVideo = <TError = ErrorType<void>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof transcodeReelVideo>>, TError,TranscodeReelVideoMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}

@@ -124,11 +124,11 @@ export async function transcodeProfileVideo(
 }
 
 /** Reels preserve the complete video; file size and processing time remain bounded. */
-export async function transcodeReelVideo(source: File): Promise<TranscodedProfileVideo> {
-  return transcodeVideo(source, null);
+export async function transcodeReelVideo(source: File, consumeCheckedOutput?: (path: string, video: TranscodedProfileVideo) => Promise<void>): Promise<TranscodedProfileVideo> {
+  return transcodeVideo(source, null, consumeCheckedOutput);
 }
 
-async function transcodeVideo(source: File, maxDurationSeconds: number | null): Promise<TranscodedProfileVideo> {
+async function transcodeVideo(source: File, maxDurationSeconds: number | null, consumeCheckedOutput?: (path: string, video: TranscodedProfileVideo) => Promise<void>): Promise<TranscodedProfileVideo> {
   const [sourceMetadata] = await source.getMetadata();
   const sourceSize = Number(sourceMetadata.size);
   if (
@@ -169,6 +169,11 @@ async function transcodeVideo(source: File, maxDurationSeconds: number | null): 
       maxDurationSeconds === null ? MAX_PROFILE_VIDEO_SOURCE_BYTES : MAX_PROFILE_VIDEO_BYTES,
     );
 
+    const completeVideo = { ...video, size: outputStats.size };
+    if (consumeCheckedOutput) {
+      await consumeCheckedOutput(outputPath, completeVideo);
+      return completeVideo;
+    }
     const destination = source.createWriteStream({
       resumable: false,
       metadata: {

@@ -1393,7 +1393,7 @@ paths:
     post:
       operationId: createReel
       tags: [vibeswipe]
-      summary: Publish a processed private video upload as a Reel
+      summary: Publish a processed private video only after automatic safety approval
       requestBody:
         required: true
         content:
@@ -1409,11 +1409,13 @@ paths:
           description: Video not processed or invalid caption
         "403":
           description: Upload is not owned by this account
+        "422":
+          description: Video has not passed the current automatic safety check
   /vibeswipe/reels/uploads/{mediaId}/transcode:
     post:
       operationId: transcodeReelVideo
       tags: [vibeswipe]
-      summary: Process a full-length Reel without the short profile-video duration limit
+      summary: Process and automatically check a full-length Reel before publishing
       parameters:
         - in: path
           name: mediaId
@@ -1432,6 +1434,10 @@ paths:
           description: Owned unpublished video was not found
         "409":
           description: Video has already been published
+        "422":
+          description: Video rejected for nudity or sexually explicit content
+        "503":
+          description: Safety checks are busy or unavailable; video remains private
         "500":
           description: Video processing failed
   /vibeswipe/reels/saved:

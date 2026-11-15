@@ -1,5 +1,7 @@
 import { randomUUID } from 'crypto';
 import { Readable } from 'stream';
+import { createReadStream } from 'node:fs';
+import { pipeline } from 'node:stream/promises';
 import { File, Storage } from '@google-cloud/storage';
 import { parseByteRange } from './byte-range';
 
@@ -159,6 +161,22 @@ export class ObjectStorageService {
   async deleteObjectEntity(objectPath: string): Promise<void> {
     const objectFile = this.getObjectEntityFileHandle(objectPath);
     await objectFile.delete({ ignoreNotFound: true });
+  }
+
+  /** Server-only destination: never issue a client upload URL for these files. */
+  async storePrivateFile(objectPath: string, localPath: string, owner: string, contentType: string): Promise<void> {
+    const file = this.getObjectEntityFileHandle(objectPath);
+    try {
+      await pipeline(createReadStream(localPath), file.createWriteStream({
+        resumable: false, metadata: { contentType },
+        preconditionOpts: { ifGenerationMatch: 0 },
+      }));
+      await setObjectAclPolicy(file, { owner, visibility: 'private' });
+    } catch (error) {
+      // Do not delete an existing immutable object on a generation conflict.
+      if ((error as { code?: number }).code !== 412) await file.delete({ ignoreNotFound: true }).catch(() => undefined);
+      throw error;
+    }
   }
 
   /** Seal the checked main-photo bytes away from any previously issued upload URL. */

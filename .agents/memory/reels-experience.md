@@ -52,3 +52,9 @@ Reels must support videos of three minutes or longer, not inherit the short prof
 **Why:** The user corrected the initial limit with “Video 3 minutes or more.”
 
 **How to apply:** Preserve the full Reel during processing rather than clipping it. Keep upload-size/resource safeguards separate from video length, and do not change profile or Story limits as a side effect.
+
+Safety approval must refer to the exact checked video, not a client-writable upload destination. Unknown, failed, outdated or rejected checks must never make a Reel public.
+
+**Why:** A still-valid upload URL can overwrite bytes after a successful check. Automatic moderation also cannot promise to catch every explicit scene.
+
+**How to apply:** Publish an immutable checked copy, enforce approval on both publishing and subsequent visibility, and invalidate approvals when changing the model, threshold or sampling policy. Keep automatic rechecks for existing Reels. Describe checks honestly without claiming perfect detection.

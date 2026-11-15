@@ -2060,7 +2060,7 @@ export const GetReelsFeedResponse = zod.object({
 
 
 /**
- * @summary Publish a processed private video upload as a Reel
+ * @summary Publish a processed private video only after automatic safety approval
  */
 export const createReelBodyCaptionMax = 300;
 
@@ -2092,7 +2092,7 @@ export const CreateReelResponse = zod.object({
 
 
 /**
- * @summary Process a full-length Reel without the short profile-video duration limit
+ * @summary Process and automatically check a full-length Reel before publishing
  */
 export const TranscodeReelVideoParams = zod.object({
   "mediaId": zod.coerce.string().uuid()

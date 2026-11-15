@@ -7,6 +7,7 @@ import { ensureReelsSchema } from "./lib/reels-schema";
 import { ensureChatSchema } from "./lib/chat-schema";
 import { cleanupFaceVerificationSessions, ensureFaceVerificationSchema } from "./lib/face-verification-schema";
 import { cleanupAdminMediaDeletions } from "./lib/adminMediaCleanup";
+import { checkExistingReels } from "./lib/reel-safety";
 
 const rawPort = process.env["PORT"];
 
@@ -62,6 +63,9 @@ void ensureAdminSchema().then(ensureFaceVerificationSchema).then(ensureReelsSche
   }
 
   logger.info({ port }, "Server listening");
+  void checkExistingReels();
+  const reelSafetyTimer = setInterval(() => void checkExistingReels(), 60_000);
+  reelSafetyTimer.unref();
   void runProfileMediaCleanup();
   const cleanupTimer = setInterval(
     () => void runProfileMediaCleanup(),

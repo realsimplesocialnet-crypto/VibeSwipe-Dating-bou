@@ -17,3 +17,4 @@
 - [Long voice notes](long-voice-notes.md) — No recording-time cutoff; release sends, cancellation discards, and recipients can seek through the full private recording.
 - [Public face verification](public-face-verification.md) — Self-service verification must match a live person to their profile photo before awarding a public badge.
 - [Reels experience](reels-experience.md) — Approved visual direction; video posting, sharing to existing chats, saving, and comments below the visible video.
+- [Server validation environment](server-validation-environment.md) — Standalone checks must respect pnpm's isolation of workspace-package dependencies.

@@ -10,7 +10,7 @@ import { userErrorMessage } from "@/lib/user-errors";
 import "@/components/reels/reels.css";
 
 type Stage = "idle" | "uploading" | "processing" | "publishing";
-const STAGE_LABEL: Record<Stage, string> = { idle: "Post", uploading: "Uploading privately", processing: "Processing video", publishing: "Publishing" };
+const STAGE_LABEL: Record<Stage, string> = { idle: "Post", uploading: "Uploading privately", processing: "Checking video safety", publishing: "Publishing" };
 
 export function ReelComposerPage() {
   const [, setLocation] = useLocation();

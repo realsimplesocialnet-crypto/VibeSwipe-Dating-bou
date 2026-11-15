@@ -14,6 +14,11 @@ export async function ensureReelsSchema(): Promise<void> {
       duration_seconds double precision,
       created_at timestamptz NOT NULL DEFAULT now())`);
     await client.query("CREATE INDEX IF NOT EXISTS vibeswipe_reels_feed_idx ON vibeswipe_reels(created_at, id)");
+    await client.query(`CREATE TABLE IF NOT EXISTS vibeswipe_reel_safety (
+      media_id uuid PRIMARY KEY REFERENCES vibeswipe_media_assets(id) ON DELETE CASCADE,
+      status text NOT NULL CHECK(status IN ('checking','approved','rejected','error')),
+      version text NOT NULL, checked_path text NOT NULL,
+      checked_at timestamptz NOT NULL DEFAULT now(), result jsonb)`);
     await client.query(`CREATE TABLE IF NOT EXISTS vibeswipe_reel_likes (
       reel_id uuid NOT NULL REFERENCES vibeswipe_reels(id) ON DELETE CASCADE,
       user_id text NOT NULL REFERENCES vibeswipe_profiles(id) ON DELETE CASCADE,
