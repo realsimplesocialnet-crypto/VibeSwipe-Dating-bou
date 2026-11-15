@@ -16,3 +16,9 @@ Use PWA installation, not an APK download, for the website install banner. Show 
 **Why:** The user clarified “just show PWA install something” and said previous website users could not see the install option.
 
 **How to apply:** Make the banner global across website pages, with a real browser prompt when available and platform-specific manual installation instructions otherwise. Never interpret a missing install prompt as proof that the app is installed.
+
+The user wants the Android app to open “Without chrome”.
+
+**Why:** The installed app displayed Android’s “Myage requires the following app: Chrome” dialog, and the user rejected installing Chrome as the solution.
+
+**How to apply:** Do not insist on Chrome as the only option. Distinguish installing the website through another supporting browser from a standalone native Android APK. Website code cannot remove the host-browser dependency of an existing Chrome-owned install. Never claim an APK is available before one has actually been built.
