@@ -1,4 +1,5 @@
 import { useSignUp } from "@clerk/expo";
+import { OnboardingVideoBackground } from "@/components/OnboardingVideoBackground";
 import { Feather } from "@expo/vector-icons";
 import { Link, router } from "expo-router";
 import { useState } from "react";
@@ -78,8 +79,10 @@ export default function SignUpScreen() {
   }
 
   return (
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
+    <OnboardingVideoBackground form/>
     <KeyboardAwareScrollViewCompat
-      style={{ flex: 1, backgroundColor: colors.background }}
+      style={{ flex: 1, backgroundColor: "transparent" }}
       contentContainerStyle={styles.container}
       bottomOffset={24}
     >
@@ -229,6 +232,7 @@ export default function SignUpScreen() {
         </Link>
       </View>
     </KeyboardAwareScrollViewCompat>
+    </View>
   );
 }
 

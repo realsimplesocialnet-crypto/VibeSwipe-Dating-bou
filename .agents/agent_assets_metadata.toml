@@ -84,3 +84,17 @@ mtime_ms = 1794734641284
 storage_uri = "gcs://replit-rams-assets-picard/rams/assets/repl:10568a97-c1ca-4404-b0f1-6a360d301b91/967dbb37-bef9-4100-b10e-6e368ec2aeaf/40d988fc-c366-4f2f-897d-d3e38ee393fc"
 storage_version_token = "1794734750115043"
 content_type = "image/png"
+
+[[outputs]]
+id = "uHLGEXHWuSNDALhhrUo7P"
+uri = "file://attached_assets/generated_videos/loop-v1.mp4"
+type = "video"
+title = "VibeSwipe onboarding animation"
+description = "An eight-second, muted 720p portrait loop, optimized to less than 1 MB for the app background."
+logical_id = "fc7b07cb-0f96-43c2-ab3b-afa394206875"
+content_hash = "sha256:ab0e6ededd2158ccae51dfeebb717e62c217afcf02c0d8e115998cd2d0b902b9"
+size = 910405
+mtime_ms = 1794735606757
+storage_uri = "gcs://replit-rams-assets-picard/rams/assets/repl:10568a97-c1ca-4404-b0f1-6a360d301b91/fc7b07cb-0f96-43c2-ab3b-afa394206875/7a0354e9-2fd8-42e6-9df6-aaea011f1cec"
+storage_version_token = "1794735662704701"
+content_type = "video/mp4"

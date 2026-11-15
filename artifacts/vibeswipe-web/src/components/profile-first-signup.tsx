@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useSignUp, useUser } from '@clerk/react';
 import { Link, Redirect, useLocation } from 'wouter';
 import { ArrowLeft, ArrowRight, Check, ImagePlus, MapPin, RotateCcw, Search, ShieldCheck, X } from 'lucide-react';
+import { OnboardingVideoBackground } from './onboarding-video-background';
 import {
   getGetMyProfileQueryKey, requestProfileMediaUpload, saveMyProfile,
   type MediaUploadInputContentType, type ProfileInput,
@@ -333,7 +334,8 @@ export function ProfileFirstSignup({ previewOnly = false }: { previewOnly?: bool
 function errorLinksToSignIn(msg: string) { return msg.startsWith('An account already uses this email'); }
 
 function Frame({ children }: { children: ReactNode }) {
-  return <div className="grain flex min-h-[100dvh] flex-col bg-background">
+  return <div className="onboarding-video-form grain flex min-h-[100dvh] flex-col bg-background">
+    <OnboardingVideoBackground form/>
     <header className="mx-auto flex w-full max-w-[560px] items-center justify-between px-5 pt-6">
       <Link href="/" className="inline-flex items-center gap-2.5" data-testid="link-signup-brand">
         <img src={`${basePath}/icon.png`} alt="" className="h-9 w-9 rounded-xl ring-1 ring-white/10" />

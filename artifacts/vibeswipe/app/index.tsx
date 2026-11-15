@@ -1,12 +1,10 @@
 import { useAuth } from "@clerk/expo";
 import { useGetMyProfile } from "@workspace/api-client-react";
-import { Feather } from "@expo/vector-icons";
+import { OnboardingWelcome } from "@/components/OnboardingWelcome";
 import { router } from "expo-router";
 import { useEffect } from "react";
 import {
   ActivityIndicator,
-  Image,
-  Pressable,
   StyleSheet,
   Text,
   View,
@@ -43,60 +41,7 @@ export default function EntryScreen() {
     );
   }
 
-  return (
-    <View style={[styles.container, { backgroundColor: "#100e14" }]}>
-      <View pointerEvents="none" style={styles.glow} />
-      <View style={styles.content}>
-        <View style={styles.brandRow}>
-          <View style={styles.mark}>
-            <Image source={require("../assets/images/icon.png")} style={styles.markImage} />
-          </View>
-          <Text style={styles.brandText}>
-            <Text style={{ color: "#ffffff" }}>My</Text>
-            <Text style={{ color: "#ff5ca6" }}>age</Text>
-          </Text>
-        </View>
-        <Text style={[styles.title, { color: "#ffffff" }]}>
-          Welcome to{"\n"}Myage.
-        </Text>
-        <Text style={styles.body}>
-          Create your account or sign in to continue.
-        </Text>
-      <View style={styles.actions}>
-        <Pressable
-          testID="create-account"
-          style={({ pressed }) => [
-            styles.primaryButton,
-            { opacity: pressed ? 0.86 : 1 },
-          ]}
-          onPress={() => router.push("/(auth)/sign-up")}
-        >
-          <Feather name="user-plus" size={18} color="#27111d" />
-          <Text style={styles.primaryText}>Create account</Text>
-        </Pressable>
-        <Pressable
-          testID="sign-in"
-          style={styles.secondaryButton}
-          onPress={() => router.push("/(auth)/sign-in")}
-        >
-          <Feather name="lock" size={16} color="#f3edf3" />
-          <Text style={styles.secondaryText}>Sign in</Text>
-        </Pressable>
-      </View>
-      </View>
-      <View style={styles.legal}>
-        <Text style={styles.legalText}>For adults 18 and over</Text>
-        <Text style={styles.bullet}>•</Text>
-        <Pressable onPress={() => router.push("/privacy-policy")} testID="privacy-policy">
-          <Text style={styles.guidelines}>Privacy Policy</Text>
-        </Pressable>
-        <Text style={styles.bullet}>•</Text>
-        <Pressable onPress={() => router.push("/terms")} testID="terms-of-service">
-          <Text style={styles.guidelines}>Terms</Text>
-        </Pressable>
-      </View>
-    </View>
-  );
+  return <OnboardingWelcome/>;
 }
 
 const styles = StyleSheet.create({

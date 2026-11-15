@@ -1,4 +1,5 @@
 import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
+import { OnboardingVideoBackground } from '@/components/onboarding-video-background';
 import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
 import { ClerkProvider, Show, SignIn, useClerk, useSignUp, useUser } from '@clerk/react';
 import { publishableKeyFromHost } from '@clerk/react/internal';
@@ -779,7 +780,7 @@ function BrandedSignUp(){
     }catch(e){setError(e instanceof Error?e.message:'Your account could not be created. Please try again.')}
     finally{setBusy(false)}
   }
-  return <div className="grain flex min-h-[100dvh] items-center justify-center bg-background px-4 py-10"><div className="fixed left-6 top-6"><Brand/></div><section className="w-full max-w-[440px] rounded-[26px] border border-white/10 bg-[#211d25] p-6 shadow-2xl sm:p-8">
+  return <div className="onboarding-video-form grain flex min-h-[100dvh] items-center justify-center bg-background px-4 py-10"><OnboardingVideoBackground form/><div className="fixed left-6 top-6"><Brand/></div><section className="w-full max-w-[440px] rounded-[26px] border border-white/10 bg-[#211d25] p-6 shadow-2xl sm:p-8">
     <div className="mb-7"><img src={pathFor('/icon.png')} alt="" className="mb-5 h-12 w-12 rounded-2xl border border-white/10"/><p className="text-[10px] font-bold uppercase tracking-[.2em] text-primary">Myage · 18+</p>{!verifying&&<><p className="mt-4 text-[10px] font-bold uppercase tracking-[.16em] text-muted-foreground">Account setup · {step==='email'?'1':'2'} of 2</p><div className="mt-2 flex gap-2" aria-label={`Step ${step==='email'?'1':'2'} of 2`}><span className="h-1 flex-1 rounded-full bg-primary"/><span className={`h-1 flex-1 rounded-full ${step==='password'?'bg-primary':'bg-white/10'}`}/></div></>}<h1 className="brand mt-2 text-3xl font-bold tracking-[-.05em]">{verifying?'Check your email':step==='email'?'Start with your email':'Create a password'}</h1><p className="mt-2 text-sm leading-6 text-muted-foreground">{verifying?`We sent a verification code to ${email.trim()}.`:step==='email'?'Enter your email to begin creating your account.':'Choose a password with at least 8 characters.'}</p></div>
     <form onSubmit={submit} className="space-y-5" noValidate>
       {!verifying&&step==='email'?<label className="grid gap-2 text-xs font-semibold text-[#e7dce3]">Email address<input data-testid="input-signup-email" type="email" inputMode="email" autoComplete="email" required value={email} onChange={e=>{setEmail(e.target.value);setError('')}} className="field" placeholder="you@example.com"/>{email&& !emailValid&&<span className="text-xs font-normal text-rose-300" data-testid="error-signup-email">Enter a valid email address.</span>}</label>
@@ -798,7 +799,7 @@ function BrandedSignUp(){
 function RouteShell({component:Component}:{component:()=>ReactNode}){return <ShellPage><Component/></ShellPage>}
 const CHAT_RETURN_PATHS=['/views','/messages','/notifications','/matches','/discover','/likes'];
 function ChatRoute(){const params=useParams<{matchId:string}>();const requested=safeAppReturnPath(new URLSearchParams(window.location.search).get('returnTo'),'/matches');const returnTo=CHAT_RETURN_PATHS.includes(requested)||requested.startsWith('/profile/')?requested:'/matches';return <ShellPage><ChatPage matchId={params.matchId||''} returnTo={returnTo}/></ShellPage>}
-function OnboardingRoute(){return <Gate><div className="min-h-[100dvh] bg-background text-foreground"><header className="p-6"><Brand/></header><OnboardingGate/></div></Gate>}
+function OnboardingRoute(){return <Gate><div className="onboarding-video-form min-h-[100dvh] bg-background text-foreground"><OnboardingVideoBackground form/><header className="p-6"><Brand/></header><OnboardingGate/></div></Gate>}
 function ProfileRoute(){return <ShellPage><ProfilePage mode="view"/></ShellPage>}
 function ProfileEditRoute(){const requested=new URLSearchParams(window.location.search).get('returnTo');const returnTo=safeAppReturnPath(requested,'/profile');return <ShellPage><ProfilePage mode="edit" returnTo={returnTo}/></ShellPage>}
 function SettingsRoute(){return <ShellPage><SettingsIndexPage/></ShellPage>}

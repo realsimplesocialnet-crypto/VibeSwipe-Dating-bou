@@ -24,6 +24,7 @@ import {
 import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollViewCompat";
 import { MediaPicker } from "@/components/MediaPicker";
 import { useColors } from "@/hooks/useColors";
+import { OnboardingVideoBackground } from "@/components/OnboardingVideoBackground";
 import {
   asSetupData,
   buildProfileInput,
@@ -220,8 +221,10 @@ export function OnboardingWizard() {
   }
 
   return (
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
+    <OnboardingVideoBackground form/>
     <KeyboardAwareScrollViewCompat
-      style={[styles.screen, { backgroundColor: colors.background }]}
+      style={[styles.screen, { backgroundColor: "transparent" }]}
       contentContainerStyle={styles.container}
       keyboardShouldPersistTaps="handled"
       bottomOffset={70}
@@ -491,6 +494,7 @@ export function OnboardingWizard() {
         </Pressable>
       </View>
     </KeyboardAwareScrollViewCompat>
+    </View>
   );
 }
 

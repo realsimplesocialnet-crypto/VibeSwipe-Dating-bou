@@ -1,5 +1,6 @@
 import { Router, type IRouter } from "express";
 import healthRouter from "./health";
+import onboardingArtRouter from "./onboarding-art";
 import vibeswipeProfileViewsRouter from "./vibeswipe-profile-views";
 import vibeswipePushRouter from "./vibeswipe-push";
 import vibeswipeRealtimeRouter from "./vibeswipe-realtime";
@@ -10,6 +11,7 @@ import vibeswipeStoriesRouter from "./vibeswipe-stories";
 const router: IRouter = Router();
 
 router.use(healthRouter);
+router.use(onboardingArtRouter);
 router.use(vibeswipeSafetyRouter);
 router.use(vibeswipeStoriesRouter);
 router.use(vibeswipeRouter);
