@@ -15,6 +15,12 @@ The general Reels entry belongs in the main navigation, not extra Discover-heade
 
 **How to apply:** Do not add duplicate top-level Reels shortcuts elsewhere. Preserve working shared-video links and like notifications, which open specific videos rather than duplicate the main entry.
 
+Back navigation should return to the place the member entered from, not a hardcoded Profile page. Saved/Posted library round trips must preserve that origin and the Reel being watched.
+
+**Why:** The user reported Saved Reels incorrectly returning to Profile and explicitly asked that users return to where they came from.
+
+**How to apply:** Carry validated return paths through nested Reels pages and preserve them when switching library tabs or opening a saved video.
+
 Reels are videos. Posting must offer recording with the camera or selecting an existing video, then publishing after upload and processing finish. Sharing must include people the user already chats with. Saving must make the video accessible again to that user.
 
 **Why:** The user described recording or selecting videos, posting immediately, sharing with chat partners, and finding saved videos later.

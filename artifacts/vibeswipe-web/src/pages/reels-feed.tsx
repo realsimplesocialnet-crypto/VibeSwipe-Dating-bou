@@ -182,6 +182,10 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
   const back = () => setLocation(returnTo);
   const commentReel = commentsFor ? reels.find((reel) => reel.id === commentsFor) : undefined;
   const ownPath = `${location}${window.location.search}`;
+  // Reopen the video being watched, not the first slide, when leaving the library.
+  const resumePath = reels[active]
+    ? `/reels/${reels[active].id}?returnTo=${encodeURIComponent(returnTo)}`
+    : ownPath;
 
   return <div className="reels-root" style={{ top: viewport.top, bottom: "auto", height: viewport.height, ["--reels-comments-height" as string]: `${viewport.commentsHeight}px` }} data-keyboard-open={viewport.keyboardOpen} data-comments-open={Boolean(commentReel)} data-testid="page-reels">
     <div className="reels-stage">
@@ -204,7 +208,7 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
         <h1 className="reels-title">Reels</h1>
         <div className="ml-auto flex flex-col items-end gap-3">
           <div className="flex items-center gap-2">
-            <Link href={`/reels/saved?returnTo=${encodeURIComponent(ownPath)}`} aria-label="Saved Reels" data-testid="link-reels-saved" className="reels-icon"><Bookmark size={20} /></Link>
+            <Link href={`/reels/saved?returnTo=${encodeURIComponent(resumePath)}`} aria-label="Saved Reels" data-testid="link-reels-saved" className="reels-icon"><Bookmark size={20} /></Link>
             <Link href={`/reels/new?returnTo=${encodeURIComponent(ownPath)}`} aria-label="Post a Reel" data-testid="link-create-reel" className="reels-plus"><Plus size={20} /></Link>
           </div>
           {reels.length > 0 && <button type="button" onClick={() => setMuted((value) => !value)} aria-label={muted ? "Turn sound on" : "Mute"} aria-pressed={!muted} data-testid="button-reels-mute" className="reels-sound">{muted ? <VolumeX size={18} /> : <Volume2 size={18} />}</button>}

@@ -41,6 +41,15 @@ export function safeReelReturnPath(value: string | null): string {
   return value && value.startsWith("/") && !value.startsWith("//") ? value : "/discover";
 }
 
+/** Preserve the library's caller through Saved/Posted and individual-video round trips. */
+export function reelLibraryNavigation(search: string, tab: "saved" | "posted") {
+  const params = new URLSearchParams(search);
+  const returnTo = safeReelReturnPath(params.get("returnTo") ?? "/reels");
+  const libraryParams = new URLSearchParams({ returnTo });
+  if (tab === "posted") libraryParams.set("tab", "posted");
+  return { returnTo, here: `/reels/saved?${libraryParams.toString()}` };
+}
+
 export function formatCount(value: number): string {
   if (value < 1000) return String(value);
   if (value < 1_000_000) return `${(value / 1000).toFixed(value < 10_000 ? 1 : 0).replace(/\.0$/, "")}K`;

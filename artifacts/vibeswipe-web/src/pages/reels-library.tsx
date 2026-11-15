@@ -5,7 +5,7 @@ import {
   getGetMyReelsQueryKey, getGetSavedReelsQueryKey, useDeleteReel, useGetMyReels, useGetSavedReels, type Reel,
 } from "@workspace/api-client-react";
 import { ArrowLeft, Bookmark, Clapperboard, Heart, Trash2 } from "lucide-react";
-import { formatCount, reelMediaUrl } from "@/lib/reels";
+import { formatCount, reelLibraryNavigation, reelMediaUrl } from "@/lib/reels";
 import "@/components/reels/reels.css";
 
 export function ReelsLibraryPage() {
@@ -19,7 +19,7 @@ export function ReelsLibraryPage() {
   const [error, setError] = useState("");
   const query = tab === "saved" ? saved : mine;
   const items = query.data?.items ?? [];
-  const here = `/reels/saved${tab === "posted" ? "?tab=posted" : ""}`;
+  const { returnTo, here } = reelLibraryNavigation(window.location.search, tab);
 
   async function remove(id: string) {
     setError("");
@@ -33,7 +33,7 @@ export function ReelsLibraryPage() {
 
   return <div className="reel-library" data-testid="page-reels-library">
     <header className="flex items-center gap-3 px-4 pb-3 pt-[max(env(safe-area-inset-top),14px)]">
-      <button type="button" onClick={() => setLocation("/profile")} aria-label="Back to profile" data-testid="button-library-back" className="reels-icon"><ArrowLeft size={24} /></button>
+      <button type="button" onClick={() => setLocation(returnTo)} aria-label="Back" data-testid="button-library-back" className="reels-icon"><ArrowLeft size={24} /></button>
       <h1 className="reels-title">Your Reels</h1>
       <Link href={`/reels?returnTo=${encodeURIComponent(here)}`} className="reel-pill ml-auto" data-testid="link-library-watch">Watch Reels</Link>
     </header>

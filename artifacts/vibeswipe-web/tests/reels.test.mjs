@@ -1,10 +1,34 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync } from "node:fs";
-import { formatCount, reelFileProblem, reelMediaUrl, reelShareMessage, reelShareUrl, safeReelReturnPath, sharedReelId } from "../src/lib/reels.ts";
+import { formatCount, reelFileProblem, reelLibraryNavigation, reelMediaUrl, reelShareMessage, reelShareUrl, safeReelReturnPath, sharedReelId } from "../src/lib/reels.ts";
 
 const id = "123e4567-e89b-42d3-a456-426614174000";
 const read = (path) => readFileSync(new URL(path, import.meta.url), "utf8");
+
+test("Saved Reels goes back to its caller and defaults to Reels, never a hardcoded Profile", () => {
+  assert.equal(reelLibraryNavigation("", "saved").returnTo, "/reels");
+  for (const caller of ["/reels", `/reels/${id}?returnTo=%2Fnotifications`, "/profile"]) {
+    const search = `?returnTo=${encodeURIComponent(caller)}`;
+    for (const tab of ["saved", "posted"]) {
+      const navigation = reelLibraryNavigation(search, tab);
+      assert.equal(navigation.returnTo, caller);
+      const roundTripSearch = navigation.here.slice(navigation.here.indexOf("?"));
+      assert.equal(reelLibraryNavigation(roundTripSearch, tab).returnTo, caller);
+      assert.equal(new URLSearchParams(roundTripSearch).get("tab"), tab === "posted" ? "posted" : null);
+    }
+  }
+  assert.equal(reelLibraryNavigation("?returnTo=https%3A%2F%2Fevil.example", "saved").returnTo, "/discover");
+  const library = read("../src/pages/reels-library.tsx");
+  assert.match(library, /onClick=\{\(\) => setLocation\(returnTo\)\}/);
+  assert.ok(!library.includes('setLocation("/profile")'));
+});
+
+test("opening Saved Reels carries the currently watched video and its original back destination", () => {
+  const feed = read("../src/pages/reels-feed.tsx");
+  assert.match(feed, /\/reels\/\$\{reels\[active\]\.id\}\?returnTo=\$\{encodeURIComponent\(returnTo\)\}/);
+  assert.match(feed, /\/reels\/saved\?returnTo=\$\{encodeURIComponent\(resumePath\)\}/);
+});
 
 test("Reels entry stays in navigation and saved videos are reached inside Reels", () => {
   const app = read("../src/App.tsx");
