@@ -21,9 +21,9 @@ Discover's bottom tabs must stay at the same screen position as Matches, includi
 
 **How to apply:** Compare actual tab bounds across routes. Do not treat CSS source assertions or a logged-out screenshot as proof that authenticated iPhone layout works.
 
-Avoid visible divider lines above the bottom tabs and extra outlines around Discover's header and photo card; keep the rounded surfaces.
+Avoid visible decorative divider lines above or below the bottom tabs and extra outlines around Discover's header and photo card; keep the rounded surfaces.
 
-**Why:** After showing Discover and Matches, the user said, “I dont like all those line.”
+**Why:** After showing Discover and Matches, the user said, “I dont like all those line,” and repeated that they do not want long demarcation lines around navigation.
 
 **How to apply:** Keep these main-screen surfaces continuous without removing functional input boundaries or selected-state indicators elsewhere.
 
