@@ -14,6 +14,7 @@ import { ChatDrawer } from '@/components/admin/chat-drawer';
 import { OverviewSection } from '@/components/admin/sections/overview';
 import { UsersSection } from '@/components/admin/sections/users';
 import { ChatsSection } from '@/components/admin/sections/chats';
+import { PostsSection } from '@/components/admin/sections/posts';
 import { ConnectionsSection } from '@/components/admin/sections/connections';
 import { OnlineSection } from '@/components/admin/sections/online';
 import { VerificationsSection } from '@/components/admin/sections/verifications';
@@ -48,10 +49,10 @@ export default function AdminPage() {
   const params = useParams<{ section?: string }>();
   const section = (params.section ?? 'overview') as AdminSectionKey;
   const valid = ADMIN_NAV.some(n => n.key === section);
-  const { isLoaded, isSignedIn } = useUser();
+  const { isLoaded, isSignedIn, user } = useUser();
   const { signOut } = useClerk();
   const qc = useQueryClient();
-  const session = useGetAdminSession({ query: { queryKey: getGetAdminSessionQueryKey(), enabled: Boolean(isLoaded && isSignedIn), retry: false, staleTime: 60_000 } });
+  const session = useGetAdminSession({ query: { queryKey: [...getGetAdminSessionQueryKey(), user?.id ?? 'signed-out'], enabled: Boolean(isLoaded && isSignedIn), retry: false, staleTime: 60_000 } });
   const [userId, setUserId] = useState<string | null>(null);
   const [chatId, setChatId] = useState<string | null>(null);
   const drawers = useMemo<DrawerApi>(() => ({
@@ -64,6 +65,15 @@ export default function AdminPage() {
   // Purge admin data the moment the Clerk session ends.
   const wasSignedIn = useRef(false);
   useEffect(() => { if (isSignedIn) wasSignedIn.current = true; else if (wasSignedIn.current) { clearAdmin(qc); setUserId(null); setChatId(null); } }, [isSignedIn, qc]);
+  const previousAccount = useRef(user?.id);
+  useEffect(() => {
+    if (previousAccount.current && previousAccount.current !== user?.id) {
+      clearAdmin(qc);
+      setUserId(null);
+      setChatId(null);
+    }
+    previousAccount.current = user?.id;
+  }, [user?.id, qc]);
 
   const doSignOut = useCallback(async () => {
     setUserId(null); setChatId(null);
@@ -93,6 +103,7 @@ export default function AdminPage() {
     section === 'overview' ? <OverviewSection /> :
     section === 'users' ? <UsersSection /> :
     section === 'chats' ? <ChatsSection /> :
+    section === 'posts' ? <PostsSection /> :
     section === 'connections' ? <ConnectionsSection /> :
     section === 'verifications' ? <VerificationsSection /> :
     section === 'online' ? <OnlineSection /> :

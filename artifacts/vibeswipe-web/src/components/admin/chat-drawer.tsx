@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { AdminMessage, GetAdminChatExportFormat } from '@workspace/api-client-react';
-import { Download, ImageIcon, Loader2, Trash2 } from 'lucide-react';
+import { Download, ImageIcon, Loader2, RefreshCw, Trash2 } from 'lucide-react';
 import { downloadChatExport, useAdminData, useAdminToast, useModeration } from './admin-hooks';
 import { adminError, DrawerShell, EmptyState, ErrorBox, mediaIdOf, Pager, Skeleton, useAdminObjectUrl, utc } from './admin-ui';
 import { ConfirmDialog, type ConfirmRequest } from './confirm-dialog';
@@ -12,8 +12,8 @@ function MessageMedia({ m }: { m: AdminMessage }) {
   const media = useAdminObjectUrl(id, show && !!id);
   if (!id) return null;
   if (!show) return <button type="button" onClick={() => setShow(true)} data-testid={`button-load-media-${m.id}`} className="mt-2 inline-flex items-center gap-1.5 rounded-lg border border-white/10 px-2.5 py-1 text-[11px] font-bold hover:bg-white/5"><ImageIcon size={12} />Load {m.mediaType || 'media'}</button>;
-  if (media.loading) return <div className="a-skel mt-2 h-32 w-48" />;
-  if (media.error || !media.url) return <p className="mt-2 text-xs text-[#ff9aa3]">{adminError(media.error, 'Media unavailable.')}</p>;
+  if (media.loading || (!media.url && !media.error)) return <div className="a-skel mt-2 h-32 w-48" aria-label="Loading media" />;
+  if (media.error || !media.url) return <div className="mt-2 flex items-center gap-2 text-xs text-[#ff9aa3]"><span>{adminError(media.error, 'Media unavailable.')}</span><button type="button" onClick={() => setShow(false)} className="rounded border border-white/10 px-2 py-1 font-bold hover:bg-white/5">Retry</button></div>;
   const t = media.type || m.mediaType || '';
   if (t.startsWith('video')) return <video src={media.url} controls className="mt-2 max-h-64 rounded-lg" />;
   if (t.startsWith('audio')) return <audio src={media.url} controls className="mt-2 w-full" />;
@@ -27,24 +27,37 @@ export function ChatDrawer({ chatId, onClose }: { chatId: string; onClose: () =>
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
   const [page, setPage] = useState(1);
+  const [openedChatId, setOpenedChatId] = useState('');
+  const opened = openedChatId === chatId;
   const [format, setFormat] = useState<GetAdminChatExportFormat>('txt');
   const [exporting, setExporting] = useState(false);
   const [req, setReq] = useState<ConfirmRequest | null>(null);
   useEffect(() => setPage(1), [from, to]);
-  const r = useAdminData({ section: 'chat', chatId, from, to, page }, { poll: 15_000 });
+  const r = useAdminData({ section: 'chat', chatId, from, to, page }, { poll: 15_000, enabled: opened });
   const c = r.data?.selectedChat;
   async function exportRange() {
+    if (!opened) return;
     setExporting(true);
     try { const name = await downloadChatExport(chatId, format, from || undefined, to || undefined); toast('ok', `Downloaded ${name}`); }
     catch (e) { toast('err', adminError(e, 'Export failed. Try again.')); }
     finally { setExporting(false); }
   }
-  return <DrawerShell eyebrow="Conversation" title={c ? `${c.userAName} and ${c.userBName}` : r.isError ? 'Unavailable' : 'Loading'} onClose={onClose} testId="drawer-chat">
-    {r.isError && !r.data ? <ErrorBox error={r.error} onRetry={() => void r.refetch()} text="This conversation could not load." /> :
-      !r.data ? <Skeleton rows={8} /> :
+  return <DrawerShell eyebrow="Conversation" title={!opened ? 'Restricted access' : c ? `${c.userAName} and ${c.userBName}` : r.isError ? 'Unavailable' : 'Loading'} onClose={onClose} testId="drawer-chat">
+    {!opened ? <section className="m-5 rounded-2xl border border-[#f2b766]/25 bg-[#f2b766]/[.06] p-5" data-testid="chat-access-notice">
+      <h2 className="font-bold">Restricted admin access</h2>
+      <p className="mt-2 text-sm leading-6 text-[var(--a-mute)]">Conversation contents and attachments are private. Opening this conversation will access its contents, and admin access is logged.</p>
+      <button type="button" onClick={() => setOpenedChatId(chatId)} data-testid="button-acknowledge-chat-access" className="mt-4 inline-flex min-h-10 items-center justify-center rounded-xl bg-[var(--a-rose)] px-4 py-2 text-sm font-extrabold text-[#24111b]">I understand, open conversation</button>
+    </section> :
+      r.isError && !r.data ? <ErrorBox error={r.error} onRetry={() => void r.refetch()} text="This conversation could not load." /> :
+      !r.data ? <><p className="px-5 pt-4 text-xs text-[var(--a-mute)]" role="status" aria-live="polite">Loading conversation contents…</p><Skeleton rows={8} /></> :
       !c ? <EmptyState title="Conversation not found" detail="It may have been deleted." /> :
       <div className="a-fade">
+        {r.isError && <ErrorBox error={r.error} onRetry={() => void r.refetch()} text="Conversation refresh failed." />}
         <div className="space-y-3 border-b border-[var(--a-line)] p-5">
+          <div className="flex items-center justify-between gap-3 text-xs text-[var(--a-mute)]" role="status" aria-live="polite">
+            <span>{r.isFetching ? 'Refreshing conversation…' : 'Conversation loaded'}</span>
+            <button type="button" disabled={r.isFetching} onClick={() => void r.refetch()} data-testid="button-refresh-chat" className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 px-2.5 py-1.5 font-bold hover:bg-white/5 disabled:opacity-50"><RefreshCw size={12} className={r.isFetching ? 'animate-spin' : ''} />Refresh</button>
+          </div>
           <div className="flex flex-wrap gap-2 text-xs">
             <button type="button" onClick={() => openUser(c.userAId)} data-testid="button-chat-open-user-a" className="rounded-lg border border-white/10 px-2.5 py-1 font-bold hover:bg-white/5">{c.userAName}</button>
             <button type="button" onClick={() => openUser(c.userBId)} data-testid="button-chat-open-user-b" className="rounded-lg border border-white/10 px-2.5 py-1 font-bold hover:bg-white/5">{c.userBName}</button>

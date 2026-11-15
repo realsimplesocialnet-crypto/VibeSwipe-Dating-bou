@@ -1,10 +1,20 @@
 import { useEffect, useState } from 'react';
 import { useSearch } from 'wouter';
 import type { AdminUser } from '@workspace/api-client-react';
+import { RotateCw } from 'lucide-react';
 import { useAdminData, useDebounced } from '../admin-hooks';
-import { AdminPhoto, ago, EmptyState, ErrorBox, Pager, Skeleton, UserMark, utc } from '../admin-ui';
+import { AdminPhoto, ago, EmptyState, ErrorBox, Pager, Pill, Skeleton, UserMark, utc } from '../admin-ui';
 import { LiveDot, SearchField, SectionHeader, useDrawers } from '../section-kit';
-import { UserActions, UserStatus } from '../user-actions';
+import { UserActions } from '../user-actions';
+
+function UserLabels({ u }: { u: AdminUser }) {
+  return <span className="flex flex-wrap gap-1">
+    {u.online && <Pill tone="mint">Online</Pill>}
+    {u.suspended && <Pill tone="red">Suspended</Pill>}
+    {u.deactivated && <Pill tone="amber">Deactivated</Pill>}
+    {u.verified ? <Pill tone="rose">Verified</Pill> : <Pill>Unverified</Pill>}
+  </span>;
+}
 
 export function UserRow({ u }: { u: AdminUser }) {
   const { openUser } = useDrawers();
@@ -15,7 +25,7 @@ export function UserRow({ u }: { u: AdminUser }) {
       {u.online && <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-[var(--a-panel)] bg-[var(--a-mint)]" />}
     </button>
     <button type="button" onClick={() => openUser(u.id)} className="min-w-0 text-left" data-testid={`button-open-user-${u.id}`}>
-      <div className="flex flex-wrap items-center gap-2"><span className="truncate font-bold">{u.name}</span><span className="mono text-xs text-[var(--a-mute)]">{u.age}</span><UserStatus u={u} /></div>
+      <div className="flex flex-wrap items-center gap-2"><span className="truncate font-bold">{u.name}</span><span className="mono text-xs text-[var(--a-mute)]">{u.age}</span><UserLabels u={u} /></div>
       <div className="mt-0.5 truncate text-xs text-[var(--a-mute)]">{u.email || u.username || u.phone || 'No contact on file'}{place ? ` · ${place}` : ''}</div>
     </button>
     <div className="col-span-2 flex gap-4 text-xs text-[var(--a-mute)] md:col-span-1 md:block">
@@ -35,10 +45,15 @@ export function UsersSection() {
   useEffect(() => { setQ(urlQ); }, [urlQ]);
   const dq = useDebounced(q.trim());
   useEffect(() => setPage(1), [dq]);
-  const r = useAdminData({ section: 'users', q: dq, page }, { poll: 30_000 });
+  const r = useAdminData({ section: 'users', q: dq, page }, { poll: 20_000 });
   const d = r.data;
   return <div>
-    <SectionHeader eyebrow="Users" title="Members" detail="Search by name, email, username, phone or city. Open a member for photos, chats and matches." right={<LiveDot fetching={r.isFetching} />} />
+    <SectionHeader eyebrow="Users" title="Members" detail="Search by name, email, username, phone or city. Open a member for photos, chats and matches." right={<div className="flex flex-wrap items-center gap-2">
+      <LiveDot fetching={r.isFetching} label={r.isError ? 'Stale' : 'Current'} />
+      {d && <span className="text-xs text-[var(--a-mute)]" data-testid="text-users-updated">Updated {new Date(r.dataUpdatedAt).toLocaleTimeString()}</span>}
+      <button type="button" onClick={() => void r.refetch()} disabled={r.isFetching} data-testid="button-refresh-users" className="inline-flex h-9 items-center gap-2 rounded-lg border border-[var(--a-line)] px-3 text-xs font-bold disabled:opacity-50"><RotateCw size={13} className={r.isFetching ? 'animate-spin' : ''} />Refresh</button>
+    </div>} />
+    {r.isError && d && <div className="a-panel mb-3"><ErrorBox error={r.error} onRetry={() => void r.refetch()} text="Member data may be out of date." /></div>}
     <div className="a-panel overflow-hidden">
       <div className="flex flex-wrap items-center gap-3 border-b border-[var(--a-line)] p-3">
         <SearchField value={q} onChange={setQ} placeholder="Search members" testId="input-search-users" />

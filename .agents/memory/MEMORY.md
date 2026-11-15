@@ -18,3 +18,4 @@
 - [Public face verification](public-face-verification.md) — Self-service verification must match a live person to their profile photo before awarding a public badge.
 - [Reels experience](reels-experience.md) — Approved visual direction; video posting, sharing to existing chats, saving, and comments below the visible video.
 - [Server validation environment](server-validation-environment.md) — Standalone checks must respect pnpm's isolation of workspace-package dependencies.
+- [Admin oversight](admin-oversight.md) — Owner wants a single web overview; keep private-chat inspection explicit, restricted and audited.

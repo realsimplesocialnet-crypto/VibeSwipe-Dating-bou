@@ -29,6 +29,9 @@ import type {
   AdminChatExport,
   AdminDashboard,
   AdminModerationInput,
+  AdminPosts,
+  AdminRemovePostInput,
+  AdminRemovePostResult,
   AdminSession,
   BlockInput,
   BlockedProfile,
@@ -49,6 +52,7 @@ import type {
   FaceVerificationStatus,
   GetAdminChatExportParams,
   GetAdminDashboardParams,
+  GetAdminPostsParams,
   GetAdminVerificationRequestsParams,
   GetDiscoverProfilesParams,
   GetMyReelsParams,
@@ -320,6 +324,306 @@ export function useGetAdminDashboard<TData = Awaited<ReturnType<typeof getAdminD
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
   const queryOptions = getGetAdminDashboardQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetAdminPostsUrl = (params?: GetAdminPostsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/vibeswipe/admin/posts?${stringifiedParams}` : `/api/vibeswipe/admin/posts`
+}
+
+/**
+ * @summary Search and page through published and expired posts for administrator oversight
+ */
+export const getAdminPosts = async (params?: GetAdminPostsParams, options?: Parameters<typeof customFetch>[1]): Promise<AdminPosts> => {
+
+  return customFetch<AdminPosts>(getGetAdminPostsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdminPostsQueryKey = (params?: GetAdminPostsParams,) => {
+    return [
+    `/api/vibeswipe/admin/posts`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetAdminPostsQueryOptions = <TData = Awaited<ReturnType<typeof getAdminPosts>>, TError = ErrorType<void>>(params?: GetAdminPostsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAdminPosts>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminPostsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminPosts>>> = ({ signal }) => getAdminPosts(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminPosts>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetAdminPostsQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminPosts>>>
+export type GetAdminPostsQueryError = ErrorType<void>
+
+
+export function useGetAdminPosts<TData = Awaited<ReturnType<typeof getAdminPosts>>, TError = ErrorType<void>>(
+ params: undefined |  GetAdminPostsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAdminPosts>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getAdminPosts>>,
+          TError,
+          Awaited<ReturnType<typeof getAdminPosts>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetAdminPosts<TData = Awaited<ReturnType<typeof getAdminPosts>>, TError = ErrorType<void>>(
+ params?: GetAdminPostsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAdminPosts>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getAdminPosts>>,
+          TError,
+          Awaited<ReturnType<typeof getAdminPosts>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetAdminPosts<TData = Awaited<ReturnType<typeof getAdminPosts>>, TError = ErrorType<void>>(
+ params?: GetAdminPostsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAdminPosts>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Search and page through published and expired posts for administrator oversight
+ */
+
+export function useGetAdminPosts<TData = Awaited<ReturnType<typeof getAdminPosts>>, TError = ErrorType<void>>(
+ params?: GetAdminPostsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAdminPosts>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetAdminPostsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getRemoveAdminPostUrl = (kind: 'reel' | 'story',
+    id: string,) => {
+
+
+
+
+  return `/api/vibeswipe/admin/posts/${kind}/${id}/remove`
+}
+
+/**
+ * @summary Remove a Reel or Story and write an administrator audit entry
+ */
+export const removeAdminPost = async (kind: 'reel' | 'story',
+    id: string,
+    adminRemovePostInput: AdminRemovePostInput, options?: Parameters<typeof customFetch>[1]): Promise<AdminRemovePostResult> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<AdminRemovePostResult>(getRemoveAdminPostUrl(kind,id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(adminRemovePostInput)
+  }
+);}
+
+
+
+
+
+export const getRemoveAdminPostMutationKey = () => ['removeAdminPost'] as const;
+
+export const getRemoveAdminPostMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof removeAdminPost>>, TError,RemoveAdminPostMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof removeAdminPost>>, TError,RemoveAdminPostMutationVariables, TContext> => {
+
+const mutationKey = getRemoveAdminPostMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof removeAdminPost>>, RemoveAdminPostMutationVariables> = (props) => {
+          const {kind,id,data} = props ?? {};
+
+          return  removeAdminPost(kind,id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RemoveAdminPostMutationResult = NonNullable<Awaited<ReturnType<typeof removeAdminPost>>>
+    export type RemoveAdminPostMutationBody = BodyType<AdminRemovePostInput>
+    export type RemoveAdminPostMutationError = ErrorType<void>
+    export type RemoveAdminPostMutationVariables = {kind: 'reel' | 'story';id: string;data: BodyType<AdminRemovePostInput>}
+
+    /**
+ * @summary Remove a Reel or Story and write an administrator audit entry
+ */
+export const useRemoveAdminPost = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof removeAdminPost>>, TError,RemoveAdminPostMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof removeAdminPost>>,
+        TError,
+        RemoveAdminPostMutationVariables,
+        TContext
+      > => {
+      return useMutation(getRemoveAdminPostMutationOptions(options), queryClient);
+    }
+
+export const getGetAdminPostMediaUrl = (mediaId: string,) => {
+
+
+
+
+  return `/api/vibeswipe/admin/posts/media/${mediaId}`
+}
+
+/**
+ * @summary Inspect post media through private administrator access; each successful inspection is audited
+ */
+export const getAdminPostMedia = async (mediaId: string, options?: Parameters<typeof customFetch>[1]): Promise<Blob> => {
+
+  return customFetch<Blob>(getGetAdminPostMediaUrl(mediaId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdminPostMediaQueryKey = (mediaId: string,) => {
+    return [
+    `/api/vibeswipe/admin/posts/media/${mediaId}`
+    ] as const;
+    }
+
+
+export const getGetAdminPostMediaQueryOptions = <TData = Awaited<ReturnType<typeof getAdminPostMedia>>, TError = ErrorType<void>>(mediaId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAdminPostMedia>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminPostMediaQueryKey(mediaId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminPostMedia>>> = ({ signal }) => getAdminPostMedia(mediaId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: mediaId !== null && mediaId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminPostMedia>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetAdminPostMediaQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminPostMedia>>>
+export type GetAdminPostMediaQueryError = ErrorType<void>
+
+
+export function useGetAdminPostMedia<TData = Awaited<ReturnType<typeof getAdminPostMedia>>, TError = ErrorType<void>>(
+ mediaId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAdminPostMedia>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getAdminPostMedia>>,
+          TError,
+          Awaited<ReturnType<typeof getAdminPostMedia>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetAdminPostMedia<TData = Awaited<ReturnType<typeof getAdminPostMedia>>, TError = ErrorType<void>>(
+ mediaId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAdminPostMedia>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getAdminPostMedia>>,
+          TError,
+          Awaited<ReturnType<typeof getAdminPostMedia>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetAdminPostMedia<TData = Awaited<ReturnType<typeof getAdminPostMedia>>, TError = ErrorType<void>>(
+ mediaId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAdminPostMedia>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Inspect post media through private administrator access; each successful inspection is audited
+ */
+
+export function useGetAdminPostMedia<TData = Awaited<ReturnType<typeof getAdminPostMedia>>, TError = ErrorType<void>>(
+ mediaId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAdminPostMedia>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetAdminPostMediaQueryOptions(mediaId,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 

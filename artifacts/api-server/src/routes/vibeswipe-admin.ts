@@ -15,6 +15,8 @@ import {
 import { and, desc, eq, gte, ilike, inArray, lt, or, sql } from "drizzle-orm";
 import { Router, type IRouter, type Request } from "express";
 import { createAdminGuard } from "../lib/admin-access";
+import { loadAdminIdentity } from "../lib/admin-identity";
+import { adminTimestamp } from "../lib/admin-timestamp";
 import { ObjectNotFoundError, ObjectStorageService } from "../lib/objectStorage";
 import { CHAT_EVENT_CHANNEL } from "../lib/chatEventStream";
 
@@ -65,7 +67,7 @@ async function getAdminUser(profile: typeof profilesTable.$inferSelect) {
     db.select().from(vibeSwipePresenceTable).where(eq(vibeSwipePresenceTable.userId, profile.id)).limit(1),
     db.select({ id: matchesTable.id }).from(matchesTable)
       .where(or(eq(matchesTable.userAId, profile.id), eq(matchesTable.userBId, profile.id))),
-    clerkClient.users.getUser(profile.id),
+    loadAdminIdentity(() => clerkClient.users.getUser(profile.id)),
   ]);
   const phone = identity?.phoneNumbers.find((item) => item.id === identity.primaryPhoneNumberId)?.phoneNumber ?? null;
   const email = identity?.emailAddresses.find((item) => item.id === identity.primaryEmailAddressId)?.emailAddress ?? null;
@@ -100,19 +102,12 @@ async function chatInfo(match: typeof matchesTable.$inferSelect) {
     db.select({ id: profilesTable.id, name: profilesTable.name }).from(profilesTable)
       .where(inArray(profilesTable.id, [match.userAId, match.userBId])),
     db.select({
-      lastMessageAt: sql<Date | null>`max(${messagesTable.createdAt})`,
+      lastMessageAt: sql<Date | string | null>`max(${messagesTable.createdAt})`,
       messageCount: sql<number>`count(*)::int`,
     }).from(messagesTable).where(eq(messagesTable.matchId, match.id)),
   ]);
   const names = new Map(profiles.map((profile) => [profile.id, profile.name]));
   const summary = messageSummary[0];
-  let lastMessage: string | null = null;
-  if (summary?.lastMessageAt) {
-    const [last] = await db.select({ content: messagesTable.content }).from(messagesTable)
-      .where(and(eq(messagesTable.matchId, match.id), eq(messagesTable.createdAt, summary.lastMessageAt)))
-      .limit(1);
-    lastMessage = last?.content ?? null;
-  }
   return {
     id: match.id,
     userAId: match.userAId,
@@ -120,17 +115,25 @@ async function chatInfo(match: typeof matchesTable.$inferSelect) {
     userAName: names.get(match.userAId) ?? "Deleted user",
     userBName: names.get(match.userBId) ?? "Deleted user",
     createdAt: match.createdAt.toISOString(),
-    lastMessageAt: summary?.lastMessageAt?.toISOString() ?? null,
+    lastMessageAt: adminTimestamp(summary?.lastMessageAt),
     messageCount: Number(summary?.messageCount ?? 0),
-    lastMessage,
+    lastMessage: null,
   };
 }
 
 async function stats() {
   const [users] = await db.select({ count: sql<number>`count(*)::int` }).from(profilesTable);
   const [online] = await db.select({ count: sql<number>`count(*)::int` }).from(vibeSwipePresenceTable)
-    .where(and(eq(vibeSwipePresenceTable.isOnline, true), gte(vibeSwipePresenceTable.lastSeenAt, new Date(Date.now() - 45_000))));
+    .innerJoin(profilesTable, eq(vibeSwipePresenceTable.userId, profilesTable.id))
+    .where(and(
+      eq(vibeSwipePresenceTable.isOnline, true),
+      gte(vibeSwipePresenceTable.lastSeenAt, new Date(Date.now() - 45_000)),
+      eq(profilesTable.deactivated, false),
+      eq(profilesTable.adminSuspended, false),
+    ));
   const [chats] = await db.select({ count: sql<number>`count(*)::int` }).from(matchesTable);
+  const [activeChats] = await db.select({ count: sql<number>`count(distinct ${messagesTable.matchId})::int` }).from(messagesTable)
+    .where(gte(messagesTable.createdAt, new Date(new Date().toISOString().slice(0, 10))));
   const [today] = await db.select({ count: sql<number>`count(*)::int` }).from(profilesTable)
     .where(gte(profilesTable.createdAt, new Date(new Date().toISOString().slice(0, 10))));
   const [likes] = await db.select({ count: sql<number>`count(*)::int` }).from(reactionsTable)
@@ -146,11 +149,32 @@ async function stats() {
   return {
     totalUsers: Number(users?.count ?? 0),
     onlineUsers: Number(online?.count ?? 0),
-    activeChats: Number(chats?.count ?? 0),
+    activeChats: Number(activeChats?.count ?? 0),
     signupsToday: Number(today?.count ?? 0),
     totalMatches: Number(chats?.count ?? 0),
     pendingLikes: Number(likes?.count ?? 0),
   };
+}
+
+async function auditPrivateAccess(req: Request, action: string, targetId: string): Promise<void> {
+  await db.insert(adminAuditTable).values({ actorId: currentAdmin(req), action, targetId });
+}
+
+function adminActivityDescription(action: string): string {
+  const descriptions: Record<string, string> = {
+    verify: "Administrator verified a member",
+    unverify: "Administrator removed a member’s verification",
+    block: "Administrator suspended a member",
+    unblock: "Administrator restored a member’s access",
+    delete_user: "Administrator deleted a member account",
+    delete_chat: "Administrator deleted a conversation",
+    delete_message: "Administrator deleted a message",
+    remove_connection: "Administrator removed a connection",
+    read_chat: "Administrator viewed a private conversation",
+    export_chat: "Administrator exported a private conversation",
+    access_media: "Administrator accessed private media",
+  };
+  return descriptions[action] ?? "Administrator performed an administrative action";
 }
 
 async function closeAdminChat(matchId: string): Promise<void> {
@@ -194,17 +218,40 @@ router.get("/vibeswipe/admin/dashboard", async (req, res): Promise<void> => {
 
   if (section === "overview") {
     const [recentProfiles, recentMessages, recentMatches, recentActions] = await Promise.all([
-      db.select().from(profilesTable).orderBy(desc(profilesTable.createdAt)).limit(10),
+      db.select().from(profilesTable).orderBy(desc(profilesTable.createdAt)).limit(6),
       db.select({ id: messagesTable.id, createdAt: messagesTable.createdAt, senderId: messagesTable.senderId })
         .from(messagesTable).orderBy(desc(messagesTable.createdAt)).limit(10),
-      db.select().from(matchesTable).orderBy(desc(matchesTable.createdAt)).limit(10),
+      db.select().from(matchesTable).orderBy(desc(matchesTable.updatedAt)).limit(6),
       db.select().from(adminAuditTable).orderBy(desc(adminAuditTable.createdAt)).limit(10),
     ]);
+    const [messageSenders, recentChatInfo] = await Promise.all([
+      recentMessages.length
+        ? db.select({ id: profilesTable.id, name: profilesTable.name }).from(profilesTable)
+          .where(inArray(profilesTable.id, [...new Set(recentMessages.map((message) => message.senderId))]))
+        : Promise.resolve([] as { id: string; name: string }[]),
+      Promise.all(recentMatches.map(chatInfo)),
+    ]);
+    result.users = await Promise.all(recentProfiles.map(getAdminUser));
+    result.chats = recentChatInfo;
     const feed = [
       ...recentProfiles.map((profile) => ({ id: `user:${profile.id}`, description: `${profile.name} joined`, createdAt: profile.createdAt })),
-      ...recentMessages.map((message) => ({ id: `message:${message.id}`, description: `New message from ${message.senderId}`, createdAt: message.createdAt })),
-      ...recentMatches.map((match) => ({ id: `match:${match.id}`, description: "A new mutual match was created", createdAt: match.createdAt })),
-      ...recentActions.map((item) => ({ id: `action:${item.id}`, description: `Admin action ${item.action} on ${item.targetId}`, createdAt: item.createdAt })),
+      ...recentMessages.map((message) => ({
+        id: `message:${message.id}`,
+        description: `New message from ${messageSenders.find((sender) => sender.id === message.senderId)?.name ?? "a member"}`,
+        createdAt: message.createdAt,
+      })),
+      ...recentMatches.map((match) => ({
+        id: `match:${match.id}`,
+        description: `A new conversation started between ${
+          recentChatInfo.find((chat) => chat.id === match.id)?.userAName ?? "a member"
+        } and ${recentChatInfo.find((chat) => chat.id === match.id)?.userBName ?? "a member"}`,
+        createdAt: match.createdAt,
+      })),
+      ...recentActions.map((item) => ({
+        id: `action:${item.id}`,
+        description: adminActivityDescription(item.action),
+        createdAt: item.createdAt,
+      })),
     ].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()).slice(0, 20);
     result.activity = feed.map((item) => ({ ...item, createdAt: item.createdAt.toISOString() }));
     result.total = feed.length;
@@ -215,9 +262,16 @@ router.get("/vibeswipe/admin/dashboard", async (req, res): Promise<void> => {
     let matches = profiles;
     if (section === "online") {
       const recent = await db.select({ userId: vibeSwipePresenceTable.userId }).from(vibeSwipePresenceTable)
-        .where(and(eq(vibeSwipePresenceTable.isOnline, true), gte(vibeSwipePresenceTable.lastSeenAt, new Date(Date.now() - 45_000))));
+        .innerJoin(profilesTable, eq(vibeSwipePresenceTable.userId, profilesTable.id))
+        .where(and(
+          eq(vibeSwipePresenceTable.isOnline, true),
+          gte(vibeSwipePresenceTable.lastSeenAt, new Date(Date.now() - 45_000)),
+          eq(profilesTable.deactivated, false),
+          eq(profilesTable.adminSuspended, false),
+        ));
       const onlineIds = new Set(recent.map((entry) => entry.userId));
-      matches = profiles.filter((profile) => onlineIds.has(profile.id));
+      matches = profiles.filter((profile) =>
+        onlineIds.has(profile.id) && !profile.deactivated && !profile.adminSuspended);
     }
     if (range.from || range.to) {
       matches = matches.filter((profile) =>
@@ -258,6 +312,7 @@ router.get("/vibeswipe/admin/dashboard", async (req, res): Promise<void> => {
     result.chats = pageChats;
     if (section === "chat" && pageChats[0]) {
       result.selectedChat = pageChats[0];
+      await auditPrivateAccess(req, "read_chat", pageChats[0].id);
       const selectedMessageConditions = [
         eq(messagesTable.matchId, pageChats[0].id),
         ...rangeConditions(messagesTable.createdAt, range),
@@ -347,6 +402,7 @@ router.get("/vibeswipe/admin/export", async (req, res): Promise<void> => {
     res.status(413).json({ error: `Export exceeds the ${MAX_EXPORT_MESSAGES} message limit.` });
     return;
   }
+  await auditPrivateAccess(req, "export_chat", chatId);
   const messages = await db.select().from(messagesTable).where(and(...conditions))
     .orderBy(messagesTable.createdAt, messagesTable.id).limit(MAX_EXPORT_MESSAGES + 1);
   const senders = [...new Set(messages.map((message) => message.senderId))];
@@ -374,6 +430,7 @@ router.get("/vibeswipe/admin/media/:mediaId", async (req, res): Promise<void> =>
   if (!UUID.test(mediaId)) { res.status(400).json({ error: "Invalid media id." }); return; }
   const [asset] = await db.select().from(mediaAssetsTable).where(eq(mediaAssetsTable.id, mediaId)).limit(1);
   if (!asset) { res.status(404).json({ error: "Media not found." }); return; }
+  await auditPrivateAccess(req, "access_media", asset.id);
   try {
     const file = await storage.getObjectEntityFile(asset.objectPath);
     const [metadata] = await file.getMetadata();

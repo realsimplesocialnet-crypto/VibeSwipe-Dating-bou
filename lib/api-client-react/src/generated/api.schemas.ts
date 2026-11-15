@@ -119,6 +119,83 @@ export interface AdminDashboard {
   selectedChat: AdminChat | null;
 }
 
+export type AdminPostKind = typeof AdminPostKind[keyof typeof AdminPostKind];
+
+
+export const AdminPostKind = {
+  reel: 'reel',
+  story: 'story',
+} as const;
+
+/**
+ * @nullable
+ */
+export type AdminPostMediaType = typeof AdminPostMediaType[keyof typeof AdminPostMediaType] | null;
+
+
+export const AdminPostMediaType = {
+  image: 'image',
+  video: 'video',
+  null: 'null',
+} as const;
+
+export type AdminPostStatus = typeof AdminPostStatus[keyof typeof AdminPostStatus];
+
+
+export const AdminPostStatus = {
+  published: 'published',
+  processing: 'processing',
+  blocked: 'blocked',
+  expired: 'expired',
+  deleted: 'deleted',
+  unavailable: 'unavailable',
+} as const;
+
+export interface AdminPost {
+  id: string;
+  kind: AdminPostKind;
+  authorId: string;
+  authorName: string;
+  /**
+     * Guarded media reference; never a private storage URL
+     * @nullable
+     */
+  authorPhoto: string | null;
+  caption: string;
+  /**
+     * Guarded media reference; never a private storage URL
+     * @nullable
+     */
+  mediaUrl: string | null;
+  /**
+     * Guarded media reference; never a private storage URL
+     * @nullable
+     */
+  thumbnailUrl: string | null;
+  /** @nullable */
+  mediaType: AdminPostMediaType;
+  status: AdminPostStatus;
+  createdAt: string;
+  /** @nullable */
+  expiresAt: string | null;
+}
+
+export interface AdminPosts {
+  page: number;
+  pageSize: number;
+  total: number;
+  posts: AdminPost[];
+}
+
+export const AdminRemovePostInputValue = {
+  confirmation: 'REMOVE',
+} as const;
+export type AdminRemovePostInput = typeof AdminRemovePostInputValue;
+
+export interface AdminRemovePostResult {
+  message: string;
+}
+
 export type AdminModerationInputAction = typeof AdminModerationInputAction[keyof typeof AdminModerationInputAction];
 
 
@@ -1226,6 +1303,32 @@ export const GetAdminDashboardSection = {
   connections: 'connections',
   user: 'user',
   chat: 'chat',
+} as const;
+
+export type GetAdminPostsParams = {
+/**
+ * @minimum 1
+ * @maximum 100000
+ */
+page?: number;
+/**
+ * @maxLength 150
+ */
+q?: string;
+/**
+ * @maxLength 150
+ */
+userId?: string;
+kind?: GetAdminPostsKind;
+};
+
+export type GetAdminPostsKind = typeof GetAdminPostsKind[keyof typeof GetAdminPostsKind];
+
+
+export const GetAdminPostsKind = {
+  all: 'all',
+  reel: 'reel',
+  story: 'story',
 } as const;
 
 export type GetAdminChatExportParams = {

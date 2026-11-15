@@ -23,6 +23,10 @@ const sections = [
     body: "Clerk handles account sign-in. Myage uses Replit-hosted application services, PostgreSQL, and file storage to operate the service and store profiles, messages, and uploaded media. These providers process information to provide their services to Myage; their own privacy terms also apply.",
   },
   {
+    title: "Authorized administrative access",
+    body: "Authorized administrators may review account details, online status, posts, stored conversations, and attachments for support, safety, moderation, and service operation. Private conversation inspection, media access, and conversation exports are recorded in an administrator access log. This access does not let administrators see activity in other apps or read unsent messages.",
+  },
+  {
     title: "Your choices",
     body: "You can update profile details from the Profile area and control safety and visibility features in Settings. Share only information you are comfortable showing to other members.",
   },

@@ -43,6 +43,62 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/AdminDashboard" }
+  /vibeswipe/admin/posts:
+    get:
+      operationId: getAdminPosts
+      tags: [vibeswipe]
+      summary: Search and page through published and expired posts for administrator oversight
+      parameters:
+        - { name: page, in: query, schema: { type: integer, minimum: 1, maximum: 100000, default: 1 } }
+        - { name: q, in: query, schema: { type: string, maxLength: 150 } }
+        - { name: userId, in: query, schema: { type: string, maxLength: 150 } }
+        - { name: kind, in: query, schema: { type: string, enum: [all, reel, story], default: all } }
+      responses:
+        "200":
+          description: Paginated posts. Media references are private identifiers and must be inspected through guarded admin media access.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AdminPosts" }
+        "400":
+          description: Invalid post search parameters
+  /vibeswipe/admin/posts/{kind}/{id}/remove:
+    post:
+      operationId: removeAdminPost
+      tags: [vibeswipe]
+      summary: Remove a Reel or Story and write an administrator audit entry
+      parameters:
+        - { name: kind, in: path, required: true, schema: { type: string, enum: [reel, story] } }
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AdminRemovePostInput" }
+      responses:
+        "200":
+          description: Post removed and audited
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AdminRemovePostResult" }
+        "400":
+          description: Removal confirmation is missing or invalid
+        "404":
+          description: Post not found
+  /vibeswipe/admin/posts/media/{mediaId}:
+    get:
+      operationId: getAdminPostMedia
+      tags: [vibeswipe]
+      summary: Inspect post media through private administrator access; each successful inspection is audited
+      parameters:
+        - { name: mediaId, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200":
+          description: Privately streamed post media, never publicly cached
+          content:
+            application/octet-stream:
+              schema: { type: string, format: binary }
+        "404":
+          description: Media is not attached to an existing post
   /vibeswipe/admin/actions:
     post:
       operationId: adminModerationAction
@@ -1696,6 +1752,40 @@ components:
         stats: { $ref: "#/components/schemas/AdminStats" }
         selectedUser: { anyOf: [{ $ref: "#/components/schemas/AdminUser" }, { type: "null" }] }
         selectedChat: { anyOf: [{ $ref: "#/components/schemas/AdminChat" }, { type: "null" }] }
+    AdminPost:
+      type: object
+      required: [id, kind, authorId, authorName, authorPhoto, caption, mediaUrl, thumbnailUrl, mediaType, status, createdAt, expiresAt]
+      properties:
+        id: { type: string, format: uuid }
+        kind: { type: string, enum: [reel, story] }
+        authorId: { type: string }
+        authorName: { type: string }
+        authorPhoto: { type: [string, "null"], description: Guarded media reference; never a private storage URL }
+        caption: { type: string }
+        mediaUrl: { type: [string, "null"], description: Guarded media reference; never a private storage URL }
+        thumbnailUrl: { type: [string, "null"], description: Guarded media reference; never a private storage URL }
+        mediaType: { type: [string, "null"], enum: [image, video, "null"] }
+        status: { type: string, enum: [published, processing, blocked, expired, deleted, unavailable] }
+        createdAt: { type: string, format: date-time }
+        expiresAt: { type: [string, "null"], format: date-time }
+    AdminPosts:
+      type: object
+      required: [page, pageSize, total, posts]
+      properties:
+        page: { type: integer }
+        pageSize: { type: integer }
+        total: { type: integer }
+        posts: { type: array, items: { $ref: "#/components/schemas/AdminPost" } }
+    AdminRemovePostInput:
+      type: object
+      required: [confirmation]
+      properties:
+        confirmation: { type: string, const: REMOVE }
+    AdminRemovePostResult:
+      type: object
+      required: [message]
+      properties:
+        message: { type: string }
     AdminModerationInput:
       type: object
       required: [action, targetId]

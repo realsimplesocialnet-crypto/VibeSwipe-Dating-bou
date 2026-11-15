@@ -147,6 +147,73 @@ export const GetAdminDashboardResponse = zod.object({
 })
 
 
+/**
+ * @summary Search and page through published and expired posts for administrator oversight
+ */
+export const getAdminPostsQueryPageDefault = 1;
+export const getAdminPostsQueryPageMax = 100000;
+
+export const getAdminPostsQueryQMax = 150;
+
+export const getAdminPostsQueryUserIdMax = 150;
+
+export const getAdminPostsQueryKindDefault = `all`;
+
+export const GetAdminPostsQueryParams = zod.object({
+  "page": zod.coerce.number().int().min(1).max(getAdminPostsQueryPageMax).default(getAdminPostsQueryPageDefault),
+  "q": zod.coerce.string().max(getAdminPostsQueryQMax).optional(),
+  "userId": zod.coerce.string().max(getAdminPostsQueryUserIdMax).optional(),
+  "kind": zod.enum(['all', 'reel', 'story']).default(getAdminPostsQueryKindDefault)
+})
+
+export const GetAdminPostsResponse = zod.object({
+  "page": zod.number().int(),
+  "pageSize": zod.number().int(),
+  "total": zod.number().int(),
+  "posts": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "kind": zod.enum(['reel', 'story']),
+  "authorId": zod.string(),
+  "authorName": zod.string(),
+  "authorPhoto": zod.string().nullable().describe('Guarded media reference; never a private storage URL'),
+  "caption": zod.string(),
+  "mediaUrl": zod.string().nullable().describe('Guarded media reference; never a private storage URL'),
+  "thumbnailUrl": zod.string().nullable().describe('Guarded media reference; never a private storage URL'),
+  "mediaType": zod.union([zod.literal('image'),zod.literal('video'),zod.literal('null'),zod.literal(null)]).nullable(),
+  "status": zod.enum(['published', 'processing', 'blocked', 'expired', 'deleted', 'unavailable']),
+  "createdAt": zod.coerce.date(),
+  "expiresAt": zod.coerce.date().nullable()
+}))
+})
+
+
+/**
+ * @summary Remove a Reel or Story and write an administrator audit entry
+ */
+export const RemoveAdminPostParams = zod.object({
+  "kind": zod.enum(['reel', 'story']),
+  "id": zod.coerce.string().uuid()
+})
+
+export const RemoveAdminPostBody = zod.object({
+  "confirmation": zod.literal("REMOVE")
+})
+
+export const RemoveAdminPostResponse = zod.object({
+  "message": zod.string()
+})
+
+
+/**
+ * @summary Inspect post media through private administrator access; each successful inspection is audited
+ */
+export const GetAdminPostMediaParams = zod.object({
+  "mediaId": zod.coerce.string().uuid()
+})
+
+export const GetAdminPostMediaResponse = zod.unknown()
+
+
 export const adminModerationActionBodyTargetIdMax = 150;
 
 export const adminModerationActionBodyConfirmationMax = 30;

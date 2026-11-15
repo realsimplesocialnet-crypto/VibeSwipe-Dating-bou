@@ -13,7 +13,7 @@ export function ChatRow({ c }: { c: AdminChat }) {
       <span className="flex -space-x-2"><UserMark name={c.userAName} /><UserMark name={c.userBName} /></span>
       <span className="min-w-0">
         <span className="block truncate text-sm font-bold">{c.userAName} <span className="font-normal text-[var(--a-mute)]">and</span> {c.userBName}</span>
-        <span className="block truncate text-xs text-[var(--a-mute)]">{c.lastMessage || 'No messages yet'}</span>
+        <span className="block truncate text-xs text-[var(--a-mute)]">Conversation details are available after explicit access</span>
       </span>
       <span className="text-right">
         <span className="mono block text-xs" title={utc(c.lastMessageAt)}>{c.lastMessageAt ? ago(c.lastMessageAt) : 'quiet'}</span>
@@ -36,7 +36,7 @@ export function ChatsSection() {
   const r = useAdminData({ section: 'chats', q: dq, from, to, userId, page }, { poll: 15_000 });
   const d = r.data;
   return <div>
-    <SectionHeader eyebrow="Chats" title="Conversations" detail="Every mutual-match conversation. Filter by day or range, search by participant, open one to read the full history." right={<LiveDot fetching={r.isFetching} />} />
+    <SectionHeader eyebrow="Chats" title="Conversations" detail="Every mutual-match conversation. This list shows participants, message count, and latest activity only. Open a conversation to inspect its contents; admin access is restricted and logged." right={<LiveDot fetching={r.isFetching} />} />
     <div className="a-panel overflow-hidden">
       <div className="flex flex-col gap-3 border-b border-[var(--a-line)] p-3 lg:flex-row lg:items-center">
         <SearchField value={q} onChange={setQ} placeholder="Search by participant name" testId="input-search-chats" />
