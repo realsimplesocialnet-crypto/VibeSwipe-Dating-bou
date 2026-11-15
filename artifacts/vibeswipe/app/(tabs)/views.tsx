@@ -155,7 +155,7 @@ export default function MessagesScreen() {
 
   return (
     <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: colors.messagesBackground }}><View style={styles.screen}>
-      <View style={styles.brandHeader}><View style={styles.wordmark}><Text style={[styles.monogram, { color: colors.foreground }]}>M</Text><Text style={[styles.brandName, { color: colors.foreground }]}>vibe<Text style={{ color: colors.primary }}>swipe</Text></Text></View><Pressable accessibilityRole="button" accessibilityLabel="Notifications" onPress={() => router.push("/(tabs)/activity")} style={{ padding: 8 }}><Feather name="bell" size={24} color={colors.foreground}/></Pressable></View>
+      <View style={[styles.brandHeader, { justifyContent: "flex-end" }]}><Pressable accessibilityRole="button" accessibilityLabel="Notifications" onPress={() => router.push("/(tabs)/activity")} style={{ padding: 8 }}><Feather name="bell" size={24} color={colors.foreground}/></Pressable></View>
       <Text style={[styles.title, { color: colors.foreground }]}>Messages</Text>
       <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>Only mutual matches appear here. <Feather name="heart" size={16} color={colors.primary}/></Text>
       {matches.isLoading ? <ActivityIndicator color={colors.primary} style={styles.loading} /> : null}
@@ -331,9 +331,7 @@ export function VisitorsScreen() {
   const notifications = useGetNotifications({ query: { refetchInterval: 30_000 } });
   const unread = Object.values(notifications.data?.unreadCounts ?? {}).some((count) => count > 0);
   return <LinearGradient colors={[colors.profileGradientStart, colors.profileGradientMiddle, colors.profileGradientEnd]} style={{ flex: 1 }}><SafeAreaView edges={["top"]} style={visitorStyles.screen} testID="visitors-page">
-    <View style={[visitorStyles.header, { borderBottomColor: colors.border }]}>
-      <View style={{ flexDirection: "row", gap: 8, alignItems: "center" }}><View style={[visitorStyles.logo, { backgroundColor: colors.foreground }]}><Text style={[visitorStyles.logoText, { color: colors.primary }]}>M</Text></View>
-      <Text style={{ color: colors.foreground, fontSize: 19, fontWeight: "800" }}>vibe<Text style={{ color: colors.primary }}>swipe</Text></Text></View>
+    <View style={[visitorStyles.header, { borderBottomColor: colors.border, justifyContent: "flex-end" }]}>
       <Pressable accessibilityRole="button" accessibilityLabel="Notifications" onPress={() => router.push("/(tabs)/activity")}><Feather name="bell" size={25} color={colors.foreground} />{unread ? <View style={{ position: "absolute", right: 0, top: 0, width: 8, height: 8, borderRadius: 4, backgroundColor: colors.primary }} /> : null}</Pressable>
     </View>
     <Text style={[visitorStyles.title, { color: colors.foreground }]}>Who viewed you</Text>

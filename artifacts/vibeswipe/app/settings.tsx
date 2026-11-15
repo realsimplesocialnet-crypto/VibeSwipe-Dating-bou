@@ -336,7 +336,7 @@ export default function SettingsScreen() {
         <Feather name="log-out" size={17} color={colors.destructive} />
         <Text style={[styles.signOutText, { color: colors.destructive }]}>{loggingOut ? "Logging out…" : "Log out"}</Text>
       </Pressable>
-      <Text style={[styles.version, { color: colors.mutedForeground }]}>Myage · 18+</Text>
+      <Text style={[styles.version, { color: colors.mutedForeground }]}>18+</Text>
     </ScrollView>
   );
 }

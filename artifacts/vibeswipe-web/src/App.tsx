@@ -121,14 +121,11 @@ function AppShell({ children }: { children: ReactNode }) {
   const settingsReturnTo = `${location}${window.location.search}${window.location.hash}`;
   const { user } = useUser();
   const profile = useGetMyProfile();
-  const activityHeader = useGetNotifications({query:{enabled:isSocialPage,queryKey:getGetNotificationsQueryKey()}});
-  const hasUnreadActivity = Object.values(activityHeader.data?.unreadCounts??{}).some(count=>count>0);
   const activeName = profile.data?.name || user?.firstName || 'Your profile';
-  return <div className={`app-shell min-h-[100dvh] bg-background text-foreground ${isSocialPage?'messages-shell':''} ${location==='/discover'?'discover-shell':''}`}>
+  return <div className={`app-shell min-h-[100dvh] bg-background text-foreground ${isSocialPage?'messages-shell':''} ${location==='/discover'?'discover-shell':''} ${location==='/profile'?'profile-shell':''}`}>
     {showMainNavigation && <>
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-[248px] flex-col border-r border-border bg-background px-5 py-6 lg:flex">
-        <Brand small />
-        <div className="mb-4 mt-11 px-3 text-[10px] font-bold uppercase tracking-[.2em] text-muted-foreground">Your space</div>
+        <div className="mb-4 mt-2 px-3 text-[10px] font-bold uppercase tracking-[.2em] text-muted-foreground">Your space</div>
         <nav className="space-y-1">
           {navItems.map(({ href, label, icon: Icon }) => <Link key={href} href={href} data-testid={`nav-${label.toLowerCase()}`} className={`flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold transition-colors ${activeLocation === href ? 'bg-accent text-[#ff80b6]' : 'text-muted-foreground hover:bg-white/[.04] hover:text-foreground'}`}><Icon size={18}/>{label}</Link>)}
         </nav>
@@ -138,11 +135,8 @@ function AppShell({ children }: { children: ReactNode }) {
           <InstallAction className="px-1 pt-2"/>
         </div>
       </aside>
-      <header className={`${location==='/discover'?'hidden':'flex'} sticky top-[var(--install-banner-height,0px)] z-20 h-12 items-center justify-between border-b border-border bg-background/90 px-4 backdrop-blur-xl lg:hidden`}>
-        {isSocialPage?<><div className="flex items-center gap-2"><span aria-hidden="true" className="text-[30px] font-black leading-none tracking-[-.1em] text-foreground">M</span><span className="brand text-lg font-extrabold">vibe<span className="text-primary">swipe</span></span></div><Link href="/notifications" aria-label={hasUnreadActivity?'Unread activity':'Activity'} className="relative text-foreground"><Bell size={24}/>{hasUnreadActivity&&<span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-primary"/>}</Link></>:<><Brand compact/><span className="brand text-base font-extrabold">vibe<span className="text-primary">swipe</span></span><InstallAction compact/></>}
-      </header>
     </>}
-    <main className={showMainNavigation ? "min-h-[calc(100dvh-48px)] pb-24 lg:ml-[248px] lg:min-h-[100dvh] lg:pb-0" : "min-h-[100dvh]"}>{children}</main>
+    <main className={showMainNavigation ? "min-h-[100dvh] pb-24 lg:ml-[248px] lg:pb-0" : "min-h-[100dvh]"}>{children}</main>
     {profile.data?.id&&<WebPushSettings key={profile.data.id} compact visible={showMainNavigation} accountId={profile.data.id}/>}
     {showMainNavigation && <nav className={`${location==='/profile'?'profile-nav ':''}fixed inset-x-0 bottom-0 z-30 flex justify-around border-t border-border bg-background/95 px-2 pb-[max(env(safe-area-inset-bottom),8px)] pt-2 backdrop-blur-xl lg:hidden`}>
       {navItems.map(({ href, label, icon: Icon }) => <Link key={href} href={href} data-testid={`mobile-nav-${label.toLowerCase()}`} className={`flex min-w-0 flex-1 flex-col items-center gap-1 rounded-xl px-1 py-1.5 text-[10px] font-semibold ${activeLocation === href ? 'text-primary' : 'text-muted-foreground'}`}><Icon size={19}/>{label}</Link>)}
@@ -157,7 +151,7 @@ function Gate({ children }: { children: ReactNode }) {
 function RequiredProfile({ children }: { children: ReactNode }) {
   const profile=useGetMyProfile<Profile>({query:{retry:shouldRetryProfile,staleTime:0,refetchOnMount:'always'}});
   if(profile.isError&&isProfileMissing(profile.error))return <Redirect to="/onboarding"/>;
-  if(profile.isLoading||!profile.data)return <div className="min-h-[100dvh] bg-background text-foreground"><header className="p-6"><Brand/></header><PageFrame>{profile.isError?<Retry text="We couldn’t check your profile. Check your connection and try again." onRetry={()=>void profile.refetch()}/>:<ProfileLoading/>}</PageFrame></div>;
+  if(profile.isLoading||!profile.data)return <div className="min-h-[100dvh] bg-background text-foreground"><PageFrame>{profile.isError?<Retry text="We couldn’t check your profile. Check your connection and try again." onRetry={()=>void profile.refetch()}/>:<ProfileLoading/>}</PageFrame></div>;
   return <AppShell>{children}</AppShell>;
 }
 function ShellPage({ children }: { children: ReactNode }) { return <Gate><RequiredProfile>{children}</RequiredProfile></Gate>; }
@@ -619,10 +613,9 @@ function OwnProfileOverview({profile,travelCity}:{profile:Profile;travelCity?:st
   const GenderIcon=genderIcon(profile.gender||'');const place=[[profile.city,profile.state].filter(Boolean).join(', '),profile.country].filter(Boolean).join(' · ');
   const work=profile.occupation==='Other'?(profile.occupationOther||'Other'):(profile.occupation||'Prefer not to say');
   const bio=profile.bio||'Add a bio so people can get to know you.';const shown=profile.interests.slice(0,5);const more=profile.interests.length-shown.length;
-  return <div data-testid="section-own-profile" className="flex min-h-0 flex-1 flex-col gap-[clamp(6px,1.4dvh,14px)] pb-[clamp(8px,1.6dvh,16px)]">
-    <div className="flex shrink-0 items-center justify-between"><h2 data-testid="text-my-profile-heading" className="op-title">My Profile</h2><Link href="/settings?returnTo=%2Fprofile" data-testid="link-profile-settings" aria-label="Settings" className="op-ghost inline-flex items-center gap-2 rounded-full px-3.5 py-2 text-sm font-semibold transition-transform active:scale-95"><Settings size={16}/>Settings</Link></div>
-    <Link href="/reels/saved" data-testid="link-profile-saved-reels" className="op-ghost mt-3 flex shrink-0 items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold"><Clapperboard size={17} className="text-primary"/><span className="flex-1">Saved Reels</span><ChevronRight size={16} className="opacity-60"/></Link>
-    <section className="op-card flex shrink-0 flex-col items-center rounded-[26px] px-4 py-[clamp(10px,2dvh,22px)] text-center">
+  return <div data-testid="section-own-profile" className="op-overview flex min-h-0 flex-1 flex-col gap-[clamp(6px,1.4dvh,14px)] pb-[clamp(8px,1.6dvh,16px)]">
+    <div className="op-toolbar flex shrink-0 items-center justify-between"><h2 data-testid="text-my-profile-heading" className="op-title">My Profile</h2><div className="flex items-center gap-2"><Link href="/reels/saved" data-testid="link-profile-saved-reels" aria-label="Saved Reels" title="Saved Reels" className="op-ghost inline-flex h-9 w-9 items-center justify-center rounded-full"><Clapperboard size={17} className="text-primary"/><span className="sr-only">Saved Reels</span></Link><Link href="/settings?returnTo=%2Fprofile" data-testid="link-profile-settings" aria-label="Settings" className="op-ghost inline-flex items-center gap-2 rounded-full px-3.5 py-2 text-sm font-semibold transition-transform active:scale-95"><Settings size={16}/>Settings</Link></div></div>
+    <section className="op-card op-identity flex shrink-0 flex-col items-center rounded-[26px] px-4 py-[clamp(10px,2dvh,22px)] text-center">
       <div className="op-portrait op-avatar overflow-hidden rounded-full">{profile.photos?.[0]&&!broken?<MediaImage reference={profile.photos[0]} onError={()=>setBroken(true)} className="h-full w-full object-cover" alt={`${profile.name}'s profile photo`}/>:<span className="flex h-full items-center justify-center text-4xl font-bold text-primary">{profile.name?.slice(0,1)?.toUpperCase()}</span>}</div>
       <h1 data-testid="text-profile-name" title={profile.name} className="brand mt-2 max-w-full truncate text-[clamp(22px,3.4dvh,30px)] font-extrabold leading-tight tracking-[-.03em]">{profile.name}{profile.age!==null?`, ${profile.age}`:''}<VerifiedBadge verified={profile.isVerified}/></h1>
       {place&&<p data-testid="text-profile-city" title={place} className="op-muted max-w-full truncate text-[14px]">{place}</p>}
@@ -812,7 +805,7 @@ function BrandedSignUp(){
 function RouteShell({component:Component}:{component:()=>ReactNode}){return <ShellPage><Component/></ShellPage>}
 const CHAT_RETURN_PATHS=['/views','/messages','/notifications','/matches','/discover','/likes'];
 function ChatRoute(){const params=useParams<{matchId:string}>();const requested=safeAppReturnPath(new URLSearchParams(window.location.search).get('returnTo'),'/matches');const returnTo=CHAT_RETURN_PATHS.includes(requested)||requested.startsWith('/profile/')?requested:'/matches';return <ShellPage><ChatPage matchId={params.matchId||''} returnTo={returnTo}/></ShellPage>}
-function OnboardingRoute(){return <Gate><div className="onboarding-video-form min-h-[100dvh] bg-background text-foreground"><OnboardingVideoBackground form/><header className="p-6"><Brand/></header><OnboardingGate/></div></Gate>}
+function OnboardingRoute(){return <Gate><div className="onboarding-video-form min-h-[100dvh] bg-background text-foreground"><OnboardingVideoBackground form/><OnboardingGate/></div></Gate>}
 function ProfileRoute(){return <ShellPage><ProfilePage mode="view"/></ShellPage>}
 function ProfileEditRoute(){const requested=new URLSearchParams(window.location.search).get('returnTo');const returnTo=safeAppReturnPath(requested,'/profile');return <ShellPage><ProfilePage mode="edit" returnTo={returnTo}/></ShellPage>}
 function SettingsRoute(){return <ShellPage><SettingsIndexPage/></ShellPage>}
@@ -851,8 +844,16 @@ function SettingsThemeSync() {
   useEffect(() => {
     if (!isLoaded) return;
     document.documentElement.dataset.theme = lightMode ? "light" : "dark";
-    document.querySelector<HTMLMetaElement>('meta[name="theme-color"]')?.setAttribute("content", lightMode ? "#f8f6fa" : "#15131a");
+    const syncBrowserColor = () => {
+      const onProfile = document.documentElement.classList.contains("op-lock");
+      const color = onProfile ? (lightMode ? "#fde4ec" : "#3a2232") : (lightMode ? "#f8f6fa" : "#15131a");
+      document.querySelector<HTMLMetaElement>('meta[name="theme-color"]')?.setAttribute("content", color);
+    };
+    syncBrowserColor();
+    const observer = new MutationObserver(syncBrowserColor);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
     document.querySelector<HTMLMetaElement>('meta[name="apple-mobile-web-app-status-bar-style"]')?.setAttribute("content", lightMode ? "default" : "black-translucent");
+    return () => observer.disconnect();
   }, [isLoaded, lightMode]);
   return null;
 }

@@ -28,7 +28,7 @@ export function AdminShell({ active, session, onSignOut, children }: { active: A
   function submit(e: FormEvent) { e.preventDefault(); const v = q.trim(); setLocation(`/admin/users${v ? `?q=${encodeURIComponent(v)}` : ''}`); }
   return <div className="lg:pl-[240px]">
     <aside className="fixed inset-y-0 left-0 z-30 hidden w-[240px] flex-col border-r border-[var(--a-line)] bg-[var(--a-panel)] px-4 py-5 lg:flex">
-      <AdminWordmark />
+      <span className="text-sm font-bold">Admin console</span>
       <nav className="mt-9 space-y-0.5" aria-label="Admin">
         {ADMIN_NAV.map(({ key, href, label, icon: Icon }) => <Link key={key} href={href} data-testid={`nav-admin-${key}`} aria-current={active === key ? 'page' : undefined} className={`relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition-colors ${active === key ? 'bg-[#f34e9a]/10 text-[#ff8cc0]' : 'text-[var(--a-mute)] hover:bg-white/[.04] hover:text-[var(--a-ink)]'}`}>
           {active === key && <span className="absolute -left-4 top-2 bottom-2 w-[3px] rounded-r bg-[var(--a-rose)]" />}<Icon size={17} />{label}
@@ -38,7 +38,7 @@ export function AdminShell({ active, session, onSignOut, children }: { active: A
     </aside>
     <header className="sticky top-0 z-20 border-b border-[var(--a-line)] bg-[var(--a-bg)]/90 backdrop-blur-xl">
       <div className="flex h-16 items-center gap-3 px-4 md:px-6">
-        <div className="lg:hidden"><AdminWordmark /></div>
+        <div className="text-sm font-bold lg:hidden">Admin console</div>
         <form onSubmit={submit} className="relative ml-auto hidden max-w-md flex-1 sm:block lg:ml-0" role="search">
           <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--a-mute)]" />
           <input value={q} onChange={e => setQ(e.target.value)} maxLength={150} placeholder="Find a member by name, email or phone" data-testid="input-admin-global-search" className="h-10 w-full rounded-xl border border-[var(--a-line)] bg-[var(--a-panel)] pl-9 pr-3 text-sm outline-none placeholder:text-[var(--a-mute)] focus:border-[#f34e9a]/55" />

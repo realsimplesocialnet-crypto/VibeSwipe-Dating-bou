@@ -63,11 +63,7 @@ function Screen({ title, sub, back, children }: { title: string; sub?: string; b
   const top = Platform.OS === "web" ? 67 : insets.top;
   return (
     <View style={[s.flex, { backgroundColor: c.messagesBackground }]}>
-      <View style={[s.brandBar, { paddingTop: top + 8 }]}>
-        <View style={s.logo}><Text style={[s.logoM, { color: c.foreground }]}>M</Text></View>
-        <Text style={[s.brandText, { color: c.foreground }]}>vibe<Text style={{ color: c.primary }}>swipe</Text></Text>
-      </View>
-      <View style={s.head}>
+      <View style={[s.head, { paddingTop: top + 10 }]}>
         {back && (
           <Pressable onPress={() => (router.canGoBack() ? router.back() : router.replace("/(tabs)/activity" as never))} testID="button-back-activity" accessibilityRole="button" accessibilityLabel="Back to Activity" style={[s.back, { backgroundColor: c.profileCard, borderColor: c.border }]}>
             <Feather name="arrow-left" size={16} color={c.foreground} />

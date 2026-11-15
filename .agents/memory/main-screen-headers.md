@@ -3,11 +3,11 @@ name: Main-screen headers
 description: User's preference for compact branding and reduced top space on the main tabs.
 ---
 
-Keep the top logo and wordmark small and the shared header compact on all main screens.
+Do not show a logo or app-name wordmark anywhere inside the signed-in dashboard, including Discover, the other tabs, and desktop navigation. Keep page titles and functional navigation controls.
 
-**Why:** The user wants the app to feel like Instagram, with more room for stories, cards, and titles rather than a large logo area.
+**Why:** The user explicitly corrected the earlier compact-logo preference: “Once you just log in the app, I don't want you to see any logo.” They clarified this applies only inside the dashboard, not outside.
 
-**How to apply:** Preserve this compact approach when changing main-tab headers.
+**How to apply:** Keep the welcome, login, and signup branding unchanged. Do not add branding back to authenticated headers or reserve an empty row for a removed logo.
 
 Keep Discover's branding, Stories, swipe card, actions, and bottom navigation within one screen. Do not let the swipe card scroll underneath Stories. When a swipe card is present, put the user's own story entry in the labelled Stories row, not as a separate personal avatar beside the branding. On iPhone home-screen launches, keep the action row directly above the bottom tabs without a large empty strip below them.
 

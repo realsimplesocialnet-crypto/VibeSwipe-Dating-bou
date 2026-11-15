@@ -104,7 +104,6 @@ export function NotificationsList({ tabMode = false }: { tabMode?: boolean }) {
             <Feather name="arrow-left" size={21} color={colors.foreground} />
           </Pressable>
         )}
-        {tabMode ? <View style={styles.brand}><View style={[styles.logo, { backgroundColor: colors.foreground }]}><Text style={[styles.logoLetter, { color: colors.primary }]}>M</Text></View><Text style={[styles.brandText, { color: colors.foreground }]}>vibe<Text style={{ color: colors.primary }}>swipe</Text></Text></View> : null}
         <View style={{ flex: 1 }} />
         <View accessibilityLabel={unread ? "Unread notifications" : "Notifications"}><Feather name="bell" size={25} color={colors.foreground} />{unread > 0 ? <View style={[styles.bellDot, { backgroundColor: colors.primary }]} /> : null}</View>
       </View>
