@@ -22,3 +22,9 @@ The user wants the Android app to open “Without chrome”.
 **Why:** The installed app displayed Android’s “Myage requires the following app: Chrome” dialog, and the user rejected installing Chrome as the solution.
 
 **How to apply:** Do not insist on Chrome as the only option. Distinguish installing the website through another supporting browser from a standalone native Android APK. Website code cannot remove the host-browser dependency of an existing Chrome-owned install. Never claim an APK is available before one has actually been built.
+
+Users installed the Android app from the website, not from a supplied TWA APK. The user reported that the “requires Chrome” dialog also occurs when Chrome is already installed.
+
+**Why:** The user corrected the missing-Chrome diagnosis and confirmed website installation.
+
+**How to apply:** Treat the message as a host-browser/installed-launcher availability problem, not proof Chrome is absent. Browser-created WebAPK launcher checks run before website JavaScript; manifest changes, service workers, and a website recovery page cannot intercept that native dialog. Do not fabricate TWA package names or signing fingerprints. Explain when affected users must replace the installed launcher, warn about unsent drafts/sign-in, and never clear account or browser data automatically.

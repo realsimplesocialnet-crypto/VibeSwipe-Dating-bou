@@ -1,8 +1,9 @@
 /* Static shell only. Never cache API, Clerk, private messages, or uploaded media. */
-const CACHE_NAME = 'myage-shell-v8';
+const CACHE_NAME = 'myage-shell-v9';
 const scopeUrl = new URL(self.registration.scope);
+const offlineUrl = new URL('offline.html', scopeUrl).href;
 const shell = [
-  scopeUrl.href,
+  new URL('open.html', scopeUrl).href,
   new URL('manifest.json', scopeUrl).href,
   new URL('myage-icon-192-v7.png', scopeUrl).href,
   new URL('myage-icon-512-v7.png', scopeUrl).href,
@@ -11,8 +12,29 @@ const shell = [
   new URL('logo.svg', scopeUrl).href,
 ];
 
+async function fetchWithTimeout(request) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 10000);
+  try {
+    return await fetch(request, { signal: controller.signal, cache: 'no-cache' });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 self.addEventListener('install', (event) => {
-  event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(shell)).then(() => self.skipWaiting()));
+  event.waitUntil((async () => {
+    const cache = await caches.open(CACHE_NAME);
+    const offline = await fetchWithTimeout(offlineUrl);
+    if (!offline.ok) throw new Error('Myage recovery page is unavailable.');
+    await cache.put(offlineUrl, offline);
+    // A single unavailable optional icon must not disable the whole worker.
+    await Promise.allSettled(shell.map(async (url) => {
+      const response = await fetchWithTimeout(url);
+      if (response.ok) await cache.put(url, response);
+    }));
+    await self.skipWaiting();
+  })());
 });
 
 self.addEventListener('activate', (event) => {
@@ -92,16 +114,22 @@ self.addEventListener('fetch', (event) => {
   if (/\/(?:api|storage|__clerk)(?:\/|$)/i.test(url.pathname) || /clerk/i.test(url.hostname)) return;
 
   if (request.mode === 'navigate') {
-    event.respondWith(fetch(request).catch(async () => {
+    event.respondWith(fetchWithTimeout(request).then((response) => {
+      if (response.status >= 500) throw new Error('Myage is temporarily unavailable.');
+      return response;
+    }).catch(async () => {
       const cache = await caches.open(CACHE_NAME);
-      return (await cache.match(scopeUrl.href)) || Response.error();
+      return (await cache.match(offlineUrl)) || new Response(
+        'Myage could not connect. Check your connection and reload this page.',
+        { status: 503, headers: { 'Content-Type': 'text/plain; charset=utf-8' } },
+      );
     }));
     return;
   }
 
   // Stable install metadata must refresh online rather than keeping old launch behavior.
-  if (/\/(?:manifest\.json|pwa-install\.js)$/.test(url.pathname)) {
-    event.respondWith(fetch(request).then(async (response) => {
+  if (/\/(?:manifest\.json|pwa-install\.js|pwa-launch\.js)$/.test(url.pathname)) {
+    event.respondWith(fetchWithTimeout(request).then(async (response) => {
       if (response.ok) {
         const cache = await caches.open(CACHE_NAME);
         await cache.put(request, response.clone());

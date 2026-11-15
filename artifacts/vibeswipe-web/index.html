@@ -22,6 +22,7 @@
     <meta name="twitter:title" content="Myage" />
     <meta name="twitter:description" content="An adults-only dating app for genuine conversation." />
     <script src="%BASE_URL%/pwa-install.js?v=8"></script>
+    <script defer src="%BASE_URL%/pwa-launch.js?v=9" data-production="%PROD%"></script>
     <link rel="manifest" href="%BASE_URL%/manifest.json?v=7" />
     <link rel="icon" type="image/svg+xml" href="%BASE_URL%/myage-pwa-icon.svg?v=7" />
     <link rel="icon" type="image/png" sizes="192x192" href="%BASE_URL%/myage-icon-192-v7.png" />
@@ -30,7 +31,18 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <section style="max-width:28rem;margin:15vh auto;padding:1.5rem;border-radius:1.5rem;background:#fff0f4;font:16px/1.6 system-ui,sans-serif;color:#27212b;text-align:center">
+        <h1 style="color:#db3678">Opening Myage…</h1>
+        <p>Please wait while the app loads.</p>
+        <div id="startup-help" hidden>
+          <p>If the app is not opening, check your connection and try again. Your account and messages are not being deleted.</p>
+          <button id="startup-retry" type="button" style="padding:.75rem 1rem;border:0;border-radius:1rem;background:#db3678;color:white;font:inherit;cursor:pointer">Try again</button>
+        </div>
+        <p><a href="%BASE_URL%/open.html" style="color:#af2059">Open launch help</a></p>
+        <noscript><p>Enable JavaScript to use Myage, or <a href="%BASE_URL%/open.html">open launch help</a>.</p></noscript>
+      </section>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

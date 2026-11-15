@@ -67,12 +67,12 @@ export function InstallAction({ className = '', compact = false, banner = false 
       store.clearPrompt(prompt);
       setShowHelp(choice.outcome === 'dismissed');
       if (choice.outcome === 'dismissed') {
-        setNotice('Installation was cancelled. You can also install from the Chrome menu.');
+        setNotice('Installation was cancelled. You can keep using the website or install from your browser’s menu.');
       }
     } catch (error) {
       console.warn('Myage installation prompt could not open.', error);
       store.clearPrompt(prompt);
-      setNotice('Chrome could not open its install prompt. Use the browser menu below instead.');
+      setNotice('The install prompt could not open. Keep using the website, or use your browser’s menu below.');
       setShowHelp(true);
     } finally {
       setBusy(false);
@@ -102,8 +102,9 @@ export function InstallAction({ className = '', compact = false, banner = false 
       {prompt ? <button onClick={() => void install()} disabled={busy} className="mb-3 w-full rounded-xl bg-primary px-4 py-2.5 font-bold text-[#24111b]">Install now</button>
         : <p className="mb-3">The browser hasn’t offered one-tap installation yet. Keep this page open briefly, or use its menu:</p>}
       {ios ? <ol className="list-decimal space-y-1 pl-4"><li>Open this website in Safari.</li><li>Tap <strong className="text-foreground">Share</strong>.</li><li>Choose <strong className="text-foreground">Add to Home Screen</strong>, then <strong className="text-foreground">Add</strong>.</li></ol>
-        : <ol className="list-decimal space-y-1 pl-4"><li>Tap Chrome’s <strong className="text-foreground">⋮</strong> menu.</li><li>Choose <strong className="text-foreground">Add to Home screen</strong> or <strong className="text-foreground">Install app</strong>.</li><li>If asked, choose <strong className="text-foreground">Install</strong> and confirm.</li></ol>}
-      <p className="mt-3">If no install option appears, update Chrome and open this site in a normal tab, not Incognito.</p>
+        : <ol className="list-decimal space-y-1 pl-4"><li>Open your browser’s menu, usually <strong className="text-foreground">⋮</strong> or <strong className="text-foreground">☰</strong>.</li><li>Choose <strong className="text-foreground">Add to Home screen</strong> or <strong className="text-foreground">Install app</strong>.</li><li>If asked, choose <strong className="text-foreground">Install</strong> and confirm.</li></ol>}
+      <p className="mt-3">If no install option appears, update your browser and use a normal tab, not private browsing. Chrome is not required to use this website.</p>
+      <a href={`${import.meta.env.BASE_URL}open.html`} target="_blank" rel="noopener" className="mt-3 inline-block font-semibold text-primary underline">Installed app won’t open? Get launch help</a>
     </div>}
   </div>;
 }
