@@ -4,5 +4,6 @@ export const modules: ModuleMap = {
   "./components/mockups/vibeswipe-discover/Current.tsx": () => import("../components/mockups/vibeswipe-discover/Current.tsx"),
   "./components/mockups/vibeswipe-discover/DiscoverRedesign.tsx": () => import("../components/mockups/vibeswipe-discover/DiscoverRedesign.tsx"),
   "./components/mockups/vibeswipe-landing/Current.tsx": () => import("../components/mockups/vibeswipe-landing/Current.tsx"),
-  "./components/mockups/vibeswipe-landing/Premium.tsx": () => import("../components/mockups/vibeswipe-landing/Premium.tsx")
+  "./components/mockups/vibeswipe-landing/Premium.tsx": () => import("../components/mockups/vibeswipe-landing/Premium.tsx"),
+  "./components/mockups/member-search/MemberSearch.tsx": () => import("../components/mockups/member-search/MemberSearch.tsx")
 };
