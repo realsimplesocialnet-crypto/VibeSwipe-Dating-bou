@@ -94,6 +94,7 @@ import type {
   ReelInput,
   ReelPage,
   ReelVideoTranscodeResult,
+  ReelViewCount,
   ReportInput,
   SearchTravelCitiesParams,
   StoriesFeed,
@@ -8475,6 +8476,80 @@ export const useDeleteReel = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getDeleteReelMutationOptions(options), queryClient);
+    }
+
+export const getRecordReelViewUrl = (reelId: string,) => {
+
+
+
+
+  return `/api/vibeswipe/reels/${reelId}/views`
+}
+
+/**
+ * @summary Record a Reel playback and return its updated view count
+ */
+export const recordReelView = async (reelId: string, options?: Parameters<typeof customFetch>[1]): Promise<ReelViewCount> => {
+
+  return customFetch<ReelViewCount>(getRecordReelViewUrl(reelId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getRecordReelViewMutationKey = () => ['recordReelView'] as const;
+
+export const getRecordReelViewMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof recordReelView>>, TError,RecordReelViewMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof recordReelView>>, TError,RecordReelViewMutationVariables, TContext> => {
+
+const mutationKey = getRecordReelViewMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof recordReelView>>, RecordReelViewMutationVariables> = (props) => {
+          const {reelId} = props ?? {};
+
+          return  recordReelView(reelId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RecordReelViewMutationResult = NonNullable<Awaited<ReturnType<typeof recordReelView>>>
+
+    export type RecordReelViewMutationError = ErrorType<void>
+    export type RecordReelViewMutationVariables = {reelId: string}
+
+    /**
+ * @summary Record a Reel playback and return its updated view count
+ */
+export const useRecordReelView = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof recordReelView>>, TError,RecordReelViewMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof recordReelView>>,
+        TError,
+        RecordReelViewMutationVariables,
+        TContext
+      > => {
+      return useMutation(getRecordReelViewMutationOptions(options), queryClient);
     }
 
 export const getLikeReelUrl = (reelId: string,) => {

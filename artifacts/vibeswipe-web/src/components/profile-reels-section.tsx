@@ -1,8 +1,8 @@
 import { useInfiniteQuery } from "@tanstack/react-query";
-import { Clapperboard, Play } from "lucide-react";
+import { Clapperboard, Eye, Play } from "lucide-react";
 import { Link } from "wouter";
 import { getGetProfileReelsQueryKey, getProfileReels, type Reel } from "@workspace/api-client-react";
-import { reelMediaUrl } from "@/lib/reels";
+import { formatCount, reelMediaUrl } from "@/lib/reels";
 
 export function ProfileReelsSection({
   profileId,
@@ -21,6 +21,8 @@ export function ProfileReelsSection({
     getNextPageParam: (page) => page.nextCursor ?? undefined,
     enabled: Boolean(profileId),
     staleTime: 60_000,
+    refetchInterval: 5_000,
+    refetchIntervalInBackground: false,
   });
   const reels = reelsQuery.data?.pages.flatMap((page) => page.items) ?? [];
 
@@ -82,10 +84,11 @@ export function ProfileReelsSection({
 }
 
 function ProfileReelThumbnail({ reel, returnTo }: { reel: Reel; returnTo: string }) {
+  const viewCount = Number(reel.viewCount ?? 0);
   return (
     <Link
       href={`/reels/${encodeURIComponent(reel.id)}?returnTo=${encodeURIComponent(returnTo)}`}
-      aria-label={`Play Reel: ${reel.caption || `posted by ${reel.creatorName}`}`}
+      aria-label={`Play Reel: ${reel.caption || `posted by ${reel.creatorName}`}, ${formatCount(viewCount)} ${viewCount === 1 ? "view" : "views"}`}
       data-testid={`link-profile-reel-${reel.id}`}
       className="group relative aspect-[9/16] w-[76px] shrink-0 overflow-hidden rounded-xl border border-white/10 bg-black/40 shadow-md sm:w-[86px]"
     >
@@ -101,6 +104,10 @@ function ProfileReelThumbnail({ reel, returnTo }: { reel: Reel; returnTo: string
         <span className="flex h-8 w-8 items-center justify-center rounded-full bg-black/45 text-white">
           <Play size={15} fill="currentColor" />
         </span>
+      </span>
+      <span className="absolute inset-x-1 bottom-1 flex items-center justify-center gap-1 rounded-full bg-black/70 px-1 py-1 text-[9px] font-bold leading-none text-white" data-testid={`text-profile-reel-views-${reel.id}`}>
+        <Eye size={10} aria-hidden="true" />
+        {formatCount(viewCount)} {viewCount === 1 ? "view" : "views"}
       </span>
     </Link>
   );

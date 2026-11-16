@@ -115,6 +115,7 @@ export * from './reelEngagement';
 export * from './reelInput';
 export * from './reelPage';
 export * from './reelVideoTranscodeResult';
+export * from './reelViewCount';
 export * from './reportInput';
 export * from './reportInputReason';
 export * from './searchTravelCitiesParams';

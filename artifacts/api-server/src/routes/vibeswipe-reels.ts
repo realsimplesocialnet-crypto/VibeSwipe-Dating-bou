@@ -4,12 +4,12 @@ import {
   DeleteReelCommentParams, DeleteReelParams, GetMyReelsQueryParams, GetMyReelsResponse, GetReelCommentsParams,
   GetReelCommentsResponse, GetReelParams, GetReelResponse, GetReelsFeedQueryParams, GetReelsFeedResponse,
   GetProfileReelsQueryParams, GetProfileReelsResponse, GetSavedReelsQueryParams, GetSavedReelsResponse, LikeReelParams, LikeReelResponse,
-  TranscodeReelVideoParams, TranscodeReelVideoResponse,
+  RecordReelViewResponse, TranscodeReelVideoParams, TranscodeReelVideoResponse,
 } from "@workspace/api-zod";
 import {
   blocksTable, db, mediaAssetsTable, profilesTable, reelCommentsTable, reelLikesTable, reelSavesTable, reelsTable, storiesTable, vibeSwipeNotificationsTable,
 } from "@workspace/db";
-import { and, asc, desc, eq, isNull, or, sql, type SQL } from "drizzle-orm";
+import { and, asc, desc, eq, isNull, ne, or, sql, type SQL } from "drizzle-orm";
 import { Router, type IRouter, type Request } from "express";
 import { requireAuth } from "../middlewares/auth";
 import { cleanReelCaption, decodeReelCursor, encodeReelCursor, reelAssetProblem, reelLocation } from "../lib/reel-cursor";
@@ -66,6 +66,7 @@ function reelColumns(viewerId: string) {
   return {
     id: reelsTable.id, userId: reelsTable.userId, mediaId: reelsTable.mediaId, caption: reelsTable.caption,
     durationSeconds: reelsTable.durationSeconds, createdAt: reelsTable.createdAt,
+    viewCount: reelsTable.viewCount,
     name: profilesTable.name, age: profilesTable.age, showAge: profilesTable.showAge, city: profilesTable.city,
     state: profilesTable.state, country: profilesTable.country, isVerified: profilesTable.isVerified, photos: profilesTable.photos,
     likeCount: sql<number>`(SELECT count(*)::int FROM ${reelLikesTable} WHERE ${reelLikesTable.reelId} = ${reelsTable.id})`,
@@ -90,6 +91,7 @@ function project(row: ReelRow, viewerId: string) {
     creatorLocation: reelLocation([row.city, row.state, row.country]), creatorVerified: row.isVerified,
     creatorPhoto: row.photos[0] ?? null, videoReference: `media:${row.mediaId}`, caption: row.caption,
     durationSeconds: row.durationSeconds, likeCount: Number(row.likeCount), commentCount: Number(row.commentCount),
+    viewCount: Number(row.viewCount),
     likedByMe: Boolean(row.likedByMe), savedByMe: Boolean(row.savedByMe), isOwner: row.userId === viewerId, createdAt: row.createdAt,
   };
 }
@@ -221,6 +223,28 @@ router.get("/vibeswipe/reels/:reelId", async (req, res): Promise<void> => {
   const row = await findVisibleReel(viewerId, params.data.reelId);
   if (!row) { res.status(404).json({ error: "This Reel is no longer available." }); return; }
   res.json(GetReelResponse.parse(project(row, viewerId)));
+});
+
+router.post("/vibeswipe/reels/:reelId/views", async (req, res): Promise<void> => {
+  const params = GetReelParams.safeParse(req.params);
+  if (!params.success) { res.status(400).json({ error: "Invalid Reel." }); return; }
+  const viewerId = uid(req);
+  const reel = await findVisibleReel(viewerId, params.data.reelId);
+  if (!reel) { res.status(404).json({ error: "This Reel is no longer available." }); return; }
+  if (reel.userId === viewerId) {
+    res.json(RecordReelViewResponse.parse({ viewCount: Number(reel.viewCount) }));
+    return;
+  }
+  const [updated] = await db.update(reelsTable)
+    .set({ viewCount: sql`${reelsTable.viewCount} + 1` })
+    .where(and(
+      eq(reelsTable.id, params.data.reelId),
+      ne(reelsTable.userId, viewerId),
+      visibleReelCondition(viewerId),
+    ))
+    .returning({ viewCount: reelsTable.viewCount });
+  if (!updated) { res.status(404).json({ error: "This Reel is no longer available." }); return; }
+  res.json(RecordReelViewResponse.parse({ viewCount: Number(updated.viewCount) }));
 });
 
 router.delete("/vibeswipe/reels/:reelId", async (req, res): Promise<void> => {

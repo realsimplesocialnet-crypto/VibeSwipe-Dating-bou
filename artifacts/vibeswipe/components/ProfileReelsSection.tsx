@@ -31,6 +31,8 @@ export function ProfileReelsSection({
     getNextPageParam: (page) => page.nextCursor ?? undefined,
     enabled: Boolean(profileId),
     staleTime: 60_000,
+    refetchInterval: 5_000,
+    refetchIntervalInBackground: false,
   });
   const reels = reelsQuery.data?.pages.flatMap((page) => page.items) ?? [];
 
@@ -109,6 +111,8 @@ function ReelThumbnail({
   token: string | null;
   onPress: () => void;
 }) {
+  const viewCount = Number(reel.viewCount ?? 0);
+  const viewLabel = `${formatViewCount(viewCount)} ${viewCount === 1 ? "view" : "views"}`;
   const uri = mediaUri(reel.videoReference);
   const source = useMemo(
     () => uri && token ? { uri, headers: { Authorization: `Bearer ${token}` } } : null,
@@ -123,7 +127,7 @@ function ReelThumbnail({
     <Pressable
       testID={`profile-reel-${reel.id}`}
       accessibilityRole="button"
-      accessibilityLabel={`Play Reel${reel.caption ? `: ${reel.caption}` : ""}`}
+      accessibilityLabel={`Play Reel${reel.caption ? `: ${reel.caption}` : ""}, ${viewLabel}`}
       onPress={onPress}
       style={({ pressed }) => [styles.thumbnail, { opacity: pressed ? 0.82 : 1 }]}
     >
@@ -135,6 +139,10 @@ function ReelThumbnail({
         )}
         <View pointerEvents="none" style={styles.playBadge}>
           <Feather name="play" size={14} color="#fff" />
+        </View>
+        <View pointerEvents="none" style={styles.viewCount}>
+          <Feather name="eye" size={10} color="#fff" />
+          <Text numberOfLines={1} style={styles.viewCountText} testID={`text-profile-reel-views-${reel.id}`}>{viewLabel}</Text>
         </View>
       </View>
     </Pressable>
@@ -152,7 +160,15 @@ const styles = StyleSheet.create({
   videoFrame: { flex: 1, overflow: "hidden" },
   videoFallback: { flex: 1, alignItems: "center", justifyContent: "center" },
   playBadge: { position: "absolute", left: "50%", top: "50%", width: 30, height: 30, marginLeft: -15, marginTop: -15, borderRadius: 15, backgroundColor: "rgba(0,0,0,0.52)", alignItems: "center", justifyContent: "center" },
+  viewCount: { position: "absolute", left: 4, right: 4, bottom: 4, minHeight: 20, paddingHorizontal: 4, borderRadius: 10, backgroundColor: "rgba(0,0,0,0.72)", flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 3 },
+  viewCountText: { color: "#fff", fontSize: 9, lineHeight: 12, fontWeight: "700", flexShrink: 1 },
   empty: { fontSize: 13, lineHeight: 19, paddingVertical: 2 },
   loading: { alignSelf: "flex-start", marginVertical: 14, marginLeft: 4 },
   more: { width: 34 },
 });
+
+function formatViewCount(value: number): string {
+  if (value < 1_000) return String(value);
+  if (value < 1_000_000) return `${(value / 1_000).toFixed(value < 10_000 ? 1 : 0).replace(/\.0$/, "")}k`;
+  return `${(value / 1_000_000).toFixed(1).replace(/\.0$/, "")}m`;
+}

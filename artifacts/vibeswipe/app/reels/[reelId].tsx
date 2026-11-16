@@ -1,10 +1,11 @@
 import { useAuth } from "@clerk/expo";
-import { useGetReel } from "@workspace/api-client-react";
+import { getGetProfileReelsQueryKey, useGetReel, useRecordReelView } from "@workspace/api-client-react";
 import { Feather } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import { VideoView, useVideoPlayer } from "expo-video";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
+import { useQueryClient } from "@tanstack/react-query";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { usePremiumColors } from "@/hooks/useColors";
 import { mediaUri } from "@/lib/media";
@@ -13,6 +14,9 @@ export default function ProfileReelScreen() {
   const { reelId, returnTo } = useLocalSearchParams<{ reelId: string; returnTo?: string }>();
   const colors = usePremiumColors();
   const { getToken } = useAuth();
+  const queryClient = useQueryClient();
+  const recordView = useRecordReelView();
+  const viewRecorded = useRef(false);
   const [token, setToken] = useState<string | null>(null);
   const reelQuery = useGetReel(reelId ?? "", { query: { enabled: Boolean(reelId) } });
 
@@ -38,12 +42,24 @@ export default function ProfileReelScreen() {
   useEffect(() => {
     if (!source) return;
     const update = (status: string) => {
-      if (status === "readyToPlay") player.play();
+      if (status === "readyToPlay") {
+        player.play();
+        if (reelQuery.data && !reelQuery.data.isOwner && !viewRecorded.current) {
+          viewRecorded.current = true;
+          recordView.mutate({ reelId: reelId ?? "" }, {
+            onSuccess: () => {
+              void queryClient.invalidateQueries({
+                queryKey: getGetProfileReelsQueryKey({ profileId: reelQuery.data!.creatorId }),
+              });
+            },
+          });
+        }
+      }
     };
     update(player.status);
     const subscription = player.addListener("statusChange", (event) => update(event.status));
     return () => subscription.remove();
-  }, [player, source]);
+  }, [player, source, reelQuery.data, recordView, reelId, queryClient]);
 
   function goBack() {
     if (router.canGoBack()) {

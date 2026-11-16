@@ -1,4 +1,4 @@
-import { doublePrecision, index, jsonb, pgTable, primaryKey, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { doublePrecision, index, integer, jsonb, pgTable, primaryKey, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { mediaAssetsTable, profilesTable } from "./vibeswipe";
 
 export const reelSafetyTable = pgTable("vibeswipe_reel_safety", {
@@ -16,6 +16,7 @@ export const reelsTable = pgTable("vibeswipe_reels", {
   mediaId: uuid("media_id").notNull().unique().references(() => mediaAssetsTable.id, { onDelete: "cascade" }),
   caption: text("caption").notNull().default(""),
   durationSeconds: doublePrecision("duration_seconds"),
+  viewCount: integer("view_count").notNull().default(0),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => ({ feed: index("vibeswipe_reels_feed_idx").on(t.createdAt, t.id) }));
 

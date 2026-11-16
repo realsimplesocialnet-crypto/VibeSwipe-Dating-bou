@@ -6,6 +6,7 @@ import { cleanReelCaption, decodeReelCursor, encodeReelCursor, reelAssetProblem,
 const read = (path: string) => readFileSync(new URL(path, import.meta.url), "utf8");
 const reels = read("../src/routes/vibeswipe-reels.ts");
 const visibility = read("../src/lib/reels-visibility.ts");
+const schema = read("../src/lib/reels-schema.ts");
 const media = read("../src/routes/vibeswipe.ts");
 const cleanup = read("../src/lib/profileMediaCleanup.ts");
 
@@ -49,4 +50,12 @@ test("writes are owner scoped and saves are private to the signed-in account", (
 test("Reel videos stream only while the Reel is visible and survive upload cleanup", () => {
   assert.match(media, /!\(await canViewReelMedia\(userId, asset\.id\)\)/);
   assert.match(cleanup, /eq\(reelsTable\.mediaId, asset\.id\)/);
+});
+
+test("Reel playback counts persist, return immediately, and exclude creator self-views", () => {
+  assert.match(reels, /router\.post\("\/vibeswipe\/reels\/:reelId\/views"/);
+  assert.match(reels, /if \(reel\.userId === viewerId\)/);
+  assert.match(reels, /viewCount: sql`\$\{reelsTable\.viewCount\} \+ 1`/);
+  assert.match(reels, /viewCount: Number\(updated\.viewCount\)/);
+  assert.match(schema, /ADD COLUMN IF NOT EXISTS view_count integer NOT NULL DEFAULT 0/);
 });

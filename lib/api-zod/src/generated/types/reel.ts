@@ -22,6 +22,8 @@ export interface Reel {
   durationSeconds: number | null;
   likeCount: number;
   commentCount: number;
+  /** @minimum 0 */
+  viewCount: number;
   likedByMe: boolean;
   savedByMe: boolean;
   isOwner: boolean;

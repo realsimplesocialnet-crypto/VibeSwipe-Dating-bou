@@ -11,10 +11,11 @@ type Props = {
   reel: Reel; index: number; active: boolean; near: boolean; muted: boolean; pageHidden: boolean;
   compact: boolean; showHint: boolean; returnTo: string;
   onLike: () => void; onComment: () => void; onShare: () => void; onSave: () => void; onDelete: () => void;
+  onView: () => void;
   offlineSaved: boolean; offlineSaving: boolean; onSaveOffline: () => void; onAutoCache: () => void;
 };
 
-export function ReelSlide({ reel, index, active, near, muted, pageHidden, compact, showHint, returnTo, onLike, onComment, onShare, onSave, onDelete, offlineSaved, offlineSaving, onSaveOffline, onAutoCache }: Props) {
+export function ReelSlide({ reel, index, active, near, muted, pageHidden, compact, showHint, returnTo, onLike, onComment, onShare, onSave, onDelete, onView, offlineSaved, offlineSaving, onSaveOffline, onAutoCache }: Props) {
   const video = useRef<HTMLVideoElement>(null);
   const bar = useRef<HTMLDivElement>(null);
   const autoCacheRequested = useRef(false);
@@ -82,6 +83,7 @@ export function ReelSlide({ reel, index, active, near, muted, pageHidden, compac
       playsInline muted loop
       preload={active ? "auto" : "metadata"}
       onLoadedData={() => setReady(true)}
+      onPlay={onView}
       onError={() => { if (near) setFailed(true); }}
       onTimeUpdate={(event) => {
         const element = event.currentTarget;

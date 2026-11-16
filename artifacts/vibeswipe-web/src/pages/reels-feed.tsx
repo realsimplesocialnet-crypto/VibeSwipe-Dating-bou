@@ -2,8 +2,8 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { Link, useLocation } from "wouter";
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  getGetMyReelsQueryKey, getGetReelQueryKey, getGetReelsFeedQueryKey, getGetSavedReelsQueryKey, getReelsFeed,
-  useDeleteReel, useGetReel, useLikeReel, useSaveReel, useUnlikeReel, useUnsaveReel, type Reel,
+  getGetMyReelsQueryKey, getGetProfileReelsQueryKey, getGetReelQueryKey, getGetReelsFeedQueryKey, getGetSavedReelsQueryKey, getReelsFeed,
+  useDeleteReel, useGetReel, useLikeReel, useRecordReelView, useSaveReel, useUnlikeReel, useUnsaveReel, type Reel,
 } from "@workspace/api-client-react";
 import { ArrowLeft, Bookmark, Clapperboard, Plus, Volume2, VolumeX } from "lucide-react";
 import { ReelSlide } from "@/components/reels/reel-slide";
@@ -91,6 +91,8 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
     refetchOnWindowFocus: false,
   });
   const like = useLikeReel(); const unlike = useUnlikeReel(); const save = useSaveReel(); const unsave = useUnsaveReel(); const del = useDeleteReel();
+  const recordView = useRecordReelView();
+  const viewedReels = useRef(new Set<string>());
   const loading = feed.isLoading || (Boolean(initialReelId) && single.isLoading);
 
   useEffect(() => {
@@ -206,6 +208,18 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
     }
   }
 
+  async function recordPlayback(reel: Reel) {
+    if (reel.isOwner || viewedReels.current.has(reel.id)) return;
+    viewedReels.current.add(reel.id);
+    try {
+      const result = await recordView.mutateAsync({ reelId: reel.id });
+      setPatches((current) => ({ ...current, [reel.id]: { ...current[reel.id], viewCount: result.viewCount } }));
+      void client.invalidateQueries({ queryKey: getGetProfileReelsQueryKey({ profileId: reel.creatorId }) });
+    } catch {
+      viewedReels.current.delete(reel.id);
+    }
+  }
+
   async function confirmDelete() {
     if (!deleteFor) return;
     try {
@@ -242,6 +256,7 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
              offlineSaved={offlineIds.has(reel.id)} offlineSaving={offlineSavingIds.has(reel.id)}
              onSaveOffline={() => void cacheOffline(reel, true)} onAutoCache={() => void cacheOffline(reel, false)}
             onLike={() => void toggle("like", reel)} onSave={() => void toggle("save", reel)}
+            onView={() => void recordPlayback(reel)}
             onComment={() => setCommentsFor(reel.id)} onShare={() => setShareFor(reel)} onDelete={() => setDeleteFor(reel)}
           />)}
         {feed.isFetchingNextPage && <div className="reels-more" aria-live="polite">Loading more Reels</div>}

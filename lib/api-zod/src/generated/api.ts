@@ -1781,6 +1781,10 @@ export const GetProfileReelsQueryParams = zod.object({
   "cursor": zod.coerce.string().max(getProfileReelsQueryCursorMax).optional()
 })
 
+export const getProfileReelsResponseItemsItemViewCountMin = 0;
+
+
+
 export const GetProfileReelsResponse = zod.object({
   "items": zod.array(zod.object({
   "id": zod.string().uuid(),
@@ -1795,6 +1799,7 @@ export const GetProfileReelsResponse = zod.object({
   "durationSeconds": zod.number().nullable(),
   "likeCount": zod.number().int(),
   "commentCount": zod.number().int(),
+  "viewCount": zod.number().int().min(getProfileReelsResponseItemsItemViewCountMin),
   "likedByMe": zod.boolean(),
   "savedByMe": zod.boolean(),
   "isOwner": zod.boolean(),
@@ -2146,6 +2151,10 @@ export const GetReelsFeedQueryParams = zod.object({
   "limit": zod.coerce.number().int().min(1).max(getReelsFeedQueryLimitMax).optional()
 })
 
+export const getReelsFeedResponseItemsItemViewCountMin = 0;
+
+
+
 export const GetReelsFeedResponse = zod.object({
   "items": zod.array(zod.object({
   "id": zod.string().uuid(),
@@ -2160,6 +2169,7 @@ export const GetReelsFeedResponse = zod.object({
   "durationSeconds": zod.number().nullable(),
   "likeCount": zod.number().int(),
   "commentCount": zod.number().int(),
+  "viewCount": zod.number().int().min(getReelsFeedResponseItemsItemViewCountMin),
   "likedByMe": zod.boolean(),
   "savedByMe": zod.boolean(),
   "isOwner": zod.boolean(),
@@ -2181,6 +2191,10 @@ export const CreateReelBody = zod.object({
   "caption": zod.string().max(createReelBodyCaptionMax).optional()
 })
 
+export const createReelResponseViewCountMin = 0;
+
+
+
 export const CreateReelResponse = zod.object({
   "id": zod.string().uuid(),
   "creatorId": zod.string(),
@@ -2194,6 +2208,7 @@ export const CreateReelResponse = zod.object({
   "durationSeconds": zod.number().nullable(),
   "likeCount": zod.number().int(),
   "commentCount": zod.number().int(),
+  "viewCount": zod.number().int().min(createReelResponseViewCountMin),
   "likedByMe": zod.boolean(),
   "savedByMe": zod.boolean(),
   "isOwner": zod.boolean(),
@@ -2238,6 +2253,10 @@ export const GetSavedReelsQueryParams = zod.object({
   "cursor": zod.coerce.string().max(getSavedReelsQueryCursorMax).optional()
 })
 
+export const getSavedReelsResponseItemsItemViewCountMin = 0;
+
+
+
 export const GetSavedReelsResponse = zod.object({
   "items": zod.array(zod.object({
   "id": zod.string().uuid(),
@@ -2252,6 +2271,7 @@ export const GetSavedReelsResponse = zod.object({
   "durationSeconds": zod.number().nullable(),
   "likeCount": zod.number().int(),
   "commentCount": zod.number().int(),
+  "viewCount": zod.number().int().min(getSavedReelsResponseItemsItemViewCountMin),
   "likedByMe": zod.boolean(),
   "savedByMe": zod.boolean(),
   "isOwner": zod.boolean(),
@@ -2272,6 +2292,10 @@ export const GetMyReelsQueryParams = zod.object({
   "cursor": zod.coerce.string().max(getMyReelsQueryCursorMax).optional()
 })
 
+export const getMyReelsResponseItemsItemViewCountMin = 0;
+
+
+
 export const GetMyReelsResponse = zod.object({
   "items": zod.array(zod.object({
   "id": zod.string().uuid(),
@@ -2286,6 +2310,7 @@ export const GetMyReelsResponse = zod.object({
   "durationSeconds": zod.number().nullable(),
   "likeCount": zod.number().int(),
   "commentCount": zod.number().int(),
+  "viewCount": zod.number().int().min(getMyReelsResponseItemsItemViewCountMin),
   "likedByMe": zod.boolean(),
   "savedByMe": zod.boolean(),
   "isOwner": zod.boolean(),
@@ -2302,6 +2327,10 @@ export const GetReelParams = zod.object({
   "reelId": zod.coerce.string().uuid()
 })
 
+export const getReelResponseViewCountMin = 0;
+
+
+
 export const GetReelResponse = zod.object({
   "id": zod.string().uuid(),
   "creatorId": zod.string(),
@@ -2315,6 +2344,7 @@ export const GetReelResponse = zod.object({
   "durationSeconds": zod.number().nullable(),
   "likeCount": zod.number().int(),
   "commentCount": zod.number().int(),
+  "viewCount": zod.number().int().min(getReelResponseViewCountMin),
   "likedByMe": zod.boolean(),
   "savedByMe": zod.boolean(),
   "isOwner": zod.boolean(),
@@ -2330,6 +2360,22 @@ export const DeleteReelParams = zod.object({
 })
 
 export const DeleteReelResponse = zod.void()
+
+
+/**
+ * @summary Record a Reel playback and return its updated view count
+ */
+export const RecordReelViewParams = zod.object({
+  "reelId": zod.coerce.string().uuid()
+})
+
+export const recordReelViewResponseViewCountMin = 0;
+
+
+
+export const RecordReelViewResponse = zod.object({
+  "viewCount": zod.number().int().min(recordReelViewResponseViewCountMin)
+})
 
 
 export const LikeReelParams = zod.object({

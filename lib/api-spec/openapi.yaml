@@ -1575,6 +1575,21 @@ paths:
           description: Reel deleted
         "404":
           description: Reel not found
+  /vibeswipe/reels/{reelId}/views:
+    post:
+      operationId: recordReelView
+      tags: [vibeswipe]
+      summary: Record a Reel playback and return its updated view count
+      parameters:
+        - { in: path, name: reelId, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200":
+          description: Updated Reel view count
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ReelViewCount" }
+        "404":
+          description: Reel removed or unavailable
   /vibeswipe/reels/{reelId}/like:
     put:
       operationId: likeReel
@@ -2441,11 +2456,17 @@ components:
         durationSeconds: { type: ["number", "null"] }
         likeCount: { type: integer }
         commentCount: { type: integer }
+        viewCount: { type: integer, minimum: 0 }
         likedByMe: { type: boolean }
         savedByMe: { type: boolean }
         isOwner: { type: boolean }
         createdAt: { type: string, format: date-time }
-      required: [id, creatorId, creatorName, creatorAge, creatorLocation, creatorVerified, creatorPhoto, videoReference, caption, durationSeconds, likeCount, commentCount, likedByMe, savedByMe, isOwner, createdAt]
+      required: [id, creatorId, creatorName, creatorAge, creatorLocation, creatorVerified, creatorPhoto, videoReference, caption, durationSeconds, likeCount, commentCount, viewCount, likedByMe, savedByMe, isOwner, createdAt]
+    ReelViewCount:
+      type: object
+      properties:
+        viewCount: { type: integer, minimum: 0 }
+      required: [viewCount]
     ReelPage:
       type: object
       properties:
