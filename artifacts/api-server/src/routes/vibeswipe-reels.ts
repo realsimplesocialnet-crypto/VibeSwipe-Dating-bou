@@ -125,7 +125,9 @@ router.get("/vibeswipe/reels", async (req, res): Promise<void> => {
       ? and(...terms.map((term) => or(
         sql`to_tsvector('english', coalesce(${reelsTable.caption}, '')) @@ plainto_tsquery('english', ${term})`,
         sql`to_tsvector('english', coalesce(${profilesTable.name}, '')) @@ plainto_tsquery('english', ${term})`,
-        sql`to_tsvector('english', coalesce(${profilesTable.city}, '') || ' ' || coalesce(${profilesTable.state}, '') || ' ' || coalesce(${profilesTable.country}, '')) @@ plainto_tsquery('english', ${term})`,
+        sql`to_tsvector('english', coalesce(${profilesTable.city}, '')) @@ plainto_tsquery('english', ${term})`,
+        sql`to_tsvector('english', coalesce(${profilesTable.state}, '')) @@ plainto_tsquery('english', ${term})`,
+        sql`to_tsvector('english', coalesce(${profilesTable.country}, '')) @@ plainto_tsquery('english', ${term})`,
       )))
       : sql`false`
     : undefined;

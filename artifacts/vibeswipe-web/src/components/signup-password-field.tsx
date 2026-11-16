@@ -25,7 +25,7 @@ export function SignupPasswordField({ value, onChange }: {
         onInput={(event) => onChange(event.currentTarget.value)}
         className="field min-h-12 pr-24 text-base signup-password"
         style={{ WebkitTextSecurity: visible ? 'none' : 'disc' } as React.CSSProperties}
-        placeholder="At least 8 characters" aria-describedby={`${id}-visibility`}/>
+        minLength={15} placeholder="At least 15 characters" aria-describedby={`${id}-visibility`}/>
       <button type="button" onPointerDown={(event) => event.preventDefault()} onClick={toggle}
         data-testid="button-toggle-signup-password" aria-label={visible ? 'Hide password' : 'Show password'}
         aria-pressed={visible} aria-controls={id}

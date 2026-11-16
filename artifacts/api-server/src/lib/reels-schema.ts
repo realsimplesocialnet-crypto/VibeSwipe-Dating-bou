@@ -3,9 +3,12 @@ import { pool } from "@workspace/db";
 async function ensureReelSearchIndexes(): Promise<void> {
   const client = await pool.connect();
   try {
+    await client.query("DROP INDEX CONCURRENTLY IF EXISTS vibeswipe_profiles_location_search_idx");
     await client.query("CREATE INDEX CONCURRENTLY IF NOT EXISTS vibeswipe_reels_caption_search_idx ON vibeswipe_reels USING GIN (to_tsvector('english', coalesce(caption, '')))");
     await client.query("CREATE INDEX CONCURRENTLY IF NOT EXISTS vibeswipe_profiles_name_search_idx ON vibeswipe_profiles USING GIN (to_tsvector('english', coalesce(name, '')))");
-    await client.query("CREATE INDEX CONCURRENTLY IF NOT EXISTS vibeswipe_profiles_location_search_idx ON vibeswipe_profiles USING GIN (to_tsvector('english', coalesce(city, '') || ' ' || coalesce(state, '') || ' ' || coalesce(country, '')))");
+    await client.query("CREATE INDEX CONCURRENTLY IF NOT EXISTS vibeswipe_profiles_city_search_idx ON vibeswipe_profiles USING GIN (to_tsvector('english', coalesce(city, '')))");
+    await client.query("CREATE INDEX CONCURRENTLY IF NOT EXISTS vibeswipe_profiles_state_search_idx ON vibeswipe_profiles USING GIN (to_tsvector('english', coalesce(state, '')))");
+    await client.query("CREATE INDEX CONCURRENTLY IF NOT EXISTS vibeswipe_profiles_country_search_idx ON vibeswipe_profiles USING GIN (to_tsvector('english', coalesce(country, '')))");
   } catch (error) {
     console.error("Could not finish creating Reel search indexes.", error);
   } finally {

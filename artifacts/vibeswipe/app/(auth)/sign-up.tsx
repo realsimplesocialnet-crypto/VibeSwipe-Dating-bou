@@ -25,7 +25,7 @@ export default function SignUpScreen() {
   const [message, setMessage] = useState("");
   const normalizedEmail = emailAddress.trim();
   const emailIsValid = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(normalizedEmail);
-  const passwordIsTooShort = password.length > 0 && password.length < 8;
+  const passwordIsTooShort = password.length > 0 && password.length < 15;
   const verifying = signUp.status === "missing_requirements" &&
     signUp.unverifiedFields.includes("email_address") &&
     signUp.missingFields.length === 0;
@@ -33,7 +33,7 @@ export default function SignUpScreen() {
     fetchStatus === "fetching" ||
     (verifying && !code) ||
     (!verifying && step === "email" && !emailIsValid) ||
-    (!verifying && step === "password" && password.length < 8);
+    (!verifying && step === "password" && password.length < 15);
 
   function continueToPassword() {
     setMessage("");
@@ -50,8 +50,8 @@ export default function SignUpScreen() {
       setMessage("Enter a valid email address.");
       return;
     }
-    if (password.length < 8) {
-      setMessage("Password must be at least 8 characters");
+    if (password.length < 15) {
+      setMessage("Password must be at least 15 characters");
       return;
     }
     const { error } = await signUp.password({ emailAddress: normalizedEmail, password });
@@ -123,7 +123,7 @@ export default function SignUpScreen() {
           ? `We sent a code to ${emailAddress}.`
           : step === "email"
             ? "Enter your email to begin creating your account."
-            : "Choose a password with at least 8 characters."}
+            : "Choose a password with at least 15 characters."}
       </Text>
       {verifying ? (
         <>
@@ -173,7 +173,7 @@ export default function SignUpScreen() {
                 setPassword(value);
                 setMessage("");
               }}
-              placeholder="At least 8 characters"
+              placeholder="At least 15 characters"
               placeholderTextColor={colors.mutedForeground}
               style={[styles.passwordInput, { color: colors.foreground }]}
             />
@@ -189,9 +189,9 @@ export default function SignUpScreen() {
             </Pressable>
           </View>
           {passwordIsTooShort ? (
-            <Text style={[styles.fieldError, { color: colors.destructive }]}>Password must be at least 8 characters</Text>
+            <Text style={[styles.fieldError, { color: colors.destructive }]}>Password must be at least 15 characters</Text>
           ) : password.length === 0 ? (
-            <Text style={[styles.passwordHint, { color: colors.mutedForeground }]}>Use at least 8 characters.</Text>
+            <Text style={[styles.passwordHint, { color: colors.mutedForeground }]}>Use at least 15 characters.</Text>
           ) : null}
         </>
       )}

@@ -41,7 +41,12 @@ test("Reel search extracts useful terms from topics and place names", () => {
   assert.deepEqual(reelSearchTerms("東京 police"), ["東京", "police"]);
   assert.match(reels, /to_tsvector\('english', coalesce\(\$\{reelsTable\.caption\}, ''\)\)/);
   assert.match(reels, /creatorLocation/);
-  assert.match(schema, /vibeswipe_profiles_location_search_idx/);
+  assert.match(reels, /profilesTable\.city/);
+  assert.match(reels, /profilesTable\.state/);
+  assert.match(reels, /profilesTable\.country/);
+  for (const field of ["city", "state", "country"]) {
+    assert.match(schema, new RegExp(`vibeswipe_profiles_${field}_search_idx`));
+  }
 });
 
 test("feed visibility excludes blocks, deactivated, suspended and deleted creators", () => {
