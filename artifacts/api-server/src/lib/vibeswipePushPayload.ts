@@ -1,7 +1,7 @@
 export type VibeSwipePushPayload = {
   title: string;
   body: string;
-  data: { type: string; url: string; matchId?: string; reelId?: string };
+  data: { type: string; url: string; matchId?: string; reelId?: string; commentId?: string };
 };
 
 export function buildReelLikePushPayload(actorName: string, reelId: string): VibeSwipePushPayload {
@@ -9,6 +9,19 @@ export function buildReelLikePushPayload(actorName: string, reelId: string): Vib
     title: "New Reel like",
     body: `${actorName.trim() || "Someone"} liked your video`,
     data: { type: "reel_like", reelId, url: `reels/${encodeURIComponent(reelId)}?returnTo=%2Fnotifications` },
+  };
+}
+
+export function buildReelCommentReplyPushPayload(actorName: string, reelId: string, commentId: string): VibeSwipePushPayload {
+  return {
+    title: "New reply to your comment",
+    body: `${actorName.trim() || "Someone"} replied to your comment`,
+    data: {
+      type: "reel_comment_reply",
+      reelId,
+      commentId,
+      url: `reels/${encodeURIComponent(reelId)}?commentId=${encodeURIComponent(commentId)}&returnTo=%2Fnotifications`,
+    },
   };
 }
 

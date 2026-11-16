@@ -71,7 +71,7 @@ export function ActivityOverview({ avatar }: { avatar: AvatarFn }) {
   const views = useGetWhoViewedYou({ query: { queryKey: getGetWhoViewedYouQueryKey(), ...live } });
   const mark = useMarkNotificationRead();
   const am = useMemo(() => activeMatches(matches.data), [matches.data]);
-  const reelNotices = (notes.data?.notifications ?? []).filter(n => n.type === 'reel_like');
+  const reelNotices = (notes.data?.notifications ?? []).filter(n => n.type === 'reel_like' || n.type === 'reel_comment_reply');
   const msgs = useMemo(() => (notes.data?.notifications ?? []).filter(n => n.type === 'new_message' && am.some(m => m.id === n.matchId && m.profile.id === n.actor.id)).slice(0, 8), [notes.data, am]);
   const superNotices = useMemo(() => (notes.data?.notifications ?? []).filter(n => n.type === 'new_super_like' && likes.data?.some(l => l.profile.id === n.actor.id && l.isSuperLike)).slice(0, 8), [notes.data, likes.data]);
   const openMsg = async (id: string, unread: boolean) => {
@@ -92,10 +92,14 @@ export function ActivityOverview({ avatar }: { avatar: AvatarFn }) {
             try { await mark.mutateAsync({ notificationId: n.id }); } catch { /* Keep the Reel reachable. */ }
             void qc.invalidateQueries({ queryKey: getGetNotificationsQueryKey() });
           }
-          go(n.reelId ? `/reels/${n.reelId}?returnTo=%2Fnotifications` : `/profile/${n.actor.id}?returnTo=%2Fnotifications`);
+          if (n.reelId) {
+            const params = new URLSearchParams({ returnTo: '/notifications' });
+            if (n.type === 'reel_comment_reply' && n.commentId) params.set('commentId', n.commentId);
+            go(`/reels/${n.reelId}?${params.toString()}`);
+          } else go(`/profile/${n.actor.id}?returnTo=%2Fnotifications`);
         }}
         className="sh-card flex w-full items-center gap-3 rounded-[18px] px-4 py-3 text-left">
-        {avatar(n.actor)}<span className="min-w-0 flex-1 text-sm"><strong className="text-primary">{n.actor.name}</strong> liked your video</span>
+        {avatar(n.actor)}<span className="min-w-0 flex-1 text-sm"><strong className="text-primary">{n.actor.name}</strong> {n.type === 'reel_comment_reply' ? 'replied to your comment' : 'liked your video'}</span>
         <time className="sh-muted text-xs" dateTime={n.createdAt}>{ago(n.createdAt)}</time>
         {!n.readAt && <span className="h-2 w-2 shrink-0 rounded-full bg-primary" aria-label="Unread" />}
       </button>)}

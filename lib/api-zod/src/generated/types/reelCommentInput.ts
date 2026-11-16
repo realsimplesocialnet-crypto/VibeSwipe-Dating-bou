@@ -12,4 +12,5 @@ export interface ReelCommentInput {
      * @maxLength 500
      */
   content: string;
+  parentCommentId?: string;
 }

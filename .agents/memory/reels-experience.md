@@ -39,6 +39,12 @@ Comments must open low down without covering the video, including while the mobi
 
 **How to apply:** Reserve space below the visible video for the comment panel and input instead of placing an opaque sheet over the video.
 
+Comment authors' names and photos open their public profiles. Members can reply to top-level Reel comments, and the original commenter receives an Activity and push notification for each reply.
+
+**Why:** The user asked to open commenters' profiles and notify someone when another member replies to their comment.
+
+**How to apply:** Keep the original comment visible with its replies, preserve the Reel as the return destination from a commenter profile, and link reply alerts directly to the replied-to comment.
+
 Opening Reels must show a full-screen vertical feed with no main branding header, bottom navigation tabs, or in-app notification popups over the video. Users swipe up and down to watch more public member Reels; the feed is not limited to mutual matches.
 
 Normal viewing should reach the screen edges without a hard black strip separating the video or app background from the iPhone status area. Keep controls clear of the notch and home indicator, rather than shrinking the whole background.

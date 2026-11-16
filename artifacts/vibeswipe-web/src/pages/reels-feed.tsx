@@ -69,7 +69,8 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
   const activeRef = useRef(0);
   activeRef.current = active;
   const [muted, setMuted] = useState(true);
-  const [commentsFor, setCommentsFor] = useState<string | null>(null);
+  const initialCommentId = new URLSearchParams(window.location.search).get("commentId");
+  const [commentsFor, setCommentsFor] = useState<string | null>(() => initialReelId && initialCommentId ? initialReelId : null);
   const [shareFor, setShareFor] = useState<Reel | null>(null);
   const [deleteFor, setDeleteFor] = useState<Reel | null>(null);
   const [patches, setPatches] = useState<Record<string, Partial<Reel>>>({});
@@ -217,7 +218,7 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
       {notice && <p role="status" className="reels-notice" data-testid="status-reels">{notice}</p>}
       {initialReelId && single.isError && <p role="status" className="reels-notice" data-testid="status-reel-unavailable">That Reel is no longer available. Showing other Reels.</p>}
     </div>
-    {commentReel && <ReelComments key={commentReel.id} reelId={commentReel.id} onClose={() => setCommentsFor(null)} onCountChange={(delta) => patch(commentReel.id, { commentCount: Math.max(0, commentReel.commentCount + delta) })} />}
+    {commentReel && <ReelComments key={commentReel.id} reelId={commentReel.id} focusCommentId={initialCommentId} onClose={() => setCommentsFor(null)} onCountChange={(delta) => patch(commentReel.id, { commentCount: Math.max(0, commentReel.commentCount + delta) })} />}
     {shareFor && <ReelShareSheet reel={shareFor} onClose={() => setShareFor(null)} />}
     {deleteFor && <div className="reel-sheet-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setDeleteFor(null); }}>
       <section className="reel-sheet" role="alertdialog" aria-modal="true" aria-label="Delete Reel">

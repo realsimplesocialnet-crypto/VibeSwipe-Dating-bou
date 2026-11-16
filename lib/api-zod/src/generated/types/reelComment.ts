@@ -9,6 +9,8 @@
 export interface ReelComment {
   id: string;
   reelId: string;
+  /** @nullable */
+  parentCommentId: string | null;
   authorId: string;
   authorName: string;
   /** @nullable */

@@ -1544,7 +1544,7 @@ export const getNotificationsResponseUnreadCountsReelsMin = 0;
 export const GetNotificationsResponse = zod.object({
   "notifications": zod.array(zod.object({
   "id": zod.string().uuid(),
-  "type": zod.enum(['new_match', 'new_message', 'new_like', 'new_super_like', 'profile_view', 'reel_like']),
+  "type": zod.enum(['new_match', 'new_message', 'new_like', 'new_super_like', 'profile_view', 'reel_like', 'reel_comment_reply']),
   "actor": zod.object({
   "id": zod.string(),
   "name": zod.string(),
@@ -1583,6 +1583,7 @@ export const GetNotificationsResponse = zod.object({
   "matchId": zod.string().uuid().nullish(),
   "messageId": zod.string().uuid().nullish(),
   "reelId": zod.string().uuid().nullish(),
+  "commentId": zod.string().uuid().nullable(),
   "createdAt": zod.coerce.date(),
   "readAt": zod.coerce.date().nullable()
 })),
@@ -1591,7 +1592,7 @@ export const GetNotificationsResponse = zod.object({
   "messages": zod.number().int().min(getNotificationsResponseUnreadCountsMessagesMin),
   "views": zod.number().int().min(getNotificationsResponseUnreadCountsViewsMin),
   "likes": zod.number().int().min(getNotificationsResponseUnreadCountsLikesMin),
-  "reels": zod.number().int().min(getNotificationsResponseUnreadCountsReelsMin).optional()
+  "reels": zod.number().int().min(getNotificationsResponseUnreadCountsReelsMin)
 })
 })
 
@@ -2348,6 +2349,7 @@ export const GetReelCommentsParams = zod.object({
 export const GetReelCommentsResponseItem = zod.object({
   "id": zod.string().uuid(),
   "reelId": zod.string().uuid(),
+  "parentCommentId": zod.string().uuid().nullable(),
   "authorId": zod.string(),
   "authorName": zod.string(),
   "authorPhoto": zod.string().nullable(),
@@ -2367,12 +2369,14 @@ export const createReelCommentBodyContentMax = 500;
 
 
 export const CreateReelCommentBody = zod.object({
-  "content": zod.string().min(1).max(createReelCommentBodyContentMax)
+  "content": zod.string().min(1).max(createReelCommentBodyContentMax),
+  "parentCommentId": zod.string().uuid().optional()
 })
 
 export const CreateReelCommentResponse = zod.object({
   "id": zod.string().uuid(),
   "reelId": zod.string().uuid(),
+  "parentCommentId": zod.string().uuid().nullable(),
   "authorId": zod.string(),
   "authorName": zod.string(),
   "authorPhoto": zod.string().nullable(),

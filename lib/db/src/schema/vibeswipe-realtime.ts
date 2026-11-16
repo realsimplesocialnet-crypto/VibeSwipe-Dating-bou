@@ -51,6 +51,7 @@ export const vibeSwipeNotificationsTable = pgTable(
       .references(() => profilesTable.id, { onDelete: "cascade" }),
     type: text("type").notNull(),
     reelId: uuid("reel_id"),
+    commentId: uuid("comment_id"),
     matchId: uuid("match_id").references(() => matchesTable.id, {
       onDelete: "set null",
     }),

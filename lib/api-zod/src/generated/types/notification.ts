@@ -18,6 +18,8 @@ export interface Notification {
   messageId?: string | null;
   /** @nullable */
   reelId?: string | null;
+  /** @nullable */
+  commentId: string | null;
   createdAt: Date;
   /** @nullable */
   readAt: Date | null;

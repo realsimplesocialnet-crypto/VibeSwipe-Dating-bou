@@ -9,7 +9,7 @@ import {
 import {
   blocksTable, db, mediaAssetsTable, profilesTable, reelCommentsTable, reelLikesTable, reelSavesTable, reelsTable, storiesTable, vibeSwipeNotificationsTable,
 } from "@workspace/db";
-import { and, asc, desc, eq, sql, type SQL } from "drizzle-orm";
+import { and, asc, desc, eq, isNull, sql, type SQL } from "drizzle-orm";
 import { Router, type IRouter, type Request } from "express";
 import { requireAuth } from "../middlewares/auth";
 import { cleanReelCaption, decodeReelCursor, encodeReelCursor, reelAssetProblem, reelLocation } from "../lib/reel-cursor";
@@ -19,7 +19,7 @@ import { ObjectNotFoundError, ObjectStorageService } from "../lib/objectStorage"
 import { ProfileVideoValidationError, transcodeReelVideo } from "../lib/profileVideoTranscoder";
 import { processSafeReel, reelIsApproved } from "../lib/reel-safety";
 import { ReelSafetyError } from "../lib/reel-safety-policy";
-import { sendReelLikePush } from "../lib/vibeswipePush";
+import { sendReelCommentReplyPush, sendReelLikePush } from "../lib/vibeswipePush";
 
 const router: IRouter = Router();
 router.use("/vibeswipe/reels", requireAuth);
@@ -250,7 +250,8 @@ router.get("/vibeswipe/reels/:reelId/comments", async (req, res): Promise<void> 
   if (!reel) { res.status(404).json({ error: "This Reel is no longer available." }); return; }
   const rows = await db.select({
     id: reelCommentsTable.id, reelId: reelCommentsTable.reelId, authorId: reelCommentsTable.userId,
-    content: reelCommentsTable.content, createdAt: reelCommentsTable.createdAt, name: profilesTable.name, photos: profilesTable.photos,
+    parentCommentId: reelCommentsTable.parentCommentId, content: reelCommentsTable.content,
+    createdAt: reelCommentsTable.createdAt, name: profilesTable.name, photos: profilesTable.photos,
   }).from(reelCommentsTable)
     .innerJoin(profilesTable, eq(profilesTable.id, reelCommentsTable.userId))
     .where(and(
@@ -261,7 +262,7 @@ router.get("/vibeswipe/reels/:reelId/comments", async (req, res): Promise<void> 
     ))
     .orderBy(desc(reelCommentsTable.createdAt)).limit(100);
   res.json(GetReelCommentsResponse.parse(rows.reverse().map((row) => ({
-    id: row.id, reelId: row.reelId, authorId: row.authorId, authorName: row.name, authorPhoto: row.photos[0] ?? null,
+    id: row.id, reelId: row.reelId, parentCommentId: row.parentCommentId, authorId: row.authorId, authorName: row.name, authorPhoto: row.photos[0] ?? null,
     content: row.content, canDelete: row.authorId === viewerId || reel.userId === viewerId, createdAt: row.createdAt,
   }))));
 });
@@ -269,15 +270,54 @@ router.get("/vibeswipe/reels/:reelId/comments", async (req, res): Promise<void> 
 router.post("/vibeswipe/reels/:reelId/comments", async (req, res): Promise<void> => {
   const params = CreateReelCommentParams.safeParse(req.params);
   const body = CreateReelCommentBody.safeParse(req.body);
-  const content = body.success ? body.data.content.trim() : "";
-  if (!params.success || !content) { res.status(400).json({ error: "Write a comment up to 500 characters." }); return; }
+  if (!params.success || !body.success) { res.status(400).json({ error: "Write a comment up to 500 characters." }); return; }
+  const content = body.data.content.trim();
+  if (!content) { res.status(400).json({ error: "Write a comment up to 500 characters." }); return; }
   const userId = uid(req);
   const reel = await findVisibleReel(userId, params.data.reelId);
   if (!reel) { res.status(404).json({ error: "This Reel is no longer available." }); return; }
-  const [comment] = await db.insert(reelCommentsTable).values({ reelId: reel.id, userId, content, createdAt: new Date() }).returning();
+  const parentCommentId = body.data.parentCommentId;
+  let parentAuthorId: string | null = null;
+  if (parentCommentId) {
+    const [parent] = await db.select({
+      id: reelCommentsTable.id, authorId: reelCommentsTable.userId,
+    }).from(reelCommentsTable)
+      .innerJoin(profilesTable, eq(profilesTable.id, reelCommentsTable.userId))
+      .where(and(
+        eq(reelCommentsTable.id, parentCommentId),
+        eq(reelCommentsTable.reelId, reel.id),
+        isNull(reelCommentsTable.parentCommentId),
+        eq(profilesTable.deactivated, false),
+        eq(profilesTable.adminSuspended, false),
+        sql`NOT EXISTS (SELECT 1 FROM ${blocksTable} WHERE (${blocksTable.blockerId} = ${userId} AND ${blocksTable.blockedId} = ${reelCommentsTable.userId}) OR (${blocksTable.blockerId} = ${reelCommentsTable.userId} AND ${blocksTable.blockedId} = ${userId}))`,
+      )).limit(1);
+    if (!parent) { res.status(404).json({ error: "That comment is no longer available to reply to." }); return; }
+    parentAuthorId = parent.authorId;
+  }
+  const [comment] = await db.transaction(async (tx) => {
+    const [created] = await tx.insert(reelCommentsTable).values({
+      reelId: reel.id, parentCommentId: parentCommentId ?? null, userId, content, createdAt: new Date(),
+    }).returning();
+    if (created && parentAuthorId && parentAuthorId !== userId) {
+      const [recipient] = await tx.select({
+        notifyLikes: profilesTable.notifyLikes, notifyMatches: profilesTable.notifyMatches,
+      }).from(profilesTable).where(eq(profilesTable.id, parentAuthorId)).limit(1);
+      if (recipient && (recipient.notifyLikes ?? recipient.notifyMatches)) {
+        await tx.insert(vibeSwipeNotificationsTable).values({
+          recipientId: parentAuthorId, actorId: userId, type: "reel_comment_reply", reelId: reel.id, commentId: created.id,
+        });
+      }
+    }
+    return [created];
+  });
   const [me] = await db.select({ name: profilesTable.name, photos: profilesTable.photos }).from(profilesTable).where(eq(profilesTable.id, userId)).limit(1);
+  if (parentAuthorId && parentAuthorId !== userId) {
+    void sendReelCommentReplyPush({
+      recipientId: parentAuthorId, actorName: me?.name ?? "Someone", reelId: reel.id, commentId: comment!.id,
+    }).catch(error => req.log.error({ err: error, reelId: reel.id }, "Could not deliver Reel comment reply push"));
+  }
   res.status(201).json(CreateReelCommentResponse.parse({
-    id: comment!.id, reelId: reel.id, authorId: userId, authorName: me?.name ?? "You", authorPhoto: me?.photos[0] ?? null,
+    id: comment!.id, reelId: reel.id, parentCommentId: comment!.parentCommentId, authorId: userId, authorName: me?.name ?? "You", authorPhoto: me?.photos[0] ?? null,
     content, canDelete: true, createdAt: comment!.createdAt,
   }));
 });

@@ -62,8 +62,10 @@ self.addEventListener('push', (event) => {
     body: typeof payload.body === 'string' ? payload.body : 'You have a new message.',
     icon: new URL('myage-icon-192-v7.png', scopeUrl).href,
     badge: new URL('myage-icon-192-v7.png', scopeUrl).href,
-    tag: data.type === 'reel_like' && typeof data.reelId === 'string'
-      ? `reel-like-${data.reelId}` : typeof data.matchId === 'string' ? `message-${data.matchId}` : 'myage-message',
+    tag: data.type === 'reel_comment_reply' && typeof data.commentId === 'string'
+      ? `reel-comment-reply-${data.commentId}`
+      : data.type === 'reel_like' && typeof data.reelId === 'string'
+        ? `reel-like-${data.reelId}` : typeof data.matchId === 'string' ? `message-${data.matchId}` : 'myage-message',
     renotify: true,
     silent: false,
     data,

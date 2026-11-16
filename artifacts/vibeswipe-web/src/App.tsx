@@ -533,8 +533,10 @@ function NotificationsPage() {
   }
   async function open(n: Item) {
     await markAsRead(n);
-    if (n.type === 'reel_like' && n.reelId) {
-      setLocation(`/reels/${n.reelId}?returnTo=%2Fnotifications`);
+    if ((n.type === 'reel_like' || n.type === 'reel_comment_reply') && n.reelId) {
+      const params = new URLSearchParams({ returnTo: '/notifications' });
+      if (n.type === 'reel_comment_reply' && n.commentId) params.set('commentId', n.commentId);
+      setLocation(`/reels/${n.reelId}?${params.toString()}`);
       return;
     }
     const match = currentMatch(n);
@@ -561,7 +563,8 @@ function NotificationsPage() {
     setNotice({ id: n.id, text: `Match first to message ${n.actor.name}. Opening their profile so you can like back.` });
     timer.current = window.setTimeout(() => setLocation(`/profile/${n.actor.id}?returnTo=%2Fnotifications`), 1400);
   }
-  const actionText = (n: Item) => n.type === 'reel_like' ? 'liked your video' : n.type === 'new_match' ? 'matched with you'
+  const actionText = (n: Item) => n.type === 'reel_comment_reply' ? 'replied to your Reel comment'
+    : n.type === 'reel_like' ? 'liked your video' : n.type === 'new_match' ? 'matched with you'
     : n.type === 'new_message' ? 'sent you a message'
     : n.type === 'new_like' ? 'liked you' : 'viewed your profile';
   const unread = q.data ? Object.values(q.data.unreadCounts ?? {}).reduce((a, b) => a + (b as number), 0) : 0;
@@ -582,15 +585,15 @@ function NotificationsPage() {
                 <span className="shrink-0 rounded-full border border-primary/75 p-[2px]"><Avatar profile={n.actor} /></span>
                 <span className="min-w-0 flex-1">
                   <span className="block text-[15px] font-bold leading-5 text-card-foreground"><span className="text-primary">{n.actor.name}</span>{' '}<span className="font-semibold">{actionText(n)}</span></span>
-                  <span className="mt-2 block text-xs leading-4 text-muted-foreground">{n.type==='new_match'?'Start a conversation now!':n.type==='new_like'?'Tap to see who liked you':n.type==='new_message'?'Open your conversation':'Take a closer look'}</span>
+                  <span className="mt-2 block text-xs leading-4 text-muted-foreground">{n.type==='reel_comment_reply'?'Tap to open the comment and reply':n.type==='new_match'?'Start a conversation now!':n.type==='new_like'?'Tap to see who liked you':n.type==='new_message'?'Open your conversation':'Take a closer look'}</span>
                 </span>
               </button>
               <div className="flex shrink-0 flex-col items-end gap-3">
                 <time dateTime={n.createdAt} className="text-[11px] text-muted-foreground">{timeAgo(n.createdAt)}</time>
                 <div className="flex items-center gap-3">{!n.readAt&&<span aria-label="Unread" className="h-2.5 w-2.5 rounded-full bg-primary"/>}
-                  <button type="button" onClick={() => void message(n)} data-testid={`button-notification-message-${n.id}`} aria-label={`Send message to ${n.actor.name}`} className="inline-flex h-9 shrink-0 items-center gap-2 rounded-full bg-primary px-3 text-xs font-bold text-primary-foreground transition-transform active:scale-95 sm:px-4">
+                  {n.type !== 'reel_like' && n.type !== 'reel_comment_reply' && <button type="button" onClick={() => void message(n)} data-testid={`button-notification-message-${n.id}`} aria-label={`Send message to ${n.actor.name}`} className="inline-flex h-9 shrink-0 items-center gap-2 rounded-full bg-primary px-3 text-xs font-bold text-primary-foreground transition-transform active:scale-95 sm:px-4">
                     <MessageCircle size={16} /><span className="hidden sm:inline">Send message</span>
-                  </button>
+                  </button>}
                 </div>
               </div>
             </div>

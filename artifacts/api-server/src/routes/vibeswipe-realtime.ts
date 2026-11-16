@@ -253,7 +253,7 @@ router.get("/vibeswipe/notifications", async (req, res): Promise<void> => {
       if (notification.type === "new_match") unreadCounts.matches += 1;
       if (notification.type === "new_message") unreadCounts.messages += 1;
       if (notification.type === "profile_view") unreadCounts.views += 1;
-      if (notification.type === "reel_like") unreadCounts.reels += 1;
+      if (notification.type === "reel_like" || notification.type === "reel_comment_reply") unreadCounts.reels += 1;
       if (notification.type === "new_like" || notification.type === "new_super_like") unreadCounts.likes += 1;
     }
     return {
@@ -263,6 +263,7 @@ router.get("/vibeswipe/notifications", async (req, res): Promise<void> => {
       matchId: notification.matchId,
       messageId: notification.messageId,
       reelId: notification.reelId,
+      commentId: notification.commentId,
       createdAt: notification.createdAt,
       readAt: notification.readAt,
     };

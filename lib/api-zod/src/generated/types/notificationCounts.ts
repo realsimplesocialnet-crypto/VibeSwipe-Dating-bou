@@ -16,5 +16,5 @@ export interface NotificationCounts {
   /** @minimum 0 */
   likes: number;
   /** @minimum 0 */
-  reels?: number;
+  reels: number;
 }

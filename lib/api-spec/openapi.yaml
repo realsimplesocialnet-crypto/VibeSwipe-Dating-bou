@@ -2240,7 +2240,7 @@ components:
           items: { type: string, format: uuid }
     NotificationType:
       type: string
-      enum: [new_match, new_message, new_like, new_super_like, profile_view, reel_like]
+      enum: [new_match, new_message, new_like, new_super_like, profile_view, reel_like, reel_comment_reply]
     Notification:
       type: object
       properties:
@@ -2250,9 +2250,10 @@ components:
         matchId: { type: [string, "null"], format: uuid }
         messageId: { type: [string, "null"], format: uuid }
         reelId: { type: [string, "null"], format: uuid }
+        commentId: { type: [string, "null"], format: uuid }
         createdAt: { type: string, format: date-time }
         readAt: { type: [string, "null"], format: date-time }
-      required: [id, type, actor, createdAt, readAt]
+      required: [id, type, actor, commentId, createdAt, readAt]
     NotificationCounts:
       type: object
       properties:
@@ -2261,7 +2262,7 @@ components:
         views: { type: integer, minimum: 0 }
         likes: { type: integer, minimum: 0 }
         reels: { type: integer, minimum: 0 }
-      required: [matches, messages, views, likes]
+      required: [matches, messages, views, likes, reels]
     NotificationsResponse:
       type: object
       properties:
@@ -2451,15 +2452,17 @@ components:
       properties:
         id: { type: string, format: uuid }
         reelId: { type: string, format: uuid }
+        parentCommentId: { type: ["string", "null"], format: uuid }
         authorId: { type: string }
         authorName: { type: string }
         authorPhoto: { type: ["string", "null"] }
         content: { type: string }
         canDelete: { type: boolean }
         createdAt: { type: string, format: date-time }
-      required: [id, reelId, authorId, authorName, authorPhoto, content, canDelete, createdAt]
+      required: [id, reelId, parentCommentId, authorId, authorName, authorPhoto, content, canDelete, createdAt]
     ReelCommentInput:
       type: object
       properties:
         content: { type: string, minLength: 1, maxLength: 500 }
+        parentCommentId: { type: string, format: uuid }
       required: [content]

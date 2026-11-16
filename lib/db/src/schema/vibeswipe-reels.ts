@@ -37,6 +37,7 @@ export const reelSavesTable = pgTable("vibeswipe_reel_saves", {
 export const reelCommentsTable = pgTable("vibeswipe_reel_comments", {
   id: uuid("id").defaultRandom().primaryKey(),
   reelId: uuid("reel_id").notNull().references(() => reelsTable.id, { onDelete: "cascade" }),
+  parentCommentId: uuid("parent_comment_id"),
   userId: text("user_id").notNull().references(() => profilesTable.id, { onDelete: "cascade" }),
   content: text("content").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),

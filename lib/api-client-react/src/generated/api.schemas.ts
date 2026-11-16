@@ -917,6 +917,7 @@ export const NotificationType = {
   new_super_like: 'new_super_like',
   profile_view: 'profile_view',
   reel_like: 'reel_like',
+  reel_comment_reply: 'reel_comment_reply',
 } as const;
 
 export interface Notification {
@@ -929,6 +930,8 @@ export interface Notification {
   messageId?: string | null;
   /** @nullable */
   reelId?: string | null;
+  /** @nullable */
+  commentId: string | null;
   createdAt: string;
   /** @nullable */
   readAt: string | null;
@@ -944,7 +947,7 @@ export interface NotificationCounts {
   /** @minimum 0 */
   likes: number;
   /** @minimum 0 */
-  reels?: number;
+  reels: number;
 }
 
 export interface NotificationsResponse {
@@ -1249,6 +1252,8 @@ export interface ReelEngagement {
 export interface ReelComment {
   id: string;
   reelId: string;
+  /** @nullable */
+  parentCommentId: string | null;
   authorId: string;
   authorName: string;
   /** @nullable */
@@ -1264,6 +1269,7 @@ export interface ReelCommentInput {
      * @maxLength 500
      */
   content: string;
+  parentCommentId?: string;
 }
 
 export type GetAdminDashboardParams = {
