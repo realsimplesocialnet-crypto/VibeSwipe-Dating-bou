@@ -5,6 +5,7 @@ import { userErrorMessage } from "../src/lib/user-errors.ts";
 const expected = "This photo doesn’t match your verified face. Please upload a photo of yourself.";
 test("photo mismatch is displayed exactly without exposing arbitrary server errors", () => {
   assert.equal(userErrorMessage({ status: 422, data: { error: expected } }, "Upload failed"), expected);
+  assert.equal(userErrorMessage({ status: 503, data: { error: "Photo checking could not be completed. Please try again." } }, "Upload failed"), "Photo checking could not be completed. Please try again.");
   assert.equal(userErrorMessage({ status: 422, data: { error: "private provider diagnostic" } }, "Upload failed"), "Upload failed");
 });
 test("verification consent stays meaningful without naming its implementation provider", () => {

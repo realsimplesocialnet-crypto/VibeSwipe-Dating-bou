@@ -6,9 +6,13 @@ export function userErrorMessage(error: unknown, fallback: string): string {
   if (error && typeof error === 'object') {
     // Only this explicit public validation message may pass through from the API.
     // Never display arbitrary response bodies or provider errors.
-    const photoMessage = "This photo doesn’t match your verified face. Please upload a photo of yourself.";
+    const photoMessages = new Set([
+      "This photo doesn’t match your verified face. Please upload a photo of yourself.",
+      "Photo checking could not be completed. Please try again.",
+    ]);
     if ('data' in error && error.data && typeof error.data === 'object' &&
-        'error' in error.data && error.data.error === photoMessage) return photoMessage;
+        'error' in error.data && typeof error.data.error === 'string' &&
+        photoMessages.has(error.data.error)) return error.data.error;
     if ('userMessage' in error && typeof error.userMessage === 'string') return error.userMessage;
     const status = 'status' in error ? error.status : undefined;
     if (status === 401) return 'Your session has expired. Sign in again to continue.';
