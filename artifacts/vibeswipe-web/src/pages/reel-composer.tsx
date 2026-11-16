@@ -6,6 +6,7 @@ import {
 } from "@workspace/api-client-react";
 import { ArrowLeft, Camera, Film, RotateCcw } from "lucide-react";
 import { readVideoDuration, reelFileProblem, reelVideoContentType, safeReelReturnPath } from "@/lib/reels";
+import { reelPostUnauthorizedMessage, uploadReelVideoBytes } from "@/lib/reel-upload";
 import { userErrorMessage } from "@/lib/user-errors";
 import "@/components/reels/reels.css";
 
@@ -24,6 +25,7 @@ export function ReelComposerPage() {
   const [error, setError] = useState("");
   const [checking, setChecking] = useState(false);
   const [stage, setStage] = useState<Stage>("idle");
+  const [uploadAttempt, setUploadAttempt] = useState(0);
   const requestUpload = useRequestProfileMediaUpload();
   const transcode = useTranscodeReelVideo();
   const create = useCreateReel();
@@ -55,11 +57,11 @@ export function ReelComposerPage() {
     const contentType = reelVideoContentType(file);
     if (!contentType) { setError("Choose an MP4 or MOV video."); return; }
     setError("");
+    setUploadAttempt(0);
     try {
       setStage("uploading");
       const signed = await requestUpload.mutateAsync({ data: { name: file.name || "reel.mp4", size: file.size, contentType, mediaType: "video" } });
-      const upload = await fetch(signed.uploadURL, { method: "PUT", headers: { "Content-Type": contentType }, body: file });
-      if (!upload.ok) throw new Error("The private upload did not finish. Check your connection and try again.");
+      await uploadReelVideoBytes(signed.uploadURL, file, contentType, { onAttempt: setUploadAttempt });
       setStage("processing");
       await transcode.mutateAsync({ mediaId: signed.mediaId });
       setStage("publishing");
@@ -68,7 +70,7 @@ export function ReelComposerPage() {
       void client.invalidateQueries({ queryKey: getGetMyReelsQueryKey() });
       setLocation(`/reels/${reel.id}?returnTo=${encodeURIComponent(returnTo)}`, { replace: true });
     } catch (reason) {
-      setError(userErrorMessage(reason, "Your Reel was not posted. Try again."));
+      setError(reelPostUnauthorizedMessage(reason) ?? userErrorMessage(reason, "Your Reel was not posted. Try again."));
       setStage("idle");
     }
   }
@@ -95,6 +97,7 @@ export function ReelComposerPage() {
       </div>
       <label className="block text-xs font-semibold text-white/60">Caption<textarea value={caption} onChange={(event) => setCaption(event.target.value)} maxLength={300} rows={2} disabled={busy} placeholder="Say something about this moment" data-testid="input-reel-caption" className="mt-2 w-full resize-none rounded-2xl border border-white/10 bg-white/[.06] px-4 py-3 text-[16px] text-white placeholder:text-white/35 focus:border-primary/60 focus:outline-none" /><span className="mt-1 block text-right font-normal text-white/40">{caption.length}/300</span></label>
       {checking && <p role="status" className="text-sm text-white/70">Checking video</p>}
+      {stage === "uploading" && uploadAttempt > 1 && <p role="status" className="text-sm text-white/70">Reconnecting to video storage · attempt {uploadAttempt} of 3</p>}
       {error && <p role="alert" className="rounded-2xl border border-rose-300/25 bg-rose-400/10 px-4 py-3 text-sm text-rose-100" data-testid="error-reel-composer">{error}</p>}
       <button type="button" onClick={() => void post()} disabled={!file || busy || checking} data-testid="button-post-reel" className="reels-primary mt-auto w-full disabled:opacity-40">
         {busy && <span className="reel-spinner" aria-hidden="true" />}{STAGE_LABEL[stage]}
