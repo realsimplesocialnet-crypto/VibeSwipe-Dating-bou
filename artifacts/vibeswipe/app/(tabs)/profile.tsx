@@ -15,6 +15,7 @@ import { router } from "expo-router";
 import { ActivityIndicator, Alert, Image, Modal, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ProfileAvatar } from "@/components/ProfileAvatar";
+import { ProfileReelsSection } from "@/components/ProfileReelsSection";
 import { usePremiumColors } from "@/hooks/useColors";
 import { profileImageSource } from "@/lib/media";
 import { useEffect, useState } from "react";
@@ -90,7 +91,7 @@ export default function ProfileScreen() {
   );
   return (
     <View style={{ flex: 1, backgroundColor: colors.profileGradientMiddle }} onLayout={(e) => setAreaHeight(e.nativeEvent.layout.height)}>
-      <View style={[styles.container, { paddingBottom: tabBar + gap, paddingTop: tight ? 8 : 12, gap }]}>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={[styles.scrollContent, { paddingBottom: tabBar + gap, paddingTop: tight ? 8 : 12, gap }]} showsVerticalScrollIndicator={false}>
         <View style={styles.top}>
           <Pressable testID="profile-blocked" accessibilityLabel="Blocked profiles" onPress={() => setBlockedOpen(true)} style={({ pressed }) => [styles.pill, { backgroundColor: colors.profileCard, opacity: pressed ? 0.7 : 1 }]}>
             <Feather name="slash" size={14} color={colors.profileMuted} />
@@ -158,7 +159,8 @@ export default function ProfileScreen() {
             </View>
           ) : <Text style={[styles.body, { color: colors.profileMuted }]}>Add photos in Edit profile.</Text>}
         </View>
-      </View>
+        <ProfileReelsSection profileId={user.id} returnTo="/(tabs)/profile" />
+      </ScrollView>
       <Modal visible={blockedOpen} transparent animationType="slide" onRequestClose={() => setBlockedOpen(false)}>
         <Pressable style={styles.backdrop} onPress={() => setBlockedOpen(false)} />
         <View style={[styles.sheet, { backgroundColor: colors.card, paddingBottom: 20 + insets.bottom, maxHeight: window.height * 0.7 }]}>
@@ -192,7 +194,7 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   center: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12 },
   retry: { borderRadius: 20, paddingHorizontal: 18, paddingVertical: 10 },
-  container: { flex: 1, paddingHorizontal: 16, justifyContent: "flex-start" },
+  scrollContent: { flexGrow: 1, paddingHorizontal: 16, justifyContent: "flex-start" },
   top: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   pill: { height: 36, borderRadius: 18, paddingHorizontal: 13, flexDirection: "row", gap: 6, alignItems: "center" },
   pillText: { fontSize: 13, fontWeight: "700" },

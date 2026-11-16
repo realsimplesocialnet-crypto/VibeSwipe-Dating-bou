@@ -3,13 +3,13 @@ import {
   CreateReelBody, CreateReelCommentBody, CreateReelCommentParams, CreateReelCommentResponse, CreateReelResponse,
   DeleteReelCommentParams, DeleteReelParams, GetMyReelsQueryParams, GetMyReelsResponse, GetReelCommentsParams,
   GetReelCommentsResponse, GetReelParams, GetReelResponse, GetReelsFeedQueryParams, GetReelsFeedResponse,
-  GetSavedReelsQueryParams, GetSavedReelsResponse, LikeReelParams, LikeReelResponse,
+  GetProfileReelsQueryParams, GetProfileReelsResponse, GetSavedReelsQueryParams, GetSavedReelsResponse, LikeReelParams, LikeReelResponse,
   TranscodeReelVideoParams, TranscodeReelVideoResponse,
 } from "@workspace/api-zod";
 import {
   blocksTable, db, mediaAssetsTable, profilesTable, reelCommentsTable, reelLikesTable, reelSavesTable, reelsTable, storiesTable, vibeSwipeNotificationsTable,
 } from "@workspace/db";
-import { and, asc, desc, eq, isNull, sql, type SQL } from "drizzle-orm";
+import { and, asc, desc, eq, isNull, or, sql, type SQL } from "drizzle-orm";
 import { Router, type IRouter, type Request } from "express";
 import { requireAuth } from "../middlewares/auth";
 import { cleanReelCaption, decodeReelCursor, encodeReelCursor, reelAssetProblem, reelLocation } from "../lib/reel-cursor";
@@ -23,6 +23,7 @@ import { sendReelCommentReplyPush, sendReelLikePush } from "../lib/vibeswipePush
 
 const router: IRouter = Router();
 router.use("/vibeswipe/reels", requireAuth);
+router.use("/vibeswipe/profile-reels", requireAuth);
 
 const PAGE_SIZE = 6;
 const reelStorage = new ObjectStorageService();
@@ -136,6 +137,37 @@ router.get("/vibeswipe/reels/mine", async (req, res): Promise<void> => {
   const page = rows.slice(0, 24);
   const last = page[page.length - 1];
   res.json(GetMyReelsResponse.parse({
+    items: page.map((row) => project(row, viewerId)),
+    nextCursor: rows.length > 24 && last ? encodeReelCursor(last.createdAt, last.id) : null,
+  }));
+});
+
+router.get("/vibeswipe/profile-reels", async (req, res): Promise<void> => {
+  const params = GetProfileReelsQueryParams.safeParse(req.query);
+  if (!params.success) { res.status(400).json({ error: "Invalid profile Reels page." }); return; }
+  const viewerId = uid(req);
+  const profileId = params.data.profileId;
+  const [profile] = await db.select({
+    id: profilesTable.id,
+    deactivated: profilesTable.deactivated,
+  }).from(profilesTable).where(eq(profilesTable.id, profileId)).limit(1);
+  if (!profile || (profileId !== viewerId && profile.deactivated)) {
+    res.status(404).json({ error: "Profile not found." });
+    return;
+  }
+  if (profileId !== viewerId) {
+    const [block] = await db.select({ blockerId: blocksTable.blockerId }).from(blocksTable).where(or(
+      and(eq(blocksTable.blockerId, viewerId), eq(blocksTable.blockedId, profileId)),
+      and(eq(blocksTable.blockerId, profileId), eq(blocksTable.blockedId, viewerId)),
+    )).limit(1);
+    if (block) { res.status(404).json({ error: "Profile not found." }); return; }
+  }
+  const where = afterCursor(params.data.cursor, reelsTable.createdAt);
+  if (where === false) { res.status(400).json({ error: "Invalid profile Reels page." }); return; }
+  const rows = await selectReels(viewerId, and(eq(reelsTable.userId, profileId), where), 25);
+  const page = rows.slice(0, 24);
+  const last = page[page.length - 1];
+  res.json(GetProfileReelsResponse.parse({
     items: page.map((row) => project(row, viewerId)),
     nextCursor: rows.length > 24 && last ? encodeReelCursor(last.createdAt, last.id) : null,
   }));

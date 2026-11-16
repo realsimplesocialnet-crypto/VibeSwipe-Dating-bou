@@ -26,7 +26,8 @@
     "http-proxy-middleware": "^4.2.1",
     "pino": "^9.14.0",
     "pino-http": "^10.5.0",
-    "web-push": "^4.0.0"
+    "web-push": "^4.0.0",
+    "world-atlas": "^2.0.2"
   },
   "devDependencies": {
     "@types/cookie-parser": "^1.4.10",

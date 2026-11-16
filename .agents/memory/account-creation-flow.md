@@ -21,7 +21,13 @@ Apply iPhone safe-area spacing throughout profile setup, not only to the login p
 
 Show Create account or Sign in first on both website and installed launches. Keep the main app and bottom navigation inaccessible until authentication and profile setup are complete, including on direct links.
 
-Ask profile questions first, step by step: names, where the person is from using real countries and dependent states/cities, gender, who they are looking for, and the other profile details. Require a profile picture; that picture is what shows on the profile and Discover cards. Ask for email and verify its code at the end rather than starting with email/password signup.
+At the start of profile setup, use device GPS to set the current country and show one location line. If GPS fails, allow one country selection and lock it for the rest of signup. Collect no state or city during signup; those can be added later in Profile. Keep coordinates transient and store only the country and whether it came from GPS or manual selection.
+
+**Why:** The user wants country-only signup so people cannot freely claim another country, with manual selection only as a fallback when location detection fails.
+
+**How to apply:** GPS identifies the device's current location, not a person's origin or residence; manual selection is self-reported. Face verification only compares a live selfie with the selected profile photo and must not be presented as country or legal-identity verification. Require a profile picture; it appears on the profile and Discover cards. Keep the web and installed-app signup aligned. If authentication policy prevents code-only signup, report the blocker honestly rather than adding hidden passwords or pretending signup completed.
+
+Ask for email and verify its code at the end rather than starting with email/password signup.
 
 **Why:** The user explicitly said the website, installed app, and Home Screen app must show “the same thing,” and that users “must put a picture” because it appears on their profile.
 

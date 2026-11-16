@@ -1,4 +1,5 @@
 import { getAuth } from "@clerk/express";
+import { Country } from "country-state-city";
 import {
   BlockProfileBody,
   CreateReactionBody,
@@ -140,6 +141,7 @@ import { canViewStory } from "../lib/vibeswipeStoryRules";
 import { canViewReelMedia } from "../lib/reels-visibility";
 import { automaticDiscovery, countryValues, discoveryTier, minimumDiscoveryPool, regionalCountryValues, smartDiscoveryPool } from "../lib/discovery-pool";
 import { discoveryExcludedIds } from "../lib/discovery-exclusions";
+import { countryCodeFromCoordinates } from "../lib/countryFromCoordinates";
 
 const router: IRouter = Router();
 const objectStorage = new ObjectStorageService();
@@ -194,6 +196,23 @@ function currentUserId(req: Request): string {
   const userId = getAuth(req).userId;
   if (!userId) throw new Error("Authenticated user is missing from the request");
   return userId;
+}
+
+function recordValue(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
+function lockedOnboardingCountry(data: Record<string, unknown>) {
+  const countryCode =
+    typeof data.countryCode === "string" ? data.countryCode.toUpperCase() : "";
+  const source = data.countrySource;
+  if (source !== "gps" && source !== "manual") return null;
+  const country = Country.getAllCountries().find(
+    (item) => item.isoCode === countryCode,
+  );
+  return country ? { country, source } : null;
 }
 
 function writeMessageToStreams(matchId: string, message: Message): void {
@@ -489,6 +508,95 @@ router.get("/vibeswipe/onboarding/draft", async (req, res): Promise<void> => {
   );
 });
 
+router.post("/vibeswipe/onboarding/location-country", async (req, res): Promise<void> => {
+  const userId = currentUserId(req);
+  const [completedProfile] = await db
+    .select({ id: profilesTable.id })
+    .from(profilesTable)
+    .where(eq(profilesTable.id, userId))
+    .limit(1);
+  if (completedProfile) {
+    res.status(409).json({ error: "Profile setup is already complete." });
+    return;
+  }
+
+  const [draft] = await db
+    .select({ step: profileSetupDraftsTable.step, data: profileSetupDraftsTable.data })
+    .from(profileSetupDraftsTable)
+    .where(eq(profileSetupDraftsTable.userId, userId))
+    .limit(1);
+  const existingData = recordValue(draft?.data);
+  const locked = lockedOnboardingCountry(existingData);
+  if (locked) {
+    res.json({
+      country: locked.country.name,
+      countryCode: locked.country.isoCode,
+      source: locked.source,
+    });
+    return;
+  }
+
+  const input = recordValue(req.body);
+  let countryCode = "";
+  let source: "gps" | "manual";
+  if (typeof input.countryCode === "string") {
+    countryCode = input.countryCode.trim().toUpperCase();
+    source = "manual";
+  } else {
+    const latitude = input.latitude;
+    const longitude = input.longitude;
+    if (
+      typeof latitude !== "number" ||
+      typeof longitude !== "number" ||
+      !Number.isFinite(latitude) ||
+      !Number.isFinite(longitude) ||
+      latitude < -90 ||
+      latitude > 90 ||
+      longitude < -180 ||
+      longitude > 180
+    ) {
+      res.status(400).json({ error: "A valid location or country is required." });
+      return;
+    }
+    countryCode = countryCodeFromCoordinates(latitude, longitude) ?? "";
+    source = "gps";
+  }
+
+  const country = Country.getAllCountries().find(
+    (item) => item.isoCode === countryCode,
+  );
+  if (!country) {
+    res.status(422).json({
+      error: "We couldn’t determine that country. Please select your country.",
+    });
+    return;
+  }
+
+  const data = {
+    ...existingData,
+    country: country.name,
+    countryCode: country.isoCode,
+    countrySource: source,
+    state: "",
+    stateCode: "",
+    city: "",
+  };
+  await db
+    .insert(profileSetupDraftsTable)
+    .values({
+      userId,
+      step: draft?.step ?? 1,
+      data,
+      updatedAt: new Date(),
+    })
+    .onConflictDoUpdate({
+      target: profileSetupDraftsTable.userId,
+      set: { data, updatedAt: new Date() },
+    });
+
+  res.json({ country: country.name, countryCode: country.isoCode, source });
+});
+
 router.put("/vibeswipe/onboarding/draft", async (req, res): Promise<void> => {
   const parsed = SaveOnboardingDraftBody.safeParse(req.body);
   if (!parsed.success) {
@@ -505,9 +613,34 @@ router.put("/vibeswipe/onboarding/draft", async (req, res): Promise<void> => {
     res.status(409).json({ error: "Profile setup is already complete." });
     return;
   }
+  const [previousDraft] = await db
+    .select({ data: profileSetupDraftsTable.data })
+    .from(profileSetupDraftsTable)
+    .where(eq(profileSetupDraftsTable.userId, userId))
+    .limit(1);
+  const previousData = recordValue(previousDraft?.data);
+  const locked = lockedOnboardingCountry(previousData);
+  const draftData: Record<string, unknown> = { ...parsed.data.data };
+  if (locked) {
+    Object.assign(draftData, {
+      country: locked.country.name,
+      countryCode: locked.country.isoCode,
+      countrySource: locked.source,
+      state: "",
+      stateCode: "",
+      city: "",
+    });
+  } else {
+    delete draftData.country;
+    delete draftData.countryCode;
+    delete draftData.countrySource;
+    delete draftData.state;
+    delete draftData.stateCode;
+    delete draftData.city;
+  }
   const draftMediaIds = [
     ...new Set(
-      JSON.stringify(parsed.data.data)
+      JSON.stringify(draftData)
         .match(/media:([0-9a-f-]{36})/gi)
         ?.map((value) => value.slice("media:".length)) ?? [],
     ),
@@ -532,14 +665,14 @@ router.put("/vibeswipe/onboarding/draft", async (req, res): Promise<void> => {
       .values({
         userId,
         step: parsed.data.step,
-        data: parsed.data.data,
+        data: draftData,
         updatedAt: new Date(),
       })
       .onConflictDoUpdate({
         target: profileSetupDraftsTable.userId,
         set: {
           step: parsed.data.step,
-          data: parsed.data.data,
+          data: draftData,
           updatedAt: new Date(),
         },
       })
@@ -585,6 +718,28 @@ router.put("/vibeswipe/me", async (req, res): Promise<void> => {
   }
   const userId = currentUserId(req);
   const body = parsed.data;
+  const [existingProfileForSetup] = await db
+    .select({ id: profilesTable.id })
+    .from(profilesTable)
+    .where(eq(profilesTable.id, userId))
+    .limit(1);
+  if (!existingProfileForSetup) {
+    const [setupDraft] = await db
+      .select({ data: profileSetupDraftsTable.data })
+      .from(profileSetupDraftsTable)
+      .where(eq(profileSetupDraftsTable.userId, userId))
+      .limit(1);
+    const locked = lockedOnboardingCountry(recordValue(setupDraft?.data));
+    if (!locked) {
+      res.status(400).json({
+        error: "Detect or select your country before finishing your profile.",
+      });
+      return;
+    }
+    body.country = locked.country.name;
+    body.state = null;
+    body.city = "";
+  }
   if (body.age < 18) {
     res.status(400).json({ error: "VibeSwipe is for adults 18 and older." });
     return;

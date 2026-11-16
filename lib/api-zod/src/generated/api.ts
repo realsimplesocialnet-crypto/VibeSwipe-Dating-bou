@@ -1769,6 +1769,42 @@ export const GetProfileByIdResponse = zod.object({
 
 
 /**
+ * @summary List visible Reels posted by a profile
+ */
+
+export const getProfileReelsQueryCursorMax = 200;
+
+
+
+export const GetProfileReelsQueryParams = zod.object({
+  "profileId": zod.coerce.string().min(1),
+  "cursor": zod.coerce.string().max(getProfileReelsQueryCursorMax).optional()
+})
+
+export const GetProfileReelsResponse = zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "creatorId": zod.string(),
+  "creatorName": zod.string(),
+  "creatorAge": zod.number().int().nullable(),
+  "creatorLocation": zod.string(),
+  "creatorVerified": zod.boolean(),
+  "creatorPhoto": zod.string().nullable(),
+  "videoReference": zod.string(),
+  "caption": zod.string(),
+  "durationSeconds": zod.number().nullable(),
+  "likeCount": zod.number().int(),
+  "commentCount": zod.number().int(),
+  "likedByMe": zod.boolean(),
+  "savedByMe": zod.boolean(),
+  "isOwner": zod.boolean(),
+  "createdAt": zod.coerce.date()
+})),
+  "nextCursor": zod.string().nullable()
+})
+
+
+/**
  * @summary List profiles blocked by the signed-in user
  */
 export const getBlockedProfilesResponseProfilePreferencesAgeMinMin = 18;

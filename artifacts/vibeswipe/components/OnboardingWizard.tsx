@@ -4,26 +4,32 @@ import {
   useGetOnboardingDraft,
   useSaveMyProfile,
   useSaveOnboardingDraft,
+  resolveOnboardingCountry,
 } from "@workspace/api-client-react";
 import { HobbyMultiSelect, OccupationSelect } from "@/components/ProfileChoiceFields";
-import { City, Country, State } from "country-state-city";
+import { Country } from "country-state-city";
+import * as Location from "expo-location";
 import { Feather } from "@expo/vector-icons";
 import { useQueryClient } from "@tanstack/react-query";
 import { router } from "expo-router";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Linking,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
+  useWindowDimensions,
 } from "react-native";
 import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollViewCompat";
 import { MediaPicker } from "@/components/MediaPicker";
 import { useColors } from "@/hooks/useColors";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { OnboardingVideoBackground } from "@/components/OnboardingVideoBackground";
 import {
   asSetupData,
@@ -34,7 +40,7 @@ import {
   type SetupData,
 } from "@/lib/onboardingProfile";
 
-const STEP_COUNT = 13;
+const STEP_COUNT = 10;
 const STEPS = [
   "First name",
   "Last name",
@@ -43,9 +49,6 @@ const STEPS = [
   "Looking for",
   "Profile picture",
   "Bio",
-  "Country",
-  "State / region",
-  "City",
   "Hobbies",
   "Work / occupation",
   "Preferences",
@@ -57,6 +60,8 @@ const COUNTRIES = Country.getAllCountries().sort((a, b) =>
 
 export function OnboardingWizard() {
   const colors = useColors();
+  const insets = useSafeAreaInsets();
+  const viewport = useWindowDimensions();
   const queryClient = useQueryClient();
   const savedDraft = useGetOnboardingDraft();
   const saveDraft = useSaveOnboardingDraft();
@@ -65,38 +70,29 @@ export function OnboardingWizard() {
   const [values, setValues] = useState<SetupData>(EMPTY_SETUP);
   const [step, setStep] = useState(0);
   const [search, setSearch] = useState("");
+  const [locationStatus, setLocationStatus] = useState<"loading" | "failed" | "saving" | "done">("loading");
+  const [locationError, setLocationError] = useState("");
+  const [locationRetry, setLocationRetry] = useState(0);
   const [error, setError] = useState("");
   const [hydrated, setHydrated] = useState(false);
   const completionInFlight = useRef(false);
+  const locationAttempt = useRef(0);
   const lastSavedKey = useRef("");
   const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const regions = useMemo(
-    () =>
-      values.countryCode
-        ? State.getStatesOfCountry(values.countryCode).sort((a, b) =>
-            a.name.localeCompare(b.name),
-          )
-        : [],
-    [values.countryCode],
-  );
-  const cities = useMemo(() => {
-    if (!values.countryCode) return [];
-    const available = (values.stateCode
-      ? City.getCitiesOfState(values.countryCode, values.stateCode)
-      : City.getCitiesOfCountry(values.countryCode)) ?? [];
-    return available
-      .slice()
-      .sort((a, b) => a.name.localeCompare(b.name));
-  }, [values.countryCode, values.stateCode]);
 
   useEffect(() => {
     if (!savedDraft.isSuccess || hydrated) return;
     const data = asSetupData(savedDraft.data.data);
-    const restoredStep = Math.max(
-      0,
-      Math.min(STEP_COUNT - 1, savedDraft.data.step - 1),
-    );
+    if (!data.countrySource) {
+      data.country = "";
+      data.countryCode = "";
+      data.state = "";
+      data.stateCode = "";
+      data.city = "";
+    }
+    const restoredStep = data.countrySource
+      ? Math.max(0, Math.min(STEP_COUNT - 1, savedDraft.data.step - 1))
+      : 0;
     setValues(data);
     setStep(restoredStep);
     lastSavedKey.current = `${restoredStep + 1}:${JSON.stringify(data)}`;
@@ -106,6 +102,66 @@ export function OnboardingWizard() {
   useEffect(() => {
     setSearch("");
   }, [step]);
+
+  useEffect(() => {
+    if (!hydrated || step !== 0 || values.countrySource) return;
+    let active = true;
+    const attempt = ++locationAttempt.current;
+    setLocationStatus("loading");
+    setLocationError("");
+    void (async () => {
+      try {
+        const permission = await Location.requestForegroundPermissionsAsync();
+        if (!permission.granted) throw new Error("Location permission was not granted");
+        const position = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.Balanced,
+        });
+        const country = await resolveOnboardingCountry({
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+        });
+        if (!active || locationAttempt.current !== attempt) return;
+        setValues((current) => ({
+          ...current,
+          country: country.country,
+          countryCode: country.countryCode,
+          countrySource: country.source,
+          state: "",
+          stateCode: "",
+          city: "",
+        }));
+        setLocationStatus("done");
+      } catch {
+        if (!active || locationAttempt.current !== attempt) return;
+        setLocationError("We couldn't detect your location. Please enable location access or select your country.");
+        setLocationStatus("failed");
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, [hydrated, step, values.countrySource, locationRetry]);
+
+  async function chooseCountry(countryCode: string) {
+    setLocationStatus("saving");
+    setLocationError("");
+    try {
+      const country = await resolveOnboardingCountry({ countryCode });
+      setValues((current) => ({
+        ...current,
+        country: country.country,
+        countryCode: country.countryCode,
+        countrySource: country.source,
+        state: "",
+        stateCode: "",
+        city: "",
+      }));
+      setLocationStatus("done");
+    } catch {
+      setLocationError("That country could not be saved. Please try again.");
+      setLocationStatus("failed");
+    }
+  }
 
   useEffect(() => {
     if (!hydrated || saveProfile.isPending) return;
@@ -151,7 +207,7 @@ export function OnboardingWizard() {
 
   function validateCurrentScreen(): boolean {
     setError("");
-    const validationError = getOnboardingStepError(step, values, regions.length > 0);
+    const validationError = getOnboardingStepError(step, values);
     if (!validationError) return true;
     setError(validationError);
     return false;
@@ -205,12 +261,8 @@ export function OnboardingWizard() {
   const filteredCountries = COUNTRIES.filter((country) =>
     country.name.toLowerCase().includes(search.trim().toLowerCase()),
   ).slice(0, search.trim() ? 100 : 35);
-  const filteredRegions = regions.filter((region) =>
-    region.name.toLowerCase().includes(search.trim().toLowerCase()),
-  ).slice(0, search.trim() ? 100 : 40);
-  const filteredCities = cities.filter((city) =>
-    city.name.toLowerCase().includes(search.trim().toLowerCase()),
-  ).slice(0, search.trim() ? 100 : 40);
+  const topPadding = Platform.OS === "web" ? Math.max(67, insets.top + 16) : insets.top + 16;
+  const bottomPadding = Platform.OS === "web" ? 34 : insets.bottom + 16;
 
   if (savedDraft.isLoading || !hydrated) {
     return (
@@ -225,7 +277,10 @@ export function OnboardingWizard() {
     <OnboardingVideoBackground form/>
     <KeyboardAwareScrollViewCompat
       style={[styles.screen, { backgroundColor: "transparent" }]}
-      contentContainerStyle={styles.container}
+      contentContainerStyle={[
+        styles.container,
+        { minHeight: viewport.height, paddingTop: topPadding, paddingBottom: bottomPadding },
+      ]}
       keyboardShouldPersistTaps="handled"
       bottomOffset={70}
     >
@@ -242,7 +297,6 @@ export function OnboardingWizard() {
         <StepFrame title="What should we call you?" subtitle="Use the first name you want people to see.">
           <TextInput
             testID="profile-first-name"
-            autoFocus
             value={values.firstName}
             onChangeText={(value) => update("firstName", value)}
             maxLength={40}
@@ -251,6 +305,56 @@ export function OnboardingWizard() {
             placeholderTextColor={colors.mutedForeground}
             style={[styles.input, { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.card }]}
           />
+          <View style={{ marginTop: 22 }}>
+            {values.countrySource ? (
+              <View accessibilityRole="text" testID="onboarding-country-confirmed" style={[styles.noDataCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                <Feather name="map-pin" size={18} color={colors.primary} />
+                <Text style={[styles.helper, { color: colors.foreground, flex: 1, marginTop: 0 }]}>
+                  {values.countrySource === "gps"
+                    ? `You're signing up from ${values.country}. Your profile will show ${values.country}.`
+                    : `Your profile will show ${values.country}.`}
+                </Text>
+              </View>
+            ) : locationStatus === "loading" || locationStatus === "saving" ? (
+              <View style={[styles.noDataCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                <ActivityIndicator color={colors.primary} />
+                <Text style={[styles.helper, { color: colors.mutedForeground, marginTop: 0 }]}>
+                  {locationStatus === "saving" ? "Saving your country…" : "Detecting your country…"}
+                </Text>
+              </View>
+            ) : (
+              <>
+                <Text accessibilityRole="alert" style={[styles.helper, { color: colors.destructive, marginBottom: 12 }]}>
+                  {locationError || "We couldn't detect your location. Please enable location access or select your country."}
+                </Text>
+                <SearchInput value={search} onChangeText={setSearch} placeholder="Search all countries" />
+                <View style={[styles.locationList, { borderColor: colors.border, backgroundColor: colors.card }]}>
+                  <ScrollView keyboardShouldPersistTaps="handled" nestedScrollEnabled>
+                    {filteredCountries.map((country) => (
+                      <LocationRow
+                        key={country.isoCode}
+                        label={`${country.flag}  ${country.name}`}
+                        selected={false}
+                        onPress={() => {
+                          setSearch("");
+                          void chooseCountry(country.isoCode);
+                        }}
+                      />
+                    ))}
+                    {!filteredCountries.length ? <Text style={[styles.noResults, { color: colors.mutedForeground }]}>No matching country.</Text> : null}
+                  </ScrollView>
+                </View>
+                <View style={{ flexDirection: "row", gap: 16, marginTop: 12 }}>
+                  <Pressable accessibilityRole="button" onPress={() => setLocationRetry((value) => value + 1)}>
+                    <Text style={[styles.helper, { color: colors.primary }]}>Try again</Text>
+                  </Pressable>
+                  <Pressable accessibilityRole="button" onPress={() => void Linking.openSettings().catch(() => undefined)}>
+                    <Text style={[styles.helper, { color: colors.primary }]}>Open location settings</Text>
+                  </Pressable>
+                </View>
+              </>
+            )}
+          </View>
         </StepFrame>
       ) : null}
 
@@ -258,7 +362,6 @@ export function OnboardingWizard() {
         <StepFrame title="What is your last name?" subtitle="Your last name helps complete your profile.">
           <TextInput
             testID="profile-last-name"
-            autoFocus
             value={values.lastName}
             onChangeText={(value) => update("lastName", value)}
             maxLength={40}
@@ -274,7 +377,6 @@ export function OnboardingWizard() {
         <StepFrame title="How old are you?" subtitle="VibeSwipe is only for adults aged 18 and over.">
           <TextInput
             testID="profile-age"
-            autoFocus
             value={values.age}
             onChangeText={(value) => update("age", value.replace(/\D/g, "").slice(0, 3))}
             keyboardType="number-pad"
@@ -314,7 +416,6 @@ export function OnboardingWizard() {
         <StepFrame title="What would you like people to know?" subtitle="A short bio helps start better conversations.">
           <TextInput
             testID="profile-bio"
-            autoFocus
             value={values.bio}
             onChangeText={(value) => update("bio", value)}
             multiline
@@ -328,92 +429,6 @@ export function OnboardingWizard() {
       ) : null}
 
       {step === 7 ? (
-        <StepFrame title="Where are you from?" subtitle="Search real countries and select one.">
-          <SearchInput value={search} onChangeText={setSearch} placeholder="Search all countries" />
-          <View style={[styles.locationList, { borderColor: colors.border, backgroundColor: colors.card }]}>
-            <ScrollView keyboardShouldPersistTaps="handled" nestedScrollEnabled>
-              {filteredCountries.map((country) => (
-                <LocationRow
-                  key={country.isoCode}
-                  label={`${country.flag}  ${country.name}`}
-                  selected={values.countryCode === country.isoCode}
-                  onPress={() => {
-                    setValues((current) => ({
-                      ...current,
-                      country: country.name,
-                      countryCode: country.isoCode,
-                      state: "",
-                      stateCode: "",
-                      city: "",
-                    }));
-                    setSearch("");
-                  }}
-                />
-              ))}
-              {!filteredCountries.length ? <Text style={[styles.noResults, { color: colors.mutedForeground }]}>No matching country in the location data.</Text> : null}
-            </ScrollView>
-          </View>
-        </StepFrame>
-      ) : null}
-
-      {step === 8 ? (
-        <StepFrame title="Choose your state or region." subtitle={values.country || "Select the region for your country."}>
-          {regions.length ? (
-            <>
-              <SearchInput value={search} onChangeText={setSearch} placeholder="Search states or regions" />
-              <View style={[styles.locationList, { borderColor: colors.border, backgroundColor: colors.card }]}>
-                <ScrollView keyboardShouldPersistTaps="handled" nestedScrollEnabled>
-                  {filteredRegions.map((region) => (
-                    <LocationRow
-                      key={`${region.countryCode}-${region.isoCode}`}
-                      label={region.name}
-                      selected={values.stateCode === region.isoCode}
-                      onPress={() => {
-                        setValues((current) => ({ ...current, state: region.name, stateCode: region.isoCode, city: "" }));
-                        setSearch("");
-                      }}
-                    />
-                  ))}
-                  {!filteredRegions.length ? <Text style={[styles.noResults, { color: colors.mutedForeground }]}>No matching region in the location data.</Text> : null}
-                </ScrollView>
-              </View>
-            </>
-          ) : (
-            <View style={[styles.noDataCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-              <Feather name="info" size={18} color={colors.primary} />
-              <Text style={[styles.helper, { color: colors.mutedForeground }]}>No state or region data is listed for this country. Continue to select a real city from the country’s available data.</Text>
-            </View>
-          )}
-        </StepFrame>
-      ) : null}
-
-      {step === 9 ? (
-        <StepFrame title="Choose your city." subtitle={[values.state, values.country].filter(Boolean).join(", ")}>
-          <SearchInput value={search} onChangeText={setSearch} placeholder="Search cities" />
-          <View style={[styles.locationList, { borderColor: colors.border, backgroundColor: colors.card }]}>
-            <ScrollView keyboardShouldPersistTaps="handled" nestedScrollEnabled>
-              {filteredCities.map((city, index) => (
-                <LocationRow
-                  key={`${city.name}-${city.latitude}-${city.longitude}-${index}`}
-                  label={city.name}
-                  selected={values.city === city.name}
-                  onPress={() => {
-                    update("city", city.name);
-                    setSearch("");
-                  }}
-                />
-              ))}
-              {!filteredCities.length ? (
-                <Text style={[styles.noResults, { color: colors.mutedForeground }]}>
-                  {cities.length ? "No matching city in the real location data." : "No city data is available for this region. Go back and choose another region."}
-                </Text>
-              ) : null}
-            </ScrollView>
-          </View>
-        </StepFrame>
-      ) : null}
-
-      {step === 10 ? (
         <StepFrame title="Choose your hobbies." subtitle="Tap as many as you like. You can choose up to 12.">
           <HobbyMultiSelect
             value={values.interests}
@@ -422,7 +437,7 @@ export function OnboardingWizard() {
         </StepFrame>
       ) : null}
 
-      {step === 11 ? (
+      {step === 8 ? (
         <StepFrame title="What do you do for work?" subtitle="Choose one. The extra detail for “Other” is optional.">
           <OccupationSelect
             value={values.occupation}
@@ -433,7 +448,7 @@ export function OnboardingWizard() {
         </StepFrame>
       ) : null}
 
-      {step === 12 ? (
+      {step === 9 ? (
         <StepFrame title="Set your discovery preferences." subtitle="Choose the age range and distance for people you see.">
           <Text style={[styles.fieldLabel, { color: colors.foreground }]}>Age range</Text>
           <View style={styles.ageRow}>
@@ -567,14 +582,14 @@ function ChoiceGrid({ values, selected, onSelect }: { values: string[]; selected
 const styles = StyleSheet.create({
   loading: { flex: 1, alignItems: "center", justifyContent: "center" },
   screen: { flex: 1 },
-  container: { flexGrow: 1, paddingHorizontal: 22, paddingTop: 48, paddingBottom: 30 },
+  container: { flexGrow: 1, paddingHorizontal: 22 },
   header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   eyebrow: { fontSize: 10, fontWeight: "800", letterSpacing: 1.5 },
   stepCount: { fontSize: 10, fontWeight: "700", letterSpacing: 0.7 },
   progressTrack: { height: 4, borderRadius: 3, overflow: "hidden", marginTop: 13 },
   progressFill: { height: "100%", borderRadius: 3 },
   stepTitle: { fontSize: 11, fontWeight: "700", letterSpacing: 0.3, marginTop: 11 },
-  stepFrame: { paddingTop: 36, flex: 1 },
+  stepFrame: { paddingTop: 12, flex: 1, justifyContent: "center" },
   title: { fontSize: 27, lineHeight: 34, fontWeight: "800", letterSpacing: -0.6 },
   subtitle: { fontSize: 14, lineHeight: 21, marginTop: 8, marginBottom: 27 },
   input: { minHeight: 54, borderWidth: 1, borderRadius: 15, paddingHorizontal: 15, fontSize: 16 },

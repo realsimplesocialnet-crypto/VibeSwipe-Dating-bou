@@ -8,6 +8,7 @@ export type SetupData = {
   bio: string;
   country: string;
   countryCode: string;
+  countrySource: string;
   state: string;
   stateCode: string;
   city: string;
@@ -29,6 +30,7 @@ export const EMPTY_SETUP: SetupData = {
   bio: "",
   country: "",
   countryCode: "",
+  countrySource: "",
   state: "",
   stateCode: "",
   city: "",
@@ -60,6 +62,10 @@ export function asSetupData(value: Record<string, unknown>): SetupData {
     bio: typeof value.bio === "string" ? value.bio : "",
     country: typeof value.country === "string" ? value.country : "",
     countryCode: typeof value.countryCode === "string" ? value.countryCode : "",
+    countrySource:
+      value.countrySource === "gps" || value.countrySource === "manual"
+        ? value.countrySource
+        : "",
     state: typeof value.state === "string" ? value.state : "",
     stateCode: typeof value.stateCode === "string" ? value.stateCode : "",
     city: typeof value.city === "string" ? value.city : "",
@@ -76,7 +82,6 @@ export function asSetupData(value: Record<string, unknown>): SetupData {
 export function getOnboardingStepError(
   step: number,
   values: SetupData,
-  hasRegions: boolean,
 ): string | null {
   if (step === 0 && !values.firstName.trim()) {
     return "Enter your first name to continue.";
@@ -99,16 +104,10 @@ export function getOnboardingStepError(
   if (step === 5 && values.photos.length !== 1) {
     return "Add one profile picture to continue.";
   }
-  if (step === 7 && !values.countryCode) {
+  if (step === 0 && (!values.countryCode || !values.countrySource)) {
     return "Select a country to continue.";
   }
-  if (step === 8 && hasRegions && !values.stateCode) {
-    return "Select a state or region to continue.";
-  }
-  if (step === 9 && !values.city) {
-    return "Select a city from the real location list.";
-  }
-  if (step === 12) {
+  if (step === 9) {
     const min = Number(values.ageMin);
     const max = Number(values.ageMax);
     if (!Number.isInteger(min) || min < 18 || min > 120) {
@@ -132,8 +131,8 @@ export function buildProfileInput(values: SetupData) {
     lookingFor: values.lookingFor,
     bio: values.bio.trim(),
     country: values.country || null,
-    state: values.state || null,
-    city: values.city,
+    state: null,
+    city: "",
     interests: values.interests.slice(0, 12),
     occupation: values.occupation,
     occupationOther: values.occupation === "Other" ? values.occupationOther.trim() : "",

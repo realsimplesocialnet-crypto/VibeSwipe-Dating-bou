@@ -2,7 +2,7 @@ import { type FormEvent, type ReactNode, useCallback, useEffect, useMemo, useRef
 import { useQueryClient } from '@tanstack/react-query';
 import { useSignUp, useUser } from '@clerk/react';
 import { Link, Redirect, useLocation } from 'wouter';
-import { ArrowLeft, ArrowRight, Check, ImagePlus, MapPin, RotateCcw, Search, ShieldCheck, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, ImagePlus, MapPin, RotateCcw, Search, X } from 'lucide-react';
 import { OnboardingVideoBackground } from './onboarding-video-background';
 import {
   getGetMyProfileQueryKey, requestProfileMediaUpload, saveMyProfile,
@@ -248,7 +248,7 @@ export function ProfileFirstSignup({ previewOnly = false }: { previewOnly?: bool
 
   const pct = Math.round(((step + 1) / STEPS.length) * 100);
   return <Frame>
-    <form onSubmit={next} noValidate className="flex flex-1 flex-col">
+    <form onSubmit={next} noValidate className="flex min-h-0 flex-1 flex-col">
       <div>
         <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-[.18em]">
           <span className="text-primary">{STEPS[step]}</span>
@@ -260,7 +260,7 @@ export function ProfileFirstSignup({ previewOnly = false }: { previewOnly?: bool
       </div>
       {storageIssue && <p role="status" data-testid="status-signup-storage" className="mt-5 rounded-xl border border-amber-300/20 bg-amber-300/[.06] px-3.5 py-2.5 text-xs leading-5 text-amber-100">{storageIssue}</p>}
 
-      <div key={step} className="page-in mt-8 flex-1">
+      <div key={step} className="page-in flex min-h-0 flex-1 flex-col justify-center py-6 pb-28" aria-live="polite">
         {step === 0 && <Q title="What's your first name?" hint="This is the name people will see on your profile.">
           <input autoFocus data-testid="input-signup-first-name" autoComplete="given-name" maxLength={60} value={a.firstName} onChange={e => set('firstName', e.target.value)} className="field signup-input" placeholder="First name" />
         </Q>}
@@ -320,12 +320,14 @@ export function ProfileFirstSignup({ previewOnly = false }: { previewOnly?: bool
         {error && <p role="alert" data-testid="error-signup" className="mt-6 rounded-xl border border-rose-300/20 bg-rose-300/[.06] px-4 py-3 text-sm leading-6 text-rose-200">{error}{errorLinksToSignIn(error) && <> <Link href="/sign-in" className="font-bold underline" data-testid="link-signup-error-signin">Sign in</Link></>}</p>}
       </div>
 
-      <div className="mt-10 grid grid-cols-[auto_1fr] gap-3 border-t border-white/[.08] pt-5">
+      <div className="fixed inset-x-0 bottom-0 z-40 bg-gradient-to-t from-[#141117] via-[#141117]/95 to-transparent px-5 pt-8 pb-[max(env(safe-area-inset-bottom),16px)]">
+        <div className="mx-auto grid w-full max-w-4xl grid-cols-[auto_1fr] gap-3">
         <button type="button" onClick={back} disabled={step === 0 || busy} data-testid="button-signup-back" className="flex min-h-[52px] items-center gap-2 rounded-2xl border border-white/10 px-5 text-sm font-semibold text-[#e7dce3] transition-colors hover:bg-white/[.04] disabled:opacity-30"><ArrowLeft size={17} />Back</button>
         <button type="submit" disabled={!valid || busy || fetchStatus === 'fetching'} data-testid="button-signup-next" className="flex min-h-[52px] items-center justify-center gap-2 rounded-2xl bg-primary px-5 text-[15px] font-bold text-[#24111b] transition-colors hover:bg-[#ff68aa] disabled:cursor-not-allowed disabled:opacity-35">
           {busy ? 'Please wait…' : step === 12 ? 'Send code' : step === LAST ? 'Verify and finish' : (step === 9 && !a.bio.trim()) || (step === 10 && !a.interests.length) || ((step === 3 || step === 4) && !(step === 3 ? a.stateCode : a.city)) ? 'Skip' : 'Next'}
           {!busy && <ArrowRight size={17} />}
         </button>
+        </div>
       </div>
     </form>
   </Frame>;
@@ -334,19 +336,17 @@ export function ProfileFirstSignup({ previewOnly = false }: { previewOnly?: bool
 function errorLinksToSignIn(msg: string) { return msg.startsWith('An account already uses this email'); }
 
 function Frame({ children }: { children: ReactNode }) {
-  return <div className="onboarding-video-form grain flex min-h-[100dvh] flex-col bg-background">
+  return <div className="onboarding-video-form grain flex h-[100dvh] flex-col overflow-y-auto bg-background">
     <OnboardingVideoBackground form/>
-    <header className="mx-auto flex w-full max-w-[560px] items-center justify-between px-5 pt-[calc(env(safe-area-inset-top,0px)+20px)]">
+    <header className="mx-auto flex w-full max-w-4xl items-center justify-between px-5 pt-[calc(env(safe-area-inset-top,0px)+20px)]">
       <Link href="/" className="inline-flex items-center gap-2.5" data-testid="link-signup-brand">
         <img src={`${basePath}/icon.png`} alt="" className="h-9 w-9 rounded-xl ring-1 ring-white/10" />
         <span className="brand text-[20px] font-extrabold text-[#fff2f7]">My<span className="text-primary">age</span></span>
       </Link>
       <Link href="/sign-in" data-testid="link-signin-from-signup" className="min-h-[44px] content-center rounded-xl px-3 text-sm font-semibold text-muted-foreground hover:text-foreground">Sign in</Link>
     </header>
-    <main className="mx-auto flex w-full max-w-[560px] flex-1 flex-col px-5 pb-[max(env(safe-area-inset-bottom),24px)] pt-8">
-      <section className="flex flex-1 flex-col rounded-[24px] border border-white/[.09] bg-[#1d1a21] p-6 sm:p-8">{children}</section>
-      <p className="mt-5 flex items-center justify-center gap-2 text-center text-xs text-muted-foreground"><ShieldCheck size={14} className="text-[#86d9b6]" />Adults 18+ only. Your answers stay on this device until you verify your email.</p>
-      <p className="mt-3 text-center text-xs text-muted-foreground"><Link href="/privacy-policy" className="hover:text-primary">Privacy Policy</Link><span className="px-2">·</span><Link href="/terms" className="hover:text-primary">Terms of Service</Link></p>
+    <main className="mx-auto flex min-h-0 w-full max-w-4xl flex-1 flex-col overflow-y-auto px-5 pb-[max(env(safe-area-inset-bottom),24px)] pt-6">
+      {children}
     </main>
   </div>;
 }

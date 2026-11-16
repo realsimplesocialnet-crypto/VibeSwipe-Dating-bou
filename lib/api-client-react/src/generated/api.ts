@@ -55,6 +55,7 @@ import type {
   GetAdminVerificationRequestsParams,
   GetDiscoverProfilesParams,
   GetMyReelsParams,
+  GetProfileReelsParams,
   GetPublicLocationShareParams,
   GetReelsFeedParams,
   GetSavedReelsParams,
@@ -6407,6 +6408,114 @@ export function useGetProfileById<TData = Awaited<ReturnType<typeof getProfileBy
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
   const queryOptions = getGetProfileByIdQueryOptions(profileId,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetProfileReelsUrl = (params: GetProfileReelsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/vibeswipe/profile-reels?${stringifiedParams}` : `/api/vibeswipe/profile-reels`
+}
+
+/**
+ * @summary List visible Reels posted by a profile
+ */
+export const getProfileReels = async (params: GetProfileReelsParams, options?: Parameters<typeof customFetch>[1]): Promise<ReelPage> => {
+
+  return customFetch<ReelPage>(getGetProfileReelsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetProfileReelsQueryKey = (params?: GetProfileReelsParams,) => {
+    return [
+    `/api/vibeswipe/profile-reels`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetProfileReelsQueryOptions = <TData = Awaited<ReturnType<typeof getProfileReels>>, TError = ErrorType<void>>(params: GetProfileReelsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProfileReels>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetProfileReelsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getProfileReels>>> = ({ signal }) => getProfileReels(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getProfileReels>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetProfileReelsQueryResult = NonNullable<Awaited<ReturnType<typeof getProfileReels>>>
+export type GetProfileReelsQueryError = ErrorType<void>
+
+
+export function useGetProfileReels<TData = Awaited<ReturnType<typeof getProfileReels>>, TError = ErrorType<void>>(
+ params: GetProfileReelsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProfileReels>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getProfileReels>>,
+          TError,
+          Awaited<ReturnType<typeof getProfileReels>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetProfileReels<TData = Awaited<ReturnType<typeof getProfileReels>>, TError = ErrorType<void>>(
+ params: GetProfileReelsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProfileReels>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getProfileReels>>,
+          TError,
+          Awaited<ReturnType<typeof getProfileReels>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetProfileReels<TData = Awaited<ReturnType<typeof getProfileReels>>, TError = ErrorType<void>>(
+ params: GetProfileReelsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProfileReels>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary List visible Reels posted by a profile
+ */
+
+export function useGetProfileReels<TData = Awaited<ReturnType<typeof getProfileReels>>, TError = ErrorType<void>>(
+ params: GetProfileReelsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProfileReels>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetProfileReelsQueryOptions(params,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 

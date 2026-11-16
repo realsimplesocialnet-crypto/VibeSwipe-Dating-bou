@@ -314,6 +314,8 @@ export default function FaceVerificationPage() {
             {!gallery.length && !choice && <p className="mt-2 flex items-center gap-2 text-xs text-muted-foreground"><ImagePlus size={14}/>No gallery photos yet. Upload one that clearly shows your face.</p>}
           </div>
 
+          {p?.country && <p className="rounded-2xl border border-primary/20 bg-card px-4 py-3 text-xs leading-5 text-muted-foreground" data-testid="text-verification-country-note">Your profile country is {p.country}. Face verification checks that your live selfie matches your selected profile photo; it does not confirm your country.</p>}
+
           {phase === 'failed' && error && <div role="alert" data-testid="verify-error" className="rounded-2xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-foreground">{error}</div>}
 
           <div>

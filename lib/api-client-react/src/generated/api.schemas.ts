@@ -1429,6 +1429,17 @@ export type GetPublicLocationShareParams = {
 token: string;
 };
 
+export type GetProfileReelsParams = {
+/**
+ * @minLength 1
+ */
+profileId: string;
+/**
+ * @maxLength 200
+ */
+cursor?: string;
+};
+
 export type CheckAdditionalProfilePhoto200 = {
   mediaReference: string;
 };

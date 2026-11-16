@@ -63,6 +63,7 @@ export * from './getAdminVerificationRequestsStatus';
 export * from './getDiscoverProfilesIncludePassed';
 export * from './getDiscoverProfilesParams';
 export * from './getMyReelsParams';
+export * from './getProfileReelsParams';
 export * from './getPublicLocationShareParams';
 export * from './getReelsFeedParams';
 export * from './getSavedReelsParams';

@@ -17,6 +17,7 @@ import {
 } from "@workspace/api-client-react";
 import { Feather } from "@expo/vector-icons";
 import { MatchCelebration } from "@/components/MatchCelebration";
+import { ProfileReelsSection } from "@/components/ProfileReelsSection";
 import { router, useLocalSearchParams } from "expo-router";
 import { useAuth } from "@clerk/expo";
 import { useQueryClient } from "@tanstack/react-query";
@@ -34,6 +35,7 @@ export default function PublicProfileScreen() {
   const { profileId, returnTo } = useLocalSearchParams<{ profileId: string; returnTo?: string }>();
   const id = profileId ?? "";
   const fromLikes = returnTo === "likes";
+  const reelReturnTo = `/profile/${encodeURIComponent(id)}${returnTo ? `?returnTo=${encodeURIComponent(returnTo)}` : ""}`;
   const colors = usePremiumColors();
   const { getToken } = useAuth();
   const { width, height } = useWindowDimensions();
@@ -306,6 +308,7 @@ export default function PublicProfileScreen() {
             </ScrollView>
           ) : <Text style={[styles.value, { color: colors.profileMuted, marginTop: 8 }]}>No photos shared yet.</Text>}
         </View>
+        <ProfileReelsSection profileId={id} returnTo={reelReturnTo} />
       </ScrollView>
 
         <View pointerEvents="box-none" style={[styles.actionHost, { bottom: bottomInset + 12 }]}>
