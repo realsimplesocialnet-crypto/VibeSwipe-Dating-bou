@@ -83,6 +83,8 @@ test("Reel comments support profile links, replies, and reply notifications", ()
   const schema = source("artifacts/api-server/src/lib/reels-schema.ts");
   assert.match(comments, /link-reel-comment-profile-/);
   assert.match(comments, /parentCommentId: replyingTo\.id/);
+  assert.match(comments, /label: `@/);
+  assert.match(comments, /commentsById\.get\(reply\.parentCommentId\)/);
   assert.match(comments, /expanded \? "Less" : "More"/);
   assert.match(comments, /scrollHeight > element\.clientHeight/);
   assert.match(commentStyles, /-webkit-line-clamp: 3/);

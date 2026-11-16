@@ -49,7 +49,7 @@ Comment authors' names and photos open their public profiles. Members can reply 
 
 **Why:** The user asked to open commenters' profiles and notify someone when another member replies to their comment.
 
-**How to apply:** Keep the original comment visible with its replies, preserve the Reel as the return destination from a commenter profile, link reply alerts directly to the replied-to comment, and label the Reel author's comments and replies “Creator.”
+**How to apply:** Keep the original comment visible with its replies, preserve the Reel as the return destination from a commenter profile, link reply alerts directly to the replied-to comment, prefix replies with a clickable mention of the original commenter, and label the Reel author's comments and replies “Creator.”
 
 Opening Reels must show a full-screen vertical feed with no main branding header, bottom navigation tabs, or in-app notification popups over the video. Users swipe up and down to watch more public member Reels; the feed is not limited to mutual matches.
 

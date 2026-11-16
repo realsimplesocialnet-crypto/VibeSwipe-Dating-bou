@@ -16,7 +16,7 @@ function ago(iso: string): string {
   return `${Math.round(minutes / 1440)}d`;
 }
 
-function ExpandableCommentText({ commentId, content }: { commentId: string; content: string }) {
+function ExpandableCommentText({ commentId, content, prefix }: { commentId: string; content: string; prefix?: { label: string; href: string } }) {
   const text = useRef<HTMLParagraphElement>(null);
   const [expanded, setExpanded] = useState(false);
   const [hasMore, setHasMore] = useState(false);
@@ -32,7 +32,9 @@ function ExpandableCommentText({ commentId, content }: { commentId: string; cont
   }, [content, expanded]);
 
   return <>
-    <p ref={text} className={`break-words text-sm leading-5 text-white ${expanded ? "" : "reel-comment-clamp"}`} data-testid={`text-reel-comment-${commentId}`}>{content}</p>
+    <p ref={text} className={`break-words text-sm leading-5 text-white ${expanded ? "" : "reel-comment-clamp"}`} data-testid={`text-reel-comment-${commentId}`}>
+      {prefix && <><Link href={prefix.href} className="font-semibold text-primary hover:underline">{prefix.label}</Link>{" "}</>}{content}
+    </p>
     {hasMore && <button type="button" onClick={() => setExpanded((value) => !value)} className="mt-0.5 text-xs font-semibold text-white/60 hover:text-primary" aria-expanded={expanded} data-testid={`button-more-comment-${commentId}`}>{expanded ? "Less" : "More"}</button>}
   </>;
 }
@@ -56,6 +58,7 @@ export function ReelComments({ reelId, creatorId, onClose, onCountChange, focusC
     list.current?.querySelector<HTMLElement>(`[data-comment-id="${focusCommentId}"]`)?.scrollIntoView({ block: "center" });
   }, [focusCommentId, comments.data]);
   const repliesByParent = new Map<string, ReelComment[]>();
+  const commentsById = new Map((comments.data ?? []).map((comment) => [comment.id, comment]));
   for (const comment of comments.data ?? []) {
     if (comment.parentCommentId) repliesByParent.set(comment.parentCommentId, [...(repliesByParent.get(comment.parentCommentId) ?? []), comment]);
   }
@@ -127,7 +130,13 @@ export function ReelComments({ reelId, creatorId, onClose, onCountChange, focusC
               </Link>
               <div className="min-w-0 flex-1">
                 <p className="text-xs text-white/55"><Link href={profileHref(reply.authorId)} className="font-semibold text-white/90 hover:text-primary">{reply.authorName}</Link>{reply.authorId === creatorId && <span className="ml-1.5 rounded-full bg-primary/15 px-1.5 py-0.5 text-[10px] font-bold text-primary">Creator</span>} <span>{ago(reply.createdAt)}</span></p>
-                <ExpandableCommentText commentId={reply.id} content={reply.content} />
+                <ExpandableCommentText
+                  commentId={reply.id}
+                  content={reply.content}
+                  prefix={reply.parentCommentId && commentsById.has(reply.parentCommentId)
+                    ? { label: `@${commentsById.get(reply.parentCommentId)!.authorName}`, href: profileHref(commentsById.get(reply.parentCommentId)!.authorId) }
+                    : undefined}
+                />
                 {reply.canDelete && (confirming === reply.id
                   ? <p className="mt-1 text-xs"><button type="button" onClick={() => void deleteComment(reply.id)} disabled={remove.isPending} className="font-semibold text-rose-300" data-testid={`button-confirm-delete-comment-${reply.id}`}>Delete reply</button><button type="button" onClick={() => setConfirming(null)} className="ml-3 text-white/60">Keep</button></p>
                   : <button type="button" onClick={() => setConfirming(reply.id)} className="mt-1 text-xs text-white/45 hover:text-white/80" data-testid={`button-delete-comment-${reply.id}`}>Delete</button>)}
