@@ -8,7 +8,6 @@ import {
   useUnblockProfile,
 } from "@workspace/api-client-react";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import { Platform } from "react-native";
 import { useAuth } from "@clerk/expo";
 import { useQueryClient } from "@tanstack/react-query";
@@ -16,12 +15,12 @@ import { router } from "expo-router";
 import { ActivityIndicator, Alert, Image, Modal, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ProfileAvatar } from "@/components/ProfileAvatar";
-import { useColors } from "@/hooks/useColors";
+import { usePremiumColors } from "@/hooks/useColors";
 import { profileImageSource } from "@/lib/media";
 import { useEffect, useState } from "react";
 
 export default function ProfileScreen() {
-  const colors = useColors();
+  const colors = usePremiumColors();
   const { getToken } = useAuth();
   const insets = useSafeAreaInsets();
   const window = useWindowDimensions();
@@ -91,7 +90,6 @@ export default function ProfileScreen() {
   );
   return (
     <View style={{ flex: 1, backgroundColor: colors.profileGradientMiddle }} onLayout={(e) => setAreaHeight(e.nativeEvent.layout.height)}>
-      <LinearGradient colors={[colors.profileGradientStart, colors.profileGradientMiddle, colors.profileGradientEnd]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
       <View style={[styles.container, { paddingBottom: tabBar + gap, paddingTop: tight ? 8 : 12, gap }]}>
         <View style={styles.top}>
           <Pressable testID="profile-blocked" accessibilityLabel="Blocked profiles" onPress={() => setBlockedOpen(true)} style={({ pressed }) => [styles.pill, { backgroundColor: colors.profileCard, opacity: pressed ? 0.7 : 1 }]}>
@@ -105,7 +103,10 @@ export default function ProfileScreen() {
         </View>
         <View style={[styles.card, { backgroundColor: colors.profileCard, paddingVertical: tight ? 10 : 16 }]}>
           <View style={[styles.portrait, { borderColor: colors.profileChip }]}><ProfileAvatar profile={user} size={avatar} /></View>
-          <Text numberOfLines={1} accessibilityLabel={`${user.name}${user.age !== null ? `, ${user.age}` : ""}`} style={[styles.name, { color: colors.profileLabel, fontSize: tight ? 22 : 26 }]}>{user.name}{user.age !== null ? `, ${user.age}` : ""}</Text>
+          <View style={styles.identity}>
+            <Text numberOfLines={1} accessibilityLabel={`${user.name}${user.age !== null ? `, ${user.age}` : ""}`} style={[styles.name, { color: colors.profileLabel, fontSize: tight ? 22 : 26 }]}>{user.name}{user.age !== null ? `, ${user.age}` : ""}</Text>
+            {user.isVerified ? <Feather name="check-circle" size={18} color={colors.premiumAccent} accessibilityLabel="Verified profile" /> : null}
+          </View>
           {place ? <Text numberOfLines={1} accessibilityLabel={place} style={[styles.city, { color: colors.profileMuted }]}>{place}</Text> : null}
           {user.gender || travel ? (
             <View style={styles.metaRow}>
@@ -198,6 +199,7 @@ const styles = StyleSheet.create({
   card: { borderRadius: 24, paddingHorizontal: 16, alignItems: "center" },
   portrait: { borderWidth: 3, borderRadius: 999, overflow: "hidden" },
   name: { fontWeight: "800", textAlign: "center", letterSpacing: -0.5, marginTop: 6, maxWidth: "100%" },
+  identity: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, maxWidth: "100%" },
   city: { fontSize: 14, marginTop: 2, textAlign: "center", maxWidth: "100%" },
   metaRow: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 4, maxWidth: "100%" },
   genderRow: { flexDirection: "row", alignItems: "center", gap: 4 },

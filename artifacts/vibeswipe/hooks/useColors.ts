@@ -18,3 +18,42 @@ export function useColors() {
   const palette = scheme === "dark" ? colors.dark : colors.light;
   return { ...palette, radius: colors.radius };
 }
+
+/** A fixed charcoal-and-gold palette for the premium profile and Likes screens. */
+export function usePremiumColors() {
+  const base = useColors();
+  return {
+    ...base,
+    background: base.premiumBackground,
+    foreground: base.premiumForeground,
+    card: base.premiumCard,
+    cardForeground: base.premiumForeground,
+    primary: base.premiumAccent,
+    primaryForeground: base.premiumAccentForeground,
+    secondary: base.premiumSoft,
+    secondaryForeground: base.premiumForeground,
+    muted: base.premiumSoft,
+    mutedForeground: base.premiumMuted,
+    accent: base.premiumSoft,
+    accentForeground: base.premiumAccent,
+    border: base.premiumBorder,
+    input: base.premiumBorder,
+    messagesBackground: base.premiumBackground,
+    profileGradientStart: base.premiumBackground,
+    profileGradientMiddle: base.premiumBackground,
+    profileGradientEnd: base.premiumBackground,
+    profileCard: base.premiumCard,
+    profileEdit: base.premiumAccent,
+    profileEditForeground: base.premiumAccentForeground,
+    profileLabel: base.premiumForeground,
+    profileMuted: base.premiumMuted,
+    profileRule: base.premiumBorder,
+    profileChip: base.premiumSoft,
+    profileChipForeground: base.premiumAccent,
+    publicPassSurface: base.premiumPass,
+    publicPassIcon: base.premiumBackground,
+    publicToast: base.premiumCard,
+    publicHeroFade: base.premiumHeroFade,
+    publicHeroBorder: base.premiumHeroBorder,
+  };
+}

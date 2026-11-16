@@ -15,11 +15,13 @@ Leave paid upgrades out.
 
 **How to apply:** Do not add a non-working Upgrade button, payment gate, or premium banner merely to copy a screenshot.
 
-Other members' full profiles now use the light-pink circular-portrait direction: actual name/location, clear age/work/looking-for/about details, an uploaded-photo row, and floating Pass, Like to match and Super Like controls with no solid action plate. Respect the app theme with a readable dark counterpart.
+Other members' full profiles use the current charcoal-and-gold palette: background `#0F0F12`, cards `#1A1A1E`, and accent `#C4A574`, without bright pink or an in-dashboard wordmark. Keep real name/location, age/work/looking-for/about details, and uploaded photos.
 
-**Why:** The user replaced the earlier dark details-first reference with a light-pink circular-portrait profile and three labeled floating actions.
+When opened from Likes, show the selected member's main photo prominently and present Pass plus Like Back; omit Super Like on that entry path. Like Back uses the normal like/match handling and returns to Likes when no match celebration takes over. Keep other profile entry paths' existing actions.
 
-**How to apply:** Keep this public-profile direction separate from the approved pink-to-peach own-profile overview.
+**Why:** The user asked for the Likes-to-profile flow to show a clear Like Back action and later replaced the bright-pink visual direction with charcoal and soft gold.
+
+**How to apply:** Keep this public-profile behavior consistent in native and web/PWA, separate from the user's own profile overview, and preserve existing Activity/return navigation.
 
 Super Like is the floating star action and produces a distinct “Super Liked you” Activity notice, not an ordinary like notice. Activity may show these special notices alongside its short message notices and summary shortcuts. A Super Like never unlocks chat by itself.
 

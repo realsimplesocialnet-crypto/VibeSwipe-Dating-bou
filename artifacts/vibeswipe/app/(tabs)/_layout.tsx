@@ -15,13 +15,14 @@ import { useGetNotifications } from '@workspace/api-client-react';
 // is a system-level appearance provided by iOS and cannot be overridden.
 // Custom brand colors are applied only on the ClassicTabLayout path (older iOS / Android / web).
 function NativeTabLayout() {
+  const colors = useColors();
   const notifications = useGetNotifications({ query: { refetchInterval: 5_000 } });
   const counts = notifications.data?.unreadCounts;
   const matchBadge = counts?.matches ?? 0;
   const messageBadge = counts?.messages ?? 0;
   const activityBadge = counts ? counts.views + counts.likes + (counts.reels ?? 0) : 0;
   return (
-    <NativeTabs>
+    <NativeTabs tintColor={colors.premiumAccent}>
       <NativeTabs.Trigger name="index">
         <NativeTabs.Trigger.Icon
           sf={{ default: 'house', selected: 'house.fill' }}
@@ -67,7 +68,7 @@ function ClassicTabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: colors.primary,
+        tabBarActiveTintColor: colors.premiumAccent,
         tabBarInactiveTintColor: colors.mutedForeground,
         headerShown: true,
         tabBarStyle: {

@@ -5,6 +5,7 @@ import {
   getGetNotificationsQueryKey,
   getGetProfileByIdQueryKey,
   getGetSuperLikeStatusQueryKey,
+  getGetWhoLikedYouQueryKey,
   useBlockProfile,
   useCreateReaction,
   useGetDailyLikeStatus,
@@ -24,15 +25,16 @@ import { ActivityIndicator, Image, Modal, Platform, Pressable, ScrollView, Style
 import type { ComponentProps } from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { profileImageSource } from "@/lib/media";
-import { useColors } from "@/hooks/useColors";
+import { usePremiumColors } from "@/hooks/useColors";
 
 type ReactionKind = "pass" | "like" | "super";
 
 export default function PublicProfileScreen() {
   const me = useGetMyProfile();
-  const { profileId } = useLocalSearchParams<{ profileId: string }>();
+  const { profileId, returnTo } = useLocalSearchParams<{ profileId: string; returnTo?: string }>();
   const id = profileId ?? "";
-  const colors = useColors();
+  const fromLikes = returnTo === "likes";
+  const colors = usePremiumColors();
   const { getToken } = useAuth();
   const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
@@ -59,6 +61,10 @@ export default function PublicProfileScreen() {
   const mounted = useRef(true);
   const currentId = useRef(id);
   currentId.current = id;
+  function goBack() {
+    if (router.canGoBack()) router.back();
+    else router.replace((fromLikes ? "/(tabs)/activity/likes" : "/(tabs)/activity") as never);
+  }
 
   useEffect(() => {
     if (id) recordView.mutate({ profileId: id });
@@ -101,7 +107,8 @@ export default function PublicProfileScreen() {
       const result = await reaction.mutateAsync({ data: { toUserId: targetId, type } });
       if (!mounted.current || currentId.current !== targetId) { busy.current = false; return; }
       void queryClient.invalidateQueries({ queryKey: getGetDiscoverProfilesQueryKey() });
-      if (type === "pass") { busy.current = false; router.back(); return; }
+      void queryClient.invalidateQueries({ queryKey: getGetWhoLikedYouQueryKey() });
+      if (type === "pass") { busy.current = false; goBack(); return; }
       void queryClient.invalidateQueries({ queryKey: type === "like" ? getGetDailyLikeStatusQueryKey() : getGetSuperLikeStatusQueryKey() });
       void queryClient.invalidateQueries({ queryKey: getGetMatchesQueryKey() });
       void queryClient.invalidateQueries({ queryKey: getGetNotificationsQueryKey() });
@@ -112,7 +119,7 @@ export default function PublicProfileScreen() {
         if (!mounted.current || currentId.current !== targetId) return;
         setConfirmation(null);
         if (result.matched) setMatchResult({ name, matchId: result.matchId ?? null });
-        else router.back();
+        else goBack();
       }, 1500);
     } catch (error) {
       busy.current = false;
@@ -139,7 +146,7 @@ export default function PublicProfileScreen() {
         void queryClient.invalidateQueries({ queryKey: getGetMatchesQueryKey() });
         setConfirmSafety(null);
         setMenuOpen(false);
-        router.back();
+        goBack();
       } else {
         await report.mutateAsync({ data: { targetUserId: user.id, reason: "other" } });
         setReported(true);
@@ -170,7 +177,7 @@ export default function PublicProfileScreen() {
         <Pressable testID="public-profile-retry" accessibilityRole="button" onPress={() => void profile.refetch()} style={[styles.pillButton, { backgroundColor: colors.profileEdit }]}>
           <Text style={[styles.pillButtonText, { color: colors.profileEditForeground }]}>Try again</Text>
         </Pressable>
-        <Pressable testID="public-profile-back" accessibilityRole="button" onPress={() => router.back()} style={[styles.pillButton, { backgroundColor: colors.profileCard }]}>
+        <Pressable testID="public-profile-back" accessibilityRole="button" onPress={goBack} style={[styles.pillButton, { backgroundColor: colors.profileCard }]}>
           <Text style={[styles.pillButtonText, { color: colors.foreground }]}>Go back</Text>
         </Pressable>
       </View>
@@ -193,6 +200,7 @@ export default function PublicProfileScreen() {
   const narrow = width < 360;
   const toast = actionError || (likeOut && superOut ? "Today’s likes and Super Like are used up." : "");
   const viewerWidth = Math.min(width, 900);
+  const heroHeight = Math.min(Math.max(height * 0.42, 280), 420);
 
   const fab = (
     key: ReactionKind,
@@ -221,25 +229,32 @@ export default function PublicProfileScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: bg }}>
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={[styles.content, { paddingTop: topInset + 8, paddingBottom: bottomInset + 170 }]}>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={[styles.content, { paddingTop: topInset + 8, paddingBottom: bottomInset + (fromLikes ? 124 : 170) }]}>
         <View style={styles.topRow}>
-          <Pressable testID="public-profile-back" accessibilityRole="button" accessibilityLabel="Back" onPress={() => router.back()} style={[styles.round, { backgroundColor: colors.profileCard, shadowColor: colors.profileChipForeground }]}>
+          <Pressable testID="public-profile-back" accessibilityRole="button" accessibilityLabel="Back to Likes" onPress={goBack} style={[styles.round, { backgroundColor: colors.profileCard, shadowColor: colors.profileChipForeground }]}>
             <Feather name="arrow-left" size={20} color={colors.foreground} />
           </Pressable>
-          <Text style={[styles.wordmark, { color: colors.profileEdit }]}>VIBESWIPE</Text>
           <Pressable testID="public-profile-more" accessibilityRole="button" accessibilityLabel={`More actions for ${user.name}`} onPress={() => { setSafetyError(""); setConfirmSafety(null); setMenuOpen(true); }} style={[styles.round, { backgroundColor: colors.profileCard, shadowColor: colors.profileChipForeground }]}>
             <Feather name="more-horizontal" size={20} color={colors.foreground} />
           </Pressable>
         </View>
 
-        <View style={styles.header}>
-          <Pressable testID="public-profile-avatar" accessibilityRole="imagebutton" accessibilityLabel={`Open ${user.name}'s main photo`} disabled={!photos.length} onPress={() => setViewer(0)} style={[styles.avatarRing, { borderColor: colors.profileEdit, backgroundColor: colors.profileCard, shadowColor: colors.profileChipForeground }]}>
-            {avatarSource && !avatarError ? (
-              <Image source={avatarSource} onError={() => setAvatarError(true)} style={styles.avatar} resizeMode="cover" accessibilityLabel={`${user.name}'s main photo`} />
-            ) : (
-              <Text style={[styles.initial, { color: colors.profileEdit }]}>{user.name.trim().slice(0, 1).toUpperCase()}</Text>
-            )}
+        {fromLikes ? (
+          <Pressable testID="public-profile-hero" accessibilityRole="imagebutton" accessibilityLabel={`Open ${user.name}'s main photo`} disabled={!photos.length} onPress={() => setViewer(0)} style={[styles.likesHero, { height: heroHeight, backgroundColor: colors.profileCard, shadowColor: colors.profileChipForeground }]}>
+            {avatarSource && !avatarError ? <Image source={avatarSource} onError={() => setAvatarError(true)} style={StyleSheet.absoluteFill} resizeMode="cover" accessibilityLabel={`${user.name}'s main photo`} /> : <Text style={[styles.heroInitial, { color: colors.profileEdit }]}>{user.name.trim().slice(0, 1).toUpperCase()}</Text>}
           </Pressable>
+        ) : null}
+
+        <View style={[styles.header, fromLikes && { marginTop: 12, marginBottom: 18 }]}>
+          {!fromLikes ? (
+            <Pressable testID="public-profile-avatar" accessibilityRole="imagebutton" accessibilityLabel={`Open ${user.name}'s main photo`} disabled={!photos.length} onPress={() => setViewer(0)} style={[styles.avatarRing, { borderColor: colors.profileEdit, backgroundColor: colors.profileCard, shadowColor: colors.profileChipForeground }]}>
+              {avatarSource && !avatarError ? (
+                <Image source={avatarSource} onError={() => setAvatarError(true)} style={styles.avatar} resizeMode="cover" accessibilityLabel={`${user.name}'s main photo`} />
+              ) : (
+                <Text style={[styles.initial, { color: colors.profileEdit }]}>{user.name.trim().slice(0, 1).toUpperCase()}</Text>
+              )}
+            </Pressable>
+          ) : null}
           <Text testID="public-profile-name" style={[styles.name, { color: colors.foreground }]}>
             {user.name}{showAge ? <Text style={{ color: colors.profileMuted, fontWeight: "600" }}>, {user.age}</Text> : null}
             {user.isVerified && <Feather name="check-circle" size={21} color="#2997e8" accessibilityLabel="Verified profile"/>}
@@ -293,15 +308,28 @@ export default function PublicProfileScreen() {
         </View>
       </ScrollView>
 
-      <View pointerEvents="box-none" style={[styles.actionHost, { bottom: bottomInset + 12 }]}>
+        <View pointerEvents="box-none" style={[styles.actionHost, { bottom: bottomInset + 12 }]}>
         {toast ? (
           <Text accessibilityRole="alert" testID="public-profile-action-error" style={[styles.toast, { backgroundColor: colors.profileCard, color: colors.foreground, shadowColor: colors.profileChipForeground }]}>{toast}</Text>
         ) : null}
-        <View pointerEvents="box-none" style={[styles.actionRow, { gap: narrow ? 14 : 28 }]} testID="public-profile-actions">
-          {fab("pass", 58, "Pass", locked, "public-profile-pass", `Pass on ${user.name}`)}
-          {fab("like", 74, likeOut ? "No likes left" : "Like to match", locked || dailyLikeStatus.isLoading || likeOut, "public-profile-like", `Like ${user.name}`)}
-          {fab("super", 58, superOut ? "Used today" : "Super Like", locked || superStatus.isLoading || superOut, "public-profile-super-like", `Super Like ${user.name}`)}
-        </View>
+        {fromLikes ? (
+          <View pointerEvents="box-none" style={styles.likeBackRow} testID="public-profile-actions">
+            <Pressable testID="public-profile-pass" accessibilityRole="button" accessibilityLabel={`Pass on ${user.name}`} accessibilityState={{ disabled: locked }} disabled={locked} onPress={() => void react("pass")} style={({ pressed }) => [styles.likeBackButton, { backgroundColor: colors.premiumPass, opacity: locked ? 0.56 : pressed ? 0.82 : 1 }]}>
+              <Feather name="x" size={19} color={colors.premiumBackground} />
+              <Text style={[styles.likeBackText, { color: colors.premiumBackground }]}>Pass</Text>
+            </Pressable>
+            <Pressable testID="public-profile-like" accessibilityRole="button" accessibilityLabel={`Like ${user.name} back`} accessibilityState={{ disabled: locked || dailyLikeStatus.isLoading || likeOut }} disabled={locked || dailyLikeStatus.isLoading || likeOut} onPress={() => void react("like")} style={({ pressed }) => [styles.likeBackButton, { backgroundColor: colors.premiumAccent, opacity: locked || dailyLikeStatus.isLoading || likeOut ? 0.56 : pressed ? 0.82 : 1 }]}>
+              {reaction.isPending ? <ActivityIndicator color={colors.premiumAccentForeground} /> : <Feather name="heart" size={18} color={colors.premiumAccentForeground} />}
+              <Text style={[styles.likeBackText, { color: colors.premiumAccentForeground }]}>{likeOut ? "No likes left" : "Like Back"}</Text>
+            </Pressable>
+          </View>
+        ) : (
+          <View pointerEvents="box-none" style={[styles.actionRow, { gap: narrow ? 14 : 28 }]} testID="public-profile-actions">
+            {fab("pass", 58, "Pass", locked, "public-profile-pass", `Pass on ${user.name}`)}
+            {fab("like", 74, likeOut ? "No likes left" : "Like to match", locked || dailyLikeStatus.isLoading || likeOut, "public-profile-like", `Like ${user.name}`)}
+            {fab("super", 58, superOut ? "Used today" : "Super Like", locked || superStatus.isLoading || superOut, "public-profile-super-like", `Super Like ${user.name}`)}
+          </View>
+        )}
       </View>
 
       {confirmation ? (
@@ -395,9 +423,13 @@ const styles = StyleSheet.create({
   pillButtonText: { fontSize: 14, fontWeight: "700" },
   content: { width: "100%", maxWidth: 520, alignSelf: "center", paddingHorizontal: 20 },
   topRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  wordmark: { fontSize: 12, fontWeight: "800", letterSpacing: 2.4 },
   round: { width: 42, height: 42, borderRadius: 21, alignItems: "center", justifyContent: "center", ...shadow },
   header: { alignItems: "center", marginTop: 18, marginBottom: 24 },
+  likesHero: { width: "100%", borderRadius: 24, overflow: "hidden", alignItems: "center", justifyContent: "center", marginTop: 16, borderWidth: 1, ...shadow },
+  heroInitial: { fontSize: 64, fontWeight: "800" },
+  likeBackRow: { width: "100%", maxWidth: 520, flexDirection: "row", gap: 12, paddingHorizontal: 8 },
+  likeBackButton: { flex: 1, minHeight: 54, borderRadius: 18, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 9, paddingHorizontal: 16 },
+  likeBackText: { fontSize: 15, fontWeight: "800" },
   avatarRing: { width: 136, height: 136, borderRadius: 68, borderWidth: 2, padding: 4, alignItems: "center", justifyContent: "center", ...shadow, shadowOpacity: 0.2 },
   avatar: { width: "100%", height: "100%", borderRadius: 64 },
   initial: { fontSize: 48, fontWeight: "800" },

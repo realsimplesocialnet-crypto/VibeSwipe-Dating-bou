@@ -149,7 +149,13 @@ export function InboundPeoplePage({ avatar, kind }: { avatar: AvatarFn; kind: 'l
     <Head back title={isLikes ? 'Likes' : 'Views'} sub={isLikes ? 'People who liked you' : 'People who viewed your profile'} />
     <SeenError seen={seen} />
     {q.isLoading ? <Skel /> : q.isError && !q.data ? <Err text={`We couldn't load your ${kind}.`} onRetry={() => void q.refetch()} />
-      : !rows.length ? <Empty icon={isLikes ? <Heart size={24} fill="currentColor" /> : <Eye size={24} />} title={isLikes ? 'No likes yet' : 'No views yet'} detail={isLikes ? 'When someone likes you, they show up here.' : 'When someone opens your profile, they show up here.'} />
+      : !rows.length && isLikes ? <div className="sh-card flex flex-col items-center rounded-[26px] px-6 py-12 text-center" data-testid="status-empty-likes">
+        <div className="sh-icon mb-4 flex h-16 w-16 items-center justify-center rounded-full"><Heart size={30} fill="currentColor" aria-hidden="true" /></div>
+        <h2 className="text-lg font-bold">No new likes yet.</h2>
+        <p className="sh-muted mt-1 max-w-xs text-sm">Keep swiping!</p>
+        <Link href="/discover" data-testid="link-empty-discover" className="mt-5 rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground">Discover</Link>
+      </div>
+      : !rows.length ? <Empty icon={<Eye size={24} />} title="No views yet" detail="When someone opens your profile, they show up here." />
       : <ul className="space-y-3">{rows.map(r => <li key={`${r.profile.id}-${r.at}`}><Link href={`/profile/${r.profile.id}?returnTo=${rt}`} onClick={() => readNotice(r.profile.id, isLikes ? 'new_like' : 'profile_view')} data-testid={`link-${kind}-profile-${r.profile.id}`} aria-label={`View ${r.profile.name}'s profile`} className="sh-card flex items-center gap-4 rounded-[22px] p-3.5 transition-transform hover:-translate-y-px md:p-4">
         <div className="h-14 w-14 shrink-0 overflow-hidden rounded-full">{avatar(r.profile)}</div>
         <div className="min-w-0 flex-1"><div className="truncate text-[17px] font-bold">{r.profile.name}{r.profile.age !== null && r.profile.showAge !== false ? `, ${r.profile.age}` : ''}</div><div className="sh-muted text-sm">{isLikes ? (r.isSuperLike ? 'Super Liked you' : 'Liked you') : 'Viewed your profile'} <span aria-hidden="true">·</span> <time dateTime={r.at}>{ago(r.at)}</time></div></div>

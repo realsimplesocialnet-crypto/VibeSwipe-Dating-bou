@@ -1,11 +1,12 @@
-.social-hub { background:linear-gradient(145deg,#2b1d28,#1b1521 60%,#261c1c); color:hsl(var(--foreground)); }
-.social-hub .sh-card { background:hsl(var(--card)); border:1px solid hsl(var(--border) / .6); box-shadow:0 6px 18px hsl(330 35% 4% / .18); color:hsl(var(--foreground)); }
+.app-shell:has(.social-hub) { --primary:41 41% 62%; --primary-foreground:40 20% 8%; --accent:48 7% 16%; --accent-foreground:40 24% 75%; --card:240 6% 11%; --border:40 5% 20%; --foreground:40 20% 94%; --muted-foreground:40 7% 64%; --ring:41 41% 62%; }
+.social-hub { background:#0F0F12; color:#F4F1EA; }
+.social-hub .sh-card { background:#1A1A1E; border:1px solid #34332F; box-shadow:0 6px 18px rgba(0,0,0,.18); color:#F4F1EA; }
 .social-hub .sh-muted { color:hsl(var(--muted-foreground)); }
 .social-hub .sh-label { font-size:12px; font-weight:800; letter-spacing:.2em; text-transform:uppercase; color:hsl(var(--muted-foreground)); }
-.social-hub .sh-icon, .social-hub .sh-pill, .social-hub .sh-chat { background:hsl(var(--accent)); color:hsl(var(--primary)); }
+.social-hub .sh-icon, .social-hub .sh-pill, .social-hub .sh-chat { background:#282722; color:#C4A574; }
 .social-hub .sh-chat { transition:transform .15s; }
 .social-hub .sh-chat:active { transform:scale(.94); }
-.social-hub .sh-back { background:hsl(var(--card) / .6); border:1px solid hsl(var(--border) / .6); }
+.social-hub .sh-back { background:#1A1A1E; border:1px solid #34332F; }
 .social-hub .sh-stack { border:2px solid hsl(var(--card)); }
 .social-hub .sh-stack > * { max-width:100%; max-height:100%; }
 html[data-theme="light"] .social-hub { --primary:341 78% 62%; --primary-foreground:0 0% 100%; background:linear-gradient(135deg,#fde1ec 0%,#fbdedc 48%,#fff0df 100%); color:#1d1a1f; }

@@ -11,7 +11,7 @@ import {
   type Match, type Profile,
 } from "@workspace/api-client-react";
 import { ProfileAvatar } from "@/components/ProfileAvatar";
-import { useColors } from "@/hooks/useColors";
+import { usePremiumColors } from "@/hooks/useColors";
 
 const live = { refetchInterval: 15000, refetchOnMount: "always" as const, refetchOnWindowFocus: true, staleTime: 0 };
 const useMarkActivitySeen = createUseMarkActivitySeen({ useCallback, useEffect, useRef, useState });
@@ -27,7 +27,7 @@ function useSeenOnFocus(category: ActivityCategory, ready: boolean) {
 }
 
 function SeenError({ seen }: { seen: ReturnType<typeof useMarkActivitySeen> }) {
-  const c = useColors();
+  const c = usePremiumColors();
   return seen.error ? <Pressable disabled={seen.pending} onPress={() => void seen.retry()} accessibilityRole="button" style={{ padding: 12, marginHorizontal: 20 }}><Text accessibilityRole="alert" style={{ color: c.primary }}>Couldn’t clear the new count. Tap to retry.</Text></Pressable> : null;
 }
 const active = (m?: Match[]) => (m ?? []).filter((x) => !x.profile.isDemo && !x.blockedByMe && !x.blockedMe);
@@ -58,7 +58,7 @@ function useNoticeReader() {
 }
 
 function Screen({ title, sub, back, children }: { title: string; sub?: string; back?: boolean; children: ReactNode }) {
-  const c = useColors();
+  const c = usePremiumColors();
   const insets = useSafeAreaInsets();
   const top = Platform.OS === "web" ? 67 : insets.top;
   return (
@@ -79,7 +79,7 @@ function Screen({ title, sub, back, children }: { title: string; sub?: string; b
 }
 
 function State({ loading, error, empty, onRetry, icon, emptyTitle, emptyText }: { loading: boolean; error: boolean; empty: boolean; onRetry: () => void; icon: keyof typeof Feather.glyphMap; emptyTitle: string; emptyText: string }) {
-  const c = useColors();
+  const c = usePremiumColors();
   if (loading) return <View style={s.center}><ActivityIndicator color={c.primary} /></View>;
   if (error) return (
     <View style={[s.card, s.stateCard, { backgroundColor: c.profileCard, borderColor: c.border }]}>
@@ -99,7 +99,7 @@ function State({ loading, error, empty, onRetry, icon, emptyTitle, emptyText }: 
 
 export function ActivityOverview() {
   const readNotice = useNoticeReader();
-  const c = useColors();
+  const c = usePremiumColors();
   const qc = useQueryClient();
   const insets = useSafeAreaInsets();
   const notes = useGetNotifications({ query: { queryKey: getGetNotificationsQueryKey(), ...live } });
@@ -183,7 +183,7 @@ export function ActivityOverview() {
 
 export function InboundPeoplePage({ kind }: { kind: "likes" | "views" }) {
   const readNotice = useNoticeReader();
-  const c = useColors();
+  const c = usePremiumColors();
   const insets = useSafeAreaInsets();
   const isLikes = kind === "likes";
   const likes = useGetWhoLikedYou({ query: { queryKey: getGetWhoLikedYouQueryKey(), enabled: isLikes, ...live } });
@@ -195,21 +195,31 @@ export function InboundPeoplePage({ kind }: { kind: "likes" | "views" }) {
   return (
     <Screen back title={isLikes ? "Likes" : "Views"} sub={isLikes ? "People who liked you" : "People who viewed your profile"}>
       <SeenError seen={seen} />
-      {q.isLoading || (q.isError && !q.data) || !rows.length ? (
-        <View style={s.list}><State loading={q.isLoading} error={q.isError && !q.data} empty={!rows.length} onRetry={() => void q.refetch()} icon={isLikes ? "heart" : "eye"} emptyTitle={isLikes ? "No likes yet" : "No views yet"} emptyText={isLikes ? "When someone likes you, they show up here." : "When someone opens your profile, they show up here."} /></View>
+      {q.isLoading || (q.isError && !q.data) ? (
+        <View style={s.list}><State loading={q.isLoading} error={q.isError && !q.data} empty={false} onRetry={() => void q.refetch()} icon={isLikes ? "heart" : "eye"} emptyTitle="" emptyText="" /></View>
+      ) : !rows.length ? (
+        isLikes ? (
+          <View style={[s.emptyLikes, { backgroundColor: c.premiumBackground }]} testID="status-empty-likes">
+            <View style={[s.emptyHeart, { backgroundColor: c.premiumSoft, borderColor: c.premiumBorder }]}>
+              <Feather name="heart" size={32} color={c.premiumAccent} />
+            </View>
+            <Text style={[s.emptyTitle, { color: c.premiumForeground }]}>No new likes yet.</Text>
+            <Text style={[s.emptySubtitle, { color: c.premiumMuted }]}>Keep swiping!</Text>
+          </View>
+        ) : <View style={s.list}><State loading={false} error={false} empty onRetry={() => void q.refetch()} icon="eye" emptyTitle="No views yet" emptyText="When someone opens your profile, they show up here." /></View>
       ) : (
         <FlatList
           data={rows}
           keyExtractor={(r) => `${r.profile.id}-${r.at}`}
           contentContainerStyle={[s.list, { paddingBottom: insets.bottom + 110 }]}
           renderItem={({ item: r }) => (
-            <Pressable onPress={() => { readNotice(r.profile.id, isLikes ? "new_like" : "profile_view"); router.push({ pathname: "/profile/[profileId]", params: { profileId: r.profile.id } } as never); }} testID={`link-${kind}-profile-${r.profile.id}`} accessibilityRole="button" accessibilityLabel={`View ${r.profile.name}'s profile`} style={({ pressed }) => [s.card, s.row, { backgroundColor: c.profileCard, borderColor: c.border, opacity: pressed ? 0.85 : 1 }]}>
-              <ProfileAvatar profile={r.profile} size={56} />
+            <Pressable onPress={() => { readNotice(r.profile.id, isLikes ? "new_like" : "profile_view"); router.push({ pathname: "/profile/[profileId]", params: { profileId: r.profile.id, ...(isLikes ? { returnTo: "likes" } : {}) } } as never); }} testID={`link-${kind}-profile-${r.profile.id}`} accessibilityRole="button" accessibilityLabel={`View ${r.profile.name}'s profile`} style={({ pressed }) => [s.card, s.row, { backgroundColor: c.profileCard, borderColor: c.border, opacity: pressed ? 0.85 : 1 }]}>
+              <View style={[s.avatarRing, { borderColor: c.premiumAccent }]}><ProfileAvatar profile={r.profile} size={54} /></View>
               <View style={s.flex}>
                 <Text numberOfLines={1} style={[s.name, { color: c.foreground }]}>{label(r.profile)}</Text>
                 <Text style={{ color: c.mutedForeground, fontSize: 13 }}>{isLikes ? (r.isSuperLike ? "Super Liked you" : "Liked you") : "Viewed your profile"} · {ago(r.at)}</Text>
               </View>
-              {isLikes ? <Feather name={r.isSuperLike ? "star" : "heart"} size={22} color={c.primary} /> : (
+              {isLikes ? <View style={[s.heartBadge, { backgroundColor: c.premiumSoft }]}><Feather name={r.isSuperLike ? "star" : "heart"} size={17} color={c.premiumAccent} /></View> : (
                 <View style={[s.pill, { backgroundColor: c.profileChip }]}><Feather name="eye" size={14} color={c.primary} /><Text style={{ color: c.primary, fontWeight: "700", fontSize: 12 }}>View</Text></View>
               )}
             </Pressable>
@@ -222,7 +232,7 @@ export function InboundPeoplePage({ kind }: { kind: "likes" | "views" }) {
 
 export function MutualMatchesPage() {
   const readNotice = useNoticeReader();
-  const c = useColors();
+  const c = usePremiumColors();
   const insets = useSafeAreaInsets();
   const matches = useGetMatches({ query: { queryKey: getGetMatchesQueryKey(), ...live } });
   const seen = useSeenOnFocus("matches", matches.isSuccess && !matches.isFetching);
@@ -273,6 +283,12 @@ const s = StyleSheet.create({
   card: { borderWidth: 1, borderRadius: 22, padding: 14 },
   row: { flexDirection: "row", alignItems: "center", gap: 12 },
   stateCard: { alignItems: "center", gap: 10, paddingVertical: 32 },
+  emptyLikes: { flex: 1, minHeight: 260, alignItems: "center", justifyContent: "center", paddingHorizontal: 26 },
+  emptyHeart: { width: 88, height: 88, borderRadius: 44, alignItems: "center", justifyContent: "center", borderWidth: 1, marginBottom: 20 },
+  emptyTitle: { fontSize: 20, fontWeight: "700", textAlign: "center" },
+  emptySubtitle: { fontSize: 15, marginTop: 6, textAlign: "center" },
+  avatarRing: { borderWidth: 1.5, borderRadius: 32, padding: 2 },
+  heartBadge: { width: 38, height: 38, borderRadius: 19, alignItems: "center", justifyContent: "center" },
   center: { paddingVertical: 40, alignItems: "center" },
   btn: { borderRadius: 12, paddingHorizontal: 18, paddingVertical: 10, marginTop: 4 },
   notice: { flexDirection: "row", alignItems: "center", gap: 10, borderWidth: 1, borderRadius: 16, paddingHorizontal: 14, paddingVertical: 12 },

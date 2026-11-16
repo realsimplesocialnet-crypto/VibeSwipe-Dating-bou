@@ -69,14 +69,14 @@ html[data-theme="light"] .text-\[\#f5edf1\] { color: hsl(var(--foreground)) !imp
 .hide-scrollbar { scrollbar-width:none; }
 @media (prefers-reduced-motion: reduce) { *,*::before,*::after { animation-duration:.01ms!important; scroll-behavior:auto!important; } }
 /* Own profile overview (/profile only) */
-.own-profile { --op-pink:#f6c4d4; --op-peach:#fbd9c0; background:linear-gradient(150deg,#3a2232 0%,#2a1d29 45%,#3a2a26 100%); color:hsl(var(--foreground)); }
+.own-profile { --op-pink:#C4A574; --op-peach:#282722; background:#0F0F12; color:#F4F1EA; }
 .own-profile .op-card { background:hsl(var(--card)); box-shadow:0 24px 60px hsl(252 30% 3% / .4); border:1px solid hsl(var(--border) / .6); }
 .own-profile .op-portrait { border:5px solid hsl(var(--card)); background:hsl(var(--accent)); box-shadow:0 14px 34px hsl(252 30% 3% / .45); }
 .own-profile .op-muted { color:hsl(var(--muted-foreground)); }
 .own-profile .op-label { font-size:12px; font-weight:800; letter-spacing:.24em; text-transform:uppercase; color:hsl(var(--foreground) / .85); }
 .own-profile .op-rule { height:1px; background:hsl(var(--border) / .7); }
-.own-profile .op-edit { background:#f2557d; color:#fff8fa; box-shadow:0 10px 24px rgba(242,85,125,.28); }
-.own-profile .op-edit:hover { background:#f46a8d; }
+.own-profile .op-edit { background:#C4A574; color:#171612; box-shadow:0 10px 24px rgba(196,165,116,.18); }
+.own-profile .op-edit:hover { background:#D0B787; }
 html[data-theme="light"] .chat-surface.chat-new-match:not(.chat-dark) {
   background: linear-gradient(155deg, #fff3f5, #ffe8ed 62%, #fff3ee);
 }
@@ -104,8 +104,8 @@ html.op-lock, html.op-lock body { overflow:hidden; overscroll-behavior:none; }
 .own-profile .op-avatar { height:clamp(64px,12cqh,96px); width:clamp(64px,12cqh,96px); flex-shrink:0; }
 .own-profile .op-section { background:hsl(var(--card)); border:1px solid hsl(var(--border) / .6); border-radius:20px; padding:clamp(9px,1.5dvh,14px) 14px; box-shadow:0 10px 30px hsl(252 30% 3% / .25); }
 .own-profile .op-section .op-label { display:flex; align-items:center; gap:8px; font-size:11px; letter-spacing:.14em; }
-.own-profile .op-ico { display:inline-flex; height:24px; width:24px; align-items:center; justify-content:center; border-radius:999px; background:hsl(var(--accent)); color:#f2557d; }
-.own-profile .op-manage { background:hsl(var(--accent)); color:#f2557d; }
+.own-profile .op-ico { display:inline-flex; height:24px; width:24px; align-items:center; justify-content:center; border-radius:999px; background:#282722; color:#C4A574; }
+.own-profile .op-manage { background:#282722; color:#C4A574; }
 html[data-theme="light"] .own-profile { background:linear-gradient(180deg,#fde4ec 0%,#fdebef 55%,#fff1f3 100%); }
 html[data-theme="light"] .own-profile .op-section { background:#fffdfd; border-color:#f6e3e9; box-shadow:0 8px 24px rgba(214,120,140,.12); }
 html[data-theme="light"] .own-profile .op-ico, html[data-theme="light"] .own-profile .op-manage { background:#fde4ea; }
@@ -113,6 +113,16 @@ html[data-theme="light"] .own-profile .op-title { color:#2a2328; }
 /* Profile reserves the real header and navigation heights, not guessed offsets.
    One continuous background; neither bar is painted over the photo section. */
 .app-shell.profile-shell {
+  --background:240 6% 6%;
+  --card:240 6% 11%;
+  --accent:48 7% 16%;
+  --accent-foreground:40 41% 62%;
+  --primary:41 41% 62%;
+  --primary-foreground:40 20% 8%;
+  --foreground:40 20% 94%;
+  --muted-foreground:40 7% 64%;
+  --border:40 5% 20%;
+  --ring:41 41% 62%;
   position:fixed;
   inset-inline:0;
   top:var(--install-banner-height,0px);
@@ -122,7 +132,7 @@ html[data-theme="light"] .own-profile .op-title { color:#2a2328; }
   display:flex;
   flex-direction:column;
   overflow:hidden;
-  background:linear-gradient(150deg,#3a2232 0%,#2a1d29 45%,#3a2a26 100%);
+  background:#0F0F12;
 }
 html[data-theme="light"] .app-shell.profile-shell { background:linear-gradient(180deg,#fde4ec 0%,#fdebef 55%,#fff1f3 100%); }
 .app-shell.profile-shell > header,
@@ -169,10 +179,11 @@ html[data-theme="light"] .app-shell.profile-shell { background:linear-gradient(1
 html[data-theme="light"] .messages-page { background:linear-gradient(180deg,#fdf7fa 0%,#f8f6fa 100%); }
 html[data-theme="light"] .messages-page .msg-card { background:#fffdfe; border-color:#f1e6ec; box-shadow:0 8px 24px rgba(160,90,120,.10); }
 .public-profile {
-  --pp-bg: 340 33% 12%; --pp-card: 335 20% 16%; --pp-soft: 335 22% 21%; --pp-line: 335 14% 24%; --pp-fg: 330 30% 96%; --pp-muted: 330 10% 72%;
-  --pp-pink: 343 88% 66%; --pp-gold: 41 82% 58%; --pp-shadow: 340 60% 3%;
-  background: radial-gradient(120% 60% at 50% 0%, hsl(338 30% 18%), hsl(var(--pp-bg)) 70%); color: hsl(var(--pp-fg)); font-family: "Plus Jakarta Sans", "DM Sans", system-ui, sans-serif;
+  --pp-bg: 240 6% 6%; --pp-card: 240 6% 11%; --pp-soft: 48 7% 16%; --pp-line: 40 5% 20%; --pp-fg: 40 20% 94%; --pp-muted: 40 7% 64%;
+  --pp-pink: 41 41% 62%; --pp-gold: 41 41% 62%; --pp-shadow: 240 10% 3%;
+  background: hsl(var(--pp-bg)); color: hsl(var(--pp-fg)); font-family: "Plus Jakarta Sans", "DM Sans", system-ui, sans-serif;
 }
+.app-shell:has(.public-profile) { --primary:41 41% 62%; --primary-foreground:40 20% 8%; --accent:48 7% 16%; --accent-foreground:40 24% 75%; --card:240 6% 11%; --border:40 5% 20%; --foreground:40 20% 94%; --muted-foreground:40 7% 64%; --ring:41 41% 62%; }
 html[data-theme="light"] .public-profile {
   --pp-bg: 345 80% 96%; --pp-card: 345 100% 99.5%; --pp-soft: 345 70% 92%; --pp-line: 345 40% 92%; --pp-fg: 335 25% 14%; --pp-muted: 335 10% 44%;
   --pp-pink: 343 84% 60%; --pp-gold: 38 88% 50%; --pp-shadow: 340 60% 45%;
@@ -182,6 +193,7 @@ html[data-theme="light"] .public-profile {
 .public-profile .pp-round { display:flex; height:42px; width:42px; align-items:center; justify-content:center; border-radius:999px; background:hsl(var(--pp-card)); color:hsl(var(--pp-fg)); box-shadow:0 4px 14px hsl(var(--pp-shadow) / .12); transition:transform .15s; }
 .public-profile .pp-round:active { transform:scale(.94); }
 .public-profile .pp-avatar { display:flex; height:136px; width:136px; align-items:center; justify-content:center; border-radius:999px; padding:4px; background:hsl(var(--pp-card)); color:hsl(var(--pp-pink)); box-shadow:0 0 0 2px hsl(var(--pp-pink) / .55), 0 14px 34px hsl(var(--pp-shadow) / .22); }
+.public-profile .pp-avatar-hero { height:min(42dvh,420px); width:100%; border-radius:24px; padding:0; box-shadow:0 16px 40px rgba(0,0,0,.28); }
 .public-profile .pp-card { background:hsl(var(--pp-card)); border-radius:22px; padding:16px 18px; box-shadow:0 8px 26px hsl(var(--pp-shadow) / .09); }
 .public-profile .pp-label { font-size:12px; font-weight:800; letter-spacing:.12em; text-transform:uppercase; color:hsl(var(--pp-pink)); }
 .public-profile .pp-icon { display:inline-flex; flex-shrink:0; height:34px; width:34px; align-items:center; justify-content:center; border-radius:999px; background:hsl(var(--pp-soft)); color:hsl(var(--pp-pink)); }
@@ -192,8 +204,8 @@ html[data-theme="light"] .public-profile {
 .public-profile .pp-action:disabled { opacity:.5; }
 .public-profile .pp-fab { display:flex; align-items:center; justify-content:center; border-radius:999px; transition:transform .15s ease; }
 .public-profile .pp-action:not(:disabled):active .pp-fab { transform:scale(.92); }
-.public-profile .pp-fab-white { background:hsl(var(--pp-card)); box-shadow:0 10px 26px hsl(var(--pp-shadow) / .18); }
-.public-profile .pp-fab-pink { background:hsl(var(--pp-pink)); color:hsl(345 100% 99%); box-shadow:0 12px 28px hsl(var(--pp-pink) / .38); }
+.public-profile .pp-fab-white { background:#EEECE7; color:#34332F; box-shadow:0 10px 26px hsl(var(--pp-shadow) / .18); }
+.public-profile .pp-fab-pink { background:hsl(var(--pp-pink)); color:#171612; box-shadow:0 12px 28px hsl(var(--pp-pink) / .18); }
 .public-profile .pp-cap { white-space:nowrap; font-size:11px; font-weight:700; color:hsl(var(--pp-fg)); background:hsl(var(--pp-card) / .85); border-radius:999px; padding:2px 8px; }
 .public-profile .pp-toast, .public-profile .pp-confirm { background:hsl(var(--pp-card)); color:hsl(var(--pp-fg)); box-shadow:0 10px 28px hsl(var(--pp-shadow) / .2); }
 .chat-surface { --chat-bg: 340 33% 99%; --chat-card: 0 0% 100%; --chat-fg: 230 35% 14%; --chat-muted: 230 8% 46%; --chat-border: 330 14% 91%; --chat-soft: 335 45% 96%; --chat-pink: 344 82% 62%; color-scheme: light; background: hsl(var(--chat-bg)); color: hsl(var(--chat-fg)); }
