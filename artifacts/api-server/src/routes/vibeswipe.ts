@@ -93,6 +93,7 @@ import {
   gt,
   gte,
   inArray,
+  ilike,
   isNull,
   lte,
   notInArray,
@@ -982,6 +983,11 @@ router.get("/vibeswipe/discover", async (req, res): Promise<void> => {
     res.status(400).json({ error: params.error.message });
     return;
   }
+  const searchTerm = params.data.q?.trim().replace(/\s+/g, " ");
+  if (params.data.q !== undefined && (!searchTerm || searchTerm.length < 2)) {
+    res.status(400).json({ error: "Enter at least two characters to search." });
+    return;
+  }
   const userId = currentUserId(req);
   const [ownProfile] = await db
     .select()
@@ -1018,6 +1024,10 @@ router.get("/vibeswipe/discover", async (req, res): Promise<void> => {
     eq(profilesTable.deactivated, false),
     eq(profilesTable.adminSuspended, false),
   ];
+  if (searchTerm) {
+    const escapedSearch = searchTerm.replace(/[\\%_]/g, "\\$&");
+    baseConditions.push(ilike(profilesTable.name, `%${escapedSearch}%`));
+  }
   if (gender && gender !== "Everyone") {
     baseConditions.push(eq(profilesTable.gender, gender));
   }
@@ -1060,8 +1070,8 @@ router.get("/vibeswipe/discover", async (req, res): Promise<void> => {
   ]);
   const exclusionInput = {
     viewerId: userId, reactions: reacted, blocks: blockRows,
-    includePassed: params.data.includePassed === "true",
-    hasRequestedLocation: Boolean(params.data.country?.trim() || params.data.state?.trim() || params.data.city?.trim()),
+    includePassed: params.data.includePassed === "true" || Boolean(searchTerm),
+    hasRequestedLocation: Boolean(params.data.country?.trim() || params.data.state?.trim() || params.data.city?.trim() || searchTerm),
     travelMode: ownProfile.travelMode,
   };
   const matchedIds = existingMatches.flatMap(match => [match.userAId, match.userBId]);
@@ -1116,6 +1126,13 @@ router.get("/vibeswipe/discover", async (req, res): Promise<void> => {
       .from(profilesTable)
       .where(and(...conditions))
       .orderBy(
+        ...(searchTerm
+          ? [sql`CASE
+              WHEN LOWER(${profilesTable.name}) = LOWER(${searchTerm}) THEN 0
+              WHEN LEFT(LOWER(${profilesTable.name}), LENGTH(${searchTerm})) = LOWER(${searchTerm}) THEN 1
+              ELSE 2
+            END`]
+          : []),
         ...(recyclingPasses ? [sql`COALESCE((SELECT r.created_at FROM vibeswipe_reactions r WHERE r.from_user_id = ${userId} AND r.to_user_id = ${profilesTable.id}), '-infinity'::timestamptz) ASC`] : []),
         desc(sql`CASE WHEN ${profilesTable.boostEndTime} > NOW() THEN 1 ELSE 0 END`), profilesTable.id);
     return limit === undefined ? query : query.limit(limit);
@@ -1226,6 +1243,19 @@ router.get("/vibeswipe/discover", async (req, res): Promise<void> => {
       discoveryExpanded: smartDefault && candidates.some(candidate => discoveryTier(ownProfile.country, candidate.country) > 0),
     }))
     .sort((a, b) => {
+      if (searchTerm) {
+        const normalizedSearch = searchTerm.toLocaleLowerCase();
+        const rank = (name: string) => {
+          const normalizedName = name.toLocaleLowerCase();
+          return normalizedName === normalizedSearch
+            ? 0
+            : normalizedName.startsWith(normalizedSearch)
+              ? 1
+              : 2;
+        };
+        const rankDifference = rank(a.name) - rank(b.name);
+        if (rankDifference) return rankDifference;
+      }
       if (smartDefault) {
         const locationOrder = discoveryTier(ownProfile.country, a.country) - discoveryTier(ownProfile.country, b.country);
         if (locationOrder) return locationOrder;
@@ -1235,7 +1265,8 @@ router.get("/vibeswipe/discover", async (req, res): Promise<void> => {
       const bBoosted = Number(Boolean(b.boostEndTime && b.boostEndTime.getTime() > now));
       if (aBoosted !== bBoosted) return bBoosted - aBoosted;
       return (b.boostEndTime?.getTime() ?? 0) - (a.boostEndTime?.getTime() ?? 0);
-    });
+    })
+    .slice(0, searchTerm ? 50 : undefined);
   res.json(GetDiscoverProfilesResponse.parse(profiles));
 });
 

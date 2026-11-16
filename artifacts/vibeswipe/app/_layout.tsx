@@ -65,6 +65,7 @@ function RootLayoutNav() {
       <Stack.Screen name="terms" />
       <Stack.Screen name="community-guidelines" />
       <Stack.Screen name="notifications" />
+      <Stack.Screen name="search" />
       <Stack.Screen name="profile/[profileId]" />
     </Stack>
   );

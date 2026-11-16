@@ -390,6 +390,9 @@ paths:
           name: includePassed
           description: Include previously passed profiles in an explicit location search; likes, blocks, and privacy rules still apply.
           schema: { type: string, enum: ["true", "false"] }
+        - in: query
+          name: q
+          schema: { type: string, minLength: 2, maxLength: 100 }
       responses:
         "200":
           description: Profiles for discovery

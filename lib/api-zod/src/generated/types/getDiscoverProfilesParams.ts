@@ -29,4 +29,9 @@ state?: string;
  * Include previously passed profiles in an explicit location search; likes, blocks, and privacy rules still apply.
  */
 includePassed?: GetDiscoverProfilesIncludePassed;
+/**
+ * @minLength 2
+ * @maxLength 100
+ */
+q?: string;
 };

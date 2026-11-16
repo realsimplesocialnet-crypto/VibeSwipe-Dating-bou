@@ -7,6 +7,7 @@
 - [Stored-photo reads](stored-photo-reads.md) — Verify both uploads and authenticated reads; sidecar uploads can work while GCS project discovery breaks reads.
 - [Clerk Protect in automated tests](clerk-protect-testing.md) — Development sign-up may require a human Protect check; do not bypass it to automate account creation.
 - [Main-screen headers](main-screen-headers.md) — No logos or wordmarks after login; keep welcome, login and signup branding, and preserve space for cards and controls.
+- [Concise in-app copy](concise-in-app-copy.md) — Keep signed-in screens focused on functional labels and controls; avoid slogans and extra explanations.
 - [Own-profile appearance](own-profile-appearance.md) — User approved the pink-to-peach profile design with a circular portrait overlapping a rounded card.
 - [Messages and public profiles](messages-and-public-profiles.md) — Five tabs with separate Activity shortcuts; Messages is the only conversation list.
 - [Mobile chat keyboard](mobile-chat-keyboard.md) — Safari can pan its visible viewport; anchor the composer to that viewport without extra keyboard-time bottom inset.

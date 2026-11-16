@@ -507,6 +507,15 @@ export default function DiscoverScreen() {
           </View>
           <View style={styles.headerActions}>
             <Pressable
+              testID="open-member-search"
+              accessibilityRole="button"
+              accessibilityLabel="Search members"
+              onPress={() => router.push("/search")}
+              style={styles.searchHeaderButton}
+            >
+              <Feather name="search" size={19} color={colors.discoverForeground} />
+            </Pressable>
+            <Pressable
               testID="boost-profile"
               accessibilityRole="button"
               accessibilityLabel={boostLabel}
@@ -726,6 +735,7 @@ const styles = StyleSheet.create({
   headerTitle: { fontSize: 17, fontWeight: "800", letterSpacing: -0.25 },
   headerLikes: { fontSize: 11, fontWeight: "600", marginTop: 3 },
   headerActions: { flexDirection: "row", gap: 8 },
+  searchHeaderButton: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
   headerIcon: { width: 40, height: 40, borderRadius: 20, borderWidth: 1, alignItems: "center", justifyContent: "center" },
   superLikedBadge: { position: "absolute", top: 136, left: 20, zIndex: 3, flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: "rgba(20,17,20,0.76)", borderRadius: 18, paddingHorizontal: 12, paddingVertical: 8 },
   superLikedText: { color: "#fff", fontSize: 12, fontWeight: "700" },
