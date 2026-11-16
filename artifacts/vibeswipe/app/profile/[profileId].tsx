@@ -231,7 +231,7 @@ export default function PublicProfileScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: bg }}>
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={[styles.content, { paddingTop: topInset + 8, paddingBottom: bottomInset + (fromLikes ? 124 : 170) }]}>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={[styles.content, { paddingTop: topInset, paddingBottom: bottomInset + (fromLikes ? 124 : 170) }]}>
         <View style={styles.topRow}>
           <Pressable testID="public-profile-back" accessibilityRole="button" accessibilityLabel="Back to Likes" onPress={goBack} style={[styles.round, { backgroundColor: colors.profileCard, shadowColor: colors.profileChipForeground }]}>
             <Feather name="arrow-left" size={20} color={colors.foreground} />
@@ -427,7 +427,7 @@ const styles = StyleSheet.create({
   content: { width: "100%", maxWidth: 520, alignSelf: "center", paddingHorizontal: 20 },
   topRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   round: { width: 42, height: 42, borderRadius: 21, alignItems: "center", justifyContent: "center", ...shadow },
-  header: { alignItems: "center", marginTop: 18, marginBottom: 24 },
+  header: { alignItems: "center", marginTop: 10, marginBottom: 20 },
   likesHero: { width: "100%", borderRadius: 24, overflow: "hidden", alignItems: "center", justifyContent: "center", marginTop: 16, borderWidth: 1, ...shadow },
   heroInitial: { fontSize: 64, fontWeight: "800" },
   likeBackRow: { width: "100%", maxWidth: 520, flexDirection: "row", gap: 12, paddingHorizontal: 8 },

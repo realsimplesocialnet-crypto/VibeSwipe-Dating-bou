@@ -728,12 +728,12 @@ function PublicProfile({id,actionReturnTo='/discover'}:{id:string;actionReturnTo
   const work=profile.occupation==='Other'?(profile.occupationOther||'Other'):(profile.occupation||'');
   const facts=[profile.showAge&&profile.age!==null?{icon:Sparkles,label:'Age',value:String(profile.age)}:null,{icon:Briefcase,label:'Work',value:work||'Not shared'},{icon:Heart,label:'Looking for',value:profile.lookingFor||'Not shared'},{icon:Users,label:'Gender',value:profile.gender||'Not shared'}].filter(Boolean) as {icon:typeof Heart;label:string;value:string}[];
   const likeOut=likeRemaining===0;const superOut=superRemaining===0;
-  return <div className="public-profile min-h-[100dvh]"><main className="page-in mx-auto w-full max-w-md px-5 pt-[calc(1rem+env(safe-area-inset-top))] pb-[calc(11rem+env(safe-area-inset-bottom))]" data-testid="public-profile-page">
+  return <div className="public-profile min-h-[100dvh]"><main className="page-in mx-auto w-full max-w-md px-5 pt-[max(env(safe-area-inset-top),0.5rem)] pb-[calc(11rem+env(safe-area-inset-bottom))]" data-testid="public-profile-page">
    <div className="flex items-center justify-between">
     <Link href={actionReturnTo} aria-label="Back" data-testid="link-public-profile-back-top" className="pp-round"><ArrowLeft size={20}/></Link>
     <button type="button" onClick={()=>{setSafetyError('');setConfirmSafety(null);setMenu(true)}} aria-label={`More actions for ${profile.name}`} data-testid="button-public-profile-more" className="pp-round"><MoreHorizontal size={20}/></button>
    </div>
-   <header className="mt-6 flex flex-col items-center text-center">
+    <header className="mt-3 flex flex-col items-center text-center">
     <button type="button" disabled={!photos.length} onClick={()=>setViewer(0)} aria-label={`Open ${profile.name}'s main photo`} data-testid="button-public-profile-avatar" className={`pp-avatar ${fromLikes?'pp-avatar-hero':''}`}>
      {photos.length&&!photoError?<MediaImage reference={photos[0]} alt={`${profile.name}'s main photo`} onError={()=>setPhotoError(true)} className={`h-full w-full object-cover ${fromLikes?'rounded-[24px]':'rounded-full'}`}/>:<span className="brand text-5xl font-bold">{profile.name.trim().slice(0,1).toUpperCase()}</span>}
     </button>

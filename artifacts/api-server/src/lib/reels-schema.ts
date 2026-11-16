@@ -5,7 +5,7 @@ async function ensureReelSearchIndexes(): Promise<void> {
   try {
     await client.query("CREATE INDEX CONCURRENTLY IF NOT EXISTS vibeswipe_reels_caption_search_idx ON vibeswipe_reels USING GIN (to_tsvector('english', coalesce(caption, '')))");
     await client.query("CREATE INDEX CONCURRENTLY IF NOT EXISTS vibeswipe_profiles_name_search_idx ON vibeswipe_profiles USING GIN (to_tsvector('english', coalesce(name, '')))");
-    await client.query("CREATE INDEX CONCURRENTLY IF NOT EXISTS vibeswipe_profiles_location_search_idx ON vibeswipe_profiles USING GIN (to_tsvector('english', concat_ws(' ', coalesce(city, ''), coalesce(state, ''), coalesce(country, ''))))");
+    await client.query("CREATE INDEX CONCURRENTLY IF NOT EXISTS vibeswipe_profiles_location_search_idx ON vibeswipe_profiles USING GIN (to_tsvector('english', coalesce(city, '') || ' ' || coalesce(state, '') || ' ' || coalesce(country, '')))");
   } catch (error) {
     console.error("Could not finish creating Reel search indexes.", error);
   } finally {
