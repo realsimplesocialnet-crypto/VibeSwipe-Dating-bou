@@ -40,6 +40,18 @@ type CallCandidate = {
   sdpMLineIndex?: number | null;
   usernameFragment?: string | null;
 };
+type AuthorizedMatch = {
+  id: string;
+  userAId: string;
+  userBId: string;
+};
+export type VideoCallSignalingDependencies = {
+  authenticateUser?: (token: string) => Promise<string | null>;
+  authorizeMatch?: (
+    matchId: string,
+    userId: string,
+  ) => Promise<AuthorizedMatch | null>;
+};
 
 const userRoom = (userId: string) => `video-call-user:${userId}`;
 
@@ -135,11 +147,38 @@ async function getAuthorizedMatch(matchId: string, userId: string) {
   return match;
 }
 
+async function authenticateClerkUser(token: string): Promise<string | null> {
+  const secretKey = process.env["CLERK_SECRET_KEY"];
+  if (!secretKey) return null;
+  const claims = await verifyToken(token, { secretKey });
+  const userId = claims.sub;
+  if (typeof userId !== "string" || !userId) return null;
+
+  const [[profile], [deletedAccount]] = await Promise.all([
+    db
+      .select({ id: profilesTable.id, adminSuspended: profilesTable.adminSuspended })
+      .from(profilesTable)
+      .where(eq(profilesTable.id, userId))
+      .limit(1),
+    db
+      .select({ userId: adminDeletedUsersTable.userId })
+      .from(adminDeletedUsersTable)
+      .where(eq(adminDeletedUsersTable.userId, userId))
+      .limit(1),
+  ]);
+  return profile && !profile.adminSuspended && !deletedAccount ? userId : null;
+}
+
 function isCallParticipant(call: CallRecord, userId: string): boolean {
   return call.callerId === userId || call.calleeId === userId;
 }
 
-export function attachVideoCallSignaling(httpServer: HttpServer): Server {
+export function attachVideoCallSignaling(
+  httpServer: HttpServer,
+  dependencies: VideoCallSignalingDependencies = {},
+): Server {
+  const authenticateUser = dependencies.authenticateUser ?? authenticateClerkUser;
+  const authorizeMatch = dependencies.authorizeMatch ?? getAuthorizedMatch;
   const io = new Server(httpServer, {
     path: SOCKET_PATH,
     cors: { origin: true, credentials: true },
@@ -179,7 +218,7 @@ export function attachVideoCallSignaling(httpServer: HttpServer): Server {
       return null;
     }
 
-    const match = await getAuthorizedMatch(matchId, userId);
+    const match = await authorizeMatch(matchId, userId);
     if (
       !match ||
       !(
@@ -196,33 +235,14 @@ export function attachVideoCallSignaling(httpServer: HttpServer): Server {
 
   io.use(async (socket, next) => {
     const token: unknown = socket.handshake.auth["token"];
-    const secretKey = process.env["CLERK_SECRET_KEY"];
-    if (typeof token !== "string" || token.length > 8_000 || !secretKey) {
+    if (typeof token !== "string" || token.length > 8_000) {
       next(new Error("unauthorized"));
       return;
     }
 
     try {
-      const claims = await verifyToken(token, { secretKey });
-      const userId = claims.sub;
-      if (typeof userId !== "string" || !userId) {
-        next(new Error("unauthorized"));
-        return;
-      }
-
-      const [[profile], [deletedAccount]] = await Promise.all([
-        db
-          .select({ id: profilesTable.id, adminSuspended: profilesTable.adminSuspended })
-          .from(profilesTable)
-          .where(eq(profilesTable.id, userId))
-          .limit(1),
-        db
-          .select({ userId: adminDeletedUsersTable.userId })
-          .from(adminDeletedUsersTable)
-          .where(eq(adminDeletedUsersTable.userId, userId))
-          .limit(1),
-      ]);
-      if (!profile || profile.adminSuspended || deletedAccount) {
+      const userId = await authenticateUser(token);
+      if (!userId) {
         next(new Error("unauthorized"));
         return;
       }
@@ -262,7 +282,7 @@ export function attachVideoCallSignaling(httpServer: HttpServer): Server {
           return;
         }
 
-        const match = await getAuthorizedMatch(matchId, userId);
+        const match = await authorizeMatch(matchId, userId);
         if (!match) {
           respond(ack, false, "Video calls are only available in an active, unblocked match.");
           return;
@@ -328,7 +348,7 @@ export function attachVideoCallSignaling(httpServer: HttpServer): Server {
           respond(ack, false, "This call is no longer available.");
           return;
         }
-        if (!(await getAuthorizedMatch(matchId, userId))) {
+        if (!(await authorizeMatch(matchId, userId))) {
           finishCall(call, "conversation_unavailable");
           respond(ack, false, "This conversation is no longer available.");
           return;

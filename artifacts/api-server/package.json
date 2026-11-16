@@ -8,7 +8,8 @@
     "build": "node ./build.mjs",
     "start": "node --enable-source-maps ./dist/index.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "node --experimental-strip-types --test tests/*.test.ts"
+    "test": "node --experimental-strip-types --test tests/*.test.ts && pnpm run test:video-calls",
+    "test:video-calls": "tsx --test tests/videoCallSignaling.test.mts"
   },
   "dependencies": {
     "@clerk/backend": "^3.29.0",
@@ -40,6 +41,8 @@
     "esbuild": "0.28.2",
     "esbuild-plugin-pino": "^2.3.3",
     "pino-pretty": "^13.2.0",
-    "thread-stream": "3.1.0"
+    "socket.io-client": "^4.8.4",
+    "thread-stream": "3.1.0",
+    "tsx": "catalog:"
   }
 }
