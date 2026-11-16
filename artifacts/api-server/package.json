@@ -11,8 +11,8 @@
     "test": "node --experimental-strip-types --test tests/*.test.ts"
   },
   "dependencies": {
-    "@clerk/express": "^2.1.88",
-    "@clerk/shared": "^4.44.1",
+    "@clerk/express": "^2.1.90",
+    "@clerk/shared": "^4.45.1",
     "@google-cloud/storage": "^9.0.0",
     "@huggingface/transformers": "3.8.1",
     "@workspace/api-zod": "workspace:*",
