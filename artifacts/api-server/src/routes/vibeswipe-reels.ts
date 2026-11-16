@@ -13,6 +13,7 @@ import { and, asc, desc, eq, isNull, ne, or, sql, type SQL } from "drizzle-orm";
 import { Router, type IRouter, type Request } from "express";
 import { requireAuth } from "../middlewares/auth";
 import { cleanReelCaption, decodeReelCursor, encodeReelCursor, reelAssetProblem, reelLocation } from "../lib/reel-cursor";
+import { reelSearchTerms } from "../lib/reel-search";
 import { visibleReelCondition } from "../lib/reels-visibility";
 import { removeUnreferencedProfileMedia } from "../lib/profileMediaCleanup";
 import { ObjectNotFoundError, ObjectStorageService } from "../lib/objectStorage";
@@ -116,8 +117,19 @@ function afterCursor(cursorText: string | undefined, column: typeof reelsTable.c
 router.get("/vibeswipe/reels", async (req, res): Promise<void> => {
   const query = GetReelsFeedQueryParams.safeParse(req.query);
   if (!query.success) { res.status(400).json({ error: "Invalid Reels page." }); return; }
-  const where = afterCursor(query.data.cursor, reelsTable.createdAt);
-  if (where === false) { res.status(400).json({ error: "Invalid Reels page." }); return; }
+  const cursorCondition = afterCursor(query.data.cursor, reelsTable.createdAt);
+  if (cursorCondition === false) { res.status(400).json({ error: "Invalid Reels page." }); return; }
+  const terms = query.data.q ? reelSearchTerms(query.data.q) : [];
+  const searchCondition = query.data.q
+    ? terms.length
+      ? and(...terms.map((term) => or(
+        sql`to_tsvector('english', coalesce(${reelsTable.caption}, '')) @@ plainto_tsquery('english', ${term})`,
+        sql`to_tsvector('english', coalesce(${profilesTable.name}, '')) @@ plainto_tsquery('english', ${term})`,
+        sql`to_tsvector('english', concat_ws(' ', coalesce(${profilesTable.city}, ''), coalesce(${profilesTable.state}, ''), coalesce(${profilesTable.country}, ''))) @@ plainto_tsquery('english', ${term})`,
+      )))
+      : sql`false`
+    : undefined;
+  const where = and(cursorCondition, searchCondition);
   const viewerId = uid(req);
   const limit = query.data.limit ?? PAGE_SIZE;
   const rows = await selectReels(viewerId, where, limit + 1);

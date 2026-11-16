@@ -2142,12 +2142,16 @@ export const TranscodeStoryVideoResponse = zod.object({
  */
 export const getReelsFeedQueryCursorMax = 200;
 
+export const getReelsFeedQueryQMin = 2;
+export const getReelsFeedQueryQMax = 120;
+
 export const getReelsFeedQueryLimitMax = 12;
 
 
 
 export const GetReelsFeedQueryParams = zod.object({
   "cursor": zod.coerce.string().max(getReelsFeedQueryCursorMax).optional(),
+  "q": zod.coerce.string().min(getReelsFeedQueryQMin).max(getReelsFeedQueryQMax).optional().describe('Search Reel captions, creator names, and creator locations by keyword'),
   "limit": zod.coerce.number().int().min(1).max(getReelsFeedQueryLimitMax).optional()
 })
 

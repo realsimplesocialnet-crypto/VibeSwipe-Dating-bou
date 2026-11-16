@@ -1,5 +1,5 @@
 /* Cache the app shell and explicitly approved public Reels only. */
-const CACHE_NAME = 'myage-shell-v10';
+const CACHE_NAME = 'myage-shell-v11';
 const REEL_CACHE_NAME = 'myage-offline-reels-v1';
 const MAX_OFFLINE_REELS = 3;
 const MAX_OFFLINE_REEL_BYTES = 50 * 1024 * 1024;
@@ -9,7 +9,6 @@ const scopeUrl = new URL(self.registration.scope);
 const offlineUrl = new URL('offline.html', scopeUrl).href;
 const appShellUrl = new URL('index.html', scopeUrl).href;
 const shell = [
-  appShellUrl,
   new URL('open.html', scopeUrl).href,
   new URL('manifest.json', scopeUrl).href,
   new URL('myage-icon-192-v7.png', scopeUrl).href,
@@ -18,6 +17,35 @@ const shell = [
   new URL('myage-pwa-icon.svg?v=7', scopeUrl).href,
   new URL('logo.svg', scopeUrl).href,
 ];
+
+function appEntryAssets(html) {
+  const assets = new Set();
+  for (const match of html.matchAll(/(?:src|href)\s*=\s*["']([^"']+)["']/gi)) {
+    try {
+      const asset = new URL(match[1], appShellUrl);
+      if (
+        asset.origin === scopeUrl.origin &&
+        asset.pathname.startsWith(scopeUrl.pathname) &&
+        /\.(?:m?js|css)$/i.test(asset.pathname)
+      ) assets.add(asset.href);
+    } catch {
+      // Ignore malformed or external references in the document.
+    }
+  }
+  return [...assets];
+}
+
+async function cacheAppEntryAssets(cache, html) {
+  const assets = appEntryAssets(html);
+  if (!assets.some((url) => /\.m?js(?:$|\?)/i.test(url))) {
+    throw new Error('The Myage app entry script could not be found.');
+  }
+  await Promise.all(assets.map(async (url) => {
+    const response = await fetchWithTimeout(url);
+    if (!response.ok) throw new Error('A Myage app entry asset could not be downloaded.');
+    await cache.put(url, response);
+  }));
+}
 
 async function fetchWithTimeout(request) {
   const controller = new AbortController();
@@ -227,6 +255,13 @@ self.addEventListener('install', (event) => {
     const offline = await fetchWithTimeout(offlineUrl);
     if (!offline.ok) throw new Error('Myage recovery page is unavailable.');
     await cache.put(offlineUrl, offline);
+    const appShell = await fetchWithTimeout(appShellUrl);
+    if (!appShell.ok || !appShell.headers.get('content-type')?.includes('text/html')) {
+      throw new Error('The Myage app shell is unavailable.');
+    }
+    const appHtml = await appShell.clone().text();
+    await cache.put(appShellUrl, appShell);
+    await cacheAppEntryAssets(cache, appHtml);
     // A single unavailable optional icon must not disable the whole worker.
     await Promise.allSettled(shell.map(async (url) => {
       const response = await fetchWithTimeout(url);

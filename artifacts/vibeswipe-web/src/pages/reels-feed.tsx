@@ -2,14 +2,14 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { Link, useLocation } from "wouter";
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  getGetMyReelsQueryKey, getGetProfileReelsQueryKey, getGetReelQueryKey, getGetReelsFeedQueryKey, getGetSavedReelsQueryKey, getReelsFeed,
+  getGetMyReelsQueryKey, getGetProfileReelsQueryKey, getGetReelQueryKey, getGetReelsFeedQueryKey, getGetSavedReelsQueryKey, getProfileReels, getReelsFeed,
   useDeleteReel, useGetReel, useLikeReel, useRecordReelView, useSaveReel, useUnlikeReel, useUnsaveReel, type Reel,
 } from "@workspace/api-client-react";
-import { ArrowLeft, Bookmark, Clapperboard, Plus, Volume2, VolumeX } from "lucide-react";
+import { ArrowLeft, Bookmark, Clapperboard, LoaderCircle, Plus, Search, Volume2, VolumeX, X } from "lucide-react";
 import { ReelSlide } from "@/components/reels/reel-slide";
 import { ReelComments } from "@/components/reels/reel-comments";
 import { ReelShareSheet } from "@/components/reels/reel-share-sheet";
-import { safeReelReturnPath } from "@/lib/reels";
+import { reelMediaUrl, safeReelReturnPath } from "@/lib/reels";
 import { readOfflineReels, saveReelForOffline } from "@/lib/offline-reels";
 import { reelSlideIndex, reelsViewportFrame } from "@/lib/reels-viewport";
 import "@/components/reels/reels.css";
@@ -63,13 +63,19 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
   const [location, setLocation] = useLocation();
   const client = useQueryClient();
   const returnTo = safeReelReturnPath(new URLSearchParams(window.location.search).get("returnTo"));
+  const profileId = new URLSearchParams(window.location.search).get("profileId") ?? "";
   const viewport = useReelsViewport();
   const pageHidden = usePageHidden();
   const scroller = useRef<HTMLDivElement>(null);
+  const initialReelPositioned = useRef(false);
   const [active, setActive] = useState(0);
   const activeRef = useRef(0);
   activeRef.current = active;
   const [muted, setMuted] = useState(true);
+  const initialSearch = new URLSearchParams(window.location.search).get("q") ?? "";
+  const [searchOpen, setSearchOpen] = useState(Boolean(initialSearch));
+  const [searchText, setSearchText] = useState(initialSearch);
+  const [debouncedSearchText, setDebouncedSearchText] = useState(initialSearch.trim());
   const initialCommentId = new URLSearchParams(window.location.search).get("commentId");
   const [commentsFor, setCommentsFor] = useState<string | null>(() => initialReelId && initialCommentId ? initialReelId : null);
   const [shareFor, setShareFor] = useState<Reel | null>(null);
@@ -88,12 +94,49 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
     queryFn: ({ pageParam }) => getReelsFeed(pageParam ? { cursor: pageParam, limit: 6 } : { limit: 6 }),
     initialPageParam: null as string | null,
     getNextPageParam: (last) => last.nextCursor,
+    enabled: !profileId,
+    refetchOnWindowFocus: false,
+  });
+  const profileFeed = useInfiniteQuery({
+    queryKey: [...getGetProfileReelsQueryKey({ profileId }), "viewer"],
+    queryFn: ({ pageParam, signal }) =>
+      getProfileReels({ profileId, ...(pageParam ? { cursor: pageParam } : {}) }, { signal }),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (last) => last.nextCursor ?? undefined,
+    enabled: Boolean(profileId),
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+  });
+  const searchFeed = useInfiniteQuery({
+    queryKey: [...getGetReelsFeedQueryKey({ q: debouncedSearchText, limit: 6 }), "search-pages"],
+    queryFn: ({ pageParam }) => getReelsFeed({
+      q: debouncedSearchText,
+      limit: 6,
+      ...(pageParam ? { cursor: pageParam } : {}),
+    }),
+    initialPageParam: null as string | null,
+    getNextPageParam: (last) => last.nextCursor,
+    enabled: searchOpen && debouncedSearchText.trim().length >= 2,
+    staleTime: 30_000,
     refetchOnWindowFocus: false,
   });
   const like = useLikeReel(); const unlike = useUnlikeReel(); const save = useSaveReel(); const unsave = useUnsaveReel(); const del = useDeleteReel();
   const recordView = useRecordReelView();
   const viewedReels = useRef(new Set<string>());
-  const loading = feed.isLoading || (Boolean(initialReelId) && single.isLoading);
+  const activeFeed = profileId ? profileFeed : feed;
+  const loading = activeFeed.isLoading || (Boolean(initialReelId) && single.isLoading);
+  const searchResults = useMemo(() => {
+    const seen = new Set<string>();
+    return (searchFeed.data?.pages ?? []).flatMap((page) => page.items)
+      .filter((reel) => !seen.has(reel.id) && Boolean(seen.add(reel.id)));
+  }, [searchFeed.data]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setDebouncedSearchText(searchText.trim().replace(/\s+/g, " "));
+    }, 250);
+    return () => window.clearTimeout(timer);
+  }, [searchText]);
 
   useEffect(() => {
     let mounted = true;
@@ -115,11 +158,29 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
   const reels = useMemo(() => {
     const list: Reel[] = [];
     const seen = new Set<string>();
-    if (single.data) { list.push(single.data); seen.add(single.data.id); }
-    for (const page of feed.data?.pages ?? []) for (const reel of page.items) if (!seen.has(reel.id)) { seen.add(reel.id); list.push(reel); }
-    if (!list.length && feed.isError) for (const reel of offlineReels) if (!seen.has(reel.id)) { seen.add(reel.id); list.push(reel); }
+    const pages = profileId ? profileFeed.data?.pages : feed.data?.pages;
+    for (const page of pages ?? []) for (const reel of page.items) if (!seen.has(reel.id)) { seen.add(reel.id); list.push(reel); }
+    if (single.data && (!profileId || single.data.creatorId === profileId) && !seen.has(single.data.id)) {
+      if (profileId) list.unshift(single.data);
+      else list.unshift(single.data);
+      seen.add(single.data.id);
+    }
+    if (!profileId && !list.length && feed.isError) for (const reel of offlineReels) if (!seen.has(reel.id)) { seen.add(reel.id); list.push(reel); }
     return list.filter((reel) => !removed.has(reel.id)).map((reel) => ({ ...reel, ...patches[reel.id] }));
-  }, [single.data, feed.data, feed.isError, offlineReels, patches, removed]);
+  }, [single.data, profileId, profileFeed.data, feed.data, feed.isError, offlineReels, patches, removed]);
+
+  useEffect(() => {
+    if (!profileId || !initialReelId || initialReelPositioned.current || profileFeed.isLoading) return;
+    initialReelPositioned.current = true;
+    const index = reels.findIndex((reel) => reel.id === initialReelId);
+    if (index < 0) return;
+    activeRef.current = index;
+    setActive(index);
+    window.requestAnimationFrame(() => {
+      const root = scroller.current;
+      if (root) root.scrollTop = index * root.clientHeight;
+    });
+  }, [profileId, initialReelId, profileFeed.isLoading, reels]);
 
   // Track which slide is on screen.
   useEffect(() => {
@@ -148,8 +209,8 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
   }, [commentsFor, reels.length > 0]);
 
   useEffect(() => {
-    if (active >= reels.length - 2 && feed.hasNextPage && !feed.isFetchingNextPage) void feed.fetchNextPage();
-  }, [active, reels.length, feed.hasNextPage, feed.isFetchingNextPage]);
+    if (active >= reels.length - 2 && activeFeed.hasNextPage && !activeFeed.isFetchingNextPage) void activeFeed.fetchNextPage();
+  }, [active, reels.length, activeFeed.hasNextPage, activeFeed.isFetchingNextPage]);
 
   useEffect(() => {
     if (!notice) return;
@@ -164,6 +225,11 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
   }, []);
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && searchOpen) {
+        event.preventDefault();
+        setSearchOpen(false);
+        return;
+      }
       if ((event.target as HTMLElement).closest("input,textarea")) return;
       if (event.key === "ArrowDown") { event.preventDefault(); go(1); }
       if (event.key === "ArrowUp") { event.preventDefault(); go(-1); }
@@ -171,7 +237,7 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [go, commentsFor]);
+  }, [go, commentsFor, searchOpen]);
 
   function patch(id: string, value: Partial<Reel>) { setPatches((all) => ({ ...all, [id]: { ...all[id], ...value } })); }
 
@@ -236,21 +302,33 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
   }
 
   const back = () => setLocation(returnTo);
+  function closeSearch() {
+    setSearchOpen(false);
+    setSearchText("");
+    setDebouncedSearchText("");
+  }
+  function openSearchResult(reel: Reel) {
+    const query = searchText.trim();
+    const destination = `/reels/${reel.id}?returnTo=${encodeURIComponent(`/reels?q=${encodeURIComponent(query)}`)}`;
+    setLocation(destination);
+  }
   const commentReel = commentsFor ? reels.find((reel) => reel.id === commentsFor) : undefined;
   const ownPath = `${location}${window.location.search}`;
   // Reopen the video being watched, not the first slide, when leaving the library.
+  const resumeParams = new URLSearchParams({ returnTo });
+  if (profileId) resumeParams.set("profileId", profileId);
   const resumePath = reels[active]
-    ? `/reels/${reels[active].id}?returnTo=${encodeURIComponent(returnTo)}`
+    ? `/reels/${reels[active].id}?${resumeParams.toString()}`
     : ownPath;
 
   return <div className="reels-root" style={{ top: viewport.top, bottom: "auto", height: viewport.height, ["--reels-comments-height" as string]: `${viewport.commentsHeight}px` }} data-keyboard-open={viewport.keyboardOpen} data-comments-open={Boolean(commentReel)} data-testid="page-reels">
     <div className="reels-stage">
       <div ref={scroller} className={`reels-scroller ${commentsFor ? "is-locked" : ""}`} data-testid="reels-scroller">
         {loading ? <div className="reel-slide"><div className="reel-loading" aria-label="Loading Reels" /></div>
-          : feed.isError && !reels.length ? <div className="reels-empty" role="alert"><p className="text-lg font-bold">{offline ? "No Reels saved offline yet." : "Reels could not load."}</p><p className="mt-1 text-sm text-white/60">{offline ? "Connect to Wi-Fi and watch a Reel or tap Save offline first." : "Check your connection and try again."}</p>{!offline&&<button type="button" onClick={() => void feed.refetch()} className="reel-pill mt-5" data-testid="button-retry-reels">Try again</button>}</div>
+          : activeFeed.isError && !reels.length ? <div className="reels-empty" role="alert"><p className="text-lg font-bold">{offline ? "No Reels saved offline yet." : "Reels could not load."}</p><p className="mt-1 text-sm text-white/60">{offline ? "Connect to Wi-Fi and watch a Reel or tap Save offline first." : "Check your connection and try again."}</p>{!offline&&<button type="button" onClick={() => void activeFeed.refetch()} className="reel-pill mt-5" data-testid="button-retry-reels">Try again</button>}</div>
           : !reels.length ? <div className="reels-empty"><span className="reels-empty-mark"><Clapperboard size={30} /></span><p className="mt-5 text-xl font-bold">No Reels yet</p><p className="mt-1 max-w-[260px] text-sm leading-6 text-white/60">Be the first to share a short video with the community.</p><Link href="/reels/new" className="reels-primary mt-6" data-testid="link-post-first-reel">Post a Reel</Link></div>
           : reels.map((reel, index) => <ReelSlide
-            key={reel.id} reel={reel} index={index} active={index === active} near={Math.abs(index - active) <= 1}
+             key={reel.id} reel={reel} index={index} active={index === active && !searchOpen} near={Math.abs(index - active) <= 1}
             muted={muted} pageHidden={pageHidden} compact={commentsFor === reel.id} showHint={index === 0 && reels.length > 1}
             returnTo={ownPath}
              offlineSaved={offlineIds.has(reel.id)} offlineSaving={offlineSavingIds.has(reel.id)}
@@ -259,20 +337,58 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
             onView={() => void recordPlayback(reel)}
             onComment={() => setCommentsFor(reel.id)} onShare={() => setShareFor(reel)} onDelete={() => setDeleteFor(reel)}
           />)}
-        {feed.isFetchingNextPage && <div className="reels-more" aria-live="polite">Loading more Reels</div>}
-        {!offline && !feed.hasNextPage && reels.length > 1 && !feed.isLoading && <div className="reels-end">You are all caught up.</div>}
+        {activeFeed.isFetchingNextPage && <div className="reels-more" aria-live="polite">Loading more Reels</div>}
+        {!offline && !activeFeed.hasNextPage && reels.length > 1 && !activeFeed.isLoading && <div className="reels-end">{profileId ? "You’ve seen all of this person’s Reels." : "You are all caught up."}</div>}
       </div>
       <header className="reels-top">
         <button type="button" onClick={back} aria-label="Back" data-testid="button-reels-back" className="reels-icon"><ArrowLeft size={24} /></button>
         <h1 className="reels-title">Reels</h1>
         <div className="ml-auto flex flex-col items-end gap-3">
           <div className="flex items-center gap-2">
+              <button type="button" onClick={() => { setSearchText(""); setDebouncedSearchText(""); setSearchOpen(true); }} aria-label="Search Reels" data-testid="button-search-reels" className="reels-icon"><Search size={20} /></button>
             <Link href={`/reels/saved?returnTo=${encodeURIComponent(resumePath)}`} aria-label="Saved Reels" data-testid="link-reels-saved" className="reels-icon"><Bookmark size={20} /></Link>
             <Link href={`/reels/new?returnTo=${encodeURIComponent(ownPath)}`} aria-label="Post a Reel" data-testid="link-create-reel" className="reels-plus"><Plus size={20} /></Link>
           </div>
           {reels.length > 0 && <button type="button" onClick={() => setMuted((value) => !value)} aria-label={muted ? "Turn sound on" : "Mute"} aria-pressed={!muted} data-testid="button-reels-mute" className="reels-sound">{muted ? <VolumeX size={18} /> : <Volume2 size={18} />}</button>}
         </div>
       </header>
+      {searchOpen && <section className="reels-search-overlay" role="dialog" aria-modal="true" aria-label="Search Reels" data-testid="reels-search-overlay">
+        <div className="reels-search-toolbar">
+          <button type="button" onClick={closeSearch} aria-label="Close Reel search" className="reels-icon"><ArrowLeft size={22} /></button>
+          <label className="reels-search-field">
+            <Search size={18} aria-hidden="true" />
+            <input autoFocus type="search" value={searchText} onChange={(event) => setSearchText(event.target.value)} maxLength={120} placeholder="Search captions, people, or places" aria-label="Search Reels by caption, person, or place" data-testid="input-search-reels" />
+            {searchText && <button type="button" onClick={() => setSearchText("")} aria-label="Clear Reel search"><X size={17} /></button>}
+          </label>
+        </div>
+        <div className="reels-search-results" aria-live="polite">
+          {debouncedSearchText.trim().length < 2
+            ? <p className="reels-search-hint">Search Reel captions, people, or places as you type.</p>
+            : searchFeed.isLoading
+              ? <div className="reels-search-status"><LoaderCircle size={20} className="animate-spin" />Searching Reels…</div>
+              : searchFeed.isError
+                ? <div className="reels-search-status">Search is unavailable. Check your connection and try again.</div>
+                : !searchResults.length
+                  ? <div className="reels-search-status">No Reels match “{debouncedSearchText}” yet.</div>
+                  : <>
+                    <p className="reels-search-label">Reels matching “{debouncedSearchText}”</p>
+                    <ul className="reels-search-list">
+                      {searchResults.map((reel) => <li key={reel.id}>
+                        <button type="button" onClick={() => openSearchResult(reel)} className="reels-search-result" data-testid={`button-open-search-reel-${reel.id}`}>
+                          <video src={`${reelMediaUrl(reel.videoReference)}#t=0.1`} preload="metadata" muted playsInline aria-hidden="true" />
+                          <span className="reels-search-copy">
+                            <span className="reels-search-creator">{reel.creatorName}</span>
+                            <span className="reels-search-caption">{reel.caption || "Reel"}</span>
+                            <span className="reels-search-location">{reel.creatorLocation || "Location not added"}</span>
+                          </span>
+                          <span className="reels-search-open">Watch</span>
+                        </button>
+                      </li>)}
+                    </ul>
+                    {searchFeed.hasNextPage && <button type="button" onClick={() => void searchFeed.fetchNextPage()} disabled={searchFeed.isFetchingNextPage} className="reels-search-more">{searchFeed.isFetchingNextPage ? "Loading…" : "Load more Reels"}</button>}
+                  </>}
+        </div>
+      </section>}
       {offline && <p role="status" className="reels-notice" data-testid="notice-reels-offline">{reels.length ? "Offline. Showing videos saved on this device." : "Offline. No videos are saved on this device yet."}</p>}
       {notice && <p role="status" className="reels-notice" data-testid="status-reels">{notice}</p>}
       {initialReelId && single.isError && <p role="status" className="reels-notice" data-testid="status-reel-unavailable">That Reel is no longer available. Showing other Reels.</p>}

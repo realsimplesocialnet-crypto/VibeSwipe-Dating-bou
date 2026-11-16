@@ -12,6 +12,12 @@ export type GetReelsFeedParams = {
  */
 cursor?: string;
 /**
+ * Search Reel captions, creator names, and creator locations by keyword
+ * @minLength 2
+ * @maxLength 120
+ */
+q?: string;
+/**
  * @minimum 1
  * @maximum 12
  */

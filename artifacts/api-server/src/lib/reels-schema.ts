@@ -1,5 +1,18 @@
 import { pool } from "@workspace/db";
 
+async function ensureReelSearchIndexes(): Promise<void> {
+  const client = await pool.connect();
+  try {
+    await client.query("CREATE INDEX CONCURRENTLY IF NOT EXISTS vibeswipe_reels_caption_search_idx ON vibeswipe_reels USING GIN (to_tsvector('english', coalesce(caption, '')))");
+    await client.query("CREATE INDEX CONCURRENTLY IF NOT EXISTS vibeswipe_profiles_name_search_idx ON vibeswipe_profiles USING GIN (to_tsvector('english', coalesce(name, '')))");
+    await client.query("CREATE INDEX CONCURRENTLY IF NOT EXISTS vibeswipe_profiles_location_search_idx ON vibeswipe_profiles USING GIN (to_tsvector('english', concat_ws(' ', coalesce(city, ''), coalesce(state, ''), coalesce(country, ''))))");
+  } catch (error) {
+    console.error("Could not finish creating Reel search indexes.", error);
+  } finally {
+    client.release();
+  }
+}
+
 // Additive, idempotent migration for Reels; runs before serving in development and production.
 export async function ensureReelsSchema(): Promise<void> {
   const client = await pool.connect();
@@ -45,6 +58,7 @@ export async function ensureReelsSchema(): Promise<void> {
     await client.query("ALTER TABLE vibeswipe_notifications ADD COLUMN IF NOT EXISTS comment_id uuid REFERENCES vibeswipe_reel_comments(id) ON DELETE CASCADE");
     await client.query("CREATE UNIQUE INDEX IF NOT EXISTS vibeswipe_reel_like_notification_idx ON vibeswipe_notifications(recipient_id, actor_id, reel_id) WHERE type = 'reel_like'");
     await client.query("COMMIT");
+    void ensureReelSearchIndexes();
   } catch (error) {
     await client.query("ROLLBACK");
     throw error;

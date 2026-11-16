@@ -127,7 +127,14 @@ test("notification links cannot navigate outside the Myage app origin", async ()
 test("one failed optional icon does not prevent service-worker installation", async () => {
   const worker = await loadServiceWorker({
     fetcher: async (request) => {
-      if (String(request).endsWith("myage-icon-512-v7.png")) throw new Error("offline icon");
+      const url = String(request);
+      if (url.endsWith("myage-icon-512-v7.png")) throw new Error("offline icon");
+      if (url.endsWith("/index.html")) {
+        return new Response(
+          '<script src="/pwa-install.js?v=9"></script><script src="/pwa-launch.js?v=10"></script><link rel="stylesheet" href="/assets/app.css"><script type="module" src="/assets/app.js"></script>',
+          { headers: { "Content-Type": "text/html" } },
+        );
+      }
       return new Response("public recovery content");
     },
   });
@@ -137,7 +144,34 @@ test("one failed optional icon does not prevent service-worker installation", as
   assert.equal(worker.didSkipWaiting(), true);
   assert.equal(worker.cacheEntries.has("https://myage.beauty/offline.html"), true);
   assert.equal(worker.cacheEntries.has("https://myage.beauty/index.html"), true);
+  assert.equal(worker.cacheEntries.has("https://myage.beauty/assets/app.js"), true);
+  assert.equal(worker.cacheEntries.has("https://myage.beauty/assets/app.css"), true);
+  assert.equal(worker.cacheEntries.has("https://myage.beauty/pwa-launch.js?v=10"), true);
   assert.equal(worker.cacheEntries.has("https://myage.beauty/"), false);
+});
+
+test("service-worker install fails safely if an app entry asset cannot be cached", async () => {
+  const worker = await loadServiceWorker({
+    fetcher: async (request) => {
+      if (String(request).endsWith("/index.html")) {
+        return new Response('<script type="module" src="/assets/app.js"></script>', {
+          headers: { "Content-Type": "text/html" },
+        });
+      }
+      if (String(request).endsWith("/assets/app.js")) throw new Error("entry bundle unavailable");
+      return new Response("public recovery content");
+    },
+  });
+  let rejected = false;
+  let pending;
+  worker.listeners.get("install")({ waitUntil(value) { pending = value; } });
+  try {
+    await pending;
+  } catch {
+    rejected = true;
+  }
+  assert.equal(rejected, true);
+  assert.equal(worker.didSkipWaiting(), false);
 });
 
 for (const cause of ["offline", "server error", "timeout"]) {

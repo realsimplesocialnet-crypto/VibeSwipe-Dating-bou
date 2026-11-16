@@ -87,7 +87,7 @@ function ProfileReelThumbnail({ reel, returnTo }: { reel: Reel; returnTo: string
   const viewCount = Number(reel.viewCount ?? 0);
   return (
     <Link
-      href={`/reels/${encodeURIComponent(reel.id)}?returnTo=${encodeURIComponent(returnTo)}`}
+      href={`/reels/${encodeURIComponent(reel.id)}?profileId=${encodeURIComponent(reel.creatorId)}&returnTo=${encodeURIComponent(returnTo)}`}
       aria-label={`Play Reel: ${reel.caption || `posted by ${reel.creatorName}`}, ${formatCount(viewCount)} ${viewCount === 1 ? "view" : "views"}`}
       data-testid={`link-profile-reel-${reel.id}`}
       className="group relative aspect-[9/16] w-[76px] shrink-0 overflow-hidden rounded-xl border border-white/10 bg-black/40 shadow-md sm:w-[86px]"

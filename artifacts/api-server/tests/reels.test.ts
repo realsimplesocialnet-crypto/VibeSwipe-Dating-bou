@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import { cleanReelCaption, decodeReelCursor, encodeReelCursor, reelAssetProblem, reelLocation } from "../src/lib/reel-cursor.ts";
+import { reelSearchTerms } from "../src/lib/reel-search.ts";
 
 const read = (path: string) => readFileSync(new URL(path, import.meta.url), "utf8");
 const reels = read("../src/routes/vibeswipe-reels.ts");
@@ -32,6 +33,15 @@ test("captions and locations are normalized", () => {
   assert.equal(cleanReelCaption("  hello \n  there "), "hello there");
   assert.equal(cleanReelCaption("x".repeat(400)).length, 300);
   assert.equal(reelLocation(["Lagos", "", null, "Nigeria"]), "Lagos, Nigeria");
+});
+
+test("Reel search extracts useful terms from topics and place names", () => {
+  assert.deepEqual(reelSearchTerms("police in Port Harcourt"), ["police", "port", "harcourt"]);
+  assert.deepEqual(reelSearchTerms("what is my future job?"), ["future", "job"]);
+  assert.deepEqual(reelSearchTerms("東京 police"), ["東京", "police"]);
+  assert.match(reels, /to_tsvector\('english', coalesce\(\$\{reelsTable\.caption\}, ''\)\)/);
+  assert.match(reels, /creatorLocation/);
+  assert.match(schema, /vibeswipe_profiles_location_search_idx/);
 });
 
 test("feed visibility excludes blocks, deactivated, suspended and deleted creators", () => {

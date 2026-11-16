@@ -132,10 +132,10 @@ export default function MemberSearchScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   keyboard: { flex: 1 },
-  header: { minHeight: 56, flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 16 },
+  header: { minHeight: 48, flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 16 },
   backButton: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
   title: { fontSize: 24, fontWeight: "700", letterSpacing: -0.6 },
-  searchBox: { minHeight: 50, flexDirection: "row", alignItems: "center", gap: 10, marginHorizontal: 16, marginTop: 8, paddingHorizontal: 14, borderWidth: 1, borderRadius: 16 },
+  searchBox: { minHeight: 50, flexDirection: "row", alignItems: "center", gap: 10, marginHorizontal: 16, marginTop: 0, paddingHorizontal: 14, borderWidth: 1, borderRadius: 16 },
   input: { flex: 1, minWidth: 0, paddingHorizontal: 8, paddingVertical: Platform.OS === "ios" ? 13 : 10, fontSize: 15 },
   results: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 24, gap: 8 },
   resultRow: { minHeight: 76, flexDirection: "row", alignItems: "center", gap: 12, borderRadius: 18, paddingHorizontal: 12, paddingVertical: 10 },

@@ -26,8 +26,33 @@ test("Saved Reels goes back to its caller and defaults to Reels, never a hardcod
 
 test("opening Saved Reels carries the currently watched video and its original back destination", () => {
   const feed = read("../src/pages/reels-feed.tsx");
-  assert.match(feed, /\/reels\/\$\{reels\[active\]\.id\}\?returnTo=\$\{encodeURIComponent\(returnTo\)\}/);
+  assert.match(feed, /const resumeParams = new URLSearchParams\(\{ returnTo \}\)/);
+  assert.match(feed, /resumeParams\.set\("profileId", profileId\)/);
+  assert.match(feed, /\/reels\/\$\{reels\[active\]\.id\}\?\$\{resumeParams\.toString\(\)\}/);
   assert.match(feed, /\/reels\/saved\?returnTo=\$\{encodeURIComponent\(resumePath\)\}/);
+});
+
+test("opening a profile Reel keeps swiping inside that person's Reel list", () => {
+  const feed = read("../src/pages/reels-feed.tsx");
+  const profileSection = read("../src/components/profile-reels-section.tsx");
+  assert.match(profileSection, /profileId=\$\{encodeURIComponent\(reel\.creatorId\)\}/);
+  assert.match(feed, /enabled: !profileId/);
+  assert.match(feed, /getProfileReels\(\{ profileId/);
+  assert.match(feed, /const pages = profileId \? profileFeed\.data\?\.pages : feed\.data\?\.pages/);
+  assert.match(feed, /You’ve seen all of this person’s Reels/);
+});
+
+test("Reels search updates results while typing across captions and locations", () => {
+  const feed = read("../src/pages/reels-feed.tsx");
+  const route = read("../../api-server/src/routes/vibeswipe-reels.ts");
+  const spec = read("../../../lib/api-spec/openapi.yaml");
+  assert.match(feed, /data-testid="button-search-reels"/);
+  assert.match(feed, /data-testid="input-search-reels"/);
+  assert.match(feed, /q: debouncedSearchText/);
+  assert.match(feed, /Search Reel captions, people, or places as you type/);
+  assert.match(route, /reelSearchTerms\(query\.data\.q\)/);
+  assert.match(route, /profilesTable\.city/);
+  assert.match(spec, /name: q/);
 });
 
 test("Reels entry stays in navigation and saved videos are reached inside Reels", () => {

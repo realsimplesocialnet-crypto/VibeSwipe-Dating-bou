@@ -51,6 +51,8 @@ export function MediaPicker({
   const [busy, setBusy] = useState(false);
   const [busyMessage, setBusyMessage] = useState("Uploading securely…");
   const [error, setError] = useState("");
+  const [pendingAssets, setPendingAssets] = useState<ImagePicker.ImagePickerAsset[]>([]);
+  const [localPhotoPreviews, setLocalPhotoPreviews] = useState<Record<string, string>>({});
   const photoLimit = Math.min(MAX_PHOTOS, Math.max(1, maxPhotos));
   const [gridWidth, setGridWidth] = useState(0);
   useEffect(() => {
@@ -124,13 +126,26 @@ export function MediaPicker({
       quality: 0.85,
     });
     if (result.canceled || result.assets.length === 0) return;
+    await uploadPhotos(result.assets.slice(0, Math.max(1, photoLimit - photos.length)));
+  }
+
+  async function uploadPhotos(assets: ImagePicker.ImagePickerAsset[]) {
+    if (!assets.length || busy) return;
+    setError("");
+    setPendingAssets(assets);
     setBusy(true);
+    setBusyMessage("Preparing your photo…");
     try {
-      const remaining = photoLimit - photos.length;
-      const uploaded = await Promise.all(
-        result.assets.slice(0, remaining).map((asset) => uploadAsset(asset, "image")),
-      );
-      onChange({ photos: [...photos, ...uploaded], videoUrl });
+      const uploaded = await Promise.all(assets.map(async (asset) => ({
+        reference: await uploadAsset(asset, "image"),
+        uri: asset.uri,
+      })));
+      setLocalPhotoPreviews((current) => ({
+        ...current,
+        ...Object.fromEntries(uploaded.map(({ reference, uri }) => [reference, uri])),
+      }));
+      onChange({ photos: [...photos, ...uploaded.map((photo) => photo.reference)], videoUrl });
+      setPendingAssets([]);
     } catch (caught) {
       const data = (caught as { data?: { error?: string } })?.data;
       setError(data?.error ?? (caught instanceof Error ? caught.message : "Photo upload failed."));
@@ -165,9 +180,27 @@ export function MediaPicker({
   }
 
   function removePhoto(index: number) {
+    const reference = photos[index];
     onChange({
       photos: photos.filter((_, photoIndex) => photoIndex !== index),
       videoUrl,
+    });
+    if (reference) {
+      setLocalPhotoPreviews((current) => {
+        if (!current[reference]) return current;
+        const next = { ...current };
+        delete next[reference];
+        return next;
+      });
+    }
+  }
+
+  function markPhotoLoaded(reference: string) {
+    setLocalPhotoPreviews((current) => {
+      if (!current[reference]) return current;
+      const next = { ...current };
+      delete next[reference];
+      return next;
     });
   }
 
@@ -181,9 +214,11 @@ export function MediaPicker({
           {slotWidth > 0 ? Array.from({ length: photoLimit }, (_, index) => {
             const photo = photos[index];
             if (photo) {
+              const preview = localPhotoPreviews[photo];
               return (
                 <View key={`${photo}-${index}`} style={[slotStyle, { overflow: "hidden", backgroundColor: colors.profileChip }]}>
-                  <Image source={profileImageSource(photo, token)} style={StyleSheet.absoluteFill} resizeMode="cover" accessibilityLabel={`Profile photo ${index + 1}`} />
+                  <Image source={profileImageSource(photo, token)} onLoad={() => markPhotoLoaded(photo)} style={StyleSheet.absoluteFill} resizeMode="cover" accessibilityLabel={`Profile photo ${index + 1}`} />
+                  {preview ? <Image source={{ uri: preview }} style={StyleSheet.absoluteFill} resizeMode="cover" accessibilityLabel={`Preview of profile photo ${index + 1}`} /> : null}
                   {index === 0 ? (
                     <View style={[styles.mainBadge, { left: 6, bottom: 6, backgroundColor: colors.profileEdit }]}>
                       <Text style={[styles.mainBadgeText, { color: colors.profileEditForeground }]}>Main photo</Text>
@@ -192,6 +227,17 @@ export function MediaPicker({
                   <Pressable accessibilityRole="button" accessibilityLabel={`Remove photo ${index + 1}`} testID={`remove-photo-${index}`} hitSlop={6} onPress={() => removePhoto(index)} style={[styles.remove, { backgroundColor: colors.profileCard, top: 6, right: 6, width: 26, height: 26, borderRadius: 13 }]}>
                     <Feather name="x" size={14} color={colors.foreground} />
                   </Pressable>
+                </View>
+              );
+            }
+            const pending = pendingAssets[index - photos.length];
+            if (pending) {
+              return (
+                <View key={`pending-${pending.assetId ?? index}`} style={[slotStyle, { overflow: "hidden", backgroundColor: colors.profileChip }]}>
+                  <Image source={{ uri: pending.uri }} style={StyleSheet.absoluteFill} resizeMode="cover" accessibilityLabel="Selected profile photo preview" />
+                  <View style={styles.pendingTag}>
+                    <Text style={styles.pendingText}>{busy ? "Uploading…" : "Not uploaded"}</Text>
+                  </View>
                 </View>
               );
             }
@@ -212,6 +258,12 @@ export function MediaPicker({
         </Text>
         {busy ? <Text style={[styles.helper, { color: colors.profileMuted, textAlign: "center" }]}>{busyMessage}</Text> : null}
         {error ? <Text accessibilityRole="alert" style={[styles.error, { color: colors.destructive, textAlign: "center" }]}>{error}</Text> : null}
+        {pendingAssets.length > 0 && !busy ? (
+          <View style={styles.retryRow}>
+            <Pressable testID="retry-profile-photo-upload" onPress={() => void uploadPhotos(pendingAssets)}><Text style={[styles.retryText, { color: colors.profileEdit }]}>Retry upload</Text></Pressable>
+            {photos.length + pendingAssets.length >= photoLimit ? <Pressable onPress={pickPhotos}><Text style={[styles.retryText, { color: colors.profileMuted }]}>Choose another</Text></Pressable> : null}
+          </View>
+        ) : null}
         {showVideo ? (
           <Pressable accessibilityRole="button" testID="add-profile-video" onPress={pickVideo} disabled={busy} style={[styles.videoButton, { borderColor: colors.profileEdit, borderStyle: "dashed" }]}>
             <Feather name={videoUrl ? "check-circle" : "video"} size={18} color={colors.profileEdit} />
@@ -231,12 +283,14 @@ export function MediaPicker({
     <View style={styles.wrap}>
       <View style={styles.photoRow}>
         {photos.map((photo, index) => (
-          <View key={`${photo}-${index}`} style={styles.photoSlot}>
+          <View key={`${photo}-${index}`} style={photoLimit === 1 ? styles.singlePhotoSlot : styles.photoSlot}>
             <Image
               source={profileImageSource(photo, token)}
               style={styles.photo}
+              onLoad={() => markPhotoLoaded(photo)}
               resizeMode="cover"
             />
+            {localPhotoPreviews[photo] ? <Image source={{ uri: localPhotoPreviews[photo] }} style={StyleSheet.absoluteFill} resizeMode="cover" accessibilityLabel={`Preview of profile photo ${index + 1}`} /> : null}
               {index === 0 ? (
                 <View style={styles.mainBadge}>
                   <Text style={styles.mainBadgeText}>Main</Text>
@@ -252,13 +306,21 @@ export function MediaPicker({
             </Pressable>
           </View>
         ))}
+        {pendingAssets.map((asset, index) => (
+          <View key={`pending-${asset.assetId ?? index}`} style={photoLimit === 1 ? styles.singlePhotoSlot : styles.photoSlot}>
+            <Image source={{ uri: asset.uri }} style={styles.photo} resizeMode="cover" accessibilityLabel="Selected profile photo preview" />
+            <View style={styles.pendingTag}>
+              <Text style={styles.pendingText}>{busy ? "Uploading…" : "Not uploaded"}</Text>
+            </View>
+          </View>
+        ))}
         {photos.length < photoLimit && (
           <Pressable
             accessibilityLabel="Add photos"
             testID="add-profile-photos"
             onPress={pickPhotos}
             disabled={busy}
-            style={[styles.addSlot, { borderColor: colors.border }]}
+            style={[photoLimit === 1 ? styles.singleAddSlot : styles.addSlot, { borderColor: colors.border }]}
           >
             <Feather name="plus" size={22} color={colors.primary} />
             <Text style={[styles.addText, { color: colors.mutedForeground }]}>
@@ -308,6 +370,12 @@ export function MediaPicker({
           {error}
         </Text>
       ) : null}
+      {pendingAssets.length > 0 && !busy ? (
+        <View style={styles.retryRow}>
+          <Pressable testID="retry-profile-photo-upload" onPress={() => void uploadPhotos(pendingAssets)}><Text style={[styles.retryText, { color: colors.primary }]}>Retry upload</Text></Pressable>
+          {photos.length + pendingAssets.length >= photoLimit ? <Pressable onPress={pickPhotos}><Text style={[styles.retryText, { color: colors.mutedForeground }]}>Choose another</Text></Pressable> : null}
+        </View>
+      ) : null}
       <Text style={[styles.helper, { color: colors.mutedForeground }]}>
         {photoLimit === 1
           ? "Add one profile picture. It will appear on your profile and Discover cards."
@@ -321,7 +389,10 @@ const styles = StyleSheet.create({
   wrap: { gap: 12 },
   photoRow: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
   photoSlot: { width: 76, height: 92, borderRadius: 14, overflow: "hidden" },
+  singlePhotoSlot: { width: 120, height: 150, borderRadius: 18, overflow: "hidden" },
   photo: { width: "100%", height: "100%", backgroundColor: "#211b20" },
+  pendingTag: { position: "absolute", left: 4, right: 4, bottom: 4, borderRadius: 8, paddingHorizontal: 6, paddingVertical: 4, alignItems: "center", backgroundColor: "rgba(0,0,0,0.72)" },
+  pendingText: { color: "#ffffff", fontSize: 9, fontWeight: "700" },
   mainBadge: { position: "absolute", left: 4, bottom: 4, borderRadius: 9, backgroundColor: "rgba(0,0,0,0.72)", paddingHorizontal: 6, paddingVertical: 3 },
   mainBadgeText: { color: "#ffffff", fontSize: 9, fontWeight: "700" },
   remove: {
@@ -345,6 +416,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 4,
   },
+  singleAddSlot: { width: 120, height: 150, borderWidth: 1, borderStyle: "dashed", borderRadius: 18, alignItems: "center", justifyContent: "center", gap: 4 },
+  retryRow: { flexDirection: "row", justifyContent: "center", gap: 24 },
+  retryText: { fontSize: 13, fontWeight: "700" },
   gridEmpty: { borderWidth: 1.5, borderStyle: "dashed", alignItems: "center", justifyContent: "center" },
   gridPlus: { width: 34, height: 34, borderRadius: 17, alignItems: "center", justifyContent: "center", shadowOpacity: 0.3, shadowRadius: 8, shadowOffset: { width: 0, height: 4 }, elevation: 3 },
   gridHelper: { fontSize: 13, textAlign: "center" },
