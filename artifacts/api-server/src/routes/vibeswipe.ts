@@ -2677,12 +2677,16 @@ router.get(
       res.status(403).json({ error: access.error });
       return;
     }
+    const offlineEligibleReel = asset.mediaType === "video"
+      ? await canViewReelMedia(userId, asset.id)
+      : false;
     try {
       const file = await objectStorage.getObjectEntityFile(asset.objectPath);
       const response = await objectStorage.downloadObject(file, 300, req.get("range"));
       res.status(response.status);
       response.headers.forEach((value, key) => res.setHeader(key, value));
       if (access.privateMedia) res.setHeader("Cache-Control", "private, no-store");
+      if (offlineEligibleReel) res.setHeader("X-Myage-Offline-Eligible", "public-reel");
       if (response.body) {
         const stream = Readable.fromWeb(response.body as ReadableStream<Uint8Array>);
         res.on("close", () => stream.destroy());

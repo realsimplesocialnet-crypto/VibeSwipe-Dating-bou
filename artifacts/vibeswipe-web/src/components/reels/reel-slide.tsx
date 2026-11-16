@@ -1,20 +1,23 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "wouter";
 import type { Reel } from "@workspace/api-client-react";
-import { Bookmark, Heart, MapPin, MessageCircle, Pause, Play, Send, Trash2 } from "lucide-react";
+import { Bookmark, Check, Download, Heart, MapPin, MessageCircle, Pause, Play, Send, Trash2 } from "lucide-react";
 import { VerifiedBadge } from "@/components/verified-badge";
 import { ReelAvatar } from "@/components/reels/reel-avatar";
 import { formatCount, reelMediaUrl } from "@/lib/reels";
+import { isOfflineReelWifi } from "@/lib/offline-reels";
 
 type Props = {
   reel: Reel; index: number; active: boolean; near: boolean; muted: boolean; pageHidden: boolean;
   compact: boolean; showHint: boolean; returnTo: string;
   onLike: () => void; onComment: () => void; onShare: () => void; onSave: () => void; onDelete: () => void;
+  offlineSaved: boolean; offlineSaving: boolean; onSaveOffline: () => void; onAutoCache: () => void;
 };
 
-export function ReelSlide({ reel, index, active, near, muted, pageHidden, compact, showHint, returnTo, onLike, onComment, onShare, onSave, onDelete }: Props) {
+export function ReelSlide({ reel, index, active, near, muted, pageHidden, compact, showHint, returnTo, onLike, onComment, onShare, onSave, onDelete, offlineSaved, offlineSaving, onSaveOffline, onAutoCache }: Props) {
   const video = useRef<HTMLVideoElement>(null);
   const bar = useRef<HTMLDivElement>(null);
+  const autoCacheRequested = useRef(false);
   const [userPaused, setUserPaused] = useState(false);
   const [blocked, setBlocked] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -73,6 +76,10 @@ export function ReelSlide({ reel, index, active, near, muted, pageHidden, compac
       onTimeUpdate={(event) => {
         const element = event.currentTarget;
         if (bar.current && element.duration) bar.current.style.transform = `scaleX(${element.currentTime / element.duration})`;
+        if (element.duration && element.currentTime / element.duration >= 0.85 && !autoCacheRequested.current && isOfflineReelWifi() && !offlineSaved) {
+          autoCacheRequested.current = true;
+          onAutoCache();
+        }
       }}
       data-testid={`video-reel-${reel.id}`}
     />
@@ -95,6 +102,9 @@ export function ReelSlide({ reel, index, active, near, muted, pageHidden, compac
       <button type="button" onClick={onShare} aria-label="Share" data-testid={`button-share-reel-${reel.id}`}><Send size={27} strokeWidth={1.8} /></button>
       <button type="button" onClick={onSave} aria-pressed={reel.savedByMe} aria-label={reel.savedByMe ? "Remove from saved" : "Save"} data-testid={`button-save-reel-${reel.id}`} className={reel.savedByMe ? "is-saved" : ""}>
         <Bookmark size={28} strokeWidth={1.8} fill={reel.savedByMe ? "currentColor" : "none"} />
+      </button>
+      <button type="button" onClick={onSaveOffline} disabled={offlineSaved || offlineSaving} aria-label={offlineSaved ? "Saved for offline replay" : offlineSaving ? "Saving video offline" : "Save video offline"} data-testid={`button-save-reel-offline-${reel.id}`} className={offlineSaved ? "is-saved" : ""}>
+        {offlineSaved ? <Check size={25} strokeWidth={2}/> : <Download size={25} strokeWidth={1.8}/>}
       </button>
       {reel.isOwner && <button type="button" onClick={onDelete} aria-label="Delete your Reel" data-testid={`button-delete-reel-${reel.id}`}><Trash2 size={24} strokeWidth={1.8} /></button>}
     </div>

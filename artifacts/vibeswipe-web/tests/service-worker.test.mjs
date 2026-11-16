@@ -3,7 +3,7 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 import vm from "node:vm";
 
-async function loadServiceWorker({ cacheEntries = new Map(), fetcher = async () => new Response(), timers = {} } = {}) {
+async function loadServiceWorker({ cacheEntries = new Map(), fetcher = async () => new Response(), timers = {}, networkType, online = true } = {}) {
   const source = await readFile(
     new URL("../public/service-worker.js", import.meta.url),
     "utf8",
@@ -17,6 +17,8 @@ async function loadServiceWorker({ cacheEntries = new Map(), fetcher = async () 
   const cache = {
     async put(key, value) { cacheEntries.set(typeof key === "string" ? key : key.url, value); },
     async match(key) { return cacheEntries.get(typeof key === "string" ? key : key.url)?.clone(); },
+    async delete(key) { return cacheEntries.delete(typeof key === "string" ? key : key.url); },
+    async keys() { return [...cacheEntries.keys()].map((url) => new Request(url)); },
   };
   const windowClient = {
     url: "https://myage.beauty/",
@@ -38,6 +40,7 @@ async function loadServiceWorker({ cacheEntries = new Map(), fetcher = async () 
         shownNotifications.push({ title, options });
       },
     },
+    navigator: { onLine: online, ...(networkType ? { connection: { type: networkType } } : {}) },
     clients: {
       async matchAll() {
         return [windowClient];
@@ -56,6 +59,8 @@ async function loadServiceWorker({ cacheEntries = new Map(), fetcher = async () 
     caches: { async open() { return cache; }, async match(key) { return cache.match(key); } },
     fetch: fetcher,
     Response,
+    Request,
+    Headers,
     AbortController,
     setTimeout: timers.setTimeout ?? setTimeout,
     clearTimeout: timers.clearTimeout ?? clearTimeout,
@@ -131,6 +136,7 @@ test("one failed optional icon does not prevent service-worker installation", as
   await pending;
   assert.equal(worker.didSkipWaiting(), true);
   assert.equal(worker.cacheEntries.has("https://myage.beauty/offline.html"), true);
+  assert.equal(worker.cacheEntries.has("https://myage.beauty/index.html"), true);
   assert.equal(worker.cacheEntries.has("https://myage.beauty/"), false);
 });
 
@@ -157,7 +163,10 @@ for (const cause of ["offline", "server error", "timeout"]) {
       request: { method: "GET", mode: "navigate", url: "https://myage.beauty/chat/match-1" },
       respondWith(value) { response = value; },
     });
-    if (cause === "timeout") abortTimer();
+    if (cause === "timeout") {
+      await new Promise((resolve) => setImmediate(resolve));
+      abortTimer();
+    }
     assert.equal(await (await response).text(), "Reconnect to Myage");
     assert.equal(cleared, true);
   });
@@ -173,4 +182,117 @@ test("private API, auth and uploaded media never enter the worker cache", async 
     });
     assert.equal(intercepted, false, path);
   }
+});
+
+test("an approved public Reel is saved only on Wi-Fi and can serve byte-range playback offline", async () => {
+  const mediaId = "123e4567-e89b-42d3-a456-426614174000";
+  const reelId = "123e4567-e89b-42d3-a456-426614174001";
+  const url = `https://myage.beauty/api/vibeswipe/media/${mediaId}`;
+  const bytes = new Uint8Array([0, 1, 2, 3, 4, 5]);
+  const worker = await loadServiceWorker({
+    networkType: "wifi",
+    online: false,
+    fetcher: async () => new Response(bytes, { status: 200, headers: {
+      "Content-Type": "video/mp4",
+      "X-Myage-Offline-Eligible": "public-reel",
+    } }),
+  });
+  let messageResult;
+  let pending;
+  worker.listeners.get("message")({
+    data: {
+      type: "myage:cache-reel-offline",
+      manual: false,
+      mediaUrl: url,
+      reel: {
+        id: reelId, creatorId: "member", creatorName: "Alex", creatorAge: null,
+        creatorLocation: "", creatorVerified: false, creatorPhoto: null,
+        videoReference: `media:${mediaId}`, caption: "A Reel", durationSeconds: 6,
+        likeCount: 0, commentCount: 0, createdAt: new Date().toISOString(),
+      },
+    },
+    ports: [{ postMessage(result) { messageResult = result; } }],
+    waitUntil(value) { pending = value; },
+  });
+  await pending;
+  assert.equal(messageResult.ok, true);
+  assert.equal(messageResult.message, "Saved for offline replay.");
+
+  let cachedResponse;
+  worker.listeners.get("fetch")({
+    request: new Request(url, { headers: { Range: "bytes=2-4" } }),
+    respondWith(value) { cachedResponse = value; },
+  });
+  const partial = await cachedResponse;
+  assert.equal(partial.status, 206);
+  assert.equal(partial.headers.get("content-range"), "bytes 2-4/6");
+  assert.deepEqual([...new Uint8Array(await partial.arrayBuffer())], [2, 3, 4]);
+});
+
+test("automatic Reel caching never downloads over cellular or caches unapproved media", async () => {
+  const mediaId = "123e4567-e89b-42d3-a456-426614174000";
+  const reel = {
+    id: "123e4567-e89b-42d3-a456-426614174001", creatorId: "member",
+    creatorName: "Alex", creatorAge: null, creatorLocation: "",
+    creatorVerified: false, creatorPhoto: null, videoReference: `media:${mediaId}`,
+    caption: "", durationSeconds: 5, likeCount: 0, commentCount: 0,
+    createdAt: new Date().toISOString(),
+  };
+  let fetchCount = 0;
+  const worker = await loadServiceWorker({
+    networkType: "cellular",
+    fetcher: async () => { fetchCount++; return new Response("video"); },
+  });
+  let pending;
+  let result;
+  worker.listeners.get("message")({
+    data: { type: "myage:cache-reel-offline", mediaUrl: `https://myage.beauty/api/vibeswipe/media/${mediaId}`, reel, manual: false },
+    ports: [{ postMessage(value) { result = value; } }],
+    waitUntil(value) { pending = value; },
+  });
+  await pending;
+  assert.equal(fetchCount, 0);
+  assert.equal(result.ok, false);
+
+  const unapproved = await loadServiceWorker({
+    networkType: "wifi",
+    fetcher: async () => new Response("video", { headers: { "Content-Type": "video/mp4" } }),
+  });
+  unapproved.listeners.get("message")({
+    data: { type: "myage:cache-reel-offline", mediaUrl: `https://myage.beauty/api/vibeswipe/media/${mediaId}`, reel, manual: false },
+    ports: [{ postMessage(value) { result = value; } }],
+    waitUntil(value) { pending = value; },
+  });
+  await pending;
+  assert.equal(result.ok, false);
+  assert.equal([...unapproved.cacheEntries.keys()].some((key) => key === `https://myage.beauty/api/vibeswipe/media/${mediaId}`), false);
+});
+
+test("a user-confirmed Wi-Fi fallback works when the browser hides network type", async () => {
+  const mediaId = "123e4567-e89b-42d3-a456-426614174000";
+  const reel = {
+    id: "123e4567-e89b-42d3-a456-426614174001", creatorId: "member",
+    creatorName: "Alex", creatorAge: null, creatorLocation: "",
+    creatorVerified: false, creatorPhoto: null, videoReference: `media:${mediaId}`,
+    caption: "", durationSeconds: 5, likeCount: 0, commentCount: 0,
+    createdAt: new Date().toISOString(),
+  };
+  const worker = await loadServiceWorker({
+    fetcher: async () => new Response(new Uint8Array([1]), { headers: {
+      "Content-Type": "video/mp4",
+      "X-Myage-Offline-Eligible": "public-reel",
+    } }),
+  });
+  let pending;
+  let result;
+  worker.listeners.get("message")({
+    data: {
+      type: "myage:cache-reel-offline", mediaUrl: `https://myage.beauty/api/vibeswipe/media/${mediaId}`,
+      reel, manual: true, confirmedUnknownWifi: true,
+    },
+    ports: [{ postMessage(value) { result = value; } }],
+    waitUntil(value) { pending = value; },
+  });
+  await pending;
+  assert.equal(result.ok, true);
 });

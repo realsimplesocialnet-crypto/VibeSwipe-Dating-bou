@@ -10,6 +10,7 @@ import { ReelSlide } from "@/components/reels/reel-slide";
 import { ReelComments } from "@/components/reels/reel-comments";
 import { ReelShareSheet } from "@/components/reels/reel-share-sheet";
 import { safeReelReturnPath } from "@/lib/reels";
+import { readOfflineReels, saveReelForOffline } from "@/lib/offline-reels";
 import { reelSlideIndex, reelsViewportFrame } from "@/lib/reels-viewport";
 import "@/components/reels/reels.css";
 
@@ -76,6 +77,10 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
   const [patches, setPatches] = useState<Record<string, Partial<Reel>>>({});
   const [removed, setRemoved] = useState<Set<string>>(() => new Set());
   const [notice, setNotice] = useState("");
+  const [offlineReels, setOfflineReels] = useState<Reel[]>([]);
+  const [offlineIds, setOfflineIds] = useState<Set<string>>(() => new Set());
+  const [offlineSavingIds, setOfflineSavingIds] = useState<Set<string>>(() => new Set());
+  const [offline, setOffline] = useState(!navigator.onLine);
 
   const single = useGetReel(initialReelId ?? "", { query: { enabled: Boolean(initialReelId), queryKey: getGetReelQueryKey(initialReelId ?? ""), retry: false } });
   const feed = useInfiniteQuery({
@@ -88,13 +93,31 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
   const like = useLikeReel(); const unlike = useUnlikeReel(); const save = useSaveReel(); const unsave = useUnsaveReel(); const del = useDeleteReel();
   const loading = feed.isLoading || (Boolean(initialReelId) && single.isLoading);
 
+  useEffect(() => {
+    let mounted = true;
+    void readOfflineReels().then((items) => {
+      if (!mounted) return;
+      setOfflineReels(items);
+      setOfflineIds(new Set(items.map((item) => item.id)));
+    });
+    const update = () => setOffline(!navigator.onLine);
+    window.addEventListener("online", update);
+    window.addEventListener("offline", update);
+    return () => {
+      mounted = false;
+      window.removeEventListener("online", update);
+      window.removeEventListener("offline", update);
+    };
+  }, []);
+
   const reels = useMemo(() => {
     const list: Reel[] = [];
     const seen = new Set<string>();
     if (single.data) { list.push(single.data); seen.add(single.data.id); }
     for (const page of feed.data?.pages ?? []) for (const reel of page.items) if (!seen.has(reel.id)) { seen.add(reel.id); list.push(reel); }
+    if (!list.length && feed.isError) for (const reel of offlineReels) if (!seen.has(reel.id)) { seen.add(reel.id); list.push(reel); }
     return list.filter((reel) => !removed.has(reel.id)).map((reel) => ({ ...reel, ...patches[reel.id] }));
-  }, [single.data, feed.data, patches, removed]);
+  }, [single.data, feed.data, feed.isError, offlineReels, patches, removed]);
 
   // Track which slide is on screen.
   useEffect(() => {
@@ -150,6 +173,24 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
 
   function patch(id: string, value: Partial<Reel>) { setPatches((all) => ({ ...all, [id]: { ...all[id], ...value } })); }
 
+  async function cacheOffline(reel: Reel, manual: boolean) {
+    if (offlineIds.has(reel.id) || offlineSavingIds.has(reel.id)) return;
+    setOfflineSavingIds((all) => new Set(all).add(reel.id));
+    let result: { ok: boolean; message: string };
+    try {
+      result = await saveReelForOffline(reel, manual);
+    } catch {
+      result = { ok: false, message: "Could not save this video offline. Try again on Wi-Fi." };
+    } finally {
+      setOfflineSavingIds((all) => { const next = new Set(all); next.delete(reel.id); return next; });
+    }
+    if (result.ok) {
+      setOfflineIds((all) => new Set(all).add(reel.id));
+      setOfflineReels((all) => [reel, ...all.filter((item) => item.id !== reel.id)].slice(0, 3));
+      setNotice(result.message);
+    } else if (result.message) setNotice(result.message);
+  }
+
   async function toggle(kind: "like" | "save", reel: Reel) {
     const before = { likedByMe: reel.likedByMe, likeCount: reel.likeCount, savedByMe: reel.savedByMe };
     const on = kind === "like" ? !reel.likedByMe : !reel.savedByMe;
@@ -192,17 +233,19 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
     <div className="reels-stage">
       <div ref={scroller} className={`reels-scroller ${commentsFor ? "is-locked" : ""}`} data-testid="reels-scroller">
         {loading ? <div className="reel-slide"><div className="reel-loading" aria-label="Loading Reels" /></div>
-          : feed.isError && !reels.length ? <div className="reels-empty" role="alert"><p className="text-lg font-bold">Reels could not load.</p><p className="mt-1 text-sm text-white/60">Check your connection and try again.</p><button type="button" onClick={() => void feed.refetch()} className="reel-pill mt-5" data-testid="button-retry-reels">Try again</button></div>
+          : feed.isError && !reels.length ? <div className="reels-empty" role="alert"><p className="text-lg font-bold">{offline ? "No Reels saved offline yet." : "Reels could not load."}</p><p className="mt-1 text-sm text-white/60">{offline ? "Connect to Wi-Fi and watch a Reel or tap Save offline first." : "Check your connection and try again."}</p>{!offline&&<button type="button" onClick={() => void feed.refetch()} className="reel-pill mt-5" data-testid="button-retry-reels">Try again</button>}</div>
           : !reels.length ? <div className="reels-empty"><span className="reels-empty-mark"><Clapperboard size={30} /></span><p className="mt-5 text-xl font-bold">No Reels yet</p><p className="mt-1 max-w-[260px] text-sm leading-6 text-white/60">Be the first to share a short video with the community.</p><Link href="/reels/new" className="reels-primary mt-6" data-testid="link-post-first-reel">Post a Reel</Link></div>
           : reels.map((reel, index) => <ReelSlide
             key={reel.id} reel={reel} index={index} active={index === active} near={Math.abs(index - active) <= 1}
             muted={muted} pageHidden={pageHidden} compact={commentsFor === reel.id} showHint={index === 0 && reels.length > 1}
             returnTo={ownPath}
+             offlineSaved={offlineIds.has(reel.id)} offlineSaving={offlineSavingIds.has(reel.id)}
+             onSaveOffline={() => void cacheOffline(reel, true)} onAutoCache={() => void cacheOffline(reel, false)}
             onLike={() => void toggle("like", reel)} onSave={() => void toggle("save", reel)}
             onComment={() => setCommentsFor(reel.id)} onShare={() => setShareFor(reel)} onDelete={() => setDeleteFor(reel)}
           />)}
         {feed.isFetchingNextPage && <div className="reels-more" aria-live="polite">Loading more Reels</div>}
-        {!feed.hasNextPage && reels.length > 1 && !feed.isLoading && <div className="reels-end">You are all caught up.</div>}
+        {!offline && !feed.hasNextPage && reels.length > 1 && !feed.isLoading && <div className="reels-end">You are all caught up.</div>}
       </div>
       <header className="reels-top">
         <button type="button" onClick={back} aria-label="Back" data-testid="button-reels-back" className="reels-icon"><ArrowLeft size={24} /></button>
@@ -215,6 +258,7 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
           {reels.length > 0 && <button type="button" onClick={() => setMuted((value) => !value)} aria-label={muted ? "Turn sound on" : "Mute"} aria-pressed={!muted} data-testid="button-reels-mute" className="reels-sound">{muted ? <VolumeX size={18} /> : <Volume2 size={18} />}</button>}
         </div>
       </header>
+      {offline && <p role="status" className="reels-notice" data-testid="notice-reels-offline">{reels.length ? "Offline. Showing videos saved on this device." : "Offline. No videos are saved on this device yet."}</p>}
       {notice && <p role="status" className="reels-notice" data-testid="status-reels">{notice}</p>}
       {initialReelId && single.isError && <p role="status" className="reels-notice" data-testid="status-reel-unavailable">That Reel is no longer available. Showing other Reels.</p>}
     </div>

@@ -82,3 +82,9 @@ Safety approval must refer to the exact checked video, not a client-writable upl
 **Why:** A still-valid upload URL can overwrite bytes after a successful check. Automatic moderation also cannot promise to catch every explicit scene.
 
 **How to apply:** Publish an immutable checked copy, enforce approval on both publishing and subsequent visibility, and invalidate approvals when changing the model, threshold or sampling policy. Keep automatic rechecks for existing Reels. Describe checks honestly without claiming perfect detection.
+
+Watched Reels should be available for offline replay after they are saved on the device. Automatically cache them only on Wi-Fi; do not silently download videos over cellular data.
+
+**Why:** The user wants to reopen and replay watched videos after losing data, and chose Wi-Fi-only automatic caching.
+
+**How to apply:** Cache only approved public Reels, keep offline storage bounded and expiring, and do not treat a partial online stream as a guaranteed offline copy. If the browser cannot identify Wi-Fi, require an explicit save action rather than auto-downloading.

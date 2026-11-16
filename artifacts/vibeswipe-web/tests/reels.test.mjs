@@ -92,6 +92,21 @@ test("Reels viewer keeps autoplay muted, inline and paused offscreen or hidden",
   assert.match(feed, /getNextPageParam/);
 });
 
+test("watched Reels can be saved on Wi-Fi and reopened from the bounded offline cache", () => {
+  const slide = read("../src/components/reels/reel-slide.tsx");
+  const feed = read("../src/pages/reels-feed.tsx");
+  const cache = read("../src/lib/offline-reels.ts");
+  const worker = read("../public/service-worker.js");
+  assert.match(slide, /currentTime \/ element\.duration >= 0\.85/);
+  assert.match(slide, /data-testid=\{`button-save-reel-offline-\$\{reel\.id\}`\}/);
+  assert.match(feed, /readOfflineReels/);
+  assert.match(feed, /feed\.isError\) for \(const reel of offlineReels/);
+  assert.match(cache, /Connect to Wi-Fi to save this video offline/);
+  assert.match(worker, /MAX_OFFLINE_REELS = 3/);
+  assert.match(worker, /MAX_OFFLINE_TOTAL_BYTES = 120 \* 1024 \* 1024/);
+  assert.match(worker, /x-myage-offline-eligible/);
+});
+
 test("Reels routes sit outside the main navigation shell and comments sit below the video", () => {
   const app = read("../src/App.tsx");
   assert.match(app, /<Route path="\/reels" component=\{ReelsRoute\}\/>/);
