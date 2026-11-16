@@ -75,6 +75,7 @@ test("Activity shows Reel likes in the actual web and native screens", () => {
 
 test("Reel comments support profile links, replies, and reply notifications", () => {
   const comments = source("artifacts/vibeswipe-web/src/components/reels/reel-comments.tsx");
+  const commentStyles = source("artifacts/vibeswipe-web/src/components/reels/reels.css");
   const feed = source("artifacts/vibeswipe-web/src/pages/reels-feed.tsx");
   const notificationPage = source("artifacts/vibeswipe-web/src/App.tsx");
   const activity = source("artifacts/vibeswipe-web/src/components/social-hub.tsx");
@@ -82,6 +83,9 @@ test("Reel comments support profile links, replies, and reply notifications", ()
   const schema = source("artifacts/api-server/src/lib/reels-schema.ts");
   assert.match(comments, /link-reel-comment-profile-/);
   assert.match(comments, /parentCommentId: replyingTo\.id/);
+  assert.match(comments, /expanded \? "Less" : "More"/);
+  assert.match(comments, /scrollHeight > element\.clientHeight/);
+  assert.match(commentStyles, /-webkit-line-clamp: 3/);
   assert.equal((comments.match(/authorId === creatorId/g) ?? []).length, 2);
   assert.match(feed, /creatorId=\{commentReel\.creatorId\}/);
   assert.match(feed, /focusCommentId=\{initialCommentId\}/);

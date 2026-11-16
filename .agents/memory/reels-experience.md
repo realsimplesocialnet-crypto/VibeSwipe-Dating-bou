@@ -39,6 +39,12 @@ Comments must open low down without covering the video, including while the mobi
 
 **How to apply:** Reserve space below the visible video for the comment panel and input instead of placing an opaque sheet over the video.
 
+Long comment and reply text starts at three lines and expands with a “More” control only when it is clipped.
+
+**Why:** The user wants comment text to stay compact in the feed, with the rest revealed when a viewer asks to see more.
+
+**How to apply:** Clamp long text within its comment row and let it expand in place without obscuring the Reel or other comments.
+
 Comment authors' names and photos open their public profiles. Members can reply to top-level Reel comments, and the original commenter receives an Activity and push notification for each reply.
 
 **Why:** The user asked to open commenters' profiles and notify someone when another member replies to their comment.
