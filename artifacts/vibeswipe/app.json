@@ -34,7 +34,14 @@
       "expo-secure-store",
       "expo-web-browser",
       "expo-video",
-      "expo-audio"
+      "expo-audio",
+      [
+        "@config-plugins/react-native-webrtc",
+        {
+          "cameraPermission": "Allow Myage to use your camera during video calls.",
+          "microphonePermission": "Allow Myage to use your microphone during video calls."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

@@ -54,6 +54,7 @@ import { VoiceNoteRecorder } from "@/components/VoiceNoteRecorder";
 import { ProfileAvatar } from "@/components/ProfileAvatar";
 import { ChatAudioMessage } from "@/components/ChatMedia";
 import { ChatMediaMessage } from "@/components/ChatMediaMessage";
+import { useVideoCall } from "@/components/VideoCallProvider";
 import { useColors } from "@/hooks/useColors";
 import { mediaUri } from "@/lib/media";
 
@@ -87,6 +88,7 @@ function mediaTheme(theme: ChatThemeType, fallback: string): string {
 }
 
 export default function ChatScreen() {
+  const { startCall } = useVideoCall();
   const appColors = useColors();
   const insets = useSafeAreaInsets();
   const keyboardVisible = useKeyboardState(state => state.isVisible);
@@ -549,6 +551,16 @@ export default function ChatScreen() {
             {typing.data?.isTyping || presence.data?.isOnline || presence.data?.lastSeenAt ? <Text numberOfLines={1} style={[styles.status, { color: presence.data?.isOnline ? colors.chatOnline : colors.mutedForeground }]}>{typing.data?.isTyping ? "Typing…" : presence.data?.isOnline ? "Online" : formatLastSeen(presence.data?.lastSeenAt)}</Text> : null}
           </View>
         </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Start video call"
+          testID="button-start-video-call"
+          disabled={blocked}
+          onPress={() => { if (matchId) void startCall(matchId); }}
+          style={[styles.call, blocked && { opacity: 0.4 }]}
+        >
+          <Feather name="video" size={20} color={themedForeground} />
+        </Pressable>
         <Pressable accessibilityRole="button" accessibilityLabel="Chat actions" testID="chat-actions" onPress={() => setMenuVisible(true)} style={styles.more}>
           <Feather name="more-vertical" size={21} color={themedForeground} />
         </Pressable>
@@ -762,6 +774,7 @@ const styles = StyleSheet.create({
   name: { fontSize: 18, fontWeight: "700" },
   status: { fontSize: 11, lineHeight: 15 },
   more: { width: 36, height: 42, alignItems: "flex-end", justifyContent: "center" },
+  call: { width: 36, height: 42, alignItems: "center", justifyContent: "center" },
   searchBar: { minHeight: 48, paddingHorizontal: 14, flexDirection: "row", alignItems: "center", gap: 7, borderBottomWidth: StyleSheet.hairlineWidth },
   searchInput: { flex: 1, height: 42, fontSize: 14 },
   searchCount: { fontSize: 11, minWidth: 32, textAlign: "center" },

@@ -11,6 +11,7 @@ import { StatusBar } from "expo-status-bar";
 import * as Notifications from "expo-notifications";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { PushNotificationBridge } from "@/components/PushNotificationBridge";
+import { VideoCallProvider } from "@/components/VideoCallProvider";
 import { ThemeProvider, useTheme } from "@/hooks/useTheme";
 import {
   Inter_400Regular,
@@ -107,7 +108,7 @@ function AuthenticatedApi({ children }: { children: React.ReactNode }) {
       <ThemePreferenceSync />
       <PushNotificationBridge />
       <PresenceHeartbeat />
-      {children}
+      <VideoCallProvider>{children}</VideoCallProvider>
     </QueryClientProvider>
   );
 }

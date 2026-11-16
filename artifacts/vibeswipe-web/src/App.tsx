@@ -26,7 +26,7 @@ import {
 import { Link, Redirect, Route, Switch, useLocation, useParams, Router as WouterRouter } from 'wouter';
 import {
   ArrowLeft, ArrowRight, Bell, Clapperboard, Check, ChevronDown, ChevronRight, CircleHelp, Compass, Eye, EyeOff,
-  Heart, ImagePlus, MapPin, MessageCircle, MoreHorizontal, Navigation, Search, Settings,
+  Heart, ImagePlus, MapPin, MessageCircle, MoreHorizontal, Navigation, Search, Settings, Video,
   Shield, SlidersHorizontal, Mars, Venus, NonBinary, Briefcase, Pencil, Camera, Sparkles, Star, UserRound, Users, Volume2, X, Zap, Flag, Ban, Images, Coffee, CupSoda, Music, ImageIcon, Paperclip, SendHorizontal, LoaderCircle, MessageCircleMore,
 } from 'lucide-react';
 import NotFound from '@/pages/not-found';
@@ -58,6 +58,7 @@ import { ProfileReelsSection } from '@/components/profile-reels-section';
 import { sharedReelId } from '@/lib/reels';
 import { ChatMessageBubble } from '@/components/chat-message-bubble';
 import { ChatVoiceNoteRecorder } from '@/components/chat-voice-note-recorder';
+import { VideoCallProvider, useVideoCall } from '@/components/video-call-provider';
 import { chatViewportFrame } from '@/lib/chat-viewport';
 import { ActivityOverview, InboundPeoplePage, MutualMatchesPage } from '@/components/social-hub';
 import { isDiscoverSetupRequired, isProfileMissing, shouldRetryDiscover, shouldRetryProfile } from '@/lib/profile-query-state';
@@ -348,6 +349,7 @@ function MatchesPage() {
 
 function SharedReelContent({content,returnTo}:{content:string;returnTo:string}){const reelId=sharedReelId(content);if(!reelId)return <>{content}</>;return <Link href={`/reels/${reelId}?returnTo=${encodeURIComponent(returnTo)}`} data-testid={`link-shared-reel-${reelId}`} className="flex items-center gap-3 rounded-xl bg-black/20 px-3 py-2.5 no-underline"><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-current/30 bg-black/20"><Clapperboard size={18}/></span><span className="min-w-0"><span className="block truncate font-semibold">{content.replace(/:\s*\S+$/,'')}</span><span className="block text-xs opacity-75">Open Reel</span></span></Link>}
 function ChatPage({matchId,returnTo='/matches'}:{matchId:string;returnTo?:string}) {
+  const {startCall}=useVideoCall();
   const [voiceActive,setVoiceActive]=useState(false);
   const [,setLocation]=useLocation(); const qc=useQueryClient(); const profile=useGetMyProfile(); const matches=useGetMatches({query:{refetchInterval:12000}}); const match=matches.data?.find(m=>m.id===matchId); const blocked=!!match?.blockedByMe||!!match?.blockedMe;
   const msgs=useGetMessages(matchId,{query:{enabled:!!match,queryKey:getGetMessagesQueryKey(matchId),refetchInterval:10000}}); const typing=useGetTypingStatus(matchId,{query:{enabled:!!match,queryKey:['/api/vibeswipe/matches',matchId,'typing'],refetchInterval:3500}}); const receipt=useGetChatReadReceipt(matchId,{query:{enabled:!!match,queryKey:getGetChatReadReceiptQueryKey(matchId),refetchInterval:5000}}); const presence=useGetMatchPresence(matchId,{query:{enabled:!!match,queryKey:getGetMatchPresenceQueryKey(matchId),refetchInterval:15000}}); const heartbeat=useHeartbeatPresence();
@@ -427,6 +429,7 @@ function ChatPage({matchId,returnTo='/matches'}:{matchId:string;returnTo?:string
         <span className="relative shrink-0"><span className="block h-9 w-9 overflow-hidden rounded-full ring-2 ring-[var(--chat-accent)] [&>div]:h-full [&>div]:w-full"><Avatar profile={match.profile} size="sm"/></span>{presence.data?.isOnline&&<span aria-hidden="true" className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-[hsl(var(--chat-card))] bg-emerald-500"/>}</span>
         <span className="min-w-0"><span className="block truncate text-[16px] font-bold leading-5 text-[hsl(var(--chat-fg))]">{match.profile.name}</span><span data-testid="text-chat-status" className={`block truncate text-[12px] leading-4 ${presence.data?.isOnline||typing.data?.isTyping?'text-[var(--chat-accent)]':'text-[hsl(var(--chat-muted))]'}`}>{statusLine}</span></span>
       </Link>
+      <button type="button" onClick={()=>void startCall(matchId)} disabled={blocked} aria-label="Start video call" data-testid="button-start-video-call" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[hsl(var(--chat-fg))] hover:bg-[hsl(var(--chat-soft))] disabled:opacity-40"><Video size={19}/></button>
       <button type="button" onClick={()=>setActions(true)} aria-label="Chat actions" data-testid="button-chat-actions" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[hsl(var(--chat-fg))] hover:bg-[hsl(var(--chat-soft))]"><MoreHorizontal size={21}/></button>
     </header>
     {blocked&&<div className="mx-4 mt-3 rounded-xl border border-rose-300/30 bg-rose-400/10 px-4 py-3 text-sm text-rose-500">Messaging is unavailable while this profile is blocked.</div>}
@@ -885,7 +888,7 @@ function SettingsThemeSync() {
   return null;
 }
 function ClerkCacheSync(){const {user}=useUser();const client=useQueryClient();const previous=useRef<string|null|undefined>(undefined);useEffect(()=>{const id=user?.id??null;if(previous.current!==undefined&&previous.current!==id)client.clear();previous.current=id},[user?.id,client]);return null}
-function ClerkRoutes(){const [,setLocation]=useLocation();return <ClerkProvider publishableKey={clerkPubKey} proxyUrl={clerkProxyUrl} appearance={appearance} signInUrl={pathFor('/sign-in')} signUpUrl={pathFor('/sign-up')} localization={{signIn:{start:{title:'Welcome back',subtitle:'Your next good conversation is waiting.'}},signUp:{start:{title:'Make room for a spark',subtitle:'Create your adults-only Myage account.'}}}} routerPush={to=>setLocation(to.startsWith(basePath)?to.slice(basePath.length)||'/':to)} routerReplace={to=>setLocation(to.startsWith(basePath)?to.slice(basePath.length)||'/':to,{replace:true})}><ClerkCacheSync/><SettingsThemeSync/><Switch>
+function ClerkRoutes(){const [,setLocation]=useLocation();return <ClerkProvider publishableKey={clerkPubKey} proxyUrl={clerkProxyUrl} appearance={appearance} signInUrl={pathFor('/sign-in')} signUpUrl={pathFor('/sign-up')} localization={{signIn:{start:{title:'Welcome back',subtitle:'Your next good conversation is waiting.'}},signUp:{start:{title:'Make room for a spark',subtitle:'Create your adults-only Myage account.'}}}} routerPush={to=>setLocation(to.startsWith(basePath)?to.slice(basePath.length)||'/':to)} routerReplace={to=>setLocation(to.startsWith(basePath)?to.slice(basePath.length)||'/':to,{replace:true})}><ClerkCacheSync/><SettingsThemeSync/><VideoCallProvider><Switch>
   <Route path="/" component={HomeRedirect}/>
   <Route path="/welcome" component={WelcomeRoute}/>
   <Route path="/admin" component={AdminPage}/><Route path="/admin/:section" component={AdminPage}/>
@@ -897,7 +900,7 @@ function ClerkRoutes(){const [,setLocation]=useLocation();return <ClerkProvider 
    <Route path="/privacy-policy" component={PrivacyPolicyRoute}/><Route path="/terms" component={CommunityGuidelinesRoute}/><Route path="/community-guidelines" component={CommunityGuidelinesRoute}/>
    <Route path="/safety-center" component={SafetyCenterRoute}/><Route path="/report-safety" component={ReportSafetyRoute}/><Route path="/safety/location" component={PublicLocationShareRoute}/>
   <Route path="/profile" component={ProfileRoute}/><Route path="/profile/edit" component={ProfileEditRoute}/><Route path="/profile/:profileId/from-notifications" component={ViewedNotificationProfileRoute}/><Route path="/profile/:profileId" component={PublicProfileRoute}/><Route path="/verify-profile" component={FaceVerificationRoute}/><Route path="/settings" component={SettingsRoute}/><Route path="/settings/:section" component={SettingsSectionRoute}/><Route component={NotFound}/>
-</Switch></ClerkProvider>}
+ </Switch></VideoCallProvider></ClerkProvider>}
 function ConsumerInstallBanner(){const [location]=useLocation();return location.startsWith('/admin')||location.startsWith('/reels')?null:<MobileInstallBanner/>}
 function App(){if(!clerkPubKey)throw new Error('Missing VITE_CLERK_PUBLISHABLE_KEY');return <QueryClientProvider client={queryClient}><ConnectionNotice/><WouterRouter base={basePath}><ConsumerInstallBanner/><ClerkRoutes/></WouterRouter></QueryClientProvider>}
 export default App;

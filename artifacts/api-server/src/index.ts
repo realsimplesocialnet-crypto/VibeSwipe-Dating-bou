@@ -1,5 +1,7 @@
 import app from "./app";
+import { createServer } from "node:http";
 import { logger } from "./lib/logger";
+import { attachVideoCallSignaling } from "./lib/videoCallSignaling";
 import { cleanupAbandonedProfileMedia } from "./lib/profileMediaCleanup";
 import { cleanupExpiredStories } from "./lib/vibeswipeStories";
 import { ensureAdminSchema } from "./lib/admin-schema";
@@ -25,6 +27,8 @@ if (Number.isNaN(port) || port <= 0) {
 }
 
 let cleanupRunning = false;
+const httpServer = createServer(app);
+const videoCallIo = attachVideoCallSignaling(httpServer);
 const runProfileMediaCleanup = async (): Promise<void> => {
   if (cleanupRunning) return;
   cleanupRunning = true;
@@ -57,26 +61,30 @@ const runProfileMediaCleanup = async (): Promise<void> => {
   }
 };
 
-void ensureAdminSchema().then(ensureFaceVerificationSchema).then(ensureReelsSchema).then(ensureChatSchema).then(() => app.listen(port, (err) => {
-  if (err) {
+void ensureAdminSchema().then(ensureFaceVerificationSchema).then(ensureReelsSchema).then(ensureChatSchema).then(() => {
+  httpServer.once("error", (err) => {
     logger.error({ err }, "Error listening on port");
     process.exit(1);
-  }
+  });
 
-  logger.info({ port }, "Server listening");
-  void finishPendingFaceVerifications();
-  const faceVerificationTimer = setInterval(() => void finishPendingFaceVerifications(), 5 * 60_000);
-  faceVerificationTimer.unref();
-  void checkExistingReels();
-  const reelSafetyTimer = setInterval(() => void checkExistingReels(), 60_000);
-  reelSafetyTimer.unref();
-  void runProfileMediaCleanup();
-  const cleanupTimer = setInterval(
-    () => void runProfileMediaCleanup(),
-    60 * 60 * 1000,
-  );
-  cleanupTimer.unref();
-})).catch((err: unknown) => {
+  httpServer.listen(port, () => {
+    logger.info({ port }, "Server listening");
+    void finishPendingFaceVerifications();
+    const faceVerificationTimer = setInterval(() => void finishPendingFaceVerifications(), 5 * 60_000);
+    faceVerificationTimer.unref();
+    void checkExistingReels();
+    const reelSafetyTimer = setInterval(() => void checkExistingReels(), 60_000);
+    reelSafetyTimer.unref();
+    void runProfileMediaCleanup();
+    const cleanupTimer = setInterval(
+      () => void runProfileMediaCleanup(),
+      60 * 60 * 1000,
+    );
+    cleanupTimer.unref();
+  });
+}).catch((err: unknown) => {
   logger.error({ err }, "Unable to prepare account moderation storage");
   process.exit(1);
 });
+
+process.on("SIGTERM", () => videoCallIo.close());
