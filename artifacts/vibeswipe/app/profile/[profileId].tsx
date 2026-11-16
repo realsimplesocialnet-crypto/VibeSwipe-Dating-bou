@@ -9,6 +9,7 @@ import {
   useBlockProfile,
   useCreateReaction,
   useGetDailyLikeStatus,
+  useGetMatches,
   useGetMyProfile,
   useGetProfileById,
   useGetSuperLikeStatus,
@@ -57,6 +58,8 @@ export default function PublicProfileScreen() {
   const dailyLikeStatus = useGetDailyLikeStatus({ query: { queryKey: getGetDailyLikeStatusQueryKey() } });
   const superStatus = useGetSuperLikeStatus({ query: { queryKey: getGetSuperLikeStatusQueryKey() } });
   const profile = useGetProfileById(id, { query: { queryKey: getGetProfileByIdQueryKey(id), enabled: !!id } });
+  const matches = useGetMatches({ query: { queryKey: getGetMatchesQueryKey(), enabled: !!id, refetchInterval: 12_000, refetchOnMount: "always", refetchOnWindowFocus: true, staleTime: 0 } });
+  const profileMatch = matches.data?.find((match) => match.profile.id === id);
   const recordView = useRecordProfileView();
   const confirmationTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const busy = useRef(false);
@@ -66,6 +69,10 @@ export default function PublicProfileScreen() {
   function goBack() {
     if (router.canGoBack()) router.back();
     else router.replace((fromLikes ? "/(tabs)/activity/likes" : "/(tabs)/activity") as never);
+  }
+  function openMatchedChat() {
+    if (!profileMatch || profileMatch.blockedByMe || profileMatch.blockedMe) return;
+    router.push({ pathname: "/chat/[matchId]", params: { matchId: profileMatch.id } });
   }
 
   useEffect(() => {
@@ -98,7 +105,7 @@ export default function PublicProfileScreen() {
 
   async function react(type: ReactionKind) {
     const user = profile.data;
-    if (!user || busy.current || locked) return;
+    if (!user || busy.current || locked || profileMatch) return;
     if (type === "like" && likeOut) { setActionError("You have used all of today’s likes. They reset in 24 hours."); return; }
     if (type === "super" && superOut) { setActionError("You have used today’s Super Like. It resets in 24 hours."); return; }
     const targetId = user.id;
@@ -241,7 +248,22 @@ export default function PublicProfileScreen() {
           </Pressable>
         </View>
 
-        {fromLikes ? (
+        {matches.isLoading ? (
+          <Text style={[styles.value, { color: colors.profileMuted }]} accessibilityRole="text">Checking match…</Text>
+        ) : matches.isError && !matches.data ? (
+          <Pressable testID="button-retry-match-status" accessibilityRole="button" onPress={() => void matches.refetch()} style={[styles.pillButton, { backgroundColor: colors.profileCard }]}>
+            <Text style={[styles.pillButtonText, { color: colors.foreground }]}>Retry</Text>
+          </Pressable>
+        ) : profileMatch ? (
+          profileMatch.blockedByMe || profileMatch.blockedMe ? (
+            <Text style={[styles.value, { color: colors.profileMuted }]} accessibilityRole="text">This chat is unavailable.</Text>
+          ) : (
+            <Pressable testID="public-profile-message" accessibilityRole="button" accessibilityLabel={`Message ${user.name}`} onPress={openMatchedChat} style={({ pressed }) => [styles.likeBackButton, { maxWidth: 320, width: "100%", backgroundColor: colors.profileEdit, opacity: pressed ? 0.82 : 1 }]}>
+              <Feather name="message-circle" size={18} color={colors.profileEditForeground} />
+              <Text style={[styles.likeBackText, { color: colors.profileEditForeground }]}>Message</Text>
+            </Pressable>
+          )
+        ) : fromLikes ? (
           <Pressable testID="public-profile-hero" accessibilityRole="imagebutton" accessibilityLabel={`Open ${user.name}'s main photo`} disabled={!photos.length} onPress={() => setViewer(0)} style={[styles.likesHero, { height: heroHeight, backgroundColor: colors.profileCard, shadowColor: colors.profileChipForeground }]}>
             {avatarSource && !avatarError ? <Image source={avatarSource} onError={() => setAvatarError(true)} style={StyleSheet.absoluteFill} resizeMode="cover" accessibilityLabel={`${user.name}'s main photo`} /> : <Text style={[styles.heroInitial, { color: colors.profileEdit }]}>{user.name.trim().slice(0, 1).toUpperCase()}</Text>}
           </Pressable>

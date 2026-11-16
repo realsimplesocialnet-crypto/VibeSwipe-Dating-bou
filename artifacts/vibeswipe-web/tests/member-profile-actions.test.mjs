@@ -6,6 +6,8 @@ const read = path => readFileSync(new URL(path, import.meta.url), 'utf8');
 const app = read('../src/App.tsx');
 const native = read('../../vibeswipe/app/profile/[profileId].tsx');
 const member = app.slice(app.indexOf('function PublicProfile({'), app.indexOf('function WelcomeRoute('));
+const nativeChat = read('../../vibeswipe/app/chat/[matchId].tsx');
+const apiIndex = read('../../api-server/src/index.ts');
 
 test('both member profiles expose real pass, like and Super Like actions with separate allowances', () => {
   for (const id of ['button-viewed-profile-pass', 'button-viewed-profile-like', 'button-viewed-profile-super-like']) assert.ok(member.includes(id));
@@ -17,6 +19,22 @@ test('both member profiles expose real pass, like and Super Like actions with se
     assert.match(source, /1500/);
     assert.doesNotMatch(source, /Monry John|New York, NY|Born July/);
   }
+});
+
+test('matched profiles replace swipe actions with a link to their existing chat', () => {
+  assert.match(member, /profileMatch=matches\.data\?\.find/);
+  assert.match(member, /button-viewed-profile-message/);
+  assert.match(native, /profileMatch = matches\.data\?\.find/);
+  assert.match(native, /public-profile-message/);
+  assert.match(member, /profileMatch\?/);
+  assert.match(native, /profileMatch \?/);
+});
+
+test('video calling controls and signaling are removed from both apps', () => {
+  for (const source of [app, nativeChat]) {
+    assert.doesNotMatch(source, /button-start-video-call|Start video call|useVideoCall/);
+  }
+  assert.doesNotMatch(apiIndex, /attachVideoCallSignaling/);
 });
 
 test('real gallery and age-privacy handling remain on member profiles', () => {

@@ -26,7 +26,7 @@ import {
 import { Link, Redirect, Route, Switch, useLocation, useParams, Router as WouterRouter } from 'wouter';
 import {
   ArrowLeft, ArrowRight, Bell, Clapperboard, Check, ChevronDown, ChevronRight, CircleHelp, Compass, Eye, EyeOff,
-  Heart, ImagePlus, MapPin, MessageCircle, MoreHorizontal, Navigation, Search, Settings, Video,
+  Heart, ImagePlus, MapPin, MessageCircle, MoreHorizontal, Navigation, Search, Settings,
   Shield, SlidersHorizontal, Mars, Venus, NonBinary, Briefcase, Pencil, Camera, Sparkles, Star, UserRound, Users, Volume2, X, Zap, Flag, Ban, Images, Coffee, CupSoda, Music, ImageIcon, Paperclip, SendHorizontal, LoaderCircle, MessageCircleMore,
 } from 'lucide-react';
 import NotFound from '@/pages/not-found';
@@ -58,7 +58,6 @@ import { ProfileReelsSection } from '@/components/profile-reels-section';
 import { sharedReelId } from '@/lib/reels';
 import { ChatMessageBubble } from '@/components/chat-message-bubble';
 import { ChatVoiceNoteRecorder } from '@/components/chat-voice-note-recorder';
-import { VideoCallProvider, useVideoCall } from '@/components/video-call-provider';
 import { chatViewportFrame } from '@/lib/chat-viewport';
 import { ActivityOverview, InboundPeoplePage, MutualMatchesPage } from '@/components/social-hub';
 import { isDiscoverSetupRequired, isProfileMissing, shouldRetryDiscover, shouldRetryProfile } from '@/lib/profile-query-state';
@@ -349,7 +348,6 @@ function MatchesPage() {
 
 function SharedReelContent({content,returnTo}:{content:string;returnTo:string}){const reelId=sharedReelId(content);if(!reelId)return <>{content}</>;return <Link href={`/reels/${reelId}?returnTo=${encodeURIComponent(returnTo)}`} data-testid={`link-shared-reel-${reelId}`} className="flex items-center gap-3 rounded-xl bg-black/20 px-3 py-2.5 no-underline"><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-current/30 bg-black/20"><Clapperboard size={18}/></span><span className="min-w-0"><span className="block truncate font-semibold">{content.replace(/:\s*\S+$/,'')}</span><span className="block text-xs opacity-75">Open Reel</span></span></Link>}
 function ChatPage({matchId,returnTo='/matches'}:{matchId:string;returnTo?:string}) {
-  const {startCall}=useVideoCall();
   const [voiceActive,setVoiceActive]=useState(false);
   const [,setLocation]=useLocation(); const qc=useQueryClient(); const profile=useGetMyProfile(); const matches=useGetMatches({query:{refetchInterval:12000}}); const match=matches.data?.find(m=>m.id===matchId); const blocked=!!match?.blockedByMe||!!match?.blockedMe;
   const msgs=useGetMessages(matchId,{query:{enabled:!!match,queryKey:getGetMessagesQueryKey(matchId),refetchInterval:10000}}); const typing=useGetTypingStatus(matchId,{query:{enabled:!!match,queryKey:['/api/vibeswipe/matches',matchId,'typing'],refetchInterval:3500}}); const receipt=useGetChatReadReceipt(matchId,{query:{enabled:!!match,queryKey:getGetChatReadReceiptQueryKey(matchId),refetchInterval:5000}}); const presence=useGetMatchPresence(matchId,{query:{enabled:!!match,queryKey:getGetMatchPresenceQueryKey(matchId),refetchInterval:15000}}); const heartbeat=useHeartbeatPresence();
@@ -429,7 +427,6 @@ function ChatPage({matchId,returnTo='/matches'}:{matchId:string;returnTo?:string
         <span className="relative shrink-0"><span className="block h-9 w-9 overflow-hidden rounded-full ring-2 ring-[var(--chat-accent)] [&>div]:h-full [&>div]:w-full"><Avatar profile={match.profile} size="sm"/></span>{presence.data?.isOnline&&<span aria-hidden="true" className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-[hsl(var(--chat-card))] bg-emerald-500"/>}</span>
         <span className="min-w-0"><span className="block truncate text-[16px] font-bold leading-5 text-[hsl(var(--chat-fg))]">{match.profile.name}</span><span data-testid="text-chat-status" className={`block truncate text-[12px] leading-4 ${presence.data?.isOnline||typing.data?.isTyping?'text-[var(--chat-accent)]':'text-[hsl(var(--chat-muted))]'}`}>{statusLine}</span></span>
       </Link>
-      <button type="button" onClick={()=>void startCall(matchId)} disabled={blocked} aria-label="Start video call" data-testid="button-start-video-call" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[hsl(var(--chat-fg))] hover:bg-[hsl(var(--chat-soft))] disabled:opacity-40"><Video size={19}/></button>
       <button type="button" onClick={()=>setActions(true)} aria-label="Chat actions" data-testid="button-chat-actions" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[hsl(var(--chat-fg))] hover:bg-[hsl(var(--chat-soft))]"><MoreHorizontal size={21}/></button>
     </header>
     {blocked&&<div className="mx-4 mt-3 rounded-xl border border-rose-300/30 bg-rose-400/10 px-4 py-3 text-sm text-rose-500">Messaging is unavailable while this profile is blocked.</div>}
@@ -698,7 +695,7 @@ function Row({icon:Icon,title,children,testId}:{icon:typeof Heart;title:string;c
 function PublicProfile({id,actionReturnTo='/discover'}:{id:string;actionReturnTo?:string}){
   const fromLikes=actionReturnTo==='/likes';
   const me=useGetMyProfile();
-  const q=useGetProfileById(id,{query:{queryKey:getGetProfileByIdQueryKey(id)}});const view=useRecordProfileView();const seen=useRef('');const [photoError,setPhotoError]=useState(false);const [viewer,setViewer]=useState<number|null>(null);
+  const q=useGetProfileById(id,{query:{queryKey:getGetProfileByIdQueryKey(id)}});const matches=useGetMatches({query:{queryKey:getGetMatchesQueryKey(),enabled:!!id,refetchInterval:12000,refetchOnMount:'always',refetchOnWindowFocus:true,staleTime:0}});const profileMatch=matches.data?.find(match=>match.profile.id===id);const view=useRecordProfileView();const seen=useRef('');const [photoError,setPhotoError]=useState(false);const [viewer,setViewer]=useState<number|null>(null);
   const client=useQueryClient();const [,setLocation]=useLocation();const reaction=useCreateReaction();const likes=useGetDailyLikeStatus({query:{queryKey:getGetDailyLikeStatusQueryKey()}});const supers=useGetSuperLikeStatus({query:{queryKey:getGetSuperLikeStatusQueryKey()}});
   const [confirmation,setConfirmation]=useState<{text:string;kind:'like'|'super'}|null>(null);const [actionError,setActionError]=useState('');const block=useBlockProfile();const report=useReportProfile();const [menu,setMenu]=useState(false);const [confirmSafety,setConfirmSafety]=useState<'block'|'report'|null>(null);const [safetyError,setSafetyError]=useState('');const [reported,setReported]=useState(false);const [matchResult,setMatchResult]=useState<{name:string;matchId:string|null}|null>(null);
   const confirmationTimer=useRef<number|null>(null);const busy=useRef(false);const mounted=useRef(true);const currentId=useRef(id);currentId.current=id;
@@ -708,7 +705,7 @@ function PublicProfile({id,actionReturnTo='/discover'}:{id:string;actionReturnTo
   const likeRemaining=likes.data?.remaining;const superRemaining=supers.data?.remaining;
   const locked=reaction.isPending||!!confirmation||!!matchResult;
   async function react(type:'pass'|'like'|'super'){
-   const target=q.data;if(!target||busy.current||locked)return;const returnTo=actionReturnTo;const targetId=target.id;const name=target.name;
+    const target=q.data;if(!target||busy.current||locked||profileMatch)return;const returnTo=actionReturnTo;const targetId=target.id;const name=target.name;
    if(type==='like'&&likeRemaining===0){setActionError('You have used all of today’s likes. They reset in 24 hours.');return}
    if(type==='super'&&superRemaining===0){setActionError('You have used today’s Super Like. It resets in 24 hours.');return}
    busy.current=true;setActionError('');
@@ -723,6 +720,7 @@ function PublicProfile({id,actionReturnTo='/discover'}:{id:string;actionReturnTo
     setActionError(type==='pass'?'That pass did not save. Please try again.':capped?(type==='super'?'Your Super Like for today is already used.':'You have reached today’s like limit.'):type==='super'?'That Super Like did not go through. Please try again.':'That like did not go through. Please try again.');
     if(type==='like')void likes.refetch();if(type==='super')void supers.refetch()}
   }
+   function openMatchedChat(){if(!profileMatch||profileMatch.blockedByMe||profileMatch.blockedMe)return;const origin=`/profile/${encodeURIComponent(id)}?returnTo=${encodeURIComponent(actionReturnTo)}`;setLocation(`/chat/${encodeURIComponent(profileMatch.id)}?returnTo=${encodeURIComponent(origin)}`)}
   async function runSafety(kind:'block'|'report'){if(!q.data)return;setSafetyError('');try{if(kind==='block'){await block.mutateAsync({data:{targetUserId:q.data.id}});void client.invalidateQueries({queryKey:getGetMatchesQueryKey()});setConfirmSafety(null);setMenu(false);setLocation(actionReturnTo)}else{await report.mutateAsync({data:{targetUserId:q.data.id,reason:'other'}});setReported(true);setConfirmSafety(null)}}catch(error){setSafetyError(error instanceof Error&&error.message?error.message:kind==='block'?'Could not block this profile. Please try again.':'Could not send the report. Please try again.')}}
   useEffect(()=>{if(viewer===null)return;const len=q.data?.photos?.length??0;const onKey=(e:KeyboardEvent)=>{if(e.key==='Escape')setViewer(null);if(e.key==='ArrowRight')setViewer(v=>v===null?v:Math.min(len-1,v+1));if(e.key==='ArrowLeft')setViewer(v=>v===null?v:Math.max(0,v-1))};window.addEventListener('keydown',onKey);return()=>window.removeEventListener('keydown',onKey)},[viewer,q.data?.photos?.length]);
   if(q.isLoading)return <div className="public-profile min-h-[100dvh]"><div className="mx-auto max-w-md px-5 pt-20" aria-label="Loading profile"><div className="mx-auto h-32 w-32 animate-pulse rounded-full bg-[hsl(var(--pp-soft))]"/><div className="mx-auto mt-5 h-6 w-40 animate-pulse rounded-full bg-[hsl(var(--pp-soft))]"/><div className="mt-8 h-40 animate-pulse rounded-3xl bg-[hsl(var(--pp-card))]"/></div></div>;
@@ -757,11 +755,13 @@ function PublicProfile({id,actionReturnTo='/discover'}:{id:string;actionReturnTo
   </main>
    <div className="pointer-events-none fixed inset-x-0 bottom-[calc(1rem+env(safe-area-inset-bottom))] z-[29] flex flex-col items-center gap-3 px-3">
     {(actionError||(likeOut&&superOut))&&<p role={actionError?'alert':'status'} data-testid="error-viewed-profile-action" className="pp-toast pointer-events-auto max-w-[92vw] rounded-full px-4 py-2 text-center text-xs font-semibold">{actionError||'Today’s likes and Super Like are used up.'}</p>}
-    <div className="pointer-events-none flex items-end justify-center gap-5 min-[380px]:gap-8" role="group" aria-label="Profile actions" data-testid="public-profile-actions">
-     <button type="button" onClick={()=>void react('pass')} disabled={locked} data-testid="button-viewed-profile-pass" aria-label={`Pass on ${profile.name}`} className="pp-action"><span className="pp-fab pp-fab-white h-[58px] w-[58px]"><X size={26} strokeWidth={2.6} className="text-[hsl(var(--pp-muted))]"/></span><span className="pp-cap">Pass</span></button>
-     <button type="button" onClick={()=>void react('like')} disabled={locked||likes.isLoading||likeOut} data-testid="button-viewed-profile-like" aria-label={fromLikes?`Like ${profile.name} back`:`Like ${profile.name}`} className="pp-action"><span className="pp-fab pp-fab-pink h-[74px] w-[74px]"><Heart size={32} fill="currentColor"/></span><span className="pp-cap">{likeOut?'No likes left':fromLikes?'Like Back':'Like to match'}</span></button>
-     {!fromLikes&&<button type="button" onClick={()=>void react('super')} disabled={locked||supers.isLoading||superOut} data-testid="button-viewed-profile-super-like" aria-label={`Super Like ${profile.name}`} className="pp-action"><span className="pp-fab pp-fab-white h-[58px] w-[58px]"><Star size={25} fill="currentColor" className="text-[hsl(var(--pp-gold))]"/></span><span className="pp-cap">{superOut?'Used today':'Super Like'}</span></button>}
-    </div>
+     <div className="pointer-events-none flex items-end justify-center gap-5 min-[380px]:gap-8" role="group" aria-label="Profile actions" data-testid="public-profile-actions">
+      {matches.isLoading?<p className="pp-cap" role="status">Checking match…</p>:matches.isError&&!matches.data?<button type="button" onClick={()=>void matches.refetch()} data-testid="button-retry-match-status" className="pointer-events-auto rounded-full border border-white/15 px-5 py-3 text-sm font-semibold">Retry</button>:profileMatch?(profileMatch.blockedByMe||profileMatch.blockedMe?<p className="pp-cap" role="status">This chat is unavailable.</p>:<button type="button" onClick={openMatchedChat} data-testid="button-viewed-profile-message" aria-label={`Message ${profile.name}`} className="pointer-events-auto flex min-h-12 items-center gap-2 rounded-full bg-[hsl(var(--pp-pink))] px-8 text-sm font-bold text-[#171612]"><MessageCircle size={18}/>Message</button>):<>
+       <button type="button" onClick={()=>void react('pass')} disabled={locked} data-testid="button-viewed-profile-pass" aria-label={`Pass on ${profile.name}`} className="pp-action"><span className="pp-fab pp-fab-white h-[58px] w-[58px]"><X size={26} strokeWidth={2.6} className="text-[hsl(var(--pp-muted))]"/></span><span className="pp-cap">Pass</span></button>
+       <button type="button" onClick={()=>void react('like')} disabled={locked||likes.isLoading||likeOut} data-testid="button-viewed-profile-like" aria-label={fromLikes?`Like ${profile.name} back`:`Like ${profile.name}`} className="pp-action"><span className="pp-fab pp-fab-pink h-[74px] w-[74px]"><Heart size={32} fill="currentColor"/></span><span className="pp-cap">{likeOut?'No likes left':fromLikes?'Like Back':'Like to match'}</span></button>
+       {!fromLikes&&<button type="button" onClick={()=>void react('super')} disabled={locked||supers.isLoading||superOut} data-testid="button-viewed-profile-super-like" aria-label={`Super Like ${profile.name}`} className="pp-action"><span className="pp-fab pp-fab-white h-[58px] w-[58px]"><Star size={25} fill="currentColor" className="text-[hsl(var(--pp-gold))]"/></span><span className="pp-cap">{superOut?'Used today':'Super Like'}</span></button>}
+      </>}
+     </div>
    </div>
    {viewer!==null&&photos[viewer]&&<div className="fixed inset-0 z-[70] flex flex-col bg-[hsl(330_20%_6%/.94)]" role="dialog" aria-modal="true" aria-label={`${profile.name}'s photos`} data-testid="public-profile-photo-viewer" onTouchStart={e=>{(e.currentTarget as HTMLElement).dataset.x=String(e.touches[0].clientX)}} onTouchEnd={e=>{const start=Number((e.currentTarget as HTMLElement).dataset.x);const dx=e.changedTouches[0].clientX-start;if(Math.abs(dx)>50)setViewer(v=>v===null?v:Math.max(0,Math.min(photos.length-1,v+(dx<0?1:-1))))}}>
     <div className="flex items-center justify-between px-4 pt-[calc(1rem+env(safe-area-inset-top))] text-[hsl(330_30%_96%)]"><span className="text-sm font-semibold">{viewer+1} / {photos.length}</span><button type="button" autoFocus onClick={()=>setViewer(null)} aria-label="Close photos" data-testid="button-close-photo-viewer" className="flex h-11 w-11 items-center justify-center rounded-full bg-[hsl(0_0%_100%/.12)]"><X size={22}/></button></div>
@@ -888,7 +888,7 @@ function SettingsThemeSync() {
   return null;
 }
 function ClerkCacheSync(){const {user}=useUser();const client=useQueryClient();const previous=useRef<string|null|undefined>(undefined);useEffect(()=>{const id=user?.id??null;if(previous.current!==undefined&&previous.current!==id)client.clear();previous.current=id},[user?.id,client]);return null}
-function ClerkRoutes(){const [,setLocation]=useLocation();return <ClerkProvider publishableKey={clerkPubKey} proxyUrl={clerkProxyUrl} appearance={appearance} signInUrl={pathFor('/sign-in')} signUpUrl={pathFor('/sign-up')} localization={{signIn:{start:{title:'Welcome back',subtitle:'Your next good conversation is waiting.'}},signUp:{start:{title:'Make room for a spark',subtitle:'Create your adults-only Myage account.'}}}} routerPush={to=>setLocation(to.startsWith(basePath)?to.slice(basePath.length)||'/':to)} routerReplace={to=>setLocation(to.startsWith(basePath)?to.slice(basePath.length)||'/':to,{replace:true})}><ClerkCacheSync/><SettingsThemeSync/><VideoCallProvider><Switch>
+function ClerkRoutes(){const [,setLocation]=useLocation();return <ClerkProvider publishableKey={clerkPubKey} proxyUrl={clerkProxyUrl} appearance={appearance} signInUrl={pathFor('/sign-in')} signUpUrl={pathFor('/sign-up')} localization={{signIn:{start:{title:'Welcome back',subtitle:'Your next good conversation is waiting.'}},signUp:{start:{title:'Make room for a spark',subtitle:'Create your adults-only Myage account.'}}}} routerPush={to=>setLocation(to.startsWith(basePath)?to.slice(basePath.length)||'/':to)} routerReplace={to=>setLocation(to.startsWith(basePath)?to.slice(basePath.length)||'/':to,{replace:true})}><ClerkCacheSync/><SettingsThemeSync/><Switch>
   <Route path="/" component={HomeRedirect}/>
   <Route path="/welcome" component={WelcomeRoute}/>
   <Route path="/admin" component={AdminPage}/><Route path="/admin/:section" component={AdminPage}/>
@@ -900,7 +900,7 @@ function ClerkRoutes(){const [,setLocation]=useLocation();return <ClerkProvider 
    <Route path="/privacy-policy" component={PrivacyPolicyRoute}/><Route path="/terms" component={CommunityGuidelinesRoute}/><Route path="/community-guidelines" component={CommunityGuidelinesRoute}/>
    <Route path="/safety-center" component={SafetyCenterRoute}/><Route path="/report-safety" component={ReportSafetyRoute}/><Route path="/safety/location" component={PublicLocationShareRoute}/>
   <Route path="/profile" component={ProfileRoute}/><Route path="/profile/edit" component={ProfileEditRoute}/><Route path="/profile/:profileId/from-notifications" component={ViewedNotificationProfileRoute}/><Route path="/profile/:profileId" component={PublicProfileRoute}/><Route path="/verify-profile" component={FaceVerificationRoute}/><Route path="/settings" component={SettingsRoute}/><Route path="/settings/:section" component={SettingsSectionRoute}/><Route component={NotFound}/>
- </Switch></VideoCallProvider></ClerkProvider>}
+ </Switch></ClerkProvider>}
 function ConsumerInstallBanner(){const [location]=useLocation();return location.startsWith('/admin')||location.startsWith('/reels')?null:<MobileInstallBanner/>}
 function App(){if(!clerkPubKey)throw new Error('Missing VITE_CLERK_PUBLISHABLE_KEY');return <QueryClientProvider client={queryClient}><ConnectionNotice/><WouterRouter base={basePath}><ConsumerInstallBanner/><ClerkRoutes/></WouterRouter></QueryClientProvider>}
 export default App;

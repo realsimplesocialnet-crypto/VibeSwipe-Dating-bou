@@ -1,7 +1,6 @@
 import app from "./app";
 import { createServer } from "node:http";
 import { logger } from "./lib/logger";
-import { attachVideoCallSignaling } from "./lib/videoCallSignaling";
 import { cleanupAbandonedProfileMedia } from "./lib/profileMediaCleanup";
 import { cleanupExpiredStories } from "./lib/vibeswipeStories";
 import { ensureAdminSchema } from "./lib/admin-schema";
@@ -28,7 +27,6 @@ if (Number.isNaN(port) || port <= 0) {
 
 let cleanupRunning = false;
 const httpServer = createServer(app);
-const videoCallIo = attachVideoCallSignaling(httpServer);
 const runProfileMediaCleanup = async (): Promise<void> => {
   if (cleanupRunning) return;
   cleanupRunning = true;
@@ -87,4 +85,4 @@ void ensureAdminSchema().then(ensureFaceVerificationSchema).then(ensureReelsSche
   process.exit(1);
 });
 
-process.on("SIGTERM", () => videoCallIo.close());
+process.on("SIGTERM", () => httpServer.close());
