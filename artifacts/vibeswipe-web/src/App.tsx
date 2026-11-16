@@ -131,12 +131,49 @@ function AppShell({ children }: { children: ReactNode }) {
   const activeName = profile.data?.name || user?.firstName || 'Your profile';
   useEffect(() => {
     if (!showMainNavigation || !mobileNavRef.current) return;
-    const measure = () => shellRef.current?.style.setProperty('--mobile-nav-height', `${mobileNavRef.current?.offsetHeight ?? 0}px`);
-    measure();
+    let resumeTimers: number[] = [];
+    const measure = () => {
+      const nav = mobileNavRef.current;
+      const shell = shellRef.current;
+      if (!nav || !shell) return;
+      // Force iOS standalone mode to refresh safe-area styles before reading
+      // the tab height; its viewport can be stale for a frame after resume.
+      void window.getComputedStyle(nav).paddingBottom;
+      shell.style.setProperty('--mobile-nav-height', `${nav.getBoundingClientRect().height}px`);
+    };
+    const scheduleMeasure = () => {
+      window.requestAnimationFrame(() => {
+        measure();
+        window.requestAnimationFrame(measure);
+      });
+    };
+    const syncAfterResume = () => {
+      resumeTimers.forEach(window.clearTimeout);
+      resumeTimers = [0, 120, 360].map((delay) => window.setTimeout(scheduleMeasure, delay));
+    };
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') syncAfterResume();
+    };
     const observer = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(measure) : null;
     observer?.observe(mobileNavRef.current);
-    window.addEventListener('resize', measure);
-    return () => { observer?.disconnect(); window.removeEventListener('resize', measure); };
+    const viewport = window.visualViewport;
+    window.addEventListener('resize', scheduleMeasure);
+    window.addEventListener('pageshow', syncAfterResume);
+    window.addEventListener('focus', syncAfterResume);
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    viewport?.addEventListener('resize', scheduleMeasure);
+    viewport?.addEventListener('scroll', scheduleMeasure);
+    syncAfterResume();
+    return () => {
+      resumeTimers.forEach(window.clearTimeout);
+      observer?.disconnect();
+      window.removeEventListener('resize', scheduleMeasure);
+      window.removeEventListener('pageshow', syncAfterResume);
+      window.removeEventListener('focus', syncAfterResume);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+      viewport?.removeEventListener('resize', scheduleMeasure);
+      viewport?.removeEventListener('scroll', scheduleMeasure);
+    };
   }, [showMainNavigation, location]);
   return <div ref={shellRef} className={`app-shell min-h-[100dvh] bg-background text-foreground ${isSocialPage?'messages-shell':''} ${location==='/discover'?'discover-shell':''} ${location==='/profile'?'profile-shell':''}`}>
     {showMainNavigation && <>

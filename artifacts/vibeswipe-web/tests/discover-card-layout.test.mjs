@@ -42,7 +42,7 @@ test("Discover keeps rounded surfaces without bright outlines or a line above th
   const nav = app.match(/<nav ref=\{mobileNavRef\}[^>]+>/)?.[0] ?? "";
   assert.match(nav, /fixed inset-x-0 bottom-0/);
   assert.doesNotMatch(nav, /border-t|border-border/);
-  assert.match(app, /offsetHeight/);
+  assert.match(app, /getBoundingClientRect\(\)\.height/);
   assert.match(app, /ResizeObserver\(measure\)/);
 });
 test("reaction must save before advancing, failures retain the same profile, and double taps are locked", () => {

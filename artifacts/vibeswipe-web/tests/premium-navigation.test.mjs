@@ -5,6 +5,7 @@ import { readFileSync } from "node:fs";
 const read = path => readFileSync(new URL(path, import.meta.url), "utf8");
 const app = read("../src/App.tsx");
 const css = read("../src/index.css");
+const search = read("../src/components/member-search-page.tsx");
 
 test("mobile tabs sit lower while retaining safe-area clearance and measured content reservation", () => {
   const nav = app.match(/<nav ref=\{mobileNavRef\}[^>]+>/)?.[0] ?? "";
@@ -13,8 +14,21 @@ test("mobile tabs sit lower while retaining safe-area clearance and measured con
   assert.match(nav, /aria-label="Primary"/);
   assert.doesNotMatch(nav, /border-t|rounded-full|bottom-[1-9]/);
   assert.match(css, /padding-bottom:\s*max\(calc\(env\(safe-area-inset-bottom,\s*0px\)\s*-\s*18px\),\s*4px\)/);
-  assert.match(app, /offsetHeight/);
+  assert.match(app, /getBoundingClientRect\(\)\.height/);
   assert.match(css, /padding-bottom: var\(--mobile-nav-height/);
+});
+
+test("resuming the installed app refreshes tab sizing before the first tap", () => {
+  assert.match(app, /document\.addEventListener\('visibilitychange', onVisibilityChange\)/);
+  assert.match(app, /window\.addEventListener\('pageshow', syncAfterResume\)/);
+  assert.match(app, /window\.visualViewport/);
+  assert.match(app, /\[0, 120, 360\]\.map\(\(delay\) => window\.setTimeout\(scheduleMeasure, delay\)\)/);
+});
+
+test("member search uses the shell's iPhone safe-area inset only once", () => {
+  assert.match(css, /\.app-shell:not\(\.discover-shell\):not\(\.profile-shell\) \{ padding-top:env\(safe-area-inset-top,0px\); \}/);
+  assert.match(search, /className="page-in[^"]*pt-3/);
+  assert.doesNotMatch(search, /pt-\[max\(env\(safe-area-inset-top\)/);
 });
 
 test("all five buttons share the original 50px height and equal widths with no label wrapping", () => {

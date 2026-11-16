@@ -47,7 +47,7 @@ export function MemberSearchPage() {
 
   const profiles = results.data ?? [];
   return (
-    <main className="page-in mx-auto min-h-[100dvh] w-full max-w-[760px] px-4 pb-10 pt-[max(env(safe-area-inset-top),0.75rem)] text-foreground sm:px-6">
+    <main className="page-in mx-auto min-h-[100dvh] w-full max-w-[760px] px-4 pb-10 pt-3 text-foreground sm:px-6">
       <header className="mb-2 flex items-center gap-3">
         <button
           type="button"
