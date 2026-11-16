@@ -39,7 +39,7 @@ function ExpandableCommentText({ commentId, content, prefix }: { commentId: stri
   </>;
 }
 
-export function ReelComments({ reelId, creatorId, onClose, onCountChange, focusCommentId }: { reelId: string; creatorId: string; onClose: () => void; onCountChange: (delta: number) => void; focusCommentId?: string | null }) {
+export function ReelComments({ reelId, creatorId, returnTo, onClose, onCountChange, focusCommentId }: { reelId: string; creatorId: string; returnTo: string; onClose: () => void; onCountChange: (delta: number) => void; focusCommentId?: string | null }) {
   const client = useQueryClient();
   const key = getGetReelCommentsQueryKey(reelId);
   const comments = useGetReelComments(reelId, { query: { queryKey: key } });
@@ -62,8 +62,12 @@ export function ReelComments({ reelId, creatorId, onClose, onCountChange, focusC
   for (const comment of comments.data ?? []) {
     if (comment.parentCommentId) repliesByParent.set(comment.parentCommentId, [...(repliesByParent.get(comment.parentCommentId) ?? []), comment]);
   }
-  const profileHref = (authorId: string) =>
-    `/profile/${encodeURIComponent(authorId)}?returnTo=${encodeURIComponent(`${window.location.pathname}${window.location.search}`)}`;
+  const profileHref = (authorId: string, commentId: string) => {
+    const params = new URLSearchParams({ returnTo });
+    params.set("commentId", commentId);
+    const reelPath = `/reels/${encodeURIComponent(reelId)}?${params.toString()}`;
+    return `/profile/${encodeURIComponent(authorId)}?returnTo=${encodeURIComponent(reelPath)}`;
+  };
 
   async function submit(event: FormEvent) {
     event.preventDefault();
@@ -109,11 +113,11 @@ export function ReelComments({ reelId, creatorId, onClose, onCountChange, focusC
         : !count ? <p className="py-6 text-center text-sm text-white/55" data-testid="text-no-comments">No comments yet. Say something kind.</p>
         : <ul className="space-y-4 pb-2">{comments.data!.filter((comment) => !comment.parentCommentId).map((comment) => <li key={comment.id} data-testid={`comment-${comment.id}`}>
           <div className="flex gap-3" data-comment-id={comment.id}>
-            <Link href={profileHref(comment.authorId)} aria-label={`Open ${comment.authorName}'s profile`} data-testid={`link-reel-comment-profile-${comment.id}`} className="h-8 w-8 shrink-0 rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary">
+            <Link href={profileHref(comment.authorId, comment.id)} aria-label={`Open ${comment.authorName}'s profile`} data-testid={`link-reel-comment-profile-${comment.id}`} className="h-8 w-8 shrink-0 rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary">
               <ReelAvatar reference={comment.authorPhoto} name={comment.authorName} size={32} />
             </Link>
             <div className="min-w-0 flex-1">
-              <p className="text-xs text-white/55"><Link href={profileHref(comment.authorId)} className="font-semibold text-white/90 hover:text-primary">{comment.authorName}</Link>{comment.authorId === creatorId && <span className="ml-1.5 rounded-full bg-primary/15 px-1.5 py-0.5 text-[10px] font-bold text-primary">Creator</span>} <span>{ago(comment.createdAt)}</span></p>
+              <p className="text-xs text-white/55"><Link href={profileHref(comment.authorId, comment.id)} className="font-semibold text-white/90 hover:text-primary">{comment.authorName}</Link>{comment.authorId === creatorId && <span className="ml-1.5 rounded-full bg-primary/15 px-1.5 py-0.5 text-[10px] font-bold text-primary">Creator</span>} <span>{ago(comment.createdAt)}</span></p>
               <ExpandableCommentText commentId={comment.id} content={comment.content} />
               <div className="mt-1 flex gap-3 text-xs">
                 <button type="button" onClick={() => { setReplyingTo(comment); setDraft(""); input.current?.focus(); }} className="font-semibold text-white/55 hover:text-primary" data-testid={`button-reply-comment-${comment.id}`}>Reply</button>
@@ -125,16 +129,16 @@ export function ReelComments({ reelId, creatorId, onClose, onCountChange, focusC
           </div>
           {(repliesByParent.get(comment.id) ?? []).length > 0 && <ul className="ml-9 mt-3 space-y-3 border-l border-white/10 pl-3">
             {(repliesByParent.get(comment.id) ?? []).map((reply) => <li key={reply.id} className="flex gap-2.5" data-testid={`comment-${reply.id}`} data-comment-id={reply.id}>
-              <Link href={profileHref(reply.authorId)} aria-label={`Open ${reply.authorName}'s profile`} data-testid={`link-reel-comment-profile-${reply.id}`} className="h-7 w-7 shrink-0 rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary">
+              <Link href={profileHref(reply.authorId, reply.id)} aria-label={`Open ${reply.authorName}'s profile`} data-testid={`link-reel-comment-profile-${reply.id}`} className="h-7 w-7 shrink-0 rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary">
                 <ReelAvatar reference={reply.authorPhoto} name={reply.authorName} size={28} />
               </Link>
               <div className="min-w-0 flex-1">
-                <p className="text-xs text-white/55"><Link href={profileHref(reply.authorId)} className="font-semibold text-white/90 hover:text-primary">{reply.authorName}</Link>{reply.authorId === creatorId && <span className="ml-1.5 rounded-full bg-primary/15 px-1.5 py-0.5 text-[10px] font-bold text-primary">Creator</span>} <span>{ago(reply.createdAt)}</span></p>
+                <p className="text-xs text-white/55"><Link href={profileHref(reply.authorId, reply.id)} className="font-semibold text-white/90 hover:text-primary">{reply.authorName}</Link>{reply.authorId === creatorId && <span className="ml-1.5 rounded-full bg-primary/15 px-1.5 py-0.5 text-[10px] font-bold text-primary">Creator</span>} <span>{ago(reply.createdAt)}</span></p>
                 <ExpandableCommentText
                   commentId={reply.id}
                   content={reply.content}
                   prefix={reply.parentCommentId && commentsById.has(reply.parentCommentId)
-                    ? { label: `@${commentsById.get(reply.parentCommentId)!.authorName}`, href: profileHref(commentsById.get(reply.parentCommentId)!.authorId) }
+                    ? { label: `@${commentsById.get(reply.parentCommentId)!.authorName}`, href: profileHref(commentsById.get(reply.parentCommentId)!.authorId, reply.parentCommentId) }
                     : undefined}
                 />
                 {reply.canDelete && (confirming === reply.id

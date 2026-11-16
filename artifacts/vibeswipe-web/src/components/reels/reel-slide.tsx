@@ -64,6 +64,16 @@ export function ReelSlide({ reel, index, active, near, muted, pageHidden, compac
 
   const src = reelMediaUrl(reel.videoReference);
   const paused = userPaused || blocked;
+  const reelReturnParams = new URLSearchParams({ returnTo });
+  const creatorProfileReturn = `/reels/${encodeURIComponent(reel.id)}?${reelReturnParams.toString()}`;
+  const creatorProfileHref = `/profile/${encodeURIComponent(reel.creatorId)}?returnTo=${encodeURIComponent(creatorProfileReturn)}`;
+  const creatorIdentity = <span className="flex min-w-0 items-center gap-3 rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary">
+    <ReelAvatar reference={reel.creatorPhoto} name={reel.creatorName} size={compact ? 38 : 52} />
+    <span className="min-w-0">
+      <span className="reel-name" data-testid={`text-reel-creator-${reel.id}`}>{reel.creatorName}{reel.creatorAge !== null && <span className="reel-age">, {reel.creatorAge}</span>}<VerifiedBadge verified={reel.creatorVerified} /></span>
+      {reel.creatorLocation && <span className="reel-location"><MapPin size={14} className="shrink-0 text-primary" /><span className="truncate">{reel.creatorLocation}</span></span>}
+    </span>
+  </span>;
   return <section className="reel-slide" data-index={index} data-testid={`reel-slide-${reel.id}`} aria-roledescription="Reel" aria-label={`Reel by ${reel.creatorName}`}>
     <video
       ref={video}
@@ -110,15 +120,8 @@ export function ReelSlide({ reel, index, active, near, muted, pageHidden, compac
     </div>
 
     <div className={`reel-meta ${compact ? "is-compact" : ""}`}>
-      <div className="flex items-center gap-3">
-        <ReelAvatar reference={reel.creatorPhoto} name={reel.creatorName} size={compact ? 38 : 52} />
-        <div className="min-w-0">
-          <p className="reel-name" data-testid={`text-reel-creator-${reel.id}`}>{reel.creatorName}{reel.creatorAge !== null && <span className="reel-age">, {reel.creatorAge}</span>}<VerifiedBadge verified={reel.creatorVerified} /></p>
-          {reel.creatorLocation && <p className="reel-location"><MapPin size={14} className="shrink-0 text-primary" /><span className="truncate">{reel.creatorLocation}</span></p>}
-        </div>
-      </div>
+      {reel.isOwner ? creatorIdentity : <Link href={creatorProfileHref} aria-label={`Open ${reel.creatorName}'s profile`} data-testid={`link-reel-profile-${reel.id}`} className="inline-flex max-w-full no-underline">{creatorIdentity}</Link>}
       {!compact && reel.caption && <p className="reel-caption" data-testid={`text-reel-caption-${reel.id}`}>{reel.caption}</p>}
-      {!compact && !reel.isOwner && <Link href={`/profile/${reel.creatorId}?returnTo=${encodeURIComponent(returnTo)}`} className="reel-pill mt-3" data-testid={`link-reel-profile-${reel.id}`}>View profile</Link>}
       {!compact && showHint && <p className="reel-hint">Swipe up for more</p>}
     </div>
     <div className="reel-progress" aria-hidden="true"><div ref={bar} /></div>

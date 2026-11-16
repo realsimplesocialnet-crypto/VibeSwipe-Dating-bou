@@ -1,13 +1,13 @@
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap');
 
 .vs-admin {
-  --a-bg: #15121a;
-  --a-panel: #1d1923;
-  --a-raise: #26212d;
-  --a-line: rgba(255, 236, 246, .085);
-  --a-ink: #f4ebf0;
-  --a-mute: #a1949d;
-  --a-rose: #f34e9a;
+  --a-bg: #0F0F12;
+  --a-panel: #1A1A1E;
+  --a-raise: #282722;
+  --a-line: rgba(244, 241, 234, .10);
+  --a-ink: #f5edf1;
+  --a-mute: #A9A49A;
+  --a-rose: #F34E9A;
   --a-mint: #7fd6b0;
   --a-amber: #f2b766;
   --a-red: #f06b76;

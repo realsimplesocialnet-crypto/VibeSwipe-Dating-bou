@@ -1,9 +1,9 @@
 .app-shell:has(.social-hub) { --primary:41 41% 62%; --primary-foreground:40 20% 8%; --accent:48 7% 16%; --accent-foreground:40 24% 75%; --card:240 6% 11%; --border:40 5% 20%; --foreground:40 20% 94%; --muted-foreground:40 7% 64%; --ring:41 41% 62%; }
-.social-hub { background:#0F0F12; color:#F4F1EA; }
-.social-hub .sh-card { background:#1A1A1E; border:1px solid #34332F; box-shadow:0 6px 18px rgba(0,0,0,.18); color:#F4F1EA; }
+.social-hub { background:#0F0F12; color:#FBF5F7; }
+.social-hub .sh-card { background:#1A1A1E; border:1px solid #332b31; box-shadow:0 6px 18px rgba(0,0,0,.18); color:#FBF5F7; }
 .social-hub .sh-muted { color:hsl(var(--muted-foreground)); }
 .social-hub .sh-label { font-size:12px; font-weight:800; letter-spacing:.2em; text-transform:uppercase; color:hsl(var(--muted-foreground)); }
-.social-hub .sh-icon, .social-hub .sh-pill, .social-hub .sh-chat { background:#282722; color:#C4A574; }
+.social-hub .sh-icon, .social-hub .sh-pill, .social-hub .sh-chat { background:#3b202b; color:#F34E9A; }
 .social-hub .sh-chat { transition:transform .15s; }
 .social-hub .sh-chat:active { transform:scale(.94); }
 .social-hub .sh-back { background:#1A1A1E; border:1px solid #34332F; }

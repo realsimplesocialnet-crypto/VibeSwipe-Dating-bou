@@ -19,7 +19,7 @@ export function useColors() {
   return { ...palette, radius: colors.radius };
 }
 
-/** A fixed charcoal-and-gold palette for the premium profile and Likes screens. */
+/** Shared pink brand accent and dark surfaces for the Profile and Likes screens. */
 export function usePremiumColors() {
   const base = useColors();
   return {

@@ -197,7 +197,7 @@ export function MatchStoryAvatar({
       data-testid={`button-match-story-avatar-${matchId}`}
       className="shrink-0 rounded-full disabled:cursor-not-allowed disabled:opacity-50"
     >
-      <span className={`flex h-[50px] w-[50px] items-center justify-center rounded-full ${hasStory ? "bg-gradient-to-br from-[#f34e9a] via-[#c67be8] to-[#8265da] p-[2.5px]" : "border border-white/10 p-[2px]"}`}>
+      <span className={`flex h-[50px] w-[50px] items-center justify-center rounded-full ${hasStory ? "bg-[#F34E9A] p-[2.5px]" : "border border-white/10 p-[2px]"}`}>
         <span className="h-full w-full overflow-hidden rounded-full border-2 border-[#211d25]">
           <StoryAvatar reference={profile.photos?.[0] ?? null} name={profile.name} className="h-full w-full text-sm"/>
         </span>

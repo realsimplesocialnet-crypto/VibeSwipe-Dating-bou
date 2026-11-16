@@ -58,7 +58,7 @@ import { useColors } from "@/hooks/useColors";
 import { mediaUri } from "@/lib/media";
 
 const THEME_OPTIONS: { key: ChatThemeType; label: string; color: string }[] = [
-  { key: ChatTheme.pink, label: "Pink", color: "#e84768" },
+  { key: ChatTheme.pink, label: "Pink", color: "#F34E9A" },
   { key: ChatTheme.blue, label: "Blue", color: "#3678d4" },
   { key: ChatTheme.purple, label: "Purple", color: "#8b5bd5" },
   { key: ChatTheme.green, label: "Green", color: "#238b63" },
@@ -640,7 +640,7 @@ export default function ChatScreen() {
                   { backgroundColor: bubbleColor, borderColor: colors.border },
                   !own && styles.otherBubble,
                   tombstone && styles.deletedBubble,
-                  isSearchMatch && { borderColor: "#FFD166", borderWidth: isSelectedSearchMatch ? 2 : 1 },
+                  isSearchMatch && { borderColor: colors.primary, borderWidth: isSelectedSearchMatch ? 2 : 1 },
                 ]}
               >
                 {tombstone ? (
@@ -802,7 +802,7 @@ const styles = StyleSheet.create({
   recordingPill: { flex: 1, minHeight: 44, borderRadius: 23, borderWidth: 1, flexDirection: "row", alignItems: "center", paddingHorizontal: 12, gap: 9 },
   recordingDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: "#d44358" },
   recordingText: { flex: 1, fontSize: 13 },
-  recordSend: { width: 34, height: 34, borderRadius: 17, backgroundColor: "#e84768", alignItems: "center", justifyContent: "center" },
+  recordSend: { width: 34, height: 34, borderRadius: 17, backgroundColor: "#F34E9A", alignItems: "center", justifyContent: "center" },
   blockedNotice: { minHeight: 56, flexDirection: "row", gap: 10, alignItems: "center", justifyContent: "center", borderTopWidth: StyleSheet.hairlineWidth },
   blockedText: { fontSize: 13 },
   modalScrim: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.42)" },

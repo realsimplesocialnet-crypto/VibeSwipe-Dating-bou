@@ -7,7 +7,7 @@ export function InstalledWelcome() {
     <OnboardingVideoBackground/>
     <header className="onboarding-welcome-brand" aria-label="Myage">
       <img src={`${import.meta.env.BASE_URL}icon.png`} alt="" className="h-8 w-8 rounded-xl"/>
-      <span className="brand text-[22px] font-extrabold tracking-[-.055em]">My<span className="text-[#ec4e92]">age</span></span>
+      <span className="brand text-[22px] font-extrabold tracking-[-.055em]">My<span className="text-[#F34E9A]">age</span></span>
     </header>
     <span className="onboarding-welcome-preview">Onboarding preview</span>
     <footer className="onboarding-welcome-footer">
@@ -15,7 +15,7 @@ export function InstalledWelcome() {
         <h1 className="brand">Your next connection starts here.</h1>
         <p>Create your profile. Meet someone who gets you.</p>
         <div className="onboarding-welcome-actions">
-          <Link href="/sign-up" data-testid="button-app-create-account" className="bg-[#ef4c92] text-white shadow-lg shadow-pink-900/10 hover:bg-[#df3d83]"><UserRoundPlus size={17}/>Get Started</Link>
+          <Link href="/sign-up" data-testid="button-app-create-account" className="bg-[#F34E9A] text-[#24111b] shadow-lg shadow-pink-900/10 hover:bg-[#ff68aa]"><UserRoundPlus size={17}/>Get Started</Link>
           <Link href="/sign-in" data-testid="button-app-sign-in" className="border border-[#cdb9be] bg-white/90 text-[#302536] hover:bg-white"><LockKeyhole size={16}/>Log in</Link>
         </div>
         <div className="onboarding-welcome-legal">Adults 18+ · <Link href="/privacy-policy">Privacy Policy</Link> · <Link href="/terms">Terms</Link></div>

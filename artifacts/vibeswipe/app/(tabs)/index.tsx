@@ -523,7 +523,7 @@ export default function DiscoverScreen() {
               onPress={() => void startBoost()}
               style={[styles.headerIcon, { backgroundColor: colors.discoverControl, borderColor: colors.discoverControlBorder, opacity: !boostStatus.data?.available || activateBoost.isPending ? 0.68 : 1 }]}
             >
-              <Feather name="zap" size={16} color="#FFD166" />
+              <Feather name="zap" size={16} color={colors.primary} />
             </Pressable>
             <Pressable
               testID="open-filters"
