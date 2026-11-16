@@ -15,6 +15,12 @@ Members submit a specific photo during verification, even if they already upload
 
 **How to apply:** Bind verification to the selected photo and promote it automatically after the server checks pass. Resume previously checked requests without another selfie. Do not claim unsupported motion detection.
 
+On opening verification, select and visibly mark the current main profile photo automatically. Members may choose another photo, but must not have to tap the main photo to activate it. Keep photo-processing consent unchecked until the member agrees.
+
+**Why:** The user said members may not realize the main photo must be tapped and asked for it to be selected immediately unless they choose another.
+
+**How to apply:** Derive the default selection from the main photo in both web and installed-app verification screens, show the selected state, and keep consent explicit.
+
 Once a main photo is verified, any additional profile photo must match that verified face before it can be published. Nonmatching pictures must be rejected, not allowed with a warning.
 
 **Why:** The user identified that a verified member could otherwise add photos of other people.

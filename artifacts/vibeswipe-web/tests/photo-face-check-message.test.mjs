@@ -14,3 +14,15 @@ test("verification consent stays meaningful without naming its implementation pr
     assert.match(source, /I agree to have my photo and live selfie checked to confirm this is me/);
   }
 });
+test("the main photo is preselected while verification consent remains explicit", () => {
+  const web = readFileSync(new URL("../src/pages/face-verification.tsx", import.meta.url), "utf8");
+  const mobile = readFileSync(new URL("../../vibeswipe/app/verify-profile.tsx", import.meta.url), "utf8");
+  assert.match(web, /const selectedChoice = choice \?\? \(gallery\[0\] \? \{ reference: gallery\[0\], source: 'gallery' as const \} : null\)/);
+  assert.match(web, /Your main profile photo is selected automatically/);
+  assert.match(web, /const \[consent, setConsent\] = useState\(false\)/);
+  assert.match(web, /checked=\{consent\}/);
+  assert.match(mobile, /selectedPhoto \|\| profile\.data\?\.photos\?\.\[0\] \|\| ""/);
+  assert.match(mobile, /Your main profile photo is selected automatically/);
+  assert.match(mobile, /const \[consent, setConsent\] = useState\(false\)/);
+  assert.match(mobile, /value=\{consent\}/);
+});

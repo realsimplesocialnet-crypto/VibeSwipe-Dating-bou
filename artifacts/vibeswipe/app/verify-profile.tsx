@@ -28,6 +28,7 @@ export default function FaceVerificationScreen() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [selectedPhoto, setSelectedPhoto] = useState("");
+  const selectedPhotoForVerification = selectedPhoto || profile.data?.photos?.[0] || "";
   const lock = useRef(false);
   const verified = status.data?.verified === true || complete.data?.verified === true || finalize.data?.verified === true;
   const waiting = !verified && !startAgain && status.data?.reviewStatus === "awaiting_review";
@@ -58,7 +59,7 @@ export default function FaceVerificationScreen() {
     }
   }, [waiting, status.data?.available]);
   async function capture() {
-    if (!consent || !selectedPhoto || waiting || lock.current) return;
+    if (!consent || !selectedPhotoForVerification || waiting || lock.current) return;
     lock.current = true; setBusy(true); setError("");
     try {
       const permission = await ImagePicker.requestCameraPermissionsAsync();
@@ -70,7 +71,7 @@ export default function FaceVerificationScreen() {
       if (result.canceled || !result.assets[0]) return;
       const selfie = await (await fetch(result.assets[0].uri)).blob();
       if (selfie.size > 5 * 1024 * 1024) throw new Error("This selfie is larger than 5 MB. Please take another one.");
-      const session = await start.mutateAsync({ data: { consent: true, photoReference: selectedPhoto } });
+      const session = await start.mutateAsync({ data: { consent: true, photoReference: selectedPhotoForVerification } });
       const response = await complete.mutateAsync({ sessionId: session.sessionId, data: selfie });
       if (!response.verified) throw new Error("Your verification could not be confirmed. Please try again.");
       await Promise.all([
@@ -103,17 +104,27 @@ export default function FaceVerificationScreen() {
         <Text style={{ color: colors.text, fontSize: 20, fontWeight: "700" }}>Choose the photo to verify</Text>
         <Text style={{ color: colors.text }}>Successful face checks make this your main photo and activate your blue tick automatically. Your other photos must match the same face.</Text>
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 12 }}>
-          {profile.data?.photos.map(photo => <Pressable key={photo} disabled={busy} accessibilityLabel="Select gallery photo for verification" accessibilityState={{ selected: selectedPhoto === photo }} onPress={() => { setSelectedPhoto(photo); setConsent(false); }} style={{ padding: 4, borderWidth: selectedPhoto === photo ? 3 : 1, borderColor: selectedPhoto === photo ? colors.primary : colors.border, borderRadius: 44 }}>
-            <ProfileAvatar profile={{ ...profile.data!, photos: [photo], isVerified: false }} size={70}/>
-          </Pressable>)}
+          {profile.data?.photos.map((photo, index) => {
+            const selected = selectedPhotoForVerification === photo;
+            return <Pressable key={photo} disabled={busy} accessibilityLabel={index === 0 ? "Select main profile photo for verification" : `Select gallery photo ${index + 1} for verification`} accessibilityState={{ selected }} onPress={() => { setSelectedPhoto(photo); setConsent(false); }} style={{ alignItems: "center", gap: 4, padding: 4 }}>
+              <View style={{ position: "relative", padding: 3, borderWidth: selected ? 3 : 1, borderColor: selected ? colors.primary : colors.border, borderRadius: 44 }}>
+                <ProfileAvatar profile={{ ...profile.data!, photos: [photo], isVerified: false }} size={70}/>
+                {selected ? <View style={{ position: "absolute", top: -3, right: -3, width: 22, height: 22, borderRadius: 11, alignItems: "center", justifyContent: "center", backgroundColor: colors.primary }}>
+                  <Feather name="check" size={14} color={colors.background}/>
+                </View> : null}
+              </View>
+              <Text style={{ color: colors.text, fontSize: 11, fontWeight: selected ? "700" : "500" }}>{index === 0 ? "Main" : `Photo ${index + 1}`}</Text>
+            </Pressable>;
+          })}
         </View>
+        <Text style={{ color: colors.text }}>Your main profile photo is selected automatically. Tap another photo if you want to use it instead.</Text>
         <Text style={{ color: colors.text }}>Or upload a different verification photo</Text>
-        <MediaPicker photos={selectedPhoto ? [selectedPhoto] : []} videoUrl={null} maxPhotos={1} showVideo={false} onChange={({ photos }) => { setSelectedPhoto(photos[0] ?? ""); setConsent(false); }}/>
+        <MediaPicker photos={selectedPhotoForVerification ? [selectedPhotoForVerification] : []} videoUrl={null} maxPhotos={1} showVideo={false} onChange={({ photos }) => { setSelectedPhoto(photos[0] ?? ""); setConsent(false); }}/>
         <Text style={{ color: colors.text, fontSize: 16, lineHeight: 25 }}>Face the camera straight on, in good light. Remove sunglasses or anything covering your face. Only you should be in the frame. Hold still and take a fresh selfie.</Text>
         <Text style={{ color: colors.text, fontSize: 14, lineHeight: 22 }}>Your photo and camera selfie are checked to confirm they match. Your live camera capture is not saved. Successful checks automatically activate your verified main photo and badge.</Text>
         <View style={{ flexDirection: "row", gap: 12, alignItems: "center" }}><Switch accessibilityLabel="I consent to face verification" value={consent} onValueChange={setConsent} disabled={busy} trackColor={{ true: colors.primary }}/><Text style={{ flex: 1, color: colors.text }}>I agree to have my photo and live selfie checked to confirm this is me.</Text></View>
         {error ? <Text accessibilityRole="alert" style={{ color: colors.primary }}>{error}</Text> : null}
-        <Pressable accessibilityLabel="Take verification selfie" disabled={!consent || !selectedPhoto || busy} onPress={() => void capture()} style={{ padding: 18, borderRadius: 24, alignItems: "center", backgroundColor: colors.primary, opacity: !consent || !selectedPhoto || busy ? 0.5 : 1 }}>{busy ? <ActivityIndicator color="#fff"/> : <Text style={{ color: "#fff", fontWeight: "700" }}>{error ? "Try again" : "Open camera"}</Text>}</Pressable>
+        <Pressable accessibilityLabel="Take verification selfie" disabled={!consent || !selectedPhotoForVerification || busy} onPress={() => void capture()} style={{ padding: 18, borderRadius: 24, alignItems: "center", backgroundColor: colors.primary, opacity: !consent || !selectedPhotoForVerification || busy ? 0.5 : 1 }}>{busy ? <ActivityIndicator color="#fff"/> : <Text style={{ color: "#fff", fontWeight: "700" }}>{error ? "Try again" : "Open camera"}</Text>}</Pressable>
       </>}
     </ScrollView>
   </SafeAreaView>;

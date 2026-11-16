@@ -131,6 +131,10 @@ export default function FaceVerificationPage() {
   useEffect(() => { if (status.data?.verified) release(); }, [status.data?.verified, release]);
 
   const supported = typeof window !== 'undefined' && window.isSecureContext && !!navigator.mediaDevices?.getUserMedia;
+  const p = profile.data;
+  const s = status.data;
+  const gallery = (p?.photos ?? []).filter(r => MEDIA_REF.test(r));
+  const selectedChoice = choice ?? (gallery[0] ? { reference: gallery[0], source: 'gallery' as const } : null);
 
   async function pickUpload(file?: File) {
     if (!file || uploading) return;
@@ -146,7 +150,7 @@ export default function FaceVerificationPage() {
   }
 
   async function openCamera() {
-    if (busy.current || !consent || !choice) return;
+    if (busy.current || !consent || !selectedChoice) return;
     setError('');
     if (!supported) { setError('This browser can’t open the camera here. Use an up-to-date browser over a secure (https) connection.'); setPhase('failed'); return; }
     release();
@@ -179,8 +183,8 @@ export default function FaceVerificationPage() {
     try {
       let s = session.current;
       if (!s || Date.parse(s.expiresAt) - Date.now() < 15_000) {
-        if (!choice || !MEDIA_REF.test(choice.reference)) throw new Error('No photo chosen');
-        s = await start.mutateAsync({ data: { consent: true, photoReference: choice.reference } });
+        if (!selectedChoice || !MEDIA_REF.test(selectedChoice.reference)) throw new Error('No photo chosen');
+        s = await start.mutateAsync({ data: { consent: true, photoReference: selectedChoice.reference } });
         session.current = s;
       }
       const result = await complete.mutateAsync({ sessionId: s.sessionId, data: blob });
@@ -204,13 +208,10 @@ export default function FaceVerificationPage() {
     } finally { busy.current = false; }
   }
 
-  const p = profile.data;
-  const s = status.data;
   const loading = profile.isLoading || status.isLoading;
   const verified = s?.verified === true || complete.data?.verified === true || finalize.data?.verified === true;
   const awaiting = !verified && !startAgain && s?.reviewStatus === 'awaiting_review';
   const rejected = !awaiting && s?.reviewStatus === 'rejected';
-  const gallery = (p?.photos ?? []).filter(r => MEDIA_REF.test(r));
   useEffect(() => { if (verified || (s && s.reviewStatus !== 'awaiting_review' && s.reviewStatus !== 'none')) setAwaitingLocal(false); }, [verified, s]);
   async function finishCheckedPhoto() {
     if (busy.current) return;
@@ -254,7 +255,7 @@ export default function FaceVerificationPage() {
         </section>
       : !s?.available ? <div role="status" className="rounded-3xl border border-border bg-card p-6 text-center text-sm text-muted-foreground"><ShieldCheck className="mx-auto mb-3 text-primary"/>Face verification isn’t available right now. Please check back later.</div>
       : awaiting ? <section className="page-in flex flex-1 flex-col items-center justify-center text-center" role="status" data-testid="state-awaiting-review">
-          <div className="relative h-36 w-36 overflow-hidden rounded-full ring-2 ring-primary/40"><MainPhoto reference={choice?.reference} preview={choice?.preview} name={p?.name ?? ''}/></div>
+          <div className="relative h-36 w-36 overflow-hidden rounded-full ring-2 ring-primary/40"><MainPhoto reference={selectedChoice?.reference} preview={selectedChoice?.preview} name={p?.name ?? ''}/></div>
           <div className="-mt-5 flex h-11 w-11 items-center justify-center rounded-full bg-secondary text-primary ring-4 ring-background"><Clock3 size={20}/></div>
           <h2 className="brand mt-5 text-2xl font-extrabold">Finishing your verification</h2>
           <p className="mt-2 max-w-xs text-sm leading-6 text-muted-foreground">Your selfie check passed. We’re checking your gallery photos against the same face. No administrator approval is needed.</p>
@@ -283,7 +284,7 @@ export default function FaceVerificationPage() {
           </div>
         </section>
       : phase === 'submitting' ? <section className="flex flex-1 flex-col items-center justify-center text-center" role="status" data-testid="state-submitting">
-          <div className="relative h-32 w-32 overflow-hidden rounded-full ring-2 ring-primary/40"><MainPhoto reference={choice?.reference} preview={choice?.preview} name={p?.name ?? ''}/><div className="absolute inset-0 animate-pulse bg-primary/20"/></div>
+          <div className="relative h-32 w-32 overflow-hidden rounded-full ring-2 ring-primary/40"><MainPhoto reference={selectedChoice?.reference} preview={selectedChoice?.preview} name={p?.name ?? ''}/><div className="absolute inset-0 animate-pulse bg-primary/20"/></div>
           <LoaderCircle className="mt-6 animate-spin text-primary"/>
           <h2 className="mt-3 text-lg font-bold">Checking your photo</h2>
           <p className="mt-1 text-sm text-muted-foreground">This usually takes a few seconds.</p>
@@ -297,7 +298,7 @@ export default function FaceVerificationPage() {
             <p className="text-[10px] font-bold uppercase tracking-[.2em] text-primary">1. Choose the photo to verify</p>
             <p className="mt-1 text-sm leading-5 text-muted-foreground">Once your face checks pass, this photo becomes your main profile photo and your blue tick appears automatically. Your other photos must match the same face.</p>
             <div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-4">
-              {gallery.map((ref, i) => { const on = choice?.reference === ref; return <button key={ref} type="button" onClick={() => setChoice({ reference: ref, source: 'gallery' })} aria-pressed={on} aria-label={`Use gallery photo ${i + 1}`} data-testid={`button-choose-photo-${i}`} className={`relative aspect-[3/4] overflow-hidden rounded-2xl bg-accent transition-transform active:scale-95 ${on ? 'ring-[3px] ring-primary' : 'ring-1 ring-border opacity-80 hover:opacity-100'}`}>
+              {gallery.map((ref, i) => { const on = selectedChoice?.reference === ref; return <button key={ref} type="button" onClick={() => setChoice({ reference: ref, source: 'gallery' })} aria-pressed={on} aria-label={i === 0 ? 'Select main profile photo for verification' : `Select gallery photo ${i + 1} for verification`} data-testid={`button-choose-photo-${i}`} className={`relative aspect-[3/4] overflow-hidden rounded-2xl bg-accent transition-transform active:scale-95 ${on ? 'ring-[3px] ring-primary' : 'ring-1 ring-border opacity-80 hover:opacity-100'}`}>
                 <MediaPhoto reference={ref} name={p?.name ?? ''}/>
                 {i === 0 && <span className="absolute bottom-1.5 left-1.5 rounded-full bg-background/80 px-2 py-0.5 text-[9px] font-bold">Main</span>}
                 {on && <span className="page-in absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-primary text-primary-foreground"><Check size={14}/></span>}
@@ -309,7 +310,7 @@ export default function FaceVerificationPage() {
             </div>
             <input ref={fileRef} type="file" accept={PROFILE_PHOTO_ACCEPT} className="hidden" onChange={e => void pickUpload(e.target.files?.[0])} data-testid="input-verification-photo"/>
             {uploadError && <p role="alert" className="mt-2 text-sm text-destructive">{uploadError}</p>}
-            {choice && <p className="page-in mt-2 text-xs text-muted-foreground" data-testid="text-choice-note">{choice.source === 'upload' ? 'Uploaded privately. After successful checks it replaces your main photo.' : 'After successful checks this photo becomes your main profile photo.'}</p>}
+            {selectedChoice && <p className="page-in mt-2 text-xs text-muted-foreground" data-testid="text-choice-note">{selectedChoice.source === 'upload' ? 'Uploaded privately. After successful checks it replaces your main photo.' : selectedChoice.reference === gallery[0] ? 'Your main profile photo is selected automatically. Tap another photo or New photo if you want to switch.' : 'After successful checks this photo becomes your main profile photo.'}</p>}
             {!gallery.length && !choice && <p className="mt-2 flex items-center gap-2 text-xs text-muted-foreground"><ImagePlus size={14}/>No gallery photos yet. Upload one that clearly shows your face.</p>}
           </div>
 
@@ -328,10 +329,10 @@ export default function FaceVerificationPage() {
             <span><LockKeyhole size={13} className="mr-1 inline text-primary"/>I agree to have my photo and live selfie checked to confirm this is me.</span>
           </label>
 
-          <button type="button" onClick={() => void openCamera()} disabled={!consent || !choice || uploading} data-testid={phase === 'failed' ? 'button-retry-verification' : 'button-open-camera'} aria-label={phase === 'failed' ? 'Try verification again' : 'Open camera'} className="flex w-full items-center justify-center gap-2 rounded-full bg-primary py-4 font-bold text-primary-foreground transition-transform active:scale-[.98] disabled:opacity-45">
+          <button type="button" onClick={() => void openCamera()} disabled={!consent || !selectedChoice || uploading} data-testid={phase === 'failed' ? 'button-retry-verification' : 'button-open-camera'} aria-label={phase === 'failed' ? 'Try verification again' : 'Open camera'} className="flex w-full items-center justify-center gap-2 rounded-full bg-primary py-4 font-bold text-primary-foreground transition-transform active:scale-[.98] disabled:opacity-45">
             {phase === 'failed' ? <><RotateCcw size={18}/>Try again</> : <><Camera size={18}/>Open camera</>}
           </button>
-          {!choice && <p className="text-center text-xs text-muted-foreground">Choose a photo above to continue.</p>}
+          {!selectedChoice && <p className="text-center text-xs text-muted-foreground">Choose a photo above to continue.</p>}
         </section>}
     </div>
   </div>;
