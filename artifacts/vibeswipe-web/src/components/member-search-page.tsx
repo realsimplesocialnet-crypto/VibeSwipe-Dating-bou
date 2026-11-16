@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useGetDiscoverProfiles, type Profile } from "@workspace/api-client-react";
-import { ArrowLeft, ChevronRight, LoaderCircle, Search } from "lucide-react";
+import { ArrowLeft, ChevronRight, LoaderCircle } from "lucide-react";
 import { useLocation } from "wouter";
 import { VerifiedBadge } from "@/components/verified-badge";
 
@@ -61,7 +61,6 @@ export function MemberSearchPage() {
       </header>
 
       <label className="relative block">
-        <Search aria-hidden="true" size={19} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" />
         <input
           type="search"
           value={query}
@@ -70,7 +69,7 @@ export function MemberSearchPage() {
           aria-label="Search members"
           autoComplete="off"
           maxLength={100}
-          className="field h-12 rounded-2xl pl-12 pr-4"
+          className="field h-12 rounded-2xl"
         />
       </label>
 

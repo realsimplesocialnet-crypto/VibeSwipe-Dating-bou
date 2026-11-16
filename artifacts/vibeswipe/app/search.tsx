@@ -65,7 +65,6 @@ export default function MemberSearchScreen() {
         </View>
 
         <View style={[styles.searchBox, { backgroundColor: colors.card, borderColor: colors.border }]}>
-          <Feather name="search" size={18} color={colors.mutedForeground} />
           <TextInput
             value={query}
             onChangeText={updateQuery}
@@ -77,6 +76,7 @@ export default function MemberSearchScreen() {
             returnKeyType="search"
             maxLength={100}
             selectionColor={colors.primary}
+            textAlignVertical="center"
             style={[styles.input, { color: colors.foreground }]}
           />
           {query.length > 0 && (
@@ -136,7 +136,7 @@ const styles = StyleSheet.create({
   backButton: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
   title: { fontSize: 24, fontWeight: "700", letterSpacing: -0.6 },
   searchBox: { minHeight: 50, flexDirection: "row", alignItems: "center", gap: 10, marginHorizontal: 16, marginTop: 8, paddingHorizontal: 14, borderWidth: 1, borderRadius: 16 },
-  input: { flex: 1, minWidth: 0, paddingVertical: Platform.OS === "ios" ? 13 : 10, fontSize: 15 },
+  input: { flex: 1, minWidth: 0, paddingHorizontal: 8, paddingVertical: Platform.OS === "ios" ? 13 : 10, fontSize: 15 },
   results: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 24, gap: 8 },
   resultRow: { minHeight: 76, flexDirection: "row", alignItems: "center", gap: 12, borderRadius: 18, paddingHorizontal: 12, paddingVertical: 10 },
   resultCopy: { flex: 1, minWidth: 0 },
