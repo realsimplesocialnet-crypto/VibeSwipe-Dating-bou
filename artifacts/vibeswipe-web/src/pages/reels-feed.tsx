@@ -218,7 +218,7 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
       {notice && <p role="status" className="reels-notice" data-testid="status-reels">{notice}</p>}
       {initialReelId && single.isError && <p role="status" className="reels-notice" data-testid="status-reel-unavailable">That Reel is no longer available. Showing other Reels.</p>}
     </div>
-    {commentReel && <ReelComments key={commentReel.id} reelId={commentReel.id} focusCommentId={initialCommentId} onClose={() => setCommentsFor(null)} onCountChange={(delta) => patch(commentReel.id, { commentCount: Math.max(0, commentReel.commentCount + delta) })} />}
+    {commentReel && <ReelComments key={commentReel.id} reelId={commentReel.id} creatorId={commentReel.creatorId} focusCommentId={initialCommentId} onClose={() => setCommentsFor(null)} onCountChange={(delta) => patch(commentReel.id, { commentCount: Math.max(0, commentReel.commentCount + delta) })} />}
     {shareFor && <ReelShareSheet reel={shareFor} onClose={() => setShareFor(null)} />}
     {deleteFor && <div className="reel-sheet-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setDeleteFor(null); }}>
       <section className="reel-sheet" role="alertdialog" aria-modal="true" aria-label="Delete Reel">

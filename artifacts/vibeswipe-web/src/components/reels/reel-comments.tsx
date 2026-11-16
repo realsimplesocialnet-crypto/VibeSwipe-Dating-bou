@@ -16,7 +16,7 @@ function ago(iso: string): string {
   return `${Math.round(minutes / 1440)}d`;
 }
 
-export function ReelComments({ reelId, onClose, onCountChange, focusCommentId }: { reelId: string; onClose: () => void; onCountChange: (delta: number) => void; focusCommentId?: string | null }) {
+export function ReelComments({ reelId, creatorId, onClose, onCountChange, focusCommentId }: { reelId: string; creatorId: string; onClose: () => void; onCountChange: (delta: number) => void; focusCommentId?: string | null }) {
   const client = useQueryClient();
   const key = getGetReelCommentsQueryKey(reelId);
   const comments = useGetReelComments(reelId, { query: { queryKey: key } });
@@ -89,7 +89,7 @@ export function ReelComments({ reelId, onClose, onCountChange, focusCommentId }:
               <ReelAvatar reference={comment.authorPhoto} name={comment.authorName} size={32} />
             </Link>
             <div className="min-w-0 flex-1">
-              <p className="text-xs text-white/55"><Link href={profileHref(comment.authorId)} className="font-semibold text-white/90 hover:text-primary">{comment.authorName}</Link> {ago(comment.createdAt)}</p>
+              <p className="text-xs text-white/55"><Link href={profileHref(comment.authorId)} className="font-semibold text-white/90 hover:text-primary">{comment.authorName}</Link>{comment.authorId === creatorId && <span className="ml-1.5 rounded-full bg-primary/15 px-1.5 py-0.5 text-[10px] font-bold text-primary">Creator</span>} <span>{ago(comment.createdAt)}</span></p>
               <p className="break-words text-sm leading-5 text-white">{comment.content}</p>
               <div className="mt-1 flex gap-3 text-xs">
                 <button type="button" onClick={() => { setReplyingTo(comment); setDraft(""); input.current?.focus(); }} className="font-semibold text-white/55 hover:text-primary" data-testid={`button-reply-comment-${comment.id}`}>Reply</button>
@@ -105,7 +105,7 @@ export function ReelComments({ reelId, onClose, onCountChange, focusCommentId }:
                 <ReelAvatar reference={reply.authorPhoto} name={reply.authorName} size={28} />
               </Link>
               <div className="min-w-0 flex-1">
-                <p className="text-xs text-white/55"><Link href={profileHref(reply.authorId)} className="font-semibold text-white/90 hover:text-primary">{reply.authorName}</Link> {ago(reply.createdAt)}</p>
+                <p className="text-xs text-white/55"><Link href={profileHref(reply.authorId)} className="font-semibold text-white/90 hover:text-primary">{reply.authorName}</Link>{reply.authorId === creatorId && <span className="ml-1.5 rounded-full bg-primary/15 px-1.5 py-0.5 text-[10px] font-bold text-primary">Creator</span>} <span>{ago(reply.createdAt)}</span></p>
                 <p className="break-words text-sm leading-5 text-white">{reply.content}</p>
                 {reply.canDelete && (confirming === reply.id
                   ? <p className="mt-1 text-xs"><button type="button" onClick={() => void deleteComment(reply.id)} disabled={remove.isPending} className="font-semibold text-rose-300" data-testid={`button-confirm-delete-comment-${reply.id}`}>Delete reply</button><button type="button" onClick={() => setConfirming(null)} className="ml-3 text-white/60">Keep</button></p>
