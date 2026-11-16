@@ -6,12 +6,13 @@ const read = path => readFileSync(new URL(path, import.meta.url), "utf8");
 const app = read("../src/App.tsx");
 const css = read("../src/index.css");
 
-test("premium styling keeps the same bottom anchor, safe area and measured content reservation", () => {
+test("mobile tabs sit lower while retaining safe-area clearance and measured content reservation", () => {
   const nav = app.match(/<nav ref=\{mobileNavRef\}[^>]+>/)?.[0] ?? "";
   assert.match(nav, /fixed inset-x-0 bottom-0/);
-  assert.match(nav, /pb-\[max\(env\(safe-area-inset-bottom\),8px\)\]/);
+  assert.doesNotMatch(nav, /pb-\[/);
   assert.match(nav, /aria-label="Primary"/);
   assert.doesNotMatch(nav, /border-t|rounded-full|bottom-[1-9]/);
+  assert.match(css, /padding-bottom:\s*max\(calc\(env\(safe-area-inset-bottom,\s*0px\)\s*-\s*18px\),\s*4px\)/);
   assert.match(app, /offsetHeight/);
   assert.match(css, /padding-bottom: var\(--mobile-nav-height/);
 });
