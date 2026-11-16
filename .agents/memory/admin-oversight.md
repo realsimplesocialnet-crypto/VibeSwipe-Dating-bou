@@ -21,6 +21,12 @@ The admin console is for the website only; do not add it to the installed mobile
 
 **How to apply:** Keep native app navigation free of admin screens, and route admin visits from the installed web app to a browser-only website origin while preserving server-side authorization.
 
+Blocking a member bans their account access until an administrator unblocks them; removing verification is a separate administrator action.
+
+**Why:** The user clarified that they want to independently ban/unban members and remove a member’s verification, and approved keeping those controls separate.
+
+**How to apply:** Keep `block`/`unblock` independent from `unverify`; do not remove a verified badge automatically when a member is banned.
+
 Missing authentication accounts must not make all stored profiles impossible to review.
 
 **Why:** Older stored profiles can outlive their sign-in identities; treating one missing identity as a failed entire overview prevented the owner from seeing otherwise valid stored records.
