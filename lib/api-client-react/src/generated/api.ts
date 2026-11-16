@@ -45,7 +45,6 @@ import type {
   EmergencyContactInput,
   FaceVerificationConsent,
   FaceVerificationDecision,
-  FaceVerificationDecisionResult,
   FaceVerificationQueue,
   FaceVerificationResult,
   FaceVerificationSession,
@@ -1837,7 +1836,7 @@ export const getGetAdminVerificationRequestsUrl = (params?: GetAdminVerification
 }
 
 /**
- * @summary Administrator-only photo verification review queue
+ * @summary Administrator-only read-only automatic verification history
  */
 export const getAdminVerificationRequests = async (params?: GetAdminVerificationRequestsParams, options?: Parameters<typeof customFetch>[1]): Promise<FaceVerificationQueue> => {
 
@@ -1908,7 +1907,7 @@ export function useGetAdminVerificationRequests<TData = Awaited<ReturnType<typeo
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
- * @summary Administrator-only photo verification review queue
+ * @summary Administrator-only read-only automatic verification history
  */
 
 export function useGetAdminVerificationRequests<TData = Awaited<ReturnType<typeof getAdminVerificationRequests>>, TError = ErrorType<void>>(
@@ -1938,7 +1937,7 @@ export const getGetAdminVerificationPhotoUrl = (requestId: string,) => {
 }
 
 /**
- * @summary Privately view the exact photo submitted for approval
+ * @summary Privately view the exact photo used for automatic verification
  */
 export const getAdminVerificationPhoto = async (requestId: string, options?: Parameters<typeof customFetch>[1]): Promise<Blob> => {
 
@@ -2009,7 +2008,7 @@ export function useGetAdminVerificationPhoto<TData = Awaited<ReturnType<typeof g
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
- * @summary Privately view the exact photo submitted for approval
+ * @summary Privately view the exact photo used for automatic verification
  */
 
 export function useGetAdminVerificationPhoto<TData = Awaited<ReturnType<typeof getAdminVerificationPhoto>>, TError = ErrorType<void>>(
@@ -2039,10 +2038,11 @@ export const getReviewFaceVerificationUrl = (requestId: string,) => {
 }
 
 /**
- * @summary Explicit owner-admin approval promotes the checked photo and grants the badge
+ * @deprecated
+ * @summary Retired manual decisions; verification is automatic
  */
 export const reviewFaceVerification = async (requestId: string,
-    faceVerificationDecision: FaceVerificationDecision, options?: Parameters<typeof customFetch>[1]): Promise<FaceVerificationDecisionResult> => {
+    faceVerificationDecision: FaceVerificationDecision, options?: Parameters<typeof customFetch>[1]): Promise<unknown> => {
 
     const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
     if (!h) return {};
@@ -2058,7 +2058,7 @@ export const reviewFaceVerification = async (requestId: string,
     }
     return headers;
   };
-return customFetch<FaceVerificationDecisionResult>(getReviewFaceVerificationUrl(requestId),
+return customFetch<unknown>(getReviewFaceVerificationUrl(requestId),
   {
     ...options,
     method: 'POST',
@@ -2106,7 +2106,8 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type ReviewFaceVerificationMutationVariables = {requestId: string;data: BodyType<FaceVerificationDecision>}
 
     /**
- * @summary Explicit owner-admin approval promotes the checked photo and grants the badge
+ * @deprecated
+ * @summary Retired manual decisions; verification is automatic
  */
 export const useReviewFaceVerification = <TError = ErrorType<void>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reviewFaceVerification>>, TError,ReviewFaceVerificationMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}

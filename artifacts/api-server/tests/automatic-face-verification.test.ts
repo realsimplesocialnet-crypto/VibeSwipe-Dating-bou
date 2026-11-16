@@ -41,3 +41,23 @@ test("camera completion activates the checked photo before returning a verified 
   assert.match(source, /checked: committed/);
   assert.match(source, /router\.post\("\/vibeswipe\/verification\/finalize"/);
 });
+test("admin verification history has no manual approval or rejection path", () => {
+  const route = readFileSync(new URL("../src/routes/vibeswipe-verification-admin.ts", import.meta.url), "utf8");
+  const ui = readFileSync(new URL("../../vibeswipe-web/src/components/admin/sections/verifications.tsx", import.meta.url), "utf8");
+  assert.match(route, /res\.status\(410\)/);
+  assert.doesNotMatch(route, /tx\.update|db\.update|isVerified: true|ReviewFaceVerificationBody/);
+  assert.doesNotMatch(ui, /DecisionDialog|useReviewFaceVerification|button-approve|button-reject|Awaiting review|until you approve/);
+  assert.match(ui, /No administrator approval is needed/);
+});
+test("checked evidence retries without the member keeping the app open and never bypasses failed checks", () => {
+  const worker = readFileSync(new URL("../src/lib/automatic-face-verification-worker.ts", import.meta.url), "utf8");
+  const entrypoint = readFileSync(new URL("../src/index.ts", import.meta.url), "utf8");
+  assert.match(worker, /await activateCheckedFace\(request\.userId, request\.id\)/);
+  assert.match(worker, /eq\(sessions\.status, "awaiting_review"\)/);
+  assert.match(worker, /error\.status !== 429/);
+  assert.match(worker, /"cancelled" : "rejected"/);
+  assert.match(worker, /reviewedBy: null/);
+  assert.doesNotMatch(worker, /isVerified: true/);
+  assert.match(entrypoint, /void finishPendingFaceVerifications\(\)/);
+  assert.match(entrypoint, /setInterval\(\(\) => void finishPendingFaceVerifications\(\)/);
+});

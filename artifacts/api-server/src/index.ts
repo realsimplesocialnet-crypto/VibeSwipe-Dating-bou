@@ -8,6 +8,7 @@ import { ensureChatSchema } from "./lib/chat-schema";
 import { cleanupFaceVerificationSessions, ensureFaceVerificationSchema } from "./lib/face-verification-schema";
 import { cleanupAdminMediaDeletions } from "./lib/adminMediaCleanup";
 import { checkExistingReels } from "./lib/reel-safety";
+import { finishPendingFaceVerifications } from "./lib/automatic-face-verification-worker";
 
 const rawPort = process.env["PORT"];
 
@@ -63,6 +64,9 @@ void ensureAdminSchema().then(ensureFaceVerificationSchema).then(ensureReelsSche
   }
 
   logger.info({ port }, "Server listening");
+  void finishPendingFaceVerifications();
+  const faceVerificationTimer = setInterval(() => void finishPendingFaceVerifications(), 5 * 60_000);
+  faceVerificationTimer.unref();
   void checkExistingReels();
   const reelSafetyTimer = setInterval(() => void checkExistingReels(), 60_000);
   reelSafetyTimer.unref();

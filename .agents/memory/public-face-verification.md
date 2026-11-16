@@ -13,7 +13,7 @@ Members submit a specific photo during verification, even if they already upload
 
 **Why:** The user distinguished signup/gallery photos from the verification photo, then explicitly replaced manual approval: “Once your face is verified ... There's no need to approve it again.”
 
-**How to apply:** Bind verification to the selected photo and promote it automatically after the server checks pass. Resume previously checked requests without another selfie. Do not claim unsupported motion detection.
+**How to apply:** Bind verification to the selected photo and promote it automatically after the server checks pass. Resume previously checked requests without another selfie, even if the member closes the app. The admin screen is read-only verification history, not an approval queue; keep the separate ability to revoke verification. Do not claim unsupported motion detection.
 
 On opening verification, select and visibly mark the current main profile photo automatically. Members may choose another photo, but must not have to tap the main photo to activate it. Keep photo-processing consent unchecked until the member agrees.
 

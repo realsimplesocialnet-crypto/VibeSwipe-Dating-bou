@@ -554,7 +554,7 @@ export const FinalizeFaceVerificationResponse = zod.object({
 
 
 /**
- * @summary Administrator-only photo verification review queue
+ * @summary Administrator-only read-only automatic verification history
  */
 export const getAdminVerificationRequestsQueryPageDefault = 1;
 
@@ -584,7 +584,7 @@ export const GetAdminVerificationRequestsResponse = zod.object({
 
 
 /**
- * @summary Privately view the exact photo submitted for approval
+ * @summary Privately view the exact photo used for automatic verification
  */
 export const GetAdminVerificationPhotoParams = zod.object({
   "requestId": zod.coerce.string().uuid()
@@ -594,7 +594,8 @@ export const GetAdminVerificationPhotoResponse = zod.unknown()
 
 
 /**
- * @summary Explicit owner-admin approval promotes the checked photo and grants the badge
+ * @deprecated
+ * @summary Retired manual decisions; verification is automatic
  */
 export const ReviewFaceVerificationParams = zod.object({
   "requestId": zod.coerce.string().uuid()
@@ -610,10 +611,7 @@ export const ReviewFaceVerificationBody = zod.object({
   "reason": zod.string().max(reviewFaceVerificationBodyReasonMax).optional()
 })
 
-export const ReviewFaceVerificationResponse = zod.object({
-  "status": zod.enum(['approved', 'rejected']),
-  "message": zod.string()
-})
+export const ReviewFaceVerificationResponse = zod.void()
 
 
 /**
