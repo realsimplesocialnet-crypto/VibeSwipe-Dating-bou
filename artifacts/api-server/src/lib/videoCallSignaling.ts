@@ -343,6 +343,9 @@ export function attachVideoCallSignaling(httpServer: HttpServer): Server {
         call.calleeSocketId = socket.id;
         call.lastHeartbeatAt = Date.now();
         io.to(call.callerSocketId).emit("call:accepted", { matchId });
+        io.to(userRoom(call.calleeId))
+          .except(socket.id)
+          .emit("call:answered_elsewhere", { matchId });
         respond(ack, true);
       })().catch((error: unknown) => {
         logger.warn({ err: error }, "Video call acceptance failed");

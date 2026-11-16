@@ -354,6 +354,12 @@ export function VideoCallProvider({ children }: { children: ReactNode }) {
         });
       }
     });
+    socket.on("call:answered_elsewhere", ({ matchId }: { matchId: string }) => {
+      const current = callRef.current;
+      if (current?.matchId === matchId && current.role === "callee" && current.status === "incoming") {
+        closeCall();
+      }
+    });
     socket.on("call:accepted", ({ matchId }: { matchId: string }) => {
       updateCall((current) =>
         current?.matchId === matchId && current.role === "caller"
@@ -559,7 +565,7 @@ function VideoCallOverlay({
             data-testid="video-call-local-feed"
           />
         ) : null}
-        <button type="button" onClick={onDecline} className="absolute left-4 top-4 rounded-full bg-black/45 p-3" aria-label="Close call window" data-testid="button-call-close">
+        <button type="button" onClick={call.status === "incoming" ? onDecline : onEnd} className="absolute left-4 top-4 rounded-full bg-black/45 p-3" aria-label="Close call window" data-testid="button-call-close">
           <PhoneOff size={18} />
         </button>
         <p className="absolute bottom-5 left-5 max-w-[70%] truncate text-lg font-semibold drop-shadow">{message}</p>

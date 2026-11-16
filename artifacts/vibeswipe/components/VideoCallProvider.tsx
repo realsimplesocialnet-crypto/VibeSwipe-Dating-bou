@@ -383,6 +383,12 @@ export function VideoCallProvider({ children }: { children: ReactNode }) {
         });
       }
     });
+    socket.on("call:answered_elsewhere", ({ matchId }: { matchId: string }) => {
+      const current = callRef.current;
+      if (current?.matchId === matchId && current.role === "callee" && current.status === "incoming") {
+        closeCall();
+      }
+    });
     socket.on("call:accepted", ({ matchId }: { matchId: string }) => {
       updateCall((current) =>
         current?.matchId === matchId && current.role === "caller"
