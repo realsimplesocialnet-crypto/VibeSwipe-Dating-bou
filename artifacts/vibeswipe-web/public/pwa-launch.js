@@ -4,6 +4,24 @@
   const scope = new URL('./', script.src);
   const warn = (error) => console.warn('Myage offline support is unavailable; the website can still open.', error);
 
+  // The root-scoped installable site would otherwise open /admin inside the PWA.
+  const isStandalone =
+    window.matchMedia?.('(display-mode: standalone)')?.matches === true ||
+    window.navigator.standalone === true;
+  if (
+    script.dataset.production === 'true' &&
+    isStandalone &&
+    window.location.hostname === 'myage.beauty' &&
+    /^\/admin(?:\/|$)/.test(window.location.pathname)
+  ) {
+    const browserUrl = new URL(window.location.href);
+    browserUrl.protocol = 'https:';
+    browserUrl.hostname = 'vibe-swipe-dating-app.replit.app';
+    browserUrl.port = '';
+    window.location.replace(browserUrl.href);
+    return;
+  }
+
   const retry = document.getElementById('startup-retry');
   if (retry) retry.addEventListener('click', () => window.location.reload());
   window.setTimeout(() => {

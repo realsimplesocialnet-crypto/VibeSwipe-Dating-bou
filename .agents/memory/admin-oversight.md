@@ -15,6 +15,12 @@ Keep the general overview and conversation list free of private message text. Pr
 
 **How to apply:** Preserve server-enforced administrator identity checks, no-store responses, the explicit inspection step and access recording. Do not add public admin registration or loosen authorization for testing.
 
+The admin console is for the website only; do not add it to the installed mobile app or present it inside the installed web app.
+
+**Why:** The user explicitly asked for admin access to stay on the website after Android opened the `/admin` link inside the installed app.
+
+**How to apply:** Keep native app navigation free of admin screens, and route admin visits from the installed web app to a browser-only website origin while preserving server-side authorization.
+
 Missing authentication accounts must not make all stored profiles impossible to review.
 
 **Why:** Older stored profiles can outlive their sign-in identities; treating one missing identity as a failed entire overview prevented the owner from seeing otherwise valid stored records.
