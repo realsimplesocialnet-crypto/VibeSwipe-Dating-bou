@@ -71,11 +71,11 @@ export function OnboardingVideoBackground({ form = false }: { form?: boolean }) 
         if (playing) { setChoice(false); player.pause(); }
         else { setChoice(true); setRetry(value => value + 1); }
       }}
-      style={[StyleSheet.absoluteFill, { backgroundColor: "#ebdfd1" }]}>
+      style={[StyleSheet.absoluteFill, { backgroundColor: colors.background }]}>
       <Image source={{ uri: asset("poster-v1.webp") }} style={StyleSheet.absoluteFill} resizeMode="cover"/>
       <VideoView player={player} style={[StyleSheet.absoluteFill, { opacity: ready ? 1 : 0 }]} contentFit="cover"
         onFirstFrameRender={() => setReady(true)} nativeControls={false} surfaceType="textureView"/>
-      {form && <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.background, opacity: .86 }]}/>}
+      <View style={[StyleSheet.absoluteFill, { backgroundColor: form ? colors.background : "#2b0d24", opacity: form ? .86 : .58 }]}/>
     </View>
   );
 }

@@ -16,7 +16,7 @@ export function InstalledWelcome() {
         <p>Create your profile. Meet someone who gets you.</p>
         <div className="onboarding-welcome-actions">
           <Link href="/sign-up" data-testid="button-app-create-account" className="bg-[#F34E9A] text-[#24111b] shadow-lg shadow-pink-900/10 hover:bg-[#ff68aa]"><UserRoundPlus size={17}/>Get Started</Link>
-          <Link href="/sign-in" data-testid="button-app-sign-in" className="border border-[#cdb9be] bg-white/90 text-[#302536] hover:bg-white"><LockKeyhole size={16}/>Log in</Link>
+          <Link href="/sign-in" data-testid="button-app-sign-in" className="border border-white/15 bg-[#1A1A1E] text-[#FBF5F7] hover:bg-[#252025]"><LockKeyhole size={16}/>Log in</Link>
         </div>
         <div className="onboarding-welcome-legal">Adults 18+ · <Link href="/privacy-policy">Privacy Policy</Link> · <Link href="/terms">Terms</Link></div>
       </div>
