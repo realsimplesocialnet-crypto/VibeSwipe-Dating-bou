@@ -62,10 +62,10 @@ export default function ProfileReelScreen() {
   }, [player, source, reelQuery.data, recordView, reelId, queryClient]);
 
   function goBack() {
-    if (router.canGoBack()) {
-      router.back();
-    } else if (returnTo) {
+    if (returnTo) {
       router.replace(returnTo as never);
+    } else if (router.canGoBack()) {
+      router.back();
     } else {
       router.replace("/(tabs)/profile");
     }

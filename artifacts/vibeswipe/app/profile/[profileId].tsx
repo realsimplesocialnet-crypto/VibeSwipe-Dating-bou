@@ -8,6 +8,7 @@ import {
   getGetWhoLikedYouQueryKey,
   useBlockProfile,
   useCreateReaction,
+  useUnlikeProfile,
   useGetDailyLikeStatus,
   useGetMatches,
   useGetMyProfile,
@@ -55,6 +56,7 @@ export default function PublicProfileScreen() {
   const block = useBlockProfile();
   const report = useReportProfile();
   const reaction = useCreateReaction();
+  const unlike = useUnlikeProfile();
   const dailyLikeStatus = useGetDailyLikeStatus({ query: { queryKey: getGetDailyLikeStatusQueryKey() } });
   const profile = useGetProfileById(id, { query: { queryKey: getGetProfileByIdQueryKey(id), enabled: !!id } });
   const datingState = useGetProfileDatingState(id, { query: { queryKey: getGetProfileDatingStateQueryKey(id), enabled: !!id, refetchOnMount: "always", refetchOnWindowFocus: true, staleTime: 0 } });
@@ -101,20 +103,52 @@ export default function PublicProfileScreen() {
   }, []);
 
   const likeOut = dailyLikeStatus.data?.remaining === 0;
-  const locked = reaction.isPending || !!confirmation || !!matchResult;
+  const alreadyLiked = datingState.data?.reaction === "like";
+  const superLiked = datingState.data?.reaction === "super";
+  const locked = reaction.isPending || unlike.isPending || !!confirmation || !!matchResult;
 
   async function reactLike() {
     const user = profile.data;
-    if (!user || busy.current || locked || matchId) return;
+    if (!user || busy.current || locked || matchId || superLiked) return;
+    const datingKey = getGetProfileDatingStateQueryKey(user.id);
+    const previousDatingState = datingState.data ?? { reaction: null, matchId: null };
+    if (alreadyLiked) {
+      busy.current = true;
+      setActionError("");
+      queryClient.setQueryData<ProfileDatingState>(datingKey, {
+        reaction: null,
+        matchId: previousDatingState.matchId,
+      });
+      try {
+        await unlike.mutateAsync({ profileId: user.id });
+        if (!mounted.current || currentId.current !== user.id) { busy.current = false; return; }
+        busy.current = false;
+        void queryClient.invalidateQueries({ queryKey: datingKey });
+        void queryClient.invalidateQueries({ queryKey: getGetDiscoverProfilesQueryKey() });
+        void queryClient.invalidateQueries({ queryKey: getGetDailyLikeStatusQueryKey() });
+        void queryClient.invalidateQueries({ queryKey: getGetMatchesQueryKey() });
+        void queryClient.invalidateQueries({ queryKey: getGetWhoLikedYouQueryKey() });
+      } catch {
+        busy.current = false;
+        if (!mounted.current || currentId.current !== user.id) return;
+        queryClient.setQueryData<ProfileDatingState>(datingKey, previousDatingState);
+        setActionError("Could not remove that like. Please try again.");
+      }
+      return;
+    }
     if (likeOut) { setActionError("You have used all of today’s likes. They reset in 24 hours."); return; }
     const targetId = user.id;
     const name = user.name;
     busy.current = true;
     setActionError("");
+    queryClient.setQueryData<ProfileDatingState>(datingKey, {
+      reaction: "like",
+      matchId: previousDatingState.matchId,
+    });
     try {
       const result = await reaction.mutateAsync({ data: { toUserId: targetId, type: "like" } });
       if (!mounted.current || currentId.current !== targetId) { busy.current = false; return; }
-      queryClient.setQueryData<ProfileDatingState>(getGetProfileDatingStateQueryKey(targetId), { reaction: "like", matchId: result.matchId ?? null });
+      queryClient.setQueryData<ProfileDatingState>(datingKey, { reaction: "like", matchId: result.matchId ?? null });
       void queryClient.invalidateQueries({ queryKey: getGetDiscoverProfilesQueryKey() });
       void queryClient.invalidateQueries({ queryKey: getGetWhoLikedYouQueryKey() });
       void queryClient.invalidateQueries({ queryKey: getGetDailyLikeStatusQueryKey() });
@@ -131,6 +165,7 @@ export default function PublicProfileScreen() {
     } catch (error) {
       busy.current = false;
       if (!mounted.current || currentId.current !== targetId) return;
+      queryClient.setQueryData<ProfileDatingState>(datingKey, previousDatingState);
       const message = error instanceof Error ? error.message : "";
       const capped = /limit|429|remaining|already/i.test(message);
       setActionError(
@@ -203,16 +238,15 @@ export default function PublicProfileScreen() {
   const avatarSource = photos.length ? profileImageSource(photos[0], token) : undefined;
   const viewerWidth = Math.min(width, 900);
   const heroHeight = Math.min(Math.max(height * 0.42, 280), 420);
-  const alreadyLiked = Boolean(datingState.data?.reaction);
   const dateActionDisabled = matchId
     ? Boolean(profileMatch?.blockedByMe || profileMatch?.blockedMe)
-    : locked || dailyLikeStatus.isLoading || datingState.isLoading || alreadyLiked || likeOut || (!datingState.data && !datingState.isError);
+    : locked || datingState.isLoading || (!alreadyLiked && dailyLikeStatus.isLoading) || superLiked || (!alreadyLiked && (likeOut || (!datingState.data && !datingState.isError)));
   const datingAction = (
     <View style={{ flex: 1, minWidth: 0, alignItems: "stretch" }}>
       <Pressable
         testID={matchId ? "public-profile-message" : "public-profile-like"}
         accessibilityRole="button"
-        accessibilityLabel={matchId ? `Message ${user.name}` : alreadyLiked ? `Liked ${user.name}` : fromLikes ? `Like ${user.name} back` : `Like ${user.name}`}
+        accessibilityLabel={matchId ? `Message ${user.name}` : alreadyLiked ? `Unlike ${user.name}` : superLiked ? `Super liked ${user.name}` : fromLikes ? `Like ${user.name} back` : `Like ${user.name}`}
         accessibilityState={{ disabled: dateActionDisabled }}
         disabled={dateActionDisabled}
         onPress={() => {
@@ -226,14 +260,15 @@ export default function PublicProfileScreen() {
           opacity: dateActionDisabled ? 0.58 : pressed ? 0.82 : 1,
         }]}
       >
-        {reaction.isPending && !matchId ? <ActivityIndicator color={colors.profileEditForeground} /> : <Feather name={matchId ? "message-circle" : "heart"} size={17} color={alreadyLiked && !matchId ? colors.profileEdit : colors.profileEditForeground} />}
+        {reaction.isPending || unlike.isPending ? <ActivityIndicator color={alreadyLiked && !matchId ? colors.profileEdit : colors.profileEditForeground} /> : <Feather name={matchId ? "message-circle" : superLiked ? "star" : "heart"} size={17} color={alreadyLiked && !matchId ? colors.profileEdit : colors.profileEditForeground} />}
         <Text style={{ color: alreadyLiked && !matchId ? colors.profileEdit : colors.profileEditForeground, fontWeight: "800", fontSize: 13 }}>
           {matchId ? (profileMatch?.blockedByMe || profileMatch?.blockedMe ? "Unavailable" : "Message")
             : datingState.isLoading ? "Checking…"
               : datingState.isError ? "Retry"
-                : alreadyLiked ? "Liked"
+                : superLiked ? "Super liked"
+                  : alreadyLiked ? "Liked"
                   : likeOut ? "No likes left"
-                    : reaction.isPending ? "Liking…" : fromLikes ? "Like Back" : "Like"}
+                    : fromLikes ? "Like Back" : "Like"}
         </Text>
       </Pressable>
       {actionError ? <Text accessibilityRole="alert" style={{ color: colors.destructive, fontSize: 10, textAlign: "center", marginTop: 3 }}>{actionError}</Text>

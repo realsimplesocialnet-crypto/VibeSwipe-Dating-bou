@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { planReactionEffects } from "../src/lib/vibeswipeReaction.ts";
+import {
+  filterPreviouslySentLikeNotifications,
+  planReactionEffects,
+} from "../src/lib/vibeswipeReaction.ts";
 
 const accountA = "test-account-a";
 const accountB = "test-account-b";
@@ -87,6 +90,18 @@ test("repeating an existing like does not create duplicate like notifications", 
 
   assert.equal(result.matched, false);
   assert.deepEqual(result.notifications, []);
+});
+
+test("a like notification is omitted after the same pair was notified once", () => {
+  const notifications = [
+    { recipientId: accountB, actorId: accountA, type: "new_like" as const },
+    { recipientId: accountA, actorId: accountB, type: "new_match" as const },
+  ];
+  assert.deepEqual(
+    filterPreviouslySentLikeNotifications(notifications, true),
+    [{ recipientId: accountA, actorId: accountB, type: "new_match" }],
+  );
+  assert.deepEqual(filterPreviouslySentLikeNotifications(notifications, false), notifications);
 });
 
 test("passing never creates a like notification or a match", () => {

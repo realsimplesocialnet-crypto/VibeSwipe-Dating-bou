@@ -16,6 +16,19 @@ import "@/components/reels/reels.css";
 
 const REEL_COMMENTS_HISTORY_KEY = "__myageReelComments";
 
+type ReelCommentsHistoryMarker = { reelId: string; activeIndex: number };
+
+function readReelCommentsHistoryMarker(state: unknown): ReelCommentsHistoryMarker | null {
+  if (!state || typeof state !== "object") return null;
+  const marker = (state as Record<string, unknown>)[REEL_COMMENTS_HISTORY_KEY];
+  if (typeof marker === "string" && marker) return { reelId: marker, activeIndex: 0 };
+  if (!marker || typeof marker !== "object") return null;
+  const value = marker as Record<string, unknown>;
+  return typeof value.reelId === "string" && value.reelId
+    ? { reelId: value.reelId, activeIndex: typeof value.activeIndex === "number" ? value.activeIndex : 0 }
+    : null;
+}
+
 function useReelsViewport() {
   const baseline = useRef(window.visualViewport?.height ?? window.innerHeight);
   const [frame, setFrame] = useState(() => reelsViewportFrame(window.visualViewport?.height ?? window.innerHeight, window.visualViewport?.offsetTop ?? 0, window.innerHeight, false));
@@ -70,7 +83,8 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
   const pageHidden = usePageHidden();
   const scroller = useRef<HTMLDivElement>(null);
   const initialReelPositioned = useRef(false);
-  const [active, setActive] = useState(0);
+  const initialHistoryMarker = readReelCommentsHistoryMarker(window.history.state);
+  const [active, setActive] = useState(initialHistoryMarker?.activeIndex ?? 0);
   const activeRef = useRef(0);
   activeRef.current = active;
   const [muted, setMuted] = useState(true);
@@ -79,8 +93,10 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
   const [searchText, setSearchText] = useState(initialSearch);
   const [debouncedSearchText, setDebouncedSearchText] = useState(initialSearch.trim());
   const initialCommentId = new URLSearchParams(window.location.search).get("commentId");
-  const [commentsFor, setCommentsFor] = useState<string | null>(() => initialReelId && initialCommentId ? initialReelId : null);
-  const commentsHistoryOpen = useRef(false);
+  const [commentsFor, setCommentsFor] = useState<string | null>(() => (
+    initialReelId && initialCommentId ? initialReelId : initialHistoryMarker?.reelId ?? null
+  ));
+  const commentsHistoryOpen = useRef(Boolean(initialHistoryMarker));
   const [shareFor, setShareFor] = useState<Reel | null>(null);
   const [deleteFor, setDeleteFor] = useState<Reel | null>(null);
   const [patches, setPatches] = useState<Record<string, Partial<Reel>>>({});
@@ -95,7 +111,7 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
     const currentState = window.history.state;
     const nextState = {
       ...(currentState && typeof currentState === "object" ? currentState : {}),
-      [REEL_COMMENTS_HISTORY_KEY]: reelId,
+      [REEL_COMMENTS_HISTORY_KEY]: { reelId, activeIndex: activeRef.current },
     };
     if (commentsHistoryOpen.current) {
       window.history.replaceState(nextState, "", window.location.href);
@@ -117,12 +133,12 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
   useEffect(() => {
     const onPopState = (event: PopStateEvent) => {
       const state = event.state;
-      const reelId = state && typeof state === "object"
-        ? (state as Record<string, unknown>)[REEL_COMMENTS_HISTORY_KEY]
-        : null;
-      if (typeof reelId === "string" && reelId) {
+      const marker = readReelCommentsHistoryMarker(state);
+      if (marker) {
         commentsHistoryOpen.current = true;
-        setCommentsFor(reelId);
+        setCommentsFor(marker.reelId);
+        activeRef.current = marker.activeIndex;
+        setActive(marker.activeIndex);
       } else if (commentsHistoryOpen.current) {
         commentsHistoryOpen.current = false;
         setCommentsFor(null);
@@ -135,21 +151,21 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
   useEffect(() => {
     if (!initialReelId || !initialCommentId) return;
     const currentState = window.history.state;
-    const currentReelId = currentState && typeof currentState === "object"
-      ? (currentState as Record<string, unknown>)[REEL_COMMENTS_HISTORY_KEY]
-      : null;
-    if (currentReelId === initialReelId) {
+    const currentMarker = readReelCommentsHistoryMarker(currentState);
+    if (currentMarker?.reelId === initialReelId) {
       commentsHistoryOpen.current = true;
       return;
     }
     window.history.pushState({
       ...(currentState && typeof currentState === "object" ? currentState : {}),
-      [REEL_COMMENTS_HISTORY_KEY]: initialReelId,
+      [REEL_COMMENTS_HISTORY_KEY]: { reelId: initialReelId, activeIndex: 0 },
     }, "", window.location.href);
     commentsHistoryOpen.current = true;
   }, [initialReelId, initialCommentId]);
 
-  const single = useGetReel(initialReelId ?? "", { query: { enabled: Boolean(initialReelId), queryKey: getGetReelQueryKey(initialReelId ?? ""), retry: false } });
+  const historyResumeReelId = initialHistoryMarker?.reelId;
+  const singleReelId = initialReelId ?? historyResumeReelId;
+  const single = useGetReel(singleReelId ?? "", { query: { enabled: Boolean(singleReelId), queryKey: getGetReelQueryKey(singleReelId ?? ""), retry: false } });
   const feed = useInfiniteQuery({
     queryKey: [...getGetReelsFeedQueryKey(), "pages"],
     queryFn: ({ pageParam }) => getReelsFeed(pageParam ? { cursor: pageParam, limit: 6 } : { limit: 6 }),
@@ -230,18 +246,19 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
     return list.filter((reel) => !removed.has(reel.id)).map((reel) => ({ ...reel, ...patches[reel.id] }));
   }, [single.data, profileId, profileFeed.data, feed.data, feed.isError, offlineReels, patches, removed]);
 
+  const resumeReelId = initialReelId ?? initialHistoryMarker?.reelId;
   useEffect(() => {
-    if (!profileId || !initialReelId || initialReelPositioned.current || profileFeed.isLoading) return;
-    initialReelPositioned.current = true;
-    const index = reels.findIndex((reel) => reel.id === initialReelId);
+    if (!resumeReelId || initialReelPositioned.current || (profileId && profileFeed.isLoading)) return;
+    const index = reels.findIndex((reel) => reel.id === resumeReelId);
     if (index < 0) return;
+    initialReelPositioned.current = true;
     activeRef.current = index;
     setActive(index);
     window.requestAnimationFrame(() => {
       const root = scroller.current;
       if (root) root.scrollTop = index * root.clientHeight;
     });
-  }, [profileId, initialReelId, profileFeed.isLoading, reels]);
+  }, [profileId, resumeReelId, profileFeed.isLoading, reels]);
 
   // Track which slide is on screen.
   useEffect(() => {

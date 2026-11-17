@@ -19,7 +19,7 @@ import {
   useGetTypingStatus, useGetMatchPresence, useMarkChatRead, useGetWhoViewedYou,
   useMarkNotificationRead, useRecordProfileView, useReportProfile, useSaveMyProfile,
   useSaveOnboardingDraft, useSendMessage, useTranscodeProfileVideo, useUnblockProfile,
-  useUndoLastPass, useUnmatchMatch, useUpdateChatTheme, useUpdateTypingStatus, useHeartbeatPresence,
+  useUndoLastPass, useUnmatchMatch, useUnlikeProfile, useUpdateChatTheme, useUpdateTypingStatus, useHeartbeatPresence,
   useRequestChatMediaUpload, useRequestProfileMediaUpload,
   type ChatTheme, type Message, type Profile, type ProfileDatingState, type ProfileInput, type ReportInputReason, type MediaUploadInputContentType,
 } from '@workspace/api-client-react';
@@ -754,22 +754,46 @@ function PublicProfile({id,actionReturnTo='/discover'}:{id:string;actionReturnTo
   const fromLikes=actionReturnTo==='/likes';
   const me=useGetMyProfile();
   const q=useGetProfileById(id,{query:{queryKey:getGetProfileByIdQueryKey(id)}});const datingState=useGetProfileDatingState(id,{query:{queryKey:getGetProfileDatingStateQueryKey(id),enabled:!!id,refetchOnMount:'always',refetchOnWindowFocus:true,staleTime:0}});const matches=useGetMatches({query:{queryKey:getGetMatchesQueryKey(),enabled:!!id,refetchInterval:12000,refetchOnMount:'always',refetchOnWindowFocus:true,staleTime:0}});const profileMatch=matches.data?.find(match=>match.profile.id===id);const matchedId=profileMatch?.id??datingState.data?.matchId??null;const view=useRecordProfileView();const seen=useRef('');const [photoError,setPhotoError]=useState(false);const [viewer,setViewer]=useState<number|null>(null);
-  const client=useQueryClient();const [,setLocation]=useLocation();const reaction=useCreateReaction();const likes=useGetDailyLikeStatus({query:{queryKey:getGetDailyLikeStatusQueryKey()}});
+   const client=useQueryClient();const [,setLocation]=useLocation();const reaction=useCreateReaction();const unlike=useUnlikeProfile();const likes=useGetDailyLikeStatus({query:{queryKey:getGetDailyLikeStatusQueryKey()}});
   const [confirmation,setConfirmation]=useState<{text:string;kind:'like'}|null>(null);const [actionError,setActionError]=useState('');const block=useBlockProfile();const report=useReportProfile();const [menu,setMenu]=useState(false);const [confirmSafety,setConfirmSafety]=useState<'block'|'report'|null>(null);const [safetyError,setSafetyError]=useState('');const [reported,setReported]=useState(false);const [matchResult,setMatchResult]=useState<{name:string;matchId:string|null}|null>(null);
   const confirmationTimer=useRef<number|null>(null);const busy=useRef(false);const mounted=useRef(true);const currentId=useRef(id);currentId.current=id;
   useEffect(()=>{mounted.current=true;return()=>{mounted.current=false;if(confirmationTimer.current!==null)window.clearTimeout(confirmationTimer.current)}},[]);
   useEffect(()=>{if(q.data?.id&&seen.current!==q.data.id){seen.current=q.data.id;view.mutate({profileId:q.data.id})}},[q.data?.id]);
   useEffect(()=>{setPhotoError(false);setViewer(null)},[q.data?.id,q.data?.photos?.[0]]);
   const likeRemaining=likes.data?.remaining;
-  const locked=reaction.isPending||!!confirmation||!!matchResult;
+   const alreadyLiked=datingState.data?.reaction==='like';
+   const superLiked=datingState.data?.reaction==='super';
+   const locked=reaction.isPending||unlike.isPending||!!confirmation||!!matchResult;
   async function reactLike(){
-    const target=q.data;if(!target||busy.current||locked||matchedId)return;const targetId=target.id;const name=target.name;
+     const target=q.data;if(!target||busy.current||locked||matchedId||superLiked)return;const targetId=target.id;const name=target.name;
+     const datingKey=getGetProfileDatingStateQueryKey(targetId);
+     const previousDatingState=datingState.data??{reaction:null,matchId:null};
+     if(alreadyLiked){
+       busy.current=true;setActionError('');
+       client.setQueryData<ProfileDatingState>(datingKey,{reaction:null,matchId:previousDatingState.matchId});
+       try{
+         await unlike.mutateAsync({profileId:targetId});
+         if(!mounted.current||currentId.current!==targetId){busy.current=false;return}
+         busy.current=false;
+         void client.invalidateQueries({queryKey:datingKey});
+         void client.invalidateQueries({queryKey:getGetDiscoverProfilesQueryKey()});
+         void client.invalidateQueries({queryKey:getGetDailyLikeStatusQueryKey()});
+         void client.invalidateQueries({queryKey:getGetMatchesQueryKey()});
+         void client.invalidateQueries({queryKey:getGetWhoLikedYouQueryKey()});
+       }catch{
+         busy.current=false;if(!mounted.current||currentId.current!==targetId)return;
+         client.setQueryData<ProfileDatingState>(datingKey,previousDatingState);
+         setActionError('Could not remove that like. Please try again.');
+       }
+       return;
+     }
     if(likeRemaining===0){setActionError('You have used all of today’s likes. They reset in 24 hours.');return}
     busy.current=true;setActionError('');
+     client.setQueryData<ProfileDatingState>(datingKey,{reaction:'like',matchId:previousDatingState.matchId});
     try{
       const result=await reaction.mutateAsync({data:{toUserId:targetId,type:'like'}});
       if(!mounted.current||currentId.current!==targetId){busy.current=false;return}
-      client.setQueryData<ProfileDatingState>(getGetProfileDatingStateQueryKey(targetId),{reaction:'like',matchId:result.matchId??null});
+       client.setQueryData<ProfileDatingState>(datingKey,{reaction:'like',matchId:result.matchId??null});
       void client.invalidateQueries({queryKey:getGetDiscoverProfilesQueryKey()});
       void client.invalidateQueries({queryKey:getGetDailyLikeStatusQueryKey()});
       void client.invalidateQueries({queryKey:getGetMatchesQueryKey()});
@@ -779,6 +803,7 @@ function PublicProfile({id,actionReturnTo='/discover'}:{id:string;actionReturnTo
       confirmationTimer.current=window.setTimeout(()=>{confirmationTimer.current=null;busy.current=false;if(!mounted.current||currentId.current!==targetId)return;setConfirmation(null);if(result.matched)setMatchResult({name,matchId:result.matchId??null})},1200);
     }catch(error){
       busy.current=false;if(!mounted.current||currentId.current!==targetId)return;
+       client.setQueryData<ProfileDatingState>(datingKey,previousDatingState);
       const message=error instanceof Error?error.message:'';const capped=/limit|429|remaining|already/i.test(message);
       setActionError(capped?'You have reached today’s like limit.':'That like did not go through. Please try again.');
       void likes.refetch();
@@ -788,26 +813,25 @@ function PublicProfile({id,actionReturnTo='/discover'}:{id:string;actionReturnTo
   async function runSafety(kind:'block'|'report'){if(!q.data)return;setSafetyError('');try{if(kind==='block'){await block.mutateAsync({data:{targetUserId:q.data.id}});void client.invalidateQueries({queryKey:getGetMatchesQueryKey()});setConfirmSafety(null);setMenu(false);setLocation(actionReturnTo)}else{await report.mutateAsync({data:{targetUserId:q.data.id,reason:'other'}});setReported(true);setConfirmSafety(null)}}catch(error){setSafetyError(error instanceof Error&&error.message?error.message:kind==='block'?'Could not block this profile. Please try again.':'Could not send the report. Please try again.')}}
   useEffect(()=>{if(viewer===null)return;const len=q.data?.photos?.length??0;const onKey=(e:KeyboardEvent)=>{if(e.key==='Escape')setViewer(null);if(e.key==='ArrowRight')setViewer(v=>v===null?v:Math.min(len-1,v+1));if(e.key==='ArrowLeft')setViewer(v=>v===null?v:Math.max(0,v-1))};window.addEventListener('keydown',onKey);return()=>window.removeEventListener('keydown',onKey)},[viewer,q.data?.photos?.length]);
   if(q.isLoading)return <div className="public-profile min-h-[100dvh]"><div className="mx-auto max-w-md px-5 pt-20" aria-label="Loading profile"><div className="mx-auto h-32 w-32 animate-pulse rounded-full bg-[hsl(var(--pp-soft))]"/><div className="mx-auto mt-5 h-6 w-40 animate-pulse rounded-full bg-[hsl(var(--pp-soft))]"/><div className="mt-8 h-40 animate-pulse rounded-3xl bg-[hsl(var(--pp-card))]"/></div></div>;
-  if(q.isError||!q.data)return <div className="public-profile min-h-[100dvh] px-5 pt-6"><Link href={actionReturnTo} aria-label="Back" data-testid="link-public-profile-back-top" className="pp-round"><ArrowLeft size={20}/></Link><div className="mx-auto mt-16 max-w-sm"><Retry onRetry={()=>void q.refetch()} text="Profile unavailable."/></div></div>;
+   if(q.isError||!q.data)return <div className="public-profile min-h-[100dvh] px-5 pt-6"><Link href={actionReturnTo} replace aria-label="Back" data-testid="link-public-profile-back-top" className="pp-round"><ArrowLeft size={20}/></Link><div className="mx-auto mt-16 max-w-sm"><Retry onRetry={()=>void q.refetch()} text="Profile unavailable."/></div></div>;
   const profile=q.data;const photos=profile.photos??[];const location=[profile.city,profile.state,profile.country].filter(Boolean).join(', ');const headerLocation=[profile.city,profile.state].filter(Boolean).join(', ')||location;
   const work=profile.occupation==='Other'?(profile.occupationOther||'Other'):(profile.occupation||'');
   const facts=[profile.showAge&&profile.age!==null?{icon:Sparkles,label:'Age',value:String(profile.age)}:null,{icon:Briefcase,label:'Work',value:work||'Not shared'},{icon:Heart,label:'Looking for',value:profile.lookingFor||'Not shared'},{icon:Users,label:'Gender',value:profile.gender||'Not shared'}].filter(Boolean) as {icon:typeof Heart;label:string;value:string}[];
   const likeOut=likeRemaining===0;
-  const alreadyLiked=Boolean(datingState.data?.reaction);
-  const actionBusy=locked||likes.isLoading||datingState.isLoading;
+   const actionBusy=locked||datingState.isLoading||(!alreadyLiked&&likes.isLoading);
   const datingAction=<div className="sh-dating-slot">
     <button type="button" onClick={()=>{if(matchedId){if(!profileMatch?.blockedByMe&&!profileMatch?.blockedMe)openMatchedChat();return}if(datingState.isError){void datingState.refetch();return}void reactLike()}}
-      disabled={matchedId?Boolean(profileMatch?.blockedByMe||profileMatch?.blockedMe):actionBusy||alreadyLiked||likeOut||!datingState.data}
+      disabled={matchedId?Boolean(profileMatch?.blockedByMe||profileMatch?.blockedMe):actionBusy||superLiked||(!alreadyLiked&&(likeOut||!datingState.data))}
       data-testid={matchedId?'button-viewed-profile-message':'button-viewed-profile-like'}
-      aria-label={matchedId?`Message ${profile.name}`:alreadyLiked?`Liked ${profile.name}`:fromLikes?`Like ${profile.name} back`:`Like ${profile.name}`}
+      aria-label={matchedId?`Message ${profile.name}`:alreadyLiked?`Unlike ${profile.name}`:superLiked?`Super liked ${profile.name}`:fromLikes?`Like ${profile.name} back`:`Like ${profile.name}`}
       className={`sh-dating-button${alreadyLiked&&!matchedId?' sh-dating-liked':''}`}
-    >{matchedId?<><MessageCircle size={17}/>Message</>:datingState.isLoading?'Checking…':datingState.isError?'Retry':alreadyLiked?<><Heart size={17} fill="currentColor"/>Liked</>:likeOut?'No likes left':reaction.isPending?'Liking…':<><Heart size={17}/>{fromLikes?'Like Back':'Like'}</>}</button>
+    >{matchedId?<><MessageCircle size={17}/>Message</>:datingState.isLoading?'Checking…':datingState.isError?'Retry':reaction.isPending||unlike.isPending?<><LoaderCircle size={16} className="animate-spin"/>{alreadyLiked?'Liked':'Like'}</>:superLiked?<><Star size={17} fill="currentColor"/>Super liked</>:alreadyLiked?<><Heart size={17} fill="currentColor"/>Liked</>:likeOut?'No likes left':<><Heart size={17}/>{fromLikes?'Like Back':'Like'}</>}</button>
     {actionError&&<span role="alert" className="sh-dating-error">{actionError}</span>}
     {!actionError&&likeOut&&!alreadyLiked&&!matchedId&&<span className="sh-dating-error">Today’s likes are used up.</span>}
   </div>;
   return <div className="public-profile min-h-[100dvh]"><main className="page-in mx-auto w-full max-w-md px-5 pt-[max(env(safe-area-inset-top),0.5rem)] pb-[calc(6rem+env(safe-area-inset-bottom))]" data-testid="public-profile-page">
    <div className="flex items-center justify-between">
-    <Link href={actionReturnTo} aria-label="Back" data-testid="link-public-profile-back-top" className="pp-round"><ArrowLeft size={20}/></Link>
+     <Link href={actionReturnTo} replace aria-label="Back" data-testid="link-public-profile-back-top" className="pp-round"><ArrowLeft size={20}/></Link>
     <button type="button" onClick={()=>{setSafetyError('');setConfirmSafety(null);setMenu(true)}} aria-label={`More actions for ${profile.name}`} data-testid="button-public-profile-more" className="pp-round"><MoreHorizontal size={20}/></button>
    </div>
     <header className="mt-3 flex flex-col items-center text-center">

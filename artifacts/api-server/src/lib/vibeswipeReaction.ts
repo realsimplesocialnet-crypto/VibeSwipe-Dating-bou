@@ -17,6 +17,15 @@ export type ReactionNotification = {
   matchId?: string;
 };
 
+export function filterPreviouslySentLikeNotifications<T extends { type: string }>(
+  notifications: T[],
+  previouslyNotified: boolean,
+): T[] {
+  return notifications.filter(
+    (notification) => !previouslyNotified || notification.type !== "new_like",
+  );
+}
+
 export type ReactionEffectInput = {
   fromUserId: string;
   toUserId: string;

@@ -153,6 +153,81 @@ router.get(
   },
 );
 
+router.delete(
+  "/vibeswipe/profiles/:profileId/reaction",
+  async (req, res): Promise<void> => {
+    const params = GetProfileDatingStateParams.safeParse(req.params);
+    if (!params.success) {
+      res.status(400).json({ error: params.error.message });
+      return;
+    }
+    const viewerId = currentUserId(req);
+    const profileId = params.data.profileId;
+    if (profileId === viewerId) {
+      res.status(400).json({ error: "You cannot unlike your own profile." });
+      return;
+    }
+    if (!(await profileIsAvailable(profileId))) {
+      res.status(404).json({ error: "Profile not found." });
+      return;
+    }
+
+    const result = await db.transaction(async (tx) => {
+      const lockedProfiles = await tx
+        .select({ id: profilesTable.id })
+        .from(profilesTable)
+        .where(inArray(profilesTable.id, [viewerId, profileId]))
+        .orderBy(profilesTable.id)
+        .for("update");
+      if (lockedProfiles.length !== 2) return "unavailable" as const;
+
+      const [block] = await tx.select({ id: blocksTable.id }).from(blocksTable)
+        .where(or(
+          and(eq(blocksTable.blockerId, viewerId), eq(blocksTable.blockedId, profileId)),
+          and(eq(blocksTable.blockerId, profileId), eq(blocksTable.blockedId, viewerId)),
+        )).limit(1);
+      if (block) return "unavailable" as const;
+
+      const [match] = await tx.select({ id: matchesTable.id }).from(matchesTable)
+        .where(or(
+          and(eq(matchesTable.userAId, viewerId), eq(matchesTable.userBId, profileId)),
+          and(eq(matchesTable.userAId, profileId), eq(matchesTable.userBId, viewerId)),
+        )).limit(1);
+      if (match) return "matched" as const;
+
+      const [reaction] = await tx.select({ type: reactionsTable.type }).from(reactionsTable)
+        .where(and(
+          eq(reactionsTable.fromUserId, viewerId),
+          eq(reactionsTable.toUserId, profileId),
+        ))
+        .limit(1);
+      if (reaction?.type === "super") return "super-liked" as const;
+      if (reaction?.type === "like") {
+        await tx.delete(reactionsTable).where(and(
+          eq(reactionsTable.fromUserId, viewerId),
+          eq(reactionsTable.toUserId, profileId),
+          eq(reactionsTable.type, "like"),
+        ));
+      }
+      return "ok" as const;
+    });
+
+    if (result === "unavailable") {
+      res.status(404).json({ error: "Profile not found." });
+      return;
+    }
+    if (result === "matched") {
+      res.status(409).json({ error: "Matched profiles cannot be unliked here." });
+      return;
+    }
+    if (result === "super-liked") {
+      res.status(409).json({ error: "A Super Like cannot be removed from this profile." });
+      return;
+    }
+    res.status(204).end();
+  },
+);
+
 router.post(
   "/vibeswipe/profiles/:profileId/follow",
   async (req, res): Promise<void> => {

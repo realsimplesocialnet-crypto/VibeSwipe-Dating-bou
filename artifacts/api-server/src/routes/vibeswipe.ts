@@ -119,7 +119,11 @@ import {
 } from "../lib/profileVideoTranscoder";
 import { requireAuth } from "../middlewares/auth";
 import { createVibeSwipeNotification } from "../lib/vibeswipeNotifications";
-import { notificationPreferenceEnabled, planReactionEffects } from "../lib/vibeswipeReaction";
+import {
+  filterPreviouslySentLikeNotifications,
+  notificationPreferenceEnabled,
+  planReactionEffects,
+} from "../lib/vibeswipeReaction";
 import {
   canSubscribeToChat,
   CHAT_EVENT_CHANNEL,
@@ -1174,8 +1178,7 @@ router.get("/vibeswipe/discover", async (req, res): Promise<void> => {
     homeCity: ownProfile.city,
   });
   const baseConditions: SQL[] = [
-    gte(profilesTable.age, ageMin),
-    lte(profilesTable.age, ageMax),
+    ...(searchTerm ? [] : [gte(profilesTable.age, ageMin), lte(profilesTable.age, ageMax)]),
     eq(profilesTable.deactivated, false),
     eq(profilesTable.adminSuspended, false),
   ];
@@ -1183,7 +1186,7 @@ router.get("/vibeswipe/discover", async (req, res): Promise<void> => {
     const escapedSearch = searchTerm.replace(/[\\%_]/g, "\\$&");
     baseConditions.push(ilike(profilesTable.name, `%${escapedSearch}%`));
   }
-  if (gender && gender !== "Everyone") {
+  if (!searchTerm && gender && gender !== "Everyone") {
     baseConditions.push(eq(profilesTable.gender, gender));
   }
 
@@ -1228,12 +1231,16 @@ router.get("/vibeswipe/discover", async (req, res): Promise<void> => {
     includePassed: params.data.includePassed === "true" || Boolean(searchTerm),
     hasRequestedLocation: Boolean(params.data.country?.trim() || params.data.state?.trim() || params.data.city?.trim() || searchTerm),
     travelMode: ownProfile.travelMode,
+    includePreviouslyReacted: Boolean(searchTerm),
   };
   const matchedIds = existingMatches.flatMap(match => [match.userAId, match.userBId]);
   let excludedIds = discoveryExcludedIds(exclusionInput);
-  for (const id of matchedIds) excludedIds.add(id);
+  if (!searchTerm) for (const id of matchedIds) excludedIds.add(id);
   let recyclingPasses = false;
-  const allowedIncognitoIds = new Set(incognitoLikes.map((row) => row.id));
+  const allowedIncognitoIds = new Set([
+    ...incognitoLikes.map((row) => row.id),
+    ...(searchTerm ? matchedIds : []),
+  ]);
   const superLikedUserIds = new Set(incomingSuperLikes.map((row) => row.id));
 
   const normalizedLocation = (
@@ -1293,14 +1300,16 @@ router.get("/vibeswipe/discover", async (req, res): Promise<void> => {
     return limit === undefined ? query : query.limit(limit);
   };
 
-  const smartDefault = automaticDiscovery({
+  const smartDefault = !searchTerm && automaticDiscovery({
     travelMode: ownProfile.travelMode, requestedCountry: params.data.country,
     requestedState: params.data.state,
     requestedCity: params.data.city, preference: ownProfile.preferences.discoveryLocation,
   });
   const loadCandidates = async () => {
   let candidates: Awaited<ReturnType<typeof queryCandidates>> = [];
-  if (smartDefault) {
+  if (searchTerm) {
+    candidates = await queryCandidates([], 50);
+  } else if (smartDefault) {
     const regionalValues = ownProfile.country ? regionalCountryValues(ownProfile.country) : [];
     candidates = await smartDiscoveryPool(minimumDiscoveryPool(process.env.VIBESWIPE_DISCOVERY_MIN_POOL_SIZE),
       async (tier, limit, excluded) => {
@@ -1377,7 +1386,7 @@ router.get("/vibeswipe/discover", async (req, res): Promise<void> => {
   return candidates;
   };
   let candidates = await loadCandidates();
-  if (!candidates.length && reacted.some(row => row.type === "pass")) {
+  if (!searchTerm && !candidates.length && reacted.some(row => row.type === "pass")) {
     // Retry the SAME location/age/gender/privacy query, changing only pass exclusions.
     recyclingPasses = true;
     excludedIds = discoveryExcludedIds({ ...exclusionInput, recyclePassed: true });
@@ -1618,14 +1627,30 @@ router.post("/vibeswipe/reactions", async (req, res): Promise<void> => {
         notification.type !== "new_match" || (createdMatch && matchId),
     );
     if (notifications.length) {
-      const preferences = await tx.select({
+      let notificationsToSend = notifications;
+      if (notifications.some((notification) => notification.type === "new_like")) {
+        const [previousLikeNotice] = await tx
+          .select({ id: vibeSwipeNotificationsTable.id })
+          .from(vibeSwipeNotificationsTable)
+          .where(and(
+            eq(vibeSwipeNotificationsTable.recipientId, toUserId),
+            eq(vibeSwipeNotificationsTable.actorId, userId),
+            inArray(vibeSwipeNotificationsTable.type, ["new_like", "new_super_like", "new_match"]),
+          ))
+          .limit(1);
+        notificationsToSend = filterPreviouslySentLikeNotifications(
+          notificationsToSend,
+          Boolean(previousLikeNotice),
+        );
+      }
+      const preferences = notificationsToSend.length ? await tx.select({
         id: profilesTable.id,
         notifyMatches: profilesTable.notifyMatches,
         notifyLikes: profilesTable.notifyLikes,
         notifyMessages: profilesTable.notifyMessages,
         notifyProfileViews: profilesTable.notifyProfileViews,
-      }).from(profilesTable).where(inArray(profilesTable.id, notifications.map(n => n.recipientId)));
-      const allowed = notifications.filter(n => {
+      }).from(profilesTable).where(inArray(profilesTable.id, notificationsToSend.map(n => n.recipientId))) : [];
+      const allowed = notificationsToSend.filter(n => {
         const settings = preferences.find(p => p.id === n.recipientId);
         return settings && notificationPreferenceEnabled(n.type, settings);
       });

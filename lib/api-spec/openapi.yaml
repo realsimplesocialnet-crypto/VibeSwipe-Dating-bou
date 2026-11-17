@@ -1030,6 +1030,23 @@ paths:
               schema: { $ref: "#/components/schemas/ProfileDatingState" }
         "404":
           description: Profile not found or unavailable
+  /vibeswipe/profiles/{profileId}/reaction:
+    delete:
+      operationId: unlikeProfile
+      tags: [vibeswipe]
+      summary: Remove the signed-in user's ordinary Like from a profile
+      parameters:
+        - in: path
+          name: profileId
+          required: true
+          schema: { type: string, minLength: 1 }
+      responses:
+        "204":
+          description: Like removed, or no ordinary Like was present
+        "404":
+          description: Profile not found or unavailable
+        "409":
+          description: Matched profiles and Super Likes cannot be removed here
   /vibeswipe/profiles/{profileId}/follow:
     post:
       operationId: followProfile

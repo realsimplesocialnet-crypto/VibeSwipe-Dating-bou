@@ -16,6 +16,23 @@ test("exhaustion recycles only passes, never likes, Super Likes, self or either 
   for (const id of ["me", "liked", "super", "blocked", "blocked-me"]) assert.equal(recycled.has(id), true);
 });
 
+test("member search can find previously liked and matched people without exposing blocked accounts", () => {
+  const searchable = discoveryExcludedIds({
+    viewerId: "me",
+    includePassed: true,
+    hasRequestedLocation: true,
+    travelMode: false,
+    includePreviouslyReacted: true,
+    reactions: [{ id: "liked", type: "like" }, { id: "passed", type: "pass" }],
+    blocks: [{ blockerId: "blocked-me", blockedId: "me" }, { blockerId: "me", blockedId: "blocked" }],
+  });
+  assert.equal(searchable.has("me"), true);
+  assert.equal(searchable.has("liked"), false);
+  assert.equal(searchable.has("passed"), false);
+  assert.equal(searchable.has("blocked"), true);
+  assert.equal(searchable.has("blocked-me"), true);
+});
+
 test("more unseen members append without replacing the visible card", () => {
   const old = [{ id: "seen" }, { id: "current" }, { id: "tail" }];
   const next = continueDiscoveryDeck(old, [{ id: "new" }, { id: "tail" }], 1);
@@ -63,9 +80,12 @@ test("empty server results stay truthful rather than fabricating members", () =>
 
 test("server fallback reuses all safety/location conditions and excludes existing matches", () => {
   const code = readFileSync(new URL("../src/routes/vibeswipe.ts", import.meta.url), "utf8");
-  assert.match(code, /if \(!candidates.length && reacted.some\(row => row.type === "pass"\)\)/);
+  assert.match(code, /if \(!searchTerm && !candidates.length && reacted.some\(row => row.type === "pass"\)\)/);
   assert.match(code, /recyclePassed: true/);
-  assert.match(code, /for \(const id of matchedIds\) excludedIds.add\(id\)/);
+  assert.match(code, /if \(!searchTerm\) for \(const id of matchedIds\) excludedIds.add\(id\)/);
+  assert.match(code, /includePreviouslyReacted: Boolean\(searchTerm\)/);
+  assert.match(code, /const smartDefault = !searchTerm && automaticDiscovery/);
+  assert.match(code, /if \(searchTerm\) \{\s*candidates = await queryCandidates\(\[\], 50\)/);
   assert.match(code, /candidates = await loadCandidates\(\)/);
   for (const condition of ["profilesTable.deactivated, false", "profilesTable.adminSuspended, false",
     "profilesTable.incognito, false", "gte(profilesTable.age, ageMin)", "lte(profilesTable.age, ageMax)",
