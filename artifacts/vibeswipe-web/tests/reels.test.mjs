@@ -48,8 +48,9 @@ test("Reels search updates results while typing across captions and locations", 
   const spec = read("../../../lib/api-spec/openapi.yaml");
   assert.match(feed, /data-testid="button-search-reels"/);
   assert.match(feed, /data-testid="input-search-reels"/);
+  assert.match(feed, /placeholder="Search Reels"/);
   assert.match(feed, /q: debouncedSearchText/);
-  assert.match(feed, /Search Reel captions, people, or places as you type/);
+  assert.doesNotMatch(feed, /Search Reel captions, people, or places as you type/);
   assert.match(route, /reelSearchTerms\(query\.data\.q\)/);
   assert.match(route, /profilesTable\.city/);
   assert.match(spec, /name: q/);

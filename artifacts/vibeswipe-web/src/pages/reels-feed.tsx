@@ -357,13 +357,13 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
           <button type="button" onClick={closeSearch} aria-label="Close Reel search" className="reels-icon"><ArrowLeft size={22} /></button>
           <label className="reels-search-field">
             <Search size={18} aria-hidden="true" />
-            <input autoFocus type="search" value={searchText} onChange={(event) => setSearchText(event.target.value)} maxLength={120} placeholder="Search captions, people, or places" aria-label="Search Reels by caption, person, or place" data-testid="input-search-reels" />
+            <input autoFocus type="search" value={searchText} onChange={(event) => setSearchText(event.target.value)} maxLength={120} placeholder="Search Reels" aria-label="Search Reels" data-testid="input-search-reels" />
             {searchText && <button type="button" onClick={() => setSearchText("")} aria-label="Clear Reel search"><X size={17} /></button>}
           </label>
         </div>
         <div className="reels-search-results" aria-live="polite">
           {debouncedSearchText.trim().length < 2
-            ? <p className="reels-search-hint">Search Reel captions, people, or places as you type.</p>
+            ? null
             : searchFeed.isLoading
               ? <div className="reels-search-status"><LoaderCircle size={20} className="animate-spin" />Searching Reels…</div>
               : searchFeed.isError
