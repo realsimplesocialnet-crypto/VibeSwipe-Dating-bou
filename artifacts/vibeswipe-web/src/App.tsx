@@ -874,31 +874,45 @@ function PublicProfile({id,actionReturnTo='/discover'}:{id:string;actionReturnTo
     {actionError&&<span role="alert" className="sh-dating-error">{actionError}</span>}
     {!actionError&&likeOut&&!alreadyLiked&&!matchedId&&<span className="sh-dating-error">Today’s likes are used up.</span>}
   </div>;
-  return <div className="public-profile min-h-[100dvh]"><main className="page-in mx-auto w-full max-w-md px-5 pt-2 pb-[calc(6rem+env(safe-area-inset-bottom))]" data-testid="public-profile-page">
-   <div className="flex items-center justify-between">
-     <Link href={actionReturnTo} replace aria-label="Back" data-testid="link-public-profile-back-top" className="pp-round"><ArrowLeft size={20}/></Link>
-    <button type="button" onClick={()=>{setSafetyError('');setConfirmSafety(null);setMenu(true)}} aria-label={`More actions for ${profile.name}`} data-testid="button-public-profile-more" className="pp-round"><MoreHorizontal size={20}/></button>
-   </div>
-    <header className="mt-3 flex flex-col items-center text-center">
-    <button type="button" disabled={!photos.length} onClick={()=>setViewer(0)} aria-label={`Open ${profile.name}'s main photo`} data-testid="button-public-profile-avatar" className={`pp-avatar ${fromLikes?'pp-avatar-hero':''}`}>
-     {photos.length&&!photoError?<MediaImage reference={photos[0]} alt={`${profile.name}'s main photo`} onError={()=>setPhotoError(true)} className={`h-full w-full object-cover ${fromLikes?'rounded-[24px]':'rounded-full'}`}/>:<span className="brand text-5xl font-bold">{profile.name.trim().slice(0,1).toUpperCase()}</span>}
-    </button>
-    <h1 data-testid="text-public-profile-name" className="mt-4 break-words text-[1.75rem] font-extrabold leading-tight tracking-[-.02em]">{profile.name}{profile.showAge&&profile.age!==null&&<span className="font-semibold text-[hsl(var(--pp-muted))]">, {profile.age}</span>}<VerifiedBadge verified={profile.isVerified}/></h1>
-    <p data-testid="text-public-profile-location" className="mt-1 flex items-center gap-1.5 text-[14px] text-[hsl(var(--pp-muted))]"><MapPin size={15} className="shrink-0 text-[hsl(var(--pp-pink))]"/>{headerLocation||'Location not shared'}</p>
-   </header>
-     <ProfileSocialActions profileId={profile.id} viewerId={me.data?.id} datingAction={datingAction} />
-   <section className="pp-card mt-7 divide-y divide-[hsl(var(--pp-line))] !py-1" data-testid="section-facts">
-    {facts.map(f=><div key={f.label} className="flex items-center gap-3.5 py-3" data-testid={`section-${f.label.toLowerCase().replace(/\s/g,'-')}`}><span className="pp-icon"><f.icon size={17}/></span><span className="text-[13px] font-semibold text-[hsl(var(--pp-muted))]">{f.label}</span><span className="ml-auto max-w-[60%] break-words text-right text-[15px] font-semibold">{f.value}</span></div>)}
-   </section>
-   <section className="pp-card mt-4" data-testid="section-about"><h2 className="pp-label">About me</h2><p className="mt-2 whitespace-pre-wrap text-[15px] leading-6">{profile.bio||'No bio added yet.'}</p>
-    {profile.interests.length>0&&<div className="mt-4 flex flex-wrap gap-2" data-testid="section-interests">{profile.interests.map(interest=><span key={interest} className="pp-pill">{interest}</span>)}</div>}
-    {location&&location!==headerLocation&&<p className="mt-4 text-[13px] text-[hsl(var(--pp-muted))]">Based in {location}</p>}
-   </section>
-   <section className="mt-6" data-testid="section-more-photos"><div className="flex items-baseline justify-between px-1"><h2 className="pp-label">Photos</h2><span className="text-xs font-semibold text-[hsl(var(--pp-muted))]">{photos.length}</span></div>
-    {photos.length?<div data-testid="public-profile-gallery" className="hide-scrollbar -mx-5 mt-3 flex gap-3 overflow-x-auto px-5 pb-1">{photos.map((photo,index)=><button key={`${photo}-${index}`} type="button" onClick={()=>setViewer(index)} aria-label={`Open photo ${index+1} of ${photos.length}`} data-testid={`button-public-profile-photo-${index}`} className="pp-thumb"><MediaImage reference={photo} alt={`${profile.name}'s photo ${index+1}`} className="h-full w-full object-cover"/></button>)}</div>:<p className="mt-2 px-1 text-sm text-[hsl(var(--pp-muted))]">No photos shared yet.</p>}
-   </section>
-    <ProfileReelsSection profileId={profile.id} returnTo={`/profile/${encodeURIComponent(id)}?returnTo=${encodeURIComponent(actionReturnTo)}`} />
-   </main>
+  return <div className="public-profile min-h-[100dvh]"><main className="page-in pp-main mx-auto w-full px-4 pb-[calc(6rem+env(safe-area-inset-bottom))] pt-2 md:px-6" data-testid="public-profile-page">
+    <div className="flex items-center justify-between">
+      <Link href={actionReturnTo} replace aria-label="Back" data-testid="link-public-profile-back-top" className="pp-round"><ArrowLeft size={20}/></Link>
+      <button type="button" onClick={()=>{setSafetyError('');setConfirmSafety(null);setMenu(true)}} aria-label={`More actions for ${profile.name}`} data-testid="button-public-profile-more" className="pp-round"><MoreHorizontal size={20}/></button>
+    </div>
+    {fromLikes&&<button type="button" disabled={!photos.length} onClick={()=>setViewer(0)} aria-label={`Open ${profile.name}'s main photo`} data-testid="public-profile-hero" className="pp-avatar pp-avatar-hero mt-4">
+      {photos.length&&!photoError?<MediaImage reference={photos[0]} alt={`${profile.name}'s main photo`} onError={()=>setPhotoError(true)} className="h-full w-full object-cover"/>:<span className="brand text-5xl font-bold">{profile.name.trim().slice(0,1).toUpperCase()}</span>}
+    </button>}
+    <header className={`pp-identity-panel ${fromLikes?'pp-identity-panel-centered mt-4':'mt-4'}`}>
+      {!fromLikes&&<button type="button" disabled={!photos.length} onClick={()=>setViewer(0)} aria-label={`Open ${profile.name}'s main photo`} data-testid="button-public-profile-avatar" className="pp-avatar pp-avatar-identity">
+        {photos.length&&!photoError?<MediaImage reference={photos[0]} alt={`${profile.name}'s main photo`} onError={()=>setPhotoError(true)} className="h-full w-full rounded-full object-cover"/>:<span className="brand text-4xl font-bold">{profile.name.trim().slice(0,1).toUpperCase()}</span>}
+      </button>}
+      <div className="pp-identity-copy">
+        <h1 data-testid="text-public-profile-name" className="break-words text-[1.55rem] font-extrabold leading-tight tracking-[-.035em] sm:text-[1.85rem]">{profile.name}{profile.showAge&&profile.age!==null&&<span className="font-semibold text-[hsl(var(--pp-muted))]">, {profile.age}</span>}<VerifiedBadge verified={profile.isVerified}/></h1>
+        <p data-testid="text-public-profile-location" className="mt-1 flex items-center gap-1.5 text-[14px] text-[hsl(var(--pp-muted))]"><MapPin size={15} className="shrink-0 text-[hsl(var(--pp-pink))]"/>{headerLocation||'Location not shared'}</p>
+      </div>
+    </header>
+    <ProfileSocialActions profileId={profile.id} viewerId={me.data?.id} datingAction={datingAction} />
+    <div className="pp-layout mt-5">
+      <div className="pp-profile-details">
+        <section className="pp-card" data-testid="section-about">
+          <h2 className="pp-label">About me</h2>
+          <p className="mt-2 whitespace-pre-wrap text-[15px] leading-6">{profile.bio||'No bio added yet.'}</p>
+          {profile.interests.length>0&&<div className="mt-4 flex flex-wrap gap-2" data-testid="section-interests">{profile.interests.map(interest=><span key={interest} className="pp-pill">{interest}</span>)}</div>}
+          {location&&location!==headerLocation&&<p className="mt-4 text-[13px] text-[hsl(var(--pp-muted))]">Based in {location}</p>}
+          <div className="pp-facts" data-testid="section-facts">
+            {facts.map(f=><div key={f.label} className="pp-fact" data-testid={`section-${f.label.toLowerCase().replace(/\s/g,'-')}`}><span className="pp-icon"><f.icon size={17}/></span><span className="min-w-0"><span className="block text-[11px] font-semibold text-[hsl(var(--pp-muted))]">{f.label}</span><span className="mt-0.5 block break-words text-[13px] font-bold">{f.value}</span></span></div>)}
+          </div>
+        </section>
+      </div>
+      <div className="pp-profile-media">
+        <section className="pp-media-section" data-testid="section-more-photos">
+          <div className="pp-media-heading"><h2 className="pp-label">Photos</h2><span className="text-xs font-semibold text-[hsl(var(--pp-muted))]">{photos.length}</span></div>
+          {photos.length?<div data-testid="public-profile-gallery" className="pp-gallery-grid">{photos.map((photo,index)=><button key={`${photo}-${index}`} type="button" onClick={()=>setViewer(index)} aria-label={`Open photo ${index+1} of ${photos.length}`} data-testid={`button-public-profile-photo-${index}`} className="pp-thumb"><MediaImage reference={photo} alt={`${profile.name}'s photo ${index+1}`} className="h-full w-full object-cover"/></button>)}</div>:<p className="mt-2 text-sm text-[hsl(var(--pp-muted))]">No photos shared yet.</p>}
+        </section>
+        <ProfileReelsSection profileId={profile.id} returnTo={`/profile/${encodeURIComponent(id)}?returnTo=${encodeURIComponent(actionReturnTo)}`} layout="grid" />
+      </div>
+    </div>
+    </main>
    {viewer!==null&&photos[viewer]&&<div className="fixed inset-0 z-[70] flex flex-col bg-[hsl(330_20%_6%/.94)]" role="dialog" aria-modal="true" aria-label={`${profile.name}'s photos`} data-testid="public-profile-photo-viewer" onTouchStart={e=>{(e.currentTarget as HTMLElement).dataset.x=String(e.touches[0].clientX)}} onTouchEnd={e=>{const start=Number((e.currentTarget as HTMLElement).dataset.x);const dx=e.changedTouches[0].clientX-start;if(Math.abs(dx)>50)setViewer(v=>v===null?v:Math.max(0,Math.min(photos.length-1,v+(dx<0?1:-1))))}}>
     <div className="flex items-center justify-between px-4 pt-[calc(1rem+env(safe-area-inset-top))] text-[hsl(330_30%_96%)]"><span className="text-sm font-semibold">{viewer+1} / {photos.length}</span><button type="button" autoFocus onClick={()=>setViewer(null)} aria-label="Close photos" data-testid="button-close-photo-viewer" className="flex h-11 w-11 items-center justify-center rounded-full bg-[hsl(0_0%_100%/.12)]"><X size={22}/></button></div>
     <div className="relative flex flex-1 items-center justify-center p-4"><MediaImage reference={photos[viewer]} alt={`${profile.name}'s photo ${viewer+1}`} className="max-h-full max-w-full rounded-2xl object-contain"/>

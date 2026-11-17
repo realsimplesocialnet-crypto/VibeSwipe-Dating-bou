@@ -16,13 +16,16 @@ import { mediaUri } from "@/lib/media";
 export function ProfileReelsSection({
   profileId,
   returnTo,
+  layout = "carousel",
 }: {
   profileId: string;
   returnTo: string;
+  layout?: "carousel" | "grid";
 }) {
   const colors = usePremiumColors();
   const { getToken } = useAuth();
   const [token, setToken] = useState<string | null>(null);
+  const [sectionWidth, setSectionWidth] = useState(0);
   const reelsQuery = useInfiniteQuery({
     queryKey: getGetProfileReelsQueryKey({ profileId }),
     initialPageParam: undefined as string | undefined,
@@ -54,7 +57,7 @@ export function ProfileReelsSection({
   }
 
   return (
-    <View testID="profile-reels-section" style={[styles.section, { backgroundColor: colors.profileCard }]}>
+    <View testID="profile-reels-section" onLayout={(event) => setSectionWidth(event.nativeEvent.layout.width)} style={[styles.section, { backgroundColor: colors.profileCard }]}>
       <View style={styles.heading}>
         <View style={[styles.icon, { backgroundColor: colors.profileChip }]}>
           <Feather name="film" size={13} color={colors.profileEdit} />
@@ -70,31 +73,62 @@ export function ProfileReelsSection({
           <Text accessibilityRole="alert" style={[styles.empty, { color: colors.profileMuted }]}>Reels couldn’t load. Tap to retry.</Text>
         </Pressable>
       ) : reels.length ? (
-        <FlatList
-          horizontal
-          data={reels}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <ReelThumbnail
-              reel={item}
-              token={token}
-              onPress={() => openReel(item)}
-            />
-          )}
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.row}
-          onEndReached={() => {
-            if (reelsQuery.hasNextPage && !reelsQuery.isFetchingNextPage) {
-              void reelsQuery.fetchNextPage();
-            }
-          }}
-          onEndReachedThreshold={0.5}
-          initialNumToRender={4}
-          maxToRenderPerBatch={4}
-          windowSize={4}
-          ListFooterComponent={reelsQuery.isFetchingNextPage ? <ActivityIndicator color={colors.primary} style={styles.more} /> : undefined}
-          testID="profile-reels-carousel"
-        />
+        layout === "grid" ? (
+          <>
+            <View style={styles.grid} testID="profile-reels-grid">
+              {reels.map((item) => (
+                <ReelThumbnail
+                  key={item.id}
+                  reel={item}
+                  token={token}
+                  layout="grid"
+                  tileWidth={Math.max(72, Math.floor((sectionWidth - 24 - 16) / 3))}
+                  onPress={() => openReel(item)}
+                />
+              ))}
+            </View>
+            {reelsQuery.hasNextPage ? (
+              <Pressable
+                testID="button-load-more-profile-reels"
+                accessibilityRole="button"
+                disabled={reelsQuery.isFetchingNextPage}
+                onPress={() => void reelsQuery.fetchNextPage()}
+                style={[styles.loadMore, { borderColor: colors.border }]}
+              >
+                {reelsQuery.isFetchingNextPage
+                  ? <ActivityIndicator size="small" color={colors.primary} />
+                  : <Text style={{ color: colors.profileEdit, fontWeight: "800", fontSize: 13 }}>Load more</Text>}
+              </Pressable>
+            ) : null}
+          </>
+        ) : (
+          <FlatList
+            horizontal
+            data={reels}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => (
+              <ReelThumbnail
+                reel={item}
+                token={token}
+                layout="carousel"
+                onPress={() => openReel(item)}
+              />
+            )}
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.row}
+            onEndReached={() => {
+              if (reelsQuery.hasNextPage && !reelsQuery.isFetchingNextPage) {
+                void reelsQuery.fetchNextPage();
+              }
+            }}
+            onEndReachedThreshold={0.5}
+            initialNumToRender={4}
+            maxToRenderPerBatch={4}
+            windowSize={4}
+            ListFooterComponent={reelsQuery.isFetchingNextPage ? <ActivityIndicator color={colors.primary} style={styles.more} /> : undefined}
+            testID="profile-reels-carousel"
+          />
+        )
       ) : (
         <Text testID="profile-reels-empty" style={[styles.empty, { color: colors.profileMuted }]}>No reels yet.</Text>
       )}
@@ -105,10 +139,14 @@ export function ProfileReelsSection({
 function ReelThumbnail({
   reel,
   token,
+  layout,
+  tileWidth,
   onPress,
 }: {
   reel: Reel;
   token: string | null;
+  layout: "carousel" | "grid";
+  tileWidth?: number;
   onPress: () => void;
 }) {
   const viewCount = Number(reel.viewCount ?? 0);
@@ -129,7 +167,7 @@ function ReelThumbnail({
       accessibilityRole="button"
       accessibilityLabel={`Play Reel${reel.caption ? `: ${reel.caption}` : ""}, ${viewLabel}`}
       onPress={onPress}
-      style={({ pressed }) => [styles.thumbnail, { opacity: pressed ? 0.82 : 1 }]}
+      style={({ pressed }) => [styles.thumbnail, { width: layout === "grid" ? tileWidth : 74, aspectRatio: layout === "grid" ? 3 / 4 : 9 / 16, opacity: pressed ? 0.82 : 1 }]}
     >
       <View style={styles.videoFrame}>
         {source ? (
@@ -156,7 +194,7 @@ const styles = StyleSheet.create({
   title: { fontSize: 11, fontWeight: "800", letterSpacing: 1.5, flex: 1 },
   count: { fontSize: 12, fontWeight: "600" },
   row: { gap: 8, paddingBottom: 2 },
-  thumbnail: { width: 74, aspectRatio: 9 / 16, borderRadius: 12, overflow: "hidden", backgroundColor: "#100f12" },
+  thumbnail: { borderRadius: 12, overflow: "hidden", backgroundColor: "#100f12" },
   videoFrame: { flex: 1, overflow: "hidden" },
   videoFallback: { flex: 1, alignItems: "center", justifyContent: "center" },
   playBadge: { position: "absolute", left: "50%", top: "50%", width: 30, height: 30, marginLeft: -15, marginTop: -15, borderRadius: 15, backgroundColor: "rgba(0,0,0,0.52)", alignItems: "center", justifyContent: "center" },
@@ -165,6 +203,8 @@ const styles = StyleSheet.create({
   empty: { fontSize: 13, lineHeight: 19, paddingVertical: 2 },
   loading: { alignSelf: "flex-start", marginVertical: 14, marginLeft: 4 },
   more: { width: 34 },
+  grid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  loadMore: { minHeight: 42, borderWidth: 1, borderRadius: 13, alignItems: "center", justifyContent: "center", marginTop: 4 },
 });
 
 function formatViewCount(value: number): string {

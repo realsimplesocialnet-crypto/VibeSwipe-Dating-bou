@@ -238,6 +238,8 @@ export default function PublicProfileScreen() {
   const avatarSource = photos.length ? profileImageSource(photos[0], token) : undefined;
   const viewerWidth = Math.min(width, 900);
   const heroHeight = Math.min(Math.max(height * 0.42, 280), 420);
+  const mediaColumnWidth = width >= 820 ? Math.min(360, Math.floor((Math.min(width, 900) - 48) * 0.44)) : Math.max(0, Math.min(width, 900) - (width < 380 ? 32 : 48));
+  const photoTileWidth = Math.max(72, Math.floor((mediaColumnWidth - 16) / 3));
   const dateActionDisabled = matchId
     ? Boolean(profileMatch?.blockedByMe || profileMatch?.blockedMe)
     : locked || datingState.isLoading || (!alreadyLiked && dailyLikeStatus.isLoading) || superLiked || (!alreadyLiked && (likeOut || (!datingState.data && !datingState.isError)));
@@ -278,7 +280,7 @@ export default function PublicProfileScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: bg }}>
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={[styles.content, { paddingTop: topInset, paddingBottom: bottomInset + 40 }]}>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={[styles.content, { paddingTop: topInset, paddingBottom: bottomInset + 40, paddingHorizontal: width < 380 ? 16 : 24 }]}>
         <View style={styles.topRow}>
           <Pressable testID="public-profile-back" accessibilityRole="button" accessibilityLabel="Back to Likes" onPress={goBack} style={[styles.round, { backgroundColor: colors.profileCard, shadowColor: colors.profileChipForeground }]}>
             <Feather name="arrow-left" size={20} color={colors.foreground} />
@@ -294,69 +296,85 @@ export default function PublicProfileScreen() {
           </Pressable>
         ) : null}
 
-        <View style={[styles.header, fromLikes && { marginTop: 12, marginBottom: 18 }]}>
-          {!fromLikes ? (
+        {fromLikes ? (
+          <View style={[styles.likesHeader, { marginTop: 12 }]}>
+            <Text testID="public-profile-name" style={[styles.name, { color: colors.foreground, textAlign: "center" }]}>
+              {user.name}{showAge ? <Text style={{ color: colors.profileMuted, fontWeight: "600" }}>, {user.age}</Text> : null}
+              {user.isVerified && <Feather name="check-circle" size={21} color="#2997e8" accessibilityLabel="Verified profile" />}
+            </Text>
+            <View style={styles.locationRow}>
+              <Feather name="map-pin" size={14} color={colors.profileEdit} />
+              <Text testID="public-profile-location" style={[styles.city, { color: colors.profileMuted }]}>{headerLocation || "Location not shared"}</Text>
+            </View>
+          </View>
+        ) : (
+          <View style={[styles.identityPanel, { backgroundColor: colors.profileCard, borderColor: colors.border, shadowColor: colors.profileChipForeground }]}>
             <Pressable testID="public-profile-avatar" accessibilityRole="imagebutton" accessibilityLabel={`Open ${user.name}'s main photo`} disabled={!photos.length} onPress={() => setViewer(0)} style={[styles.avatarRing, { borderColor: colors.profileEdit, backgroundColor: colors.profileCard, shadowColor: colors.profileChipForeground }]}>
-              {avatarSource && !avatarError ? (
-                <Image source={avatarSource} onError={() => setAvatarError(true)} style={styles.avatar} resizeMode="cover" accessibilityLabel={`${user.name}'s main photo`} />
-              ) : (
-                <Text style={[styles.initial, { color: colors.profileEdit }]}>{user.name.trim().slice(0, 1).toUpperCase()}</Text>
-              )}
+              {avatarSource && !avatarError
+                ? <Image source={avatarSource} onError={() => setAvatarError(true)} style={styles.avatar} resizeMode="cover" accessibilityLabel={`${user.name}'s main photo`} />
+                : <Text style={[styles.initial, { color: colors.profileEdit }]}>{user.name.trim().slice(0, 1).toUpperCase()}</Text>}
             </Pressable>
-          ) : null}
-          <Text testID="public-profile-name" style={[styles.name, { color: colors.foreground }]}>
-            {user.name}{showAge ? <Text style={{ color: colors.profileMuted, fontWeight: "600" }}>, {user.age}</Text> : null}
-            {user.isVerified && <Feather name="check-circle" size={21} color="#2997e8" accessibilityLabel="Verified profile"/>}
-          </Text>
-          <View style={styles.locationRow}>
-            <Feather name="map-pin" size={14} color={colors.profileEdit} />
-            <Text testID="public-profile-location" style={[styles.city, { color: colors.profileMuted }]}>{headerLocation || "Location not shared"}</Text>
-          </View>
-          <ProfileFollowStats profileId={user.id} viewerId={me.data?.id} datingAction={datingAction} />
-        </View>
-
-        <View style={[styles.card, { backgroundColor: colors.profileCard, shadowColor: colors.profileChipForeground, paddingVertical: 4 }]}>
-          {facts.map((f, i) => (
-            <View key={f.label} testID={f.testID} style={[styles.factRow, i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.profileRule }]}>
-              <View style={[styles.factIcon, { backgroundColor: colors.profileChip }]}><Feather name={f.icon} size={16} color={colors.profileEdit} /></View>
-              <Text style={[styles.factLabel, { color: colors.profileMuted }]}>{f.label}</Text>
-              <Text style={[styles.factValue, { color: colors.foreground }]}>{f.value}</Text>
+            <View style={styles.identityCopy}>
+              <Text testID="public-profile-name" style={[styles.name, { color: colors.foreground }]}>
+                {user.name}{showAge ? <Text style={{ color: colors.profileMuted, fontWeight: "600" }}>, {user.age}</Text> : null}
+                {user.isVerified && <Feather name="check-circle" size={21} color="#2997e8" accessibilityLabel="Verified profile" />}
+              </Text>
+              <View style={styles.locationRow}>
+                <Feather name="map-pin" size={14} color={colors.profileEdit} />
+                <Text testID="public-profile-location" style={[styles.city, { color: colors.profileMuted }]}>{headerLocation || "Location not shared"}</Text>
+              </View>
             </View>
-          ))}
-        </View>
-
-        <View testID="public-profile-about" style={[styles.card, { backgroundColor: colors.profileCard, shadowColor: colors.profileChipForeground, marginTop: 14 }]}>
-          <Text style={[styles.label, { color: colors.profileEdit }]}>ABOUT ME</Text>
-          <Text style={[styles.value, { color: colors.foreground, marginTop: 8 }]}>{user.bio || "No bio added yet."}</Text>
-          {user.interests.length ? (
-            <View testID="public-profile-interests" style={styles.tags}>
-              {user.interests.map((item) => (
-                <Text key={item} style={[styles.tag, { color: colors.profileChipForeground, backgroundColor: colors.profileChip }]}>{item}</Text>
-              ))}
-            </View>
-          ) : null}
-          {fullLocation && fullLocation !== headerLocation ? <Text style={[styles.small, { color: colors.profileMuted }]}>Based in {fullLocation}</Text> : null}
-        </View>
-
-        <View testID="public-profile-more-photos" style={{ marginTop: 22 }}>
-          <View style={styles.photosHead}>
-            <Text style={[styles.label, { color: colors.profileEdit }]}>PHOTOS</Text>
-            <Text style={[styles.small, { color: colors.profileMuted, marginTop: 0 }]}>{photos.length}</Text>
           </View>
-          {photos.length ? (
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.thumbRow}>
-              {photos.map((photo, index) => {
-                const source = profileImageSource(photo, token);
-                return (
-                  <Pressable key={`${photo}-${index}`} testID={`public-profile-photo-${index}`} accessibilityRole="imagebutton" accessibilityLabel={`Open photo ${index + 1} of ${photos.length}`} onPress={() => setViewer(index)} style={({ pressed }) => [styles.thumb, { backgroundColor: colors.profileChip, transform: [{ scale: pressed ? 0.96 : 1 }] }]}>
-                    {source ? <Image source={source} style={StyleSheet.absoluteFill} resizeMode="cover" /> : null}
-                  </Pressable>
-                );
-              })}
-            </ScrollView>
-          ) : <Text style={[styles.value, { color: colors.profileMuted, marginTop: 8 }]}>No photos shared yet.</Text>}
+        )}
+        <ProfileFollowStats profileId={user.id} viewerId={me.data?.id} datingAction={datingAction} />
+
+        <View style={[styles.profileLayout, width >= 820 && styles.profileLayoutWide]}>
+          <View style={[styles.detailColumn, width >= 820 && styles.detailColumnWide]}>
+            <View testID="public-profile-about" style={[styles.card, { backgroundColor: colors.profileCard, shadowColor: colors.profileChipForeground }]}>
+              <Text style={[styles.label, { color: colors.profileEdit }]}>ABOUT ME</Text>
+              <Text style={[styles.value, { color: colors.foreground, marginTop: 8 }]}>{user.bio || "No bio added yet."}</Text>
+              {user.interests.length ? (
+                <View testID="public-profile-interests" style={styles.tags}>
+                  {user.interests.map((item) => <Text key={item} style={[styles.tag, { color: colors.profileChipForeground, backgroundColor: colors.profileChip }]}>{item}</Text>)}
+                </View>
+              ) : null}
+              {fullLocation && fullLocation !== headerLocation ? <Text style={[styles.small, { color: colors.profileMuted }]}>Based in {fullLocation}</Text> : null}
+              <View testID="public-profile-facts" style={[styles.factGrid, { borderTopColor: colors.profileRule }]}>
+                {facts.map((f) => (
+                  <View key={f.label} testID={f.testID} style={[styles.compactFact, { backgroundColor: colors.profileChip }]}>
+                    <View style={[styles.factIcon, { backgroundColor: colors.profileCard }]}><Feather name={f.icon} size={15} color={colors.profileEdit} /></View>
+                    <View style={styles.compactFactCopy}>
+                      <Text style={[styles.factLabel, { color: colors.profileMuted }]}>{f.label}</Text>
+                      <Text style={[styles.factValue, { color: colors.foreground }]}>{f.value}</Text>
+                    </View>
+                  </View>
+                ))}
+              </View>
+            </View>
+          </View>
+
+          <View style={[styles.mediaColumn, width >= 820 && { width: mediaColumnWidth }]}>
+            <View testID="public-profile-more-photos" style={styles.mediaSection}>
+              <View style={styles.photosHead}>
+                <Text style={[styles.label, { color: colors.profileEdit }]}>PHOTOS</Text>
+                <Text style={[styles.small, { color: colors.profileMuted, marginTop: 0 }]}>{photos.length}</Text>
+              </View>
+              {photos.length ? (
+                <View testID="public-profile-photo-grid" style={styles.photoGrid}>
+                  {photos.map((photo, index) => {
+                    const source = profileImageSource(photo, token);
+                    return (
+                      <Pressable key={`${photo}-${index}`} testID={`public-profile-photo-${index}`} accessibilityRole="imagebutton" accessibilityLabel={`Open photo ${index + 1} of ${photos.length}`} onPress={() => setViewer(index)} style={({ pressed }) => [styles.thumb, { width: photoTileWidth, backgroundColor: colors.profileChip, transform: [{ scale: pressed ? 0.96 : 1 }] }]}>
+                        {source ? <Image source={source} style={StyleSheet.absoluteFill} resizeMode="cover" /> : null}
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              ) : <Text style={[styles.value, { color: colors.profileMuted, marginTop: 8 }]}>No photos shared yet.</Text>}
+            </View>
+            <ProfileReelsSection profileId={id} returnTo={reelReturnTo} layout="grid" />
+          </View>
         </View>
-        <ProfileReelsSection profileId={id} returnTo={reelReturnTo} />
       </ScrollView>
 
       {confirmation ? (
@@ -448,32 +466,42 @@ const styles = StyleSheet.create({
   skelCard: { width: "86%", maxWidth: 420, height: 160, borderRadius: 22 },
   pillButton: { minHeight: 46, minWidth: 160, borderRadius: 23, alignItems: "center", justifyContent: "center", paddingHorizontal: 20 },
   pillButtonText: { fontSize: 14, fontWeight: "700" },
-  content: { width: "100%", maxWidth: 520, alignSelf: "center", paddingHorizontal: 20 },
+  content: { width: "100%", maxWidth: 900, alignSelf: "center", paddingHorizontal: 20 },
   topRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   round: { width: 42, height: 42, borderRadius: 21, alignItems: "center", justifyContent: "center", ...shadow },
-  header: { alignItems: "center", marginTop: 10, marginBottom: 20 },
+  identityPanel: { width: "100%", minHeight: 112, flexDirection: "row", alignItems: "center", gap: 14, borderWidth: StyleSheet.hairlineWidth, borderRadius: 24, padding: 12, ...shadow, shadowOpacity: 0.08 },
+  identityCopy: { flex: 1, minWidth: 0 },
+  likesHeader: { alignItems: "center", marginBottom: 18 },
   likesHero: { width: "100%", borderRadius: 24, overflow: "hidden", alignItems: "center", justifyContent: "center", marginTop: 16, borderWidth: 1, ...shadow },
   heroInitial: { fontSize: 64, fontWeight: "800" },
   profileActionButton: { width: "100%", minHeight: 42, borderWidth: 1.5, borderRadius: 999, paddingHorizontal: 10, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6 },
-  avatarRing: { width: 136, height: 136, borderRadius: 68, borderWidth: 2, padding: 4, alignItems: "center", justifyContent: "center", ...shadow, shadowOpacity: 0.2 },
-  avatar: { width: "100%", height: "100%", borderRadius: 64 },
-  initial: { fontSize: 48, fontWeight: "800" },
-  name: { fontSize: 28, fontWeight: "800", letterSpacing: -0.4, marginTop: 14, textAlign: "center" },
+  avatarRing: { width: 92, height: 92, flexShrink: 0, borderRadius: 46, borderWidth: 2, padding: 3, alignItems: "center", justifyContent: "center", ...shadow, shadowOpacity: 0.2 },
+  avatar: { width: "100%", height: "100%", borderRadius: 44 },
+  initial: { fontSize: 36, fontWeight: "800" },
+  name: { fontSize: 24, fontWeight: "800", letterSpacing: -0.5, textAlign: "left" },
   locationRow: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 4 },
-  city: { fontSize: 14, fontWeight: "500" },
+  city: { minWidth: 0, flexShrink: 1, fontSize: 14, fontWeight: "600" },
   card: { borderRadius: 22, paddingHorizontal: 18, paddingVertical: 16, ...shadow, shadowOpacity: 0.08 },
-  factRow: { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 12 },
-  factIcon: { width: 34, height: 34, borderRadius: 17, alignItems: "center", justifyContent: "center" },
-  factLabel: { fontSize: 13, fontWeight: "600" },
-  factValue: { flex: 1, textAlign: "right", fontSize: 15, fontWeight: "600" },
+  profileLayout: { width: "100%", gap: 16, marginTop: 16 },
+  profileLayoutWide: { flexDirection: "row", alignItems: "flex-start", gap: 18 },
+  detailColumn: { minWidth: 0 },
+  detailColumnWide: { flex: 1 },
+  mediaColumn: { minWidth: 0, gap: 18 },
+  factGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 18, borderTopWidth: StyleSheet.hairlineWidth, paddingTop: 14 },
+  compactFact: { minWidth: 132, flex: 1, flexDirection: "row", alignItems: "center", gap: 8, borderRadius: 14, padding: 8 },
+  compactFactCopy: { flex: 1, minWidth: 0 },
+  factIcon: { width: 30, height: 30, borderRadius: 15, alignItems: "center", justifyContent: "center", flexShrink: 0 },
+  factLabel: { fontSize: 11, fontWeight: "700" },
+  factValue: { marginTop: 2, fontSize: 13, lineHeight: 17, fontWeight: "700" },
   label: { fontSize: 12, fontWeight: "800", letterSpacing: 1.4 },
   value: { fontSize: 15, lineHeight: 22 },
   small: { fontSize: 13, marginTop: 12 },
   tags: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 14 },
   tag: { overflow: "hidden", borderRadius: 16, paddingHorizontal: 13, paddingVertical: 6, fontSize: 13, fontWeight: "600" },
   photosHead: { flexDirection: "row", justifyContent: "space-between", alignItems: "baseline", paddingHorizontal: 4 },
-  thumbRow: { gap: 12, paddingTop: 12, paddingBottom: 4, paddingHorizontal: 2 },
-  thumb: { width: 84, height: 104, borderRadius: 16, overflow: "hidden" },
+  mediaSection: { width: "100%" },
+  photoGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 12 },
+  thumb: { aspectRatio: 1, borderRadius: 14, overflow: "hidden" },
   confirmation: { position: "absolute", alignSelf: "center", zIndex: 10, flexDirection: "row", alignItems: "center", gap: 8, borderRadius: 24, paddingHorizontal: 17, paddingVertical: 12, ...shadow, elevation: 8 },
   confirmationText: { fontSize: 14, fontWeight: "700" },
   viewerTop: { position: "absolute", left: 16, right: 16, flexDirection: "row", justifyContent: "space-between", alignItems: "center" },

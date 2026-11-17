@@ -8,11 +8,14 @@ export function ProfileReelsSection({
   profileId,
   returnTo,
   own = false,
+  layout = "carousel",
 }: {
   profileId: string;
   returnTo: string;
   own?: boolean;
+  layout?: "carousel" | "grid";
 }) {
+  const isGrid = !own && layout === "grid";
   const reelsQuery = useInfiniteQuery({
     queryKey: getGetProfileReelsQueryKey({ profileId }),
     initialPageParam: undefined as string | undefined,
@@ -39,7 +42,7 @@ export function ProfileReelsSection({
 
   return (
     <section
-      className={own ? "op-section shrink-0" : "mt-6"}
+      className={own ? "op-section shrink-0" : isGrid ? "pp-reels-grid-section" : "mt-6"}
       data-testid={own ? "section-profile-reels" : "section-public-profile-reels"}
     >
       <div className="flex items-center justify-between px-1">
@@ -55,9 +58,9 @@ export function ProfileReelsSection({
       </div>
 
       {reelsQuery.isLoading ? (
-        <div className="hide-scrollbar -mx-1 mt-3 flex gap-2 overflow-hidden px-1" role="status" aria-label="Loading Reels">
-          {Array.from({ length: 4 }, (_, index) => (
-            <div key={index} className="aspect-[9/16] w-[76px] shrink-0 animate-pulse rounded-xl bg-white/10" />
+        <div className={isGrid ? "pp-reel-grid mt-3" : "hide-scrollbar -mx-1 mt-3 flex gap-2 overflow-hidden px-1"} role="status" aria-label="Loading Reels">
+          {Array.from({ length: 6 }, (_, index) => (
+            <div key={index} className={isGrid ? "aspect-[3/4] animate-pulse rounded-xl bg-white/10" : "aspect-[9/16] w-[76px] shrink-0 animate-pulse rounded-xl bg-white/10"} />
           ))}
         </div>
       ) : reelsQuery.isError && !reels.length ? (
@@ -66,16 +69,23 @@ export function ProfileReelsSection({
           <button type="button" className="font-semibold text-primary" onClick={() => void reelsQuery.refetch()} data-testid="button-retry-profile-reels">Try again</button>
         </div>
       ) : reels.length ? (
-        <div
-          className={`hide-scrollbar mt-3 flex gap-2 overflow-x-auto pb-1 ${own ? "-mx-1 px-1" : "-mx-5 gap-3 px-5"}`}
-          onScroll={loadNextPage}
-          data-testid="profile-reels-carousel"
-        >
-          {reels.map((reel) => (
-            <ProfileReelThumbnail key={reel.id} reel={reel} returnTo={returnTo} />
-          ))}
-          {reelsQuery.isFetchingNextPage && <div className="aspect-[9/16] w-[76px] shrink-0 animate-pulse rounded-xl bg-white/10" aria-label="Loading more Reels" />}
-        </div>
+        <>
+          <div
+            className={isGrid ? "pp-reel-grid mt-3" : `hide-scrollbar mt-3 flex gap-2 overflow-x-auto pb-1 ${own ? "-mx-1 px-1" : "-mx-5 gap-3 px-5"}`}
+            onScroll={isGrid ? undefined : loadNextPage}
+            data-testid={isGrid ? "profile-reels-grid" : "profile-reels-carousel"}
+          >
+            {reels.map((reel) => (
+              <ProfileReelThumbnail key={reel.id} reel={reel} returnTo={returnTo} layout={isGrid ? "grid" : "carousel"} />
+            ))}
+            {reelsQuery.isFetchingNextPage && !isGrid && <div className="aspect-[9/16] w-[76px] shrink-0 animate-pulse rounded-xl bg-white/10" aria-label="Loading more Reels" />}
+          </div>
+          {isGrid && reelsQuery.hasNextPage && (
+            <button type="button" onClick={() => void reelsQuery.fetchNextPage()} disabled={reelsQuery.isFetchingNextPage} className="mt-3 min-h-10 w-full rounded-xl border border-white/10 text-sm font-bold text-[hsl(var(--pp-pink))] disabled:opacity-60" data-testid="button-load-more-profile-reels">
+              {reelsQuery.isFetchingNextPage ? "Loading…" : "Load more"}
+            </button>
+          )}
+        </>
       ) : (
         <p className="mt-2 px-1 text-sm text-[hsl(var(--pp-muted))]" data-testid="text-profile-reels-empty">No reels yet.</p>
       )}
@@ -83,14 +93,14 @@ export function ProfileReelsSection({
   );
 }
 
-function ProfileReelThumbnail({ reel, returnTo }: { reel: Reel; returnTo: string }) {
+function ProfileReelThumbnail({ reel, returnTo, layout }: { reel: Reel; returnTo: string; layout: "carousel" | "grid" }) {
   const viewCount = Number(reel.viewCount ?? 0);
   return (
     <Link
       href={`/reels/${encodeURIComponent(reel.id)}?profileId=${encodeURIComponent(reel.creatorId)}&returnTo=${encodeURIComponent(returnTo)}`}
       aria-label={`Play Reel: ${reel.caption || `posted by ${reel.creatorName}`}, ${formatCount(viewCount)} ${viewCount === 1 ? "view" : "views"}`}
       data-testid={`link-profile-reel-${reel.id}`}
-      className="group relative aspect-[9/16] w-[76px] shrink-0 overflow-hidden rounded-xl border border-white/10 bg-black/40 shadow-md sm:w-[86px]"
+      className={`group relative overflow-hidden rounded-xl border border-white/10 bg-black/40 shadow-md ${layout === "grid" ? "aspect-[3/4] w-full min-w-0" : "aspect-[9/16] w-[76px] shrink-0 sm:w-[86px]"}`}
     >
       <video
         src={`${reelMediaUrl(reel.videoReference)}#t=0.1`}
