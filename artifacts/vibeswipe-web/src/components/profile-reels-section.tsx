@@ -105,8 +105,8 @@ function ProfileReelThumbnail({ reel, returnTo }: { reel: Reel; returnTo: string
           <Play size={15} fill="currentColor" />
         </span>
       </span>
-      <span className="absolute inset-x-1 bottom-1 flex items-center justify-center gap-1 rounded-full bg-black/70 px-1 py-1 text-[9px] font-bold leading-none text-white" data-testid={`text-profile-reel-views-${reel.id}`}>
-        <Eye size={10} aria-hidden="true" />
+      <span className="absolute inset-x-1 bottom-1 flex items-center justify-center gap-1 rounded-full border border-white/25 bg-black/85 px-1 py-1 text-[10px] font-extrabold leading-none tracking-tight text-white shadow-lg" data-testid={`text-profile-reel-views-${reel.id}`}>
+        <Eye size={11} strokeWidth={2.5} aria-hidden="true" />
         {formatCount(viewCount)} {viewCount === 1 ? "view" : "views"}
       </span>
     </Link>
