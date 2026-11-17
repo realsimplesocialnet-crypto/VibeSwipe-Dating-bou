@@ -185,6 +185,10 @@ html[data-theme="light"] .messages-page .msg-card { background:#fffdfe; border-c
   background: hsl(var(--pp-bg)); color: hsl(var(--pp-fg)); font-family: "Plus Jakarta Sans", "DM Sans", system-ui, sans-serif;
 }
 .app-shell:has(.public-profile) { --primary:334 87% 63%; --primary-foreground:252 20% 9%; --accent:333 34% 20%; --accent-foreground:334 87% 78%; --card:240 6% 11%; --border:258 12% 22%; --foreground:330 17% 94%; --muted-foreground:264 9% 66%; --ring:334 87% 63%; }
+html[data-theme="light"] .app-shell:has(.public-profile) {
+  --primary:334 75% 48%; --primary-foreground:0 0% 100%; --accent:345 70% 92%; --accent-foreground:337 66% 36%;
+  --card:345 100% 99.5%; --border:345 40% 88%; --foreground:335 25% 14%; --muted-foreground:335 10% 40%; --ring:334 75% 48%;
+}
 html[data-theme="light"] .public-profile {
   --pp-bg: 345 80% 96%; --pp-card: 345 100% 99.5%; --pp-soft: 345 70% 92%; --pp-line: 345 40% 92%; --pp-fg: 335 25% 14%; --pp-muted: 335 10% 44%;
   --pp-pink: 334 87% 63%; --pp-gold: 334 87% 63%; --pp-shadow: 340 60% 45%;
@@ -229,6 +233,9 @@ html[data-theme="light"] .public-profile {
 .public-profile .sh-profile-social { max-width: 640px; margin: 14px auto 0; }
 .public-profile .sh-profile-stats { gap: 10px; }
 .public-profile .sh-profile-stat { min-height: 54px; border-radius: 16px; }
+html[data-theme="light"] .public-profile .sh-profile-stat { background:#fffafd; border-color:#f0d8e2; color:#2a2328; }
+html[data-theme="light"] .public-profile .sh-profile-stat strong { color:#2a2328; }
+html[data-theme="light"] .public-profile .sh-profile-stat span { color:#62565d; }
 .public-profile .sh-profile-actions { gap: 10px; }
 .public-profile .sh-follow-button,
 .public-profile .sh-dating-button { min-height: 46px; font-size: 14px; }
