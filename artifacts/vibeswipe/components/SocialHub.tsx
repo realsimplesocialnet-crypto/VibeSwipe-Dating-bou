@@ -5,12 +5,15 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import { ActivityIndicator, AppState, FlatList, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
-  getGetMatchesQueryKey, getGetNotificationsQueryKey, getGetWhoLikedYouQueryKey, getGetWhoViewedYouQueryKey,
-  useGetMatches, useGetNotifications, useGetWhoLikedYou, useGetWhoViewedYou, useMarkNotificationRead,
+  getGetMatchesQueryKey, getGetNotificationsQueryKey, getGetProfileFollowSummaryQueryKey, getGetWhoLikedYouQueryKey, getGetWhoViewedYouQueryKey,
+  useCreateReaction, useGetMatches, useGetMyProfile, useGetNotifications, useGetProfileFollowSummary, useGetWhoLikedYou, useGetWhoViewedYou, useMarkNotificationRead,
+  useGetDailyLikeStatus,
   createUseMarkActivitySeen, type ActivityCategory,
   type Match, type Profile,
 } from "@workspace/api-client-react";
 import { ProfileAvatar } from "@/components/ProfileAvatar";
+import { MatchCelebration } from "@/components/MatchCelebration";
+import { ProfileFollowNotificationAction } from "@/components/ProfileFollow";
 import { usePremiumColors } from "@/hooks/useColors";
 
 const live = { refetchInterval: 15000, refetchOnMount: "always" as const, refetchOnWindowFocus: true, staleTime: 0 };
@@ -103,6 +106,8 @@ export function ActivityOverview() {
   const qc = useQueryClient();
   const insets = useSafeAreaInsets();
   const notes = useGetNotifications({ query: { queryKey: getGetNotificationsQueryKey(), ...live } });
+  const me = useGetMyProfile();
+  const followSummary = useGetProfileFollowSummary(me.data?.id ?? "", { query: { enabled: !!me.data?.id, refetchInterval: 15000 } });
   const matches = useGetMatches({ query: { queryKey: getGetMatchesQueryKey(), ...live } });
   const likes = useGetWhoLikedYou({ query: { queryKey: getGetWhoLikedYouQueryKey(), ...live } });
   const views = useGetWhoViewedYou({ query: { queryKey: getGetWhoViewedYouQueryKey(), ...live } });
@@ -110,8 +115,9 @@ export function ActivityOverview() {
   const mark = useMarkNotificationRead();
   const am = useMemo(() => active(matches.data), [matches.data]);
   const reelNotices = (notes.data?.notifications ?? []).filter(n => n.type === "reel_like");
+  const followNotices = (notes.data?.notifications ?? []).filter(n => n.type === "new_follow").slice(0, 8);
   const msgs = useMemo(() => (notes.data?.notifications ?? []).filter(n => n.type === "new_message" && am.some(m => m.id === n.matchId && m.profile.id === n.actor.id)).slice(0, 8), [notes.data, am]);
-  const superNotices = useMemo(() => (notes.data?.notifications ?? []).filter(n => n.type === "new_super_like" && likes.data?.some(l => l.profile.id === n.actor.id && l.isSuperLike)).slice(0, 8), [notes.data, likes.data]);
+  const superNotices = useMemo(() => (notes.data?.notifications ?? []).filter(n => n.type === "new_super_like").slice(0, 8), [notes.data]);
   const open = async (id: string, unread: boolean) => {
     if (unread) { try { await mark.mutateAsync({ notificationId: id }); } catch { /* navigate anyway */ } void qc.invalidateQueries({ queryKey: getGetNotificationsQueryKey() }); }
     router.navigate("/(tabs)/views" as never);
@@ -119,12 +125,38 @@ export function ActivityOverview() {
   const counts = notes.data?.unreadCounts;
   const cards = [
     { key: "matches", to: "/(tabs)/matches", title: "Mutual Matches", sub: "People you both said yes to", icon: "users" as const, n: am.length, ps: am.map((m) => m.profile), loading: matches.isLoading, badge: counts?.matches ?? 0 },
-    { key: "likes", to: "/(tabs)/activity/likes", title: "Likes", sub: "People who liked you", icon: "heart" as const, n: likes.data?.length ?? 0, ps: (likes.data ?? []).map((l) => l.profile), loading: likes.isLoading, badge: counts?.likes ?? 0 },
+    { key: "likes", to: "/(tabs)/activity/likes", title: "Dating Likes", sub: "People who liked your profile", icon: "heart" as const, n: likes.data?.length ?? 0, ps: (likes.data ?? []).map((l) => l.profile), loading: likes.isLoading, badge: counts?.likes ?? 0 },
     { key: "views", to: "/(tabs)/activity/views", title: "Views", sub: "People who viewed your profile", icon: "eye" as const, n: views.data?.length ?? 0, ps: (views.data ?? []).map((v) => v.profile), loading: views.isLoading, badge: counts?.views ?? 0 },
   ];
   return (
     <Screen title="Activity">
       <ScrollView contentContainerStyle={[s.list, { paddingBottom: insets.bottom + 110 }]}>
+        {followNotices.map(n => <View key={n.id} testID={`follow-notice-${n.id}`} style={[s.notice, { backgroundColor: c.profileCard, borderColor: c.border }]}>
+          <Pressable accessibilityRole="button" accessibilityLabel={`${n.actor.name} started following you. Open profile`}
+            onPress={async () => {
+              if (!n.readAt) {
+                try { await mark.mutateAsync({ notificationId: n.id }); } catch { /* Still open the follower's profile. */ }
+                void qc.invalidateQueries({ queryKey: getGetNotificationsQueryKey() });
+              }
+              router.push({ pathname: "/profile/[profileId]", params: { profileId: n.actor.id } });
+            }}
+            style={[s.row, s.flex]}>
+            <View style={{ position: "relative" }}>
+              <ProfileAvatar profile={n.actor} size={40} />
+              <View style={{ position: "absolute", right: -3, bottom: -3, width: 19, height: 19, borderRadius: 10, alignItems: "center", justifyContent: "center", backgroundColor: c.primary, borderWidth: 2, borderColor: c.profileCard }}>
+                <Feather name="user-plus" size={10} color={c.primaryForeground} />
+              </View>
+            </View>
+            <View style={s.flex}><Text style={[s.name, { color: c.primary }]}>{n.actor.name}</Text><Text style={{ color: c.foreground }}>started following you</Text></View>
+            {!n.readAt && <View style={[s.dot, { backgroundColor: c.primary }]} />}
+          </Pressable>
+          <View style={{ alignItems: "flex-end", gap: 6 }}>
+            <Text style={[s.time, { color: c.mutedForeground }]}>{ago(n.createdAt)}</Text>
+            <ProfileFollowNotificationAction profileId={n.actor.id} viewerId={me.data?.id} onFollow={() => {
+              if (!n.readAt) void mark.mutateAsync({ notificationId: n.id }).catch(() => undefined).finally(() => qc.invalidateQueries({ queryKey: getGetNotificationsQueryKey() }));
+            }} />
+          </View>
+        </View>)}
         {reelNotices.map(n => <Pressable key={n.id} accessibilityRole="button"
           testID={`reel-like-notice-${n.id}`}
           onPress={async () => {
@@ -176,6 +208,23 @@ export function ActivityOverview() {
             <Feather name="chevron-right" size={18} color={c.mutedForeground} />
           </Pressable>
         ))}
+        {me.data?.id ? (
+          <Pressable
+            testID="link-summary-followers"
+            accessibilityRole="button"
+            accessibilityLabel={`${followSummary.data?.followersCount ?? 0} followers`}
+            onPress={() => router.push({ pathname: "/followers/[profileId]", params: { profileId: me.data!.id } })}
+            style={({ pressed }) => [s.card, s.row, { backgroundColor: c.profileCard, borderColor: c.border, opacity: pressed ? 0.85 : 1 }]}
+          >
+            <View style={[s.iconBox, { backgroundColor: c.profileChip }]}>
+              <Feather name="user-plus" size={20} color={c.primary} />
+              {(counts?.follows ?? 0) > 0 && <View style={[s.badge, { backgroundColor: c.primary }]}><Text style={[s.badgeText, { color: c.primaryForeground }]}>{counts!.follows > 99 ? "99+" : counts!.follows}</Text></View>}
+            </View>
+            <View style={s.flex}><Text style={[s.name, { color: c.foreground }]}>Followers</Text><Text style={{ color: c.mutedForeground, fontSize: 13 }}>People following you</Text></View>
+            <Text style={[s.count, { color: c.foreground }]}>{followSummary.data?.followersCount ?? (followSummary.isLoading ? "-" : "0")}</Text>
+            <Feather name="chevron-right" size={18} color={c.mutedForeground} />
+          </Pressable>
+        ) : null}
       </ScrollView>
     </Screen>
   );
@@ -188,12 +237,20 @@ export function InboundPeoplePage({ kind }: { kind: "likes" | "views" }) {
   const isLikes = kind === "likes";
   const likes = useGetWhoLikedYou({ query: { queryKey: getGetWhoLikedYouQueryKey(), enabled: isLikes, ...live } });
   const views = useGetWhoViewedYou({ query: { queryKey: getGetWhoViewedYouQueryKey(), enabled: !isLikes, ...live } });
+  const me = useGetMyProfile();
+  const reaction = useCreateReaction();
+  const dailyLikeStatus = useGetDailyLikeStatus();
+  const [match, setMatch] = useState<{ profile: Profile; matchId: string | null } | null>(null);
+  const [actionError, setActionError] = useState("");
+  const [busyId, setBusyId] = useState("");
+  const qc = useQueryClient();
   const q = isLikes ? likes : views;
   const seen = useSeenOnFocus(kind, q.isSuccess && !q.isFetching);
   useRefetchOnFocus([q.refetch]);
   const rows = useMemo(() => (isLikes ? (likes.data ?? []).map((l) => ({ profile: l.profile, at: l.likedAt, isSuperLike: l.isSuperLike })) : (views.data ?? []).map((v) => ({ profile: v.profile, at: v.viewedAt, isSuperLike: false }))), [isLikes, likes.data, views.data]);
   return (
-    <Screen back title={isLikes ? "Likes" : "Views"} sub={isLikes ? "People who liked you" : "People who viewed your profile"}>
+     <Screen back title={isLikes ? "Dating Likes" : "Views"} sub={isLikes ? "People who liked your profile" : "People who viewed your profile"}>
+      {actionError ? <Text accessibilityRole="alert" style={{ color: c.destructive, marginHorizontal: 18, marginBottom: 8 }}>{actionError}</Text> : null}
       <SeenError seen={seen} />
       {q.isLoading || (q.isError && !q.data) ? (
         <View style={s.list}><State loading={q.isLoading} error={q.isError && !q.data} empty={false} onRetry={() => void q.refetch()} icon={isLikes ? "heart" : "eye"} emptyTitle="" emptyText="" /></View>
@@ -213,19 +270,59 @@ export function InboundPeoplePage({ kind }: { kind: "likes" | "views" }) {
           keyExtractor={(r) => `${r.profile.id}-${r.at}`}
           contentContainerStyle={[s.list, { paddingBottom: insets.bottom + 110 }]}
           renderItem={({ item: r }) => (
-            <Pressable onPress={() => { readNotice(r.profile.id, isLikes ? "new_like" : "profile_view"); router.push({ pathname: "/profile/[profileId]", params: { profileId: r.profile.id, ...(isLikes ? { returnTo: "likes" } : {}) } } as never); }} testID={`link-${kind}-profile-${r.profile.id}`} accessibilityRole="button" accessibilityLabel={`View ${r.profile.name}'s profile`} style={({ pressed }) => [s.card, s.row, { backgroundColor: c.profileCard, borderColor: c.border, opacity: pressed ? 0.85 : 1 }]}>
+             <View testID={`card-${kind}-profile-${r.profile.id}`} style={[s.card, { backgroundColor: c.profileCard, borderColor: c.border }]}>
+              <View style={s.row}>
+               <Pressable onPress={() => { readNotice(r.profile.id, isLikes ? "new_like" : "profile_view"); router.push({ pathname: "/profile/[profileId]", params: { profileId: r.profile.id, ...(isLikes ? { returnTo: "likes" } : {}) } } as never); }} testID={`link-${kind}-profile-${r.profile.id}`} accessibilityRole="button" accessibilityLabel={`View ${r.profile.name}'s profile`} style={[s.row, s.flex]}>
               <View style={[s.avatarRing, { borderColor: c.premiumAccent }]}><ProfileAvatar profile={r.profile} size={54} /></View>
               <View style={s.flex}>
                 <Text numberOfLines={1} style={[s.name, { color: c.foreground }]}>{label(r.profile)}</Text>
-                <Text style={{ color: c.mutedForeground, fontSize: 13 }}>{isLikes ? (r.isSuperLike ? "Super Liked you" : "Liked you") : "Viewed your profile"} · {ago(r.at)}</Text>
+                <Text style={{ color: c.mutedForeground, fontSize: 13 }}>{isLikes ? (r.isSuperLike ? "Super Liked your profile" : "Liked your profile") : "Viewed your profile"} · {ago(r.at)}</Text>
               </View>
               {isLikes ? <View style={[s.heartBadge, { backgroundColor: c.premiumSoft }]}><Feather name={r.isSuperLike ? "star" : "heart"} size={17} color={c.premiumAccent} /></View> : (
                 <View style={[s.pill, { backgroundColor: c.profileChip }]}><Feather name="eye" size={14} color={c.primary} /><Text style={{ color: c.primary, fontWeight: "700", fontSize: 12 }}>View</Text></View>
               )}
-            </Pressable>
+               </Pressable>
+              </View>
+              {isLikes ? <View style={[s.likeActions, { borderTopColor: c.border }]}>
+                <Pressable testID={`button-pass-like-${r.profile.id}`} accessibilityRole="button" disabled={reaction.isPending || busyId === r.profile.id}
+                  onPress={async () => {
+                    setBusyId(r.profile.id); setActionError("");
+                    try {
+                      await reaction.mutateAsync({ data: { toUserId: r.profile.id, type: "pass" } });
+                      await Promise.all([
+                        qc.invalidateQueries({ queryKey: getGetWhoLikedYouQueryKey() }),
+                        qc.invalidateQueries({ queryKey: getGetNotificationsQueryKey() }),
+                      ]);
+                    } catch { setActionError(`Your pass on ${r.profile.name} did not save. Please try again.`); }
+                    finally { setBusyId(""); }
+                  }}
+                  style={[s.likeActionButton, { borderColor: c.border }]}
+                ><Text style={{ color: c.mutedForeground, fontWeight: "800", fontSize: 12 }}>Pass</Text></Pressable>
+                <Pressable testID={`button-like-back-${r.profile.id}`} accessibilityRole="button" disabled={reaction.isPending || busyId === r.profile.id || dailyLikeStatus.data?.remaining === 0}
+                  onPress={async () => {
+                    setBusyId(r.profile.id); setActionError("");
+                    try {
+                      const result = await reaction.mutateAsync({ data: { toUserId: r.profile.id, type: "like" } });
+                      await Promise.all([
+                        qc.invalidateQueries({ queryKey: getGetWhoLikedYouQueryKey() }),
+                        qc.invalidateQueries({ queryKey: getGetMatchesQueryKey() }),
+                        qc.invalidateQueries({ queryKey: getGetNotificationsQueryKey() }),
+                      ]);
+                      if (result.matched) setMatch({ profile: r.profile, matchId: result.matchId ?? null });
+                      else setActionError(`Your like to ${r.profile.name} was sent.`);
+                    } catch { setActionError(`Your Like Back to ${r.profile.name} did not go through. Please try again.`); }
+                    finally { setBusyId(""); }
+                  }}
+                  style={[s.likeActionButton, { backgroundColor: c.primary, borderColor: c.primary }]}
+                ><Text style={{ color: c.primaryForeground, fontWeight: "800", fontSize: 12 }}>Like Back</Text></Pressable>
+              </View> : null}
+             </View>
           )}
         />
       )}
+        <MatchCelebration visible={!!match} self={me.data ?? null} other={match?.profile ?? null} canMessage={!!match?.matchId}
+          onMessage={() => { if (!match?.matchId) return; const matchId = match.matchId; setMatch(null); router.push({ pathname: "/chat/[matchId]", params: { matchId, returnTo: "likes" } }); }}
+          onKeepSwiping={() => setMatch(null)} />
     </Screen>
   );
 }
@@ -303,4 +400,6 @@ const s = StyleSheet.create({
   count: { fontSize: 20, fontWeight: "800", minWidth: 22, textAlign: "right" },
   pill: { flexDirection: "row", alignItems: "center", gap: 5, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 6 },
   chat: { width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center" },
+  likeActions: { flexDirection: "row", gap: 8, borderTopWidth: StyleSheet.hairlineWidth, marginTop: 12, paddingTop: 10 },
+  likeActionButton: { flex: 1, minHeight: 40, borderWidth: 1, borderRadius: 12, alignItems: "center", justifyContent: "center" },
 });

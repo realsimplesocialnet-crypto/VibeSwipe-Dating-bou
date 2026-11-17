@@ -14,6 +14,7 @@ export const NotificationType = {
   new_message: 'new_message',
   new_like: 'new_like',
   new_super_like: 'new_super_like',
+  new_follow: 'new_follow',
   profile_view: 'profile_view',
   reel_like: 'reel_like',
   reel_comment_reply: 'reel_comment_reply',

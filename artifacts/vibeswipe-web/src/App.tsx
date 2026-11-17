@@ -9,25 +9,25 @@ import {
   getGetDiscoverProfilesQueryKey, getGetMatchesQueryKey, getGetMessagesQueryKey, getGetBoostStatusQueryKey,
   getStreamMatchMessagesQueryKey, getGetTypingStatusQueryKey,
   getGetMyProfileQueryKey, getGetNotificationsQueryKey, getGetOnboardingDraftQueryKey, getGetProfileMediaQueryKey,
-  getGetProfileByIdQueryKey, getGetStoriesQueryKey, getGetSuperLikeStatusQueryKey, getGetVibeSwipeSettingsQueryKey,
-  getGetMatchPresenceQueryKey,
+  getGetProfileByIdQueryKey, getGetProfileDatingStateQueryKey, getGetStoriesQueryKey, getGetSuperLikeStatusQueryKey, getGetVibeSwipeSettingsQueryKey,
+  getGetMatchPresenceQueryKey, getGetWhoLikedYouQueryKey,
   useActivateBoost, useBlockProfile, useClearChat,
   useClearOnboardingDraft, useCreateReaction, useDeleteChat, useDeleteMessage,
   useGetBoostStatus, useGetChatReadReceipt, useGetDailyLikeStatus,
   useGetDiscoverProfiles, useGetIcebreakers, useGetMatches, useGetMessages, useGetMyProfile,
-  useGetNotifications, useGetOnboardingDraft, useGetProfileById, useGetProfileMedia, useGetStories, useGetSuperLikeStatus, useGetVibeSwipeSettings,
+  useGetNotifications, useGetOnboardingDraft, useGetProfileById, useGetProfileDatingState, useGetProfileMedia, useGetStories, useGetSuperLikeStatus, useGetVibeSwipeSettings,
   useGetTypingStatus, useGetMatchPresence, useMarkChatRead, useGetWhoViewedYou,
   useMarkNotificationRead, useRecordProfileView, useReportProfile, useSaveMyProfile,
   useSaveOnboardingDraft, useSendMessage, useTranscodeProfileVideo, useUnblockProfile,
   useUndoLastPass, useUnmatchMatch, useUpdateChatTheme, useUpdateTypingStatus, useHeartbeatPresence,
   useRequestChatMediaUpload, useRequestProfileMediaUpload,
-  type ChatTheme, type Message, type Profile, type ProfileInput, type ReportInputReason, type MediaUploadInputContentType,
+  type ChatTheme, type Message, type Profile, type ProfileDatingState, type ProfileInput, type ReportInputReason, type MediaUploadInputContentType,
 } from '@workspace/api-client-react';
 import { Link, Redirect, Route, Switch, useLocation, useParams, Router as WouterRouter } from 'wouter';
 import {
   ArrowLeft, ArrowRight, Bell, Clapperboard, Check, ChevronDown, ChevronRight, CircleHelp, Compass, Eye, EyeOff,
   Heart, ImagePlus, MapPin, MessageCircle, MoreHorizontal, Navigation, Search, Settings,
-  Shield, SlidersHorizontal, Mars, Venus, NonBinary, Briefcase, Pencil, Camera, Sparkles, Star, UserRound, Users, Volume2, X, Zap, Flag, Ban, Images, Coffee, CupSoda, Music, ImageIcon, Paperclip, SendHorizontal, LoaderCircle, MessageCircleMore,
+  Shield, SlidersHorizontal, Mars, Venus, NonBinary, Briefcase, Pencil, Camera, Sparkles, Star, UserRound, UserPlus, Users, Volume2, X, Zap, Flag, Ban, Images, Coffee, CupSoda, Music, ImageIcon, Paperclip, SendHorizontal, LoaderCircle, MessageCircleMore,
 } from 'lucide-react';
 import NotFound from '@/pages/not-found';
 import AdminPage from '@/pages/admin';
@@ -58,7 +58,7 @@ import { sharedReelId } from '@/lib/reels';
 import { ChatMessageBubble } from '@/components/chat-message-bubble';
 import { ChatVoiceNoteRecorder } from '@/components/chat-voice-note-recorder';
 import { chatViewportFrame } from '@/lib/chat-viewport';
-import { ActivityOverview, InboundPeoplePage, MutualMatchesPage } from '@/components/social-hub';
+import { ActivityOverview, FollowListPage, InboundPeoplePage, MutualMatchesPage, ProfileFollowNotificationAction, ProfileSocialActions } from '@/components/social-hub';
 import { isDiscoverSetupRequired, isProfileMissing, shouldRetryDiscover, shouldRetryProfile } from '@/lib/profile-query-state';
 import { PROFILE_PHOTO_ACCEPT, photoUploadCanRetry, prepareProfilePhoto, uploadProfilePhotoBytes, validatePhotoFile } from '@/lib/profile-photo-upload';
 import { checkAdditionalProfilePhoto } from '@workspace/api-client-react';
@@ -518,6 +518,8 @@ function MessagesPage() {
     const bt = new Date((b as MatchListExtras).lastMessageAt ?? b.updatedAt).getTime();
     return bt - at;
   }), [matches.data]);
+  const newMatches = list.filter(m => !m.lastMessage);
+  const chats = list.filter(m => Boolean(m.lastMessage));
   const unreadTotal = list.reduce((sum, m) => sum + ((m as MatchListExtras).unreadCount ?? 0), 0);
   return <div className="messages-page min-h-[calc(100dvh-48px)] lg:min-h-[100dvh]">
     <div className="page-in mx-auto max-w-[720px] px-4 pb-10 pt-6 md:px-8 md:pt-10" data-testid="messages-page-content">
@@ -530,7 +532,20 @@ function MessagesPage() {
         {matches.isLoading ? <div className="space-y-3" aria-label="Loading conversations">{[0,1,2].map(i => <div key={i} className="msg-card flex items-center gap-4 rounded-[22px] p-4"><div className="h-[68px] w-[68px] animate-pulse rounded-full bg-muted"/><div className="flex-1 space-y-2"><div className="h-4 w-32 animate-pulse rounded bg-muted"/><div className="h-3 w-48 animate-pulse rounded bg-muted"/></div></div>)}</div>
           : matches.isError && !matches.data ? <Retry error={matches.error} text="We couldn’t load your messages. Check your connection and try again." onRetry={() => void matches.refetch()} />
           : !list.length ? <Empty title="No conversations yet" detail="When you and someone both say yes, your conversation opens here." action={<Link href="/discover" data-testid="link-messages-discover" className="inline-flex rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground">Go to Discover</Link>} />
-          : <ul className="space-y-3">{list.map(m => {
+          : <div className="space-y-7">
+            {newMatches.length > 0 && <section aria-label="New matches" data-testid="section-new-matches">
+              <h2 className="mb-3 text-xs font-extrabold uppercase tracking-[.18em] text-primary">New Matches</h2>
+              <ul className="space-y-3">{newMatches.map(m => <li key={m.id} className="msg-card flex items-center gap-4 rounded-[22px] p-3.5 md:p-4">
+                <div className="msg-avatar shrink-0"><MatchStoryAvatar matchId={m.id} profile={m.profile} storyGroup={stories.data?.matches.find(g => g.matchId === m.id)} returnTo="/messages" /></div>
+                <Link href={`/chat/${m.id}?returnTo=%2Fmessages`} data-testid={`link-new-match-${m.id}`} aria-label={`Start a chat with ${m.profile.name}`} className="flex min-w-0 flex-1 items-center gap-3">
+                  <div className="min-w-0 flex-1"><div className="truncate text-[17px] font-bold">{m.profile.name}{m.profile.age !== null ? `, ${m.profile.age}` : ''}</div><div className="mt-1 text-sm text-muted-foreground">You both liked each other ❤️</div></div>
+                  <span className="shrink-0 rounded-full bg-primary px-3 py-2 text-xs font-bold text-primary-foreground">Message</span>
+                </Link>
+              </li>)}</ul>
+            </section>}
+            {chats.length > 0 && <section aria-label="Chats" data-testid="section-active-chats">
+              {newMatches.length > 0 && <h2 className="mb-3 text-xs font-extrabold uppercase tracking-[.18em] text-muted-foreground">Chats</h2>}
+              <ul className="space-y-3">{chats.map(m => {
             const extras = m as MatchListExtras;
             const blocked = m.blockedByMe || m.blockedMe;
             const unread = !blocked && (extras.unreadCount ?? 0) > 0;
@@ -547,7 +562,10 @@ function MessagesPage() {
                   </div>
                 </Link>}
             </li>;
-          })}</ul>}
+          })}</ul>
+            </section>}
+            {!chats.length && newMatches.length > 0 && <p className="text-center text-sm text-muted-foreground">No chats yet. Start a conversation with a new match.</p>}
+          </div>}
       </div>
     </div>
   </div>;
@@ -555,6 +573,7 @@ function MessagesPage() {
 function NotificationsPage() {
   const qc = useQueryClient();
   const [, setLocation] = useLocation();
+  const me = useGetMyProfile();
   const q = useGetNotifications({ query: { queryKey: getGetNotificationsQueryKey(), refetchInterval: 5000, refetchOnWindowFocus: true } });
   const matches = useGetMatches({ query: { queryKey: getGetMatchesQueryKey(), refetchInterval: 15000, refetchOnWindowFocus: true } });
   const mark = useMarkNotificationRead();
@@ -605,7 +624,8 @@ function NotificationsPage() {
   const actionText = (n: Item) => n.type === 'reel_comment_reply' ? 'replied to your Reel comment'
     : n.type === 'reel_like' ? 'liked your video' : n.type === 'new_match' ? 'matched with you'
     : n.type === 'new_message' ? 'sent you a message'
-    : n.type === 'new_like' ? 'liked you' : 'viewed your profile';
+    : n.type === 'new_follow' ? 'started following you'
+    : n.type === 'new_like' ? 'liked your profile' : 'viewed your profile';
   const unread = q.data ? Object.values(q.data.unreadCounts ?? {}).reduce((a, b) => a + (b as number), 0) : 0;
 
   return <PageFrame>
@@ -616,23 +636,24 @@ function NotificationsPage() {
       </div>
       {q.isLoading ? <Busy />
         : q.isError ? <Retry onRetry={() => void q.refetch()} />
-        : !q.data?.notifications.length ? <Empty title="All caught up" detail="Your new matches, likes, messages, and profile views will show up here." />
+         : !q.data?.notifications.length ? <Empty title="All caught up" detail="Your new follows, dating likes, matches, messages, and profile views will show up here." />
         : <div className="space-y-3">
           {q.data.notifications.map((n) => <div key={n.id} data-testid={`card-notification-${n.id}`} className="notification-card rounded-[24px] border border-border/40 bg-card text-card-foreground">
             <div className="flex items-center gap-3 p-4 sm:gap-4 sm:p-5">
               <button type="button" onClick={() => void open(n)} data-testid={`button-notification-${n.id}`} aria-label={`${n.actor.name} ${actionText(n)}${n.readAt ? '' : ', unread'}`} className="flex min-w-0 flex-1 items-center gap-3 text-left sm:gap-4">
-                <span className="shrink-0 rounded-full border border-primary/75 p-[2px]"><Avatar profile={n.actor} /></span>
+                 <span className="relative shrink-0 rounded-full border border-primary/75 p-[2px]"><Avatar profile={n.actor} />{n.type==='new_follow'&&<span className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full border-2 border-card bg-primary text-primary-foreground"><UserPlus size={11}/></span>}</span>
                 <span className="min-w-0 flex-1">
-                  <span className="block text-[15px] font-bold leading-5 text-card-foreground"><span className="text-primary">{n.actor.name}</span>{' '}<span className="font-semibold">{actionText(n)}</span></span>
-                  <span className="mt-2 block text-xs leading-4 text-muted-foreground">{n.type==='reel_comment_reply'?'Tap to open the comment and reply':n.type==='new_match'?'Start a conversation now!':n.type==='new_like'?'Tap to see who liked you':n.type==='new_message'?'Open your conversation':'Take a closer look'}</span>
+                  <span className="block text-[15px] font-bold leading-5 text-card-foreground">{n.type==='new_match'?<span className="font-semibold">It’s a Match! You and {n.actor.name} liked each other.</span>:<><span className="text-primary">{n.actor.name}</span>{' '}<span className="font-semibold">{actionText(n)}</span></>}</span>
+                   <span className="mt-2 block text-xs leading-4 text-muted-foreground">{n.type==='reel_comment_reply'?'Tap to open the comment and reply':n.type==='new_match'?'Start a conversation now!':n.type==='new_like'?'Tap to see who liked you':n.type==='new_follow'?'Open their profile or follow them back':n.type==='new_message'?'Open your conversation':'Take a closer look'}</span>
                 </span>
               </button>
               <div className="flex shrink-0 flex-col items-end gap-3">
                 <time dateTime={n.createdAt} className="text-[11px] text-muted-foreground">{timeAgo(n.createdAt)}</time>
                 <div className="flex items-center gap-3">{!n.readAt&&<span aria-label="Unread" className="h-2.5 w-2.5 rounded-full bg-primary"/>}
-                  {n.type !== 'reel_like' && n.type !== 'reel_comment_reply' && <button type="button" onClick={() => void message(n)} data-testid={`button-notification-message-${n.id}`} aria-label={`Send message to ${n.actor.name}`} className="inline-flex h-9 shrink-0 items-center gap-2 rounded-full bg-primary px-3 text-xs font-bold text-primary-foreground transition-transform active:scale-95 sm:px-4">
+                  {(n.type === 'new_match' || n.type === 'new_message') && <button type="button" onClick={() => void message(n)} data-testid={`button-notification-message-${n.id}`} aria-label={`Send message to ${n.actor.name}`} className="inline-flex h-9 shrink-0 items-center gap-2 rounded-full bg-primary px-3 text-xs font-bold text-primary-foreground transition-transform active:scale-95 sm:px-4">
                     <MessageCircle size={16} /><span className="hidden sm:inline">Send message</span>
                   </button>}
+                  {n.type === 'new_follow' && <ProfileFollowNotificationAction profileId={n.actor.id} viewerId={me.data?.id} onFollow={() => void markAsRead(n)} />}
                 </div>
               </div>
             </div>
@@ -679,6 +700,7 @@ function OwnProfileOverview({profile,travelCity}:{profile:Profile;travelCity?:st
       <h1 data-testid="text-profile-name" title={profile.name} className="brand mt-2 max-w-full truncate text-[clamp(22px,3.4dvh,30px)] font-extrabold leading-tight tracking-[-.03em]">{profile.name}{profile.age!==null?`, ${profile.age}`:''}<VerifiedBadge verified={profile.isVerified}/></h1>
       {place&&<p data-testid="text-profile-city" title={place} className="op-muted max-w-full truncate text-[14px]">{place}</p>}
       {(profile.gender||travelCity)&&<div className="mt-1 flex max-w-full items-center justify-center gap-2 text-[13px]">{profile.gender&&<span data-testid="text-profile-gender" className="op-muted inline-flex items-center gap-1.5"><GenderIcon size={15} aria-hidden="true"/>{profile.gender}</span>}{travelCity&&<span className="inline-flex min-w-0 items-center gap-1 truncate rounded-full bg-primary/12 px-2.5 py-0.5 text-xs font-semibold text-primary" data-testid="badge-travel" title={`Traveling in ${travelCity}`}><Navigation size={12}/>Traveling in {travelCity}</span>}</div>}
+      <ProfileSocialActions profileId={profile.id} viewerId={profile.id} showAction={false} compact />
       <Link href="/profile/edit?returnTo=%2Fprofile" data-testid="button-edit-profile" className="op-edit mt-[clamp(8px,1.6dvh,16px)] flex h-[clamp(40px,6dvh,50px)] w-full max-w-[280px] items-center justify-center gap-2 rounded-full text-[16px] font-bold transition-transform active:scale-[.98]"><Pencil size={16}/>Edit profile</Link>
     </section>
     <div className="grid shrink-0 grid-cols-2 gap-[clamp(6px,1.2dvh,12px)]">
@@ -731,32 +753,38 @@ function Row({icon:Icon,title,children,testId}:{icon:typeof Heart;title:string;c
 function PublicProfile({id,actionReturnTo='/discover'}:{id:string;actionReturnTo?:string}){
   const fromLikes=actionReturnTo==='/likes';
   const me=useGetMyProfile();
-  const q=useGetProfileById(id,{query:{queryKey:getGetProfileByIdQueryKey(id)}});const matches=useGetMatches({query:{queryKey:getGetMatchesQueryKey(),enabled:!!id,refetchInterval:12000,refetchOnMount:'always',refetchOnWindowFocus:true,staleTime:0}});const profileMatch=matches.data?.find(match=>match.profile.id===id);const view=useRecordProfileView();const seen=useRef('');const [photoError,setPhotoError]=useState(false);const [viewer,setViewer]=useState<number|null>(null);
-  const client=useQueryClient();const [,setLocation]=useLocation();const reaction=useCreateReaction();const likes=useGetDailyLikeStatus({query:{queryKey:getGetDailyLikeStatusQueryKey()}});const supers=useGetSuperLikeStatus({query:{queryKey:getGetSuperLikeStatusQueryKey()}});
-  const [confirmation,setConfirmation]=useState<{text:string;kind:'like'|'super'}|null>(null);const [actionError,setActionError]=useState('');const block=useBlockProfile();const report=useReportProfile();const [menu,setMenu]=useState(false);const [confirmSafety,setConfirmSafety]=useState<'block'|'report'|null>(null);const [safetyError,setSafetyError]=useState('');const [reported,setReported]=useState(false);const [matchResult,setMatchResult]=useState<{name:string;matchId:string|null}|null>(null);
+  const q=useGetProfileById(id,{query:{queryKey:getGetProfileByIdQueryKey(id)}});const datingState=useGetProfileDatingState(id,{query:{queryKey:getGetProfileDatingStateQueryKey(id),enabled:!!id,refetchOnMount:'always',refetchOnWindowFocus:true,staleTime:0}});const matches=useGetMatches({query:{queryKey:getGetMatchesQueryKey(),enabled:!!id,refetchInterval:12000,refetchOnMount:'always',refetchOnWindowFocus:true,staleTime:0}});const profileMatch=matches.data?.find(match=>match.profile.id===id);const matchedId=profileMatch?.id??datingState.data?.matchId??null;const view=useRecordProfileView();const seen=useRef('');const [photoError,setPhotoError]=useState(false);const [viewer,setViewer]=useState<number|null>(null);
+  const client=useQueryClient();const [,setLocation]=useLocation();const reaction=useCreateReaction();const likes=useGetDailyLikeStatus({query:{queryKey:getGetDailyLikeStatusQueryKey()}});
+  const [confirmation,setConfirmation]=useState<{text:string;kind:'like'}|null>(null);const [actionError,setActionError]=useState('');const block=useBlockProfile();const report=useReportProfile();const [menu,setMenu]=useState(false);const [confirmSafety,setConfirmSafety]=useState<'block'|'report'|null>(null);const [safetyError,setSafetyError]=useState('');const [reported,setReported]=useState(false);const [matchResult,setMatchResult]=useState<{name:string;matchId:string|null}|null>(null);
   const confirmationTimer=useRef<number|null>(null);const busy=useRef(false);const mounted=useRef(true);const currentId=useRef(id);currentId.current=id;
   useEffect(()=>{mounted.current=true;return()=>{mounted.current=false;if(confirmationTimer.current!==null)window.clearTimeout(confirmationTimer.current)}},[]);
   useEffect(()=>{if(q.data?.id&&seen.current!==q.data.id){seen.current=q.data.id;view.mutate({profileId:q.data.id})}},[q.data?.id]);
   useEffect(()=>{setPhotoError(false);setViewer(null)},[q.data?.id,q.data?.photos?.[0]]);
-  const likeRemaining=likes.data?.remaining;const superRemaining=supers.data?.remaining;
+  const likeRemaining=likes.data?.remaining;
   const locked=reaction.isPending||!!confirmation||!!matchResult;
-  async function react(type:'pass'|'like'|'super'){
-    const target=q.data;if(!target||busy.current||locked||profileMatch)return;const returnTo=actionReturnTo;const targetId=target.id;const name=target.name;
-   if(type==='like'&&likeRemaining===0){setActionError('You have used all of today’s likes. They reset in 24 hours.');return}
-   if(type==='super'&&superRemaining===0){setActionError('You have used today’s Super Like. It resets in 24 hours.');return}
-   busy.current=true;setActionError('');
-   try{const result=await reaction.mutateAsync({data:{toUserId:targetId,type}});
-    if(!mounted.current||currentId.current!==targetId){busy.current=false;return}
-    void client.invalidateQueries({queryKey:getGetDiscoverProfilesQueryKey()});
-    if(type==='pass'){busy.current=false;setLocation(returnTo);return}
-    void client.invalidateQueries({queryKey:type==='like'?getGetDailyLikeStatusQueryKey():getGetSuperLikeStatusQueryKey()});void client.invalidateQueries({queryKey:getGetMatchesQueryKey()});void client.invalidateQueries({queryKey:getGetNotificationsQueryKey()});
-    setConfirmation({kind:type,text:type==='like'?`You liked ${name}`:`You super liked ${name}`});
-    confirmationTimer.current=window.setTimeout(()=>{confirmationTimer.current=null;busy.current=false;if(!mounted.current||currentId.current!==targetId)return;setConfirmation(null);if(result.matched)setMatchResult({name,matchId:result.matchId??null});else setLocation(returnTo)},1500);
-   }catch(error){busy.current=false;if(!mounted.current||currentId.current!==targetId)return;const message=error instanceof Error?error.message:'';const capped=/limit|429|remaining|already/i.test(message);
-    setActionError(type==='pass'?'That pass did not save. Please try again.':capped?(type==='super'?'Your Super Like for today is already used.':'You have reached today’s like limit.'):type==='super'?'That Super Like did not go through. Please try again.':'That like did not go through. Please try again.');
-    if(type==='like')void likes.refetch();if(type==='super')void supers.refetch()}
+  async function reactLike(){
+    const target=q.data;if(!target||busy.current||locked||matchedId)return;const targetId=target.id;const name=target.name;
+    if(likeRemaining===0){setActionError('You have used all of today’s likes. They reset in 24 hours.');return}
+    busy.current=true;setActionError('');
+    try{
+      const result=await reaction.mutateAsync({data:{toUserId:targetId,type:'like'}});
+      if(!mounted.current||currentId.current!==targetId){busy.current=false;return}
+      client.setQueryData<ProfileDatingState>(getGetProfileDatingStateQueryKey(targetId),{reaction:'like',matchId:result.matchId??null});
+      void client.invalidateQueries({queryKey:getGetDiscoverProfilesQueryKey()});
+      void client.invalidateQueries({queryKey:getGetDailyLikeStatusQueryKey()});
+      void client.invalidateQueries({queryKey:getGetMatchesQueryKey()});
+      void client.invalidateQueries({queryKey:getGetWhoLikedYouQueryKey()});
+      void client.invalidateQueries({queryKey:getGetNotificationsQueryKey()});
+      setConfirmation({kind:'like',text:`You liked ${name}`});
+      confirmationTimer.current=window.setTimeout(()=>{confirmationTimer.current=null;busy.current=false;if(!mounted.current||currentId.current!==targetId)return;setConfirmation(null);if(result.matched)setMatchResult({name,matchId:result.matchId??null})},1200);
+    }catch(error){
+      busy.current=false;if(!mounted.current||currentId.current!==targetId)return;
+      const message=error instanceof Error?error.message:'';const capped=/limit|429|remaining|already/i.test(message);
+      setActionError(capped?'You have reached today’s like limit.':'That like did not go through. Please try again.');
+      void likes.refetch();
+    }
   }
-   function openMatchedChat(){if(!profileMatch||profileMatch.blockedByMe||profileMatch.blockedMe)return;const origin=`/profile/${encodeURIComponent(id)}?returnTo=${encodeURIComponent(actionReturnTo)}`;setLocation(`/chat/${encodeURIComponent(profileMatch.id)}?returnTo=${encodeURIComponent(origin)}`)}
+  function openMatchedChat(){const matchId=profileMatch?.id??datingState.data?.matchId;if(!matchId||profileMatch?.blockedByMe||profileMatch?.blockedMe)return;const origin=`/profile/${encodeURIComponent(id)}?returnTo=${encodeURIComponent(actionReturnTo)}`;setLocation(`/chat/${encodeURIComponent(matchId)}?returnTo=${encodeURIComponent(origin)}`)}
   async function runSafety(kind:'block'|'report'){if(!q.data)return;setSafetyError('');try{if(kind==='block'){await block.mutateAsync({data:{targetUserId:q.data.id}});void client.invalidateQueries({queryKey:getGetMatchesQueryKey()});setConfirmSafety(null);setMenu(false);setLocation(actionReturnTo)}else{await report.mutateAsync({data:{targetUserId:q.data.id,reason:'other'}});setReported(true);setConfirmSafety(null)}}catch(error){setSafetyError(error instanceof Error&&error.message?error.message:kind==='block'?'Could not block this profile. Please try again.':'Could not send the report. Please try again.')}}
   useEffect(()=>{if(viewer===null)return;const len=q.data?.photos?.length??0;const onKey=(e:KeyboardEvent)=>{if(e.key==='Escape')setViewer(null);if(e.key==='ArrowRight')setViewer(v=>v===null?v:Math.min(len-1,v+1));if(e.key==='ArrowLeft')setViewer(v=>v===null?v:Math.max(0,v-1))};window.addEventListener('keydown',onKey);return()=>window.removeEventListener('keydown',onKey)},[viewer,q.data?.photos?.length]);
   if(q.isLoading)return <div className="public-profile min-h-[100dvh]"><div className="mx-auto max-w-md px-5 pt-20" aria-label="Loading profile"><div className="mx-auto h-32 w-32 animate-pulse rounded-full bg-[hsl(var(--pp-soft))]"/><div className="mx-auto mt-5 h-6 w-40 animate-pulse rounded-full bg-[hsl(var(--pp-soft))]"/><div className="mt-8 h-40 animate-pulse rounded-3xl bg-[hsl(var(--pp-card))]"/></div></div>;
@@ -764,8 +792,20 @@ function PublicProfile({id,actionReturnTo='/discover'}:{id:string;actionReturnTo
   const profile=q.data;const photos=profile.photos??[];const location=[profile.city,profile.state,profile.country].filter(Boolean).join(', ');const headerLocation=[profile.city,profile.state].filter(Boolean).join(', ')||location;
   const work=profile.occupation==='Other'?(profile.occupationOther||'Other'):(profile.occupation||'');
   const facts=[profile.showAge&&profile.age!==null?{icon:Sparkles,label:'Age',value:String(profile.age)}:null,{icon:Briefcase,label:'Work',value:work||'Not shared'},{icon:Heart,label:'Looking for',value:profile.lookingFor||'Not shared'},{icon:Users,label:'Gender',value:profile.gender||'Not shared'}].filter(Boolean) as {icon:typeof Heart;label:string;value:string}[];
-  const likeOut=likeRemaining===0;const superOut=superRemaining===0;
-  return <div className="public-profile min-h-[100dvh]"><main className="page-in mx-auto w-full max-w-md px-5 pt-[max(env(safe-area-inset-top),0.5rem)] pb-[calc(11rem+env(safe-area-inset-bottom))]" data-testid="public-profile-page">
+  const likeOut=likeRemaining===0;
+  const alreadyLiked=Boolean(datingState.data?.reaction);
+  const actionBusy=locked||likes.isLoading||datingState.isLoading;
+  const datingAction=<div className="sh-dating-slot">
+    <button type="button" onClick={()=>{if(matchedId){if(!profileMatch?.blockedByMe&&!profileMatch?.blockedMe)openMatchedChat();return}if(datingState.isError){void datingState.refetch();return}void reactLike()}}
+      disabled={matchedId?Boolean(profileMatch?.blockedByMe||profileMatch?.blockedMe):actionBusy||alreadyLiked||likeOut||!datingState.data}
+      data-testid={matchedId?'button-viewed-profile-message':'button-viewed-profile-like'}
+      aria-label={matchedId?`Message ${profile.name}`:alreadyLiked?`Liked ${profile.name}`:fromLikes?`Like ${profile.name} back`:`Like ${profile.name}`}
+      className={`sh-dating-button${alreadyLiked&&!matchedId?' sh-dating-liked':''}`}
+    >{matchedId?<><MessageCircle size={17}/>Message</>:datingState.isLoading?'Checking…':datingState.isError?'Retry':alreadyLiked?<><Heart size={17} fill="currentColor"/>Liked</>:likeOut?'No likes left':reaction.isPending?'Liking…':<><Heart size={17}/>{fromLikes?'Like Back':'Like'}</>}</button>
+    {actionError&&<span role="alert" className="sh-dating-error">{actionError}</span>}
+    {!actionError&&likeOut&&!alreadyLiked&&!matchedId&&<span className="sh-dating-error">Today’s likes are used up.</span>}
+  </div>;
+  return <div className="public-profile min-h-[100dvh]"><main className="page-in mx-auto w-full max-w-md px-5 pt-[max(env(safe-area-inset-top),0.5rem)] pb-[calc(6rem+env(safe-area-inset-bottom))]" data-testid="public-profile-page">
    <div className="flex items-center justify-between">
     <Link href={actionReturnTo} aria-label="Back" data-testid="link-public-profile-back-top" className="pp-round"><ArrowLeft size={20}/></Link>
     <button type="button" onClick={()=>{setSafetyError('');setConfirmSafety(null);setMenu(true)}} aria-label={`More actions for ${profile.name}`} data-testid="button-public-profile-more" className="pp-round"><MoreHorizontal size={20}/></button>
@@ -777,6 +817,7 @@ function PublicProfile({id,actionReturnTo='/discover'}:{id:string;actionReturnTo
     <h1 data-testid="text-public-profile-name" className="mt-4 break-words text-[1.75rem] font-extrabold leading-tight tracking-[-.02em]">{profile.name}{profile.showAge&&profile.age!==null&&<span className="font-semibold text-[hsl(var(--pp-muted))]">, {profile.age}</span>}<VerifiedBadge verified={profile.isVerified}/></h1>
     <p data-testid="text-public-profile-location" className="mt-1 flex items-center gap-1.5 text-[14px] text-[hsl(var(--pp-muted))]"><MapPin size={15} className="shrink-0 text-[hsl(var(--pp-pink))]"/>{headerLocation||'Location not shared'}</p>
    </header>
+     <ProfileSocialActions profileId={profile.id} viewerId={me.data?.id} datingAction={datingAction} />
    <section className="pp-card mt-7 divide-y divide-[hsl(var(--pp-line))] !py-1" data-testid="section-facts">
     {facts.map(f=><div key={f.label} className="flex items-center gap-3.5 py-3" data-testid={`section-${f.label.toLowerCase().replace(/\s/g,'-')}`}><span className="pp-icon"><f.icon size={17}/></span><span className="text-[13px] font-semibold text-[hsl(var(--pp-muted))]">{f.label}</span><span className="ml-auto max-w-[60%] break-words text-right text-[15px] font-semibold">{f.value}</span></div>)}
    </section>
@@ -788,17 +829,7 @@ function PublicProfile({id,actionReturnTo='/discover'}:{id:string;actionReturnTo
     {photos.length?<div data-testid="public-profile-gallery" className="hide-scrollbar -mx-5 mt-3 flex gap-3 overflow-x-auto px-5 pb-1">{photos.map((photo,index)=><button key={`${photo}-${index}`} type="button" onClick={()=>setViewer(index)} aria-label={`Open photo ${index+1} of ${photos.length}`} data-testid={`button-public-profile-photo-${index}`} className="pp-thumb"><MediaImage reference={photo} alt={`${profile.name}'s photo ${index+1}`} className="h-full w-full object-cover"/></button>)}</div>:<p className="mt-2 px-1 text-sm text-[hsl(var(--pp-muted))]">No photos shared yet.</p>}
    </section>
     <ProfileReelsSection profileId={profile.id} returnTo={`/profile/${encodeURIComponent(id)}?returnTo=${encodeURIComponent(actionReturnTo)}`} />
-  </main>
-   <div className="pointer-events-none fixed inset-x-0 bottom-[calc(1rem+env(safe-area-inset-bottom))] z-[29] flex flex-col items-center gap-3 px-3">
-    {(actionError||(likeOut&&superOut))&&<p role={actionError?'alert':'status'} data-testid="error-viewed-profile-action" className="pp-toast pointer-events-auto max-w-[92vw] rounded-full px-4 py-2 text-center text-xs font-semibold">{actionError||'Today’s likes and Super Like are used up.'}</p>}
-     <div className="pointer-events-none flex items-end justify-center gap-5 min-[380px]:gap-8" role="group" aria-label="Profile actions" data-testid="public-profile-actions">
-      {matches.isLoading?<p className="pp-cap" role="status">Checking match…</p>:matches.isError&&!matches.data?<button type="button" onClick={()=>void matches.refetch()} data-testid="button-retry-match-status" className="pointer-events-auto rounded-full border border-white/15 px-5 py-3 text-sm font-semibold">Retry</button>:profileMatch?(profileMatch.blockedByMe||profileMatch.blockedMe?<p className="pp-cap" role="status">This chat is unavailable.</p>:<button type="button" onClick={openMatchedChat} data-testid="button-viewed-profile-message" aria-label={`Message ${profile.name}`} className="pointer-events-auto flex min-h-12 items-center gap-2 rounded-full bg-[hsl(var(--pp-pink))] px-8 text-sm font-bold text-[#171612]"><MessageCircle size={18}/>Message</button>):<>
-       <button type="button" onClick={()=>void react('pass')} disabled={locked} data-testid="button-viewed-profile-pass" aria-label={`Pass on ${profile.name}`} className="pp-action"><span className="pp-fab pp-fab-white h-[58px] w-[58px]"><X size={26} strokeWidth={2.6} className="text-[hsl(var(--pp-muted))]"/></span><span className="pp-cap">Pass</span></button>
-       <button type="button" onClick={()=>void react('like')} disabled={locked||likes.isLoading||likeOut} data-testid="button-viewed-profile-like" aria-label={fromLikes?`Like ${profile.name} back`:`Like ${profile.name}`} className="pp-action"><span className="pp-fab pp-fab-pink h-[74px] w-[74px]"><Heart size={32} fill="currentColor"/></span><span className="pp-cap">{likeOut?'No likes left':fromLikes?'Like Back':'Like to match'}</span></button>
-       {!fromLikes&&<button type="button" onClick={()=>void react('super')} disabled={locked||supers.isLoading||superOut} data-testid="button-viewed-profile-super-like" aria-label={`Super Like ${profile.name}`} className="pp-action"><span className="pp-fab pp-fab-white h-[58px] w-[58px]"><Star size={25} fill="currentColor" className="text-[hsl(var(--pp-gold))]"/></span><span className="pp-cap">{superOut?'Used today':'Super Like'}</span></button>}
-      </>}
-     </div>
-   </div>
+   </main>
    {viewer!==null&&photos[viewer]&&<div className="fixed inset-0 z-[70] flex flex-col bg-[hsl(330_20%_6%/.94)]" role="dialog" aria-modal="true" aria-label={`${profile.name}'s photos`} data-testid="public-profile-photo-viewer" onTouchStart={e=>{(e.currentTarget as HTMLElement).dataset.x=String(e.touches[0].clientX)}} onTouchEnd={e=>{const start=Number((e.currentTarget as HTMLElement).dataset.x);const dx=e.changedTouches[0].clientX-start;if(Math.abs(dx)>50)setViewer(v=>v===null?v:Math.max(0,Math.min(photos.length-1,v+(dx<0?1:-1))))}}>
     <div className="flex items-center justify-between px-4 pt-[calc(1rem+env(safe-area-inset-top))] text-[hsl(330_30%_96%)]"><span className="text-sm font-semibold">{viewer+1} / {photos.length}</span><button type="button" autoFocus onClick={()=>setViewer(null)} aria-label="Close photos" data-testid="button-close-photo-viewer" className="flex h-11 w-11 items-center justify-center rounded-full bg-[hsl(0_0%_100%/.12)]"><X size={22}/></button></div>
     <div className="relative flex flex-1 items-center justify-center p-4"><MediaImage reference={photos[viewer]} alt={`${profile.name}'s photo ${viewer+1}`} className="max-h-full max-w-full rounded-2xl object-contain"/>
@@ -807,10 +838,10 @@ function PublicProfile({id,actionReturnTo='/discover'}:{id:string;actionReturnTo
     </div>
    </div>}
    {menu&&<Dialog title={profile.name} onClose={()=>{setMenu(false);setConfirmSafety(null)}}>{confirmSafety?<div><p className="mb-4 text-sm leading-6 text-muted-foreground">{confirmSafety==='block'?`Block ${profile.name}? They won’t be able to see you or message you, and any match will end.`:`Report ${profile.name} to our safety team? They won’t be told who reported them.`}</p>{safetyError&&<p role="alert" data-testid="error-public-profile-safety" className="mb-3 rounded-xl bg-destructive/15 px-3 py-2 text-xs font-semibold text-destructive">{safetyError}</p>}<div className="flex flex-col gap-2"><button type="button" disabled={block.isPending||report.isPending} onClick={()=>void runSafety(confirmSafety)} data-testid="button-confirm-public-profile-safety" className="w-full rounded-xl bg-destructive px-4 py-3 text-sm font-bold text-destructive-foreground disabled:opacity-60">{block.isPending||report.isPending?'Working…':confirmSafety==='block'?'Block':'Send report'}</button><button type="button" onClick={()=>{setConfirmSafety(null);setSafetyError('')}} className="w-full rounded-xl border border-border px-4 py-3 text-sm font-semibold">Cancel</button></div></div>:<div className="flex flex-col gap-2">{reported&&<p role="status" className="mb-1 text-sm text-muted-foreground">Thanks, your report was sent.</p>}<button type="button" disabled={reported} onClick={()=>setConfirmSafety('report')} data-testid="button-public-profile-report" className="flex w-full items-center gap-3 rounded-xl border border-border px-4 py-3 text-left text-sm font-semibold disabled:opacity-50"><Flag size={17} className="text-primary"/>{reported?'Reported':'Report profile'}</button><button type="button" onClick={()=>setConfirmSafety('block')} data-testid="button-public-profile-block" className="flex w-full items-center gap-3 rounded-xl border border-border px-4 py-3 text-left text-sm font-semibold text-destructive"><Ban size={17}/>Block {profile.name}</button></div>}</Dialog>}
-  {confirmation&&<div className="fixed inset-x-0 top-[calc(5rem+env(safe-area-inset-top))] z-[60] flex justify-center px-4" role="status" aria-live="polite" data-testid="status-viewed-profile-liked"><div data-testid="text-viewed-profile-liked" className="pp-confirm flex items-center gap-2 rounded-full px-5 py-3 text-sm font-semibold">{confirmation.kind==='super'?<Star size={17} fill="currentColor" className="text-[hsl(var(--pp-gold))]"/>:<Heart size={17} fill="currentColor" className="text-[hsl(var(--pp-pink))]"/>}{confirmation.text}</div></div>}
+   {confirmation&&<div className="fixed inset-x-0 top-[calc(5rem+env(safe-area-inset-top))] z-[60] flex justify-center px-4" role="status" aria-live="polite" data-testid="status-viewed-profile-liked"><div data-testid="text-viewed-profile-liked" className="pp-confirm flex items-center gap-2 rounded-full px-5 py-3 text-sm font-semibold"><Heart size={17} fill="currentColor" className="text-[hsl(var(--pp-pink))]"/>{confirmation.text}</div></div>}
   <MatchCelebration visible={!!matchResult} self={me.data??null} other={q.data??null} canMessage={!!matchResult?.matchId}
     onMessage={()=>{const matchId=matchResult?.matchId;if(!matchId)return;setMatchResult(null);const origin=`/profile/${id}?returnTo=${encodeURIComponent(actionReturnTo)}`;setLocation(`/chat/${matchId}?returnTo=${encodeURIComponent(origin)}`)}}
-    onKeepSwiping={()=>{setMatchResult(null);setLocation('/discover')}}/>
+     onKeepSwiping={()=>setMatchResult(null)}/>
   </div>
 }
 
@@ -899,6 +930,9 @@ function VisitorsPage(){
 }
 function ViewsRoute(){return <ShellPage><InboundPeoplePage kind="views" avatar={p=><Avatar profile={p}/>}/></ShellPage>}
 function LikesRoute(){return <ShellPage><InboundPeoplePage kind="likes" avatar={p=><Avatar profile={p}/>}/></ShellPage>}
+function FollowListRoute({kind}:{kind:'followers'|'following'}){const params=useParams<{profileId:string}>();return <ShellPage><FollowListPage profileId={params.profileId||''} kind={kind} avatar={p=><Avatar profile={p}/>}/></ShellPage>}
+function FollowersRoute(){return <FollowListRoute kind="followers"/>}
+function FollowingRoute(){return <FollowListRoute kind="following"/>}
 function MessagesRoute(){return <ShellPage><MessagesPage/></ShellPage>}
 function NotificationsRoute(){return <ShellPage><ActivityOverview avatar={p=><Avatar profile={p}/>}/></ShellPage>}
 function ViewedNotificationProfileRoute(){const params=useParams<{profileId:string}>();return <ShellPage><PublicProfile id={params.profileId||''} actionReturnTo="/notifications"/></ShellPage>}
@@ -935,7 +969,7 @@ function ClerkRoutes(){const [,setLocation]=useLocation();return <ClerkProvider 
   <Route path="/chat/:matchId" component={ChatRoute}/><Route path="/views" component={ViewsRoute}/><Route path="/likes" component={LikesRoute}/><Route path="/messages" component={MessagesRoute}/><Route path="/notifications" component={NotificationsRoute}/>
    <Route path="/privacy-policy" component={PrivacyPolicyRoute}/><Route path="/terms" component={CommunityGuidelinesRoute}/><Route path="/community-guidelines" component={CommunityGuidelinesRoute}/>
    <Route path="/safety-center" component={SafetyCenterRoute}/><Route path="/report-safety" component={ReportSafetyRoute}/><Route path="/safety/location" component={PublicLocationShareRoute}/>
-  <Route path="/profile" component={ProfileRoute}/><Route path="/profile/edit" component={ProfileEditRoute}/><Route path="/profile/:profileId/from-notifications" component={ViewedNotificationProfileRoute}/><Route path="/profile/:profileId" component={PublicProfileRoute}/><Route path="/verify-profile" component={FaceVerificationRoute}/><Route path="/settings" component={SettingsRoute}/><Route path="/settings/:section" component={SettingsSectionRoute}/><Route component={NotFound}/>
+  <Route path="/profile" component={ProfileRoute}/><Route path="/profile/edit" component={ProfileEditRoute}/><Route path="/profile/:profileId/followers" component={FollowersRoute}/><Route path="/profile/:profileId/following" component={FollowingRoute}/><Route path="/profile/:profileId/from-notifications" component={ViewedNotificationProfileRoute}/><Route path="/profile/:profileId" component={PublicProfileRoute}/><Route path="/verify-profile" component={FaceVerificationRoute}/><Route path="/settings" component={SettingsRoute}/><Route path="/settings/:section" component={SettingsSectionRoute}/><Route component={NotFound}/>
  </Switch></ClerkProvider>}
 function ConsumerInstallBanner(){const [location]=useLocation();return location.startsWith('/admin')||location.startsWith('/reels')?null:<MobileInstallBanner/>}
 function App(){if(!clerkPubKey)throw new Error('Missing VITE_CLERK_PUBLISHABLE_KEY');return <QueryClientProvider client={queryClient}><ConnectionNotice/><WouterRouter base={basePath}><ConsumerInstallBanner/><ClerkRoutes/></WouterRouter></QueryClientProvider>}

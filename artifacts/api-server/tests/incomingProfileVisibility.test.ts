@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { canShowIncomingProfile } from "../src/lib/incomingProfileVisibility.ts";
+import { canShowIncomingLike, canShowIncomingProfile } from "../src/lib/incomingProfileVisibility.ts";
 
 test("the signed-in user never appears in their own incoming lists", () => {
   assert.equal(canShowIncomingProfile({ id: "owner" }, "owner", new Set()), false);
@@ -17,4 +17,36 @@ test("blocked profiles are hidden regardless of which side placed the block", ()
 
 test("real unblocked incoming profiles remain visible", () => {
   assert.equal(canShowIncomingProfile({ id: "member", isDemo: false }, "owner", new Set(["another"])), true);
+});
+
+test("passing after an incoming like removes it from Dating Likes", () => {
+  assert.equal(canShowIncomingLike({
+    profile: { id: "member", isDemo: false },
+    currentUserId: "owner",
+    blockedProfileIds: new Set(),
+    matchedProfileIds: new Set(),
+    likedAt: new Date("2026-11-17T10:00:00Z"),
+    outgoingReaction: { type: "pass", createdAt: new Date("2026-11-17T10:01:00Z") },
+  }), false);
+});
+
+test("a later incoming like remains visible after an older pass", () => {
+  assert.equal(canShowIncomingLike({
+    profile: { id: "member", isDemo: false },
+    currentUserId: "owner",
+    blockedProfileIds: new Set(),
+    matchedProfileIds: new Set(),
+    likedAt: new Date("2026-11-17T10:01:00Z"),
+    outgoingReaction: { type: "pass", createdAt: new Date("2026-11-17T10:00:00Z") },
+  }), true);
+});
+
+test("profiles already matched are not offered again in Dating Likes", () => {
+  assert.equal(canShowIncomingLike({
+    profile: { id: "member", isDemo: false },
+    currentUserId: "owner",
+    blockedProfileIds: new Set(),
+    matchedProfileIds: new Set(["member"]),
+    likedAt: new Date("2026-11-17T10:00:00Z"),
+  }), false);
 });

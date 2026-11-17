@@ -20,7 +20,7 @@ function NativeTabLayout() {
   const counts = notifications.data?.unreadCounts;
   const matchBadge = counts?.matches ?? 0;
   const messageBadge = counts?.messages ?? 0;
-  const activityBadge = counts ? counts.views + counts.likes + (counts.reels ?? 0) : 0;
+  const activityBadge = counts ? counts.views + counts.likes + counts.follows + (counts.reels ?? 0) : 0;
   return (
     <NativeTabs tintColor={colors.premiumAccent}>
       <NativeTabs.Trigger name="index">
@@ -63,7 +63,7 @@ function ClassicTabLayout() {
   const counts = notifications.data?.unreadCounts;
   const matchBadge = counts?.matches ?? 0;
   const messageBadge = counts?.messages ?? 0;
-  const activityBadge = counts ? counts.views + counts.likes + (counts.reels ?? 0) : 0;
+  const activityBadge = counts ? counts.views + counts.likes + counts.follows + (counts.reels ?? 0) : 0;
 
   return (
     <Tabs

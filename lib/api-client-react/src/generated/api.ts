@@ -55,6 +55,8 @@ import type {
   GetAdminVerificationRequestsParams,
   GetDiscoverProfilesParams,
   GetMyReelsParams,
+  GetProfileFollowersParams,
+  GetProfileFollowingParams,
   GetProfileReelsParams,
   GetPublicLocationShareParams,
   GetReelsFeedParams,
@@ -79,6 +81,9 @@ import type {
   PresenceHeartbeatInput,
   PresenceStatus,
   Profile,
+  ProfileDatingState,
+  ProfileFollowList,
+  ProfileFollowSummary,
   ProfileInput,
   ProfileLike,
   ProfileVideoTranscodeResult,
@@ -5401,6 +5406,572 @@ export const useRecordProfileView = <TError = ErrorType<void>,
       > => {
       return useMutation(getRecordProfileViewMutationOptions(options), queryClient);
     }
+
+export const getGetProfileFollowSummaryUrl = (profileId: string,) => {
+
+
+
+
+  return `/api/vibeswipe/profiles/${profileId}/follow-summary`
+}
+
+/**
+ * @summary Get follow counts and follow state for a profile
+ */
+export const getProfileFollowSummary = async (profileId: string, options?: Parameters<typeof customFetch>[1]): Promise<ProfileFollowSummary> => {
+
+  return customFetch<ProfileFollowSummary>(getGetProfileFollowSummaryUrl(profileId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetProfileFollowSummaryQueryKey = (profileId: string,) => {
+    return [
+    `/api/vibeswipe/profiles/${profileId}/follow-summary`
+    ] as const;
+    }
+
+
+export const getGetProfileFollowSummaryQueryOptions = <TData = Awaited<ReturnType<typeof getProfileFollowSummary>>, TError = ErrorType<void>>(profileId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProfileFollowSummary>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetProfileFollowSummaryQueryKey(profileId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getProfileFollowSummary>>> = ({ signal }) => getProfileFollowSummary(profileId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: profileId !== null && profileId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getProfileFollowSummary>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetProfileFollowSummaryQueryResult = NonNullable<Awaited<ReturnType<typeof getProfileFollowSummary>>>
+export type GetProfileFollowSummaryQueryError = ErrorType<void>
+
+
+export function useGetProfileFollowSummary<TData = Awaited<ReturnType<typeof getProfileFollowSummary>>, TError = ErrorType<void>>(
+ profileId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProfileFollowSummary>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getProfileFollowSummary>>,
+          TError,
+          Awaited<ReturnType<typeof getProfileFollowSummary>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetProfileFollowSummary<TData = Awaited<ReturnType<typeof getProfileFollowSummary>>, TError = ErrorType<void>>(
+ profileId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProfileFollowSummary>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getProfileFollowSummary>>,
+          TError,
+          Awaited<ReturnType<typeof getProfileFollowSummary>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetProfileFollowSummary<TData = Awaited<ReturnType<typeof getProfileFollowSummary>>, TError = ErrorType<void>>(
+ profileId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProfileFollowSummary>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get follow counts and follow state for a profile
+ */
+
+export function useGetProfileFollowSummary<TData = Awaited<ReturnType<typeof getProfileFollowSummary>>, TError = ErrorType<void>>(
+ profileId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProfileFollowSummary>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetProfileFollowSummaryQueryOptions(profileId,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetProfileDatingStateUrl = (profileId: string,) => {
+
+
+
+
+  return `/api/vibeswipe/profiles/${profileId}/dating-state`
+}
+
+/**
+ * @summary Get the signed-in user's dating state for a profile
+ */
+export const getProfileDatingState = async (profileId: string, options?: Parameters<typeof customFetch>[1]): Promise<ProfileDatingState> => {
+
+  return customFetch<ProfileDatingState>(getGetProfileDatingStateUrl(profileId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetProfileDatingStateQueryKey = (profileId: string,) => {
+    return [
+    `/api/vibeswipe/profiles/${profileId}/dating-state`
+    ] as const;
+    }
+
+
+export const getGetProfileDatingStateQueryOptions = <TData = Awaited<ReturnType<typeof getProfileDatingState>>, TError = ErrorType<void>>(profileId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProfileDatingState>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetProfileDatingStateQueryKey(profileId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getProfileDatingState>>> = ({ signal }) => getProfileDatingState(profileId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: profileId !== null && profileId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getProfileDatingState>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetProfileDatingStateQueryResult = NonNullable<Awaited<ReturnType<typeof getProfileDatingState>>>
+export type GetProfileDatingStateQueryError = ErrorType<void>
+
+
+export function useGetProfileDatingState<TData = Awaited<ReturnType<typeof getProfileDatingState>>, TError = ErrorType<void>>(
+ profileId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProfileDatingState>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getProfileDatingState>>,
+          TError,
+          Awaited<ReturnType<typeof getProfileDatingState>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetProfileDatingState<TData = Awaited<ReturnType<typeof getProfileDatingState>>, TError = ErrorType<void>>(
+ profileId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProfileDatingState>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getProfileDatingState>>,
+          TError,
+          Awaited<ReturnType<typeof getProfileDatingState>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetProfileDatingState<TData = Awaited<ReturnType<typeof getProfileDatingState>>, TError = ErrorType<void>>(
+ profileId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProfileDatingState>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get the signed-in user's dating state for a profile
+ */
+
+export function useGetProfileDatingState<TData = Awaited<ReturnType<typeof getProfileDatingState>>, TError = ErrorType<void>>(
+ profileId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProfileDatingState>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetProfileDatingStateQueryOptions(profileId,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getFollowProfileUrl = (profileId: string,) => {
+
+
+
+
+  return `/api/vibeswipe/profiles/${profileId}/follow`
+}
+
+/**
+ * @summary Follow a profile without creating a dating match
+ */
+export const followProfile = async (profileId: string, options?: Parameters<typeof customFetch>[1]): Promise<ProfileFollowSummary> => {
+
+  return customFetch<ProfileFollowSummary>(getFollowProfileUrl(profileId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getFollowProfileMutationKey = () => ['followProfile'] as const;
+
+export const getFollowProfileMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof followProfile>>, TError,FollowProfileMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof followProfile>>, TError,FollowProfileMutationVariables, TContext> => {
+
+const mutationKey = getFollowProfileMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof followProfile>>, FollowProfileMutationVariables> = (props) => {
+          const {profileId} = props ?? {};
+
+          return  followProfile(profileId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type FollowProfileMutationResult = NonNullable<Awaited<ReturnType<typeof followProfile>>>
+
+    export type FollowProfileMutationError = ErrorType<void>
+    export type FollowProfileMutationVariables = {profileId: string}
+
+    /**
+ * @summary Follow a profile without creating a dating match
+ */
+export const useFollowProfile = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof followProfile>>, TError,FollowProfileMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof followProfile>>,
+        TError,
+        FollowProfileMutationVariables,
+        TContext
+      > => {
+      return useMutation(getFollowProfileMutationOptions(options), queryClient);
+    }
+
+export const getUnfollowProfileUrl = (profileId: string,) => {
+
+
+
+
+  return `/api/vibeswipe/profiles/${profileId}/follow`
+}
+
+/**
+ * @summary Unfollow a profile without changing dating matches
+ */
+export const unfollowProfile = async (profileId: string, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getUnfollowProfileUrl(profileId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getUnfollowProfileMutationKey = () => ['unfollowProfile'] as const;
+
+export const getUnfollowProfileMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof unfollowProfile>>, TError,UnfollowProfileMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof unfollowProfile>>, TError,UnfollowProfileMutationVariables, TContext> => {
+
+const mutationKey = getUnfollowProfileMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof unfollowProfile>>, UnfollowProfileMutationVariables> = (props) => {
+          const {profileId} = props ?? {};
+
+          return  unfollowProfile(profileId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UnfollowProfileMutationResult = NonNullable<Awaited<ReturnType<typeof unfollowProfile>>>
+
+    export type UnfollowProfileMutationError = ErrorType<unknown>
+    export type UnfollowProfileMutationVariables = {profileId: string}
+
+    /**
+ * @summary Unfollow a profile without changing dating matches
+ */
+export const useUnfollowProfile = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof unfollowProfile>>, TError,UnfollowProfileMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof unfollowProfile>>,
+        TError,
+        UnfollowProfileMutationVariables,
+        TContext
+      > => {
+      return useMutation(getUnfollowProfileMutationOptions(options), queryClient);
+    }
+
+export const getGetProfileFollowersUrl = (params: GetProfileFollowersParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/vibeswipe/profile-followers?${stringifiedParams}` : `/api/vibeswipe/profile-followers`
+}
+
+/**
+ * @summary Search and page through a profile's followers
+ */
+export const getProfileFollowers = async (params: GetProfileFollowersParams, options?: Parameters<typeof customFetch>[1]): Promise<ProfileFollowList> => {
+
+  return customFetch<ProfileFollowList>(getGetProfileFollowersUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetProfileFollowersQueryKey = (params?: GetProfileFollowersParams,) => {
+    return [
+    `/api/vibeswipe/profile-followers`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetProfileFollowersQueryOptions = <TData = Awaited<ReturnType<typeof getProfileFollowers>>, TError = ErrorType<void>>(params: GetProfileFollowersParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProfileFollowers>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetProfileFollowersQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getProfileFollowers>>> = ({ signal }) => getProfileFollowers(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getProfileFollowers>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetProfileFollowersQueryResult = NonNullable<Awaited<ReturnType<typeof getProfileFollowers>>>
+export type GetProfileFollowersQueryError = ErrorType<void>
+
+
+export function useGetProfileFollowers<TData = Awaited<ReturnType<typeof getProfileFollowers>>, TError = ErrorType<void>>(
+ params: GetProfileFollowersParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProfileFollowers>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getProfileFollowers>>,
+          TError,
+          Awaited<ReturnType<typeof getProfileFollowers>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetProfileFollowers<TData = Awaited<ReturnType<typeof getProfileFollowers>>, TError = ErrorType<void>>(
+ params: GetProfileFollowersParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProfileFollowers>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getProfileFollowers>>,
+          TError,
+          Awaited<ReturnType<typeof getProfileFollowers>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetProfileFollowers<TData = Awaited<ReturnType<typeof getProfileFollowers>>, TError = ErrorType<void>>(
+ params: GetProfileFollowersParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProfileFollowers>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Search and page through a profile's followers
+ */
+
+export function useGetProfileFollowers<TData = Awaited<ReturnType<typeof getProfileFollowers>>, TError = ErrorType<void>>(
+ params: GetProfileFollowersParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProfileFollowers>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetProfileFollowersQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetProfileFollowingUrl = (params: GetProfileFollowingParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/vibeswipe/profile-following?${stringifiedParams}` : `/api/vibeswipe/profile-following`
+}
+
+/**
+ * @summary Search and page through a profile's following list
+ */
+export const getProfileFollowing = async (params: GetProfileFollowingParams, options?: Parameters<typeof customFetch>[1]): Promise<ProfileFollowList> => {
+
+  return customFetch<ProfileFollowList>(getGetProfileFollowingUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetProfileFollowingQueryKey = (params?: GetProfileFollowingParams,) => {
+    return [
+    `/api/vibeswipe/profile-following`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetProfileFollowingQueryOptions = <TData = Awaited<ReturnType<typeof getProfileFollowing>>, TError = ErrorType<void>>(params: GetProfileFollowingParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProfileFollowing>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetProfileFollowingQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getProfileFollowing>>> = ({ signal }) => getProfileFollowing(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getProfileFollowing>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetProfileFollowingQueryResult = NonNullable<Awaited<ReturnType<typeof getProfileFollowing>>>
+export type GetProfileFollowingQueryError = ErrorType<void>
+
+
+export function useGetProfileFollowing<TData = Awaited<ReturnType<typeof getProfileFollowing>>, TError = ErrorType<void>>(
+ params: GetProfileFollowingParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProfileFollowing>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getProfileFollowing>>,
+          TError,
+          Awaited<ReturnType<typeof getProfileFollowing>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetProfileFollowing<TData = Awaited<ReturnType<typeof getProfileFollowing>>, TError = ErrorType<void>>(
+ params: GetProfileFollowingParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProfileFollowing>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getProfileFollowing>>,
+          TError,
+          Awaited<ReturnType<typeof getProfileFollowing>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetProfileFollowing<TData = Awaited<ReturnType<typeof getProfileFollowing>>, TError = ErrorType<void>>(
+ params: GetProfileFollowingParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProfileFollowing>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Search and page through a profile's following list
+ */
+
+export function useGetProfileFollowing<TData = Awaited<ReturnType<typeof getProfileFollowing>>, TError = ErrorType<void>>(
+ params: GetProfileFollowingParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProfileFollowing>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetProfileFollowingQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export const getGetWhoLikedYouUrl = () => {
 

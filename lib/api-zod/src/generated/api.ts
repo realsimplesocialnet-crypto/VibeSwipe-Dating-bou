@@ -1388,6 +1388,271 @@ export const RecordProfileViewResponse = zod.void()
 
 
 /**
+ * @summary Get follow counts and follow state for a profile
+ */
+
+
+
+export const GetProfileFollowSummaryParams = zod.object({
+  "profileId": zod.coerce.string().min(1)
+})
+
+export const getProfileFollowSummaryResponseFollowersCountMin = 0;
+
+export const getProfileFollowSummaryResponseFollowingCountMin = 0;
+
+
+
+export const GetProfileFollowSummaryResponse = zod.object({
+  "followersCount": zod.number().int().min(getProfileFollowSummaryResponseFollowersCountMin),
+  "followingCount": zod.number().int().min(getProfileFollowSummaryResponseFollowingCountMin),
+  "isFollowing": zod.boolean(),
+  "followsYou": zod.boolean()
+})
+
+
+/**
+ * @summary Get the signed-in user's dating state for a profile
+ */
+
+
+
+export const GetProfileDatingStateParams = zod.object({
+  "profileId": zod.coerce.string().min(1)
+})
+
+export const GetProfileDatingStateResponse = zod.object({
+  "reaction": zod.union([zod.literal('like'),zod.literal('super'),zod.literal(null)]).nullable(),
+  "matchId": zod.string().uuid().nullable()
+})
+
+
+/**
+ * @summary Follow a profile without creating a dating match
+ */
+
+
+
+export const FollowProfileParams = zod.object({
+  "profileId": zod.coerce.string().min(1)
+})
+
+export const followProfileResponseFollowersCountMin = 0;
+
+export const followProfileResponseFollowingCountMin = 0;
+
+
+
+export const FollowProfileResponse = zod.object({
+  "followersCount": zod.number().int().min(followProfileResponseFollowersCountMin),
+  "followingCount": zod.number().int().min(followProfileResponseFollowingCountMin),
+  "isFollowing": zod.boolean(),
+  "followsYou": zod.boolean()
+})
+
+
+/**
+ * @summary Unfollow a profile without changing dating matches
+ */
+
+
+
+export const UnfollowProfileParams = zod.object({
+  "profileId": zod.coerce.string().min(1)
+})
+
+export const UnfollowProfileResponse = zod.void()
+
+
+/**
+ * @summary Search and page through a profile's followers
+ */
+
+export const getProfileFollowersQuerySearchMax = 100;
+
+export const getProfileFollowersQueryOffsetDefault = 0;
+export const getProfileFollowersQueryOffsetMin = 0;
+
+export const getProfileFollowersQueryLimitDefault = 30;
+export const getProfileFollowersQueryLimitMax = 50;
+
+
+
+export const GetProfileFollowersQueryParams = zod.object({
+  "profileId": zod.coerce.string().min(1),
+  "search": zod.coerce.string().max(getProfileFollowersQuerySearchMax).optional(),
+  "offset": zod.coerce.number().int().min(getProfileFollowersQueryOffsetMin).default(getProfileFollowersQueryOffsetDefault),
+  "limit": zod.coerce.number().int().min(1).max(getProfileFollowersQueryLimitMax).default(getProfileFollowersQueryLimitDefault)
+})
+
+export const getProfileFollowersResponseEntriesItemProfilePreferencesAgeMinMin = 18;
+export const getProfileFollowersResponseEntriesItemProfilePreferencesAgeMinMax = 120;
+
+export const getProfileFollowersResponseEntriesItemProfilePreferencesAgeMaxMin = 18;
+export const getProfileFollowersResponseEntriesItemProfilePreferencesAgeMaxMax = 120;
+
+export const getProfileFollowersResponseEntriesItemProfilePreferencesDistanceKmMax = 500;
+
+export const getProfileFollowersResponseEntriesItemProfilePreferencesDiscoveryLocationCountryMax = 100;
+
+export const getProfileFollowersResponseEntriesItemProfilePreferencesDiscoveryLocationStateMax = 100;
+
+export const getProfileFollowersResponseEntriesItemProfilePreferencesDiscoveryLocationCityMax = 100;
+
+export const getProfileFollowersResponseEntriesItemProfilePreferencesDiscoveryLocationRadiusKmMax = 500;
+
+export const getProfileFollowersResponseTotalMin = 0;
+
+export const getProfileFollowersResponseOffsetMin = 0;
+
+
+export const getProfileFollowersResponseNextOffsetMin = 0;
+
+
+
+export const GetProfileFollowersResponse = zod.object({
+  "entries": zod.array(zod.object({
+  "profile": zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "age": zod.number().int().nullable(),
+  "showAge": zod.boolean(),
+  "showDistance": zod.boolean(),
+  "gender": zod.string(),
+  "lookingFor": zod.string(),
+  "bio": zod.string(),
+  "city": zod.string(),
+  "country": zod.string().nullable(),
+  "state": zod.string().nullable(),
+  "interests": zod.array(zod.string()),
+  "occupation": zod.string(),
+  "occupationOther": zod.string(),
+  "photos": zod.array(zod.string()),
+  "videoUrl": zod.string().nullish(),
+  "isDemo": zod.boolean(),
+  "isVerified": zod.boolean().optional().describe('Public verification badge; never writable through profile input.'),
+  "superLikedYou": zod.boolean().optional(),
+  "discoveryExpanded": zod.boolean().optional().describe('The default discovery batch includes members outside the home country because the eligible local pool is below the minimum.'),
+  "preferences": zod.object({
+  "ageMin": zod.number().int().min(getProfileFollowersResponseEntriesItemProfilePreferencesAgeMinMin).max(getProfileFollowersResponseEntriesItemProfilePreferencesAgeMinMax),
+  "ageMax": zod.number().int().min(getProfileFollowersResponseEntriesItemProfilePreferencesAgeMaxMin).max(getProfileFollowersResponseEntriesItemProfilePreferencesAgeMaxMax),
+  "gender": zod.string(),
+  "distanceKm": zod.number().int().min(1).max(getProfileFollowersResponseEntriesItemProfilePreferencesDistanceKmMax),
+  "discoveryLocation": zod.object({
+  "scope": zod.enum(['city', 'state', 'country', 'radius']),
+  "country": zod.string().max(getProfileFollowersResponseEntriesItemProfilePreferencesDiscoveryLocationCountryMax).nullable(),
+  "state": zod.string().max(getProfileFollowersResponseEntriesItemProfilePreferencesDiscoveryLocationStateMax).nullable(),
+  "city": zod.string().max(getProfileFollowersResponseEntriesItemProfilePreferencesDiscoveryLocationCityMax).nullable(),
+  "radiusKm": zod.number().int().min(1).max(getProfileFollowersResponseEntriesItemProfilePreferencesDiscoveryLocationRadiusKmMax).nullable()
+}).optional()
+})
+}),
+  "isFollowing": zod.boolean(),
+  "followsYou": zod.boolean(),
+  "followedAt": zod.coerce.date()
+})),
+  "total": zod.number().int().min(getProfileFollowersResponseTotalMin),
+  "offset": zod.number().int().min(getProfileFollowersResponseOffsetMin),
+  "limit": zod.number().int().min(1),
+  "nextOffset": zod.number().int().min(getProfileFollowersResponseNextOffsetMin).nullable()
+})
+
+
+/**
+ * @summary Search and page through a profile's following list
+ */
+
+export const getProfileFollowingQuerySearchMax = 100;
+
+export const getProfileFollowingQueryOffsetDefault = 0;
+export const getProfileFollowingQueryOffsetMin = 0;
+
+export const getProfileFollowingQueryLimitDefault = 30;
+export const getProfileFollowingQueryLimitMax = 50;
+
+
+
+export const GetProfileFollowingQueryParams = zod.object({
+  "profileId": zod.coerce.string().min(1),
+  "search": zod.coerce.string().max(getProfileFollowingQuerySearchMax).optional(),
+  "offset": zod.coerce.number().int().min(getProfileFollowingQueryOffsetMin).default(getProfileFollowingQueryOffsetDefault),
+  "limit": zod.coerce.number().int().min(1).max(getProfileFollowingQueryLimitMax).default(getProfileFollowingQueryLimitDefault)
+})
+
+export const getProfileFollowingResponseEntriesItemProfilePreferencesAgeMinMin = 18;
+export const getProfileFollowingResponseEntriesItemProfilePreferencesAgeMinMax = 120;
+
+export const getProfileFollowingResponseEntriesItemProfilePreferencesAgeMaxMin = 18;
+export const getProfileFollowingResponseEntriesItemProfilePreferencesAgeMaxMax = 120;
+
+export const getProfileFollowingResponseEntriesItemProfilePreferencesDistanceKmMax = 500;
+
+export const getProfileFollowingResponseEntriesItemProfilePreferencesDiscoveryLocationCountryMax = 100;
+
+export const getProfileFollowingResponseEntriesItemProfilePreferencesDiscoveryLocationStateMax = 100;
+
+export const getProfileFollowingResponseEntriesItemProfilePreferencesDiscoveryLocationCityMax = 100;
+
+export const getProfileFollowingResponseEntriesItemProfilePreferencesDiscoveryLocationRadiusKmMax = 500;
+
+export const getProfileFollowingResponseTotalMin = 0;
+
+export const getProfileFollowingResponseOffsetMin = 0;
+
+
+export const getProfileFollowingResponseNextOffsetMin = 0;
+
+
+
+export const GetProfileFollowingResponse = zod.object({
+  "entries": zod.array(zod.object({
+  "profile": zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "age": zod.number().int().nullable(),
+  "showAge": zod.boolean(),
+  "showDistance": zod.boolean(),
+  "gender": zod.string(),
+  "lookingFor": zod.string(),
+  "bio": zod.string(),
+  "city": zod.string(),
+  "country": zod.string().nullable(),
+  "state": zod.string().nullable(),
+  "interests": zod.array(zod.string()),
+  "occupation": zod.string(),
+  "occupationOther": zod.string(),
+  "photos": zod.array(zod.string()),
+  "videoUrl": zod.string().nullish(),
+  "isDemo": zod.boolean(),
+  "isVerified": zod.boolean().optional().describe('Public verification badge; never writable through profile input.'),
+  "superLikedYou": zod.boolean().optional(),
+  "discoveryExpanded": zod.boolean().optional().describe('The default discovery batch includes members outside the home country because the eligible local pool is below the minimum.'),
+  "preferences": zod.object({
+  "ageMin": zod.number().int().min(getProfileFollowingResponseEntriesItemProfilePreferencesAgeMinMin).max(getProfileFollowingResponseEntriesItemProfilePreferencesAgeMinMax),
+  "ageMax": zod.number().int().min(getProfileFollowingResponseEntriesItemProfilePreferencesAgeMaxMin).max(getProfileFollowingResponseEntriesItemProfilePreferencesAgeMaxMax),
+  "gender": zod.string(),
+  "distanceKm": zod.number().int().min(1).max(getProfileFollowingResponseEntriesItemProfilePreferencesDistanceKmMax),
+  "discoveryLocation": zod.object({
+  "scope": zod.enum(['city', 'state', 'country', 'radius']),
+  "country": zod.string().max(getProfileFollowingResponseEntriesItemProfilePreferencesDiscoveryLocationCountryMax).nullable(),
+  "state": zod.string().max(getProfileFollowingResponseEntriesItemProfilePreferencesDiscoveryLocationStateMax).nullable(),
+  "city": zod.string().max(getProfileFollowingResponseEntriesItemProfilePreferencesDiscoveryLocationCityMax).nullable(),
+  "radiusKm": zod.number().int().min(1).max(getProfileFollowingResponseEntriesItemProfilePreferencesDiscoveryLocationRadiusKmMax).nullable()
+}).optional()
+})
+}),
+  "isFollowing": zod.boolean(),
+  "followsYou": zod.boolean(),
+  "followedAt": zod.coerce.date()
+})),
+  "total": zod.number().int().min(getProfileFollowingResponseTotalMin),
+  "offset": zod.number().int().min(getProfileFollowingResponseOffsetMin),
+  "limit": zod.number().int().min(1),
+  "nextOffset": zod.number().int().min(getProfileFollowingResponseNextOffsetMin).nullable()
+})
+
+
+/**
  * @summary List current incoming likes for the signed-in user
  */
 export const getWhoLikedYouResponseProfilePreferencesAgeMinMin = 18;
@@ -1541,12 +1806,14 @@ export const getNotificationsResponseUnreadCountsLikesMin = 0;
 
 export const getNotificationsResponseUnreadCountsReelsMin = 0;
 
+export const getNotificationsResponseUnreadCountsFollowsMin = 0;
+
 
 
 export const GetNotificationsResponse = zod.object({
   "notifications": zod.array(zod.object({
   "id": zod.string().uuid(),
-  "type": zod.enum(['new_match', 'new_message', 'new_like', 'new_super_like', 'profile_view', 'reel_like', 'reel_comment_reply']),
+  "type": zod.enum(['new_match', 'new_message', 'new_like', 'new_super_like', 'new_follow', 'profile_view', 'reel_like', 'reel_comment_reply']),
   "actor": zod.object({
   "id": zod.string(),
   "name": zod.string(),
@@ -1594,7 +1861,8 @@ export const GetNotificationsResponse = zod.object({
   "messages": zod.number().int().min(getNotificationsResponseUnreadCountsMessagesMin),
   "views": zod.number().int().min(getNotificationsResponseUnreadCountsViewsMin),
   "likes": zod.number().int().min(getNotificationsResponseUnreadCountsLikesMin),
-  "reels": zod.number().int().min(getNotificationsResponseUnreadCountsReelsMin)
+  "reels": zod.number().int().min(getNotificationsResponseUnreadCountsReelsMin),
+  "follows": zod.number().int().min(getNotificationsResponseUnreadCountsFollowsMin)
 })
 })
 

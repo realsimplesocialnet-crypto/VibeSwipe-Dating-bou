@@ -899,6 +899,55 @@ export interface ProfileView {
   viewedAt: string;
 }
 
+export interface ProfileFollowSummary {
+  /** @minimum 0 */
+  followersCount: number;
+  /** @minimum 0 */
+  followingCount: number;
+  isFollowing: boolean;
+  followsYou: boolean;
+}
+
+/**
+ * @nullable
+ */
+export type ProfileDatingStateReaction = typeof ProfileDatingStateReaction[keyof typeof ProfileDatingStateReaction] | null;
+
+
+export const ProfileDatingStateReaction = {
+  like: 'like',
+  super: 'super',
+} as const;
+
+export interface ProfileDatingState {
+  /** @nullable */
+  reaction: ProfileDatingStateReaction;
+  /** @nullable */
+  matchId: string | null;
+}
+
+export interface ProfileFollowEntry {
+  profile: Profile;
+  isFollowing: boolean;
+  followsYou: boolean;
+  followedAt: string;
+}
+
+export interface ProfileFollowList {
+  entries: ProfileFollowEntry[];
+  /** @minimum 0 */
+  total: number;
+  /** @minimum 0 */
+  offset: number;
+  /** @minimum 1 */
+  limit: number;
+  /**
+     * @minimum 0
+     * @nullable
+     */
+  nextOffset: number | null;
+}
+
 export interface NotificationReadInput {
   /**
      * @minItems 1
@@ -915,6 +964,7 @@ export const NotificationType = {
   new_message: 'new_message',
   new_like: 'new_like',
   new_super_like: 'new_super_like',
+  new_follow: 'new_follow',
   profile_view: 'profile_view',
   reel_like: 'reel_like',
   reel_comment_reply: 'reel_comment_reply',
@@ -948,6 +998,8 @@ export interface NotificationCounts {
   likes: number;
   /** @minimum 0 */
   reels: number;
+  /** @minimum 0 */
+  follows: number;
 }
 
 export interface NotificationsResponse {
@@ -1434,6 +1486,46 @@ export type GetPublicLocationShareParams = {
  * @maxLength 60
  */
 token: string;
+};
+
+export type GetProfileFollowersParams = {
+/**
+ * @minLength 1
+ */
+profileId: string;
+/**
+ * @maxLength 100
+ */
+search?: string;
+/**
+ * @minimum 0
+ */
+offset?: number;
+/**
+ * @minimum 1
+ * @maximum 50
+ */
+limit?: number;
+};
+
+export type GetProfileFollowingParams = {
+/**
+ * @minLength 1
+ */
+profileId: string;
+/**
+ * @maxLength 100
+ */
+search?: string;
+/**
+ * @minimum 0
+ */
+offset?: number;
+/**
+ * @minimum 1
+ * @maximum 50
+ */
+limit?: number;
 };
 
 export type GetProfileReelsParams = {

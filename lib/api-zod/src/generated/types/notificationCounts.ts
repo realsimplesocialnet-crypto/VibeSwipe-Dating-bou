@@ -17,4 +17,6 @@ export interface NotificationCounts {
   likes: number;
   /** @minimum 0 */
   reels: number;
+  /** @minimum 0 */
+  follows: number;
 }

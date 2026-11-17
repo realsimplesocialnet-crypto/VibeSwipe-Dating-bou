@@ -71,8 +71,10 @@ export default function MessagesScreen() {
   const unmatch = useUnmatchMatch();
   const [actionTarget, setActionTarget] = useState<ActionTarget | null>(null);
   const [showReportReasons, setShowReportReasons] = useState(false);
-  const chats = useMemo(() => (matches.data ?? []).filter((m) => !m.profile.isDemo && !m.blockedByMe && !m.blockedMe).sort((a, b) =>
+  const allMatches = useMemo(() => (matches.data ?? []).filter((m) => !m.profile.isDemo && !m.blockedByMe && !m.blockedMe).sort((a, b) =>
     new Date(b.lastMessageAt ?? b.updatedAt).getTime() - new Date(a.lastMessageAt ?? a.updatedAt).getTime()), [matches.data]);
+  const newMatches = allMatches.filter((match) => !match.lastMessage);
+  const chats = allMatches.filter((match) => Boolean(match.lastMessage));
 
   async function refreshSafetyAndLists() {
     await Promise.all([
@@ -164,7 +166,7 @@ export default function MessagesScreen() {
           <Text style={[styles.errorText, { color: colors.destructive }]}>Couldn’t load conversations. Tap to retry.</Text>
         </Pressable>
       ) : null}
-      {!matches.isLoading && !matches.isError && !chats.length ? (
+      {!matches.isLoading && !matches.isError && !chats.length && !newMatches.length ? (
         <View style={styles.empty}>
           <Feather name="message-circle" size={30} color={colors.primary} />
           <Text style={[styles.emptyTitle, { color: colors.foreground }]}>No conversations yet</Text>
@@ -173,8 +175,32 @@ export default function MessagesScreen() {
       ) : null}
       <FlatList
         data={chats}
+        scrollEnabled={chats.length > 0 || newMatches.length > 0}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
+        ListHeaderComponent={newMatches.length ? (
+          <View style={{ marginBottom: 18 }} testID="section-new-matches">
+            <Text style={[styles.sectionTitle, { color: colors.primary }]}>NEW MATCHES</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.newMatchesRow}>
+              {newMatches.map((match) => (
+                <Pressable
+                  key={match.id}
+                  testID={`new-match-${match.id}`}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Start a chat with ${match.profile.name}`}
+                  onPress={() => router.push({ pathname: "/chat/[matchId]", params: { matchId: match.id, returnTo: "messages" } } as never)}
+                  style={({ pressed }) => [styles.newMatchCard, { backgroundColor: colors.profileCard, borderColor: colors.border, opacity: pressed ? 0.84 : 1 }]}
+                >
+                  <ProfileAvatar profile={match.profile} size={58} />
+                  <Text numberOfLines={1} style={[styles.newMatchName, { color: colors.foreground }]}>{match.profile.name}{match.profile.age !== null ? `, ${match.profile.age}` : ""}</Text>
+                  <Text numberOfLines={2} style={[styles.newMatchSub, { color: colors.mutedForeground }]}>You both liked each other ❤️</Text>
+                  <Text style={[styles.newMatchAction, { color: colors.primary }]}>Message</Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+          </View>
+        ) : undefined}
+        ListEmptyComponent={newMatches.length ? <Text style={[styles.noChatsYet, { color: colors.mutedForeground }]}>No chats yet. Start a conversation with a new match.</Text> : undefined}
         renderItem={({ item }) => {
           const isBlocked = item.blockedByMe || item.blockedMe;
           const status = item.blockedByMe ? "You blocked this person" : item.blockedMe ? "Messaging unavailable" : null;
@@ -405,6 +431,12 @@ const styles = StyleSheet.create({
   errorBox: { paddingVertical: 12 },
   errorText: { fontSize: 13 },
   sectionTitle: { fontSize: 17, fontWeight: "700", marginBottom: 2 },
+  newMatchesRow: { gap: 10, paddingVertical: 4, paddingRight: 4 },
+  newMatchCard: { width: 152, minHeight: 184, alignItems: "center", justifyContent: "center", gap: 7, borderWidth: StyleSheet.hairlineWidth, borderRadius: 20, padding: 12 },
+  newMatchName: { maxWidth: "100%", fontSize: 14, fontWeight: "800" },
+  newMatchSub: { fontSize: 11, lineHeight: 15, textAlign: "center" },
+  newMatchAction: { fontSize: 12, fontWeight: "800", marginTop: 2 },
+  noChatsYet: { textAlign: "center", paddingTop: 20, fontSize: 13 },
   modalScrim: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.58)", padding: 12 },
   actionSheet: { maxHeight: "82%", borderWidth: StyleSheet.hairlineWidth, borderRadius: 22, paddingHorizontal: 18, paddingTop: 18, paddingBottom: 24 },
   sheetHeading: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingBottom: 12 },

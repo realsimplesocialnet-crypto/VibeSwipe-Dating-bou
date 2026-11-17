@@ -302,6 +302,7 @@ export default function ChatScreen() {
       const message = await sendMessage.mutateAsync({ matchId, data: payload });
       addMessage(message);
       updateTyping.mutate({ matchId, data: { isTyping: false } });
+      void queryClient.invalidateQueries({ queryKey: getGetMatchesQueryKey() });
       setError("");
     } catch (caught) {
       if (!media) setDraft(current => current && current !== oldDraft ? [oldDraft, current].filter(Boolean).join("\n") : oldDraft);

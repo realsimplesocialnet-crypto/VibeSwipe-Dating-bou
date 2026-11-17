@@ -4,7 +4,7 @@ import {
   getGetMatchesQueryKey,
   getGetNotificationsQueryKey,
   getGetProfileByIdQueryKey,
-  getGetSuperLikeStatusQueryKey,
+  getGetProfileDatingStateQueryKey,
   getGetWhoLikedYouQueryKey,
   useBlockProfile,
   useCreateReaction,
@@ -12,13 +12,15 @@ import {
   useGetMatches,
   useGetMyProfile,
   useGetProfileById,
-  useGetSuperLikeStatus,
+  useGetProfileDatingState,
   useRecordProfileView,
   useReportProfile,
+  type ProfileDatingState,
 } from "@workspace/api-client-react";
 import { Feather } from "@expo/vector-icons";
 import { MatchCelebration } from "@/components/MatchCelebration";
 import { ProfileReelsSection } from "@/components/ProfileReelsSection";
+import { ProfileFollowStats } from "@/components/ProfileFollow";
 import { router, useLocalSearchParams } from "expo-router";
 import { useAuth } from "@clerk/expo";
 import { useQueryClient } from "@tanstack/react-query";
@@ -28,8 +30,6 @@ import type { ComponentProps } from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { profileImageSource } from "@/lib/media";
 import { usePremiumColors } from "@/hooks/useColors";
-
-type ReactionKind = "pass" | "like" | "super";
 
 export default function PublicProfileScreen() {
   const me = useGetMyProfile();
@@ -50,16 +50,17 @@ export default function PublicProfileScreen() {
   const [confirmSafety, setConfirmSafety] = useState<"block" | "report" | null>(null);
   const [safetyError, setSafetyError] = useState("");
   const [reported, setReported] = useState(false);
-  const [confirmation, setConfirmation] = useState<{ kind: "like" | "super"; text: string } | null>(null);
+  const [confirmation, setConfirmation] = useState<{ kind: "like"; text: string } | null>(null);
   const [matchResult, setMatchResult] = useState<{ name: string; matchId: string | null } | null>(null);
   const block = useBlockProfile();
   const report = useReportProfile();
   const reaction = useCreateReaction();
   const dailyLikeStatus = useGetDailyLikeStatus({ query: { queryKey: getGetDailyLikeStatusQueryKey() } });
-  const superStatus = useGetSuperLikeStatus({ query: { queryKey: getGetSuperLikeStatusQueryKey() } });
   const profile = useGetProfileById(id, { query: { queryKey: getGetProfileByIdQueryKey(id), enabled: !!id } });
+  const datingState = useGetProfileDatingState(id, { query: { queryKey: getGetProfileDatingStateQueryKey(id), enabled: !!id, refetchOnMount: "always", refetchOnWindowFocus: true, staleTime: 0 } });
   const matches = useGetMatches({ query: { queryKey: getGetMatchesQueryKey(), enabled: !!id, refetchInterval: 12_000, refetchOnMount: "always", refetchOnWindowFocus: true, staleTime: 0 } });
   const profileMatch = matches.data?.find((match) => match.profile.id === id);
+  const matchId = profileMatch?.id ?? datingState.data?.matchId ?? null;
   const recordView = useRecordProfileView();
   const confirmationTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const busy = useRef(false);
@@ -71,8 +72,8 @@ export default function PublicProfileScreen() {
     else router.replace((fromLikes ? "/(tabs)/activity/likes" : "/(tabs)/activity") as never);
   }
   function openMatchedChat() {
-    if (!profileMatch || profileMatch.blockedByMe || profileMatch.blockedMe) return;
-    router.push({ pathname: "/chat/[matchId]", params: { matchId: profileMatch.id } });
+    if (!matchId || profileMatch?.blockedByMe || profileMatch?.blockedMe) return;
+    router.push({ pathname: "/chat/[matchId]", params: { matchId } });
   }
 
   useEffect(() => {
@@ -100,35 +101,32 @@ export default function PublicProfileScreen() {
   }, []);
 
   const likeOut = dailyLikeStatus.data?.remaining === 0;
-  const superOut = superStatus.data?.remaining === 0;
   const locked = reaction.isPending || !!confirmation || !!matchResult;
 
-  async function react(type: ReactionKind) {
+  async function reactLike() {
     const user = profile.data;
-    if (!user || busy.current || locked || profileMatch) return;
-    if (type === "like" && likeOut) { setActionError("You have used all of today’s likes. They reset in 24 hours."); return; }
-    if (type === "super" && superOut) { setActionError("You have used today’s Super Like. It resets in 24 hours."); return; }
+    if (!user || busy.current || locked || matchId) return;
+    if (likeOut) { setActionError("You have used all of today’s likes. They reset in 24 hours."); return; }
     const targetId = user.id;
     const name = user.name;
     busy.current = true;
     setActionError("");
     try {
-      const result = await reaction.mutateAsync({ data: { toUserId: targetId, type } });
+      const result = await reaction.mutateAsync({ data: { toUserId: targetId, type: "like" } });
       if (!mounted.current || currentId.current !== targetId) { busy.current = false; return; }
+      queryClient.setQueryData<ProfileDatingState>(getGetProfileDatingStateQueryKey(targetId), { reaction: "like", matchId: result.matchId ?? null });
       void queryClient.invalidateQueries({ queryKey: getGetDiscoverProfilesQueryKey() });
       void queryClient.invalidateQueries({ queryKey: getGetWhoLikedYouQueryKey() });
-      if (type === "pass") { busy.current = false; goBack(); return; }
-      void queryClient.invalidateQueries({ queryKey: type === "like" ? getGetDailyLikeStatusQueryKey() : getGetSuperLikeStatusQueryKey() });
+      void queryClient.invalidateQueries({ queryKey: getGetDailyLikeStatusQueryKey() });
       void queryClient.invalidateQueries({ queryKey: getGetMatchesQueryKey() });
       void queryClient.invalidateQueries({ queryKey: getGetNotificationsQueryKey() });
-      setConfirmation({ kind: type, text: type === "like" ? `You liked ${name}` : `You super liked ${name}` });
+      setConfirmation({ kind: "like", text: `You liked ${name}` });
       confirmationTimer.current = setTimeout(() => {
         confirmationTimer.current = null;
         busy.current = false;
         if (!mounted.current || currentId.current !== targetId) return;
         setConfirmation(null);
         if (result.matched) setMatchResult({ name, matchId: result.matchId ?? null });
-        else goBack();
       }, 1500);
     } catch (error) {
       busy.current = false;
@@ -136,12 +134,9 @@ export default function PublicProfileScreen() {
       const message = error instanceof Error ? error.message : "";
       const capped = /limit|429|remaining|already/i.test(message);
       setActionError(
-        type === "pass" ? "That pass didn’t save. Please try again."
-          : capped ? (type === "super" ? "Your Super Like for today is already used." : "You have reached today’s like limit.")
-          : type === "super" ? "That Super Like didn’t go through. Please try again." : "Your like didn’t go through. Please try again.",
+        capped ? "You have reached today’s like limit." : "Your like didn’t go through. Please try again.",
       );
-      if (type === "like") void dailyLikeStatus.refetch();
-      if (type === "super") void superStatus.refetch();
+      void dailyLikeStatus.refetch();
     }
   }
 
@@ -206,39 +201,49 @@ export default function PublicProfileScreen() {
     { icon: "user", label: "Gender", value: user.gender || "Not shared", testID: "public-profile-gender" },
   ];
   const avatarSource = photos.length ? profileImageSource(photos[0], token) : undefined;
-  const narrow = width < 360;
-  const toast = actionError || (likeOut && superOut ? "Today’s likes and Super Like are used up." : "");
   const viewerWidth = Math.min(width, 900);
   const heroHeight = Math.min(Math.max(height * 0.42, 280), 420);
-
-  const fab = (
-    key: ReactionKind,
-    size: number,
-    label: string,
-    disabled: boolean,
-    testID: string,
-    a11y: string,
-  ) => {
-    const pink = key === "like";
-    return (
-      <Pressable key={key} testID={testID} accessibilityRole="button" accessibilityLabel={a11y} accessibilityState={{ disabled }} disabled={disabled} onPress={() => void react(key)} style={[styles.action, { opacity: disabled && !confirmation ? 0.5 : 1 }]}>
-        {({ pressed }) => (
-          <>
-            <View style={[styles.fab, { width: size, height: size, borderRadius: size / 2, backgroundColor: pink ? colors.profileEdit : colors.profileCard, shadowColor: pink ? colors.profileEdit : colors.profileChipForeground, transform: [{ scale: pressed ? 0.93 : 1 }] }]}>
-              {pink && reaction.isPending ? <ActivityIndicator color={colors.profileEditForeground} /> : (
-                <Feather name={key === "pass" ? "x" : key === "like" ? "heart" : "star"} size={pink ? 32 : 25} color={pink ? colors.profileEditForeground : key === "super" ? colors.discoverSuperLike : colors.profileMuted} />
-              )}
-            </View>
-            <Text numberOfLines={1} style={[styles.cap, { color: colors.profileLabel, backgroundColor: colors.profileCard }]}>{label}</Text>
-          </>
-        )}
+  const alreadyLiked = Boolean(datingState.data?.reaction);
+  const dateActionDisabled = matchId
+    ? Boolean(profileMatch?.blockedByMe || profileMatch?.blockedMe)
+    : locked || dailyLikeStatus.isLoading || datingState.isLoading || alreadyLiked || likeOut || (!datingState.data && !datingState.isError);
+  const datingAction = (
+    <View style={{ flex: 1, minWidth: 0, alignItems: "stretch" }}>
+      <Pressable
+        testID={matchId ? "public-profile-message" : "public-profile-like"}
+        accessibilityRole="button"
+        accessibilityLabel={matchId ? `Message ${user.name}` : alreadyLiked ? `Liked ${user.name}` : fromLikes ? `Like ${user.name} back` : `Like ${user.name}`}
+        accessibilityState={{ disabled: dateActionDisabled }}
+        disabled={dateActionDisabled}
+        onPress={() => {
+          if (matchId) { openMatchedChat(); return; }
+          if (datingState.isError) { void datingState.refetch(); return; }
+          void reactLike();
+        }}
+        style={({ pressed }) => [styles.profileActionButton, {
+          backgroundColor: alreadyLiked && !matchId ? "transparent" : colors.profileEdit,
+          borderColor: colors.profileEdit,
+          opacity: dateActionDisabled ? 0.58 : pressed ? 0.82 : 1,
+        }]}
+      >
+        {reaction.isPending && !matchId ? <ActivityIndicator color={colors.profileEditForeground} /> : <Feather name={matchId ? "message-circle" : "heart"} size={17} color={alreadyLiked && !matchId ? colors.profileEdit : colors.profileEditForeground} />}
+        <Text style={{ color: alreadyLiked && !matchId ? colors.profileEdit : colors.profileEditForeground, fontWeight: "800", fontSize: 13 }}>
+          {matchId ? (profileMatch?.blockedByMe || profileMatch?.blockedMe ? "Unavailable" : "Message")
+            : datingState.isLoading ? "Checking…"
+              : datingState.isError ? "Retry"
+                : alreadyLiked ? "Liked"
+                  : likeOut ? "No likes left"
+                    : reaction.isPending ? "Liking…" : fromLikes ? "Like Back" : "Like"}
+        </Text>
       </Pressable>
-    );
-  };
+      {actionError ? <Text accessibilityRole="alert" style={{ color: colors.destructive, fontSize: 10, textAlign: "center", marginTop: 3 }}>{actionError}</Text>
+        : likeOut && !alreadyLiked && !matchId ? <Text style={{ color: colors.profileMuted, fontSize: 10, textAlign: "center", marginTop: 3 }}>Today’s likes are used up.</Text> : null}
+    </View>
+  );
 
   return (
     <View style={{ flex: 1, backgroundColor: bg }}>
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={[styles.content, { paddingTop: topInset, paddingBottom: bottomInset + (fromLikes ? 124 : 170) }]}>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={[styles.content, { paddingTop: topInset, paddingBottom: bottomInset + 40 }]}>
         <View style={styles.topRow}>
           <Pressable testID="public-profile-back" accessibilityRole="button" accessibilityLabel="Back to Likes" onPress={goBack} style={[styles.round, { backgroundColor: colors.profileCard, shadowColor: colors.profileChipForeground }]}>
             <Feather name="arrow-left" size={20} color={colors.foreground} />
@@ -248,22 +253,7 @@ export default function PublicProfileScreen() {
           </Pressable>
         </View>
 
-        {matches.isLoading ? (
-          <Text style={[styles.value, { color: colors.profileMuted }]} accessibilityRole="text">Checking match…</Text>
-        ) : matches.isError && !matches.data ? (
-          <Pressable testID="button-retry-match-status" accessibilityRole="button" onPress={() => void matches.refetch()} style={[styles.pillButton, { backgroundColor: colors.profileCard }]}>
-            <Text style={[styles.pillButtonText, { color: colors.foreground }]}>Retry</Text>
-          </Pressable>
-        ) : profileMatch ? (
-          profileMatch.blockedByMe || profileMatch.blockedMe ? (
-            <Text style={[styles.value, { color: colors.profileMuted }]} accessibilityRole="text">This chat is unavailable.</Text>
-          ) : (
-            <Pressable testID="public-profile-message" accessibilityRole="button" accessibilityLabel={`Message ${user.name}`} onPress={openMatchedChat} style={({ pressed }) => [styles.likeBackButton, { maxWidth: 320, width: "100%", backgroundColor: colors.profileEdit, opacity: pressed ? 0.82 : 1 }]}>
-              <Feather name="message-circle" size={18} color={colors.profileEditForeground} />
-              <Text style={[styles.likeBackText, { color: colors.profileEditForeground }]}>Message</Text>
-            </Pressable>
-          )
-        ) : fromLikes ? (
+        {fromLikes ? (
           <Pressable testID="public-profile-hero" accessibilityRole="imagebutton" accessibilityLabel={`Open ${user.name}'s main photo`} disabled={!photos.length} onPress={() => setViewer(0)} style={[styles.likesHero, { height: heroHeight, backgroundColor: colors.profileCard, shadowColor: colors.profileChipForeground }]}>
             {avatarSource && !avatarError ? <Image source={avatarSource} onError={() => setAvatarError(true)} style={StyleSheet.absoluteFill} resizeMode="cover" accessibilityLabel={`${user.name}'s main photo`} /> : <Text style={[styles.heroInitial, { color: colors.profileEdit }]}>{user.name.trim().slice(0, 1).toUpperCase()}</Text>}
           </Pressable>
@@ -287,6 +277,7 @@ export default function PublicProfileScreen() {
             <Feather name="map-pin" size={14} color={colors.profileEdit} />
             <Text testID="public-profile-location" style={[styles.city, { color: colors.profileMuted }]}>{headerLocation || "Location not shared"}</Text>
           </View>
+          <ProfileFollowStats profileId={user.id} viewerId={me.data?.id} datingAction={datingAction} />
         </View>
 
         <View style={[styles.card, { backgroundColor: colors.profileCard, shadowColor: colors.profileChipForeground, paddingVertical: 4 }]}>
@@ -333,33 +324,9 @@ export default function PublicProfileScreen() {
         <ProfileReelsSection profileId={id} returnTo={reelReturnTo} />
       </ScrollView>
 
-        <View pointerEvents="box-none" style={[styles.actionHost, { bottom: bottomInset + 12 }]}>
-        {toast ? (
-          <Text accessibilityRole="alert" testID="public-profile-action-error" style={[styles.toast, { backgroundColor: colors.profileCard, color: colors.foreground, shadowColor: colors.profileChipForeground }]}>{toast}</Text>
-        ) : null}
-        {fromLikes ? (
-          <View pointerEvents="box-none" style={styles.likeBackRow} testID="public-profile-actions">
-            <Pressable testID="public-profile-pass" accessibilityRole="button" accessibilityLabel={`Pass on ${user.name}`} accessibilityState={{ disabled: locked }} disabled={locked} onPress={() => void react("pass")} style={({ pressed }) => [styles.likeBackButton, { backgroundColor: colors.premiumPass, opacity: locked ? 0.56 : pressed ? 0.82 : 1 }]}>
-              <Feather name="x" size={19} color={colors.premiumBackground} />
-              <Text style={[styles.likeBackText, { color: colors.premiumBackground }]}>Pass</Text>
-            </Pressable>
-            <Pressable testID="public-profile-like" accessibilityRole="button" accessibilityLabel={`Like ${user.name} back`} accessibilityState={{ disabled: locked || dailyLikeStatus.isLoading || likeOut }} disabled={locked || dailyLikeStatus.isLoading || likeOut} onPress={() => void react("like")} style={({ pressed }) => [styles.likeBackButton, { backgroundColor: colors.premiumAccent, opacity: locked || dailyLikeStatus.isLoading || likeOut ? 0.56 : pressed ? 0.82 : 1 }]}>
-              {reaction.isPending ? <ActivityIndicator color={colors.premiumAccentForeground} /> : <Feather name="heart" size={18} color={colors.premiumAccentForeground} />}
-              <Text style={[styles.likeBackText, { color: colors.premiumAccentForeground }]}>{likeOut ? "No likes left" : "Like Back"}</Text>
-            </Pressable>
-          </View>
-        ) : (
-          <View pointerEvents="box-none" style={[styles.actionRow, { gap: narrow ? 14 : 28 }]} testID="public-profile-actions">
-            {fab("pass", 58, "Pass", locked, "public-profile-pass", `Pass on ${user.name}`)}
-            {fab("like", 74, likeOut ? "No likes left" : "Like to match", locked || dailyLikeStatus.isLoading || likeOut, "public-profile-like", `Like ${user.name}`)}
-            {fab("super", 58, superOut ? "Used today" : "Super Like", locked || superStatus.isLoading || superOut, "public-profile-super-like", `Super Like ${user.name}`)}
-          </View>
-        )}
-      </View>
-
       {confirmation ? (
         <View style={[styles.confirmation, { top: topInset + 64, backgroundColor: colors.profileCard, shadowColor: colors.profileChipForeground }]} accessibilityRole="alert" accessibilityLiveRegion="polite" testID="public-profile-like-confirmation">
-          <Feather name={confirmation.kind === "super" ? "star" : "heart"} size={16} color={confirmation.kind === "super" ? colors.discoverSuperLike : colors.profileEdit} />
+          <Feather name="heart" size={16} color={colors.profileEdit} />
           <Text style={[styles.confirmationText, { color: colors.foreground }]}>{confirmation.text}</Text>
         </View>
       ) : null}
@@ -394,7 +361,7 @@ export default function PublicProfileScreen() {
 
       <MatchCelebration visible={!!matchResult} self={me.data ?? null} other={profile.data ?? null} canMessage={!!matchResult?.matchId}
         onMessage={() => { const matchId = matchResult?.matchId; if (!matchId) return; setMatchResult(null); router.push({ pathname: "/chat/[matchId]", params: { matchId } }); }}
-        onKeepSwiping={() => { setMatchResult(null); router.replace("/(tabs)"); }} />
+        onKeepSwiping={() => setMatchResult(null)} />
 
       <Modal visible={menuOpen} transparent animationType="fade" onRequestClose={() => { setMenuOpen(false); setConfirmSafety(null); }}>
         <Pressable style={[styles.matchScrim, { backgroundColor: colors.photoBadge }]} onPress={() => { setMenuOpen(false); setConfirmSafety(null); }}>
@@ -452,9 +419,7 @@ const styles = StyleSheet.create({
   header: { alignItems: "center", marginTop: 10, marginBottom: 20 },
   likesHero: { width: "100%", borderRadius: 24, overflow: "hidden", alignItems: "center", justifyContent: "center", marginTop: 16, borderWidth: 1, ...shadow },
   heroInitial: { fontSize: 64, fontWeight: "800" },
-  likeBackRow: { width: "100%", maxWidth: 520, flexDirection: "row", gap: 12, paddingHorizontal: 8 },
-  likeBackButton: { flex: 1, minHeight: 54, borderRadius: 18, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 9, paddingHorizontal: 16 },
-  likeBackText: { fontSize: 15, fontWeight: "800" },
+  profileActionButton: { width: "100%", minHeight: 42, borderWidth: 1.5, borderRadius: 999, paddingHorizontal: 10, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6 },
   avatarRing: { width: 136, height: 136, borderRadius: 68, borderWidth: 2, padding: 4, alignItems: "center", justifyContent: "center", ...shadow, shadowOpacity: 0.2 },
   avatar: { width: "100%", height: "100%", borderRadius: 64 },
   initial: { fontSize: 48, fontWeight: "800" },
@@ -474,12 +439,6 @@ const styles = StyleSheet.create({
   photosHead: { flexDirection: "row", justifyContent: "space-between", alignItems: "baseline", paddingHorizontal: 4 },
   thumbRow: { gap: 12, paddingTop: 12, paddingBottom: 4, paddingHorizontal: 2 },
   thumb: { width: 84, height: 104, borderRadius: 16, overflow: "hidden" },
-  actionHost: { position: "absolute", left: 0, right: 0, alignItems: "center", gap: 10, paddingHorizontal: 12 },
-  actionRow: { flexDirection: "row", alignItems: "flex-end", justifyContent: "center" },
-  action: { alignItems: "center", gap: 6 },
-  fab: { alignItems: "center", justifyContent: "center", shadowOpacity: 0.22, shadowRadius: 14, shadowOffset: { width: 0, height: 8 }, elevation: 6 },
-  cap: { overflow: "hidden", fontSize: 11, fontWeight: "700", borderRadius: 10, paddingHorizontal: 8, paddingVertical: 2 },
-  toast: { overflow: "hidden", maxWidth: "92%", borderRadius: 18, paddingHorizontal: 14, paddingVertical: 8, fontSize: 12, fontWeight: "600", textAlign: "center", ...shadow },
   confirmation: { position: "absolute", alignSelf: "center", zIndex: 10, flexDirection: "row", alignItems: "center", gap: 8, borderRadius: 24, paddingHorizontal: 17, paddingVertical: 12, ...shadow, elevation: 8 },
   confirmationText: { fontSize: 14, fontWeight: "700" },
   viewerTop: { position: "absolute", left: 16, right: 16, flexDirection: "row", justifyContent: "space-between", alignItems: "center" },

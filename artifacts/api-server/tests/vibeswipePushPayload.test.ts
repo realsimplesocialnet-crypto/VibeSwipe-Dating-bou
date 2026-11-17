@@ -1,10 +1,22 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  buildFollowPushPayload,
   buildMessagePushPayload,
   isAllowedWebPushEndpoint,
   isValidExpoPushToken,
 } from "../src/lib/vibeswipePushPayload.ts";
+
+test("follow push announces the actor and opens their profile", () => {
+  const payload = buildFollowPushPayload(" Matty ", "user-lily");
+  assert.equal(payload.title, "New follower");
+  assert.equal(payload.body, "Matty started following you");
+  assert.deepEqual(payload.data, {
+    type: "new_follow",
+    profileId: "user-lily",
+    url: "profile/user-lily?returnTo=%2Fnotifications",
+  });
+});
 
 test("message push includes the sender, a readable preview, and chat route", () => {
   const payload = buildMessagePushPayload({

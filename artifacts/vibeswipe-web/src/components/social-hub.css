@@ -1,4 +1,4 @@
-.app-shell:has(.social-hub) { --primary:41 41% 62%; --primary-foreground:40 20% 8%; --accent:48 7% 16%; --accent-foreground:40 24% 75%; --card:240 6% 11%; --border:40 5% 20%; --foreground:40 20% 94%; --muted-foreground:40 7% 64%; --ring:41 41% 62%; }
+.app-shell:has(.social-hub) { --primary:341 83% 63%; --primary-foreground:0 0% 100%; --accent:48 7% 16%; --accent-foreground:40 24% 75%; --card:240 6% 11%; --border:40 5% 20%; --foreground:40 20% 94%; --muted-foreground:40 7% 64%; --ring:341 83% 63%; }
 .social-hub { background:#0F0F12; color:#FBF5F7; }
 .social-hub .sh-card { background:#1A1A1E; border:1px solid #332b31; box-shadow:0 6px 18px rgba(0,0,0,.18); color:#FBF5F7; }
 .social-hub .sh-muted { color:hsl(var(--muted-foreground)); }
@@ -9,6 +9,33 @@
 .social-hub .sh-back { background:#1A1A1E; border:1px solid #34332F; }
 .social-hub .sh-stack { border:2px solid hsl(var(--card)); }
 .social-hub .sh-stack > * { max-width:100%; max-height:100%; }
+.sh-profile-social { display:flex; flex-direction:column; align-items:stretch; gap:9px; margin-top:12px; width:100%; }
+.sh-profile-stats { display:flex; align-items:stretch; gap:8px; width:100%; }
+.sh-profile-social-compact { margin-top:7px; }
+.sh-profile-social-compact .sh-profile-stats { justify-content:center; gap:16px; }
+.sh-profile-stat { display:flex; min-width:0; flex:1; flex-direction:column; align-items:center; justify-content:center; gap:1px; border:1px solid #332b31; border-radius:16px; background:#1A1A1E; padding:7px 10px; }
+.sh-profile-social-compact .sh-profile-stat { flex:initial; flex-direction:row; gap:5px; border:0; border-radius:0; background:transparent; padding:0; }
+.sh-profile-social-compact .sh-profile-stat strong { font-size:12px; }
+.sh-profile-social-compact .sh-profile-stat span { font-size:11px; }
+.sh-profile-stat strong { font-size:16px; line-height:1.15; }
+.sh-profile-stat span { color:hsl(var(--muted-foreground)); font-size:11px; }
+.sh-profile-actions { display:flex; align-items:flex-start; gap:9px; width:100%; }
+.sh-profile-actions > .sh-follow-action { flex:1; min-width:0; }
+.sh-follow-action { display:flex; flex-direction:column; align-items:stretch; gap:3px; min-width:0; }
+.sh-follow-button { width:100%; min-height:42px; border:1px solid #F34E9A; border-radius:999px; background:#F34E9A; padding:0 12px; color:#fff; font-size:13px; font-weight:800; white-space:nowrap; }
+.sh-follow-button.sh-following { background:transparent; color:#F34E9A; }
+.sh-follow-button:disabled { opacity:.55; }
+.sh-follow-error { max-width:120px; color:#ff9aa7; font-size:10px; line-height:1.2; text-align:center; }
+.sh-dating-slot { display:flex; flex:1; min-width:0; flex-direction:column; align-items:stretch; gap:3px; }
+.sh-dating-button { display:flex; width:100%; min-height:42px; align-items:center; justify-content:center; gap:6px; border:1px solid #F34E9A; border-radius:999px; background:#F34E9A; padding:0 12px; color:#fff; font-size:13px; font-weight:800; white-space:nowrap; }
+.sh-dating-button.sh-dating-liked { background:transparent; color:#F34E9A; }
+.sh-dating-button:disabled { opacity:.58; }
+.sh-dating-error { color:#ff9aa7; font-size:10px; line-height:1.2; text-align:center; }
+.sh-follow-notice-actions { display:flex; flex-direction:column; align-items:flex-end; gap:6px; }
+.sh-follow-notice-actions .sh-follow-action { min-width:88px; }
+.sh-follow-notice-actions .sh-follow-button { min-height:34px; padding:0 10px; font-size:11px; }
+.social-hub .sh-search { border:1px solid #4a3642; background:#1A1A1E; color:#FBF5F7; }
+.social-hub .sh-search svg { color:hsl(var(--primary)); flex-shrink:0; }
 html[data-theme="light"] .social-hub { --primary:341 78% 62%; --primary-foreground:0 0% 100%; background:linear-gradient(135deg,#fde1ec 0%,#fbdedc 48%,#fff0df 100%); color:#1d1a1f; }
 html[data-theme="light"] .social-hub .sh-card { background:#fffdfe; border-color:rgba(255,255,255,.75); box-shadow:0 5px 14px rgba(131,70,94,.09); }
 html[data-theme="light"] .social-hub .sh-icon, html[data-theme="light"] .social-hub .sh-pill, html[data-theme="light"] .social-hub .sh-chat { background:#fde4ea; color:#e8466a; }

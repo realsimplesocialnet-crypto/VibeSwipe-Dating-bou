@@ -9,6 +9,7 @@ import {
 import {
   blocksTable,
   db,
+  matchesTable,
   profilesTable,
   reactionsTable,
   vibeswipeProfileViewsTable,
@@ -18,7 +19,7 @@ import { and, desc, eq, inArray, isNull, or } from "drizzle-orm";
 import { Router, type IRouter, type Request } from "express";
 import { requireAuth } from "../middlewares/auth";
 import { createVibeSwipeNotification } from "../lib/vibeswipeNotifications";
-import { canShowIncomingProfile } from "../lib/incomingProfileVisibility";
+import { canShowIncomingLike, canShowIncomingProfile } from "../lib/incomingProfileVisibility";
 
 const router: IRouter = Router();
 
@@ -130,23 +131,48 @@ router.post(
 
 router.get("/vibeswipe/likes", async (req, res): Promise<void> => {
   const userId = currentUserId(req);
-  const rows = await db
-    .select({ profile: profilesTable, likedAt: reactionsTable.createdAt, type: reactionsTable.type })
-    .from(reactionsTable)
-    .innerJoin(profilesTable, eq(reactionsTable.fromUserId, profilesTable.id))
-    .where(and(eq(reactionsTable.toUserId, userId), inArray(reactionsTable.type, ["like", "super"])))
-    .orderBy(desc(reactionsTable.createdAt));
-  const blocks = await db.select({
-    blockerId: blocksTable.blockerId,
-    blockedId: blocksTable.blockedId,
-  }).from(blocksTable).where(or(
-    eq(blocksTable.blockerId, userId),
-    eq(blocksTable.blockedId, userId),
-  ));
+  const [rows, blocks, outgoing, matches] = await Promise.all([
+    db
+      .select({ profile: profilesTable, likedAt: reactionsTable.createdAt, type: reactionsTable.type })
+      .from(reactionsTable)
+      .innerJoin(profilesTable, eq(reactionsTable.fromUserId, profilesTable.id))
+      .where(and(eq(reactionsTable.toUserId, userId), inArray(reactionsTable.type, ["like", "super"])))
+      .orderBy(desc(reactionsTable.createdAt)),
+    db.select({
+      blockerId: blocksTable.blockerId,
+      blockedId: blocksTable.blockedId,
+    }).from(blocksTable).where(or(
+      eq(blocksTable.blockerId, userId),
+      eq(blocksTable.blockedId, userId),
+    )),
+    db.select({
+      targetId: reactionsTable.toUserId,
+      type: reactionsTable.type,
+      createdAt: reactionsTable.createdAt,
+    }).from(reactionsTable).where(eq(reactionsTable.fromUserId, userId)),
+    db.select({
+      userAId: matchesTable.userAId,
+      userBId: matchesTable.userBId,
+    }).from(matchesTable).where(or(
+      eq(matchesTable.userAId, userId),
+      eq(matchesTable.userBId, userId),
+    )),
+  ]);
   const blockedIds = new Set(blocks.map((block) =>
     block.blockerId === userId ? block.blockedId : block.blockerId));
+  const outgoingById = new Map(outgoing.map((reaction) => [reaction.targetId, reaction]));
+  const matchedIds = new Set(matches.flatMap((match) => [
+    match.userAId === userId ? match.userBId : match.userAId,
+  ]));
   res.json(GetWhoLikedYouResponse.parse(rows
-    .filter(({ profile }) => canShowIncomingProfile(profile, userId, blockedIds))
+    .filter(({ profile, likedAt }) => canShowIncomingLike({
+      profile,
+      currentUserId: userId,
+      blockedProfileIds: blockedIds,
+      matchedProfileIds: matchedIds,
+      likedAt,
+      outgoingReaction: outgoingById.get(profile.id),
+    }))
     .map(({ profile, likedAt, type }) => ({
       profile: { ...profile, age: profile.showAge ? profile.age : null },
       likedAt,

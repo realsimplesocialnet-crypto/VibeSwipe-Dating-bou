@@ -8,6 +8,7 @@ import { eq } from "drizzle-orm";
 import * as webPush from "web-push";
 import {
   buildMessagePushPayload,
+  buildFollowPushPayload,
   buildReelCommentReplyPushPayload,
   buildReelLikePushPayload,
   type VibeSwipePushPayload,
@@ -203,6 +204,24 @@ export async function sendMessagePush(input: {
     throw new Error(
       `${failures.length} of ${subscriptions.length} push notification deliveries failed.`,
     );
+  }
+}
+
+export async function sendFollowPush(input: {
+  recipientId: string;
+  actorId: string;
+}): Promise<void> {
+  const [actor] = await db.select({ name: profilesTable.name })
+    .from(profilesTable).where(eq(profilesTable.id, input.actorId)).limit(1);
+  const subscriptions = await db.select().from(vibeSwipePushSubscriptionsTable)
+    .where(eq(vibeSwipePushSubscriptionsTable.userId, input.recipientId));
+  if (!subscriptions.length) return;
+  const payload = buildFollowPushPayload(actor?.name ?? "Someone", input.actorId);
+  const results = await Promise.allSettled(subscriptions.map((subscription) =>
+    subscription.platform === "web" ? sendWebPush(subscription, payload) : sendExpoPush(subscription, payload),
+  ));
+  if (results.some((result) => result.status === "rejected")) {
+    throw new Error("Some follow push deliveries failed.");
   }
 }
 

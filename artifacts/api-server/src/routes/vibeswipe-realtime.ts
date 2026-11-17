@@ -247,12 +247,13 @@ router.get("/vibeswipe/notifications", async (req, res): Promise<void> => {
     .where(eq(vibeSwipeNotificationsTable.recipientId, userId))
     .orderBy(desc(vibeSwipeNotificationsTable.createdAt));
 
-  const unreadCounts = { matches: 0, messages: 0, views: 0, likes: 0, reels: 0 };
+  const unreadCounts = { matches: 0, messages: 0, views: 0, likes: 0, reels: 0, follows: 0 };
   const notifications = notificationRows.map(({ notification, actor }) => {
     if (!notification.readAt) {
       if (notification.type === "new_match") unreadCounts.matches += 1;
       if (notification.type === "new_message") unreadCounts.messages += 1;
       if (notification.type === "profile_view") unreadCounts.views += 1;
+      if (notification.type === "new_follow") unreadCounts.follows += 1;
       if (notification.type === "reel_like" || notification.type === "reel_comment_reply") unreadCounts.reels += 1;
       if (notification.type === "new_like" || notification.type === "new_super_like") unreadCounts.likes += 1;
     }

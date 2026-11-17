@@ -2,6 +2,7 @@ import { Router, type IRouter } from "express";
 import healthRouter from "./health";
 import onboardingArtRouter from "./onboarding-art";
 import vibeswipeProfileViewsRouter from "./vibeswipe-profile-views";
+import vibeswipeSocialRouter from "./vibeswipe-social";
 import vibeswipePushRouter from "./vibeswipe-push";
 import vibeswipeRealtimeRouter from "./vibeswipe-realtime";
 import vibeswipeRouter from "./vibeswipe";
@@ -27,6 +28,7 @@ router.use(vibeswipeReelsRouter);
 router.use(vibeswipeRouter);
 router.use(vibeswipeRealtimeRouter);
 router.use(vibeswipeProfileViewsRouter);
+router.use(vibeswipeSocialRouter);
 router.use(vibeswipePushRouter);
 
 export default router;
