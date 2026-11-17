@@ -436,6 +436,7 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
                 if (commentsFor === reel.id) closeComments();
                 else setControlsVisible((visible) => !visible);
               }}
+             onAutoplayMuted={() => setMuted(true)}
              offlineSaved={offlineIds.has(reel.id)} offlineSaving={offlineSavingIds.has(reel.id)}
              onSaveOffline={() => void cacheOffline(reel, true)} onAutoCache={() => void cacheOffline(reel, false)}
             onLike={() => void toggle("like", reel)} onSave={() => void toggle("save", reel)}

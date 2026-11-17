@@ -1,4 +1,4 @@
-import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import { OnboardingVideoBackground } from '@/components/onboarding-video-background';
 import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
 import { ClerkProvider, SignIn, useClerk, useSignUp, useUser } from '@clerk/react';
@@ -30,17 +30,9 @@ import {
   Shield, SlidersHorizontal, Mars, Venus, NonBinary, Briefcase, Pencil, Camera, Sparkles, Star, UserRound, UserPlus, Users, Volume2, X, Zap, Flag, Ban, Images, Coffee, CupSoda, Music, ImageIcon, Paperclip, SendHorizontal, LoaderCircle, MessageCircleMore,
 } from 'lucide-react';
 import NotFound from '@/pages/not-found';
-import AdminPage from '@/pages/admin';
-import SafetyCenterPage from '@/pages/safety-center';
-import CommunityGuidelinesPage from '@/pages/community-guidelines';
-import PrivacyPolicyPage from '@/pages/privacy-policy';
-import ReportSafetyPage from '@/pages/report-safety';
-import PublicLocationSharePage from '@/pages/public-location-share';
 import { VerifiedBadge } from '@/components/verified-badge';
 import { InstallAction, MobileInstallBanner } from '@/components/install-action';
 import { InstalledWelcome } from '@/components/installed-welcome';
-import { DiscoverSwipePage } from '@/components/discover-swipe-page';
-import { MemberSearchPage } from '@/components/member-search-page';
 import { MatchCelebration } from '@/components/match-celebration';
 import { MatchStoryAvatar, StoryComposerPage } from '@/components/stories/stories-ui';
 import { SignupPasswordField } from '@/components/signup-password-field';
@@ -49,24 +41,39 @@ import { OnboardingCountryStep } from '@/components/onboarding-country-step';
 import type { OnboardingCountry } from '@workspace/api-client-react';
 import { HobbyMultiSelect, OccupationSelect } from '@/components/profile-field-selectors';
 import { ConnectionNotice } from '@/components/connection-notice';
-import { WebPushSettings } from '@/components/WebPushSettings';
-import { ReelsFeedPage } from '@/pages/reels-feed';
 import { ReelsNavigationVisibilityContext } from '@/components/reels/reels-navigation-context';
-import { ReelComposerPage } from '@/pages/reel-composer';
-import { ReelsLibraryPage } from '@/pages/reels-library';
 import { ProfileReelsSection } from '@/components/profile-reels-section';
 import { sharedReelId } from '@/lib/reels';
 import { ChatMessageBubble } from '@/components/chat-message-bubble';
 import { ChatVoiceNoteRecorder } from '@/components/chat-voice-note-recorder';
 import { chatViewportFrame } from '@/lib/chat-viewport';
-import { ActivityOverview, FollowListPage, InboundPeoplePage, MutualMatchesPage, ProfileFollowNotificationAction, ProfileSocialActions } from '@/components/social-hub';
 import { isDiscoverSetupRequired, isProfileMissing, shouldRetryDiscover, shouldRetryProfile } from '@/lib/profile-query-state';
 import { totalUnreadMessages, unreadBadgeLabel } from '@/lib/unread-messages';
 import { PROFILE_PHOTO_ACCEPT, photoUploadCanRetry, prepareProfilePhoto, uploadProfilePhotoBytes, validatePhotoFile } from '@/lib/profile-photo-upload';
 import { checkAdditionalProfilePhoto } from '@workspace/api-client-react';
 import { userErrorMessage } from '@/lib/user-errors';
-import { SettingsIndexPage, SettingsSectionPage } from '@/components/settings/settings-pages';
 import '@/styles/landing.css';
+
+const AdminPage = lazy(() => import('@/pages/admin'));
+const SafetyCenterPage = lazy(() => import('@/pages/safety-center'));
+const CommunityGuidelinesPage = lazy(() => import('@/pages/community-guidelines'));
+const PrivacyPolicyPage = lazy(() => import('@/pages/privacy-policy'));
+const ReportSafetyPage = lazy(() => import('@/pages/report-safety'));
+const PublicLocationSharePage = lazy(() => import('@/pages/public-location-share'));
+const DiscoverSwipePage = lazy(() => import('@/components/discover-swipe-page').then(module => ({ default: module.DiscoverSwipePage })));
+const MemberSearchPage = lazy(() => import('@/components/member-search-page').then(module => ({ default: module.MemberSearchPage })));
+const WebPushSettings = lazy(() => import('@/components/WebPushSettings').then(module => ({ default: module.WebPushSettings })));
+const ReelsFeedPage = lazy(() => import('@/pages/reels-feed').then(module => ({ default: module.ReelsFeedPage })));
+const ReelComposerPage = lazy(() => import('@/pages/reel-composer').then(module => ({ default: module.ReelComposerPage })));
+const ReelsLibraryPage = lazy(() => import('@/pages/reels-library').then(module => ({ default: module.ReelsLibraryPage })));
+const ActivityOverview = lazy(() => import('@/components/social-hub').then(module => ({ default: module.ActivityOverview })));
+const FollowListPage = lazy(() => import('@/components/social-hub').then(module => ({ default: module.FollowListPage })));
+const InboundPeoplePage = lazy(() => import('@/components/social-hub').then(module => ({ default: module.InboundPeoplePage })));
+const MutualMatchesPage = lazy(() => import('@/components/social-hub').then(module => ({ default: module.MutualMatchesPage })));
+const ProfileFollowNotificationAction = lazy(() => import('@/components/social-hub').then(module => ({ default: module.ProfileFollowNotificationAction })));
+const ProfileSocialActions = lazy(() => import('@/components/social-hub').then(module => ({ default: module.ProfileSocialActions })));
+const SettingsIndexPage = lazy(() => import('@/components/settings/settings-pages').then(module => ({ default: module.SettingsIndexPage })));
+const SettingsSectionPage = lazy(() => import('@/components/settings/settings-pages').then(module => ({ default: module.SettingsSectionPage })));
 
 const queryClient = new QueryClient({ defaultOptions: { queries: { staleTime: 12_000, retry: 1 } } });
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, '');
@@ -1041,7 +1048,7 @@ function SettingsThemeSync() {
   return null;
 }
 function ClerkCacheSync(){const {user}=useUser();const client=useQueryClient();const previous=useRef<string|null|undefined>(undefined);useEffect(()=>{const id=user?.id??null;if(previous.current!==undefined&&previous.current!==id)client.clear();previous.current=id},[user?.id,client]);return null}
-function ClerkRoutes(){const [,setLocation]=useLocation();return <ClerkProvider publishableKey={clerkPubKey} proxyUrl={clerkProxyUrl} appearance={appearance} signInUrl={pathFor('/sign-in')} signUpUrl={pathFor('/sign-up')} localization={{signIn:{start:{title:'Welcome back',subtitle:'Your next good conversation is waiting.'}},signUp:{start:{title:'Make room for a spark',subtitle:'Create your adults-only Myage account.'}}}} routerPush={to=>setLocation(to.startsWith(basePath)?to.slice(basePath.length)||'/':to)} routerReplace={to=>setLocation(to.startsWith(basePath)?to.slice(basePath.length)||'/':to,{replace:true})}><ClerkCacheSync/><SettingsThemeSync/><Switch>
+function ClerkRoutes(){const [,setLocation]=useLocation();return <ClerkProvider publishableKey={clerkPubKey} proxyUrl={clerkProxyUrl} appearance={appearance} signInUrl={pathFor('/sign-in')} signUpUrl={pathFor('/sign-up')} localization={{signIn:{start:{title:'Welcome back',subtitle:'Your next good conversation is waiting.'}},signUp:{start:{title:'Make room for a spark',subtitle:'Create your adults-only Myage account.'}}}} routerPush={to=>setLocation(to.startsWith(basePath)?to.slice(basePath.length)||'/':to)} routerReplace={to=>setLocation(to.startsWith(basePath)?to.slice(basePath.length)||'/':to,{replace:true})}><ClerkCacheSync/><SettingsThemeSync/><Suspense fallback={<div className="flex min-h-[45dvh] items-center justify-center text-primary" aria-label="Loading"><LoaderCircle className="animate-spin" size={22}/></div>}><Switch>
   <Route path="/" component={HomeRedirect}/>
   <Route path="/welcome" component={WelcomeRoute}/>
   <Route path="/admin" component={AdminPage}/><Route path="/admin/:section" component={AdminPage}/>
@@ -1053,7 +1060,7 @@ function ClerkRoutes(){const [,setLocation]=useLocation();return <ClerkProvider 
    <Route path="/privacy-policy" component={PrivacyPolicyRoute}/><Route path="/terms" component={CommunityGuidelinesRoute}/><Route path="/community-guidelines" component={CommunityGuidelinesRoute}/>
    <Route path="/safety-center" component={SafetyCenterRoute}/><Route path="/report-safety" component={ReportSafetyRoute}/><Route path="/safety/location" component={PublicLocationShareRoute}/>
   <Route path="/profile" component={ProfileRoute}/><Route path="/profile/edit" component={ProfileEditRoute}/><Route path="/profile/:profileId/followers" component={FollowersRoute}/><Route path="/profile/:profileId/following" component={FollowingRoute}/><Route path="/profile/:profileId/from-notifications" component={ViewedNotificationProfileRoute}/><Route path="/profile/:profileId" component={PublicProfileRoute}/><Route path="/verify-profile" component={FaceVerificationRoute}/><Route path="/settings" component={SettingsRoute}/><Route path="/settings/:section" component={SettingsSectionRoute}/><Route component={NotFound}/>
- </Switch></ClerkProvider>}
+ </Switch></Suspense></ClerkProvider>}
 function ConsumerInstallBanner(){const [location]=useLocation();return location.startsWith('/admin')||location.startsWith('/reels')?null:<MobileInstallBanner/>}
 function App(){if(!clerkPubKey)throw new Error('Missing VITE_CLERK_PUBLISHABLE_KEY');return <QueryClientProvider client={queryClient}><ConnectionNotice/><WouterRouter base={basePath}><ConsumerInstallBanner/><ClerkRoutes/></WouterRouter></QueryClientProvider>}
 export default App;

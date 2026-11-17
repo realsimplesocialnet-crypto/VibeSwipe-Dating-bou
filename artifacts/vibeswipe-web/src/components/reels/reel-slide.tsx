@@ -11,12 +11,13 @@ type Props = {
   reel: Reel; index: number; active: boolean; near: boolean; muted: boolean; pageHidden: boolean;
   compact: boolean; showHint: boolean; returnTo: string;
   onToggleNavigation: () => void;
+  onAutoplayMuted: () => void;
   onLike: () => void; onComment: () => void; onShare: () => void; onSave: () => void; onDelete: () => void;
   onView: () => void;
   offlineSaved: boolean; offlineSaving: boolean; onSaveOffline: () => void; onAutoCache: () => void;
 };
 
-export function ReelSlide({ reel, index, active, near, muted, pageHidden, compact, showHint, returnTo, onToggleNavigation, onLike, onComment, onShare, onSave, onDelete, onView, offlineSaved, offlineSaving, onSaveOffline, onAutoCache }: Props) {
+export function ReelSlide({ reel, index, active, near, muted, pageHidden, compact, showHint, returnTo, onToggleNavigation, onAutoplayMuted, onLike, onComment, onShare, onSave, onDelete, onView, offlineSaved, offlineSaving, onSaveOffline, onAutoCache }: Props) {
   const video = useRef<HTMLVideoElement>(null);
   const bar = useRef<HTMLDivElement>(null);
   const autoCacheRequested = useRef(false);
@@ -35,8 +36,27 @@ export function ReelSlide({ reel, index, active, near, muted, pageHidden, compac
     element.muted = muted;
     const attempt = element.play();
     if (attempt) attempt.then(() => setBlocked(false)).catch((error: unknown) => {
-      // Browsers may refuse autoplay (data saver, power saving). Say so and wait for a tap.
-      if ((error as { name?: string }).name !== "AbortError") setBlocked(true);
+      const name = (error as { name?: string }).name;
+      if (name === "AbortError") return;
+      if (name === "NotAllowedError" && !muted) {
+        // iPhone permits inline autoplay when muted. A real tap on the sound
+        // control can enable audio afterward without restarting the Reel.
+        element.muted = true;
+        const mutedAttempt = element.play();
+        if (mutedAttempt) {
+          mutedAttempt.then(() => {
+            setBlocked(false);
+            onAutoplayMuted();
+          }).catch((mutedError: unknown) => {
+            if ((mutedError as { name?: string }).name !== "AbortError") setBlocked(true);
+          });
+        } else {
+          setBlocked(false);
+          onAutoplayMuted();
+        }
+        return;
+      }
+      setBlocked(true);
     });
     // muted is applied separately so toggling sound never restarts playback.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -107,8 +127,8 @@ export function ReelSlide({ reel, index, active, near, muted, pageHidden, compac
     {!ready && !failed && <div className="reel-loading" aria-hidden="true" />}
     <button type="button" className="reel-tap" onClick={togglePlayback} aria-label={compact ? "Close comments" : paused ? "Play Reel" : "Pause Reel"} data-testid={`button-toggle-play-${reel.id}`} />
     {flash && <span className="reel-flash" aria-hidden="true">{flash === "play" ? <Play size={34} fill="currentColor" /> : <Pause size={34} fill="currentColor" />}</span>}
-    {active && blocked && !failed && <button type="button" onClick={togglePlayback} className="reel-blocked" data-testid="button-reel-autoplay-blocked">
-      <Play size={20} fill="currentColor" /><span>Your browser paused autoplay. Tap to play.</span>
+    {active && blocked && !failed && <button type="button" onClick={togglePlayback} aria-label="Play Reel" className="reel-blocked reel-blocked-play" data-testid="button-reel-autoplay-blocked">
+      <Play size={26} fill="currentColor" />
     </button>}
     {failed && <div className="reel-blocked" role="alert"><span>This video could not load.</span><button type="button" onClick={retry} className="reel-pill" data-testid={`button-retry-reel-${reel.id}`}>Try again</button></div>}
     <div className="reel-shade" aria-hidden="true" />

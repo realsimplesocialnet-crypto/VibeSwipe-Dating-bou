@@ -109,13 +109,27 @@ test("media urls stay on the protected endpoint and return paths stay in-app", (
 
 test("Reels viewer keeps autoplay muted, inline and paused offscreen or hidden", () => {
   const slide = read("../src/components/reels/reel-slide.tsx");
-  assert.match(slide, /playsInline muted loop/);
+  assert.match(slide, /playsInline muted=\{muted\} loop/);
   assert.match(slide, /!active \|\| pageHidden \|\| userPaused/);
   assert.match(slide, /setBlocked\(true\)/);
+  assert.match(slide, /name === "NotAllowedError" && !muted/);
+  assert.match(slide, /element\.muted = true;\s*const mutedAttempt = element\.play\(\)/);
+  assert.match(slide, /aria-label="Play Reel" className="reel-blocked reel-blocked-play"/);
+  assert.doesNotMatch(slide, /Your browser paused autoplay/);
   const feed = read("../src/pages/reels-feed.tsx");
+  assert.match(feed, /onAutoplayMuted=\{\(\) => setMuted\(true\)\}/);
   assert.match(feed, /visibilitychange/);
   assert.match(feed, /useState\(true\)/);
   assert.match(feed, /getNextPageParam/);
+});
+
+test("Reels route is code-split and autoplay fallback shows no explanatory message", () => {
+  const app = read("../src/App.tsx");
+  const slide = read("../src/components/reels/reel-slide.tsx");
+  assert.match(app, /const ReelsFeedPage = lazy\(\(\) => import\('@\/pages\/reels-feed'\)/);
+  assert.match(app, /<Suspense fallback=/);
+  assert.doesNotMatch(slide, /Your browser paused autoplay/);
+  assert.match(slide, /reel-blocked-play/);
 });
 
 test("watched Reels can be saved on Wi-Fi and reopened from the bounded offline cache", () => {
