@@ -45,6 +45,13 @@ export function ReelSlide({ reel, index, active, near, muted, pageHidden, compac
   function togglePlayback() {
     onToggleNavigation();
     const element = video.current;
+    if (compact) {
+      if (blocked && !userPaused && element) {
+        element.muted = muted;
+        void element.play().then(() => setBlocked(false)).catch(() => setBlocked(true));
+      }
+      return;
+    }
     if (!element || failed) return;
     if (blocked || element.paused) {
       setUserPaused(false);
@@ -82,7 +89,7 @@ export function ReelSlide({ reel, index, active, near, muted, pageHidden, compac
       ref={video}
       src={active || near ? src : undefined}
       className="reel-video"
-      playsInline muted loop
+      playsInline muted={muted} loop
       preload={active ? "auto" : "metadata"}
       onLoadedData={() => setReady(true)}
       onPlay={onView}
@@ -98,7 +105,7 @@ export function ReelSlide({ reel, index, active, near, muted, pageHidden, compac
       data-testid={`video-reel-${reel.id}`}
     />
     {!ready && !failed && <div className="reel-loading" aria-hidden="true" />}
-    <button type="button" className="reel-tap" onClick={togglePlayback} aria-label={paused ? "Play Reel" : "Pause Reel"} data-testid={`button-toggle-play-${reel.id}`} />
+    <button type="button" className="reel-tap" onClick={togglePlayback} aria-label={compact ? "Close comments" : paused ? "Play Reel" : "Pause Reel"} data-testid={`button-toggle-play-${reel.id}`} />
     {flash && <span className="reel-flash" aria-hidden="true">{flash === "play" ? <Play size={34} fill="currentColor" /> : <Pause size={34} fill="currentColor" />}</span>}
     {active && blocked && !failed && <button type="button" onClick={togglePlayback} className="reel-blocked" data-testid="button-reel-autoplay-blocked">
       <Play size={20} fill="currentColor" /><span>Your browser paused autoplay. Tap to play.</span>

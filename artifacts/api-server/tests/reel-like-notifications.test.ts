@@ -44,7 +44,7 @@ test("Friends Reels use the saved follow list and navigation stays available ove
   const feed = source("artifacts/vibeswipe-web/src/pages/reels-feed.tsx");
   assert.match(feed, /data-testid="tab-reels-feed"/);
   assert.match(feed, /data-testid="tab-friends-feed"/);
-  assert.match(feed, /onToggleNavigation=\{\(\) => setControlsVisible/);
+  assert.match(feed, /onToggleNavigation=\{\(\) => \{\s*if \(commentsFor === reel\.id\) closeComments\(\);\s*else setControlsVisible/);
   const appShell = source("artifacts/vibeswipe-web/src/App.tsx");
   assert.match(appShell, /reels-mobile-nav/);
   assert.match(appShell, /isReelsViewer \? '\/reels'/);
@@ -121,4 +121,30 @@ test("Reel comments support profile links, replies, and reply notifications", ()
   assert.match(route, /type: "reel_comment_reply"/);
   assert.match(schema, /parent_comment_id uuid REFERENCES vibeswipe_reel_comments\(id\) ON DELETE CASCADE/);
   assert.match(schema, /comment_id uuid REFERENCES vibeswipe_reel_comments\(id\) ON DELETE CASCADE/);
+});
+
+test("Reels start with sound requested and keep the volume control", () => {
+  const feed = source("artifacts/vibeswipe-web/src/pages/reels-feed.tsx");
+  const slide = source("artifacts/vibeswipe-web/src/components/reels/reel-slide.tsx");
+  assert.match(feed, /const \[muted, setMuted\] = useState\(false\)/);
+  assert.match(feed, /aria-label=\{muted \? "Turn sound on" : "Mute"\}/);
+  assert.match(slide, /playsInline muted=\{muted\} loop/);
+  assert.match(slide, /Your browser paused autoplay\. Tap to play\./);
+});
+
+test("Reel comments close by tapping the video or swiping down and use a compact composer", () => {
+  const feed = source("artifacts/vibeswipe-web/src/pages/reels-feed.tsx");
+  const slide = source("artifacts/vibeswipe-web/src/components/reels/reel-slide.tsx");
+  const comments = source("artifacts/vibeswipe-web/src/components/reels/reel-comments.tsx");
+  const styles = source("artifacts/vibeswipe-web/src/components/reels/reels.css");
+  assert.match(feed, /if \(commentsFor === reel\.id\) closeComments\(\)/);
+  assert.match(slide, /aria-label=\{compact \? "Close comments"/);
+  assert.match(slide, /if \(blocked && !userPaused && element\)/);
+  assert.match(comments, /deltaY > 64/);
+  assert.match(comments, /useGetMyProfile/);
+  assert.match(comments, /<ReelAvatar reference=\{me\.data\?\.photos\?\.\[0\] \?\? null\}/);
+  assert.doesNotMatch(comments, /border-t border-white\/10/);
+  assert.doesNotMatch(comments, /border-l border-white\/10/);
+  assert.match(styles, /\.reel-comments \{[^}]*border-radius: 20px 20px 0 0/);
+  assert.doesNotMatch(styles, /\.reel-comments \{[^}]*border-top:/);
 });

@@ -33,11 +33,11 @@ Use record-and-post, not live broadcasting.
 
 **How to apply:** Offer recording or choosing a video, previewing it, and posting it. Do not add real-time streaming as part of this scope.
 
-Comments must open low down without covering the video, including while the mobile keyboard is open. The playing Reel must remain visible above the comment input.
+Comments must open low down without covering the video, including while the mobile keyboard is open. Tapping the video or swiping down on the comments closes the panel; the composer aligns the viewer's avatar beside its input, without extra divider lines.
 
-**Why:** The user explicitly requested that “the comment will not cover the video,” then supplied iPhone screenshots where opening the keyboard hid it entirely.
+**Why:** The user asked to keep the video visible while commenting, make it easy to return to full video by tap or swipe, align their profile picture with the composer and remove comment-panel divider lines.
 
-**How to apply:** Reserve space below the visible video for the comment panel and input instead of placing an opaque sheet over the video.
+**How to apply:** Reserve space below the visible video for the comment panel and input instead of placing an opaque sheet over the video. Keep the composer avatar adjacent to the input, omit panel/reply separator lines, and support both a video tap and a downward swipe to dismiss.
 
 Long comment and reply text starts at three lines and expands with a “More” control only when it is clipped.
 
@@ -69,11 +69,11 @@ Reels must not allow nudity or explicit sexual content. The user chose automatic
 
 **How to apply:** Check video content before it becomes publicly playable, reject disallowed material, and never treat face verification as a nudity/content check. Keep this separate from the existing face-verification provider.
 
-Reels must play automatically, with controls to pause and mute or unmute.
+Reels should request playback with sound enabled by default, with controls to pause and mute or unmute. Browser autoplay rules may still require a first viewer gesture before audible playback.
 
-**Why:** The user explicitly said, “Reels play automatically. The person can stop or mute.”
+**Why:** The user clarified that Reels should start with sound and viewers should choose when to mute; browsers may block sound autoplay until interaction.
 
-**How to apply:** Start the visible video muted and inline to meet mobile browser autoplay rules, pause off-screen videos, and show a clear play action if the browser blocks autoplay. Do not replace the requested playback behavior with static previews.
+**How to apply:** Attempt to autoplay the active video unmuted, pause off-screen videos, and keep a clear play action if the browser blocks autoplay. Do not require the volume icon to be tapped just to request sound, and do not replace playback with static previews.
 
 Reels must support videos of three minutes or longer, not inherit the short profile-video duration cap.
 

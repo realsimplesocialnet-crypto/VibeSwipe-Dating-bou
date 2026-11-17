@@ -92,7 +92,7 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
   const [active, setActive] = useState(initialHistoryMarker?.activeIndex ?? 0);
   const activeRef = useRef(0);
   activeRef.current = active;
-  const [muted, setMuted] = useState(true);
+  const [muted, setMuted] = useState(false);
   const initialSearch = new URLSearchParams(window.location.search).get("q") ?? "";
   const [searchOpen, setSearchOpen] = useState(Boolean(initialSearch));
   const [searchText, setSearchText] = useState(initialSearch);
@@ -429,7 +429,10 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
              key={reel.id} reel={reel} index={index} active={index === active && !searchOpen} near={Math.abs(index - active) <= 1}
             muted={muted} pageHidden={pageHidden} compact={commentsFor === reel.id} showHint={index === 0 && reels.length > 1}
             returnTo={ownPath}
-             onToggleNavigation={() => setControlsVisible((visible) => !visible)}
+              onToggleNavigation={() => {
+                if (commentsFor === reel.id) closeComments();
+                else setControlsVisible((visible) => !visible);
+              }}
              offlineSaved={offlineIds.has(reel.id)} offlineSaving={offlineSavingIds.has(reel.id)}
              onSaveOffline={() => void cacheOffline(reel, true)} onAutoCache={() => void cacheOffline(reel, false)}
             onLike={() => void toggle("like", reel)} onSave={() => void toggle("save", reel)}

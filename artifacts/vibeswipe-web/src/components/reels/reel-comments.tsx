@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent, type TouchEvent as ReactTouchEvent } from "react";
 import { Link } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
 import {
-  getGetReelCommentsQueryKey, useCreateReelComment, useDeleteReelComment, useGetReelComments, type ReelComment,
+  getGetReelCommentsQueryKey, useCreateReelComment, useDeleteReelComment, useGetMyProfile, useGetReelComments, type ReelComment,
 } from "@workspace/api-client-react";
 import { ArrowUp, X } from "lucide-react";
 import { ReelAvatar } from "@/components/reels/reel-avatar";
@@ -43,6 +43,7 @@ export function ReelComments({ reelId, creatorId, returnTo, onClose, onCountChan
   const client = useQueryClient();
   const key = getGetReelCommentsQueryKey(reelId);
   const comments = useGetReelComments(reelId, { query: { queryKey: key } });
+  const me = useGetMyProfile();
   const create = useCreateReelComment();
   const remove = useDeleteReelComment();
   const [draft, setDraft] = useState("");
@@ -50,8 +51,27 @@ export function ReelComments({ reelId, creatorId, returnTo, onClose, onCountChan
   const [confirming, setConfirming] = useState<string | null>(null);
   const list = useRef<HTMLDivElement>(null);
   const input = useRef<HTMLInputElement>(null);
+  const touchStart = useRef<{ x: number; y: number } | null>(null);
   const [replyingTo, setReplyingTo] = useState<ReelComment | null>(null);
   const count = comments.data?.length ?? 0;
+  function startCloseGesture(event: ReactTouchEvent<HTMLElement>) {
+    const target = event.target;
+    if (target instanceof Element && target.closest("input, button, a, textarea")) {
+      touchStart.current = null;
+      return;
+    }
+    const touch = event.changedTouches[0];
+    touchStart.current = touch ? { x: touch.clientX, y: touch.clientY } : null;
+  }
+  function finishCloseGesture(event: ReactTouchEvent<HTMLElement>) {
+    const start = touchStart.current;
+    touchStart.current = null;
+    const touch = event.changedTouches[0];
+    if (!start || !touch) return;
+    const deltaX = touch.clientX - start.x;
+    const deltaY = touch.clientY - start.y;
+    if (deltaY > 64 && Math.abs(deltaX) < 80 && (list.current?.scrollTop ?? 0) <= 0) onClose();
+  }
   useEffect(() => { list.current?.scrollTo({ top: list.current.scrollHeight }); }, [count]);
   useEffect(() => {
     if (!focusCommentId || !comments.data) return;
@@ -102,7 +122,7 @@ export function ReelComments({ reelId, creatorId, returnTo, onClose, onCountChan
     }
   }
 
-  return <section className="reel-comments" aria-label="Comments" data-testid="panel-reel-comments">
+  return <section className="reel-comments" aria-label="Comments" data-testid="panel-reel-comments" onTouchStart={startCloseGesture} onTouchEnd={finishCloseGesture} onTouchCancel={() => { touchStart.current = null; }}>
     <header className="flex items-center justify-between px-4 pb-2 pt-3">
       <h2 className="text-sm font-bold">Comments <span className="font-medium text-white/50">{comments.data ? count : ""}</span></h2>
       <button type="button" onClick={onClose} aria-label="Close comments" data-testid="button-close-comments" className="flex h-9 w-9 items-center justify-center rounded-full text-white/70 hover:bg-white/10"><X size={18} /></button>
@@ -127,7 +147,7 @@ export function ReelComments({ reelId, creatorId, returnTo, onClose, onCountChan
               </div>
             </div>
           </div>
-          {(repliesByParent.get(comment.id) ?? []).length > 0 && <ul className="ml-9 mt-3 space-y-3 border-l border-white/10 pl-3">
+          {(repliesByParent.get(comment.id) ?? []).length > 0 && <ul className="ml-9 mt-3 space-y-3">
             {(repliesByParent.get(comment.id) ?? []).map((reply) => <li key={reply.id} className="flex gap-2.5" data-testid={`comment-${reply.id}`} data-comment-id={reply.id}>
               <Link href={profileHref(reply.authorId, reply.id)} aria-label={`Open ${reply.authorName}'s profile`} data-testid={`link-reel-comment-profile-${reply.id}`} className="h-7 w-7 shrink-0 rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary">
                 <ReelAvatar reference={reply.authorPhoto} name={reply.authorName} size={28} />
@@ -154,7 +174,8 @@ export function ReelComments({ reelId, creatorId, returnTo, onClose, onCountChan
       <span>Replying to <strong className="text-white/85">{replyingTo.authorName}</strong></span>
       <button type="button" onClick={() => setReplyingTo(null)} className="font-semibold text-primary" aria-label="Cancel reply">Cancel</button>
     </div>}
-    <form onSubmit={(event) => void submit(event)} className="flex items-center gap-2 border-t border-white/10 px-3 pb-[max(env(safe-area-inset-bottom),10px)] pt-2.5">
+    <form onSubmit={(event) => void submit(event)} className="flex items-center gap-2 px-3 pb-[max(env(safe-area-inset-bottom),10px)] pt-2.5">
+      <div className="h-9 w-9 shrink-0"><ReelAvatar reference={me.data?.photos?.[0] ?? null} name={me.data?.name ?? "Your profile"} size={36} /></div>
       <input ref={input} value={draft} onChange={(event) => setDraft(event.target.value)} maxLength={500} placeholder={replyingTo ? `Reply to ${replyingTo.authorName}` : "Add a comment"} aria-label={replyingTo ? `Reply to ${replyingTo.authorName}` : "Add a comment"} enterKeyHint="send" data-testid="input-reel-comment" className="h-11 min-w-0 flex-1 rounded-full border border-white/10 bg-white/[.07] px-4 text-[16px] text-white placeholder:text-white/40 focus:border-primary/60 focus:outline-none" />
       <button type="submit" disabled={!draft.trim() || create.isPending} aria-label="Post comment" data-testid="button-post-comment" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground disabled:opacity-35"><ArrowUp size={19} /></button>
     </form>
