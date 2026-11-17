@@ -11,6 +11,8 @@ My Profile must fit on one screen without vertical scrolling. Use compact previe
 
 My Profile must not show the top logo/branding header. Start with the My Profile title and Settings, leaving more room for the user's pictures. Bottom tabs should blend into the profile background, not form a dark strip that covers the photos.
 
+Show follower and following counts with the numbers prominent and the labels smaller, on both the signed-in profile and other members' profiles.
+
 **Why:** The user first requested charcoal and gold, then explicitly asked to bring the app's pink back and rejected the pale gold/cream look.
 
-**How to apply:** Use the pink accent and dark surfaces for the user's own profile overview in both native and web/PWA versions. Preserve the compact, no-scroll layout and real account data.
+**How to apply:** Use the pink accent and dark surfaces for the user's own profile overview in both native and web/PWA versions. Preserve the compact, no-scroll layout and real account data, while keeping follower numbers visually stronger than their labels.
