@@ -39,6 +39,7 @@ async function boot({ production = true, firstFailure = false, base = "/" } = {}
       },
     },
   };
+  window.navigator = navigator;
   vm.runInNewContext(source, { document, window, navigator, URL, console: { warn() {} } });
   const flush = () => new Promise(resolve => setImmediate(resolve));
   await flush();

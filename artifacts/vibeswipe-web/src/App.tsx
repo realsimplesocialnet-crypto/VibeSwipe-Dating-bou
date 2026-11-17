@@ -1,7 +1,7 @@
 import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import { OnboardingVideoBackground } from '@/components/onboarding-video-background';
 import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
-import { ClerkProvider, Show, SignIn, useClerk, useSignUp, useUser } from '@clerk/react';
+import { ClerkProvider, SignIn, useClerk, useSignUp, useUser } from '@clerk/react';
 import { publishableKeyFromHost } from '@clerk/react/internal';
 import { shadcn } from '@clerk/themes';
 import {
@@ -228,7 +228,22 @@ function AppShell({ children }: { children: ReactNode }) {
 }
 
 function Gate({ children }: { children: ReactNode }) {
-  return <><Show when="signed-in">{children}</Show><Show when="signed-out"><Redirect to="/welcome"/></Show></>;
+  const { isLoaded, isSignedIn } = useUser();
+  if (!isLoaded) return <AppOpening />;
+  if (!isSignedIn) return <Redirect to="/welcome"/>;
+  return <>{children}</>;
+}
+function AppOpening() {
+  const [slow, setSlow] = useState(false);
+  useEffect(() => {
+    const timer = window.setTimeout(() => setSlow(true), 10_000);
+    return () => window.clearTimeout(timer);
+  }, []);
+  return <main role="status" aria-live="polite" data-testid="status-app-startup" className="flex min-h-[100dvh] flex-col items-center justify-center gap-4 bg-[#0f0f12] px-6 text-center text-[#fbf5f7]">
+    <span aria-hidden="true" className="h-9 w-9 animate-spin rounded-full border-[3px] border-white/20 border-t-[#f34e9a]" />
+    <h1 className="text-xl font-bold">Opening Myage…</h1>
+    {slow && <><p className="max-w-sm text-sm leading-6 text-[#b6a8af]">Still loading. Check your connection and try again.</p><button type="button" onClick={() => window.location.reload()} data-testid="button-app-startup-retry" className="rounded-xl bg-[#f34e9a] px-5 py-3 text-sm font-bold text-[#24111b]">Try again</button></>}
+  </main>;
 }
 function RequiredProfile({ children }: { children: ReactNode }) {
   const profile=useGetMyProfile<Profile>({query:{retry:shouldRetryProfile,staleTime:0,refetchOnMount:'always'}});
@@ -900,8 +915,8 @@ function PublicProfile({id,actionReturnTo='/discover'}:{id:string;actionReturnTo
 }
 
 function OnboardingGate(){const p=useGetMyProfile({query:{retry:shouldRetryProfile}});if(p.isLoading)return <PageFrame><ProfileLoading/></PageFrame>;if(p.data)return <Redirect to="/discover"/>;if(p.isError&&!isProfileMissing(p.error))return <PageFrame><Retry text="We couldn’t check your profile. Check your connection and try again." onRetry={()=>void p.refetch()}/></PageFrame>;return <OnboardingPage/>}
-function HomeRedirect(){return <><Show when="signed-in"><Redirect to="/discover"/></Show><Show when="signed-out"><Redirect to="/welcome"/></Show></>}
-function WelcomeRoute(){return <><Show when="signed-in"><Redirect to="/discover"/></Show><Show when="signed-out"><InstalledWelcome/></Show></>}
+function HomeRedirect(){const {isLoaded,isSignedIn}=useUser();if(!isLoaded)return <AppOpening/>;return <Redirect to={isSignedIn?'/discover':'/welcome'}/>}
+function WelcomeRoute(){const {isLoaded,isSignedIn}=useUser();if(!isLoaded)return <AppOpening/>;return isSignedIn?<Redirect to="/discover"/>:<InstalledWelcome/>}
 function BrandedSignUp(){
   const {signUp,fetchStatus}=useSignUp();
   const [,setLocation]=useLocation();
