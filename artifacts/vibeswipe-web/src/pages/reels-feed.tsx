@@ -14,6 +14,8 @@ import { readOfflineReels, saveReelForOffline } from "@/lib/offline-reels";
 import { reelSlideIndex, reelsViewportFrame } from "@/lib/reels-viewport";
 import "@/components/reels/reels.css";
 
+const REEL_COMMENTS_HISTORY_KEY = "__myageReelComments";
+
 function useReelsViewport() {
   const baseline = useRef(window.visualViewport?.height ?? window.innerHeight);
   const [frame, setFrame] = useState(() => reelsViewportFrame(window.visualViewport?.height ?? window.innerHeight, window.visualViewport?.offsetTop ?? 0, window.innerHeight, false));
@@ -78,6 +80,7 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
   const [debouncedSearchText, setDebouncedSearchText] = useState(initialSearch.trim());
   const initialCommentId = new URLSearchParams(window.location.search).get("commentId");
   const [commentsFor, setCommentsFor] = useState<string | null>(() => initialReelId && initialCommentId ? initialReelId : null);
+  const commentsHistoryOpen = useRef(false);
   const [shareFor, setShareFor] = useState<Reel | null>(null);
   const [deleteFor, setDeleteFor] = useState<Reel | null>(null);
   const [patches, setPatches] = useState<Record<string, Partial<Reel>>>({});
@@ -87,6 +90,64 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
   const [offlineIds, setOfflineIds] = useState<Set<string>>(() => new Set());
   const [offlineSavingIds, setOfflineSavingIds] = useState<Set<string>>(() => new Set());
   const [offline, setOffline] = useState(!navigator.onLine);
+
+  const openComments = useCallback((reelId: string) => {
+    const currentState = window.history.state;
+    const nextState = {
+      ...(currentState && typeof currentState === "object" ? currentState : {}),
+      [REEL_COMMENTS_HISTORY_KEY]: reelId,
+    };
+    if (commentsHistoryOpen.current) {
+      window.history.replaceState(nextState, "", window.location.href);
+    } else {
+      window.history.pushState(nextState, "", window.location.href);
+    }
+    commentsHistoryOpen.current = true;
+    setCommentsFor(reelId);
+  }, []);
+
+  const closeComments = useCallback(() => {
+    if (commentsHistoryOpen.current) {
+      window.history.back();
+      return;
+    }
+    setCommentsFor(null);
+  }, []);
+
+  useEffect(() => {
+    const onPopState = (event: PopStateEvent) => {
+      const state = event.state;
+      const reelId = state && typeof state === "object"
+        ? (state as Record<string, unknown>)[REEL_COMMENTS_HISTORY_KEY]
+        : null;
+      if (typeof reelId === "string" && reelId) {
+        commentsHistoryOpen.current = true;
+        setCommentsFor(reelId);
+      } else if (commentsHistoryOpen.current) {
+        commentsHistoryOpen.current = false;
+        setCommentsFor(null);
+      }
+    };
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, []);
+
+  useEffect(() => {
+    if (!initialReelId || !initialCommentId) return;
+    const currentState = window.history.state;
+    const currentReelId = currentState && typeof currentState === "object"
+      ? (currentState as Record<string, unknown>)[REEL_COMMENTS_HISTORY_KEY]
+      : null;
+    if (currentReelId === initialReelId) {
+      commentsHistoryOpen.current = true;
+      return;
+    }
+    window.history.pushState({
+      ...(currentState && typeof currentState === "object" ? currentState : {}),
+      [REEL_COMMENTS_HISTORY_KEY]: initialReelId,
+    }, "", window.location.href);
+    commentsHistoryOpen.current = true;
+  }, [initialReelId, initialCommentId]);
 
   const single = useGetReel(initialReelId ?? "", { query: { enabled: Boolean(initialReelId), queryKey: getGetReelQueryKey(initialReelId ?? ""), retry: false } });
   const feed = useInfiniteQuery({
@@ -233,11 +294,11 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
       if ((event.target as HTMLElement).closest("input,textarea")) return;
       if (event.key === "ArrowDown") { event.preventDefault(); go(1); }
       if (event.key === "ArrowUp") { event.preventDefault(); go(-1); }
-      if (event.key === "Escape" && commentsFor) setCommentsFor(null);
+      if (event.key === "Escape" && commentsFor) closeComments();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [go, commentsFor, searchOpen]);
+  }, [go, closeComments, commentsFor, searchOpen]);
 
   function patch(id: string, value: Partial<Reel>) { setPatches((all) => ({ ...all, [id]: { ...all[id], ...value } })); }
 
@@ -291,7 +352,7 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
     try {
       await del.mutateAsync({ reelId: deleteFor.id });
       setRemoved((set) => new Set(set).add(deleteFor.id));
-      if (commentsFor === deleteFor.id) setCommentsFor(null);
+      if (commentsFor === deleteFor.id) closeComments();
       void client.invalidateQueries({ queryKey: getGetMyReelsQueryKey() });
       void client.invalidateQueries({ queryKey: getGetSavedReelsQueryKey() });
       setDeleteFor(null);
@@ -301,7 +362,7 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
     }
   }
 
-  const back = () => setLocation(returnTo);
+  const back = () => commentsFor ? closeComments() : setLocation(returnTo);
   function closeSearch() {
     setSearchOpen(false);
     setSearchText("");
@@ -335,7 +396,7 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
              onSaveOffline={() => void cacheOffline(reel, true)} onAutoCache={() => void cacheOffline(reel, false)}
             onLike={() => void toggle("like", reel)} onSave={() => void toggle("save", reel)}
             onView={() => void recordPlayback(reel)}
-            onComment={() => setCommentsFor(reel.id)} onShare={() => setShareFor(reel)} onDelete={() => setDeleteFor(reel)}
+             onComment={() => openComments(reel.id)} onShare={() => setShareFor(reel)} onDelete={() => setDeleteFor(reel)}
           />)}
         {activeFeed.isFetchingNextPage && <div className="reels-more" aria-live="polite">Loading more Reels</div>}
         {!offline && !activeFeed.hasNextPage && reels.length > 1 && !activeFeed.isLoading && <div className="reels-end">{profileId ? "You’ve seen all of this person’s Reels." : "You are all caught up."}</div>}
@@ -393,7 +454,7 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
       {notice && <p role="status" className="reels-notice" data-testid="status-reels">{notice}</p>}
       {initialReelId && single.isError && <p role="status" className="reels-notice" data-testid="status-reel-unavailable">That Reel is no longer available. Showing other Reels.</p>}
     </div>
-    {commentReel && <ReelComments key={commentReel.id} reelId={commentReel.id} creatorId={commentReel.creatorId} returnTo={returnTo} focusCommentId={initialCommentId} onClose={() => setCommentsFor(null)} onCountChange={(delta) => patch(commentReel.id, { commentCount: Math.max(0, commentReel.commentCount + delta) })} />}
+    {commentReel && <ReelComments key={commentReel.id} reelId={commentReel.id} creatorId={commentReel.creatorId} returnTo={returnTo} focusCommentId={initialCommentId} onClose={closeComments} onCountChange={(delta) => patch(commentReel.id, { commentCount: Math.max(0, commentReel.commentCount + delta) })} />}
     {shareFor && <ReelShareSheet reel={shareFor} onClose={() => setShareFor(null)} />}
     {deleteFor && <div className="reel-sheet-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setDeleteFor(null); }}>
       <section className="reel-sheet" role="alertdialog" aria-modal="true" aria-label="Delete Reel">
