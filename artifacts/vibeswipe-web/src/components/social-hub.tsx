@@ -249,8 +249,8 @@ export function InboundPeoplePage({ avatar, kind }: { avatar: AvatarFn; kind: 'l
   </div></div>;
 }
 
-function FollowActionButton({ profileId, viewerId, isFollowing, followsYou, onChange }: {
-  profileId: string; viewerId?: string; isFollowing: boolean; followsYou: boolean; onChange?: (following: boolean) => void;
+function FollowActionButton({ profileId, viewerId, isFollowing, followsYou, checking = false, onChange }: {
+  profileId: string; viewerId?: string; isFollowing: boolean; followsYou: boolean; checking?: boolean; onChange?: (following: boolean) => void;
 }) {
   const client = useQueryClient();
   const follow = useFollowProfile();
@@ -288,9 +288,9 @@ function FollowActionButton({ profileId, viewerId, isFollowing, followsYou, onCh
     }
   }
   return <div className="sh-follow-action">
-    <button type="button" onClick={() => void toggle()} disabled={pending} aria-pressed={following}
+    <button type="button" onClick={() => void toggle()} disabled={pending || checking} aria-pressed={following}
       data-testid={`button-follow-${profileId}`} className={`sh-follow-button ${following ? 'sh-following' : ''}`}>
-      {pending ? 'Saving…' : following ? 'Following' : followsYou ? 'Follow back' : 'Follow'}
+      {pending ? 'Saving…' : checking ? 'Checking…' : following ? 'Following' : followsYou ? 'Follow back' : 'Follow'}
     </button>
     {error && <span role="alert" className="sh-follow-error">{error}</span>}
   </div>;
@@ -304,7 +304,14 @@ export function ProfileFollowNotificationAction({ profileId, viewerId, onFollow 
 }
 
 export function ProfileSocialActions({ profileId, viewerId, showAction = true, compact = false, datingAction }: { profileId: string; viewerId?: string; showAction?: boolean; compact?: boolean; datingAction?: ReactNode }) {
-  const summary = useGetProfileFollowSummary(profileId, { query: { queryKey: getGetProfileFollowSummaryQueryKey(profileId), refetchOnMount: 'always' } });
+  const summary = useGetProfileFollowSummary(profileId, { query: {
+    queryKey: getGetProfileFollowSummaryQueryKey(profileId),
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
+    staleTime: 0,
+  } });
+  const checkingRelationship = summary.isFetching && !summary.data?.isFollowing && !summary.data?.followsYou;
   return <section className={`sh-profile-social${compact ? ' sh-profile-social-compact' : ''}`} data-testid="profile-follow-stats">
     <div className="sh-profile-stats">
       <Link href={`/profile/${profileId}/followers`} data-testid="link-profile-followers" className="sh-profile-stat">
@@ -315,7 +322,7 @@ export function ProfileSocialActions({ profileId, viewerId, showAction = true, c
       </Link>
     </div>
     {showAction && viewerId && viewerId !== profileId && <div className="sh-profile-actions">
-      {summary.data ? <FollowActionButton profileId={profileId} viewerId={viewerId} isFollowing={summary.data.isFollowing} followsYou={summary.data.followsYou} />
+      {summary.data ? <FollowActionButton profileId={profileId} viewerId={viewerId} isFollowing={summary.data.isFollowing} followsYou={summary.data.followsYou} checking={checkingRelationship} />
         : <button type="button" disabled className="sh-follow-button">{summary.isError ? 'Unavailable' : 'Loading…'}</button>}
       {datingAction}
     </div>}

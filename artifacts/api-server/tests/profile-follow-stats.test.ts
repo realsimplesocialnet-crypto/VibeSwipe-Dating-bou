@@ -17,3 +17,14 @@ test("native own and public profiles use large count text with smaller labels", 
   assert.match(component, /statValue: \{ fontSize: 22, lineHeight: 25, fontWeight: "900" \}/);
   assert.match(component, /statLabel: \{ fontSize: 11, fontWeight: "600" \}/);
 });
+
+test("public profile follow-back labels use the refreshed follow relationship", () => {
+  const web = source("artifacts/vibeswipe-web/src/components/social-hub.tsx");
+  const native = source("artifacts/vibeswipe/components/ProfileFollow.tsx");
+  for (const component of [web, native]) {
+    assert.match(component, /followsYou \? ["']Follow back["'] : ["']Follow["']/);
+    assert.match(component, /refetchOnWindowFocus: true/);
+    assert.match(component, /refetchOnReconnect: true/);
+    assert.match(component, /staleTime: 0/);
+  }
+});

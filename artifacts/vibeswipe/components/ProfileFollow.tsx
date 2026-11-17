@@ -24,11 +24,12 @@ import { usePremiumColors } from "@/hooks/useColors";
 
 type FollowEntry = ProfileFollowList["entries"][number];
 
-export function ProfileFollowButton({ profileId, viewerId, isFollowing: initialIsFollowing, followsYou, onChange }: {
+export function ProfileFollowButton({ profileId, viewerId, isFollowing: initialIsFollowing, followsYou, checking = false, onChange }: {
   profileId: string;
   viewerId?: string;
   isFollowing: boolean;
   followsYou: boolean;
+  checking?: boolean;
   onChange?: (following: boolean) => void;
 }) {
   const colors = usePremiumColors();
@@ -77,14 +78,14 @@ export function ProfileFollowButton({ profileId, viewerId, isFollowing: initialI
         accessibilityRole="button"
         accessibilityState={{ disabled: pending, selected: isFollowing }}
         accessibilityLabel={isFollowing ? `Unfollow ${profileId}` : followsYou ? `Follow ${profileId} back` : `Follow ${profileId}`}
-        disabled={pending}
+        disabled={pending || checking}
         onPress={() => void toggle()}
         style={({ pressed }) => [
           styles.followButton,
           { borderColor: colors.profileEdit, backgroundColor: isFollowing ? "transparent" : colors.profileEdit, opacity: pending ? 0.55 : pressed ? 0.8 : 1 },
         ]}
       >
-        {pending ? <ActivityIndicator size="small" color={colors.profileEdit} /> : (
+        {pending || checking ? <ActivityIndicator size="small" color={colors.profileEdit} /> : (
           <>
             {!isFollowing && <Feather name="user-plus" size={14} color={colors.profileEditForeground} />}
             <Text style={{ color: isFollowing ? colors.profileEdit : colors.profileEditForeground, fontWeight: "800", fontSize: 12 }}>
@@ -124,8 +125,15 @@ export function ProfileFollowStats({ profileId, viewerId, showAction = true, dat
 }) {
   const colors = usePremiumColors();
   const query = useGetProfileFollowSummary(profileId, {
-    query: { queryKey: getGetProfileFollowSummaryQueryKey(profileId), refetchOnMount: "always" },
+    query: {
+      queryKey: getGetProfileFollowSummaryQueryKey(profileId),
+      refetchOnMount: "always",
+      refetchOnWindowFocus: true,
+      refetchOnReconnect: true,
+      staleTime: 0,
+    },
   });
+  const checkingRelationship = query.isFetching && !query.data?.isFollowing && !query.data?.followsYou;
   return (
     <View style={styles.statsWrap} testID="profile-follow-stats">
       <View style={[styles.stats, { backgroundColor: colors.profileCard, borderColor: colors.border }]}>
@@ -154,7 +162,7 @@ export function ProfileFollowStats({ profileId, viewerId, showAction = true, dat
       {showAction && viewerId && viewerId !== profileId ? (
         <View style={styles.actionsRow}>
           {query.data
-            ? <ProfileFollowButton profileId={profileId} viewerId={viewerId} isFollowing={query.data.isFollowing} followsYou={query.data.followsYou} />
+            ? <ProfileFollowButton profileId={profileId} viewerId={viewerId} isFollowing={query.data.isFollowing} followsYou={query.data.followsYou} checking={checkingRelationship} />
             : <View style={[styles.actionPlaceholder, { backgroundColor: colors.profileCard, borderColor: colors.border }]}><Text style={{ color: colors.profileMuted, fontWeight: "700", fontSize: 12 }}>{query.isError ? "Unavailable" : "Loading…"}</Text></View>}
           {datingAction}
         </View>
