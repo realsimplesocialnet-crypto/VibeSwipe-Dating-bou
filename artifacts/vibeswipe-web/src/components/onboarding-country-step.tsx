@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { resolveOnboardingCountry, type OnboardingCountry } from "@workspace/api-client-react";
 import { LocationChoice } from "@/components/location-choice";
 
@@ -15,71 +15,18 @@ export function OnboardingCountryStep({
   countrySource,
   onSelect,
 }: Props) {
-  const [status, setStatus] = useState<"detecting" | "failed" | "saving" | "ready">(
-    countrySource ? "ready" : "detecting",
-  );
+  const [status, setStatus] = useState<"failed" | "saving" | "ready">("ready");
   const [error, setError] = useState("");
-  const [retry, setRetry] = useState(0);
-  const attempt = useRef(0);
-  const onSelectRef = useRef(onSelect);
-
-  useEffect(() => {
-    onSelectRef.current = onSelect;
-  }, [onSelect]);
-
-  useEffect(() => {
-    if (countrySource) {
-      setStatus("ready");
-      return;
-    }
-    let active = true;
-    const currentAttempt = ++attempt.current;
-    setStatus("detecting");
-    setError("");
-    if (!navigator.geolocation) {
-      setStatus("failed");
-      setError("We couldn't detect your location. Please enable location access or select your country.");
-      return () => {
-        active = false;
-      };
-    }
-    navigator.geolocation.getCurrentPosition(
-      async ({ coords }) => {
-        try {
-          const result = await resolveOnboardingCountry({
-            latitude: coords.latitude,
-            longitude: coords.longitude,
-          });
-          if (!active || attempt.current !== currentAttempt) return;
-          onSelectRef.current(result);
-          setStatus("ready");
-        } catch {
-          if (!active || attempt.current !== currentAttempt) return;
-          setError("We couldn't detect your location. Please enable location access or select your country.");
-          setStatus("failed");
-        }
-      },
-      () => {
-        if (!active || attempt.current !== currentAttempt) return;
-        setError("We couldn't detect your location. Please enable location access or select your country.");
-        setStatus("failed");
-      },
-      { enableHighAccuracy: true, maximumAge: 0, timeout: 15000 },
-    );
-    return () => {
-      active = false;
-    };
-  }, [countrySource, retry]);
 
   async function chooseCountry(code: string) {
     setStatus("saving");
     setError("");
     try {
       const result = await resolveOnboardingCountry({ countryCode: code });
-      onSelectRef.current(result);
+      onSelect(result);
       setStatus("ready");
     } catch {
-      setError("That country could not be saved. Please try again.");
+      setError("That country could not be saved. Check your connection and choose it again.");
       setStatus("failed");
     }
   }
@@ -97,19 +44,17 @@ export function OnboardingCountryStep({
     );
   }
 
-  if (status === "detecting" || status === "saving") {
+  if (status === "saving") {
     return (
       <p role="status" className="rounded-2xl border border-white/10 bg-white/[.03] px-4 py-4 text-sm text-muted-foreground">
-        {status === "saving" ? "Saving your country…" : "Detecting your country…"}
+        Saving your country…
       </p>
     );
   }
 
   return (
     <div className="space-y-3">
-      <p role="alert" className="text-sm text-muted-foreground">
-        {error || "We couldn't detect your location. Please enable location access or select your country."}
-      </p>
+      {error && <p role="alert" className="text-sm text-muted-foreground">{error}</p>}
       <LocationChoice
         level="country"
         countryCode={countryCode}
@@ -117,13 +62,6 @@ export function OnboardingCountryStep({
         value=""
         onSelect={(option) => void chooseCountry(option.code)}
       />
-      <button
-        type="button"
-        onClick={() => setRetry((value) => value + 1)}
-        className="rounded-xl border border-white/10 px-4 py-2 text-sm font-semibold text-primary"
-      >
-        Try again
-      </button>
     </div>
   );
 }

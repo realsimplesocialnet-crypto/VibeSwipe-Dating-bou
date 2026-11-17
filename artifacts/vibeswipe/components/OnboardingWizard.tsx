@@ -8,15 +8,12 @@ import {
 } from "@workspace/api-client-react";
 import { HobbyMultiSelect, OccupationSelect } from "@/components/ProfileChoiceFields";
 import { Country } from "country-state-city";
-import * as Location from "expo-location";
 import { Feather } from "@expo/vector-icons";
 import { useQueryClient } from "@tanstack/react-query";
 import { router } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
-  Linking,
   Platform,
   Pressable,
   ScrollView,
@@ -70,13 +67,11 @@ export function OnboardingWizard() {
   const [values, setValues] = useState<SetupData>(EMPTY_SETUP);
   const [step, setStep] = useState(0);
   const [search, setSearch] = useState("");
-  const [locationStatus, setLocationStatus] = useState<"loading" | "failed" | "saving" | "done">("loading");
+  const [locationStatus, setLocationStatus] = useState<"failed" | "saving" | "done">("done");
   const [locationError, setLocationError] = useState("");
-  const [locationRetry, setLocationRetry] = useState(0);
   const [error, setError] = useState("");
   const [hydrated, setHydrated] = useState(false);
   const completionInFlight = useRef(false);
-  const locationAttempt = useRef(0);
   const lastSavedKey = useRef("");
   const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -102,45 +97,6 @@ export function OnboardingWizard() {
   useEffect(() => {
     setSearch("");
   }, [step]);
-
-  useEffect(() => {
-    if (!hydrated || step !== 0 || values.countrySource) return;
-    let active = true;
-    const attempt = ++locationAttempt.current;
-    setLocationStatus("loading");
-    setLocationError("");
-    void (async () => {
-      try {
-        const permission = await Location.requestForegroundPermissionsAsync();
-        if (!permission.granted) throw new Error("Location permission was not granted");
-        const position = await Location.getCurrentPositionAsync({
-          accuracy: Location.Accuracy.Balanced,
-        });
-        const country = await resolveOnboardingCountry({
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
-        });
-        if (!active || locationAttempt.current !== attempt) return;
-        setValues((current) => ({
-          ...current,
-          country: country.country,
-          countryCode: country.countryCode,
-          countrySource: country.source,
-          state: "",
-          stateCode: "",
-          city: "",
-        }));
-        setLocationStatus("done");
-      } catch {
-        if (!active || locationAttempt.current !== attempt) return;
-        setLocationError("We couldn't detect your location. Please enable location access or select your country.");
-        setLocationStatus("failed");
-      }
-    })();
-    return () => {
-      active = false;
-    };
-  }, [hydrated, step, values.countrySource, locationRetry]);
 
   async function chooseCountry(countryCode: string) {
     setLocationStatus("saving");
@@ -315,18 +271,18 @@ export function OnboardingWizard() {
                     : `Your profile will show ${values.country}.`}
                 </Text>
               </View>
-            ) : locationStatus === "loading" || locationStatus === "saving" ? (
+            ) : locationStatus === "saving" ? (
               <View style={[styles.noDataCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
                 <ActivityIndicator color={colors.primary} />
-                <Text style={[styles.helper, { color: colors.mutedForeground, marginTop: 0 }]}>
-                  {locationStatus === "saving" ? "Saving your country…" : "Detecting your country…"}
-                </Text>
+                <Text style={[styles.helper, { color: colors.mutedForeground, marginTop: 0 }]}>Saving your country…</Text>
               </View>
             ) : (
               <>
-                <Text accessibilityRole="alert" style={[styles.helper, { color: colors.destructive, marginBottom: 12 }]}>
-                  {locationError || "We couldn't detect your location. Please enable location access or select your country."}
-                </Text>
+                {locationError ? (
+                  <Text accessibilityRole="alert" style={[styles.helper, { color: colors.destructive, marginBottom: 12 }]}>
+                    {locationError}
+                  </Text>
+                ) : null}
                 <SearchInput value={search} onChangeText={setSearch} placeholder="Search all countries" />
                 <View style={[styles.locationList, { borderColor: colors.border, backgroundColor: colors.card }]}>
                   <ScrollView keyboardShouldPersistTaps="handled" nestedScrollEnabled>
@@ -343,14 +299,6 @@ export function OnboardingWizard() {
                     ))}
                     {!filteredCountries.length ? <Text style={[styles.noResults, { color: colors.mutedForeground }]}>No matching country.</Text> : null}
                   </ScrollView>
-                </View>
-                <View style={{ flexDirection: "row", gap: 16, marginTop: 12 }}>
-                  <Pressable accessibilityRole="button" onPress={() => setLocationRetry((value) => value + 1)}>
-                    <Text style={[styles.helper, { color: colors.primary }]}>Try again</Text>
-                  </Pressable>
-                  <Pressable accessibilityRole="button" onPress={() => void Linking.openSettings().catch(() => undefined)}>
-                    <Text style={[styles.helper, { color: colors.primary }]}>Open location settings</Text>
-                  </Pressable>
                 </View>
               </>
             )}

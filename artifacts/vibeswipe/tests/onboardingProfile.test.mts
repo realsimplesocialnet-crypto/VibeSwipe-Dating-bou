@@ -20,6 +20,7 @@ const completeSetup: SetupData = {
   bio: "  Loves live music. ",
   country: "Canada",
   countryCode: "CA",
+  countrySource: "manual",
   state: "Ontario",
   stateCode: "ON",
   city: "Toronto",
@@ -32,7 +33,7 @@ const completeSetup: SetupData = {
 };
 
 test("each required onboarding screen rejects missing or invalid input", () => {
-  const cases: Array<{ step: number; patch: Partial<SetupData>; hasRegions?: boolean }> = [
+  const cases: Array<{ step: number; patch: Partial<SetupData> }> = [
     { step: 0, patch: { firstName: " " } },
     { step: 1, patch: { lastName: "" } },
     { step: 2, patch: { age: "17" } },
@@ -40,29 +41,24 @@ test("each required onboarding screen rejects missing or invalid input", () => {
     { step: 4, patch: { lookingFor: "" } },
     { step: 5, patch: { photos: [] } },
     { step: 5, patch: { photos: ["media:one", "media:two"] } },
-    { step: 7, patch: { countryCode: "" } },
-    { step: 8, patch: { stateCode: "" }, hasRegions: true },
-    { step: 9, patch: { city: "" } },
-    { step: 12, patch: { ageMin: "17" } },
-    { step: 12, patch: { ageMin: "40", ageMax: "39" } },
-    { step: 12, patch: { distanceKm: 501 } },
+    { step: 0, patch: { countryCode: "", countrySource: "" } },
+    { step: 9, patch: { ageMin: "17" } },
+    { step: 9, patch: { ageMin: "40", ageMax: "39" } },
+    { step: 9, patch: { distanceKm: 501 } },
   ];
 
-  for (const { step, patch, hasRegions = false } of cases) {
+  for (const { step, patch } of cases) {
     assert.ok(
-      getOnboardingStepError(step, { ...completeSetup, ...patch }, hasRegions),
+      getOnboardingStepError(step, { ...completeSetup, ...patch }),
       `expected step ${step} to reject ${JSON.stringify(patch)}`,
     );
   }
 });
 
 test("valid steps accept the required details, one photo, and discovery values", () => {
-  for (const step of [0, 1, 2, 3, 4, 5, 7, 8, 9, 12]) {
-    assert.equal(getOnboardingStepError(step, completeSetup, true), null);
+  for (const step of [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]) {
+    assert.equal(getOnboardingStepError(step, completeSetup), null);
   }
-  assert.equal(getOnboardingStepError(8, completeSetup, false), null);
-  assert.equal(getOnboardingStepError(6, completeSetup, false), null);
-  assert.equal(getOnboardingStepError(10, completeSetup, false), null);
 });
 
 test("the final profile payload saves selected hobbies and occupation", () => {
@@ -73,8 +69,8 @@ test("the final profile payload saves selected hobbies and occupation", () => {
     lookingFor: "Everyone",
     bio: "Loves live music.",
     country: "Canada",
-    state: "Ontario",
-    city: "Toronto",
+    state: null,
+    city: "",
     interests: ["Music", "Coffee", "Travel"],
     occupation: "Other",
     occupationOther: "Community gardener",
