@@ -56,11 +56,13 @@ test('public profiles group identity and actions, compact details, and browse me
   assert.match(native, /<ProfileReelsSection[^>]*layout="grid"/);
   const webReels = read('../src/components/profile-reels-section.tsx');
   const nativeReels = read('../../vibeswipe/components/ProfileReelsSection.tsx');
+  const webStyles = read('../src/index.css');
   for (const source of [webReels, nativeReels]) {
     assert.match(source, /layout\?: "carousel" \| "grid"/);
     assert.match(source, /profile-reels-grid|profile-reels-grid/);
     assert.match(source, /button-load-more-profile-reels/);
   }
+  assert.match(webStyles, /\.public-profile \.pp-reel-grid\s*\{\s*display:\s*grid;\s*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/);
   assert.match(webReels, /layout = "carousel"/);
   assert.match(nativeReels, /layout = "carousel"/);
 });

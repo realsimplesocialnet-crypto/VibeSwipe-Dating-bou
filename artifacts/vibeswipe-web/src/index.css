@@ -264,6 +264,8 @@ html[data-theme="light"] .public-profile .sh-profile-stat span { color:#62565d; 
 .public-profile .pp-media-heading { display: flex; align-items: baseline; justify-content: space-between; padding: 0 3px; }
 .public-profile .pp-gallery-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 11px; }
 .public-profile .pp-gallery-grid .pp-thumb { width: 100%; height: auto; aspect-ratio: 1; border-radius: 14px; }
+.public-profile .pp-reels-grid-section { margin-top: 22px; }
+.public-profile .pp-reel-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
 @media (min-width: 820px) {
   .public-profile .pp-layout { grid-template-columns: minmax(0, 1.06fr) minmax(320px, .94fr); align-items: start; gap: 20px; }
 }
