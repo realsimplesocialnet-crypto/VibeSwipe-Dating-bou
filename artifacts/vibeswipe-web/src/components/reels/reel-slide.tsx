@@ -120,7 +120,7 @@ export function ReelSlide({ reel, index, active, near, muted, pageHidden, compac
       <button type="button" onClick={onComment} aria-label="Comments" data-testid={`button-comments-reel-${reel.id}`}>
         <MessageCircle size={28} strokeWidth={1.8} /><span data-testid={`text-comment-count-${reel.id}`}>{formatCount(reel.commentCount)}</span>
       </button>
-      <button type="button" onClick={onShare} aria-label="Share" data-testid={`button-share-reel-${reel.id}`}><Send size={27} strokeWidth={1.8} /></button>
+      <button type="button" onClick={onShare} aria-label={`Share, ${formatCount(reel.shareCount)} shares`} data-testid={`button-share-reel-${reel.id}`}><Send size={27} strokeWidth={1.8} /><span data-testid={`text-share-count-${reel.id}`}>{formatCount(reel.shareCount)}</span></button>
       <button type="button" onClick={onSave} aria-pressed={reel.savedByMe} aria-label={reel.savedByMe ? "Remove from saved" : "Save"} data-testid={`button-save-reel-${reel.id}`} className={reel.savedByMe ? "is-saved" : ""}>
         <Bookmark size={28} strokeWidth={1.8} fill={reel.savedByMe ? "currentColor" : "none"} />
       </button>

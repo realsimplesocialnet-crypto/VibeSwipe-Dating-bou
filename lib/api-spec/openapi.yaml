@@ -1747,6 +1747,21 @@ paths:
               schema: { $ref: "#/components/schemas/ReelViewCount" }
         "404":
           description: Reel removed or unavailable
+  /vibeswipe/reels/{reelId}/shares:
+    post:
+      operationId: recordReelShare
+      tags: [vibeswipe]
+      summary: Record one completed share and return the updated share count
+      parameters:
+        - { in: path, name: reelId, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200":
+          description: Updated Reel share count
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ReelShareCount" }
+        "404":
+          description: Reel removed or unavailable
   /vibeswipe/reels/{reelId}/like:
     put:
       operationId: likeReel
@@ -2652,16 +2667,22 @@ components:
         likeCount: { type: integer }
         commentCount: { type: integer }
         viewCount: { type: integer, minimum: 0 }
+        shareCount: { type: integer, minimum: 0 }
         likedByMe: { type: boolean }
         savedByMe: { type: boolean }
         isOwner: { type: boolean }
         createdAt: { type: string, format: date-time }
-      required: [id, creatorId, creatorName, creatorAge, creatorLocation, creatorVerified, creatorPhoto, videoReference, caption, durationSeconds, likeCount, commentCount, viewCount, likedByMe, savedByMe, isOwner, createdAt]
+      required: [id, creatorId, creatorName, creatorAge, creatorLocation, creatorVerified, creatorPhoto, videoReference, caption, durationSeconds, likeCount, commentCount, viewCount, shareCount, likedByMe, savedByMe, isOwner, createdAt]
     ReelViewCount:
       type: object
       properties:
         viewCount: { type: integer, minimum: 0 }
       required: [viewCount]
+    ReelShareCount:
+      type: object
+      properties:
+        shareCount: { type: integer, minimum: 0 }
+      required: [shareCount]
     ReelPage:
       type: object
       properties:

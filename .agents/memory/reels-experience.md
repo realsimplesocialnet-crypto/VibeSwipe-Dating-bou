@@ -21,11 +21,11 @@ Back navigation should return to the place the member entered from, not a hardco
 
 **How to apply:** Carry validated return paths through nested Reels pages and preserve them when switching library tabs or opening a saved video.
 
-Reels are videos. Posting must offer recording with the camera or selecting an existing video, then publishing after upload and processing finish. Sharing must include people the user already chats with. Saving must make the video accessible again to that user.
+Reels are videos. Posting must offer recording with the camera or selecting an existing video, then publishing after upload and processing finish. Private Reel shares are limited to existing, unblocked mutual-match chats; following alone never opens direct messages. Saving must make the video accessible again to that user.
 
-**Why:** The user described recording or selecting videos, posting immediately, sharing with chat partners, and finding saved videos later.
+**Why:** The user described recording or selecting videos, posting immediately, sharing with chat partners, and finding saved videos later. When offered the choice, they confirmed Reel share recipients should remain matched chats only.
 
-**How to apply:** Do not substitute static pictures for Reels or a nonfunctional share/save icon for the requested actions. Do not imply publishing occurs before the video is ready.
+**How to apply:** Keep Reel DM sharing within the existing match and block rules. Do not substitute static pictures for Reels or a nonfunctional share/save icon for the requested actions. Do not imply publishing occurs before the video is ready.
 
 Use record-and-post, not live broadcasting.
 

@@ -98,6 +98,7 @@ import type {
   ReelEngagement,
   ReelInput,
   ReelPage,
+  ReelShareCount,
   ReelVideoTranscodeResult,
   ReelViewCount,
   ReportInput,
@@ -9195,6 +9196,80 @@ export const useRecordReelView = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getRecordReelViewMutationOptions(options), queryClient);
+    }
+
+export const getRecordReelShareUrl = (reelId: string,) => {
+
+
+
+
+  return `/api/vibeswipe/reels/${reelId}/shares`
+}
+
+/**
+ * @summary Record one completed share and return the updated share count
+ */
+export const recordReelShare = async (reelId: string, options?: Parameters<typeof customFetch>[1]): Promise<ReelShareCount> => {
+
+  return customFetch<ReelShareCount>(getRecordReelShareUrl(reelId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getRecordReelShareMutationKey = () => ['recordReelShare'] as const;
+
+export const getRecordReelShareMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof recordReelShare>>, TError,RecordReelShareMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof recordReelShare>>, TError,RecordReelShareMutationVariables, TContext> => {
+
+const mutationKey = getRecordReelShareMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof recordReelShare>>, RecordReelShareMutationVariables> = (props) => {
+          const {reelId} = props ?? {};
+
+          return  recordReelShare(reelId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RecordReelShareMutationResult = NonNullable<Awaited<ReturnType<typeof recordReelShare>>>
+
+    export type RecordReelShareMutationError = ErrorType<void>
+    export type RecordReelShareMutationVariables = {reelId: string}
+
+    /**
+ * @summary Record one completed share and return the updated share count
+ */
+export const useRecordReelShare = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof recordReelShare>>, TError,RecordReelShareMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof recordReelShare>>,
+        TError,
+        RecordReelShareMutationVariables,
+        TContext
+      > => {
+      return useMutation(getRecordReelShareMutationOptions(options), queryClient);
     }
 
 export const getLikeReelUrl = (reelId: string,) => {

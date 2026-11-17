@@ -329,6 +329,9 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
   }, [go, closeComments, commentsFor, searchOpen]);
 
   function patch(id: string, value: Partial<Reel>) { setPatches((all) => ({ ...all, [id]: { ...all[id], ...value } })); }
+  function patchShareCount(id: string, shareCount: number) {
+    setPatches((all) => ({ ...all, [id]: { ...all[id], shareCount: Math.max(all[id]?.shareCount ?? 0, shareCount) } }));
+  }
 
   async function cacheOffline(reel: Reel, manual: boolean) {
     if (offlineIds.has(reel.id) || offlineSavingIds.has(reel.id)) return;
@@ -499,7 +502,7 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
       {initialReelId && single.isError && <p role="status" className="reels-notice" data-testid="status-reel-unavailable">That Reel is no longer available. Showing other Reels.</p>}
     </div>
     {commentReel && <ReelComments key={commentReel.id} reelId={commentReel.id} creatorId={commentReel.creatorId} returnTo={returnTo} focusCommentId={initialCommentId} onClose={closeComments} onCountChange={(delta) => patch(commentReel.id, { commentCount: Math.max(0, commentReel.commentCount + delta) })} />}
-    {shareFor && <ReelShareSheet reel={shareFor} onClose={() => setShareFor(null)} />}
+    {shareFor && <ReelShareSheet reel={shareFor} onClose={() => setShareFor(null)} onCountChange={(count) => patchShareCount(shareFor.id, count)} />}
     {deleteFor && <div className="reel-sheet-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setDeleteFor(null); }}>
       <section className="reel-sheet" role="alertdialog" aria-modal="true" aria-label="Delete Reel">
         <h2 className="text-base font-bold">Delete this Reel?</h2>

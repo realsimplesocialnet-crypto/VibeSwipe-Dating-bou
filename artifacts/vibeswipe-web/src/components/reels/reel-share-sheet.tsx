@@ -1,15 +1,19 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { getGetMatchesQueryKey, useGetMatches, useSendMessage, type Reel } from "@workspace/api-client-react";
+import {
+  getGetMatchesQueryKey, getGetMyReelsQueryKey, getGetProfileReelsQueryKey, getGetReelQueryKey,
+  getGetReelsFeedQueryKey, getGetSavedReelsQueryKey, useGetMatches, useRecordReelShare, useSendMessage, type Reel,
+} from "@workspace/api-client-react";
 import { Check, Copy, Share2, X } from "lucide-react";
 import { ReelAvatar } from "@/components/reels/reel-avatar";
 import { reelShareMessage, reelShareUrl } from "@/lib/reels";
 import { userErrorMessage } from "@/lib/user-errors";
 
-export function ReelShareSheet({ reel, onClose }: { reel: Reel; onClose: () => void }) {
+export function ReelShareSheet({ reel, onClose, onCountChange }: { reel: Reel; onClose: () => void; onCountChange: (count: number) => void }) {
   const client = useQueryClient();
   const matches = useGetMatches({ query: { queryKey: getGetMatchesQueryKey() } });
   const send = useSendMessage();
+  const recordShare = useRecordReelShare();
   const [sent, setSent] = useState<Record<string, boolean>>({});
   const [pending, setPending] = useState<string | null>(null);
   const [status, setStatus] = useState("");
@@ -17,13 +21,30 @@ export function ReelShareSheet({ reel, onClose }: { reel: Reel; onClose: () => v
   const chats = (matches.data ?? []).filter((match) => !match.blockedByMe && !match.blockedMe);
   const canNativeShare = typeof navigator.share === "function";
 
+  async function trackShare() {
+    const result = await recordShare.mutateAsync({ reelId: reel.id });
+    onCountChange(result.shareCount);
+    for (const queryKey of [
+      getGetReelQueryKey(reel.id),
+      getGetReelsFeedQueryKey(),
+      getGetProfileReelsQueryKey({ profileId: reel.creatorId }),
+      getGetMyReelsQueryKey(),
+      getGetSavedReelsQueryKey(),
+    ]) void client.invalidateQueries({ queryKey });
+  }
+
   async function nativeShare() {
     try { await navigator.share({ title: `${reel.creatorName} on Reels`, text: reel.caption || "Watch this Reel", url }); }
-    catch (error) { if ((error as { name?: string }).name !== "AbortError") setStatus("Sharing is not available here. Copy the link instead."); }
+    catch (error) { if ((error as { name?: string }).name !== "AbortError") setStatus("Sharing is not available here. Copy the link instead."); return; }
+    try { await trackShare(); setStatus(""); }
+    catch { setStatus("Shared, but the share count could not be updated."); }
   }
   async function copy() {
-    try { await navigator.clipboard.writeText(url); setStatus("Link copied."); }
-    catch { setStatus("Copy failed. Long-press the link to copy it."); }
+    try { await navigator.clipboard.writeText(url); }
+    catch { setStatus("Copy failed. Long-press the link to copy it."); return; }
+    setStatus("Link copied.");
+    try { await trackShare(); }
+    catch { setStatus("Link copied, but the share count could not be updated."); }
   }
   async function sendTo(matchId: string) {
     setPending(matchId); setStatus("");
@@ -31,6 +52,8 @@ export function ReelShareSheet({ reel, onClose }: { reel: Reel; onClose: () => v
       await send.mutateAsync({ matchId, data: { content: reelShareMessage(url, reel.creatorName) } });
       setSent((value) => ({ ...value, [matchId]: true }));
       void client.invalidateQueries({ queryKey: getGetMatchesQueryKey() });
+      try { await trackShare(); }
+      catch { setStatus("Sent, but the share count could not be updated."); }
     } catch (error) {
       setStatus(userErrorMessage(error, "That message did not send. Try again."));
     } finally { setPending(null); }

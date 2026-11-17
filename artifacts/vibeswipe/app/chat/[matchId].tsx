@@ -67,6 +67,11 @@ const THEME_OPTIONS: { key: ChatThemeType; label: string; color: string }[] = [
 ];
 const MAX_IMAGE_BYTES = 15 * 1024 * 1024;
 const MAX_VIDEO_BYTES = 500 * 1024 * 1024;
+const SHARED_REEL_PATTERN = /\/reels\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})(?![0-9a-f-])/i;
+
+function sharedReelIdFromMessage(content: string): string | null {
+  return SHARED_REEL_PATTERN.exec(content)?.[1] ?? null;
+}
 const MAX_AUDIO_BYTES = MAX_VOICE_NOTE_BYTES;
 
 function formatTime(date: string): string {
@@ -623,6 +628,7 @@ export default function ChatScreen() {
           const bubbleColor = own ? chatAccent : colors.card;
           const messageMedia = item.mediaReference ? mediaUri(item.mediaReference) : null;
           const tombstone = item.deletedForEveryone;
+          const sharedReelId = !tombstone && !item.mediaType ? sharedReelIdFromMessage(item.content) : null;
           const isSearchMatch =
             searchText.trim().length > 0 &&
             item.content.toLowerCase().includes(searchText.trim().toLowerCase());
@@ -652,6 +658,24 @@ export default function ChatScreen() {
                   <ChatAudioMessage reference={item.mediaReference} duration={item.mediaDuration ?? 1} token={authToken} getToken={getToken} foreground={own ? "#ffffff" : themedForeground} />
                 ) : (item.mediaType === "image" || item.mediaType === "video") && messageMedia ? (
                   <ChatMediaMessage reference={item.mediaReference!} type={item.mediaType}/>
+                ) : sharedReelId ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Open shared Reel"
+                    testID={`open-shared-reel-${sharedReelId}`}
+                    onPress={() => router.push({
+                      pathname: "/reels/[reelId]",
+                      params: { reelId: sharedReelId, returnTo: `/chat/${matchId}` },
+                    })}
+                    style={[styles.sharedReelCard, { backgroundColor: own ? "rgba(0,0,0,0.15)" : colors.background }]}
+                  >
+                    <Feather name="film" size={20} color={own ? "#ffffff" : colors.primary} />
+                    <View>
+                      <Text style={[styles.sharedReelTitle, { color: own ? "#ffffff" : themedForeground }]}>Shared a Reel</Text>
+                      <Text style={[styles.sharedReelHint, { color: own ? "rgba(255,255,255,0.78)" : colors.mutedForeground }]}>Tap to watch</Text>
+                    </View>
+                    <Feather name="arrow-up-right" size={16} color={own ? "#ffffff" : colors.mutedForeground} />
+                  </Pressable>
                 ) : (
                   <Text style={[styles.messageText, { color: own ? "#ffffff" : themedForeground }]}>{item.content}</Text>
                 )}
@@ -773,6 +797,9 @@ const styles = StyleSheet.create({
   ownRow: { alignSelf: "flex-end", alignItems: "flex-end" },
   otherRow: { alignSelf: "flex-start", alignItems: "flex-start" },
   bubble: { maxWidth: "100%", paddingHorizontal: 14, paddingVertical: 10, borderRadius: 19 },
+  sharedReelCard: { minWidth: 190, flexDirection: "row", alignItems: "center", gap: 10, borderRadius: 14, paddingHorizontal: 12, paddingVertical: 11 },
+  sharedReelTitle: { fontSize: 13, fontWeight: "800" },
+  sharedReelHint: { marginTop: 2, fontSize: 11 },
   otherBubble: { borderWidth: 1 },
   deletedBubble: { borderRadius: 15, borderStyle: "dashed", borderWidth: 1 },
   deletedText: { fontSize: 13, fontStyle: "italic" },

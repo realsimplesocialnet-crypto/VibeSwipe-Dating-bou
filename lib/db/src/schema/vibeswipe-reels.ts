@@ -17,6 +17,7 @@ export const reelsTable = pgTable("vibeswipe_reels", {
   caption: text("caption").notNull().default(""),
   durationSeconds: doublePrecision("duration_seconds"),
   viewCount: integer("view_count").notNull().default(0),
+  shareCount: integer("share_count").notNull().default(0),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => ({ feed: index("vibeswipe_reels_feed_idx").on(t.createdAt, t.id) }));
 
