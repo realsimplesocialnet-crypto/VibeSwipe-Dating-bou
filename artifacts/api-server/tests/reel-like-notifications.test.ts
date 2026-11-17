@@ -50,6 +50,14 @@ test("Friends Reels use the saved follow list and navigation stays available ove
   assert.match(appShell, /isReelsViewer \? '\/reels'/);
 });
 
+test("Reel like and save toggles do not show success confirmations", () => {
+  const feed = source("artifacts/vibeswipe-web/src/pages/reels-feed.tsx");
+  assert.doesNotMatch(feed, /Saved\. Find it in Profile, Saved Reels\./);
+  assert.doesNotMatch(feed, /Removed from saved\./);
+  assert.match(feed, /Your like did not save\. Try again\./);
+  assert.match(feed, /Saving did not work\. Try again\./);
+});
+
 test("background worker displays a distinct Reel alert without replacing message alerts", async () => {
   const handlers = new Map();
   const shown: { title: string; options: { tag: string; data: { url: string } } }[] = [];

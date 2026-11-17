@@ -355,7 +355,7 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
     try {
       const mutation = kind === "like" ? (on ? like : unlike) : (on ? save : unsave);
       patch(reel.id, await mutation.mutateAsync({ reelId: reel.id }));
-      if (kind === "save") { void client.invalidateQueries({ queryKey: getGetSavedReelsQueryKey() }); setNotice(on ? "Saved. Find it in Profile, Saved Reels." : "Removed from saved."); }
+      if (kind === "save") void client.invalidateQueries({ queryKey: getGetSavedReelsQueryKey() });
     } catch (error) {
       patch(reel.id, before);
       if ((error as { status?: number }).status === 404) { setRemoved((set) => new Set(set).add(reel.id)); setNotice("This Reel is no longer available."); }
