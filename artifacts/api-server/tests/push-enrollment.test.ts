@@ -48,7 +48,7 @@ test("existing browser subscriptions are confirmed with the server, including af
   assert.match(source, /document.addEventListener\("visibilitychange", reconnect\)/);
   assert.match(source, /existing.unsubscribe\(\)/, "old application keys must not be silently reused");
   const app = await text("artifacts/vibeswipe-web/src/App.tsx");
-  assert.match(app, /<WebPushSettings key=\{profile.data.id\} compact visible=\{showMainNavigation\} accountId=\{profile.data.id\}/);
+  assert.match(app, /<WebPushSettings key=\{profile\.data\.id\} compact visible=\{showMainNavigation && !isReelsViewer\} accountId=\{profile\.data\.id\}/);
 });
 
 test("push respects message opt-outs and native enrollment keeps explicit device opt-outs", async () => {

@@ -67,6 +67,7 @@ export * from './getProfileFollowersParams';
 export * from './getProfileFollowingParams';
 export * from './getProfileReelsParams';
 export * from './getPublicLocationShareParams';
+export * from './getReelsFeedFeed';
 export * from './getReelsFeedParams';
 export * from './getSavedReelsParams';
 export * from './healthStatus';

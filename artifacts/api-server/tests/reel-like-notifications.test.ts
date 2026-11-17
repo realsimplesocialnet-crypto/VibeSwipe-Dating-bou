@@ -34,6 +34,22 @@ test("likes and notices are atomic, deduplicated, preference-aware, and never se
   assert.match(schema, /CREATE UNIQUE INDEX.*recipient_id, actor_id, reel_id.*type = 'reel_like'/);
 });
 
+test("Friends Reels use the saved follow list and navigation stays available over video", () => {
+  const generatedSchema = source("lib/api-zod/src/generated/api.ts");
+  assert.match(generatedSchema, /"feed": zod\.enum\(\['reels', 'friends'\]\)\.default\(getReelsFeedQueryFeedDefault\)/);
+  const route = source("artifacts/api-server/src/routes/vibeswipe-reels.ts");
+  assert.match(route, /query\.data\.feed === "friends"/);
+  assert.match(route, /vibeSwipeFollowsTable\.followerId/);
+  assert.match(route, /vibeSwipeFollowsTable\.followedId/);
+  const feed = source("artifacts/vibeswipe-web/src/pages/reels-feed.tsx");
+  assert.match(feed, /data-testid="tab-reels-feed"/);
+  assert.match(feed, /data-testid="tab-friends-feed"/);
+  assert.match(feed, /onToggleNavigation=\{\(\) => setControlsVisible/);
+  const appShell = source("artifacts/vibeswipe-web/src/App.tsx");
+  assert.match(appShell, /reels-mobile-nav/);
+  assert.match(appShell, /isReelsViewer \? '\/reels'/);
+});
+
 test("background worker displays a distinct Reel alert without replacing message alerts", async () => {
   const handlers = new Map();
   const shown: { title: string; options: { tag: string; data: { url: string } } }[] = [];

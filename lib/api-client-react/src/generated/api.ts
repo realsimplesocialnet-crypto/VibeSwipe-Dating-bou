@@ -5609,6 +5609,80 @@ export function useGetProfileDatingState<TData = Awaited<ReturnType<typeof getPr
 
 
 
+export const getUnlikeProfileUrl = (profileId: string,) => {
+
+
+
+
+  return `/api/vibeswipe/profiles/${profileId}/reaction`
+}
+
+/**
+ * @summary Remove the signed-in user's ordinary Like from a profile
+ */
+export const unlikeProfile = async (profileId: string, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getUnlikeProfileUrl(profileId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getUnlikeProfileMutationKey = () => ['unlikeProfile'] as const;
+
+export const getUnlikeProfileMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof unlikeProfile>>, TError,UnlikeProfileMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof unlikeProfile>>, TError,UnlikeProfileMutationVariables, TContext> => {
+
+const mutationKey = getUnlikeProfileMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof unlikeProfile>>, UnlikeProfileMutationVariables> = (props) => {
+          const {profileId} = props ?? {};
+
+          return  unlikeProfile(profileId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UnlikeProfileMutationResult = NonNullable<Awaited<ReturnType<typeof unlikeProfile>>>
+
+    export type UnlikeProfileMutationError = ErrorType<void>
+    export type UnlikeProfileMutationVariables = {profileId: string}
+
+    /**
+ * @summary Remove the signed-in user's ordinary Like from a profile
+ */
+export const useUnlikeProfile = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof unlikeProfile>>, TError,UnlikeProfileMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof unlikeProfile>>,
+        TError,
+        UnlikeProfileMutationVariables,
+        TContext
+      > => {
+      return useMutation(getUnlikeProfileMutationOptions(options), queryClient);
+    }
+
 export const getFollowProfileUrl = (profileId: string,) => {
 
 

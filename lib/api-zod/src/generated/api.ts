@@ -1428,6 +1428,19 @@ export const GetProfileDatingStateResponse = zod.object({
 
 
 /**
+ * @summary Remove the signed-in user's ordinary Like from a profile
+ */
+
+
+
+export const UnlikeProfileParams = zod.object({
+  "profileId": zod.coerce.string().min(1)
+})
+
+export const UnlikeProfileResponse = zod.void()
+
+
+/**
  * @summary Follow a profile without creating a dating match
  */
 
@@ -2415,12 +2428,13 @@ export const getReelsFeedQueryQMax = 120;
 
 export const getReelsFeedQueryLimitMax = 12;
 
-
+export const getReelsFeedQueryFeedDefault = `reels`;
 
 export const GetReelsFeedQueryParams = zod.object({
   "cursor": zod.coerce.string().max(getReelsFeedQueryCursorMax).optional(),
   "q": zod.coerce.string().min(getReelsFeedQueryQMin).max(getReelsFeedQueryQMax).optional().describe('Search Reel captions, creator names, and creator locations by keyword'),
-  "limit": zod.coerce.number().int().min(1).max(getReelsFeedQueryLimitMax).optional()
+  "limit": zod.coerce.number().int().min(1).max(getReelsFeedQueryLimitMax).optional(),
+  "feed": zod.enum(['reels', 'friends']).default(getReelsFeedQueryFeedDefault).describe('Select all public Reels or only Reels from profiles the signed-in member follows')
 })
 
 export const getReelsFeedResponseItemsItemViewCountMin = 0;

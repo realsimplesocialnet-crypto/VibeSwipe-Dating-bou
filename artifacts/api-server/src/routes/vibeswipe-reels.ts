@@ -7,7 +7,7 @@ import {
   RecordReelViewResponse, TranscodeReelVideoParams, TranscodeReelVideoResponse,
 } from "@workspace/api-zod";
 import {
-  blocksTable, db, mediaAssetsTable, profilesTable, reelCommentsTable, reelLikesTable, reelSavesTable, reelsTable, storiesTable, vibeSwipeNotificationsTable,
+  blocksTable, db, mediaAssetsTable, profilesTable, reelCommentsTable, reelLikesTable, reelSavesTable, reelsTable, storiesTable, vibeSwipeFollowsTable, vibeSwipeNotificationsTable,
 } from "@workspace/db";
 import { and, asc, desc, eq, isNull, ne, or, sql, type SQL } from "drizzle-orm";
 import { Router, type IRouter, type Request } from "express";
@@ -131,8 +131,15 @@ router.get("/vibeswipe/reels", async (req, res): Promise<void> => {
       )))
       : sql`false`
     : undefined;
-  const where = and(cursorCondition, searchCondition);
   const viewerId = uid(req);
+  const followingCondition = query.data.feed === "friends"
+    ? sql`EXISTS (
+        SELECT 1 FROM ${vibeSwipeFollowsTable}
+        WHERE ${vibeSwipeFollowsTable.followerId} = ${viewerId}
+          AND ${vibeSwipeFollowsTable.followedId} = ${reelsTable.userId}
+      )`
+    : undefined;
+  const where = and(cursorCondition, searchCondition, followingCondition);
   const limit = query.data.limit ?? PAGE_SIZE;
   const rows = await selectReels(viewerId, where, limit + 1);
   const page = rows.slice(0, limit);

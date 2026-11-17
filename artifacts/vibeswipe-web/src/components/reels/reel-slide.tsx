@@ -10,12 +10,13 @@ import { isOfflineReelWifi } from "@/lib/offline-reels";
 type Props = {
   reel: Reel; index: number; active: boolean; near: boolean; muted: boolean; pageHidden: boolean;
   compact: boolean; showHint: boolean; returnTo: string;
+  onToggleNavigation: () => void;
   onLike: () => void; onComment: () => void; onShare: () => void; onSave: () => void; onDelete: () => void;
   onView: () => void;
   offlineSaved: boolean; offlineSaving: boolean; onSaveOffline: () => void; onAutoCache: () => void;
 };
 
-export function ReelSlide({ reel, index, active, near, muted, pageHidden, compact, showHint, returnTo, onLike, onComment, onShare, onSave, onDelete, onView, offlineSaved, offlineSaving, onSaveOffline, onAutoCache }: Props) {
+export function ReelSlide({ reel, index, active, near, muted, pageHidden, compact, showHint, returnTo, onToggleNavigation, onLike, onComment, onShare, onSave, onDelete, onView, offlineSaved, offlineSaving, onSaveOffline, onAutoCache }: Props) {
   const video = useRef<HTMLVideoElement>(null);
   const bar = useRef<HTMLDivElement>(null);
   const autoCacheRequested = useRef(false);
@@ -42,6 +43,7 @@ export function ReelSlide({ reel, index, active, near, muted, pageHidden, compac
   }, [active, pageHidden, userPaused, failed, near]);
 
   function togglePlayback() {
+    onToggleNavigation();
     const element = video.current;
     if (!element || failed) return;
     if (blocked || element.paused) {

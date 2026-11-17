@@ -1,5 +1,12 @@
 /* Reels: a dark, full-bleed viewing room with the app's pink as the only accent. */
 .reels-root { position: fixed; inset: 0; z-index: 70; height: 100dvh; display: flex; flex-direction: column; background: #0c0a0f; color: #fff; overflow: hidden; max-width: 480px; margin: 0 auto; box-shadow: 0 0 0 100vmax #070609; }
+.reels-mobile-nav { left: 50% !important; right: auto !important; width: min(100%, 480px); border-top: 1px solid rgb(255 255 255 / .12); background: rgb(12 10 15 / .88) !important; transform: translateX(-50%); transition: transform .24s ease, opacity .2s ease; }
+.reels-mobile-nav.is-hidden { pointer-events: none; opacity: 0; transform: translate(-50%, calc(100% + env(safe-area-inset-bottom, 0px))); }
+.reels-feed-tabs { display: flex; min-width: 0; align-items: center; gap: 16px; margin: 0 auto; padding-top: 7px; }
+.reels-feed-tabs button { position: relative; padding: 0 1px 8px; color: rgb(255 255 255 / .68); font-size: 14px; font-weight: 650; white-space: nowrap; text-shadow: 0 1px 5px rgb(0 0 0 / .55); }
+.reels-feed-tabs button.is-active { color: #fff; }
+.reels-feed-tabs button.is-active::after { position: absolute; right: 3px; bottom: 2px; left: 3px; height: 2px; border-radius: 999px; background: hsl(var(--primary)); content: ""; }
+.reels-feed-tabs.is-hidden { visibility: hidden; opacity: 0; pointer-events: none; }
 .reels-stage { position: relative; flex: 1 1 auto; min-height: 0; }
 .reels-scroller { height: 100%; overflow-y: auto; scroll-snap-type: y mandatory; overscroll-behavior: contain; scrollbar-width: none; }
 .reels-scroller::-webkit-scrollbar { display: none; }
@@ -72,6 +79,8 @@
 .reels-root[data-keyboard-open="true"] .reel-comments > form { padding-top: 6px; padding-bottom: 4px; }
 .reels-root[data-keyboard-open="true"] .reel-rail,
 .reels-root[data-keyboard-open="true"] .reel-meta { display: none; }
+.reels-root[data-navigation-visible="true"]:not([data-comments-open="true"]) .reel-meta { bottom: calc(env(safe-area-inset-bottom) + 86px); }
+.reels-root[data-navigation-visible="true"]:not([data-comments-open="true"]) .reel-progress { bottom: calc(env(safe-area-inset-bottom) + 74px); }
 @keyframes reel-rise { from { transform: translateY(24px); opacity: 0; } to { transform: none; opacity: 1; } }
 .reel-sheet-backdrop { position: fixed; inset: 0; z-index: 80; display: flex; align-items: flex-end; justify-content: center; background: rgb(0 0 0 / .55); }
 .reel-sheet { width: 100%; max-width: 480px; border-radius: 24px 24px 0 0; background: #1b161f; padding: 18px 16px max(env(safe-area-inset-bottom), 18px); color: #fff; animation: reel-rise .22s ease-out; }
@@ -83,4 +92,4 @@
 @keyframes reel-spin { to { transform: rotate(360deg); } }
 .reel-tile { aspect-ratio: 9 / 14; overflow: hidden; border-radius: 12px; background: #1d1720; position: relative; }
 .reel-tile-meta { position: absolute; inset: auto 0 0 0; display: flex; align-items: center; gap: 4px; padding: 18px 8px 6px; font-size: 11px; font-weight: 700; background: linear-gradient(transparent, rgb(0 0 0 / .7)); }
-@media (prefers-reduced-motion: reduce) { .reel-flash, .reel-comments, .reel-sheet, .reel-loading { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .reel-flash, .reel-comments, .reel-sheet, .reel-loading { animation: none; } .reels-mobile-nav { transition: none; } }

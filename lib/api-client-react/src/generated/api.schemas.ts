@@ -1559,7 +1559,19 @@ q?: string;
  * @maximum 12
  */
 limit?: number;
+/**
+ * Select all public Reels or only Reels from profiles the signed-in member follows
+ */
+feed?: GetReelsFeedFeed;
 };
+
+export type GetReelsFeedFeed = typeof GetReelsFeedFeed[keyof typeof GetReelsFeedFeed];
+
+
+export const GetReelsFeedFeed = {
+  reels: 'reels',
+  friends: 'friends',
+} as const;
 
 export type GetSavedReelsParams = {
 /**

@@ -51,6 +51,7 @@ import { HobbyMultiSelect, OccupationSelect } from '@/components/profile-field-s
 import { ConnectionNotice } from '@/components/connection-notice';
 import { WebPushSettings } from '@/components/WebPushSettings';
 import { ReelsFeedPage } from '@/pages/reels-feed';
+import { ReelsNavigationVisibilityContext } from '@/components/reels/reels-navigation-context';
 import { ReelComposerPage } from '@/pages/reel-composer';
 import { ReelsLibraryPage } from '@/pages/reels-library';
 import { ProfileReelsSection } from '@/components/profile-reels-section';
@@ -119,11 +120,13 @@ const navItems = [
 
 function AppShell({ children }: { children: ReactNode }) {
   const [location] = useLocation();
+  const [reelsNavigationVisible, setReelsNavigationVisible] = useState(true);
   const shellRef = useRef<HTMLDivElement>(null);
   const mobileNavRef = useRef<HTMLElement>(null);
-  const showMainNavigation = ['/discover', '/matches', '/messages', '/notifications', '/views', '/likes', '/profile'].includes(location);
+  const isReelsViewer = location === '/reels' || (/^\/reels\/[^/]+$/.test(location) && location !== '/reels/new' && location !== '/reels/saved');
+  const showMainNavigation = ['/discover', '/matches', '/messages', '/notifications', '/views', '/likes', '/profile'].includes(location) || isReelsViewer;
   const isSocialPage = ['/matches', '/messages', '/notifications', '/views', '/likes'].includes(location);
-  const activeLocation = ['/matches', '/views', '/likes'].includes(location) ? '/notifications' : location;
+  const activeLocation = ['/matches', '/views', '/likes'].includes(location) ? '/notifications' : isReelsViewer ? '/reels' : location;
   const settingsReturnTo = `${location}${window.location.search}${window.location.hash}`;
   const { user } = useUser();
   const profile = useGetMyProfile();
@@ -176,7 +179,7 @@ function AppShell({ children }: { children: ReactNode }) {
   }, [showMainNavigation, location]);
   return <div ref={shellRef} className={`app-shell min-h-[100dvh] bg-background text-foreground ${isSocialPage?'messages-shell':''} ${location==='/discover'?'discover-shell':''} ${location==='/profile'?'profile-shell':''}`}>
     {showMainNavigation && <>
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-[248px] flex-col border-r border-border bg-background px-5 py-6 lg:flex">
+      {!isReelsViewer && <aside className="fixed inset-y-0 left-0 z-30 hidden w-[248px] flex-col border-r border-border bg-background px-5 py-6 lg:flex">
         <div className="mb-4 mt-2 px-3 text-[10px] font-bold uppercase tracking-[.2em] text-muted-foreground">Your space</div>
         <nav className="space-y-1">
           {navItems.map(({ href, label, icon: Icon }) => <Link key={href} href={href} data-testid={`nav-${label.toLowerCase()}`} className={`flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold transition-colors ${activeLocation === href ? 'bg-accent text-[#ff80b6]' : 'text-muted-foreground hover:bg-white/[.04] hover:text-foreground'}`}><Icon size={18}/>{label}</Link>)}
@@ -186,11 +189,13 @@ function AppShell({ children }: { children: ReactNode }) {
           <Link href={`/settings?returnTo=${encodeURIComponent(settingsReturnTo)}`} data-testid="nav-settings" className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-muted-foreground hover:bg-white/[.04]"><Settings size={18}/>Settings</Link>
           <InstallAction className="px-1 pt-2"/>
         </div>
-      </aside>
+      </aside>}
     </>}
-    <main className={showMainNavigation ? "min-h-[100dvh] pb-24 lg:ml-[248px] lg:pb-0" : "min-h-[100dvh]"}>{children}</main>
-    {profile.data?.id&&<WebPushSettings key={profile.data.id} compact visible={showMainNavigation} accountId={profile.data.id}/>}
-    {showMainNavigation && <nav ref={mobileNavRef} aria-label="Primary" className={`${location==='/profile'?'profile-nav ':''}mobile-nav fixed inset-x-0 bottom-0 z-30 flex justify-around bg-background/95 px-2 pt-2 backdrop-blur-xl lg:hidden`}>
+    <main className={showMainNavigation && !isReelsViewer ? "min-h-[100dvh] pb-24 lg:ml-[248px] lg:pb-0" : "min-h-[100dvh]"}>
+      <ReelsNavigationVisibilityContext.Provider value={setReelsNavigationVisible}>{children}</ReelsNavigationVisibilityContext.Provider>
+    </main>
+    {profile.data?.id&&<WebPushSettings key={profile.data.id} compact visible={showMainNavigation && !isReelsViewer} accountId={profile.data.id}/>}
+    {showMainNavigation && <nav ref={mobileNavRef} aria-label="Primary" aria-hidden={isReelsViewer && !reelsNavigationVisible} className={`${location==='/profile'?'profile-nav ':''}${isReelsViewer ? `reels-mobile-nav ${reelsNavigationVisible ? '' : 'is-hidden'} ` : ''}mobile-nav fixed inset-x-0 bottom-0 ${isReelsViewer ? 'z-[80]' : 'z-30'} ${isReelsViewer ? '' : 'lg:hidden'} flex justify-around bg-background/95 px-2 pt-2 backdrop-blur-xl`}>
       {navItems.map(({ href, label, icon: Icon }) => <Link key={href} href={href} data-testid={`mobile-nav-${label.toLowerCase()}`} aria-current={activeLocation === href ? 'page' : undefined} className={`mnav-item ${activeLocation === href ? 'is-active text-primary' : 'text-muted-foreground'}`}><span className="mnav-icon"><Icon size={19} strokeWidth={activeLocation === href ? 2.25 : 1.85}/></span><span className="mnav-label">{label}</span></Link>)}
       <Link href="/profile" data-testid="mobile-nav-profile" aria-current={location === '/profile' ? 'page' : undefined} className={`mnav-item ${location === '/profile' ? 'is-active text-primary' : 'text-muted-foreground'}`}><span className="mnav-icon"><UserRound size={19} strokeWidth={location === '/profile' ? 2.25 : 1.85}/></span><span className="mnav-label">Profile</span></Link>
     </nav>}

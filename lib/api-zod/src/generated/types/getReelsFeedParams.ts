@@ -5,6 +5,7 @@
  * VibeSwipe dating profile, discovery, matching, messaging, and safety API
  * OpenAPI spec version: 0.1.0
  */
+import type { GetReelsFeedFeed } from './getReelsFeedFeed';
 
 export type GetReelsFeedParams = {
 /**
@@ -22,4 +23,8 @@ q?: string;
  * @maximum 12
  */
 limit?: number;
+/**
+ * Select all public Reels or only Reels from profiles the signed-in member follows
+ */
+feed?: GetReelsFeedFeed;
 };
