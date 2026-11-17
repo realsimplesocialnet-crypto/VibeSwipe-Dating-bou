@@ -21,6 +21,7 @@ export function ReelSlide({ reel, index, active, near, muted, pageHidden, compac
   const video = useRef<HTMLVideoElement>(null);
   const bar = useRef<HTMLDivElement>(null);
   const autoCacheRequested = useRef(false);
+  const viewRecorded = useRef(false);
   const [userPaused, setUserPaused] = useState(false);
   const [blocked, setBlocked] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -112,11 +113,18 @@ export function ReelSlide({ reel, index, active, near, muted, pageHidden, compac
       playsInline muted={muted} loop
       preload={active ? "auto" : "metadata"}
       onLoadedData={() => setReady(true)}
-      onPlay={onView}
       onError={() => { if (near) setFailed(true); }}
       onTimeUpdate={(event) => {
         const element = event.currentTarget;
         if (bar.current && element.duration) bar.current.style.transform = `scaleX(${element.currentTime / element.duration})`;
+        const duration = Number.isFinite(element.duration) && element.duration > 0
+          ? element.duration
+          : reel.durationSeconds ?? 0;
+        const viewThreshold = duration > 0 ? Math.min(2, Math.max(0.5, duration * 0.2)) : 1;
+        if (!viewRecorded.current && !element.paused && element.currentTime >= viewThreshold) {
+          viewRecorded.current = true;
+          onView();
+        }
         if (element.duration && element.currentTime / element.duration >= 0.85 && !autoCacheRequested.current && isOfflineReelWifi() && !offlineSaved) {
           autoCacheRequested.current = true;
           onAutoCache();
