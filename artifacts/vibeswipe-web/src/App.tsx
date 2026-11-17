@@ -61,6 +61,7 @@ import { ChatVoiceNoteRecorder } from '@/components/chat-voice-note-recorder';
 import { chatViewportFrame } from '@/lib/chat-viewport';
 import { ActivityOverview, FollowListPage, InboundPeoplePage, MutualMatchesPage, ProfileFollowNotificationAction, ProfileSocialActions } from '@/components/social-hub';
 import { isDiscoverSetupRequired, isProfileMissing, shouldRetryDiscover, shouldRetryProfile } from '@/lib/profile-query-state';
+import { totalUnreadMessages, unreadBadgeLabel } from '@/lib/unread-messages';
 import { PROFILE_PHOTO_ACCEPT, photoUploadCanRetry, prepareProfilePhoto, uploadProfilePhotoBytes, validatePhotoFile } from '@/lib/profile-photo-upload';
 import { checkAdditionalProfilePhoto } from '@workspace/api-client-react';
 import { userErrorMessage } from '@/lib/user-errors';
@@ -118,6 +119,19 @@ const navItems = [
   { href: '/messages', label: 'Messages', icon: MessageCircle }, { href: '/notifications', label: 'Activity', icon: Bell },
 ];
 
+function UnreadMessageBadge({ count, mobile = false }: { count: number; mobile?: boolean }) {
+  if (count < 1) return null;
+  return <span
+    aria-label={`${count} unread messages`}
+    data-testid={mobile ? 'badge-mobile-unread-messages' : 'badge-sidebar-unread-messages'}
+    className={mobile
+      ? 'absolute -right-3 -top-2 z-10 flex h-5 min-w-5 items-center justify-center rounded-full border-2 border-background bg-primary px-1 text-[10px] font-extrabold leading-none text-primary-foreground shadow-md'
+      : 'ml-auto flex h-5 min-w-5 items-center justify-center rounded-full border-2 border-background bg-primary px-1 text-[10px] font-extrabold leading-none text-primary-foreground shadow-md'}
+  >
+    {unreadBadgeLabel(count)}
+  </span>;
+}
+
 function AppShell({ children }: { children: ReactNode }) {
   const [location] = useLocation();
   const [reelsNavigationVisible, setReelsNavigationVisible] = useState(true);
@@ -131,6 +145,17 @@ function AppShell({ children }: { children: ReactNode }) {
   const { user } = useUser();
   const profile = useGetMyProfile();
   const activeName = profile.data?.name || user?.firstName || 'Your profile';
+  const unreadMatches = useGetMatches({ query: {
+    queryKey: getGetMatchesQueryKey(),
+    enabled: showMainNavigation,
+    refetchInterval: 10_000,
+    refetchOnWindowFocus: true,
+  } });
+  const unreadMessageCount = totalUnreadMessages((unreadMatches.data ?? []).map((match) => ({
+    blockedByMe: match.blockedByMe,
+    blockedMe: match.blockedMe,
+    unreadCount: (match as MatchListExtras).unreadCount,
+  })));
   useEffect(() => {
     if (!showMainNavigation || !mobileNavRef.current) return;
     let resumeTimers: number[] = [];
@@ -182,7 +207,7 @@ function AppShell({ children }: { children: ReactNode }) {
       {!isReelsViewer && <aside className="fixed inset-y-0 left-0 z-30 hidden w-[248px] flex-col border-r border-border bg-background px-5 py-6 lg:flex">
         <div className="mb-4 mt-2 px-3 text-[10px] font-bold uppercase tracking-[.2em] text-muted-foreground">Your space</div>
         <nav className="space-y-1">
-          {navItems.map(({ href, label, icon: Icon }) => <Link key={href} href={href} data-testid={`nav-${label.toLowerCase()}`} className={`flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold transition-colors ${activeLocation === href ? 'bg-accent text-[#ff80b6]' : 'text-muted-foreground hover:bg-white/[.04] hover:text-foreground'}`}><Icon size={18}/>{label}</Link>)}
+          {navItems.map(({ href, label, icon: Icon }) => <Link key={href} href={href} data-testid={`nav-${label.toLowerCase()}`} className={`flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold transition-colors ${activeLocation === href ? 'bg-accent text-[#ff80b6]' : 'text-muted-foreground hover:bg-white/[.04] hover:text-foreground'}`}><Icon size={18}/>{label}{label === 'Messages' && <UnreadMessageBadge count={unreadMessageCount}/>}</Link>)}
         </nav>
         <div className="mt-auto space-y-2 border-t border-white/[.08] pt-4">
           <Link href="/profile" data-testid="nav-profile" className={`flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold ${location === '/profile' ? 'bg-accent text-[#ff80b6]' : 'text-muted-foreground hover:bg-white/[.04]'}`}><UserRound size={18}/><span className="truncate">{activeName}</span></Link>
@@ -196,7 +221,7 @@ function AppShell({ children }: { children: ReactNode }) {
     </main>
     {profile.data?.id&&<WebPushSettings key={profile.data.id} compact visible={showMainNavigation && !isReelsViewer} accountId={profile.data.id}/>}
     {showMainNavigation && <nav ref={mobileNavRef} aria-label="Primary" aria-hidden={isReelsViewer && !reelsNavigationVisible} className={`${location==='/profile'?'profile-nav ':''}${isReelsViewer ? `reels-mobile-nav ${reelsNavigationVisible ? '' : 'is-hidden'} ` : ''}mobile-nav fixed inset-x-0 bottom-0 ${isReelsViewer ? 'z-[80]' : 'z-30'} ${isReelsViewer ? '' : 'lg:hidden'} flex justify-around bg-background/95 px-2 pt-2 backdrop-blur-xl`}>
-      {navItems.map(({ href, label, icon: Icon }) => <Link key={href} href={href} data-testid={`mobile-nav-${label.toLowerCase()}`} aria-current={activeLocation === href ? 'page' : undefined} className={`mnav-item ${activeLocation === href ? 'is-active text-primary' : 'text-muted-foreground'}`}><span className="mnav-icon"><Icon size={19} strokeWidth={activeLocation === href ? 2.25 : 1.85}/></span><span className="mnav-label">{label}</span></Link>)}
+      {navItems.map(({ href, label, icon: Icon }) => <Link key={href} href={href} data-testid={`mobile-nav-${label.toLowerCase()}`} aria-current={activeLocation === href ? 'page' : undefined} className={`mnav-item ${activeLocation === href ? 'is-active text-primary' : 'text-muted-foreground'}`}><span className="mnav-icon"><Icon size={19} strokeWidth={activeLocation === href ? 2.25 : 1.85}/>{label === 'Messages' && <UnreadMessageBadge count={unreadMessageCount} mobile/>}</span><span className="mnav-label">{label}</span></Link>)}
       <Link href="/profile" data-testid="mobile-nav-profile" aria-current={location === '/profile' ? 'page' : undefined} className={`mnav-item ${location === '/profile' ? 'is-active text-primary' : 'text-muted-foreground'}`}><span className="mnav-icon"><UserRound size={19} strokeWidth={location === '/profile' ? 2.25 : 1.85}/></span><span className="mnav-label">Profile</span></Link>
     </nav>}
   </div>;
