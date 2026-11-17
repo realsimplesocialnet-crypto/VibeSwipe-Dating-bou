@@ -41,6 +41,17 @@ test("camera completion activates the checked photo before returning a verified 
   assert.match(source, /checked: committed/);
   assert.match(source, /router\.post\("\/vibeswipe\/verification\/finalize"/);
 });
+test("face verification can be paused without removing existing verification records", () => {
+  const source = readFileSync(new URL("../src/routes/vibeswipe-verification.ts", import.meta.url), "utf8");
+  const config = readFileSync(new URL("../src/lib/face-verification-config.ts", import.meta.url), "utf8");
+  const worker = readFileSync(new URL("../src/lib/automatic-face-verification-worker.ts", import.meta.url), "utf8");
+  assert.match(config, /FACE_VERIFICATION_ENABLED = false/);
+  assert.match(source, /available: FACE_VERIFICATION_ENABLED && Boolean\(process\.env\.LUXAND_API_TOKEN\)/);
+  assert.match(source, /router\.post\("\/vibeswipe\/verification\/sessions", requireFaceVerificationEnabled/);
+  assert.match(source, /router\.post\("\/vibeswipe\/verification\/sessions\/:sessionId",\s*requireFaceVerificationEnabled/);
+  assert.match(source, /router\.post\("\/vibeswipe\/verification\/finalize", requireFaceVerificationEnabled/);
+  assert.match(worker, /if \(!FACE_VERIFICATION_ENABLED \|\| running \|\| !process\.env\.LUXAND_API_TOKEN\) return/);
+});
 test("admin verification history has no manual approval or rejection path", () => {
   const route = readFileSync(new URL("../src/routes/vibeswipe-verification-admin.ts", import.meta.url), "utf8");
   const ui = readFileSync(new URL("../../vibeswipe-web/src/components/admin/sections/verifications.tsx", import.meta.url), "utf8");

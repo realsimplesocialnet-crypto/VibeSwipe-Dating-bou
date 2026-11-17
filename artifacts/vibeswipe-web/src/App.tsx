@@ -36,7 +36,6 @@ import CommunityGuidelinesPage from '@/pages/community-guidelines';
 import PrivacyPolicyPage from '@/pages/privacy-policy';
 import ReportSafetyPage from '@/pages/report-safety';
 import PublicLocationSharePage from '@/pages/public-location-share';
-import FaceVerificationPage from '@/pages/face-verification';
 import { VerifiedBadge } from '@/components/verified-badge';
 import { InstallAction, MobileInstallBanner } from '@/components/install-action';
 import { InstalledWelcome } from '@/components/installed-welcome';
@@ -875,7 +874,7 @@ function OnboardingRoute(){return <Gate><div className="onboarding-video-form pr
 function ProfileRoute(){return <ShellPage><ProfilePage mode="view"/></ShellPage>}
 function ProfileEditRoute(){const requested=new URLSearchParams(window.location.search).get('returnTo');const returnTo=safeAppReturnPath(requested,'/profile');return <ShellPage><ProfilePage mode="edit" returnTo={returnTo}/></ShellPage>}
 function SettingsRoute(){return <ShellPage><SettingsIndexPage/></ShellPage>}
-function FaceVerificationRoute(){return <ShellPage><FaceVerificationPage/></ShellPage>}
+function FaceVerificationRoute(){return <Redirect to="/settings"/>}
 function SettingsSectionRoute(){return <ShellPage><SettingsSectionPage/></ShellPage>}
 function SafetyCenterRoute(){return <ShellPage><SafetyCenterPage/></ShellPage>}
 function CommunityGuidelinesRoute(){return <CommunityGuidelinesPage/>}

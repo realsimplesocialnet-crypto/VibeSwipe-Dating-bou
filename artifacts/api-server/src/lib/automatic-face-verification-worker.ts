@@ -3,12 +3,13 @@ import { and, asc, eq, sql } from "drizzle-orm";
 import { activateCheckedFace } from "./automatic-face-verification";
 import { FaceVerificationError } from "./luxand";
 import { logger } from "./logger";
+import { FACE_VERIFICATION_ENABLED } from "./face-verification-config";
 
 let running = false;
 
 /** Resume checked evidence even when the member closes the app. Never bypass a failed check. */
 export async function finishPendingFaceVerifications(): Promise<void> {
-  if (running || !process.env.LUXAND_API_TOKEN) return;
+  if (!FACE_VERIFICATION_ENABLED || running || !process.env.LUXAND_API_TOKEN) return;
   running = true;
   try {
     // Rotate temporary failures to the back, so one unavailable photo cannot starve the queue.

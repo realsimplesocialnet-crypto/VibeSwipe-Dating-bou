@@ -6,14 +6,22 @@ import {
 } from "@workspace/api-zod";
 import { db, faceVerificationSessionsTable as sessions, mediaAssetsTable, profilesTable } from "@workspace/db";
 import { and, count, desc, eq, gt, inArray, isNull } from "drizzle-orm";
-import express, { Router, type IRouter, type ErrorRequestHandler } from "express";
+import express, { Router, type IRouter, type ErrorRequestHandler, type RequestHandler } from "express";
 import { requireAuth } from "../middlewares/auth";
 import { ObjectStorageService } from "../lib/objectStorage";
 import { FaceVerificationError, isCameraJpeg, verifyLiveProfilePhoto } from "../lib/luxand";
 import { activateCheckedFace } from "../lib/automatic-face-verification";
+import { FACE_VERIFICATION_ENABLED } from "../lib/face-verification-config";
 
 const router: IRouter = Router();
 const storage = new ObjectStorageService();
+const requireFaceVerificationEnabled: RequestHandler = (_req, res, next) => {
+  if (!FACE_VERIFICATION_ENABLED) {
+    res.status(503).json({ error: "Face verification is paused for now. Please check back later." });
+    return;
+  }
+  next();
+};
 router.use(requireAuth);
 router.use("/vibeswipe/verification", (_req, res, next) => {
   res.setHeader("Cache-Control", "no-store");
@@ -29,7 +37,7 @@ router.get("/vibeswipe/verification", async (req, res): Promise<void> => {
   )).orderBy(desc(sessions.createdAt)).limit(1);
   const reviewStatus = latest?.status === "approved" && !profile.isVerified ? "none" : latest?.status ?? "none";
   res.json(GetFaceVerificationStatusResponse.parse({
-    available: Boolean(process.env.LUXAND_API_TOKEN) && !profile.deactivated && !profile.adminSuspended,
+    available: FACE_VERIFICATION_ENABLED && Boolean(process.env.LUXAND_API_TOKEN) && !profile.deactivated && !profile.adminSuspended,
     verified: profile.isVerified,
     hasPhoto: canVerifyPhoto(profile.photos[0]),
     reviewStatus,
@@ -37,7 +45,7 @@ router.get("/vibeswipe/verification", async (req, res): Promise<void> => {
   }));
 });
 
-router.post("/vibeswipe/verification/sessions", async (req, res): Promise<void> => {
+router.post("/vibeswipe/verification/sessions", requireFaceVerificationEnabled, async (req, res): Promise<void> => {
   const body = StartFaceVerificationBody.safeParse(req.body);
   if (!body.success || body.data.consent !== true || !canVerifyPhoto(body.data.photoReference)) {
     res.status(400).json({ error: "Choose your verification photo and agree to the photo and live selfie checks." }); return;
@@ -75,6 +83,7 @@ router.post("/vibeswipe/verification/sessions", async (req, res): Promise<void> 
 });
 
 router.post("/vibeswipe/verification/sessions/:sessionId",
+  requireFaceVerificationEnabled,
   express.raw({ type: "image/jpeg", limit: "5mb" }),
   async (req, res): Promise<void> => {
     const parsed = CompleteFaceVerificationParams.safeParse(req.params);
@@ -157,7 +166,7 @@ router.post("/vibeswipe/verification/sessions/:sessionId",
     res.json(CompleteFaceVerificationResponse.parse({ verified: true, reviewStatus: "approved" }));
   },
 );
-router.post("/vibeswipe/verification/finalize", async (req, res): Promise<void> => {
+router.post("/vibeswipe/verification/finalize", requireFaceVerificationEnabled, async (req, res): Promise<void> => {
   try {
     await activateCheckedFace(getAuth(req).userId!);
     res.json(FinalizeFaceVerificationResponse.parse({ verified: true, reviewStatus: "approved" }));

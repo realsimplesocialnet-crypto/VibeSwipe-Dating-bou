@@ -25,17 +25,21 @@ test("self-links, nested Settings loops and external redirects cannot trap Back"
   }
   assert.equal(settingsBackTarget("/settings/privacy", "/settings/privacy", origin), "/settings");
 });
-test("Back controls reserve notch space once and use at least a 44px touch target", () => {
+test("Settings hides paused face verification and keeps its safe-area back controls", () => {
   const settings = read("../src/components/settings/settings-pages.tsx");
   const css = read("../src/index.css");
   assert.match(settings, /pt-\[calc\(env\(safe-area-inset-top,0px\)\+16px\)\]/);
   assert.match(css, /\.app-shell:not\(\.discover-shell\):not\(\.profile-shell\):has\(\.settings-frame\) \{ padding-top:0; \}/);
   assert.match(settings, /href=\{returnTo\} replace[^>]*min-h-11/);
-  assert.match(settings, /href=\{backTo\} replace/);
-  const face = read("../src/pages/face-verification.tsx");
-  assert.match(face, /href=\{backTo\} replace onClick=\{release\}/);
-  assert.match(settings, /\/verify-profile\?returnTo=\$\{encodeURIComponent\(currentPath\)\}/);
+  assert.doesNotMatch(settings, /link-settings-face-verification|Face verification/);
+  const app = read("../src/App.tsx");
+  assert.match(app, /function FaceVerificationRoute\(\)\{return <Redirect to="\/settings"\/>\}/);
+  assert.match(app, /Route path="\/verify-profile" component=\{FaceVerificationRoute\}/);
   const native = read("../../vibeswipe/app/settings.tsx");
+  assert.doesNotMatch(native, /Face verification|verify-profile/);
+  const nativeRoute = read("../../vibeswipe/app/verify-profile.tsx");
+  assert.match(nativeRoute, /FACE_VERIFICATION_ENABLED = false/);
+  assert.match(nativeRoute, /Redirect href="\/settings"/);
   assert.match(native, /useSafeAreaInsets\(\)/);
   assert.match(native, /insets\.top\) \+ 12/);
   assert.match(native, /router\.canGoBack\(\) \? router\.back\(\) : router\.replace\("\/\(tabs\)\/profile"\)/);

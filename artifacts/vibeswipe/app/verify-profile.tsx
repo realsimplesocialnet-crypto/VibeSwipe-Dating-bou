@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Alert, Pressable, ScrollView, Switch, Text, View } from "react-native";
-import { router } from "expo-router";
+import { Redirect, router } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import { Feather } from "@expo/vector-icons";
 import { useQueryClient } from "@tanstack/react-query";
@@ -13,7 +13,13 @@ import { ProfileAvatar } from "@/components/ProfileAvatar";
 import { MediaPicker } from "@/components/MediaPicker";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+const FACE_VERIFICATION_ENABLED = false;
+
 export default function FaceVerificationScreen() {
+  return FACE_VERIFICATION_ENABLED ? <FaceVerificationContent /> : <Redirect href="/settings" />;
+}
+
+function FaceVerificationContent() {
   const palette = useColors();
   const colors = { ...palette, text: palette.foreground };
   const queryClient = useQueryClient();

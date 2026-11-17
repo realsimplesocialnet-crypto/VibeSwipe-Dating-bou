@@ -72,9 +72,6 @@ export function SettingsIndexPage() {
       <h1 className="brand mt-2 text-3xl font-bold tracking-[-.05em] md:text-[2.6rem]">Settings</h1>
     </div>
     <nav aria-label="Settings sections" className="max-w-2xl divide-y divide-white/[.07] border-y border-white/[.07]">
-      <Link href={`/verify-profile?returnTo=${encodeURIComponent(currentPath)}`} data-testid="link-settings-face-verification" className="flex min-h-[64px] items-center gap-4 py-4 text-[15px] font-semibold hover:text-primary">
-        <SettingIcon><ShieldCheck size={18}/></SettingIcon><span className="flex-1">Face verification<span className="mt-1 block text-xs font-normal text-muted-foreground">Confirm your profile photo and get a verified badge</span></span><ChevronRight size={18}/>
-      </Link>
       {sections.map(({ id, label, icon: Icon }) => <Link key={id} href={`/settings/${id}?returnTo=${encodeURIComponent(currentPath)}`} data-testid={`link-settings-${id}`} className="group flex min-h-[64px] items-center gap-4 py-4 text-[15px] font-semibold transition-colors hover:text-primary">
         <SettingIcon><Icon size={18}/></SettingIcon><span className="flex-1">{label}</span><ChevronRight size={18} className="text-muted-foreground transition-transform group-hover:translate-x-1 group-hover:text-primary"/>
       </Link>)}
