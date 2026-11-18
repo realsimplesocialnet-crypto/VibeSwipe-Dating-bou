@@ -140,7 +140,7 @@ export function DiscoverSwipePage() {
   const matchOverlay = <MatchCelebration
     visible={!!matchResult} self={(myProfile.data as Profile | undefined) ?? null}
     other={matchResult?.profile ?? null} canMessage={Boolean(matchResult?.matchId)}
-    onMessage={() => { const id = matchResult?.matchId; if (!id) return; setMatchResult(null); setLocation(`/chat/${id}?returnTo=%2Fdiscover`); }}
+    onMessage={() => { const id = matchResult?.matchId; if (!id) return; setMatchResult(null); setLocation(`/chat/${id}?returnTo=%2Fdiscover&focusComposer=1`); }}
     onKeepSwiping={() => setMatchResult(null)}
   />;
 

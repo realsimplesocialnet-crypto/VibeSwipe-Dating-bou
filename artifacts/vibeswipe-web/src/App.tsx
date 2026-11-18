@@ -455,7 +455,7 @@ function MatchesPage() {
 }
 
 function SharedReelContent({content,returnTo}:{content:string;returnTo:string}){const reelId=sharedReelId(content);if(!reelId)return <>{content}</>;return <Link href={`/reels/${reelId}?returnTo=${encodeURIComponent(returnTo)}`} data-testid={`link-shared-reel-${reelId}`} className="flex items-center gap-3 rounded-xl bg-black/20 px-3 py-2.5 no-underline"><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-current/30 bg-black/20"><Clapperboard size={18}/></span><span className="min-w-0"><span className="block truncate font-semibold">{content.replace(/:\s*\S+$/,'')}</span><span className="block text-xs opacity-75">Open Reel</span></span></Link>}
-function ChatPage({matchId,returnTo='/matches'}:{matchId:string;returnTo?:string}) {
+function ChatPage({matchId,returnTo='/matches',autoFocusComposer=false}:{matchId:string;returnTo?:string;autoFocusComposer?:boolean}) {
   const [voiceActive,setVoiceActive]=useState(false);
   const [,setLocation]=useLocation(); const qc=useQueryClient(); const profile=useGetMyProfile(); const matches=useGetMatches({query:{refetchInterval:12000}}); const match=matches.data?.find(m=>m.id===matchId); const blocked=!!match?.blockedByMe||!!match?.blockedMe;
   const msgs=useGetMessages(matchId,{query:{enabled:!!match,queryKey:getGetMessagesQueryKey(matchId),refetchInterval:10000}}); const typing=useGetTypingStatus(matchId,{query:{enabled:!!match,queryKey:['/api/vibeswipe/matches',matchId,'typing'],refetchInterval:3500}}); const receipt=useGetChatReadReceipt(matchId,{query:{enabled:!!match,queryKey:getGetChatReadReceiptQueryKey(matchId),refetchInterval:5000}}); const presence=useGetMatchPresence(matchId,{query:{enabled:!!match,queryKey:getGetMatchPresenceQueryKey(matchId),refetchInterval:15000}}); const heartbeat=useHeartbeatPresence();
@@ -463,6 +463,18 @@ function ChatPage({matchId,returnTo='/matches'}:{matchId:string;returnTo?:string
   const messages=(msgs.data??[]).slice().reverse(); const last=messages[messages.length-1];
   const scrollToLatest=useCallback(()=>{const list=messageListRef.current;if(list)list.scrollTop=list.scrollHeight},[]);
   const handleMessageListScroll=useCallback(()=>{const list=messageListRef.current;if(!list)return;stickToLatest.current=list.scrollHeight-list.clientHeight-list.scrollTop<80},[]);
+  const chatReadyForAutofocus=Boolean(match&&!blocked);
+  const autoFocusConsumed=useRef(false);
+  useLayoutEffect(()=>{
+    if(!autoFocusComposer||!chatReadyForAutofocus||autoFocusConsumed.current)return;
+    const input=inputRef.current;
+    if(!input||input.disabled)return;
+    input.focus({preventScroll:true});
+    autoFocusConsumed.current=true;
+    const url=new URL(window.location.href);
+    url.searchParams.delete('focusComposer');
+    window.history.replaceState(window.history.state,'',`${url.pathname}${url.search}${url.hash}`);
+  },[autoFocusComposer,chatReadyForAutofocus]);
   const [chatViewport,setChatViewport]=useState(()=>chatViewportFrame(window.visualViewport?.height??window.innerHeight,window.visualViewport?.offsetTop??0,window.innerHeight,false));
   const fullChatHeight=useRef(window.visualViewport?.height??window.innerHeight);
   useEffect(()=>{
@@ -642,7 +654,7 @@ function ChatsPage() {
               <h2 className="mb-3 text-xs font-extrabold uppercase tracking-[.18em] text-primary">New Matches</h2>
               <ul className="space-y-3">{newMatches.map(m => <li key={m.id} className="flex items-center gap-4 py-3">
               <div className="msg-avatar shrink-0"><MatchStoryAvatar matchId={m.id} profile={m.profile} storyGroup={stories.data?.mutualFollows.find(g => g.poster.id === m.profile.id)} returnTo="/messages" /></div>
-                <Link href={`/chat/${m.id}?returnTo=%2Fmessages`} data-testid={`link-new-match-${m.id}`} aria-label={`Start a chat with ${m.profile.name}`} className="flex min-w-0 flex-1 items-center gap-3">
+                <Link href={`/chat/${m.id}?returnTo=%2Fmessages&focusComposer=1`} data-testid={`link-new-match-${m.id}`} aria-label={`Start a chat with ${m.profile.name}`} className="flex min-w-0 flex-1 items-center gap-3">
                   <div className="min-w-0 flex-1"><div className="truncate text-[17px] font-bold">{m.profile.name}{m.profile.age !== null ? `, ${m.profile.age}` : ''}</div><div className="mt-1 text-sm text-muted-foreground">You both liked each other ❤️</div></div>
                   <span className="shrink-0 rounded-full bg-primary px-3 py-2 text-xs font-bold text-primary-foreground">Message</span>
                 </Link>
@@ -722,7 +734,7 @@ function NotificationsPage() {
       setNotice({ id: n.id, text: match.blockedByMe ? `You blocked ${n.actor.name}. Unblock them from Matches to message again.` : `Messaging with ${n.actor.name} isn’t available.` });
       return;
     }
-    if (match) { setNotice(null); setLocation(`/chat/${match.id}?returnTo=%2Fnotifications`); return; }
+    if (match) { setNotice(null); setLocation(`/chat/${match.id}?returnTo=%2Fnotifications&focusComposer=1`); return; }
     setNotice({ id: n.id, text: `Match first to message ${n.actor.name}. Opening their profile so you can like back.` });
     timer.current = window.setTimeout(() => setLocation(`/profile/${n.actor.id}?returnTo=%2Fnotifications`), 1400);
   }
@@ -918,7 +930,7 @@ function PublicProfile({id,actionReturnTo='/discover'}:{id:string;actionReturnTo
       void likes.refetch();
     }
   }
-  function openMatchedChat(){if(!matchedId||datingState.isError)return;const origin=`/profile/${encodeURIComponent(id)}?returnTo=${encodeURIComponent(actionReturnTo)}`;setLocation(`/chat/${encodeURIComponent(matchedId)}?returnTo=${encodeURIComponent(origin)}`)}
+  function openMatchedChat(){if(!matchedId||datingState.isError)return;const origin=`/profile/${encodeURIComponent(id)}?returnTo=${encodeURIComponent(actionReturnTo)}`;const query=new URLSearchParams({returnTo:origin,focusComposer:'1'});setLocation(`/chat/${encodeURIComponent(matchedId)}?${query.toString()}`)}
   async function runSafety(kind:'block'|'report'){if(!q.data)return;setSafetyError('');try{if(kind==='block'){await block.mutateAsync({data:{targetUserId:q.data.id}});void client.invalidateQueries({queryKey:getGetMatchesQueryKey()});setConfirmSafety(null);setMenu(false);setLocation(actionReturnTo)}else{await report.mutateAsync({data:{targetUserId:q.data.id,reason:'other'}});setReported(true);setConfirmSafety(null)}}catch(error){setSafetyError(error instanceof Error&&error.message?error.message:kind==='block'?'Could not block this profile. Please try again.':'Could not send the report. Please try again.')}}
   useEffect(()=>{if(viewer===null)return;const len=q.data?.photos?.length??0;const onKey=(e:KeyboardEvent)=>{if(e.key==='Escape')setViewer(null);if(e.key==='ArrowRight')setViewer(v=>v===null?v:Math.min(len-1,v+1));if(e.key==='ArrowLeft')setViewer(v=>v===null?v:Math.max(0,v-1))};window.addEventListener('keydown',onKey);return()=>window.removeEventListener('keydown',onKey)},[viewer,q.data?.photos?.length]);
     if(q.isError&&!q.data)return <div className="public-profile min-h-[100dvh] px-5 pt-2"><Link href={actionReturnTo} replace aria-label="Back" data-testid="link-public-profile-back-top" className="pp-round"><ArrowLeft size={20}/></Link><div className="mx-auto mt-16 max-w-sm"><Retry onRetry={()=>void q.refetch()} text="Profile unavailable."/></div></div>;
@@ -985,7 +997,7 @@ function PublicProfile({id,actionReturnTo='/discover'}:{id:string;actionReturnTo
    {menu&&<Dialog title={profile.name} onClose={()=>{setMenu(false);setConfirmSafety(null)}}>{confirmSafety?<div><p className="mb-4 text-sm leading-6 text-muted-foreground">{confirmSafety==='block'?`Block ${profile.name}? They won’t be able to see you or message you, and any match will end.`:`Report ${profile.name} to our safety team? They won’t be told who reported them.`}</p>{safetyError&&<p role="alert" data-testid="error-public-profile-safety" className="mb-3 rounded-xl bg-destructive/15 px-3 py-2 text-xs font-semibold text-destructive">{safetyError}</p>}<div className="flex flex-col gap-2"><button type="button" disabled={block.isPending||report.isPending} onClick={()=>void runSafety(confirmSafety)} data-testid="button-confirm-public-profile-safety" className="w-full rounded-xl bg-destructive px-4 py-3 text-sm font-bold text-destructive-foreground disabled:opacity-60">{block.isPending||report.isPending?'Working…':confirmSafety==='block'?'Block':'Send report'}</button><button type="button" onClick={()=>{setConfirmSafety(null);setSafetyError('')}} className="w-full rounded-xl border border-border px-4 py-3 text-sm font-semibold">Cancel</button></div></div>:<div className="flex flex-col gap-2">{reported&&<p role="status" className="mb-1 text-sm text-muted-foreground">Thanks, your report was sent.</p>}<button type="button" disabled={reported} onClick={()=>setConfirmSafety('report')} data-testid="button-public-profile-report" className="flex w-full items-center gap-3 rounded-xl border border-border px-4 py-3 text-left text-sm font-semibold disabled:opacity-50"><Flag size={17} className="text-primary"/>{reported?'Reported':'Report profile'}</button><button type="button" onClick={()=>setConfirmSafety('block')} data-testid="button-public-profile-block" className="flex w-full items-center gap-3 rounded-xl border border-border px-4 py-3 text-left text-sm font-semibold text-destructive"><Ban size={17}/>Block {profile.name}</button></div>}</Dialog>}
    {confirmation&&<div className="fixed inset-x-0 top-[calc(5rem+env(safe-area-inset-top))] z-[60] flex justify-center px-4" role="status" aria-live="polite" data-testid="status-viewed-profile-liked"><div data-testid="text-viewed-profile-liked" className="pp-confirm flex items-center gap-2 rounded-full px-5 py-3 text-sm font-semibold"><Heart size={17} fill="currentColor" className="text-[hsl(var(--pp-pink))]"/>{confirmation.text}</div></div>}
   <MatchCelebration visible={!!matchResult} self={me.data??null} other={q.data??null} canMessage={!!matchResult?.matchId}
-    onMessage={()=>{const matchId=matchResult?.matchId;if(!matchId)return;setMatchResult(null);const origin=`/profile/${id}?returnTo=${encodeURIComponent(actionReturnTo)}`;setLocation(`/chat/${matchId}?returnTo=${encodeURIComponent(origin)}`)}}
+    onMessage={()=>{const matchId=matchResult?.matchId;if(!matchId)return;setMatchResult(null);const origin=`/profile/${id}?returnTo=${encodeURIComponent(actionReturnTo)}`;const query=new URLSearchParams({returnTo:origin,focusComposer:'1'});setLocation(`/chat/${matchId}?${query.toString()}`)}}
      onKeepSwiping={()=>setMatchResult(null)}/>
   </div>
 }
@@ -1045,7 +1057,7 @@ function BrandedSignUp(){
 }
 function RouteShell({component:Component}:{component:()=>ReactNode}){return <ShellPage><Component/></ShellPage>}
 const CHAT_RETURN_PATHS=['/views','/messages','/notifications','/matches','/discover','/likes'];
-function ChatRoute(){const params=useParams<{matchId:string}>();const requested=safeAppReturnPath(new URLSearchParams(window.location.search).get('returnTo'),'/matches');const returnTo=CHAT_RETURN_PATHS.includes(requested)||requested.startsWith('/profile/')||requested==='/reels'||requested.startsWith('/reels/')?requested:'/matches';return <ShellPage><ChatPage matchId={params.matchId||''} returnTo={returnTo}/></ShellPage>}
+function ChatRoute(){const params=useParams<{matchId:string}>();const query=new URLSearchParams(window.location.search);const requested=safeAppReturnPath(query.get('returnTo'),'/matches');const returnTo=CHAT_RETURN_PATHS.includes(requested)||requested.startsWith('/profile/')||requested==='/reels'||requested.startsWith('/reels/')?requested:'/matches';return <ShellPage><ChatPage matchId={params.matchId||''} returnTo={returnTo} autoFocusComposer={query.get('focusComposer')==='1'}/></ShellPage>}
 function OnboardingRoute(){return <Gate><div className="onboarding-video-form profile-setup-shell min-h-[100dvh] bg-background text-foreground"><OnboardingVideoBackground form/><OnboardingGate/></div></Gate>}
 function ProfileRoute(){return <ShellPage><ProfilePage mode="view"/></ShellPage>}
 function ProfileEditRoute(){const requested=new URLSearchParams(window.location.search).get('returnTo');const returnTo=safeAppReturnPath(requested,'/profile');return <ShellPage><ProfilePage mode="edit" returnTo={returnTo}/></ShellPage>}

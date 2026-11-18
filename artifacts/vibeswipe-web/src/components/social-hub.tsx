@@ -233,7 +233,7 @@ export function InboundPeoplePage({ avatar, kind }: { avatar: AvatarFn; kind: 'l
         </div>}
       </li>)}</ul>}
     <MatchCelebration visible={!!match} self={me.data ?? null} other={match?.profile ?? null} canMessage={!!match?.matchId}
-      onMessage={() => { if (!match?.matchId) return; const matchId = match.matchId; setMatch(null); window.location.assign(`/chat/${encodeURIComponent(matchId)}?returnTo=%2Flikes`); }}
+      onMessage={() => { if (!match?.matchId) return; const matchId = match.matchId; setMatch(null); window.location.assign(`/chat/${encodeURIComponent(matchId)}?returnTo=%2Flikes&focusComposer=1`); }}
       onKeepSwiping={() => setMatch(null)} />
   </div></div>;
 }
