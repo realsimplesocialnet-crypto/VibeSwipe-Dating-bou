@@ -46,3 +46,9 @@ The app should show its usable shell and cached screen content promptly on launc
 **Why:** The user repeatedly asked for Myage to open steadily without a prolonged or recurring loading screen.
 
 **How to apply:** Render safe shell and same-account cached content first, then verify authentication and refresh data in the background. Use a clear retry only for a real failure, and preserve account and local drafts during recovery.
+
+Avoid remote font requests on the web app's startup path; use device system fonts or bundle fonts locally.
+
+**Why:** The user repeatedly asked for the app to open without unnecessary loading and errors.
+
+**How to apply:** Do not add runtime Google Fonts imports or other third-party font fetches to the initial page.

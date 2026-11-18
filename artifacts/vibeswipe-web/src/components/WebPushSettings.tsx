@@ -183,10 +183,12 @@ export function WebPushSettings({ compact = false, visible = true, accountId = "
         queryKey: getGetWebPushConfigQueryKey(),
       });
     } catch (error) {
+      const detail = error instanceof Error ? error.message : "";
+      const networkFailure = /failed to fetch|networkerror|load failed/i.test(detail);
       setStatus(
-        error instanceof Error
-          ? error.message
-          : "Notifications could not be enabled. Please try again.",
+        networkFailure
+          ? "Could not reach Myage. Check your connection and try again."
+          : detail || "Notifications could not be enabled. Please try again.",
       );
     } finally {
       setBusy(false);
