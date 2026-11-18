@@ -71,9 +71,9 @@ Keep the vertical action rail compact and ordered Like, Comment, Save, Share, wi
 
 Keep the creator photo, name, age and location block compact, aligned in a straight row, and slightly lower over the Reel; do not enlarge it into a banner.
 
-**Why:** The user asked to shrink and lower the creator identity block while keeping its straight alignment.
+**Why:** The user asked to shrink and lower the creator identity block while keeping its straight alignment, and confirmed the TikTok reference's caption text is the exact size they want.
 
-**How to apply:** Prefer a smaller avatar and type scale with a modest lower offset, leaving the video, action rail and caption readable.
+**How to apply:** Prefer a smaller avatar and type scale with a modest lower offset, leaving the video and action rail readable. Keep the web Reel caption at 15px to match the approved reference.
 
 Reels must not allow nudity or explicit sexual content. The user chose automatic content checks rather than manual Reel approval; normal videos should remain allowed. Run the Hugging Face content checker inside the app server.
 
