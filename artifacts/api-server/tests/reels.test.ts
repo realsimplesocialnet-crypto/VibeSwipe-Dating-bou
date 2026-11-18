@@ -76,9 +76,12 @@ test("Reel videos stream only while the Reel is visible and survive upload clean
 test("Reel playback counts persist, return immediately, and exclude creator self-views", () => {
   assert.match(reels, /router\.post\("\/vibeswipe\/reels\/:reelId\/views"/);
   assert.match(reels, /if \(reel\.userId === viewerId\)/);
-  assert.match(reels, /\.update\(reelsTable\)\s*\.set\(\{ viewCount: sql`.*? \+ 1` \}\)\s*\.from\(profilesTable\)\s*\.where\(and\([\s\S]*?eq\(profilesTable\.id, reelsTable\.userId\)/);
-  assert.match(reels, /viewCount: sql`\$\{reelsTable\.viewCount\} \+ 1`/);
-  assert.match(reels, /viewCount: Number\(updated\.viewCount\)/);
+  assert.match(reelTable, /export const reelViewsTable = pgTable\("vibeswipe_reel_views"/);
+  assert.match(reelTable, /primaryKey\(\{ name: "vibeswipe_reel_views_pk", columns: \[t\.reelId, t\.viewerId\] \}\)/);
+  assert.match(reelTable, /viewerId: text\("viewer_id"\)\.notNull\(\)\.references\(\(\) => profilesTable\.id, \{ onDelete: "cascade" \}\)/);
+  assert.match(reels, /\.insert\(reelViewsTable\)\s*\.values\(\{ reelId: params\.data\.reelId, viewerId \}\)\s*\.onConflictDoNothing\(\)/);
+  assert.match(reels, /viewCount: sql<number>`\(SELECT count\(\*\)::int FROM \$\{reelViewsTable\} WHERE \$\{reelViewsTable\.reelId\} = \$\{reelsTable\.id\}\)`/);
+  assert.match(reels, /count\(\*\)::int[\s\S]*?\.from\(reelViewsTable\)\.where\(eq\(reelViewsTable\.reelId, params\.data\.reelId\)\)/);
   assert.match(schema, /ADD COLUMN IF NOT EXISTS view_count integer NOT NULL DEFAULT 0/);
 });
 

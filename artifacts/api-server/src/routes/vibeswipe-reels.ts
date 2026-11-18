@@ -7,7 +7,7 @@ import {
   RecordReelShareResponse, RecordReelViewResponse, TranscodeReelVideoParams, TranscodeReelVideoResponse,
 } from "@workspace/api-zod";
 import {
-  blocksTable, db, mediaAssetsTable, profilesTable, reelCommentsTable, reelLikesTable, reelSavesTable, reelsTable, storiesTable, vibeSwipeFollowsTable, vibeSwipeNotificationsTable,
+  blocksTable, db, mediaAssetsTable, profilesTable, reelCommentsTable, reelLikesTable, reelSavesTable, reelViewsTable, reelsTable, storiesTable, vibeSwipeFollowsTable, vibeSwipeNotificationsTable,
 } from "@workspace/db";
 import { and, asc, desc, eq, isNull, ne, or, sql, type SQL } from "drizzle-orm";
 import { Router, type IRouter, type Request } from "express";
@@ -67,7 +67,8 @@ function reelColumns(viewerId: string) {
   return {
     id: reelsTable.id, userId: reelsTable.userId, mediaId: reelsTable.mediaId, caption: reelsTable.caption,
     durationSeconds: reelsTable.durationSeconds, createdAt: reelsTable.createdAt,
-    viewCount: reelsTable.viewCount, shareCount: reelsTable.shareCount,
+    viewCount: sql<number>`(SELECT count(*)::int FROM ${reelViewsTable} WHERE ${reelViewsTable.reelId} = ${reelsTable.id})`,
+    shareCount: reelsTable.shareCount,
     name: profilesTable.name, age: profilesTable.age, showAge: profilesTable.showAge, city: profilesTable.city,
     state: profilesTable.state, country: profilesTable.country, isVerified: profilesTable.isVerified, photos: profilesTable.photos,
     likeCount: sql<number>`(SELECT count(*)::int FROM ${reelLikesTable} WHERE ${reelLikesTable.reelId} = ${reelsTable.id})`,
@@ -256,18 +257,13 @@ router.post("/vibeswipe/reels/:reelId/views", async (req, res): Promise<void> =>
     res.json(RecordReelViewResponse.parse({ viewCount: Number(reel.viewCount) }));
     return;
   }
-  const [updated] = await db.update(reelsTable)
-    .set({ viewCount: sql`${reelsTable.viewCount} + 1` })
-    .from(profilesTable)
-    .where(and(
-      eq(reelsTable.id, params.data.reelId),
-      eq(profilesTable.id, reelsTable.userId),
-      ne(reelsTable.userId, viewerId),
-      visibleReelCondition(viewerId),
-    ))
-    .returning({ viewCount: reelsTable.viewCount });
-  if (!updated) { res.status(404).json({ error: "This Reel is no longer available." }); return; }
-  res.json(RecordReelViewResponse.parse({ viewCount: Number(updated.viewCount) }));
+  await db.insert(reelViewsTable)
+    .values({ reelId: params.data.reelId, viewerId })
+    .onConflictDoNothing();
+  const [views] = await db.select({
+    viewCount: sql<number>`count(*)::int`,
+  }).from(reelViewsTable).where(eq(reelViewsTable.reelId, params.data.reelId));
+  res.json(RecordReelViewResponse.parse({ viewCount: Number(views?.viewCount ?? 0) }));
 });
 
 router.post("/vibeswipe/reels/:reelId/shares", async (req, res): Promise<void> => {
