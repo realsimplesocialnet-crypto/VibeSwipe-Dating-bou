@@ -581,7 +581,7 @@ function ChatsPage() {
     <div className="page-in mx-auto max-w-[720px] px-4 pb-10 pt-6 md:px-8 md:pt-10" data-testid="messages-page-content">
       <div className="flex items-center justify-between" data-testid="chats-header">
         <h1 className="text-3xl font-black leading-tight tracking-[-.04em] md:text-4xl">Chats</h1>
-        <Link href="/stories/new" aria-label="Create a story" data-testid="button-create-story-from-chats" className="flex h-11 w-11 items-center justify-center rounded-full border border-border bg-card text-foreground shadow-sm transition-colors hover:bg-accent">
+        <Link href="/stories/new?returnTo=%2Fmessages" aria-label="Create a story" data-testid="button-create-story-from-chats" className="flex h-11 w-11 items-center justify-center rounded-full border border-border bg-card text-foreground shadow-sm transition-colors hover:bg-accent">
           <Camera size={21} strokeWidth={2.4} aria-hidden="true" />
         </Link>
       </div>
@@ -1026,7 +1026,7 @@ function ReelsRoute(){return <ShellPage><ReelsFeedPage/></ShellPage>}
 function ReelRoute(){const params=useParams<{reelId:string}>();return <ShellPage><ReelsFeedPage key={params.reelId} initialReelId={params.reelId}/></ShellPage>}
 function ReelComposerRoute(){return <ShellPage><ReelComposerPage/></ShellPage>}
 function ReelsLibraryRoute(){return <ShellPage><ReelsLibraryPage/></ShellPage>}
-function StoryComposerRoute(){return <ShellPage><StoryComposerPage/></ShellPage>}
+function StoryComposerRoute(){const returnTo=safeAppReturnPath(new URLSearchParams(window.location.search).get('returnTo'),'/discover');return <ShellPage><StoryComposerPage returnTo={returnTo}/></ShellPage>}
 function MatchesRoute(){return <ShellPage><MutualMatchesPage avatar={p=><Avatar profile={p}/>}/></ShellPage>}
 function VisitorsPage(){
   const visitors=useGetWhoViewedYou({query:{refetchInterval:30000,refetchOnMount:'always'}});

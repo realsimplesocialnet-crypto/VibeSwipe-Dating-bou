@@ -309,7 +309,7 @@ function timeAgo(date: string) {
   return minutes < 1 ? "Just now" : minutes < 60 ? `${minutes}m ago` : `${Math.floor(minutes / 60)}h ago`;
 }
 
-export function StoryComposerPage() {
+export function StoryComposerPage({ returnTo }: { returnTo: string }) {
   const [, setLocation] = useLocation();
   const client = useQueryClient();
   const requestUpload = useRequestStoryMediaUpload();
@@ -389,14 +389,14 @@ export function StoryComposerPage() {
       await client.invalidateQueries({ queryKey: getGetStoriesQueryKey() });
       setSuccess(true);
       toast({ title: "Story posted", description: "Your story is now available to your matches." });
-      window.setTimeout(() => setLocation("/discover"), 700);
+      window.setTimeout(() => setLocation(returnTo), 700);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Your story couldn’t be posted. Please try again.");
     } finally { setBusyLabel(""); }
   }
   return <main className="mx-auto min-h-[calc(100dvh-66px)] max-w-[980px] px-4 py-5 sm:px-7 sm:py-8 lg:min-h-[100dvh]" data-testid="page-story-composer">
     <header className="mb-6 flex items-center gap-3">
-      <button type="button" onClick={() => setLocation("/discover")} aria-label="Back to discovery" data-testid="button-story-back" className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 text-muted-foreground hover:bg-white/[.05]"><ArrowLeft size={18}/></button>
+      <button type="button" onClick={() => setLocation(returnTo)} aria-label="Back" data-testid="button-story-back" className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 text-muted-foreground hover:bg-white/[.05]"><ArrowLeft size={18}/></button>
       <div><div className="text-[10px] font-bold uppercase tracking-[.2em] text-[#d3a5ed]">A private moment</div><h1 className="brand mt-0.5 text-2xl font-bold tracking-[-.04em]">Add to your story</h1></div>
     </header>
     <div className="grid gap-5 md:grid-cols-[1fr_.8fr] md:gap-7">
@@ -419,7 +419,7 @@ export function StoryComposerPage() {
           <label className="mt-5 block text-xs font-semibold text-muted-foreground">Caption <span className="font-normal">· optional</span><textarea value={caption} onChange={(event) => setCaption(event.target.value)} maxLength={500} rows={2} placeholder="Add a thought…" data-testid="input-story-media-caption" className="field mt-2 min-h-[86px] resize-none rounded-[16px]"/></label>
         </>}
         {error && <p role="alert" data-testid="error-story-composer" className="mt-4 rounded-xl border border-rose-300/20 bg-rose-300/[.06] px-3 py-2.5 text-xs leading-5 text-rose-200">{error}</p>}
-        {success && <p role="status" data-testid="status-story-posted" className="mt-4 flex items-center gap-2 rounded-xl border border-emerald-300/15 bg-emerald-300/[.06] px-3 py-2.5 text-xs text-emerald-200"><Check size={15}/>Your story is up. Heading back to discovery…</p>}
+        {success && <p role="status" data-testid="status-story-posted" className="mt-4 flex items-center gap-2 rounded-xl border border-emerald-300/15 bg-emerald-300/[.06] px-3 py-2.5 text-xs text-emerald-200"><Check size={15}/>Your story is up. Heading back…</p>}
         <button type="button" onClick={() => void post()} disabled={busy || success} data-testid="button-post-story" className="mt-5 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary px-5 text-sm font-bold text-[#25121e] transition-colors hover:bg-[#ff78b8] disabled:cursor-wait disabled:opacity-60">{busy ? <><LoaderCircle size={17} className="animate-spin"/>{busyLabel}</> : success ? "Posted" : "Post story"}</button>
       </section>
       <aside className="hidden md:block">

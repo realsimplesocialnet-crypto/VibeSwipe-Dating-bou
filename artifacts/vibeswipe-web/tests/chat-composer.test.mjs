@@ -64,11 +64,20 @@ test('website Chats uses real match data, excludes demo and blocked profiles, an
   assert.match(messages, /searchChatsByPersonName\(list, search\)/);
   assert.match(messages, /filter === 'unread'/);
   assert.match(messages, /filter === 'new'/);
-  assert.match(messages, /href="\/stories\/new"[^>]+data-testid="button-create-story-from-chats"/);
+  assert.match(messages, /href="\/stories\/new\?returnTo=%2Fmessages"[^>]+data-testid="button-create-story-from-chats"/);
   assert.match(messages, /data-testid="chats-header"/);
   assert.match(messages, /<h1[^>]*>Chats<\/h1>/);
   assert.match(messages, /extras\.unreadCount!>99\?'99\+':extras\.unreadCount/);
   assert.match(messages, /returnTo=%2Fmessages/);
+});
+
+test('story composer returns to its entry screen when canceled or after posting', () => {
+  const stories = readFileSync(new URL('../src/components/stories/stories-ui.tsx', import.meta.url), 'utf8');
+  const composer = stories.slice(stories.indexOf('export function StoryComposerPage('));
+  assert.match(web, /function StoryComposerRoute\(\)\{const returnTo=safeAppReturnPath\(new URLSearchParams\(window\.location\.search\)\.get\('returnTo'\),'\/discover'\);return <ShellPage><StoryComposerPage returnTo=\{returnTo\}\/><\/ShellPage>\}/);
+  assert.match(composer, /onClick=\{\(\) => setLocation\(returnTo\)\} aria-label="Back"/);
+  assert.match(composer, /window\.setTimeout\(\(\) => setLocation\(returnTo\), 700\)/);
+  assert.doesNotMatch(composer, /setLocation\("\/discover"\)/);
 });
 
 test('native old Messages links redirect to the one tab instead of rendering a duplicate list', () => {

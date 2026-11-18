@@ -9,11 +9,11 @@ Do not show a logo or app-name wordmark anywhere inside the signed-in dashboard,
 
 **How to apply:** Keep the welcome, login, and signup branding unchanged. Do not add branding back to authenticated headers or reserve an empty row for a removed logo.
 
-Back controls must sit below the iPhone clock/notch and return to the screen the member entered from; Settings opened from Profile must go directly back to Profile.
+Back controls must sit below the iPhone clock/notch and return to the screen the member entered from. Preserve the caller through nested flows such as opening the Story composer from Chats; Settings opened from Profile must go directly back to Profile.
 
-**Why:** The user showed a Back label overlapping the iPhone time and said, “Where you enter, you come back.”
+**Why:** The user showed a Back label overlapping the iPhone time and repeatedly said, “Where you enter, you come back,” including when canceling a story started from Chats.
 
-**How to apply:** Account for the device's safe area once, keep Back easy to tap, and preserve the entry destination through settings sections and verification.
+**How to apply:** Account for the device's safe area once, keep Back easy to tap, and carry a validated same-app return destination through settings, verification, story creation, and other nested flows. Do not force a global home destination on cancel or completion.
 
 Discover's bottom tabs must stay at the same screen position as Matches, including after switching tabs and using the iPhone Home Screen app. Check the rendered interaction before declaring this fixed.
 
