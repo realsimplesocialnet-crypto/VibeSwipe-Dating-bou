@@ -258,8 +258,10 @@ router.post("/vibeswipe/reels/:reelId/views", async (req, res): Promise<void> =>
   }
   const [updated] = await db.update(reelsTable)
     .set({ viewCount: sql`${reelsTable.viewCount} + 1` })
+    .from(profilesTable)
     .where(and(
       eq(reelsTable.id, params.data.reelId),
+      eq(profilesTable.id, reelsTable.userId),
       ne(reelsTable.userId, viewerId),
       visibleReelCondition(viewerId),
     ))

@@ -132,13 +132,12 @@ test("Reels route is code-split and autoplay fallback shows no explanatory messa
   assert.match(slide, /reel-blocked-play/);
 });
 
-test("Reel views count only after active playback reaches the watch threshold", () => {
+test("Reel views count as soon as playback starts, without requiring a watch-time threshold", () => {
   const slide = read("../src/components/reels/reel-slide.tsx");
   assert.match(slide, /const viewRecorded = useRef\(false\)/);
-  assert.match(slide, /Math\.min\(2, Math\.max\(0\.5, duration \* 0\.2\)\)/);
-  assert.match(slide, /!element\.paused && element\.currentTime >= viewThreshold/);
-  assert.match(slide, /viewRecorded\.current = true;\s*onView\(\)/);
+  assert.match(slide, /onPlaying=\{\(event\) => \{[\s\S]*?!viewRecorded\.current && !element\.paused[\s\S]*?viewRecorded\.current = true;\s*onView\(\)/);
   assert.doesNotMatch(slide, /onPlay=\{onView\}/);
+  assert.doesNotMatch(slide, /viewThreshold/);
 });
 
 test("watched Reels can be saved on Wi-Fi and reopened from the bounded offline cache", () => {
