@@ -2,12 +2,12 @@ import { useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, u
 import { Link, useLocation } from "wouter";
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  getGetMatchesQueryKey, getGetMyReelsQueryKey, getGetNotificationsQueryKey, getGetProfileReelsQueryKey, getGetReelQueryKey,
+  getGetMyReelsQueryKey, getGetNotificationsQueryKey, getGetProfileReelsQueryKey, getGetReelQueryKey,
   getGetReelsFeedQueryKey, getGetSavedReelsQueryKey, getProfileReels, getReelsFeed,
-  useDeleteReel, useGetMatches, useGetReel, useLikeReel, useRecordReelView, useSaveReel,
+  useDeleteReel, useGetReel, useLikeReel, useRecordReelView, useSaveReel,
   useUnlikeReel, useUnsaveReel, type Reel,
 } from "@workspace/api-client-react";
-import { ArrowLeft, Bookmark, Clapperboard, LoaderCircle, Plus, Search, Users, X } from "lucide-react";
+import { ArrowLeft, Bookmark, Clapperboard, Ellipsis, LoaderCircle, Plus, Search, Trash2, Users, X } from "lucide-react";
 import { ReelSlide } from "@/components/reels/reel-slide";
 import { ReelComments } from "@/components/reels/reel-comments";
 import { ReelShareSheet } from "@/components/reels/reel-share-sheet";
@@ -18,8 +18,16 @@ import { reelSlideIndex, reelsViewportFrame } from "@/lib/reels-viewport";
 import "@/components/reels/reels.css";
 
 const REEL_COMMENTS_HISTORY_KEY = "__myageReelComments";
+const REEL_SEARCH_STOP_WORDS = new Set(["a", "an", "and", "are", "at", "for", "how", "in", "is", "my", "of", "on", "the", "to", "what", "where"]);
 
 type ReelCommentsHistoryMarker = { reelId: string; activeIndex: number };
+
+function reelCaptionSearchSuggestion(caption: string): string {
+  const matches = caption.normalize("NFKC").toLocaleLowerCase("en").match(/[\p{L}\p{N}]+/gu);
+  const words: string[] = matches ? Array.from(matches) : [];
+  const terms = [...new Set(words.filter((word) => word.length > 1 && !REEL_SEARCH_STOP_WORDS.has(word)))].slice(0, 3);
+  return terms.join(" ");
+}
 
 function readReelCommentsHistoryMarker(state: unknown): ReelCommentsHistoryMarker | null {
   if (!state || typeof state !== "object") return null;
@@ -114,6 +122,7 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
   const [searchOpen, setSearchOpen] = useState(Boolean(initialSearch));
   const [searchText, setSearchText] = useState(initialSearch);
   const [debouncedSearchText, setDebouncedSearchText] = useState(initialSearch.trim());
+  const [moreOpen, setMoreOpen] = useState(false);
   const initialCommentId = new URLSearchParams(window.location.search).get("commentId");
   const [commentsFor, setCommentsFor] = useState<string | null>(() => (
     initialReelId && initialCommentId ? initialReelId : initialHistoryMarker?.reelId ?? null
@@ -229,16 +238,6 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
     staleTime: 30_000,
     refetchOnWindowFocus: false,
   });
-  const matches = useGetMatches({ query: {
-    queryKey: getGetMatchesQueryKey(),
-    staleTime: 10_000,
-    refetchOnWindowFocus: true,
-  } });
-  const messageMatchIds = useMemo(() => new Map(
-    (matches.data ?? [])
-      .filter((match) => !match.blockedByMe && !match.blockedMe)
-      .map((match) => [match.profile.id, match.id]),
-  ), [matches.data]);
   const like = useLikeReel(); const unlike = useUnlikeReel(); const save = useSaveReel(); const unsave = useUnsaveReel(); const del = useDeleteReel();
   const recordView = useRecordReelView();
   const viewedReels = useRef(new Set<string>());
@@ -354,29 +353,16 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
       if (event.key === "ArrowDown") { event.preventDefault(); go(1); }
       if (event.key === "ArrowUp") { event.preventDefault(); go(-1); }
       if (event.key === "Escape" && commentsFor) closeComments();
+      if (event.key === "Escape" && moreOpen) setMoreOpen(false);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [go, closeComments, commentsFor, searchOpen]);
+  }, [go, closeComments, commentsFor, searchOpen, moreOpen]);
 
   function patch(id: string, value: Partial<Reel>) { setPatches((all) => ({ ...all, [id]: { ...all[id], ...value } })); }
   function patchShareCount(id: string, shareCount: number) {
     setPatches((all) => ({ ...all, [id]: { ...all[id], shareCount: Math.max(all[id]?.shareCount ?? 0, shareCount) } }));
   }
-  function messageCreator(reel: Reel, returnPath: string) {
-    if (reel.isOwner) return;
-    const matchId = messageMatchIds.get(reel.creatorId);
-    if (!matchId) {
-      setNotice(matches.isLoading
-        ? "Checking chat availability. Try again in a moment."
-        : matches.isError
-          ? "Chats could not load. Try again."
-          : "You can message this person after matching.");
-      return;
-    }
-    setLocation(`/chat/${encodeURIComponent(matchId)}?returnTo=${encodeURIComponent(returnPath)}`);
-  }
-
   async function cacheOffline(reel: Reel, manual: boolean) {
     if (offlineIds.has(reel.id) || offlineSavingIds.has(reel.id)) return;
     setOfflineSavingIds((all) => new Set(all).add(reel.id));
@@ -456,6 +442,13 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
     setSearchText("");
     setDebouncedSearchText("");
   }
+  function openSearch(query = "") {
+    const nextQuery = query.trim().slice(0, 120);
+    setSearchText(nextQuery);
+    setDebouncedSearchText(nextQuery);
+    setSearchOpen(true);
+    setMoreOpen(false);
+  }
   function openSearchResult(reel: Reel) {
     const query = searchText.trim();
     const destination = `/reels/${reel.id}?returnTo=${encodeURIComponent(`/reels?q=${encodeURIComponent(query)}`)}`;
@@ -469,6 +462,7 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
   const resumePath = reels[active]
     ? `/reels/${reels[active].id}?${resumeParams.toString()}`
     : ownPath;
+  const activeReel = reels[active];
 
   return <div className="reels-root" style={{ top: viewport.top, bottom: "auto", ["--reels-viewport-height" as string]: `${viewport.height}px`, ["--reels-comments-height" as string]: `${viewport.commentsHeight}px` }} data-keyboard-open={viewport.keyboardOpen} data-comments-open={Boolean(commentReel)} data-navigation-visible={navigationVisible} data-testid="page-reels">
     <div className="reels-stage">
@@ -479,7 +473,7 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
           : !reels.length ? <div className="reels-empty"><span className="reels-empty-mark"><Clapperboard size={30} /></span><p className="mt-5 text-xl font-bold">No Reels yet</p><p className="mt-1 max-w-[260px] text-sm leading-6 text-white/60">Be the first to share a video with the community.</p><Link href="/reels/new" className="reels-primary mt-6" data-testid="link-post-first-reel">Post a Reel</Link></div>
           : reels.map((reel, index) => <ReelSlide
              key={reel.id} reel={reel} index={index} active={index === active && !searchOpen} near={Math.abs(index - active) <= 1}
-              muted={muted} pageHidden={pageHidden} compact={commentsFor === reel.id} navigationVisible={navigationVisible} showHint={index === 0 && reels.length > 1}
+              muted={muted} pageHidden={pageHidden} compact={commentsFor === reel.id} navigationVisible={navigationVisible} searchSuggestion={reelCaptionSearchSuggestion(reel.caption)}
               likePending={like.isPending || unlike.isPending} savePending={save.isPending || unsave.isPending}
             returnTo={ownPath}
              onAutoplayMuted={() => setMuted(true)}
@@ -487,25 +481,31 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
               offlineSaved={offlineIds.has(reel.id)}
               onAutoCache={() => void cacheOffline(reel, false)}
               onLike={() => void toggle("like", reel)} onSave={() => void toggle("save", reel)}
-              onMessage={() => messageCreator(reel, resumePath)}
+              onSearchSuggestion={openSearch}
             onView={() => void recordPlayback(reel)}
-             onComment={() => openComments(reel.id)} onShare={() => setShareFor(reel)} onDelete={() => setDeleteFor(reel)}
+              onComment={() => openComments(reel.id)} onShare={() => setShareFor(reel)}
           />)}
         {activeFeed.isFetchingNextPage && <div className="reels-more" aria-live="polite">Loading more Reels</div>}
         {!offline && !activeFeed.hasNextPage && reels.length > 1 && !activeFeed.isLoading && <div className="reels-end">{profileId ? "You’ve seen all of this person’s Reels." : "You are all caught up."}</div>}
       </div>
       <header className="reels-top">
-        <button type="button" onClick={back} aria-label="Back" data-testid="button-reels-back" className="reels-icon"><ArrowLeft size={24} /></button>
+        {(profileId || initialReelId) && <button type="button" onClick={back} aria-label="Back" data-testid="button-reels-back" className="reels-icon"><ArrowLeft size={23} /></button>}
         {!profileId && !initialReelId ? <nav aria-label="Reel feed" role="tablist" className={`reels-feed-tabs ${navigationVisible ? "" : "is-hidden"}`} data-testid="nav-reel-feed">
           <button type="button" role="tab" aria-selected={feedMode === "reels"} onClick={() => changeFeedMode("reels")} className={feedMode === "reels" ? "is-active" : ""} data-testid="tab-reels-feed">Reels</button>
           <button type="button" role="tab" aria-selected={feedMode === "friends"} onClick={() => changeFeedMode("friends")} className={feedMode === "friends" ? "is-active" : ""} data-testid="tab-friends-feed">Friends</button>
         </nav> : <h1 className="reels-title">Reels</h1>}
         <div className="ml-auto flex items-center gap-2">
-              <button type="button" onClick={() => { setSearchText(""); setDebouncedSearchText(""); setSearchOpen(true); }} aria-label="Search Reels" data-testid="button-search-reels" className="reels-search-trigger"><Search size={20} /></button>
-            <Link href={`/reels/saved?returnTo=${encodeURIComponent(resumePath)}`} aria-label="Saved Reels" data-testid="link-reels-saved" className="reels-icon"><Bookmark size={20} /></Link>
-            <Link href={`/reels/new?returnTo=${encodeURIComponent(ownPath)}`} aria-label="Post a Reel" data-testid="link-create-reel" className="reels-plus"><Plus size={20} /></Link>
+          <button type="button" onClick={() => openSearch()} aria-label="Search Reels" data-testid="button-search-reels" className="reels-search-trigger"><Search size={23} /></button>
+          <button type="button" onClick={() => setMoreOpen((open) => !open)} aria-label="More Reel options" aria-expanded={moreOpen} aria-haspopup="menu" data-testid="button-reels-more" className="reels-search-trigger"><Ellipsis size={25} /></button>
         </div>
       </header>
+      {moreOpen && <div className="reels-more-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setMoreOpen(false); }}>
+        <div className="reels-more-menu" role="menu" aria-label="More Reel options" data-testid="menu-reels-more">
+          <Link href={`/reels/saved?returnTo=${encodeURIComponent(resumePath)}`} role="menuitem" onClick={() => setMoreOpen(false)} data-testid="link-reels-saved"><Bookmark size={18} />Saved Reels</Link>
+          <Link href={`/reels/new?returnTo=${encodeURIComponent(ownPath)}`} role="menuitem" onClick={() => setMoreOpen(false)} data-testid="link-create-reel"><Plus size={19} />Post a Reel</Link>
+          {activeReel?.isOwner && <button type="button" role="menuitem" onClick={() => { setMoreOpen(false); setDeleteFor(activeReel); }} data-testid={`button-delete-reel-${activeReel.id}`}><Trash2 size={18} />Delete this Reel</button>}
+        </div>
+      </div>}
       {searchOpen && <section className="reels-search-overlay" role="dialog" aria-modal="true" aria-label="Search Reels" data-testid="reels-search-overlay">
         <div className="reels-search-toolbar">
           <button type="button" onClick={closeSearch} aria-label="Close Reel search" className="reels-icon"><ArrowLeft size={22} /></button>

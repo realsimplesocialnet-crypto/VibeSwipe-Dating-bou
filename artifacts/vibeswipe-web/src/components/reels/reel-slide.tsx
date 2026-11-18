@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "wouter";
 import type { Reel } from "@workspace/api-client-react";
-import { Bookmark, Heart, MapPin, MessageCircle, MessageSquare, Pause, Play, Send, Trash2, Volume2, VolumeX } from "lucide-react";
+import { Bookmark, Heart, MapPin, MessageCircle, Pause, Play, Search, Send, Volume2, VolumeX } from "lucide-react";
 import { VerifiedBadge } from "@/components/verified-badge";
 import { ReelAvatar } from "@/components/reels/reel-avatar";
 import { formatCount, reelMediaUrl } from "@/lib/reels";
@@ -9,17 +9,16 @@ import { isOfflineReelWifi } from "@/lib/offline-reels";
 
 type Props = {
   reel: Reel; index: number; active: boolean; near: boolean; muted: boolean; pageHidden: boolean;
-  compact: boolean; navigationVisible: boolean; showHint: boolean; returnTo: string;
+  compact: boolean; navigationVisible: boolean; returnTo: string; searchSuggestion: string;
   likePending: boolean; savePending: boolean;
   onAutoplayMuted: () => void; onToggleSound: () => void;
-  onLike: () => void; onComment: () => void; onMessage: () => void; onShare: () => void; onSave: () => void; onDelete: () => void;
+  onLike: () => void; onComment: () => void; onShare: () => void; onSave: () => void; onSearchSuggestion: (query: string) => void;
   onView: () => void;
   offlineSaved: boolean; onAutoCache: () => void;
 };
 
-export function ReelSlide({ reel, index, active, near, muted, pageHidden, compact, navigationVisible, showHint, returnTo, likePending, savePending, onAutoplayMuted, onToggleSound, onLike, onComment, onMessage, onShare, onSave, onDelete, onView, offlineSaved, onAutoCache }: Props) {
+export function ReelSlide({ reel, index, active, near, muted, pageHidden, compact, navigationVisible, returnTo, searchSuggestion, likePending, savePending, onAutoplayMuted, onToggleSound, onLike, onComment, onShare, onSave, onSearchSuggestion, onView, offlineSaved, onAutoCache }: Props) {
   const video = useRef<HTMLVideoElement>(null);
-  const bar = useRef<HTMLDivElement>(null);
   const autoCacheRequested = useRef(false);
   const viewRecorded = useRef(false);
   const flashTimer = useRef<number | null>(null);
@@ -28,9 +27,11 @@ export function ReelSlide({ reel, index, active, near, muted, pageHidden, compac
   const [blocked, setBlocked] = useState(false);
   const [failed, setFailed] = useState(false);
   const [ready, setReady] = useState(false);
+  const [progress, setProgress] = useState(0);
   const [flash, setFlash] = useState<"play" | "pause" | "sound-on" | "sound-off" | null>(null);
 
   useEffect(() => { if (!active) setUserPaused(false); }, [active]);
+  useEffect(() => { setProgress(0); }, [reel.id]);
   useEffect(() => () => { if (flashTimer.current !== null) window.clearTimeout(flashTimer.current); }, []);
   useEffect(() => { if (video.current) video.current.muted = muted; }, [muted]);
   useEffect(() => {
@@ -131,6 +132,14 @@ export function ReelSlide({ reel, index, active, near, muted, pageHidden, compac
     video.current?.load();
   }
 
+  function seekVideo(value: string) {
+    const element = video.current;
+    if (!element || !Number.isFinite(element.duration) || element.duration <= 0) return;
+    const nextProgress = Math.min(100, Math.max(0, Number(value)));
+    element.currentTime = (nextProgress / 100) * element.duration;
+    setProgress(nextProgress);
+  }
+
   const src = reelMediaUrl(reel.videoReference);
   const paused = userPaused || blocked;
   const reelReturnParams = new URLSearchParams({ returnTo });
@@ -139,8 +148,8 @@ export function ReelSlide({ reel, index, active, near, muted, pageHidden, compac
   const creatorIdentity = <span className="reel-identity flex min-w-0 items-center gap-2 rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary">
     <span className="reel-creator-avatar-ring" data-testid={`reel-creator-avatar-${reel.id}`}>
       {near
-        ? <ReelAvatar reference={reel.creatorPhoto} name={reel.creatorName} size={40} />
-        : <span className="reel-avatar" style={{ width: 40, height: 40 }} aria-hidden="true">{reel.creatorName.trim().charAt(0).toUpperCase() || "M"}</span>}
+        ? <ReelAvatar reference={reel.creatorPhoto} name={reel.creatorName} size={54} />
+        : <span className="reel-avatar" style={{ width: 54, height: 54 }} aria-hidden="true">{reel.creatorName.trim().charAt(0).toUpperCase() || "M"}</span>}
     </span>
     <span className="min-w-0">
       <span className="reel-name" data-testid={`text-reel-creator-${reel.id}`}>{reel.creatorName}{reel.creatorAge !== null && <span className="reel-age">, {reel.creatorAge}</span>}<VerifiedBadge verified={reel.creatorVerified} /></span>
@@ -165,7 +174,7 @@ export function ReelSlide({ reel, index, active, near, muted, pageHidden, compac
       }}
       onTimeUpdate={(event) => {
         const element = event.currentTarget;
-        if (bar.current && element.duration) bar.current.style.transform = `scaleX(${element.currentTime / element.duration})`;
+        if (element.duration) setProgress((element.currentTime / element.duration) * 100);
         if (element.duration && element.currentTime / element.duration >= 0.85 && !autoCacheRequested.current && isOfflineReelWifi() && !offlineSaved) {
           autoCacheRequested.current = true;
           onAutoCache();
@@ -182,26 +191,43 @@ export function ReelSlide({ reel, index, active, near, muted, pageHidden, compac
 
     <div className={`reel-rail ${compact ? "is-compact" : ""} ${navigationVisible ? "is-nav-visible" : ""}`}>
       <button type="button" onClick={onLike} disabled={likePending} aria-pressed={reel.likedByMe} aria-label={reel.likedByMe ? "Unlike" : "Like"} data-testid={`button-like-reel-${reel.id}`} className={reel.likedByMe ? "is-on" : ""}>
-        <Heart size={26} strokeWidth={1.8} fill={reel.likedByMe ? "currentColor" : "none"} /><span data-testid={`text-like-count-${reel.id}`}>{formatCount(reel.likeCount)}</span>
+        <Heart size={28} strokeWidth={1.8} fill={reel.likedByMe ? "currentColor" : "none"} /><span data-testid={`text-like-count-${reel.id}`}>{formatCount(reel.likeCount)}</span>
       </button>
       <button type="button" onClick={onComment} aria-label="Comments" data-testid={`button-comments-reel-${reel.id}`}>
-        <MessageCircle size={26} strokeWidth={1.8} /><span data-testid={`text-comment-count-${reel.id}`}>{formatCount(reel.commentCount)}</span>
+        <MessageCircle size={28} strokeWidth={1.8} /><span data-testid={`text-comment-count-${reel.id}`}>{formatCount(reel.commentCount)}</span>
       </button>
-      {!reel.isOwner && <button type="button" onClick={onMessage} aria-label={`Message ${reel.creatorName}`} data-testid={`button-message-creator-${reel.id}`}>
-        <MessageSquare size={26} strokeWidth={1.8} /><span>Message</span>
-      </button>}
-      <button type="button" onClick={onShare} aria-label={`Share, ${formatCount(reel.shareCount)} shares`} data-testid={`button-share-reel-${reel.id}`}><Send size={26} strokeWidth={1.8} /><span data-testid={`text-share-count-${reel.id}`}>{formatCount(reel.shareCount)}</span></button>
+      <button type="button" onClick={onShare} aria-label={`Share, ${formatCount(reel.shareCount)} shares`} data-testid={`button-share-reel-${reel.id}`}><Send size={28} strokeWidth={1.8} /><span data-testid={`text-share-count-${reel.id}`}>{formatCount(reel.shareCount)}</span></button>
       <button type="button" onClick={onSave} disabled={savePending} aria-pressed={reel.savedByMe} aria-label={reel.savedByMe ? "Remove from saved" : "Save"} data-testid={`button-save-reel-${reel.id}`} className={reel.savedByMe ? "is-saved" : ""}>
-        <Bookmark size={26} strokeWidth={1.8} fill={reel.savedByMe ? "currentColor" : "none"} /><span>Save</span>
+        <Bookmark size={28} strokeWidth={1.8} fill={reel.savedByMe ? "currentColor" : "none"} /><span>Save</span>
       </button>
-      {reel.isOwner && <button type="button" onClick={onDelete} aria-label="Delete your Reel" data-testid={`button-delete-reel-${reel.id}`}><Trash2 size={24} strokeWidth={1.8} /></button>}
     </div>
 
     <div className={`reel-meta ${compact ? "is-compact" : ""} ${navigationVisible ? "is-nav-visible" : ""}`}>
+      {searchSuggestion && !compact && <button
+        type="button"
+        className="reel-search-suggestion"
+        aria-label={`Search Reels for ${searchSuggestion}`}
+        data-testid={`button-reel-search-suggestion-${reel.id}`}
+        onClick={() => onSearchSuggestion(searchSuggestion)}
+      >
+        <Search size={16} strokeWidth={2.1} />
+        <span>Search “{searchSuggestion}”</span>
+      </button>}
       {reel.isOwner ? creatorIdentity : <Link href={creatorProfileHref} aria-label={`Open ${reel.creatorName}'s profile`} data-testid={`link-reel-profile-${reel.id}`} className="inline-flex max-w-full no-underline">{creatorIdentity}</Link>}
       {!compact && reel.caption && <p className="reel-caption" data-testid={`text-reel-caption-${reel.id}`}>{reel.caption}</p>}
-      {!compact && showHint && <p className="reel-hint">Swipe up for more</p>}
     </div>
-    <div className="reel-progress" aria-hidden="true"><div ref={bar} /></div>
+    <input
+      className="reel-progress"
+      type="range"
+      min="0"
+      max="100"
+      step="0.1"
+      value={progress}
+      style={{ ["--reel-progress" as string]: `${progress}%` }}
+      onChange={(event) => seekVideo(event.currentTarget.value)}
+      aria-label={`Video progress for ${reel.creatorName}'s Reel`}
+      aria-valuetext={`${Math.round(progress)}%`}
+      data-testid={`input-reel-progress-${reel.id}`}
+    />
   </section>;
 }

@@ -143,7 +143,7 @@ test("tapping anywhere on a Reel toggles playback without hiding navigation", ()
   assert.match(feed, /navigationVisible = !commentsFor && !searchOpen && !viewport\.keyboardOpen/);
   assert.doesNotMatch(feed, /setControlsVisible/);
   assert.match(css, /--reels-navigation-space/);
-  assert.match(css, /\.reel-meta\.is-nav-visible \{ bottom: 32px/);
+  assert.match(css, /\.reel-meta\.is-nav-visible \{ bottom: 22px/);
   assert.match(css, /data-navigation-visible="false"\]:not\(\[data-comments-open="true"\]\) \.reel-progress/);
 });
 
@@ -161,7 +161,7 @@ test("Reel playback and sound use video taps without permanent top controls", ()
   assert.doesNotMatch(slide, /button-reel-autoplay-blocked|reel-blocked-play/);
 });
 
-test("Reel creator details stay aligned while using a smaller, lower profile block", () => {
+test("Reel creator details stay aligned with a prominent profile block", () => {
   const slide = read("../src/components/reels/reel-slide.tsx");
   const css = read("../src/components/reels/reels.css");
   const creatorIdentity = slide.slice(slide.indexOf("const creatorIdentity"), slide.indexOf("return <section"));
@@ -172,7 +172,7 @@ test("Reel creator details stay aligned while using a smaller, lower profile blo
   assert.match(css, /\.reel-name \{ font-size: 18px/);
   assert.match(css, /\.reel-age \{ font-size: 15px/);
   assert.match(css, /\.reel-location \{ font-size: 12px/);
-  assert.match(css, /\.reel-meta \{ position: absolute; left: 16px; right: 74px; bottom: calc\(env\(safe-area-inset-bottom\) \+ 14px\)/);
+  assert.match(css, /\.reel-meta \{ position: absolute; left: 20px; right: 84px; bottom: calc\(env\(safe-area-inset-bottom\) \+ 22px\)/);
   assert.match(slide, /className=\{`reel-meta \$\{compact \? "is-compact" : ""\} \$\{navigationVisible \? "is-nav-visible" : ""\}`\}/);
 });
 
@@ -235,14 +235,21 @@ test("Reel action rail and profile grid show persisted like, comment, save and s
   for (const id of ["button-like-reel", "button-comments-reel", "button-save-reel", "button-share-reel", "button-post-reel-comment"]) {
     assert.ok(nativeReel.includes(id), `native Reel action is missing ${id}`);
   }
-  const actionOrder = ["button-like-reel", "button-comments-reel", "button-message-creator", "button-share-reel-", "button-save-reel-"]
-    .map((id) => slide.indexOf(id));
+  const rail = slide.slice(slide.indexOf("className={`reel-rail"), slide.indexOf("className={`reel-meta"));
+  const actionOrder = ["button-like-reel-", "button-comments-reel-", "button-share-reel-", "button-save-reel-"]
+    .map((id) => rail.indexOf(id));
   assert.ok(actionOrder.every((position, index) => position >= 0 && (index === 0 || position > actionOrder[index - 1])));
-  assert.match(slide, /<MessageSquare size=\{26\} strokeWidth=\{1\.8\} \/>/);
-  assert.doesNotMatch(slide, /reel-music-slot|Music2|button-save-reel-offline|<Download/);
+  assert.equal((rail.match(/data-testid=\{`button-/g) ?? []).length, 4);
+  assert.doesNotMatch(rail, /button-message-creator|Follow|Remix|Download|Music|button-delete-reel/);
+  assert.match(slide, /type=\"range\"[\s\S]*?onChange=\{\(event\) => seekVideo\(event\.currentTarget\.value\)\}/);
+  assert.match(slide, /onTimeUpdate=\{\(event\) => \{[\s\S]*?setProgress\(\(element\.currentTime \/ element\.duration\) \* 100\)/);
+  assert.match(slide, /element\.currentTime = \(nextProgress \/ 100\) \* element\.duration/);
+  assert.match(slide, /button-reel-search-suggestion-/);
   const css = read("../src/components/reels/reels.css");
-  assert.match(css, /\.reel-rail button svg \{ height: 26px; width: 26px/);
-  assert.match(css, /\.reel-rail button \{[^}]*height: 50px; width: 56px;[^}]*font-size: 10px/);
+  assert.match(css, /\.reel-rail button svg \{ height: 28px; width: 28px/);
+  assert.match(css, /\.reel-rail button \{[^}]*height: 68px;[^}]*font-size: 13px/);
+  assert.match(css, /--reels-blue: #3678d4/);
+  assert.match(css, /\.reels-mobile-nav \.mnav-item\.is-active \{ color: var\(--reels-blue\)/);
 });
 
 test("Reels put the creator photo beside the name and keep Follow off the rail", () => {
@@ -256,12 +263,14 @@ test("Reels put the creator photo beside the name and keep Follow off the rail",
   assert.doesNotMatch(slide, /button-follow-creator|reel-follow-button|reel-follow-badge|onFollow/);
   assert.doesNotMatch(feed, /toggleCreatorFollow|useFollowProfile|pendingCreatorFollows/);
   assert.match(slide, /data-testid=\{`link-reel-profile-\$\{reel\.id\}`\}/);
-  assert.match(feed, /className=\"reels-plus\"/);
-  assert.match(feed, /useGetMatches/);
-  assert.match(feed, /filter\(\(match\) => !match\.blockedByMe && !match\.blockedMe\)/);
-  assert.match(feed, /You can message this person after matching/);
-  assert.match(feed, /setLocation\(`\/chat\/\$\{encodeURIComponent\(matchId\)\}\?returnTo=\$\{encodeURIComponent\(returnPath\)\}`\)/);
-  assert.match(slide, /\{!reel\.isOwner && <button[^]*button-message-creator-/);
+  assert.match(feed, /data-testid=\"button-reels-more\"/);
+  assert.match(feed, /data-testid=\"link-reels-saved\"/);
+  assert.match(feed, /data-testid=\"link-create-reel\"/);
+  assert.match(feed, /data-testid=\{`button-delete-reel-\$\{activeReel\.id\}`\}/);
+  assert.match(feed, /reelCaptionSearchSuggestion\(reel\.caption\)/);
+  assert.match(feed, /onSearchSuggestion=\{openSearch\}/);
+  assert.doesNotMatch(feed, /useGetMatches|messageCreator|button-message-creator/);
+  assert.doesNotMatch(slide, /button-message-creator|MessageSquare|button-follow-creator|reel-follow-button/);
   assert.match(read("../src/App.tsx"), /requested\.startsWith\('\/reels\/'\)/);
   assert.match(route, /creatorFollowedByMe: sql<boolean>`EXISTS/s);
   assert.match(spec, /creatorFollowedByMe: \{ type: boolean \}/);

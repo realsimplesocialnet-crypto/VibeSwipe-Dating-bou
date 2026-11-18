@@ -63,11 +63,11 @@ Reels navigation, action icons, labels, and counts should use bold, high-contras
 
 **How to apply:** Give the Reels/Friends tabs, search and add controls, like/comment/share actions, navigation labels, and view/count badges clear weight and contrast without changing the brand palette.
 
-Keep the vertical action rail compact and ordered Like, Comment, Message, Share, Save. Do not show the creator avatar, Follow/plus badge, download icon, or music button on the rail; show the creator avatar with a colored ring beside the lower-left name, which remains the profile link. Keep the top add button for posting a Reel.
+Keep the vertical action rail compact and ordered Like, Comment, Share, Save. Do not show Message, Follow/plus, Remix, download, or music controls on the rail. Keep Saved Reels, posting, and owner-only deletion inside the top More menu. Show the creator avatar with a colored ring beside the lower-left name, which remains the profile link. Use blue for the active Reels tab on this screen.
 
-**Why:** The user asked to remove the profile-attached plus badge, shared a reference showing the creator avatar beside the name with a colored ring, and specified the five Reel actions and removal of music/download icons.
+**Why:** The user’s latest Reels redesign request specifies exactly four rail actions and a blue Reels active-tab accent, while preserving existing saved, posting, and delete features.
 
-**How to apply:** Keep the profile link on the creator identity, allow Message only for existing unblocked matches, and keep Wi-Fi auto-caching separate from the visible action rail. Do not build music selection or playback until requested.
+**How to apply:** Keep the profile link on the creator identity, keep Wi-Fi auto-caching separate from the visible action rail, and retain the four requested buttons in this order. Do not add a direct-message control or music selection/playback to the Reels rail.
 
 Keep the creator's photo, name, age, location, and caption compact at the lower left; do not duplicate the creator photo elsewhere on the Reel.
 
