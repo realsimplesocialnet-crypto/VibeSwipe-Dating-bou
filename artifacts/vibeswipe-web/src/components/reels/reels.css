@@ -106,8 +106,9 @@
 .reels-plus svg { height: 21px; width: 21px; stroke-width: 2.2; }
 .reels-sound { height: 38px; width: 38px; border: 1px solid rgb(255 255 255 / .2); background: rgb(8 6 10 / .76); }
 .reels-sound svg { height: 18px; width: 18px; stroke-width: 2.1; }
-.reel-rail button { text-shadow: 0 1px 5px rgb(0 0 0 / .86); }
-.reel-rail button svg { height: 22px; width: 22px; stroke-width: 2.1; }
+.reel-rail { gap: 8px; }
+.reel-rail button { height: 50px; font-size: 12px; text-shadow: 0 1px 5px rgb(0 0 0 / .86); }
+.reel-rail button svg { height: 26px; width: 26px; stroke-width: 2; }
 .reel-music-slot { display: flex; height: 42px; width: 42px; align-items: center; justify-content: center; overflow: hidden; border: 2px solid rgb(255 255 255 / .9); border-radius: 999px; background: rgb(8 6 10 / .86); box-shadow: 0 1px 6px rgb(0 0 0 / .45); }
 .reel-music-slot .reel-avatar { height: 100%; width: 100%; border: 0; }
 .reel-rail.is-compact .reel-music-slot { display: none; }
@@ -127,8 +128,9 @@
 .reels-mobile-nav .mnav-icon svg { height: 19px; width: 19px; stroke-width: 1.85; }
 .reels-mobile-nav .mnav-label { font-size: 10px; font-weight: 600; letter-spacing: .02em; opacity: .82 !important; }
 .reel-identity { position: relative; top: 6px; gap: 10px; }
-.reel-name { font-size: 17px; }
-.reel-age { font-size: 14px; }
-.reel-location { font-size: 11px; }
+.reel-name { font-size: 18px; }
+.reel-age { font-size: 15px; }
+.reel-location { font-size: 12px; }
+.reel-caption { font-size: 15px; }
 .reels-mobile-nav .mnav-item.is-active .mnav-label { opacity: 1 !important; }
 @media (prefers-reduced-motion: reduce) { .reel-flash, .reel-comments, .reel-sheet, .reel-loading { animation: none; } .reels-mobile-nav { transition: none; } }

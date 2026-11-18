@@ -147,9 +147,9 @@ test("Reel creator details stay aligned while using a smaller, lower profile blo
   assert.match(slide, /className="reel-identity flex min-w-0 items-center gap-2\.5/);
   assert.match(slide, /size=\{compact \? 36 : 46\}/);
   assert.match(css, /\.reel-identity \{ position: relative; top: 6px; gap: 10px/);
-  assert.match(css, /\.reel-name \{ font-size: 17px/);
-  assert.match(css, /\.reel-age \{ font-size: 14px/);
-  assert.match(css, /\.reel-location \{ font-size: 11px/);
+  assert.match(css, /\.reel-name \{ font-size: 18px/);
+  assert.match(css, /\.reel-age \{ font-size: 15px/);
+  assert.match(css, /\.reel-location \{ font-size: 12px/);
   assert.match(css, /\.reel-meta \{ position: absolute; left: 16px; right: 74px; bottom: calc\(env\(safe-area-inset-bottom\) \+ 14px\)/);
   assert.match(slide, /className=\{`reel-meta \$\{compact \? "is-compact" : ""\} \$\{navigationVisible \? "is-nav-visible" : ""\}`\}/);
 });
@@ -218,7 +218,8 @@ test("Reel action rail and profile grid show persisted like, comment, save and s
   assert.ok(actionOrder.every((position, index) => position >= 0 && (index === 0 || position > actionOrder[index - 1])));
   assert.match(slide, /reel-music-slot[^]*?reel-music-artwork-slot/);
   const css = read("../src/components/reels/reels.css");
-  assert.match(css, /\.reel-rail button svg \{ height: 22px; width: 22px/);
+  assert.match(css, /\.reel-rail button svg \{ height: 26px; width: 26px/);
+  assert.match(css, /\.reel-rail button \{ height: 50px; font-size: 12px/);
   assert.match(css, /\.reel-music-slot \{ display: flex; height: 42px; width: 42px/);
 });
 
