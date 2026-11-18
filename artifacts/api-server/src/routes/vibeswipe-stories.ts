@@ -4,19 +4,24 @@ import {
   CreateStoryResponse,
   DeleteStoryParams,
   GetStoriesResponse,
+  LikeStoryParams,
   MarkStoryViewedParams,
   RequestStoryMediaUploadBody,
   RequestStoryMediaUploadResponse,
+  StoryLikeResult,
   TranscodeStoryVideoParams,
   TranscodeStoryVideoResponse,
+  UnlikeStoryParams,
 } from "@workspace/api-zod";
 import {
+  count,
   and,
   desc,
   eq,
   gt,
   inArray,
   or,
+  sql,
 } from "drizzle-orm";
 import { Router, type IRouter, type Request } from "express";
 import {
@@ -25,6 +30,7 @@ import {
   matchesTable,
   mediaAssetsTable,
   profilesTable,
+  storyLikesTable,
   storiesTable,
   storyViewsTable,
 } from "@workspace/db";
@@ -65,6 +71,7 @@ function currentUserId(req: Request): string {
 function storyItem(
   story: typeof storiesTable.$inferSelect,
   viewed: boolean,
+  likes: { likeCount: number; likedByMe: boolean } | undefined,
 ) {
   return {
     id: story.id,
@@ -75,7 +82,41 @@ function storyItem(
     createdAt: story.createdAt.toISOString(),
     expiresAt: story.expiresAt.toISOString(),
     viewed,
+    likeCount: likes?.likeCount ?? 0,
+    likedByMe: likes?.likedByMe ?? false,
   };
+}
+
+async function storyLikesFor(storyIds: string[], userId: string) {
+  if (!storyIds.length) return new Map<string, { likeCount: number; likedByMe: boolean }>();
+  const rows = await db
+    .select({
+      storyId: storyLikesTable.storyId,
+      likeCount: count(),
+      likedByMe: sql<boolean>`bool_or(${storyLikesTable.userId} = ${userId})`,
+    })
+    .from(storyLikesTable)
+    .where(inArray(storyLikesTable.storyId, storyIds))
+    .groupBy(storyLikesTable.storyId);
+  return new Map(rows.map((row) => [row.storyId, {
+    likeCount: row.likeCount,
+    likedByMe: Boolean(row.likedByMe),
+  }]));
+}
+
+async function visibleStoryForLike(storyId: string, viewerId: string) {
+  const [story] = await db
+    .select({ id: storiesTable.id, userId: storiesTable.userId })
+    .from(storiesTable)
+    .where(and(eq(storiesTable.id, storyId), gt(storiesTable.expiresAt, new Date())))
+    .limit(1);
+  if (!story) return { status: 404 as const };
+  if (story.userId === viewerId) return { status: 403 as const };
+  const match = await getUnblockedMatchBetween(viewerId, story.userId);
+  if (!canViewStory({ viewerId, ownerId: story.userId, hasUnblockedMatch: !!match })) {
+    return { status: 403 as const };
+  }
+  return { status: 200 as const, storyId: story.id };
 }
 
 router.get("/vibeswipe/stories", async (req, res): Promise<void> => {
@@ -108,9 +149,10 @@ router.get("/vibeswipe/stories", async (req, res): Promise<void> => {
   }
   const partnerIds = [...partnerById.keys()];
   if (partnerIds.length === 0) {
+    const likes = await storyLikesFor(ownStories.map((story) => story.id), userId);
     res.json(
       GetStoriesResponse.parse({
-        ownStories: ownStories.map((story) => storyItem(story, true)),
+        ownStories: ownStories.map((story) => storyItem(story, true, likes.get(story.id))),
         matches: [],
       }),
     );
@@ -133,9 +175,10 @@ router.get("/vibeswipe/stories", async (req, res): Promise<void> => {
     (partnerId) => !blockedPartners.has(partnerId),
   );
   if (visiblePartnerIds.length === 0) {
+    const likes = await storyLikesFor(ownStories.map((story) => story.id), userId);
     res.json(
       GetStoriesResponse.parse({
-        ownStories: ownStories.map((story) => storyItem(story, true)),
+        ownStories: ownStories.map((story) => storyItem(story, true, likes.get(story.id))),
         matches: [],
       }),
     );
@@ -163,6 +206,7 @@ router.get("/vibeswipe/stories", async (req, res): Promise<void> => {
       .orderBy(desc(storiesTable.createdAt)),
   ]);
   const storyIds = matchStories.map((story) => story.id);
+  const likeStats = await storyLikesFor([...ownStories, ...matchStories].map((story) => story.id), userId);
   const views = storyIds.length
     ? await db
         .select({ storyId: storyViewsTable.storyId })
@@ -193,7 +237,7 @@ router.get("/vibeswipe/stories", async (req, res): Promise<void> => {
       },
       stories: [],
     };
-    group.stories.push(storyItem(story, viewedIds.has(story.id)));
+    group.stories.push(storyItem(story, viewedIds.has(story.id), likeStats.get(story.id)));
     grouped.set(story.userId, group);
   }
   const matches = [...grouped.values()].sort((first, second) =>
@@ -201,10 +245,53 @@ router.get("/vibeswipe/stories", async (req, res): Promise<void> => {
   );
   res.json(
     GetStoriesResponse.parse({
-      ownStories: ownStories.map((story) => storyItem(story, true)),
+        ownStories: ownStories.map((story) => storyItem(story, true, likeStats.get(story.id))),
       matches,
     }),
   );
+});
+
+router.post("/vibeswipe/stories/:storyId/like", async (req, res): Promise<void> => {
+  const params = LikeStoryParams.safeParse(req.params);
+  if (!params.success) {
+    res.status(400).json({ error: "Invalid story." });
+    return;
+  }
+  const viewerId = currentUserId(req);
+  const visible = await visibleStoryForLike(params.data.storyId, viewerId);
+  if (visible.status !== 200) {
+    res.status(visible.status).json({ error: visible.status === 404 ? "This story has expired or was removed." : "Only mutual matches can like this story." });
+    return;
+  }
+  await db.insert(storyLikesTable).values({ storyId: visible.storyId, userId: viewerId }).onConflictDoNothing();
+  const [result] = await db
+    .select({ likeCount: count() })
+    .from(storyLikesTable)
+    .where(eq(storyLikesTable.storyId, visible.storyId));
+  res.json(StoryLikeResult.parse({ liked: true, likeCount: result?.likeCount ?? 0 }));
+});
+
+router.delete("/vibeswipe/stories/:storyId/like", async (req, res): Promise<void> => {
+  const params = UnlikeStoryParams.safeParse(req.params);
+  if (!params.success) {
+    res.status(400).json({ error: "Invalid story." });
+    return;
+  }
+  const viewerId = currentUserId(req);
+  const visible = await visibleStoryForLike(params.data.storyId, viewerId);
+  if (visible.status !== 200) {
+    res.status(visible.status).json({ error: visible.status === 404 ? "This story has expired or was removed." : "Only mutual matches can like this story." });
+    return;
+  }
+  await db.delete(storyLikesTable).where(and(
+    eq(storyLikesTable.storyId, visible.storyId),
+    eq(storyLikesTable.userId, viewerId),
+  ));
+  const [result] = await db
+    .select({ likeCount: count() })
+    .from(storyLikesTable)
+    .where(eq(storyLikesTable.storyId, visible.storyId));
+  res.json(StoryLikeResult.parse({ liked: false, likeCount: result?.likeCount ?? 0 }));
 });
 
 router.post("/vibeswipe/stories/uploads/request-url", async (req, res): Promise<void> => {

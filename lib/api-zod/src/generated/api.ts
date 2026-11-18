@@ -2257,11 +2257,15 @@ export const getStoriesResponseOwnStoriesItemMediaUrlMax = 100;
 export const getStoriesResponseOwnStoriesItemCaptionMax = 500;
 
 export const getStoriesResponseOwnStoriesItemBackgroundColorRegExp = new RegExp('^#[0-9a-fA-F]{6}$');
+export const getStoriesResponseOwnStoriesItemLikeCountMin = 0;
+
 export const getStoriesResponseMatchesItemStoriesItemMediaUrlMax = 100;
 
 export const getStoriesResponseMatchesItemStoriesItemCaptionMax = 500;
 
 export const getStoriesResponseMatchesItemStoriesItemBackgroundColorRegExp = new RegExp('^#[0-9a-fA-F]{6}$');
+export const getStoriesResponseMatchesItemStoriesItemLikeCountMin = 0;
+
 
 
 export const GetStoriesResponse = zod.object({
@@ -2273,7 +2277,9 @@ export const GetStoriesResponse = zod.object({
   "backgroundColor": zod.string().regex(getStoriesResponseOwnStoriesItemBackgroundColorRegExp).nullable(),
   "createdAt": zod.coerce.date(),
   "expiresAt": zod.coerce.date(),
-  "viewed": zod.boolean()
+  "viewed": zod.boolean(),
+  "likeCount": zod.number().int().min(getStoriesResponseOwnStoriesItemLikeCountMin),
+  "likedByMe": zod.boolean()
 })),
   "matches": zod.array(zod.object({
   "matchId": zod.string().uuid(),
@@ -2290,7 +2296,9 @@ export const GetStoriesResponse = zod.object({
   "backgroundColor": zod.string().regex(getStoriesResponseMatchesItemStoriesItemBackgroundColorRegExp).nullable(),
   "createdAt": zod.coerce.date(),
   "expiresAt": zod.coerce.date(),
-  "viewed": zod.boolean()
+  "viewed": zod.boolean(),
+  "likeCount": zod.number().int().min(getStoriesResponseMatchesItemStoriesItemLikeCountMin),
+  "likedByMe": zod.boolean()
 }))
 }))
 })
@@ -2338,6 +2346,40 @@ export const MarkStoryViewedParams = zod.object({
 })
 
 export const MarkStoryViewedResponse = zod.void()
+
+
+/**
+ * @summary Like an active story visible to the signed-in user
+ */
+export const LikeStoryParams = zod.object({
+  "storyId": zod.coerce.string().uuid()
+})
+
+export const likeStoryResponseLikeCountMin = 0;
+
+
+
+export const LikeStoryResponse = zod.object({
+  "liked": zod.boolean(),
+  "likeCount": zod.number().int().min(likeStoryResponseLikeCountMin)
+})
+
+
+/**
+ * @summary Remove the signed-in user's like from a story
+ */
+export const UnlikeStoryParams = zod.object({
+  "storyId": zod.coerce.string().uuid()
+})
+
+export const unlikeStoryResponseLikeCountMin = 0;
+
+
+
+export const UnlikeStoryResponse = zod.object({
+  "liked": zod.boolean(),
+  "likeCount": zod.number().int().min(unlikeStoryResponseLikeCountMin)
+})
 
 
 /**

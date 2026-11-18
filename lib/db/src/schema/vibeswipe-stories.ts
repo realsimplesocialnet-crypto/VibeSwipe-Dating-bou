@@ -54,6 +54,31 @@ export const storyViewsTable = pgTable(
   }),
 );
 
+export const storyLikesTable = pgTable(
+  "vibeswipe_story_likes",
+  {
+    storyId: uuid("story_id")
+      .notNull()
+      .references(() => storiesTable.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => profilesTable.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => ({
+    storyLikerPrimaryKey: primaryKey({
+      name: "vibeswipe_story_likes_pk",
+      columns: [table.storyId, table.userId],
+    }),
+    likerRecent: index("vibeswipe_story_likes_user_idx").on(
+      table.userId,
+      table.createdAt,
+    ),
+  }),
+);
+
 export const insertStorySchema = createInsertSchema(storiesTable).omit({
   id: true,
   userId: true,
@@ -63,3 +88,4 @@ export const insertStorySchema = createInsertSchema(storiesTable).omit({
 export type InsertStory = typeof storiesTable.$inferInsert;
 export type Story = typeof storiesTable.$inferSelect;
 export type StoryView = typeof storyViewsTable.$inferSelect;
+export type StoryLike = typeof storyLikesTable.$inferSelect;

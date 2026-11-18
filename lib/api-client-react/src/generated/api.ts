@@ -107,6 +107,7 @@ import type {
   StoriesFeed,
   StoryCreated,
   StoryInput,
+  StoryLikeResult,
   StoryVideoTranscodeResult,
   SuperLikeStatus,
   TravelCityOption,
@@ -8300,6 +8301,154 @@ export const useMarkStoryViewed = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getMarkStoryViewedMutationOptions(options), queryClient);
+    }
+
+export const getLikeStoryUrl = (storyId: string,) => {
+
+
+
+
+  return `/api/vibeswipe/stories/${storyId}/like`
+}
+
+/**
+ * @summary Like an active story visible to the signed-in user
+ */
+export const likeStory = async (storyId: string, options?: Parameters<typeof customFetch>[1]): Promise<StoryLikeResult> => {
+
+  return customFetch<StoryLikeResult>(getLikeStoryUrl(storyId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getLikeStoryMutationKey = () => ['likeStory'] as const;
+
+export const getLikeStoryMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof likeStory>>, TError,LikeStoryMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof likeStory>>, TError,LikeStoryMutationVariables, TContext> => {
+
+const mutationKey = getLikeStoryMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof likeStory>>, LikeStoryMutationVariables> = (props) => {
+          const {storyId} = props ?? {};
+
+          return  likeStory(storyId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type LikeStoryMutationResult = NonNullable<Awaited<ReturnType<typeof likeStory>>>
+
+    export type LikeStoryMutationError = ErrorType<void>
+    export type LikeStoryMutationVariables = {storyId: string}
+
+    /**
+ * @summary Like an active story visible to the signed-in user
+ */
+export const useLikeStory = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof likeStory>>, TError,LikeStoryMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof likeStory>>,
+        TError,
+        LikeStoryMutationVariables,
+        TContext
+      > => {
+      return useMutation(getLikeStoryMutationOptions(options), queryClient);
+    }
+
+export const getUnlikeStoryUrl = (storyId: string,) => {
+
+
+
+
+  return `/api/vibeswipe/stories/${storyId}/like`
+}
+
+/**
+ * @summary Remove the signed-in user's like from a story
+ */
+export const unlikeStory = async (storyId: string, options?: Parameters<typeof customFetch>[1]): Promise<StoryLikeResult> => {
+
+  return customFetch<StoryLikeResult>(getUnlikeStoryUrl(storyId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getUnlikeStoryMutationKey = () => ['unlikeStory'] as const;
+
+export const getUnlikeStoryMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof unlikeStory>>, TError,UnlikeStoryMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof unlikeStory>>, TError,UnlikeStoryMutationVariables, TContext> => {
+
+const mutationKey = getUnlikeStoryMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof unlikeStory>>, UnlikeStoryMutationVariables> = (props) => {
+          const {storyId} = props ?? {};
+
+          return  unlikeStory(storyId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UnlikeStoryMutationResult = NonNullable<Awaited<ReturnType<typeof unlikeStory>>>
+
+    export type UnlikeStoryMutationError = ErrorType<void>
+    export type UnlikeStoryMutationVariables = {storyId: string}
+
+    /**
+ * @summary Remove the signed-in user's like from a story
+ */
+export const useUnlikeStory = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof unlikeStory>>, TError,UnlikeStoryMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof unlikeStory>>,
+        TError,
+        UnlikeStoryMutationVariables,
+        TContext
+      > => {
+      return useMutation(getUnlikeStoryMutationOptions(options), queryClient);
     }
 
 export const getRequestStoryMediaUploadUrl = () => {

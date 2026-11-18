@@ -35,7 +35,7 @@ import { VerifiedBadge } from '@/components/verified-badge';
 import { InstallAction, MobileInstallBanner } from '@/components/install-action';
 import { InstalledWelcome } from '@/components/installed-welcome';
 import { MatchCelebration } from '@/components/match-celebration';
-import { MatchStoryAvatar, StoryCameraTrigger, StoryComposerPage } from '@/components/stories/stories-ui';
+import { MatchStoryAvatar, ProfileStoryAvatar, StoryCameraTrigger, StoryComposerPage } from '@/components/stories/stories-ui';
 import { StoryCameraPage } from '@/components/stories/story-camera-page';
 import { SignupPasswordField } from '@/components/signup-password-field';
 import { ProfileFirstSignup } from '@/components/profile-first-signup';
@@ -846,7 +846,7 @@ function PublicProfileLoading(){return <div className="public-profile min-h-[100
 function PublicProfile({id,actionReturnTo='/discover'}:{id:string;actionReturnTo?:string}){
   const fromLikes=actionReturnTo==='/likes';
   const me=useGetMyProfile();
-  const q=useGetProfileById(id,{query:{queryKey:getGetProfileByIdQueryKey(id),staleTime:10*60_000,gcTime:30*60_000,refetchOnMount:'always'}});const datingState=useGetProfileDatingState(id,{query:{queryKey:getGetProfileDatingStateQueryKey(id),enabled:!!id,staleTime:10*60_000,gcTime:30*60_000,refetchOnMount:'always'}});const matchedId=datingState.isError?null:datingState.data?.matchId??null;const view=useRecordProfileView();const seen=useRef('');const [photoError,setPhotoError]=useState(false);const [viewer,setViewer]=useState<number|null>(null);const openPhoto=useCallback((index:number)=>setViewer(index),[]);
+  const q=useGetProfileById(id,{query:{queryKey:getGetProfileByIdQueryKey(id),staleTime:10*60_000,gcTime:30*60_000,refetchOnMount:'always'}});const datingState=useGetProfileDatingState(id,{query:{queryKey:getGetProfileDatingStateQueryKey(id),enabled:!!id,staleTime:10*60_000,gcTime:30*60_000,refetchOnMount:'always'}});const matchedId=datingState.isError?null:datingState.data?.matchId??null;const storyFeed=useGetStories({query:{queryKey:getGetStoriesQueryKey(),enabled:Boolean(matchedId),staleTime:30_000,refetchInterval:60_000}});const view=useRecordProfileView();const seen=useRef('');const [photoError,setPhotoError]=useState(false);const [viewer,setViewer]=useState<number|null>(null);const openPhoto=useCallback((index:number)=>setViewer(index),[]);
    const client=useQueryClient();const [,setLocation]=useLocation();const reaction=useCreateReaction();const unlike=useUnlikeProfile();const likes=useGetDailyLikeStatus({query:{queryKey:getGetDailyLikeStatusQueryKey()}});
   const [confirmation,setConfirmation]=useState<{text:string;kind:'like'}|null>(null);const [actionError,setActionError]=useState('');const block=useBlockProfile();const report=useReportProfile();const [menu,setMenu]=useState(false);const [confirmSafety,setConfirmSafety]=useState<'block'|'report'|null>(null);const [safetyError,setSafetyError]=useState('');const [reported,setReported]=useState(false);const [matchResult,setMatchResult]=useState<{name:string;matchId:string|null}|null>(null);
   const confirmationTimer=useRef<number|null>(null);const busy=useRef(false);const mounted=useRef(true);const currentId=useRef(id);currentId.current=id;
@@ -908,7 +908,7 @@ function PublicProfile({id,actionReturnTo='/discover'}:{id:string;actionReturnTo
   useEffect(()=>{if(viewer===null)return;const len=q.data?.photos?.length??0;const onKey=(e:KeyboardEvent)=>{if(e.key==='Escape')setViewer(null);if(e.key==='ArrowRight')setViewer(v=>v===null?v:Math.min(len-1,v+1));if(e.key==='ArrowLeft')setViewer(v=>v===null?v:Math.max(0,v-1))};window.addEventListener('keydown',onKey);return()=>window.removeEventListener('keydown',onKey)},[viewer,q.data?.photos?.length]);
     if(q.isError&&!q.data)return <div className="public-profile min-h-[100dvh] px-5 pt-2"><Link href={actionReturnTo} replace aria-label="Back" data-testid="link-public-profile-back-top" className="pp-round"><ArrowLeft size={20}/></Link><div className="mx-auto mt-16 max-w-sm"><Retry onRetry={()=>void q.refetch()} text="Profile unavailable."/></div></div>;
   if(!q.data)return <PublicProfileLoading/>;
-  const profile=q.data;const photos=profile.photos??[];const location=[profile.city,profile.state,profile.country].filter(Boolean).join(', ');const headerLocation=[profile.city,profile.state].filter(Boolean).join(', ')||location;
+   const profile=q.data;const photos=profile.photos??[];const profileStory=matchedId?storyFeed.data?.matches.find(group=>group.matchId===matchedId&&group.poster.id===profile.id):undefined;const location=[profile.city,profile.state,profile.country].filter(Boolean).join(', ');const headerLocation=[profile.city,profile.state].filter(Boolean).join(', ')||location;
   const work=profile.occupation==='Other'?(profile.occupationOther||'Other'):(profile.occupation||'');
   const facts=[profile.showAge&&profile.age!==null?{icon:Sparkles,label:'Age',value:String(profile.age)}:null,{icon:Briefcase,label:'Work',value:work||'Not shared'},{icon:Heart,label:'Looking for',value:profile.lookingFor||'Not shared'},{icon:Users,label:'Gender',value:profile.gender||'Not shared'}].filter(Boolean) as {icon:typeof Heart;label:string;value:string}[];
   const likeOut=likeRemaining===0;
@@ -933,9 +933,9 @@ function PublicProfile({id,actionReturnTo='/discover'}:{id:string;actionReturnTo
         {photos.length&&!photoError?<MediaImage reference={photos[0]} progressive alt={`${profile.name}'s main photo`} onError={()=>setPhotoError(true)} className="h-full w-full object-cover" loading="eager" fetchPriority="high"/>:<span className="brand text-5xl font-bold">{profile.name.trim().slice(0,1).toUpperCase()}</span>}
     </button>}
     <header className={`pp-identity-panel ${fromLikes?'pp-identity-panel-centered mt-4':'mt-4'}`}>
-      {!fromLikes&&<button type="button" disabled={!photos.length} onClick={()=>setViewer(0)} aria-label={`Open ${profile.name}'s main photo`} data-testid="button-public-profile-avatar" className="pp-avatar pp-avatar-identity">
-          {photos.length&&!photoError?<MediaImage reference={photos[0]} progressive alt={`${profile.name}'s main photo`} onError={()=>setPhotoError(true)} className="h-full w-full rounded-full object-cover" loading="eager" fetchPriority="high"/>:<span className="brand text-4xl font-bold">{profile.name.trim().slice(0,1).toUpperCase()}</span>}
-      </button>}
+       {!fromLikes&&(profileStory?.stories.length?<ProfileStoryAvatar profile={profile} storyGroup={profileStory}/>:<button type="button" disabled={!photos.length} onClick={()=>setViewer(0)} aria-label={`Open ${profile.name}'s main photo`} data-testid="button-public-profile-avatar" className="pp-avatar pp-avatar-identity">
+           {photos.length&&!photoError?<MediaImage reference={photos[0]} progressive alt={`${profile.name}'s main photo`} onError={()=>setPhotoError(true)} className="h-full w-full rounded-full object-cover" loading="eager" fetchPriority="high"/>:<span className="brand text-4xl font-bold">{profile.name.trim().slice(0,1).toUpperCase()}</span>}
+       </button>)}
       <div className="pp-identity-copy">
         <h1 data-testid="text-public-profile-name" className="break-words text-[1.55rem] font-extrabold leading-tight tracking-[-.035em] sm:text-[1.85rem]">{profile.name}{profile.showAge&&profile.age!==null&&<span className="font-semibold text-[hsl(var(--pp-muted))]">, {profile.age}</span>}<VerifiedBadge verified={profile.isVerified}/></h1>
         <p data-testid="text-public-profile-location" className="mt-1 flex items-center gap-1.5 text-[14px] text-[hsl(var(--pp-muted))]"><MapPin size={15} className="shrink-0 text-[hsl(var(--pp-pink))]"/>{headerLocation||'Location not shared'}</p>

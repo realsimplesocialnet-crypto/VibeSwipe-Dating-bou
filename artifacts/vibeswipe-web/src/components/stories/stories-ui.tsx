@@ -5,23 +5,33 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Link, useLocation } from "wouter";
 import {
   getGetMessagesQueryKey,
+  getGetNotificationsQueryKey,
   getGetProfileMediaQueryKey,
+  getGetProfileFollowSummaryQueryKey,
+  getGetProfileFollowersQueryKey,
+  getGetProfileFollowingQueryKey,
   getGetStoriesQueryKey,
   useCreateStory,
+  useFollowProfile,
   useGetMyProfile,
   useGetProfileMedia,
+  useGetProfileFollowSummary,
   useGetStories,
+  useLikeStory,
   useMarkStoryViewed,
   useRequestStoryMediaUpload,
   useSendMessage,
   useTranscodeStoryVideo,
+  useUnfollowProfile,
+  useUnlikeStory,
   type StoryGroup,
   type StoryItem,
   type StoryInput,
   type StoriesFeed,
   type Profile,
+  type ProfileFollowSummary,
 } from "@workspace/api-client-react";
-import { ArrowLeft, Camera, Check, ImagePlus, LoaderCircle, Plus, Send, ShieldCheck, Video, X } from "lucide-react";
+import { ArrowLeft, Camera, Check, Heart, ImagePlus, LoaderCircle, Plus, Send, Share2, ShieldCheck, Video, X } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 const STORY_PREFIX = "Replied to your story: ";
@@ -165,7 +175,7 @@ export function StoriesRow({mode="all"}:{mode?:"all"|"own"|"matches"}) {
             </span>
             <span className="w-full truncate text-[11px] font-medium text-foreground">Your story</span>
           </div>}
-          {matches.map((group) => <button type="button" key={group.matchId} onClick={() => setActive({ stories: group.stories, name: group.poster.name, photo: group.poster.photo, matchId: group.matchId })} data-testid={`button-story-${group.matchId}`} aria-label={`View ${group.poster.name}'s story`} className="group flex w-[72px] shrink-0 flex-col items-center gap-1.5 text-center">
+          {matches.map((group) => <button type="button" key={group.matchId} onClick={() => setActive({ stories: group.stories, name: group.poster.name, photo: group.poster.photo, matchId: group.matchId, profileId: group.poster.id })} data-testid={`button-story-${group.matchId}`} aria-label={`View ${group.poster.name}'s story`} className="group flex w-[72px] shrink-0 flex-col items-center gap-1.5 text-center">
             <span className={`flex h-[68px] w-[68px] items-center justify-center overflow-hidden rounded-full p-[2px] transition-transform group-hover:scale-[1.04] ${group.stories.some((story) => !story.viewed) ? "bg-gradient-to-br from-[#ef9bc7] via-[#bd8ae1] to-[#8e79d5]" : "bg-white/25"}`}><span className="h-full w-full overflow-hidden rounded-full"><StoryAvatar reference={group.poster.photo} name={group.poster.name} className="h-full w-full text-xl"/></span></span>
             <span className="w-full truncate text-[11px] font-medium text-foreground">{group.poster.name.split(/\s+/)[0].slice(0, 12)}</span>
           </button>)}
@@ -174,7 +184,7 @@ export function StoriesRow({mode="all"}:{mode?:"all"|"own"|"matches"}) {
   </section>;
 }
 
-type ActiveStory = { stories: StoryItem[]; name: string; photo: string | null; matchId?: string };
+type ActiveStory = { stories: StoryItem[]; name: string; photo: string | null; matchId?: string; profileId?: string };
 
 export function MatchStoryAvatar({
   matchId,
@@ -185,7 +195,7 @@ export function MatchStoryAvatar({
 }: {
   returnTo?: "/matches" | "/views" | "/messages" | "/notifications";
   matchId: string;
-  profile: Pick<Profile, "name" | "photos">;
+  profile: Pick<Profile, "id" | "name" | "photos">;
   storyGroup?: StoryGroup;
   disabled?: boolean;
 }) {
@@ -204,6 +214,7 @@ export function MatchStoryAvatar({
       name: storyGroup.poster.name,
       photo: storyGroup.poster.photo,
       matchId,
+      profileId: profile.id,
     });
   }
 
@@ -231,14 +242,49 @@ export function MatchStoryAvatar({
   </>;
 }
 
+export function ProfileStoryAvatar({ profile, storyGroup }: {
+  profile: Pick<Profile, "id" | "name" | "photos">;
+  storyGroup: StoryGroup;
+}) {
+  const [active, setActive] = useState<ActiveStory | null>(null);
+  const hasUnseenStory = storyGroup.stories.some((story) => !story.viewed);
+  return <>
+    <button
+      type="button"
+      onClick={() => setActive({
+        stories: storyGroup.stories,
+        name: storyGroup.poster.name,
+        photo: storyGroup.poster.photo,
+        matchId: storyGroup.matchId,
+        profileId: profile.id,
+      })}
+      aria-label={`View ${profile.name}'s story`}
+      data-testid="button-public-profile-story"
+      className={`pp-avatar pp-avatar-identity story-profile-avatar ${hasUnseenStory ? "is-unseen" : "is-seen"}`}
+    >
+      <StoryAvatar reference={profile.photos?.[0] ?? null} name={profile.name} className="h-full w-full rounded-full text-4xl"/>
+    </button>
+    <StoryViewer active={active} onClose={() => setActive(null)} />
+  </>;
+}
+
 function StoryViewer({ active, onClose }: { active: ActiveStory | null; onClose: () => void }) {
   const queryClient = useQueryClient();
   const markViewed = useMarkStoryViewed();
   const send = useSendMessage();
+  const follow = useFollowProfile();
+  const unfollow = useUnfollowProfile();
+  const likeStory = useLikeStory();
+  const unlikeStory = useUnlikeStory();
+  const followSummary = useGetProfileFollowSummary(active?.profileId ?? "", {
+    query: { enabled: Boolean(active?.profileId), staleTime: 60_000 },
+  });
   const [index, setIndex] = useState(0);
   const [elapsed, setElapsed] = useState(0);
   const [reply, setReply] = useState("");
   const [notice, setNotice] = useState("");
+  const [followOverride, setFollowOverride] = useState<{ profileId: string; value: boolean } | null>(null);
+  const [likeOverrides, setLikeOverrides] = useState<Record<string, { likedByMe: boolean; likeCount: number }>>({});
   const touchStart = useRef<{ x: number; y: number } | null>(null);
   const justOpened = useRef(false);
   const current = active?.stories[index];
@@ -250,6 +296,8 @@ function StoryViewer({ active, onClose }: { active: ActiveStory | null; onClose:
     setElapsed(0);
     setReply("");
     setNotice("");
+    setFollowOverride(null);
+    setLikeOverrides({});
   }, [active]);
   useEffect(() => {
     if (!active || !current) return;
@@ -298,6 +346,89 @@ function StoryViewer({ active, onClose }: { active: ActiveStory | null; onClose:
       setReply(""); setNotice(`Reply sent. It appears in your chat with ${active.name}.`);
     } catch (reason) { setNotice((reason as { status?: number })?.status === 403 ? "This story is no longer available to reply to." : "Your reply didn’t send. Your text is kept, try again."); }
   }
+  const profileId = active?.profileId;
+  const following = Boolean(profileId && followOverride?.profileId === profileId
+    ? followOverride.value
+    : followSummary.data?.isFollowing);
+  const followPending = follow.isPending || unfollow.isPending;
+  async function toggleFollow() {
+    if (!profileId || followPending || followSummary.isLoading) return;
+    const next = !following;
+    const summaryKey = getGetProfileFollowSummaryQueryKey(profileId);
+    const previousSummary = queryClient.getQueryData<ProfileFollowSummary>(summaryKey);
+    setFollowOverride({ profileId, value: next });
+    if (previousSummary) queryClient.setQueryData(summaryKey, {
+      ...previousSummary,
+      followersCount: Math.max(0, previousSummary.followersCount + (next ? 1 : -1)),
+      isFollowing: next,
+    });
+    try {
+      if (next) {
+        const result = await follow.mutateAsync({ profileId });
+        queryClient.setQueryData(summaryKey, result);
+      } else {
+        await unfollow.mutateAsync({ profileId });
+      }
+      void Promise.all([
+        queryClient.invalidateQueries({ queryKey: summaryKey }),
+        queryClient.invalidateQueries({ queryKey: getGetProfileFollowersQueryKey() }),
+        queryClient.invalidateQueries({ queryKey: getGetProfileFollowingQueryKey() }),
+        queryClient.invalidateQueries({ queryKey: getGetNotificationsQueryKey() }),
+      ]);
+    } catch {
+      setFollowOverride({ profileId, value: !next });
+      if (previousSummary) queryClient.setQueryData(summaryKey, previousSummary);
+      setNotice(next ? "Could not follow. Try again." : "Could not unfollow. Try again.");
+    }
+  }
+  const currentLikeOverride = current ? likeOverrides[current.id] : undefined;
+  const likedByMe = currentLikeOverride?.likedByMe ?? current?.likedByMe ?? false;
+  const likeCount = currentLikeOverride?.likeCount ?? current?.likeCount ?? 0;
+  function updateStoryLikeCache(storyId: string, liked: boolean, count: number) {
+    queryClient.setQueryData<StoriesFeed>(getGetStoriesQueryKey(), (old) => old ? ({
+      ...old,
+      ownStories: old.ownStories.map((story) => story.id === storyId ? { ...story, likedByMe: liked, likeCount: count } : story),
+      matches: old.matches.map((group) => ({
+        ...group,
+        stories: group.stories.map((story) => story.id === storyId ? { ...story, likedByMe: liked, likeCount: count } : story),
+      })),
+    }) : old);
+  }
+  async function toggleStoryLike() {
+    if (!current || !active?.matchId || likeStory.isPending || unlikeStory.isPending) return;
+    const previous = { likedByMe, likeCount };
+    const nextLiked = !likedByMe;
+    const optimisticCount = Math.max(0, likeCount + (nextLiked ? 1 : -1));
+    setLikeOverrides((all) => ({ ...all, [current.id]: { likedByMe: nextLiked, likeCount: optimisticCount } }));
+    updateStoryLikeCache(current.id, nextLiked, optimisticCount);
+    try {
+      const result = nextLiked
+        ? await likeStory.mutateAsync({ storyId: current.id })
+        : await unlikeStory.mutateAsync({ storyId: current.id });
+      setLikeOverrides((all) => ({ ...all, [current.id]: { likedByMe: result.liked, likeCount: result.likeCount } }));
+      updateStoryLikeCache(current.id, result.liked, result.likeCount);
+      void queryClient.invalidateQueries({ queryKey: getGetStoriesQueryKey() });
+    } catch {
+      setLikeOverrides((all) => ({ ...all, [current.id]: previous }));
+      updateStoryLikeCache(current.id, previous.likedByMe, previous.likeCount);
+      setNotice("Your story like didn’t go through. Try again.");
+    }
+  }
+  async function shareStory() {
+    if (!active) return;
+    const link = active.profileId
+      ? new URL(`/profile/${encodeURIComponent(active.profileId)}`, window.location.origin).toString()
+      : window.location.href;
+    try {
+      if (navigator.share) await navigator.share({ title: `${active.name}'s profile`, url: link });
+      else {
+        await navigator.clipboard.writeText(link);
+        setNotice("Profile link copied.");
+      }
+    } catch (error) {
+      if ((error as { name?: string }).name !== "AbortError") setNotice("Could not share this profile. Try again.");
+    }
+  }
   const textOnly = !current?.mediaUrl;
   return createPortal(<AnimatePresence>
     {active && current && <motion.div key="story-overlay" initial={{ opacity: 0, y: 28, scale: .985 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 22, scale: .985 }} transition={{ duration: .24, ease: [.22, .8, .2, 1] }} className="fixed inset-0 z-[80] flex items-center justify-center bg-[#100d14] sm:bg-[#100d14]/95 sm:p-4" data-testid="overlay-story-viewer" role="dialog" aria-modal="true" aria-label={`${active.name}'s story`}>
@@ -305,12 +436,30 @@ function StoryViewer({ active, onClose }: { active: ActiveStory | null; onClose:
         onTouchStart={(event) => { touchStart.current = { x: event.touches[0].clientX, y: event.touches[0].clientY }; }}
         onTouchEnd={(event) => { const start = touchStart.current; if (!start) return; const dy = event.changedTouches[0].clientY - start.y; if (dy > 75) onClose(); touchStart.current = null; }}>
         <div className="pointer-events-none absolute inset-0" style={{ background: textOnly ? `linear-gradient(150deg, ${current.backgroundColor || "#614777"}, #211b2b 82%)` : "#211b2b" }}>
-          {media.url && current.mediaType === "video" ? <video key={current.id} src={media.url} autoPlay playsInline onTimeUpdate={(event) => { const video = event.currentTarget; if (video.duration) setElapsed((video.currentTime / video.duration) * 5000); }} onEnded={() => setIndex((value) => value + 1)} className="h-full w-full object-contain" aria-label="Story video" /> : media.url ? <img src={media.url} alt="" className="h-full w-full object-contain"/> : textOnly ? <div className="flex h-full items-center justify-center px-10 text-center"><p className="brand max-w-sm whitespace-pre-wrap text-3xl font-bold leading-[1.2] text-white sm:text-4xl">{current.caption || "A moment, shared."}</p></div> : <div className="flex h-full items-center justify-center text-sm text-white/75">{media.isLoading ? "Loading private story…" : media.isError ? "This story couldn’t load." : "Story media unavailable."}</div>}
+          {media.url && current.mediaType === "video" ? <video key={current.id} src={media.url} autoPlay playsInline onTimeUpdate={(event) => { const video = event.currentTarget; if (video.duration) setElapsed((video.currentTime / video.duration) * 5000); }} onEnded={() => setIndex((value) => value + 1)} className="h-full w-full object-cover" aria-label="Story video" /> : media.url ? <img src={media.url} alt="" className="h-full w-full object-cover"/> : textOnly ? <div className="flex h-full items-center justify-center px-10 text-center"><p className="brand max-w-sm whitespace-pre-wrap text-3xl font-bold leading-[1.2] text-white sm:text-4xl">{current.caption || "A moment, shared."}</p></div> : <div className="flex h-full items-center justify-center text-sm text-white/75">{media.isLoading ? "Loading private story…" : media.isError ? "This story couldn’t load." : "Story media unavailable."}</div>}
           {!textOnly && current.caption && <div className="absolute inset-x-0 bottom-24 bg-gradient-to-t from-black/75 via-black/25 to-transparent px-7 pb-6 pt-20 text-center text-[15px] leading-6 text-white">{current.caption}</div>}
         </div>
         <div className="relative z-10 px-3 pt-[max(env(safe-area-inset-top),14px)] sm:px-4">
           <div className="mb-4 flex gap-1.5" aria-label={`Story ${index + 1} of ${active.stories.length}`}>{active.stories.map((story, storyIndex) => <span key={story.id} className="h-[2px] flex-1 overflow-hidden rounded-full bg-white/30"><motion.span className="block h-full origin-left rounded-full bg-white" animate={{ scaleX: storyIndex < index ? 1 : storyIndex === index ? Math.min(1, elapsed / 5000) : 0 }} transition={{ duration: .05, ease: "linear" }}/></span>)}</div>
-          <div className="flex items-center gap-3"><StoryAvatar reference={active.photo} name={active.name} className="h-10 w-10 border border-white/30 text-sm shadow-md"/><div className="min-w-0 flex-1"><div className="truncate text-sm font-bold text-white">{active.name}</div><div className="text-[10px] text-white/70">{timeAgo(current.createdAt)}</div></div><button type="button" onClick={onClose} data-testid="button-close-story" aria-label="Close story" className="flex h-10 w-10 items-center justify-center rounded-full bg-black/25 text-white backdrop-blur"><X size={20}/></button></div>
+          <div className="flex items-center gap-2.5">
+            <StoryAvatar reference={active.photo} name={active.name} className="h-10 w-10 border border-white/30 text-sm shadow-md"/>
+            <div className="min-w-0 flex-1">
+              <div className="truncate text-sm font-bold text-white">{active.name}</div>
+              <div className="text-[10px] text-white/70">{timeAgo(current.createdAt)}</div>
+            </div>
+            {profileId && <button type="button" onClick={() => void toggleFollow()} disabled={followPending || followSummary.isLoading}
+              aria-label={following ? `Unfollow ${active.name}` : `Follow ${active.name}`} aria-pressed={following}
+              data-testid="button-story-follow" className="flex h-8 min-w-[68px] shrink-0 items-center justify-center rounded-full bg-white px-3 text-xs font-semibold text-[#211b27] disabled:opacity-75">
+              {followPending || followSummary.isLoading ? <LoaderCircle size={14} className="animate-spin"/> : following ? "Following" : "Follow"}
+            </button>}
+            {profileId && <button type="button" onClick={() => void shareStory()} data-testid="button-story-share" aria-label={`Share ${active.name}'s profile`}
+              className="flex h-9 w-9 shrink-0 items-center justify-center text-white">
+              <Share2 size={19}/>
+            </button>}
+            <button type="button" onClick={onClose} data-testid="button-close-story" aria-label="Close story" className="flex h-9 w-9 shrink-0 items-center justify-center text-white">
+              <X size={21}/>
+            </button>
+          </div>
         </div>
         <div className="absolute inset-x-0 top-20 bottom-20 z-[2] flex">
           <button type="button" onClick={() => { if (index > 0) setIndex(index - 1); else setElapsed(0); }} data-testid="button-story-previous" aria-label="Previous story" className="h-full w-1/3"/>
@@ -321,6 +470,12 @@ function StoryViewer({ active, onClose }: { active: ActiveStory | null; onClose:
           {active.matchId && <form onSubmit={(event) => void sendReply(event)} className="flex items-center gap-2">
             <input value={reply} onChange={(event) => setReply(event.target.value)} maxLength={1900} disabled={send.isPending} placeholder={`Reply to ${active.name}…`} aria-label={`Reply to ${active.name}'s story`} data-testid="input-story-reply" className="min-h-12 min-w-0 flex-1 rounded-full border border-white/25 bg-black/25 px-4 text-sm text-white outline-none placeholder:text-white/65 focus:border-white/60"/>
             <button type="submit" disabled={!reply.trim() || send.isPending} aria-label="Send story reply" data-testid="button-send-story-reply" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary text-[#24111b] disabled:opacity-45">{send.isPending ? <LoaderCircle className="animate-spin" size={17}/> : <Send size={17}/>}</button>
+            <button type="button" onClick={() => void toggleStoryLike()} disabled={likeStory.isPending || unlikeStory.isPending}
+              aria-pressed={likedByMe} aria-label={likedByMe ? `Unlike ${active.name}'s story` : `Like ${active.name}'s story`}
+              data-testid="button-like-story" className={`flex h-11 w-11 shrink-0 items-center justify-center text-white disabled:opacity-60 ${likedByMe ? "text-primary" : ""}`}>
+              {likeStory.isPending || unlikeStory.isPending ? <LoaderCircle size={19} className="animate-spin"/> : <Heart size={23} fill={likedByMe ? "currentColor" : "none"}/>}
+              <span className="sr-only">{likeCount} likes</span>
+            </button>
           </form>}
         </div>
       </div>

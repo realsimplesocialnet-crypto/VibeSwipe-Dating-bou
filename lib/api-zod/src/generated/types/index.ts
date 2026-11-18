@@ -136,6 +136,7 @@ export * from './storyInput';
 export * from './storyInputMediaType';
 export * from './storyItem';
 export * from './storyItemMediaType';
+export * from './storyLikeResult';
 export * from './storyPoster';
 export * from './storyVideoTranscodeResult';
 export * from './superLikeStatus';

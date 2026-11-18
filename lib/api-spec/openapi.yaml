@@ -1553,6 +1553,40 @@ paths:
           description: Story is not visible to this user
         "404":
           description: Story expired or not found
+  /vibeswipe/stories/{storyId}/like:
+    parameters:
+      - in: path
+        name: storyId
+        required: true
+        schema: { type: string, format: uuid }
+    post:
+      operationId: likeStory
+      tags: [vibeswipe]
+      summary: Like an active story visible to the signed-in user
+      responses:
+        "200":
+          description: Story like state updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/StoryLikeResult" }
+        "403":
+          description: Story is not visible to this user
+        "404":
+          description: Story expired or not found
+    delete:
+      operationId: unlikeStory
+      tags: [vibeswipe]
+      summary: Remove the signed-in user's like from a story
+      responses:
+        "200":
+          description: Story like state updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/StoryLikeResult" }
+        "403":
+          description: Story is not visible to this user
+        "404":
+          description: Story expired or not found
   /vibeswipe/stories/uploads/request-url:
     post:
       operationId: requestStoryMediaUpload
@@ -2632,7 +2666,15 @@ components:
         createdAt: { type: string, format: date-time }
         expiresAt: { type: string, format: date-time }
         viewed: { type: boolean }
-      required: [id, mediaUrl, mediaType, caption, backgroundColor, createdAt, expiresAt, viewed]
+        likeCount: { type: integer, minimum: 0 }
+        likedByMe: { type: boolean }
+      required: [id, mediaUrl, mediaType, caption, backgroundColor, createdAt, expiresAt, viewed, likeCount, likedByMe]
+    StoryLikeResult:
+      type: object
+      properties:
+        liked: { type: boolean }
+        likeCount: { type: integer, minimum: 0 }
+      required: [liked, likeCount]
     StoryGroup:
       type: object
       properties:

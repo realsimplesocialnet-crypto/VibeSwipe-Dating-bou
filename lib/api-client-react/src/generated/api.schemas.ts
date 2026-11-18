@@ -1218,6 +1218,15 @@ export interface StoryItem {
   createdAt: string;
   expiresAt: string;
   viewed: boolean;
+  /** @minimum 0 */
+  likeCount: number;
+  likedByMe: boolean;
+}
+
+export interface StoryLikeResult {
+  liked: boolean;
+  /** @minimum 0 */
+  likeCount: number;
 }
 
 export interface StoryGroup {

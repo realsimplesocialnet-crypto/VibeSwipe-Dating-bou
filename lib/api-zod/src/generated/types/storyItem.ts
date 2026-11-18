@@ -26,4 +26,7 @@ export interface StoryItem {
   createdAt: Date;
   expiresAt: Date;
   viewed: boolean;
+  /** @minimum 0 */
+  likeCount: number;
+  likedByMe: boolean;
 }
