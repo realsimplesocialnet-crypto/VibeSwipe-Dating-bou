@@ -79,12 +79,7 @@ export function ActivityOverview({ avatar }: { avatar: AvatarFn }) {
   const am = useMemo(() => activeMatches(matches.data), [matches.data]);
   const reelNotices = (notes.data?.notifications ?? []).filter(n => n.type === 'reel_like' || n.type === 'reel_comment_reply');
   const followNotices = (notes.data?.notifications ?? []).filter(n => n.type === 'new_follow').slice(0, 8);
-  const msgs = useMemo(() => (notes.data?.notifications ?? []).filter(n => n.type === 'new_message' && am.some(m => m.id === n.matchId && m.profile.id === n.actor.id)).slice(0, 8), [notes.data, am]);
   const superNotices = useMemo(() => (notes.data?.notifications ?? []).filter(n => n.type === 'new_super_like').slice(0, 8), [notes.data]);
-  const openMsg = async (id: string, unread: boolean) => {
-    if (unread) { try { await mark.mutateAsync({ notificationId: id }); } catch { /* still navigate */ } void qc.invalidateQueries({ queryKey: getGetNotificationsQueryKey() }); }
-    go('/messages');
-  };
   const cards = [
     { key: 'matches', href: '/matches', label: 'Matches', sub: 'People you both liked — open to chat', icon: <Users size={20} />, q: matches, n: am.length, ps: am.map(m => m.profile), badge: notes.data?.unreadCounts.matches ?? 0 },
     { key: 'likes', href: '/likes', label: 'Likes', sub: 'People who liked you', icon: <Heart size={20} fill="currentColor" />, q: likes, n: likes.data?.length ?? 0, ps: (likes.data ?? []).map(l => l.profile), badge: notes.data?.unreadCounts.likes ?? 0 },
@@ -92,6 +87,26 @@ export function ActivityOverview({ avatar }: { avatar: AvatarFn }) {
   ];
   return <div className="social-hub min-h-[calc(100dvh-48px)] lg:min-h-[100dvh]"><div className="page-in mx-auto max-w-[720px] px-4 pb-12 pt-6 md:px-8 md:pt-10">
     <Head title="Activity" />
+    <section className="mb-6 space-y-3" aria-label="Summary" data-testid="activity-summary">
+      {cards.map(c => <Link key={c.key} href={c.href} data-testid={`link-summary-${c.key}`} aria-label={`${c.label}, ${c.badge} new`} className="sh-card flex items-center gap-4 rounded-[24px] p-4 transition-transform hover:-translate-y-px md:p-5">
+        <div className="sh-icon relative flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl">{c.icon}{c.badge > 0 && <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 text-[11px] font-bold text-primary-foreground">{c.badge > 99 ? '99+' : c.badge}</span>}</div>
+        <div className="min-w-0 flex-1"><div className="text-[17px] font-bold">{c.label}</div><div className="sh-muted truncate text-sm">{c.q.isLoading ? 'Loading' : c.q.isError ? 'Unavailable right now' : c.sub}</div></div>
+        {c.ps.length > 0 && <div className="hidden sm:block"><Stack profiles={c.ps} avatar={avatar} /></div>}
+        <span className="text-xl font-extrabold tabular-nums" data-testid={`text-count-${c.key}`}>{c.q.isLoading ? '-' : c.badge}</span>
+        <ChevronRight size={18} className="sh-muted" aria-hidden="true" />
+      </Link>)}
+      {me.data?.id && <Link href={`/profile/${me.data.id}/followers`} data-testid="link-summary-followers" aria-label={`${followSummary.data?.followersCount ?? 0} followers`}
+        className="sh-card flex items-center gap-4 rounded-[24px] p-4 transition-transform hover:-translate-y-px md:p-5">
+        <div className="sh-icon relative flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl">
+          <UserPlus size={20} aria-hidden="true" />
+          {(notes.data?.unreadCounts.follows ?? 0) > 0 && <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 text-[11px] font-bold text-primary-foreground">{(notes.data?.unreadCounts.follows ?? 0) > 99 ? '99+' : notes.data?.unreadCounts.follows}</span>}
+        </div>
+        <div className="min-w-0 flex-1"><div className="text-[17px] font-bold">Followers</div><div className="sh-muted truncate text-sm">People following you</div></div>
+        <span className="text-xl font-extrabold tabular-nums">{followSummary.data?.followersCount ?? (followSummary.isLoading ? '-' : 0)}</span>
+        <ChevronRight size={18} className="sh-muted" aria-hidden="true" />
+      </Link>}
+    </section>
+    {notes.isLoading ? <Skel /> : notes.isError && !notes.data ? <Err text="We couldn't load your activity." onRetry={() => void notes.refetch()} /> : null}
     {followNotices.length > 0 && <section className="mb-3 space-y-2" aria-label="New followers">
       {followNotices.map(n => <div key={n.id} data-testid={`follow-notice-${n.id}`}
         className="sh-card flex w-full items-center gap-3 rounded-[18px] px-3 py-3 text-left">
@@ -136,17 +151,6 @@ export function ActivityOverview({ avatar }: { avatar: AvatarFn }) {
         {!n.readAt && <span className="h-2 w-2 shrink-0 rounded-full bg-primary" aria-label="Unread" />}
       </button>)}
     </section>}
-    <section aria-labelledby="sh-new-msgs">
-      <h2 id="sh-new-msgs" className="sr-only">New messages</h2>
-      {notes.isLoading ? <Skel /> : notes.isError && !notes.data ? <Err text="We couldn't load your activity." onRetry={() => void notes.refetch()} />
-        : !msgs.length ? null
-        : <ul className="space-y-2">{msgs.map(n => <li key={n.id}><button onClick={() => void openMsg(n.id, !n.readAt)} disabled={mark.isPending} data-testid={`button-message-notice-${n.id}`} aria-label={`New message from ${n.actor.name}. Open Messages`} className="sh-card flex w-full items-center gap-3 rounded-[18px] px-4 py-3 text-left transition-transform hover:-translate-y-px">
-          <MessageCircle size={18} className="shrink-0 text-primary" aria-hidden="true" />
-          <span className={`min-w-0 flex-1 truncate text-sm ${n.readAt ? 'sh-muted' : 'font-semibold'}`}>{n.actor.name} sent you a message</span>
-          <time className="sh-muted shrink-0 text-xs" dateTime={n.createdAt}>{ago(n.createdAt)}</time>
-          {!n.readAt && <span className="h-2 w-2 shrink-0 rounded-full bg-primary" aria-label="Unread" />}
-        </button></li>)}</ul>}
-    </section>
     {superNotices.length > 0 && <section className="mt-3 space-y-3" aria-label="Super Likes">
       {superNotices.map(n => <Link key={n.id} href={`/profile/${n.actor.id}?returnTo=%2Fnotifications`} onClick={() => readNotice(n.actor.id, 'new_like')} data-testid={`super-like-notice-${n.id}`} className="sh-card flex items-center gap-3 rounded-[22px] border-primary/30 p-4">
         <span className="sh-icon flex h-11 w-11 shrink-0 items-center justify-center rounded-full"><Star size={22} fill="currentColor" aria-hidden="true" /></span>
@@ -156,25 +160,6 @@ export function ActivityOverview({ avatar }: { avatar: AvatarFn }) {
         <ChevronRight size={17} className="text-primary" aria-hidden="true" />
       </Link>)}
     </section>}
-    <section className="mt-8 space-y-3" aria-label="Summary">
-    {cards.map(c => <Link key={c.key} href={c.href} data-testid={`link-summary-${c.key}`} aria-label={`${c.label}, ${c.badge} new`} className="sh-card flex items-center gap-4 rounded-[24px] p-4 transition-transform hover:-translate-y-px md:p-5">
-        <div className="sh-icon relative flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl">{c.icon}{c.badge > 0 && <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 text-[11px] font-bold text-primary-foreground">{c.badge > 99 ? '99+' : c.badge}</span>}</div>
-        <div className="min-w-0 flex-1"><div className="text-[17px] font-bold">{c.label}</div><div className="sh-muted truncate text-sm">{c.q.isLoading ? 'Loading' : c.q.isError ? 'Unavailable right now' : c.sub}</div></div>
-        {c.ps.length > 0 && <div className="hidden sm:block"><Stack profiles={c.ps} avatar={avatar} /></div>}
-        <span className="text-xl font-extrabold tabular-nums" data-testid={`text-count-${c.key}`}>{c.q.isLoading ? '-' : c.badge}</span>
-        <ChevronRight size={18} className="sh-muted" aria-hidden="true" />
-      </Link>)}
-      {me.data?.id && <Link href={`/profile/${me.data.id}/followers`} data-testid="link-summary-followers" aria-label={`${followSummary.data?.followersCount ?? 0} followers`}
-        className="sh-card flex items-center gap-4 rounded-[24px] p-4 transition-transform hover:-translate-y-px md:p-5">
-        <div className="sh-icon relative flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl">
-          <UserPlus size={20} aria-hidden="true" />
-          {(notes.data?.unreadCounts.follows ?? 0) > 0 && <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 text-[11px] font-bold text-primary-foreground">{(notes.data?.unreadCounts.follows ?? 0) > 99 ? '99+' : notes.data?.unreadCounts.follows}</span>}
-        </div>
-        <div className="min-w-0 flex-1"><div className="text-[17px] font-bold">Followers</div><div className="sh-muted truncate text-sm">People following you</div></div>
-        <span className="text-xl font-extrabold tabular-nums">{followSummary.data?.followersCount ?? (followSummary.isLoading ? '-' : 0)}</span>
-        <ChevronRight size={18} className="sh-muted" aria-hidden="true" />
-      </Link>}
-    </section>
   </div></div>;
 }
 

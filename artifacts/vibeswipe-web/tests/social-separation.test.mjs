@@ -10,11 +10,23 @@ const activity = web.slice(web.indexOf('export function ActivityOverview'), web.
 const inbound = web.slice(web.indexOf('export function InboundPeoplePage'), web.indexOf('export function MutualMatchesPage'));
 const matches = web.slice(web.indexOf('export function MutualMatchesPage'));
 
-test('Activity contains message notices and three separate summary destinations, never conversation previews', () => {
-  assert.match(activity, /n\.type === 'new_message'/);
-  assert.match(activity, /am\.some\(m => m\.id === n\.matchId/);
-  for (const path of ['/matches', '/likes', '/views', '/messages']) assert.ok(activity.includes(`'${path}'`));
+test('Activity excludes chat-message notices and places its four summary cards first', () => {
+  assert.doesNotMatch(activity, /new_message|sent you a message|button-message-notice/);
+  assert.match(activity, /new_follow/);
+  assert.match(activity, /new_super_like/);
+  for (const path of ['/matches', '/likes', '/views']) assert.ok(activity.includes(`'${path}'`));
+  assert.ok(activity.indexOf('aria-label="Summary"') < activity.indexOf('aria-label="New followers"'));
   assert.doesNotMatch(activity, /lastMessage|\/chat\//);
+});
+
+test('native Activity excludes chat-message notices and places its four summary cards first', () => {
+  assert.doesNotMatch(native, /new_message|sent you a message|button-message-notice/);
+  assert.match(native, /new_follow/);
+  assert.match(native, /new_super_like/);
+  assert.ok(native.indexOf('testID="activity-summary"') < native.indexOf('testID={`follow-notice-'));
+  const tabs = source('../../vibeswipe/app/(tabs)/_layout.tsx');
+  assert.match(tabs, /messageBadge = counts\?\.messages/);
+  assert.match(tabs, /NativeTabs\.Trigger\.Label>Messages/);
 });
 
 test('Likes and Views use their dedicated real data and expose profile viewing, not chat', () => {
@@ -25,7 +37,7 @@ test('Likes and Views use their dedicated real data and expose profile viewing, 
   assert.match(inbound, /Liked you/);
   assert.match(inbound, /Viewed your profile/);
   assert.match(inbound, /readNotice\(r\.profile\.id/);
-  assert.doesNotMatch(inbound, /MessageCircle|\/chat\//);
+  assert.doesNotMatch(inbound, /new_message|sent you a message|button-message-notice/);
 });
 
 test('Matches shows only real unblocked mutual matches and no message previews', () => {
@@ -36,7 +48,7 @@ test('Matches shows only real unblocked mutual matches and no message previews',
 });
 
 test('separate Likes and Views pages retain the Activity highlight without extra bottom tabs', () => {
-  assert.match(app, /const activeLocation = \['\/matches', '\/views', '\/likes'\]\.includes\(location\) \? '\/notifications' : location/);
+  assert.match(app, /const activeLocation = \['\/matches', '\/views', '\/likes'\]\.includes\(location\) \? '\/notifications' : isReelsViewer \? '\/reels' : location/);
   assert.match(app, /path="\/likes" component=\{LikesRoute\}/);
   assert.match(app, /<ActivityOverview avatar=/);
   assert.match(app, /<MutualMatchesPage avatar=/);
@@ -50,8 +62,7 @@ test('native Activity uses a nested stack so Likes and Views return through Acti
   assert.match(source('../../vibeswipe/app/(tabs)/activity/views.tsx'), /<InboundPeoplePage kind="views"/);
   assert.match(source('../../vibeswipe/app/(tabs)/activity/index.tsx'), /ActivityOverview as default/);
   assert.match(source('../../vibeswipe/app/(tabs)/matches.tsx'), /MutualMatchesPage as default/);
-  assert.match(native, /router\.navigate\("\/\(tabs\)\/views"/);
-  assert.match(native, /m\.id === n\.matchId/);
+  assert.doesNotMatch(native, /new_message|sent you a message|button-message-notice/);
 });
 
 test('native bottom navigation remains exactly the five selected tabs', () => {

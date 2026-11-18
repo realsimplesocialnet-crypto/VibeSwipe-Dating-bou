@@ -116,12 +116,7 @@ export function ActivityOverview() {
   const am = useMemo(() => active(matches.data), [matches.data]);
   const reelNotices = (notes.data?.notifications ?? []).filter(n => n.type === "reel_like");
   const followNotices = (notes.data?.notifications ?? []).filter(n => n.type === "new_follow").slice(0, 8);
-  const msgs = useMemo(() => (notes.data?.notifications ?? []).filter(n => n.type === "new_message" && am.some(m => m.id === n.matchId && m.profile.id === n.actor.id)).slice(0, 8), [notes.data, am]);
   const superNotices = useMemo(() => (notes.data?.notifications ?? []).filter(n => n.type === "new_super_like").slice(0, 8), [notes.data]);
-  const open = async (id: string, unread: boolean) => {
-    if (unread) { try { await mark.mutateAsync({ notificationId: id }); } catch { /* navigate anyway */ } void qc.invalidateQueries({ queryKey: getGetNotificationsQueryKey() }); }
-    router.navigate("/(tabs)/views" as never);
-  };
   const counts = notes.data?.unreadCounts;
   const cards = [
     { key: "matches", to: "/(tabs)/matches", title: "Mutual Matches", sub: "People you both said yes to", icon: "users" as const, n: am.length, ps: am.map((m) => m.profile), loading: matches.isLoading, badge: counts?.matches ?? 0 },
@@ -131,6 +126,43 @@ export function ActivityOverview() {
   return (
     <Screen title="Activity">
       <ScrollView contentContainerStyle={[s.list, { paddingBottom: insets.bottom + 110 }]}>
+        <View testID="activity-summary" accessibilityLabel="Activity summary">
+          {cards.map((k) => (
+            <Pressable key={k.key} onPress={() => router.push(k.to as never)} testID={`link-summary-${k.key}`} accessibilityRole="button" accessibilityLabel={`${k.title}, ${k.badge} new`} style={({ pressed }) => [s.card, s.row, { backgroundColor: c.profileCard, borderColor: c.border, opacity: pressed ? 0.85 : 1 }]}>
+              <View style={[s.iconBox, { backgroundColor: c.profileChip }]}>
+                <Feather name={k.icon} size={20} color={c.primary} />
+                {k.badge > 0 && <View style={[s.badge, { backgroundColor: c.primary }]}><Text style={[s.badgeText, { color: c.primaryForeground }]}>{k.badge > 99 ? "99+" : k.badge}</Text></View>}
+              </View>
+              <View style={s.flex}>
+                <Text style={[s.name, { color: c.foreground }]}>{k.title}</Text>
+                <Text numberOfLines={1} style={{ color: c.mutedForeground, fontSize: 13 }}>{k.sub}</Text>
+              </View>
+              <View style={s.stack}>{k.ps.slice(0, 3).map((p, i) => <View key={p.id} style={[s.stackItem, { marginLeft: i ? -12 : 0, borderColor: c.profileCard }]}><ProfileAvatar profile={p} size={32} /></View>)}</View>
+              <Text style={[s.count, { color: c.foreground }]} testID={`text-count-${k.key}`}>{k.loading ? "-" : k.badge}</Text>
+              <Feather name="chevron-right" size={18} color={c.mutedForeground} />
+            </Pressable>
+          ))}
+          {me.data?.id ? (
+            <Pressable
+              testID="link-summary-followers"
+              accessibilityRole="button"
+              accessibilityLabel={`${followSummary.data?.followersCount ?? 0} followers`}
+              onPress={() => router.push({ pathname: "/followers/[profileId]", params: { profileId: me.data!.id } })}
+              style={({ pressed }) => [s.card, s.row, { backgroundColor: c.profileCard, borderColor: c.border, opacity: pressed ? 0.85 : 1 }]}
+            >
+              <View style={[s.iconBox, { backgroundColor: c.profileChip }]}>
+                <Feather name="user-plus" size={20} color={c.primary} />
+                {(counts?.follows ?? 0) > 0 && <View style={[s.badge, { backgroundColor: c.primary }]}><Text style={[s.badgeText, { color: c.primaryForeground }]}>{counts!.follows > 99 ? "99+" : counts!.follows}</Text></View>}
+              </View>
+              <View style={s.flex}><Text style={[s.name, { color: c.foreground }]}>Followers</Text><Text style={{ color: c.mutedForeground, fontSize: 13 }}>People following you</Text></View>
+              <Text style={[s.count, { color: c.foreground }]}>{followSummary.data?.followersCount ?? (followSummary.isLoading ? "-" : "0")}</Text>
+              <Feather name="chevron-right" size={18} color={c.mutedForeground} />
+            </Pressable>
+          ) : null}
+        </View>
+        {notes.isLoading || (notes.isError && !notes.data) ? (
+          <State loading={notes.isLoading} error={notes.isError} empty={false} onRetry={() => void notes.refetch()} icon="bell" emptyTitle="" emptyText="" />
+        ) : null}
         {followNotices.map(n => <View key={n.id} testID={`follow-notice-${n.id}`} style={[s.notice, { backgroundColor: c.profileCard, borderColor: c.border }]}>
           <Pressable accessibilityRole="button" accessibilityLabel={`${n.actor.name} started following you. Open profile`}
             onPress={async () => {
@@ -173,16 +205,6 @@ export function ActivityOverview() {
           <Text style={[s.time, { color: c.mutedForeground }]}>{ago(n.createdAt)}</Text>
           {!n.readAt && <View style={[s.dot, { backgroundColor: c.primary }]} />}
         </Pressable>)}
-        {notes.isLoading || (notes.isError && !notes.data) ? (
-          <State loading={notes.isLoading} error={notes.isError} empty={false} onRetry={() => void notes.refetch()} icon="message-circle" emptyTitle="" emptyText="" />
-        ) : msgs.map((n) => (
-          <Pressable key={n.id} onPress={() => void open(n.id, !n.readAt)} disabled={mark.isPending} testID={`button-message-notice-${n.id}`} accessibilityRole="button" accessibilityLabel={`New message from ${n.actor.name}. Open Messages`} style={({ pressed }) => [s.notice, { backgroundColor: c.profileCard, borderColor: c.border, opacity: pressed ? 0.8 : 1 }]}>
-            <Feather name="message-circle" size={17} color={c.primary} />
-            <Text numberOfLines={1} style={[s.flex, { color: n.readAt ? c.mutedForeground : c.foreground, fontWeight: n.readAt ? "400" : "700" }]}>{n.actor.name} sent you a message</Text>
-            <Text style={[s.time, { color: c.mutedForeground }]}>{ago(n.createdAt)}</Text>
-            {!n.readAt && <View style={[s.dot, { backgroundColor: c.primary }]} />}
-          </Pressable>
-        ))}
         {superNotices.map(n => (
           <Pressable key={n.id} onPress={() => { readNotice(n.actor.id, "new_like"); router.push({ pathname: "/profile/[profileId]", params: { profileId: n.actor.id } }); }} testID={`super-like-notice-${n.id}`} accessibilityRole="button" accessibilityLabel={`${n.actor.name} Super Liked you. Open profile`} style={[s.notice, { backgroundColor: c.profileCard, borderColor: c.primary }]}>
             <View style={[s.iconBox, { backgroundColor: c.profileChip }]}><Feather name="star" size={22} color={c.primary} /></View>
@@ -192,39 +214,6 @@ export function ActivityOverview() {
             <Feather name="chevron-right" size={17} color={c.primary} />
           </Pressable>
         ))}
-        <View style={{ height: 18 }} />
-        {cards.map((k) => (
-          <Pressable key={k.key} onPress={() => router.push(k.to as never)} testID={`link-summary-${k.key}`} accessibilityRole="button" accessibilityLabel={`${k.title}, ${k.badge} new`} style={({ pressed }) => [s.card, s.row, { backgroundColor: c.profileCard, borderColor: c.border, opacity: pressed ? 0.85 : 1 }]}>
-            <View style={[s.iconBox, { backgroundColor: c.profileChip }]}>
-              <Feather name={k.icon} size={20} color={c.primary} />
-              {k.badge > 0 && <View style={[s.badge, { backgroundColor: c.primary }]}><Text style={[s.badgeText, { color: c.primaryForeground }]}>{k.badge > 99 ? "99+" : k.badge}</Text></View>}
-            </View>
-            <View style={s.flex}>
-              <Text style={[s.name, { color: c.foreground }]}>{k.title}</Text>
-              <Text numberOfLines={1} style={{ color: c.mutedForeground, fontSize: 13 }}>{k.sub}</Text>
-            </View>
-            <View style={s.stack}>{k.ps.slice(0, 3).map((p, i) => <View key={p.id} style={[s.stackItem, { marginLeft: i ? -12 : 0, borderColor: c.profileCard }]}><ProfileAvatar profile={p} size={32} /></View>)}</View>
-            <Text style={[s.count, { color: c.foreground }]} testID={`text-count-${k.key}`}>{k.loading ? "-" : k.badge}</Text>
-            <Feather name="chevron-right" size={18} color={c.mutedForeground} />
-          </Pressable>
-        ))}
-        {me.data?.id ? (
-          <Pressable
-            testID="link-summary-followers"
-            accessibilityRole="button"
-            accessibilityLabel={`${followSummary.data?.followersCount ?? 0} followers`}
-            onPress={() => router.push({ pathname: "/followers/[profileId]", params: { profileId: me.data!.id } })}
-            style={({ pressed }) => [s.card, s.row, { backgroundColor: c.profileCard, borderColor: c.border, opacity: pressed ? 0.85 : 1 }]}
-          >
-            <View style={[s.iconBox, { backgroundColor: c.profileChip }]}>
-              <Feather name="user-plus" size={20} color={c.primary} />
-              {(counts?.follows ?? 0) > 0 && <View style={[s.badge, { backgroundColor: c.primary }]}><Text style={[s.badgeText, { color: c.primaryForeground }]}>{counts!.follows > 99 ? "99+" : counts!.follows}</Text></View>}
-            </View>
-            <View style={s.flex}><Text style={[s.name, { color: c.foreground }]}>Followers</Text><Text style={{ color: c.mutedForeground, fontSize: 13 }}>People following you</Text></View>
-            <Text style={[s.count, { color: c.foreground }]}>{followSummary.data?.followersCount ?? (followSummary.isLoading ? "-" : "0")}</Text>
-            <Feather name="chevron-right" size={18} color={c.mutedForeground} />
-          </Pressable>
-        ) : null}
       </ScrollView>
     </Screen>
   );
