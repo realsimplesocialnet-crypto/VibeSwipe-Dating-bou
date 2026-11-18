@@ -18,16 +18,8 @@ import { reelSlideIndex, reelsViewportFrame } from "@/lib/reels-viewport";
 import "@/components/reels/reels.css";
 
 const REEL_COMMENTS_HISTORY_KEY = "__myageReelComments";
-const REEL_SEARCH_STOP_WORDS = new Set(["a", "an", "and", "are", "at", "for", "how", "in", "is", "my", "of", "on", "the", "to", "what", "where"]);
 
 type ReelCommentsHistoryMarker = { reelId: string; activeIndex: number };
-
-function reelCaptionSearchSuggestion(caption: string): string {
-  const matches = caption.normalize("NFKC").toLocaleLowerCase("en").match(/[\p{L}\p{N}]+/gu);
-  const words: string[] = matches ? Array.from(matches) : [];
-  const terms = [...new Set(words.filter((word) => word.length > 1 && !REEL_SEARCH_STOP_WORDS.has(word)))].slice(0, 3);
-  return terms.join(" ");
-}
 
 function readReelCommentsHistoryMarker(state: unknown): ReelCommentsHistoryMarker | null {
   if (!state || typeof state !== "object") return null;
@@ -473,7 +465,7 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
           : !reels.length ? <div className="reels-empty"><span className="reels-empty-mark"><Clapperboard size={30} /></span><p className="mt-5 text-xl font-bold">No Reels yet</p><p className="mt-1 max-w-[260px] text-sm leading-6 text-white/60">Be the first to share a video with the community.</p><Link href="/reels/new" className="reels-primary mt-6" data-testid="link-post-first-reel">Post a Reel</Link></div>
           : reels.map((reel, index) => <ReelSlide
              key={reel.id} reel={reel} index={index} active={index === active && !searchOpen} near={Math.abs(index - active) <= 1}
-              muted={muted} pageHidden={pageHidden} compact={commentsFor === reel.id} navigationVisible={navigationVisible} searchSuggestion={reelCaptionSearchSuggestion(reel.caption)}
+              muted={muted} pageHidden={pageHidden} compact={commentsFor === reel.id} navigationVisible={navigationVisible}
               likePending={like.isPending || unlike.isPending} savePending={save.isPending || unsave.isPending}
             returnTo={ownPath}
              onAutoplayMuted={() => setMuted(true)}
@@ -481,7 +473,6 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
               offlineSaved={offlineIds.has(reel.id)}
               onAutoCache={() => void cacheOffline(reel, false)}
               onLike={() => void toggle("like", reel)} onSave={() => void toggle("save", reel)}
-              onSearchSuggestion={openSearch}
             onView={() => void recordPlayback(reel)}
               onComment={() => openComments(reel.id)} onShare={() => setShareFor(reel)}
           />)}

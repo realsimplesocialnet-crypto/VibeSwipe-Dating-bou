@@ -9,10 +9,11 @@ import {
 import {
   blocksTable, db, mediaAssetsTable, profilesTable, reelCommentsTable, reelLikesTable, reelSavesTable, reelSharesTable, reelViewsTable, reelsTable, storiesTable, vibeSwipeFollowsTable, vibeSwipeNotificationsTable,
 } from "@workspace/db";
-import { and, asc, desc, eq, isNull, ne, or, sql, type SQL } from "drizzle-orm";
+import { and, asc, desc, eq, gte, isNull, lt, ne, or, sql, type SQL } from "drizzle-orm";
 import { Router, type IRouter, type Request } from "express";
 import { requireAuth } from "../middlewares/auth";
 import { cleanReelCaption, decodeReelCursor, encodeReelCursor, reelAssetProblem, reelLocation } from "../lib/reel-cursor";
+import { decodeReelFeedMixCursor, encodeReelFeedMixCursor, mixReelFeedLanes } from "../lib/reel-feed-mix";
 import { reelSearchTerms } from "../lib/reel-search";
 import { visibleReelCondition } from "../lib/reels-visibility";
 import { removeUnreferencedProfileMedia } from "../lib/profileMediaCleanup";
@@ -129,8 +130,6 @@ function afterCursor(cursorText: string | undefined, column: typeof reelsTable.c
 router.get("/vibeswipe/reels", async (req, res): Promise<void> => {
   const query = GetReelsFeedQueryParams.safeParse(req.query);
   if (!query.success) { res.status(400).json({ error: "Invalid Reels page." }); return; }
-  const cursorCondition = afterCursor(query.data.cursor, reelsTable.createdAt);
-  if (cursorCondition === false) { res.status(400).json({ error: "Invalid Reels page." }); return; }
   const terms = query.data.q ? reelSearchTerms(query.data.q) : [];
   const searchCondition = query.data.q
     ? terms.length
@@ -144,6 +143,7 @@ router.get("/vibeswipe/reels", async (req, res): Promise<void> => {
       : sql`false`
     : undefined;
   const viewerId = uid(req);
+  const limit = query.data.limit ?? PAGE_SIZE;
   const followingCondition = query.data.feed === "friends"
     ? sql`EXISTS (
         SELECT 1 FROM ${vibeSwipeFollowsTable}
@@ -151,14 +151,47 @@ router.get("/vibeswipe/reels", async (req, res): Promise<void> => {
           AND ${vibeSwipeFollowsTable.followedId} = ${reelsTable.userId}
       )`
     : undefined;
-  const where = and(cursorCondition, searchCondition, followingCondition);
-  const limit = query.data.limit ?? PAGE_SIZE;
-  const rows = await selectReels(viewerId, where, limit + 1);
-  const page = rows.slice(0, limit);
-  const last = page[page.length - 1];
+  const baseWhere = and(searchCondition, followingCondition);
+
+  if (query.data.q) {
+    const cursorCondition = afterCursor(query.data.cursor, reelsTable.createdAt);
+    if (cursorCondition === false) { res.status(400).json({ error: "Invalid Reels page." }); return; }
+    const rows = await selectReels(viewerId, and(cursorCondition, baseWhere), limit + 1);
+    const page = rows.slice(0, limit);
+    const last = page[page.length - 1];
+    res.json(GetReelsFeedResponse.parse({
+      items: page.map((row) => project(row, viewerId)),
+      nextCursor: rows.length > limit && last ? encodeReelCursor(last.createdAt, last.id) : null,
+    }));
+    return;
+  }
+
+  const mixCursor = query.data.cursor ? decodeReelFeedMixCursor(query.data.cursor) : null;
+  if (query.data.cursor && !mixCursor) { res.status(400).json({ error: "Invalid Reels page." }); return; }
+  const cutoff = mixCursor?.cutoff ?? new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  const olderCursor = mixCursor?.older ? encodeReelCursor(mixCursor.older.createdAt, mixCursor.older.id) : undefined;
+  const recentCursor = mixCursor?.recent ? encodeReelCursor(mixCursor.recent.createdAt, mixCursor.recent.id) : undefined;
+  const olderCondition = afterCursor(olderCursor, reelsTable.createdAt);
+  const recentCondition = afterCursor(recentCursor, reelsTable.createdAt);
+  if (olderCondition === false || recentCondition === false) { res.status(400).json({ error: "Invalid Reels page." }); return; }
+  const [olderRows, recentRows] = await Promise.all([
+    selectReels(viewerId, and(baseWhere, lt(reelsTable.createdAt, cutoff), olderCondition), limit + 1),
+    selectReels(viewerId, and(baseWhere, gte(reelsTable.createdAt, cutoff), recentCondition), limit + 1),
+  ]);
+  const mixed = mixReelFeedLanes(olderRows, recentRows, limit, mixCursor?.nextLane ?? "older");
+  const olderLast = mixed.olderUsed ? olderRows[mixed.olderUsed - 1] : undefined;
+  const recentLast = mixed.recentUsed ? recentRows[mixed.recentUsed - 1] : undefined;
+  const nextCursor = olderRows.length > mixed.olderUsed || recentRows.length > mixed.recentUsed
+    ? encodeReelFeedMixCursor({
+        cutoff,
+        older: olderLast ? { createdAt: olderLast.createdAt, id: olderLast.id } : mixCursor?.older ?? null,
+        recent: recentLast ? { createdAt: recentLast.createdAt, id: recentLast.id } : mixCursor?.recent ?? null,
+        nextLane: mixed.nextLane,
+      })
+    : null;
   res.json(GetReelsFeedResponse.parse({
-    items: page.map((row) => project(row, viewerId)),
-    nextCursor: rows.length > limit && last ? encodeReelCursor(last.createdAt, last.id) : null,
+    items: mixed.items.map((row) => project(row, viewerId)),
+    nextCursor,
   }));
 });
 

@@ -2018,7 +2018,7 @@ export const GetProfileByIdResponse = zod.object({
  * @summary List visible Reels posted by a profile
  */
 
-export const getProfileReelsQueryCursorMax = 200;
+export const getProfileReelsQueryCursorMax = 400;
 
 
 
@@ -2433,7 +2433,7 @@ export const TranscodeStoryVideoResponse = zod.object({
 
 
 /**
- * @summary Page through public member Reels, newest first
+ * @summary Page through public Reels with older and recent videos mixed
  */
 export const getReelsFeedQueryCursorMax = 200;
 

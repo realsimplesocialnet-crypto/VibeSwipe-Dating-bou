@@ -12,7 +12,7 @@ export type GetProfileReelsParams = {
  */
 profileId: string;
 /**
- * @maxLength 200
+ * @maxLength 400
  */
 cursor?: string;
 };

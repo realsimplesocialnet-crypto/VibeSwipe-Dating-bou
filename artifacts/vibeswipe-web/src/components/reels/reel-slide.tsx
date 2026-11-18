@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "wouter";
 import type { Reel } from "@workspace/api-client-react";
-import { Bookmark, Heart, MapPin, MessageCircle, Pause, Play, Search, Send, Volume2, VolumeX } from "lucide-react";
+import { Bookmark, Heart, MapPin, MessageCircle, Pause, Play, Send, Volume2, VolumeX } from "lucide-react";
 import { VerifiedBadge } from "@/components/verified-badge";
 import { ReelAvatar } from "@/components/reels/reel-avatar";
 import { formatCount, reelMediaUrl } from "@/lib/reels";
@@ -9,15 +9,15 @@ import { isOfflineReelWifi } from "@/lib/offline-reels";
 
 type Props = {
   reel: Reel; index: number; active: boolean; near: boolean; muted: boolean; pageHidden: boolean;
-  compact: boolean; navigationVisible: boolean; returnTo: string; searchSuggestion: string;
+  compact: boolean; navigationVisible: boolean; returnTo: string;
   likePending: boolean; savePending: boolean;
   onAutoplayMuted: () => void; onToggleSound: () => void;
-  onLike: () => void; onComment: () => void; onShare: () => void; onSave: () => void; onSearchSuggestion: (query: string) => void;
+  onLike: () => void; onComment: () => void; onShare: () => void; onSave: () => void;
   onView: () => void;
   offlineSaved: boolean; onAutoCache: () => void;
 };
 
-export function ReelSlide({ reel, index, active, near, muted, pageHidden, compact, navigationVisible, returnTo, searchSuggestion, likePending, savePending, onAutoplayMuted, onToggleSound, onLike, onComment, onShare, onSave, onSearchSuggestion, onView, offlineSaved, onAutoCache }: Props) {
+export function ReelSlide({ reel, index, active, near, muted, pageHidden, compact, navigationVisible, returnTo, likePending, savePending, onAutoplayMuted, onToggleSound, onLike, onComment, onShare, onSave, onView, offlineSaved, onAutoCache }: Props) {
   const video = useRef<HTMLVideoElement>(null);
   const autoCacheRequested = useRef(false);
   const viewRecorded = useRef(false);
@@ -203,16 +203,6 @@ export function ReelSlide({ reel, index, active, near, muted, pageHidden, compac
     </div>
 
     <div className={`reel-meta ${compact ? "is-compact" : ""} ${navigationVisible ? "is-nav-visible" : ""}`}>
-      {searchSuggestion && !compact && <button
-        type="button"
-        className="reel-search-suggestion"
-        aria-label={`Search Reels for ${searchSuggestion}`}
-        data-testid={`button-reel-search-suggestion-${reel.id}`}
-        onClick={() => onSearchSuggestion(searchSuggestion)}
-      >
-        <Search size={16} strokeWidth={2.1} />
-        <span>Search “{searchSuggestion}”</span>
-      </button>}
       {reel.isOwner ? creatorIdentity : <Link href={creatorProfileHref} aria-label={`Open ${reel.creatorName}'s profile`} data-testid={`link-reel-profile-${reel.id}`} className="inline-flex max-w-full no-underline">{creatorIdentity}</Link>}
       {!compact && reel.caption && <p className="reel-caption" data-testid={`text-reel-caption-${reel.id}`}>{reel.caption}</p>}
     </div>

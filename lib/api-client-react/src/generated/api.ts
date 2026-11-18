@@ -8629,7 +8629,7 @@ export const getGetReelsFeedUrl = (params?: GetReelsFeedParams,) => {
 }
 
 /**
- * @summary Page through public member Reels, newest first
+ * @summary Page through public Reels with older and recent videos mixed
  */
 export const getReelsFeed = async (params?: GetReelsFeedParams, options?: Parameters<typeof customFetch>[1]): Promise<ReelPage> => {
 
@@ -8700,7 +8700,7 @@ export function useGetReelsFeed<TData = Awaited<ReturnType<typeof getReelsFeed>>
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
- * @summary Page through public member Reels, newest first
+ * @summary Page through public Reels with older and recent videos mixed
  */
 
 export function useGetReelsFeed<TData = Awaited<ReturnType<typeof getReelsFeed>>, TError = ErrorType<unknown>>(

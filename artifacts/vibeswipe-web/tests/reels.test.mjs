@@ -244,7 +244,6 @@ test("Reel action rail and profile grid show persisted like, comment, save and s
   assert.match(slide, /type=\"range\"[\s\S]*?onChange=\{\(event\) => seekVideo\(event\.currentTarget\.value\)\}/);
   assert.match(slide, /onTimeUpdate=\{\(event\) => \{[\s\S]*?setProgress\(\(element\.currentTime \/ element\.duration\) \* 100\)/);
   assert.match(slide, /element\.currentTime = \(nextProgress \/ 100\) \* element\.duration/);
-  assert.match(slide, /button-reel-search-suggestion-/);
   const css = read("../src/components/reels/reels.css");
   assert.match(css, /\.reel-rail button svg \{ height: 24px; width: 24px/);
   assert.match(css, /\.reel-rail button \{[^}]*height: 56px;[^}]*font-size: 12px/);
@@ -270,8 +269,9 @@ test("Reels put the creator photo beside the name and keep Follow off the rail",
   assert.match(feed, /data-testid=\"link-reels-saved\"/);
   assert.match(feed, /data-testid=\"link-create-reel\"/);
   assert.match(feed, /data-testid=\{`button-delete-reel-\$\{activeReel\.id\}`\}/);
-  assert.match(feed, /reelCaptionSearchSuggestion\(reel\.caption\)/);
-  assert.match(feed, /onSearchSuggestion=\{openSearch\}/);
+  assert.doesNotMatch(slide, /reel-search-suggestion|button-reel-search-suggestion|Search “/);
+  assert.doesNotMatch(feed, /reelCaptionSearchSuggestion|searchSuggestion=|onSearchSuggestion/);
+  assert.match(feed, /data-testid="button-search-reels"/);
   assert.doesNotMatch(feed, /useGetMatches|messageCreator|button-message-creator/);
   assert.doesNotMatch(slide, /button-message-creator|MessageSquare|button-follow-creator|reel-follow-button/);
   assert.match(read("../src/App.tsx"), /requested\.startsWith\('\/reels\/'\)/);

@@ -1313,7 +1313,7 @@ paths:
         - in: query
           name: cursor
           required: false
-          schema: { type: string, maxLength: 200 }
+          schema: { type: string, maxLength: 400 }
       responses:
         "200":
           description: Profile Reels page
@@ -1632,7 +1632,7 @@ paths:
     get:
       operationId: getReelsFeed
       tags: [vibeswipe]
-      summary: Page through public member Reels, newest first
+      summary: Page through public Reels with older and recent videos mixed
       parameters:
         - in: query
           name: cursor

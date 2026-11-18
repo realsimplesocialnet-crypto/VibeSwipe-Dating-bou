@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import { cleanReelCaption, decodeReelCursor, encodeReelCursor, reelAssetProblem, reelLocation } from "../src/lib/reel-cursor.ts";
+import { decodeReelFeedMixCursor, encodeReelFeedMixCursor, mixReelFeedLanes } from "../src/lib/reel-feed-mix.ts";
 import { reelSearchTerms } from "../src/lib/reel-search.ts";
 
 const read = (path: string) => readFileSync(new URL(path, import.meta.url), "utf8");
@@ -23,6 +24,44 @@ test("feed cursors round-trip and reject tampering", () => {
   assert.deepEqual(decodeReelCursor(encodeReelCursor(at, id)), { createdAt: at, id });
   assert.equal(decodeReelCursor(Buffer.from("nope|x").toString("base64url")), null);
   assert.equal(decodeReelCursor("%%%"), null);
+});
+
+test("public Reels feed mixes older videos first and keeps lane pagination stable", () => {
+  const older = ["older-1", "older-2", "older-3"];
+  const recent = ["recent-1", "recent-2", "recent-3", "recent-4"];
+  const first = mixReelFeedLanes(older, recent, 4);
+  assert.deepEqual(first.items, ["older-1", "recent-1", "older-2", "recent-2"]);
+  assert.equal(first.olderUsed, 2);
+  assert.equal(first.recentUsed, 2);
+  assert.equal(first.nextLane, "older");
+  const second = mixReelFeedLanes(
+    older.slice(first.olderUsed),
+    recent.slice(first.recentUsed),
+    4,
+    first.nextLane,
+  );
+  assert.deepEqual(second.items, ["older-3", "recent-3", "recent-4"]);
+  const combined = [...first.items, ...second.items];
+  assert.equal(new Set(combined).size, older.length + recent.length);
+  for (const reel of [...older, ...recent]) assert.equal(combined.filter((item) => item === reel).length, 1);
+
+  const id = "123e4567-e89b-42d3-a456-426614174000";
+  const cursor = {
+    cutoff: new Date("2026-11-11T00:00:00.000Z"),
+    older: { createdAt: new Date("2026-10-01T00:00:00.000Z"), id },
+    recent: { createdAt: new Date("2026-11-12T00:00:00.000Z"), id },
+    nextLane: first.nextLane,
+  } as const;
+  const encoded = encodeReelFeedMixCursor(cursor);
+  assert.ok(encoded.length <= 400);
+  assert.deepEqual(decodeReelFeedMixCursor(encoded), cursor);
+  assert.equal(decodeReelFeedMixCursor("tampered"), null);
+  assert.deepEqual(mixReelFeedLanes([], ["recent-1", "recent-2"], 2).items, ["recent-1", "recent-2"]);
+
+  assert.match(reels, /lt\(reelsTable\.createdAt, cutoff\)/);
+  assert.match(reels, /gte\(reelsTable\.createdAt, cutoff\)/);
+  assert.match(reels, /mixReelFeedLanes\(olderRows, recentRows, limit/);
+  assert.match(reels, /query\.data\.q\)[\s\S]*?encodeReelCursor/);
 });
 
 test("only the caller's own processed, unattached video can be published", () => {
