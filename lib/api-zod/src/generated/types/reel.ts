@@ -16,6 +16,7 @@ export interface Reel {
   creatorVerified: boolean;
   /** @nullable */
   creatorPhoto: string | null;
+  creatorFollowedByMe: boolean;
   videoReference: string;
   caption: string;
   /** @nullable */

@@ -47,8 +47,12 @@ test("Reels search updates results while typing across captions and locations", 
   const route = read("../../api-server/src/routes/vibeswipe-reels.ts");
   const spec = read("../../../lib/api-spec/openapi.yaml");
   assert.match(feed, /data-testid="button-search-reels"/);
+  assert.match(feed, /data-testid="button-search-reels" className="reels-search-trigger"/);
   assert.match(feed, /data-testid="input-search-reels"/);
   assert.match(feed, /placeholder="Search Reels"/);
+  const css = read("../src/components/reels/reels.css");
+  assert.match(css, /\.reels-search-trigger \{[^}]*border-radius: 0;[^}]*background: transparent;/);
+  assert.match(css, /\.reels-search-field \{[^}]*border: 0; border-radius: 0; background: transparent;/);
   assert.match(feed, /q: debouncedSearchText/);
   assert.doesNotMatch(feed, /Search Reel captions, people, or places as you type/);
   assert.match(route, /reelSearchTerms\(query\.data\.q\)/);
@@ -144,9 +148,9 @@ test("tapping anywhere on a Reel toggles playback without hiding navigation", ()
 test("Reel creator details stay aligned while using a smaller, lower profile block", () => {
   const slide = read("../src/components/reels/reel-slide.tsx");
   const css = read("../src/components/reels/reels.css");
-  assert.match(slide, /className="reel-identity flex min-w-0 items-center gap-2\.5/);
-  assert.match(slide, /size=\{compact \? 36 : 46\}/);
-  assert.match(css, /\.reel-identity \{ position: relative; top: 6px; gap: 10px/);
+  assert.match(slide, /className="reel-identity flex min-w-0 items-center gap-0/);
+  assert.doesNotMatch(slide.slice(slide.indexOf("const creatorIdentity"), slide.indexOf("return <section")), /ReelAvatar/);
+  assert.match(css, /\.reel-identity \{ position: relative; top: 6px; gap: 0/);
   assert.match(css, /\.reel-name \{ font-size: 18px/);
   assert.match(css, /\.reel-age \{ font-size: 15px/);
   assert.match(css, /\.reel-location \{ font-size: 12px/);
@@ -213,7 +217,7 @@ test("Reel action rail and profile grid show persisted like, comment, save and s
   for (const id of ["button-like-reel", "button-comments-reel", "button-save-reel", "button-share-reel", "button-post-reel-comment"]) {
     assert.ok(nativeReel.includes(id), `native Reel action is missing ${id}`);
   }
-  const actionOrder = ["button-like-reel", "button-comments-reel", "button-share-reel-", "button-save-reel-"]
+  const actionOrder = ["button-follow-creator", "button-like-reel", "button-comments-reel", "button-save-reel-", "button-share-reel-"]
     .map((id) => slide.indexOf(id));
   assert.ok(actionOrder.every((position, index) => position >= 0 && (index === 0 || position > actionOrder[index - 1])));
   assert.match(slide, /reel-music-slot[^]*?reel-music-artwork-slot/);
@@ -223,6 +227,22 @@ test("Reel action rail and profile grid show persisted like, comment, save and s
   assert.match(css, /\.reel-rail button svg \{ height: 26px; width: 26px/);
   assert.match(css, /\.reel-rail button \{ height: 50px; font-size: 12px/);
   assert.match(css, /\.reel-music-slot \{ display: flex; height: 42px; width: 42px/);
+});
+
+test("Reels show one creator avatar with an optimistic follow control", () => {
+  const slide = read("../src/components/reels/reel-slide.tsx");
+  const feed = read("../src/pages/reels-feed.tsx");
+  const route = read("../../api-server/src/routes/vibeswipe-reels.ts");
+  const spec = read("../../../lib/api-spec/openapi.yaml");
+  const creatorIdentity = slide.slice(slide.indexOf("const creatorIdentity"), slide.indexOf("return <section"));
+  assert.doesNotMatch(creatorIdentity, /ReelAvatar/);
+  assert.match(slide, /data-testid=\{`button-follow-creator-\$\{reel\.id\}`\}/);
+  assert.match(slide, /aria-pressed=\{reel\.creatorFollowedByMe\}/);
+  assert.match(slide, /reel\.creatorFollowedByMe \? <Check/);
+  assert.match(feed, /useFollowProfile/);
+  assert.match(feed, /patchCreatorFollowing\(profileId, nextFollowing\)/);
+  assert.match(route, /creatorFollowedByMe: sql<boolean>`EXISTS/s);
+  assert.match(spec, /creatorFollowedByMe: \{ type: boolean \}/);
 });
 
 test("Reels restore their full viewport and navigation after returning from an external share app", () => {

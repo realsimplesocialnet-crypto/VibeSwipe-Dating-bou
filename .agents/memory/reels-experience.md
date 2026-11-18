@@ -63,17 +63,23 @@ Reels navigation, action icons, labels, and counts should use bold, high-contras
 
 **How to apply:** Give the Reels/Friends tabs, search and add controls, like/comment/share actions, navigation labels, and view/count badges clear weight and contrast without changing the brand palette.
 
-Keep the vertical action rail compact and ordered Like, Comment, Save, Share, with a circular creator/artwork slot at the bottom for future music.
+Keep the vertical action rail compact and ordered creator Follow, Like, Comment, Save, Share, then offline save, with a music-artwork slot at the bottom.
 
-**Why:** The user asked for smaller, cleaner action controls and a reserved place for music artwork, then pointed out that repeating the creator photo there duplicates the profile image beside the name.
+**Why:** The user asked for TikTok-style creator follow, engagement actions, and a reserved place for music artwork; they also objected to showing the creator photo twice.
 
-**How to apply:** Keep labels readable at phone size, preserve separate offline saving, and do not build music selection or playback until requested. Never reuse the creator's profile photo in the music slot; use a music icon until track artwork exists.
+**How to apply:** Put one creator avatar with a plus/check Follow badge at the top of the rail; do not repeat it beside the name or in the music slot. Keep the like action for the Reel itself, preserve separate offline saving, and use a music icon until track artwork exists. Do not build music selection or playback until requested.
 
-Keep the creator photo, name, age and location block compact, aligned in a straight row, and slightly lower over the Reel; do not enlarge it into a banner.
+Keep the creator's name, age, location, and caption compact at the lower left; the single creator photo belongs in the Follow control on the action rail.
 
-**Why:** The user asked to shrink and lower the creator identity block while keeping its straight alignment, and confirmed the TikTok reference's caption text is the exact size they want.
+**Why:** The user approved TikTok's lower-left creator text size and requested the profile avatar with a Follow badge on the action rail instead of repeating the photo.
 
-**How to apply:** Prefer a smaller avatar and type scale with a modest lower offset, leaving the video and action rail readable. Keep the web Reel caption at 15px to match the approved reference.
+**How to apply:** Keep the name and age on one line, location directly below, and caption at 15px in the web feed. Avoid banners or another avatar in this lower-left block.
+
+Use a plain, unboxed search icon and flat search field; avoid circular buttons and pill-like borders around Reels search.
+
+**Why:** The user compared Reels to TikTok and asked for search controls without the rounded visual demarcation.
+
+**How to apply:** Keep the search target comfortably tappable but transparent and unrounded; keep typed search content functional.
 
 Reels must not allow nudity or explicit sexual content. The user chose automatic content checks rather than manual Reel approval; normal videos should remain allowed. Run the Hugging Face content checker inside the app server.
 

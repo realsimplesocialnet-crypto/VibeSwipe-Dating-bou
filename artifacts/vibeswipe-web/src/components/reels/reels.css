@@ -45,8 +45,8 @@
 .reels-top > * { pointer-events: auto; }
 .reels-search-overlay { position: absolute; inset: 0; z-index: 9; display: flex; flex-direction: column; gap: 16px; background: #100d13; padding: max(env(safe-area-inset-top), 14px) 14px max(env(safe-area-inset-bottom), 16px); }
 .reels-search-toolbar { display: flex; align-items: center; gap: 8px; }
-.reels-search-field { display: flex; min-width: 0; min-height: 46px; flex: 1; align-items: center; gap: 9px; border: 1px solid rgb(255 255 255 / .14); border-radius: 14px; background: #201a24; padding: 0 12px; color: rgb(255 255 255 / .65); }
-.reels-search-field:focus-within { border-color: hsl(var(--primary) / .8); box-shadow: 0 0 0 2px hsl(var(--primary) / .12); }
+.reels-search-field { display: flex; min-width: 0; min-height: 46px; flex: 1; align-items: center; gap: 9px; border: 0; border-radius: 0; background: transparent; padding: 0 4px; color: rgb(255 255 255 / .65); }
+.reels-search-field:focus-within { box-shadow: none; }
 .reels-search-field input { min-width: 0; height: 42px; flex: 1; border: 0; outline: 0; background: transparent; color: #fff; font: inherit; font-size: 14px; }
 .reels-search-field input::placeholder { color: rgb(255 255 255 / .48); }
 .reels-search-field button { display: flex; align-items: center; justify-content: center; color: rgb(255 255 255 / .7); }
@@ -65,6 +65,9 @@
 .reels-search-more:disabled { opacity: .65; }
 .reels-icon { display: flex; height: 40px; width: 40px; align-items: center; justify-content: center; border-radius: 999px; color: #fff; }
 .reels-icon:hover { background: rgb(255 255 255 / .08); }
+.reels-search-trigger { display: flex; height: 40px; width: 40px; flex: none; align-items: center; justify-content: center; border: 0; border-radius: 0; background: transparent; color: #fff; }
+.reels-search-trigger:hover { background: transparent; color: hsl(var(--primary)); }
+.reels-search-trigger:focus-visible { outline: 2px solid hsl(var(--primary)); outline-offset: 2px; }
 .reels-title { margin-top: 6px; font-size: 24px; font-weight: 800; letter-spacing: -.02em; text-shadow: 0 1px 6px rgb(0 0 0 / .4); }
 .reels-plus { display: flex; height: 38px; width: 38px; align-items: center; justify-content: center; border-radius: 10px; border: 1.5px solid hsl(var(--primary)); color: hsl(var(--primary)); background: rgb(12 10 15 / .25); }
 .reels-sound { display: flex; height: 38px; width: 38px; align-items: center; justify-content: center; border-radius: 999px; background: rgb(20 18 24 / .65); color: #fff; backdrop-filter: blur(8px); }
@@ -109,6 +112,11 @@
 .reel-rail { gap: 8px; }
 .reel-rail button { height: 50px; font-size: 12px; text-shadow: 0 1px 5px rgb(0 0 0 / .86); }
 .reel-rail button svg { height: 26px; width: 26px; stroke-width: 2; }
+.reel-follow-button { position: relative; overflow: visible !important; }
+.reel-follow-button .reel-avatar { border-color: #fff; box-shadow: 0 1px 5px rgb(0 0 0 / .45); }
+.reel-follow-badge { position: absolute; right: 0; bottom: 0; z-index: 1; display: flex; width: 18px; height: 18px; align-items: center; justify-content: center; border: 2px solid #0c0a0f; border-radius: 50%; background: hsl(var(--primary)); color: #fff; }
+.reel-follow-badge svg { height: 12px; width: 12px; }
+.reel-follow-button.is-following .reel-follow-badge { background: #fff; color: hsl(var(--primary)); }
 .reel-music-slot { display: flex; height: 42px; width: 42px; align-items: center; justify-content: center; overflow: hidden; border: 2px solid rgb(255 255 255 / .9); border-radius: 999px; background: rgb(8 6 10 / .86); box-shadow: 0 1px 6px rgb(0 0 0 / .45); }
 .reel-rail.is-compact .reel-music-slot { display: none; }
 .reel-name { font-size: 18px; font-weight: 750; letter-spacing: -.01em; text-shadow: 0 1px 5px rgb(0 0 0 / .7); }
@@ -116,7 +124,7 @@
 .reel-location { font-size: 12px; font-weight: 600; color: rgb(255 255 255 / .96); text-shadow: 0 1px 4px rgb(0 0 0 / .65); }
 .reel-caption { font-size: 14px; font-weight: 550; color: #fff; text-shadow: 0 1px 4px rgb(0 0 0 / .7); }
 .reel-hint { font-weight: 700; color: #fff; }
-.reels-search-field { border-width: 1.5px; color: rgb(255 255 255 / .88); }
+.reels-search-field { color: rgb(255 255 255 / .88); }
 .reels-search-field input { font-size: 15px; font-weight: 700; }
 .reels-search-field input::placeholder { color: rgb(255 255 255 / .7); font-weight: 650; }
 .reels-search-hint, .reels-search-status { color: rgb(255 255 255 / .84); font-weight: 650; }
@@ -126,7 +134,7 @@
 .reels-mobile-nav .mnav-icon { height: 19px; width: 19px; }
 .reels-mobile-nav .mnav-icon svg { height: 19px; width: 19px; stroke-width: 1.85; }
 .reels-mobile-nav .mnav-label { font-size: 10px; font-weight: 600; letter-spacing: .02em; opacity: .82 !important; }
-.reel-identity { position: relative; top: 6px; gap: 10px; }
+.reel-identity { position: relative; top: 6px; gap: 0; }
 .reel-name { font-size: 18px; }
 .reel-age { font-size: 15px; }
 .reel-location { font-size: 12px; }

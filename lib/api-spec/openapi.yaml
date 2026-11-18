@@ -2685,6 +2685,7 @@ components:
         creatorLocation: { type: string }
         creatorVerified: { type: boolean }
         creatorPhoto: { type: ["string", "null"] }
+        creatorFollowedByMe: { type: boolean }
         videoReference: { type: string }
         caption: { type: string }
         durationSeconds: { type: ["number", "null"] }
@@ -2697,7 +2698,7 @@ components:
         savedByMe: { type: boolean }
         isOwner: { type: boolean }
         createdAt: { type: string, format: date-time }
-      required: [id, creatorId, creatorName, creatorAge, creatorLocation, creatorVerified, creatorPhoto, videoReference, caption, durationSeconds, likeCount, commentCount, viewCount, shareCount, saveCount, likedByMe, savedByMe, isOwner, createdAt]
+      required: [id, creatorId, creatorName, creatorAge, creatorLocation, creatorVerified, creatorPhoto, creatorFollowedByMe, videoReference, caption, durationSeconds, likeCount, commentCount, viewCount, shareCount, saveCount, likedByMe, savedByMe, isOwner, createdAt]
     ReelViewCount:
       type: object
       properties:

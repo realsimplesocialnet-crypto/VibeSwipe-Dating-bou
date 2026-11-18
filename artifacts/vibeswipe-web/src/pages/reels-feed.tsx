@@ -2,8 +2,11 @@ import { useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, u
 import { Link, useLocation } from "wouter";
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  getGetMyReelsQueryKey, getGetProfileReelsQueryKey, getGetReelQueryKey, getGetReelsFeedQueryKey, getGetSavedReelsQueryKey, getProfileReels, getReelsFeed,
-  useDeleteReel, useGetReel, useLikeReel, useRecordReelView, useSaveReel, useUnlikeReel, useUnsaveReel, type Reel,
+  getGetMyProfileQueryKey, getGetMyReelsQueryKey, getGetNotificationsQueryKey, getGetProfileFollowSummaryQueryKey,
+  getGetProfileFollowersQueryKey, getGetProfileFollowingQueryKey, getGetProfileReelsQueryKey, getGetReelQueryKey,
+  getGetReelsFeedQueryKey, getGetSavedReelsQueryKey, getProfileReels, getReelsFeed,
+  useDeleteReel, useFollowProfile, useGetReel, useLikeReel, useRecordReelView, useSaveReel, useUnfollowProfile,
+  useUnlikeReel, useUnsaveReel, type Profile, type ProfileFollowSummary, type Reel,
 } from "@workspace/api-client-react";
 import { ArrowLeft, Bookmark, Clapperboard, LoaderCircle, Plus, Search, Users, Volume2, VolumeX, X } from "lucide-react";
 import { ReelSlide } from "@/components/reels/reel-slide";
@@ -120,6 +123,8 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
   const [shareFor, setShareFor] = useState<Reel | null>(null);
   const [deleteFor, setDeleteFor] = useState<Reel | null>(null);
   const [patches, setPatches] = useState<Record<string, Partial<Reel>>>({});
+  const [pendingCreatorFollows, setPendingCreatorFollows] = useState<Set<string>>(() => new Set());
+  const pendingCreatorFollowsRef = useRef<Set<string>>(new Set());
   const [removed, setRemoved] = useState<Set<string>>(() => new Set());
   const [notice, setNotice] = useState("");
   const [offlineReels, setOfflineReels] = useState<Reel[]>([]);
@@ -228,6 +233,7 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
     refetchOnWindowFocus: false,
   });
   const like = useLikeReel(); const unlike = useUnlikeReel(); const save = useSaveReel(); const unsave = useUnsaveReel(); const del = useDeleteReel();
+  const follow = useFollowProfile(); const unfollow = useUnfollowProfile();
   const recordView = useRecordReelView();
   const viewedReels = useRef(new Set<string>());
   const activeFeed = profileId ? profileFeed : feed;
@@ -348,6 +354,74 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
   }, [go, closeComments, commentsFor, searchOpen]);
 
   function patch(id: string, value: Partial<Reel>) { setPatches((all) => ({ ...all, [id]: { ...all[id], ...value } })); }
+  function patchCreatorFollowing(creatorId: string, isFollowing: boolean) {
+    setPatches((all) => {
+      const next = { ...all };
+      for (const reel of reels) if (reel.creatorId === creatorId) {
+        next[reel.id] = { ...next[reel.id], creatorFollowedByMe: isFollowing };
+      }
+      return next;
+    });
+  }
+  async function toggleCreatorFollow(reel: Reel) {
+    const profileId = reel.creatorId;
+    if (reel.isOwner || pendingCreatorFollowsRef.current.has(profileId)) return;
+    const wasFollowing = reel.creatorFollowedByMe;
+    const nextFollowing = !wasFollowing;
+    const priorReels = new Map(reels.filter((item) => item.creatorId === profileId).map((item) => [item.id, item.creatorFollowedByMe]));
+    const summaryKey = getGetProfileFollowSummaryQueryKey(profileId);
+    const viewerId = client.getQueryData<Profile>(getGetMyProfileQueryKey())?.id;
+    const viewerKey = viewerId ? getGetProfileFollowSummaryQueryKey(viewerId) : null;
+    const previousSummary = client.getQueryData<ProfileFollowSummary>(summaryKey);
+    const previousViewerSummary = viewerKey ? client.getQueryData<ProfileFollowSummary>(viewerKey) : undefined;
+    pendingCreatorFollowsRef.current.add(profileId);
+    setPendingCreatorFollows((current) => new Set(current).add(profileId));
+    patchCreatorFollowing(profileId, nextFollowing);
+    if (previousSummary) client.setQueryData(summaryKey, {
+      ...previousSummary,
+      followersCount: Math.max(0, previousSummary.followersCount + (nextFollowing ? 1 : -1)),
+      isFollowing: nextFollowing,
+    });
+    if (viewerKey && previousViewerSummary) client.setQueryData(viewerKey, {
+      ...previousViewerSummary,
+      followingCount: Math.max(0, previousViewerSummary.followingCount + (nextFollowing ? 1 : -1)),
+    });
+    try {
+      if (nextFollowing) {
+        const result = await follow.mutateAsync({ profileId });
+        client.setQueryData(summaryKey, result);
+      } else {
+        await unfollow.mutateAsync({ profileId });
+      }
+      void Promise.all([
+        client.invalidateQueries({ queryKey: getGetReelsFeedQueryKey() }),
+        client.invalidateQueries({ queryKey: getGetProfileReelsQueryKey({ profileId }) }),
+        client.invalidateQueries({ queryKey: summaryKey }),
+        viewerKey ? client.invalidateQueries({ queryKey: viewerKey }) : Promise.resolve(),
+        client.invalidateQueries({ queryKey: getGetProfileFollowersQueryKey() }),
+        client.invalidateQueries({ queryKey: getGetProfileFollowingQueryKey() }),
+        client.invalidateQueries({ queryKey: getGetNotificationsQueryKey() }),
+      ]);
+    } catch {
+      setPatches((current) => {
+        const restored = { ...current };
+        for (const [id, isFollowing] of priorReels) {
+          restored[id] = { ...restored[id], creatorFollowedByMe: isFollowing };
+        }
+        return restored;
+      });
+      if (previousSummary) client.setQueryData(summaryKey, previousSummary);
+      if (viewerKey && previousViewerSummary) client.setQueryData(viewerKey, previousViewerSummary);
+      setNotice(nextFollowing ? "Could not follow this creator. Try again." : "Could not unfollow this creator. Try again.");
+    } finally {
+      pendingCreatorFollowsRef.current.delete(profileId);
+      setPendingCreatorFollows((current) => {
+        const next = new Set(current);
+        next.delete(profileId);
+        return next;
+      });
+    }
+  }
   function patchShareCount(id: string, shareCount: number) {
     setPatches((all) => ({ ...all, [id]: { ...all[id], shareCount: Math.max(all[id]?.shareCount ?? 0, shareCount) } }));
   }
@@ -455,12 +529,13 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
           : reels.map((reel, index) => <ReelSlide
              key={reel.id} reel={reel} index={index} active={index === active && !searchOpen} near={Math.abs(index - active) <= 1}
               muted={muted} pageHidden={pageHidden} compact={commentsFor === reel.id} navigationVisible={navigationVisible} showHint={index === 0 && reels.length > 1}
-             likePending={like.isPending || unlike.isPending} savePending={save.isPending || unsave.isPending}
+              likePending={like.isPending || unlike.isPending} savePending={save.isPending || unsave.isPending}
+              followPending={pendingCreatorFollows.has(reel.creatorId)}
             returnTo={ownPath}
              onAutoplayMuted={() => setMuted(true)}
              offlineSaved={offlineIds.has(reel.id)} offlineSaving={offlineSavingIds.has(reel.id)}
              onSaveOffline={() => void cacheOffline(reel, true)} onAutoCache={() => void cacheOffline(reel, false)}
-            onLike={() => void toggle("like", reel)} onSave={() => void toggle("save", reel)}
+             onLike={() => void toggle("like", reel)} onSave={() => void toggle("save", reel)} onFollow={() => void toggleCreatorFollow(reel)}
             onView={() => void recordPlayback(reel)}
              onComment={() => openComments(reel.id)} onShare={() => setShareFor(reel)} onDelete={() => setDeleteFor(reel)}
           />)}
@@ -475,7 +550,7 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
         </nav> : <h1 className="reels-title">Reels</h1>}
         <div className="ml-auto flex flex-col items-end gap-3">
           <div className="flex items-center gap-2">
-              <button type="button" onClick={() => { setSearchText(""); setDebouncedSearchText(""); setSearchOpen(true); }} aria-label="Search Reels" data-testid="button-search-reels" className="reels-icon"><Search size={20} /></button>
+              <button type="button" onClick={() => { setSearchText(""); setDebouncedSearchText(""); setSearchOpen(true); }} aria-label="Search Reels" data-testid="button-search-reels" className="reels-search-trigger"><Search size={20} /></button>
             <Link href={`/reels/saved?returnTo=${encodeURIComponent(resumePath)}`} aria-label="Saved Reels" data-testid="link-reels-saved" className="reels-icon"><Bookmark size={20} /></Link>
             <Link href={`/reels/new?returnTo=${encodeURIComponent(ownPath)}`} aria-label="Post a Reel" data-testid="link-create-reel" className="reels-plus"><Plus size={20} /></Link>
           </div>

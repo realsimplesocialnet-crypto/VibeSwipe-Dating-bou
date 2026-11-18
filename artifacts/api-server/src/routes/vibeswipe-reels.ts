@@ -71,6 +71,11 @@ function reelColumns(viewerId: string) {
     shareCount: sql<number>`${reelsTable.shareCount} + (SELECT count(*)::int FROM ${reelSharesTable} WHERE ${reelSharesTable.reelId} = ${reelsTable.id})`,
     name: profilesTable.name, age: profilesTable.age, showAge: profilesTable.showAge, city: profilesTable.city,
     state: profilesTable.state, country: profilesTable.country, isVerified: profilesTable.isVerified, photos: profilesTable.photos,
+    creatorFollowedByMe: sql<boolean>`EXISTS (
+      SELECT 1 FROM ${vibeSwipeFollowsTable}
+      WHERE ${vibeSwipeFollowsTable.followerId} = ${viewerId}
+        AND ${vibeSwipeFollowsTable.followedId} = ${reelsTable.userId}
+    )`,
     likeCount: sql<number>`(SELECT count(*)::int FROM ${reelLikesTable} WHERE ${reelLikesTable.reelId} = ${reelsTable.id})`,
     commentCount: sql<number>`(SELECT count(*)::int FROM ${reelCommentsTable} WHERE ${reelCommentsTable.reelId} = ${reelsTable.id})`,
     saveCount: sql<number>`(SELECT count(*)::int FROM ${reelSavesTable} WHERE ${reelSavesTable.reelId} = ${reelsTable.id})`,
@@ -92,7 +97,8 @@ function project(row: ReelRow, viewerId: string) {
   return {
     id: row.id, creatorId: row.userId, creatorName: row.name, creatorAge: row.showAge ? row.age : null,
     creatorLocation: reelLocation([row.city, row.state, row.country]), creatorVerified: row.isVerified,
-    creatorPhoto: row.photos[0] ?? null, videoReference: `media:${row.mediaId}`, caption: row.caption,
+    creatorPhoto: row.photos[0] ?? null, creatorFollowedByMe: Boolean(row.creatorFollowedByMe),
+    videoReference: `media:${row.mediaId}`, caption: row.caption,
     durationSeconds: row.durationSeconds, likeCount: Number(row.likeCount), commentCount: Number(row.commentCount),
     viewCount: Number(row.viewCount), shareCount: Number(row.shareCount), saveCount: Number(row.saveCount),
     likedByMe: Boolean(row.likedByMe), savedByMe: Boolean(row.savedByMe), isOwner: row.userId === viewerId, createdAt: row.createdAt,
