@@ -63,11 +63,11 @@ Reels navigation, action icons, labels, and counts should use bold, high-contras
 
 **How to apply:** Give the Reels/Friends tabs, search and add controls, like/comment/share actions, navigation labels, and view/count badges clear weight and contrast without changing the brand palette.
 
-Keep the vertical action rail compact and ordered Like, Comment, Share, Save, then offline save, with a music-artwork slot at the bottom. Do not show the creator avatar or a Follow/plus badge on the rail; show the creator avatar with a colored ring beside the lower-left name, which remains the profile link. Keep the top add button for posting a Reel.
+Keep the vertical action rail compact and ordered Like, Comment, Message, Share, Save. Do not show the creator avatar, Follow/plus badge, download icon, or music button on the rail; show the creator avatar with a colored ring beside the lower-left name, which remains the profile link. Keep the top add button for posting a Reel.
 
-**Why:** The user asked to remove the profile-attached plus badge, then shared a reference showing the creator avatar beside the name with a colored ring.
+**Why:** The user asked to remove the profile-attached plus badge, shared a reference showing the creator avatar beside the name with a colored ring, and specified the five Reel actions and removal of music/download icons.
 
-**How to apply:** Keep Reel engagement and offline-save controls stable, keep the profile link on the creator identity, and use a music icon until track artwork exists. Do not build music selection or playback until requested.
+**How to apply:** Keep the profile link on the creator identity, allow Message only for existing unblocked matches, and keep Wi-Fi auto-caching separate from the visible action rail. Do not build music selection or playback until requested.
 
 Keep the creator's photo, name, age, location, and caption compact at the lower left; do not duplicate the creator photo elsewhere on the Reel.
 

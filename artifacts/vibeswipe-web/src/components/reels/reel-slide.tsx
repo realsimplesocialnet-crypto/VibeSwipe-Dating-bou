@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "wouter";
 import type { Reel } from "@workspace/api-client-react";
-import { Bookmark, Check, Download, Heart, MapPin, MessageCircle, Music2, Pause, Play, Send, Trash2 } from "lucide-react";
+import { Bookmark, Heart, MapPin, MessageCircle, MessageSquare, Pause, Play, Send, Trash2 } from "lucide-react";
 import { VerifiedBadge } from "@/components/verified-badge";
 import { ReelAvatar } from "@/components/reels/reel-avatar";
 import { formatCount, reelMediaUrl } from "@/lib/reels";
@@ -12,12 +12,12 @@ type Props = {
   compact: boolean; navigationVisible: boolean; showHint: boolean; returnTo: string;
   likePending: boolean; savePending: boolean;
   onAutoplayMuted: () => void;
-  onLike: () => void; onComment: () => void; onShare: () => void; onSave: () => void; onDelete: () => void;
+  onLike: () => void; onComment: () => void; onMessage: () => void; onShare: () => void; onSave: () => void; onDelete: () => void;
   onView: () => void;
-  offlineSaved: boolean; offlineSaving: boolean; onSaveOffline: () => void; onAutoCache: () => void;
+  offlineSaved: boolean; onAutoCache: () => void;
 };
 
-export function ReelSlide({ reel, index, active, near, muted, pageHidden, compact, navigationVisible, showHint, returnTo, likePending, savePending, onAutoplayMuted, onLike, onComment, onShare, onSave, onDelete, onView, offlineSaved, offlineSaving, onSaveOffline, onAutoCache }: Props) {
+export function ReelSlide({ reel, index, active, near, muted, pageHidden, compact, navigationVisible, showHint, returnTo, likePending, savePending, onAutoplayMuted, onLike, onComment, onMessage, onShare, onSave, onDelete, onView, offlineSaved, onAutoCache }: Props) {
   const video = useRef<HTMLVideoElement>(null);
   const bar = useRef<HTMLDivElement>(null);
   const autoCacheRequested = useRef(false);
@@ -152,17 +152,14 @@ export function ReelSlide({ reel, index, active, near, muted, pageHidden, compac
       <button type="button" onClick={onComment} aria-label="Comments" data-testid={`button-comments-reel-${reel.id}`}>
         <MessageCircle size={26} strokeWidth={1.8} /><span data-testid={`text-comment-count-${reel.id}`}>{formatCount(reel.commentCount)}</span>
       </button>
+      {!reel.isOwner && <button type="button" onClick={onMessage} aria-label={`Message ${reel.creatorName}`} data-testid={`button-message-creator-${reel.id}`}>
+        <MessageSquare size={26} strokeWidth={1.8} /><span>Message</span>
+      </button>}
       <button type="button" onClick={onShare} aria-label={`Share, ${formatCount(reel.shareCount)} shares`} data-testid={`button-share-reel-${reel.id}`}><Send size={26} strokeWidth={1.8} /><span data-testid={`text-share-count-${reel.id}`}>{formatCount(reel.shareCount)}</span></button>
       <button type="button" onClick={onSave} disabled={savePending} aria-pressed={reel.savedByMe} aria-label={reel.savedByMe ? "Remove from saved" : "Save"} data-testid={`button-save-reel-${reel.id}`} className={reel.savedByMe ? "is-saved" : ""}>
-        <Bookmark size={26} strokeWidth={1.8} fill={reel.savedByMe ? "currentColor" : "none"} /><span data-testid={`text-save-count-${reel.id}`}>{formatCount(reel.saveCount)}</span>
-      </button>
-      <button type="button" onClick={onSaveOffline} disabled={offlineSaved || offlineSaving} aria-label={offlineSaved ? "Saved for offline replay" : offlineSaving ? "Saving video offline" : "Save video offline"} data-testid={`button-save-reel-offline-${reel.id}`} className={offlineSaved ? "is-saved" : ""}>
-        {offlineSaved ? <Check size={25} strokeWidth={2}/> : <Download size={25} strokeWidth={1.8}/>}
+        <Bookmark size={26} strokeWidth={1.8} fill={reel.savedByMe ? "currentColor" : "none"} /><span>Save</span>
       </button>
       {reel.isOwner && <button type="button" onClick={onDelete} aria-label="Delete your Reel" data-testid={`button-delete-reel-${reel.id}`}><Trash2 size={24} strokeWidth={1.8} /></button>}
-      <div className="reel-music-slot" aria-hidden="true" data-testid={`reel-music-artwork-slot-${reel.id}`}>
-        <Music2 size={20} strokeWidth={1.8} />
-      </div>
     </div>
 
     <div className={`reel-meta ${compact ? "is-compact" : ""} ${navigationVisible ? "is-nav-visible" : ""}`}>

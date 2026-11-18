@@ -183,7 +183,8 @@ test("watched Reels can be saved on Wi-Fi and reopened from the bounded offline 
   const cache = read("../src/lib/offline-reels.ts");
   const worker = read("../public/service-worker.js");
   assert.match(slide, /currentTime \/ element\.duration >= 0\.85/);
-  assert.match(slide, /data-testid=\{`button-save-reel-offline-\$\{reel\.id\}`\}/);
+  assert.doesNotMatch(slide, /button-save-reel-offline|<Download/);
+  assert.match(feed, /cacheOffline\(reel, false\)/);
   assert.match(feed, /readOfflineReels/);
   assert.match(feed, /feed\.isError\) for \(const reel of offlineReels/);
   assert.match(cache, /Connect to Wi-Fi to save this video offline/);
@@ -207,28 +208,25 @@ test("Reel action rail and profile grid show persisted like, comment, save and s
   const profile = read("../src/components/profile-reels-section.tsx");
   const mobileProfile = read("../../vibeswipe/components/ProfileReelsSection.tsx");
   for (const file of [slide, profile, mobileProfile]) {
-    assert.match(file, /saveCount/);
     assert.match(file, /likeCount/);
     assert.match(file, /commentCount/);
     assert.match(file, /shareCount/);
   }
-  assert.match(slide, /text-save-count-\$\{reel\.id\}/);
+  for (const file of [profile, mobileProfile]) assert.match(file, /saveCount/);
   assert.match(profile, /text-profile-reel-interactions-\$\{reel\.id\}/);
   assert.match(mobileProfile, /text-profile-reel-interactions-\$\{reel\.id\}/);
   const nativeReel = read("../../vibeswipe/app/reels/[reelId].tsx");
   for (const id of ["button-like-reel", "button-comments-reel", "button-save-reel", "button-share-reel", "button-post-reel-comment"]) {
     assert.ok(nativeReel.includes(id), `native Reel action is missing ${id}`);
   }
-  const actionOrder = ["button-like-reel", "button-comments-reel", "button-share-reel-", "button-save-reel-", "button-save-reel-offline"]
+  const actionOrder = ["button-like-reel", "button-comments-reel", "button-message-creator", "button-share-reel-", "button-save-reel-"]
     .map((id) => slide.indexOf(id));
   assert.ok(actionOrder.every((position, index) => position >= 0 && (index === 0 || position > actionOrder[index - 1])));
-  assert.match(slide, /reel-music-slot[^]*?reel-music-artwork-slot/);
-  assert.match(slide, /<Music2 size=\{20\} strokeWidth=\{1\.8\} \/>/);
-  assert.doesNotMatch(slide, /reel-music-artwork-slot[^]*?ReelAvatar reference=\{reel\.creatorPhoto\}/);
+  assert.match(slide, /<MessageSquare size=\{26\} strokeWidth=\{1\.8\} \/>/);
+  assert.doesNotMatch(slide, /reel-music-slot|Music2|button-save-reel-offline|<Download/);
   const css = read("../src/components/reels/reels.css");
   assert.match(css, /\.reel-rail button svg \{ height: 26px; width: 26px/);
-  assert.match(css, /\.reel-rail button \{ height: 50px; font-size: 12px/);
-  assert.match(css, /\.reel-music-slot \{ display: flex; height: 42px; width: 42px/);
+  assert.match(css, /\.reel-rail button \{[^}]*height: 50px; width: 56px;[^}]*font-size: 10px/);
 });
 
 test("Reels put the creator photo beside the name and keep Follow off the rail", () => {
@@ -243,6 +241,12 @@ test("Reels put the creator photo beside the name and keep Follow off the rail",
   assert.doesNotMatch(feed, /toggleCreatorFollow|useFollowProfile|pendingCreatorFollows/);
   assert.match(slide, /data-testid=\{`link-reel-profile-\$\{reel\.id\}`\}/);
   assert.match(feed, /className=\"reels-plus\"/);
+  assert.match(feed, /useGetMatches/);
+  assert.match(feed, /filter\(\(match\) => !match\.blockedByMe && !match\.blockedMe\)/);
+  assert.match(feed, /You can message this person after matching/);
+  assert.match(feed, /setLocation\(`\/chat\/\$\{encodeURIComponent\(matchId\)\}\?returnTo=\$\{encodeURIComponent\(returnPath\)\}`\)/);
+  assert.match(slide, /\{!reel\.isOwner && <button[^]*button-message-creator-/);
+  assert.match(read("../src/App.tsx"), /requested\.startsWith\('\/reels\/'\)/);
   assert.match(route, /creatorFollowedByMe: sql<boolean>`EXISTS/s);
   assert.match(spec, /creatorFollowedByMe: \{ type: boolean \}/);
 });

@@ -1030,7 +1030,7 @@ function BrandedSignUp(){
 }
 function RouteShell({component:Component}:{component:()=>ReactNode}){return <ShellPage><Component/></ShellPage>}
 const CHAT_RETURN_PATHS=['/views','/messages','/notifications','/matches','/discover','/likes'];
-function ChatRoute(){const params=useParams<{matchId:string}>();const requested=safeAppReturnPath(new URLSearchParams(window.location.search).get('returnTo'),'/matches');const returnTo=CHAT_RETURN_PATHS.includes(requested)||requested.startsWith('/profile/')?requested:'/matches';return <ShellPage><ChatPage matchId={params.matchId||''} returnTo={returnTo}/></ShellPage>}
+function ChatRoute(){const params=useParams<{matchId:string}>();const requested=safeAppReturnPath(new URLSearchParams(window.location.search).get('returnTo'),'/matches');const returnTo=CHAT_RETURN_PATHS.includes(requested)||requested.startsWith('/profile/')||requested==='/reels'||requested.startsWith('/reels/')?requested:'/matches';return <ShellPage><ChatPage matchId={params.matchId||''} returnTo={returnTo}/></ShellPage>}
 function OnboardingRoute(){return <Gate><div className="onboarding-video-form profile-setup-shell min-h-[100dvh] bg-background text-foreground"><OnboardingVideoBackground form/><OnboardingGate/></div></Gate>}
 function ProfileRoute(){return <ShellPage><ProfilePage mode="view"/></ShellPage>}
 function ProfileEditRoute(){const requested=new URLSearchParams(window.location.search).get('returnTo');const returnTo=safeAppReturnPath(requested,'/profile');return <ShellPage><ProfilePage mode="edit" returnTo={returnTo}/></ShellPage>}

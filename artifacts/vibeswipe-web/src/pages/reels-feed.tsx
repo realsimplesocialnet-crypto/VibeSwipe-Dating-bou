@@ -2,9 +2,9 @@ import { useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, u
 import { Link, useLocation } from "wouter";
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  getGetMyReelsQueryKey, getGetNotificationsQueryKey, getGetProfileReelsQueryKey, getGetReelQueryKey,
+  getGetMatchesQueryKey, getGetMyReelsQueryKey, getGetNotificationsQueryKey, getGetProfileReelsQueryKey, getGetReelQueryKey,
   getGetReelsFeedQueryKey, getGetSavedReelsQueryKey, getProfileReels, getReelsFeed,
-  useDeleteReel, useGetReel, useLikeReel, useRecordReelView, useSaveReel,
+  useDeleteReel, useGetMatches, useGetReel, useLikeReel, useRecordReelView, useSaveReel,
   useUnlikeReel, useUnsaveReel, type Reel,
 } from "@workspace/api-client-react";
 import { ArrowLeft, Bookmark, Clapperboard, LoaderCircle, Plus, Search, Users, Volume2, VolumeX, X } from "lucide-react";
@@ -229,6 +229,16 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
     staleTime: 30_000,
     refetchOnWindowFocus: false,
   });
+  const matches = useGetMatches({ query: {
+    queryKey: getGetMatchesQueryKey(),
+    staleTime: 10_000,
+    refetchOnWindowFocus: true,
+  } });
+  const messageMatchIds = useMemo(() => new Map(
+    (matches.data ?? [])
+      .filter((match) => !match.blockedByMe && !match.blockedMe)
+      .map((match) => [match.profile.id, match.id]),
+  ), [matches.data]);
   const like = useLikeReel(); const unlike = useUnlikeReel(); const save = useSaveReel(); const unsave = useUnsaveReel(); const del = useDeleteReel();
   const recordView = useRecordReelView();
   const viewedReels = useRef(new Set<string>());
@@ -353,6 +363,19 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
   function patchShareCount(id: string, shareCount: number) {
     setPatches((all) => ({ ...all, [id]: { ...all[id], shareCount: Math.max(all[id]?.shareCount ?? 0, shareCount) } }));
   }
+  function messageCreator(reel: Reel, returnPath: string) {
+    if (reel.isOwner) return;
+    const matchId = messageMatchIds.get(reel.creatorId);
+    if (!matchId) {
+      setNotice(matches.isLoading
+        ? "Checking chat availability. Try again in a moment."
+        : matches.isError
+          ? "Chats could not load. Try again."
+          : "You can message this person after matching.");
+      return;
+    }
+    setLocation(`/chat/${encodeURIComponent(matchId)}?returnTo=${encodeURIComponent(returnPath)}`);
+  }
 
   async function cacheOffline(reel: Reel, manual: boolean) {
     if (offlineIds.has(reel.id) || offlineSavingIds.has(reel.id)) return;
@@ -460,9 +483,10 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
               likePending={like.isPending || unlike.isPending} savePending={save.isPending || unsave.isPending}
             returnTo={ownPath}
              onAutoplayMuted={() => setMuted(true)}
-             offlineSaved={offlineIds.has(reel.id)} offlineSaving={offlineSavingIds.has(reel.id)}
-             onSaveOffline={() => void cacheOffline(reel, true)} onAutoCache={() => void cacheOffline(reel, false)}
+              offlineSaved={offlineIds.has(reel.id)}
+              onAutoCache={() => void cacheOffline(reel, false)}
               onLike={() => void toggle("like", reel)} onSave={() => void toggle("save", reel)}
+              onMessage={() => messageCreator(reel, resumePath)}
             onView={() => void recordPlayback(reel)}
              onComment={() => openComments(reel.id)} onShare={() => setShareFor(reel)} onDelete={() => setDeleteFor(reel)}
           />)}

@@ -48,8 +48,8 @@ test("negative visual viewport offsets cannot pull the full-bleed viewer offscre
 test("Reels navigation uses the same compact icon and label sizing as other tabs", () => {
   const reelsCss = readFileSync(new URL("../src/components/reels/reels.css", import.meta.url), "utf8");
   const appCss = readFileSync(new URL("../src/index.css", import.meta.url), "utf8");
-  assert.match(appCss, /\.mobile-nav \.mnav-item[^}]*min-height:50px[^}]*font-size:10px/);
-  assert.match(reelsCss, /\.reels-mobile-nav \.mnav-item \{ min-height: 50px;[^}]*font-size: 10px;/);
-  assert.match(reelsCss, /\.reels-mobile-nav \.mnav-icon \{ height: 19px; width: 19px; \}/);
+  assert.match(appCss, /\.mobile-nav \.mnav-item[^}]*min-height:56px[^}]*font-size:10px/);
+  assert.match(reelsCss, /\.reels-mobile-nav \.mnav-item \{ min-height: 56px;[^}]*font-size: 10px;/);
+  assert.match(reelsCss, /\.reels-mobile-nav \.mnav-icon \{ height: 24px; width: 24px; \}/);
   assert.doesNotMatch(reelsCss, /\.reels-mobile-nav \.mnav-item \{[^}]*font-size: 11px/);
 });
