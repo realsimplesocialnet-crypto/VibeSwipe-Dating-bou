@@ -73,6 +73,26 @@ test("explicit refill works when React Query returns the identical cached array"
   assert.equal(hook([], "filter2").profiles.length, 0, "Ignore previous filters' delayed responses");
 });
 
+test("returning from a profile restores the same discovery card after the feed remounts", () => {
+  let saved: any;
+  const state = ((initial: any) => {
+    if (saved === undefined) saved = typeof initial === "function" ? initial() : initial;
+    return [saved, (next: any) => { saved = typeof next === "function" ? next(saved) : next; }];
+  }) as Parameters<typeof createUseDiscoveryDeck>[0];
+  const hook = createUseDiscoveryDeck(state);
+  const original = [{ id: "seen" }, { id: "current" }, { id: "tail" }];
+  let deck = hook(original, "same-feed");
+  deck.setIndex(1);
+  deck = hook(original, "same-feed");
+  assert.equal(deck.profiles[deck.index].id, "current");
+
+  // A route change unmounts Discover; its component state is lost, but its deck snapshot remains.
+  saved = undefined;
+  deck = hook([{ id: "new-first" }, { id: "tail" }], "same-feed");
+  assert.equal(deck.profiles[deck.index].id, "current");
+  assert.equal(deck.index, 1);
+});
+
 test("empty server results stay truthful rather than fabricating members", () => {
   const result = continueDiscoveryDeck([{ id: "liked" }], [], 1);
   assert.equal(result.profiles[result.index], undefined);

@@ -26,27 +26,74 @@ export function continueDiscoveryDeck<T extends Member>(previous: T[], incoming:
 
 // Bind the consumer's React instance: Expo and web have separate React runtimes.
 export function createUseDiscoveryDeck(useState: StateHook) {
+  type Deck<T extends Member> = { source: T[] | undefined; key: string; profiles: T[]; index: number };
+  const cachedDecks = new Map<string, { deck: Deck<Member>; expiresAt: number }>();
+  const cacheLimit = 4;
+  const cacheDuration = 10 * 60_000;
+
+  const remember = <T extends Member>(deck: Deck<T>) => {
+    cachedDecks.delete(deck.key);
+    cachedDecks.set(deck.key, { deck: deck as Deck<Member>, expiresAt: Date.now() + cacheDuration });
+    while (cachedDecks.size > cacheLimit) {
+      const oldestKey = cachedDecks.keys().next().value;
+      if (oldestKey === undefined) break;
+      cachedDecks.delete(oldestKey);
+    }
+  };
+
+  const restore = <T extends Member>(key: string, data: T[] | undefined) => {
+    const entry = cachedDecks.get(key);
+    if (!entry) return undefined;
+    if (entry.expiresAt <= Date.now()) {
+      cachedDecks.delete(key);
+      return undefined;
+    }
+    const cached = entry.deck as Deck<T>;
+    const deck = cached.source === data ? cached : {
+      ...cached,
+      source: data,
+      profiles: reconcileDiscoveryDeck(cached.profiles, data ?? [], cached.index),
+    };
+    remember(deck);
+    return deck;
+  };
+
   return function useDiscoveryDeck<T extends Member>(data: T[] | undefined, key: string) {
-    type Deck = { source: T[] | undefined; key: string; profiles: T[]; index: number };
-    const [saved, setSaved] = useState<Deck>({ source: data, key, profiles: data ?? [], index: 0 });
+    const [saved, setSaved] = useState<Deck<T>>(() => {
+      const restored = restore<T>(key, data);
+      const initial = restored ?? { source: data, key, profiles: data ?? [], index: 0 };
+      remember(initial);
+      return initial;
+    });
     let deck = saved;
     if (saved.key !== key || saved.source !== data) {
-      deck = {
-        key, source: data,
-        profiles: saved.key !== key ? data ?? [] : reconcileDiscoveryDeck(saved.profiles, data ?? [], saved.index),
-        index: saved.key !== key ? 0 : saved.index,
-      };
+      const previous = saved.key === key ? saved : restore<T>(key, data);
+      deck = previous
+        ? {
+            key, source: data,
+            profiles: previous.source === data ? previous.profiles : reconcileDiscoveryDeck(previous.profiles, data ?? [], previous.index),
+            index: previous.index,
+          }
+        : { key, source: data, profiles: data ?? [], index: 0 };
+      remember(deck);
       setSaved(deck);
     }
-    const setIndex: SetState<number> = next => setSaved(current => ({
-      ...current, index: typeof next === "function" ? next(current.index) : next,
-    }));
+    const setIndex: SetState<number> = next => setSaved(current => {
+      const updated = {
+        ...current,
+        index: typeof next === "function" ? next(current.index) : next,
+      };
+      remember(updated);
+      return updated;
+    });
     const refill = (incoming: T[] | undefined) => {
       if (!incoming) return;
       setSaved(current => {
         // Ignore a response for filters/account that changed while fetching.
         if (current.key !== key) return current;
-        return { ...current, source: incoming, ...continueDiscoveryDeck(current.profiles, incoming, current.index) };
+        const updated = { ...current, source: incoming, ...continueDiscoveryDeck(current.profiles, incoming, current.index) };
+        remember(updated);
+        return updated;
       });
     };
     return { profiles: deck.profiles, index: deck.index, setIndex, refill };

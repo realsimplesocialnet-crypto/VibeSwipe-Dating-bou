@@ -40,3 +40,9 @@ Stories are private to unblocked mutual followers, not public and not merely dat
 **Why:** The user chose mutual follows as the story audience, showed the desired story and Follow back references, and asked to use their own color.
 
 **How to apply:** Enforce mutual-follow privacy for story lists, views, likes, and media reads. Keep the profile route behind the story viewer, and do not let following alone unlock messaging.
+
+When opening a member profile from a feed or list, Back must restore the originating item and position, not restart the feed or show a different member.
+
+**Why:** The user explicitly repeated that returning from a profile must show the same place and reported Discover replacing the viewed card.
+
+**How to apply:** Preserve the selected card and relevant list position across profile navigation. Refresh in the background without changing the user's current selection; key cached state to the active account and feed.
