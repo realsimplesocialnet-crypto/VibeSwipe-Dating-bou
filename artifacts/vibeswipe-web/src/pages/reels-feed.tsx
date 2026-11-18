@@ -15,6 +15,7 @@ import { ReelsNavigationVisibilityContext } from "@/components/reels/reels-navig
 import { reelMediaUrl, safeReelReturnPath } from "@/lib/reels";
 import { readOfflineReels, saveReelForOffline } from "@/lib/offline-reels";
 import { reelSlideIndex, reelsViewportFrame } from "@/lib/reels-viewport";
+import { mixReelsByCreator } from "@/lib/reels-feed-order";
 import "@/components/reels/reels.css";
 
 const REEL_COMMENTS_HISTORY_KEY = "__myageReelComments";
@@ -269,7 +270,19 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
     const list: Reel[] = [];
     const seen = new Set<string>();
     const pages = profileId ? profileFeed.data?.pages : feed.data?.pages;
-    for (const page of pages ?? []) for (const reel of page.items) if (!seen.has(reel.id)) { seen.add(reel.id); list.push(reel); }
+    let previousCreatorId: string | undefined;
+    for (const page of pages ?? []) {
+      const pageItems = profileId
+        ? page.items
+        : mixReelsByCreator(page.items, previousCreatorId);
+      for (const reel of pageItems) {
+        if (!seen.has(reel.id)) {
+          seen.add(reel.id);
+          list.push(reel);
+        }
+      }
+      previousCreatorId = pageItems.at(-1)?.creatorId ?? previousCreatorId;
+    }
     if (single.data && (!profileId || single.data.creatorId === profileId) && !seen.has(single.data.id)) {
       if (profileId) list.unshift(single.data);
       else list.unshift(single.data);
@@ -466,13 +479,15 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
           : reels.map((reel, index) => <ReelSlide
              key={reel.id} reel={reel} index={index} active={index === active && !searchOpen} near={Math.abs(index - active) <= 1}
               muted={muted} pageHidden={pageHidden} compact={commentsFor === reel.id} navigationVisible={navigationVisible}
-              likePending={like.isPending || unlike.isPending} savePending={save.isPending || unsave.isPending}
+              likePending={like.isPending || unlike.isPending}
             returnTo={ownPath}
              onAutoplayMuted={() => setMuted(true)}
               onToggleSound={() => setMuted((value) => !value)}
               offlineSaved={offlineIds.has(reel.id)}
               onAutoCache={() => void cacheOffline(reel, false)}
-              onLike={() => void toggle("like", reel)} onSave={() => void toggle("save", reel)}
+               onLike={() => void toggle("like", reel)}
+               onCreateReel={() => setLocation(`/reels/new?returnTo=${encodeURIComponent(ownPath)}`)}
+                onSearchSuggestion={openSearch}
             onView={() => void recordPlayback(reel)}
               onComment={() => openComments(reel.id)} onShare={() => setShareFor(reel)}
           />)}
@@ -493,7 +508,17 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
       {moreOpen && <div className="reels-more-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setMoreOpen(false); }}>
         <div className="reels-more-menu" role="menu" aria-label="More Reel options" data-testid="menu-reels-more">
           <Link href={`/reels/saved?returnTo=${encodeURIComponent(resumePath)}`} role="menuitem" onClick={() => setMoreOpen(false)} data-testid="link-reels-saved"><Bookmark size={18} />Saved Reels</Link>
-          <Link href={`/reels/new?returnTo=${encodeURIComponent(ownPath)}`} role="menuitem" onClick={() => setMoreOpen(false)} data-testid="link-create-reel"><Plus size={19} />Post a Reel</Link>
+          {activeReel && <button
+            type="button"
+            role="menuitem"
+            disabled={save.isPending || unsave.isPending}
+            aria-pressed={activeReel.savedByMe}
+            onClick={() => { setMoreOpen(false); void toggle("save", activeReel); }}
+            data-testid={`button-save-reel-${activeReel.id}`}
+          >
+            <Bookmark size={18} fill={activeReel.savedByMe ? "currentColor" : "none"} />
+            {activeReel.savedByMe ? "Remove from Saved Reels" : "Save this Reel"}
+          </button>}
           {activeReel?.isOwner && <button type="button" role="menuitem" onClick={() => { setMoreOpen(false); setDeleteFor(activeReel); }} data-testid={`button-delete-reel-${activeReel.id}`}><Trash2 size={18} />Delete this Reel</button>}
         </div>
       </div>}

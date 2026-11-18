@@ -696,6 +696,38 @@ export const GetDiscoverProfilesResponse = zod.array(GetDiscoverProfilesResponse
 
 
 /**
+ * @summary Resolve a one-time GPS fix to the nearest supported discovery city
+ */
+export const resolveDiscoveryLocationBodyLatitudeMin = -90;
+export const resolveDiscoveryLocationBodyLatitudeMax = 90;
+
+export const resolveDiscoveryLocationBodyLongitudeMin = -180;
+export const resolveDiscoveryLocationBodyLongitudeMax = 180;
+
+
+
+export const ResolveDiscoveryLocationBody = zod.object({
+  "latitude": zod.number().min(resolveDiscoveryLocationBodyLatitudeMin).max(resolveDiscoveryLocationBodyLatitudeMax),
+  "longitude": zod.number().min(resolveDiscoveryLocationBodyLongitudeMin).max(resolveDiscoveryLocationBodyLongitudeMax)
+})
+
+export const ResolveDiscoveryLocationResponse = zod.object({
+  "country": zod.object({
+  "code": zod.string(),
+  "name": zod.string()
+}),
+  "state": zod.union([zod.object({
+  "code": zod.string(),
+  "name": zod.string()
+}),zod.null()]),
+  "city": zod.object({
+  "code": zod.string(),
+  "name": zod.string()
+})
+})
+
+
+/**
  * @summary Like, super-like, or pass on a profile
  */
 

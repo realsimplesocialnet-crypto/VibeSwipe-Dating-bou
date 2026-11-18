@@ -20,7 +20,7 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Allow Myage to share your live location while the Safety Center is open."
+          "locationWhenInUsePermission": "Allow Myage to use your location when you choose a nearby Discover area or share your live location in Safety Center."
         }
       ],
       "expo-notifications",

@@ -9,6 +9,12 @@ Default discovery must expand beyond the member's home country when fewer than 2
 
 **How to apply:** Keep explicitly chosen country/city, saved discovery-area filters, and Travel Mode strict. Apply all age/gender, block, suspension, deactivation and incognito protections to every expansion tier. Do not solve sparse geography by exposing ineligible or fabricated profiles.
 
+GPS discovery uses a one-time foreground location fix only to select the nearest supported city; never persist raw coordinates or track location in the background. Members can still browse and select locations manually.
+
+**Why:** The user chose GPS as an optional way to set Discover location while keeping manual browsing available and requiring no paid geocoding service.
+
+**How to apply:** Request permission only after the member taps Use current location, resolve to city/state/country, and keep explicit location filters strict. Do not show exact distances based on this coarse city selection.
+
 The swipe feed should continue with unseen eligible people first, then recycle skipped profiles when no unseen matches remain. Keep outgoing likes and existing matches out of recycled rounds.
 
 **Why:** The user reported that after liking and skipping profiles the feed said everyone was finished, and asked for continued swiping rather than a permanent end.

@@ -12,9 +12,110 @@ export type ResolvedDiscoveryArea = DiscoveryLocationPreference;
 
 type CityNameEntry = { normalized: string; name: string };
 type CityPoint = { latitude: number; longitude: number };
+type GpsCityPoint = { name: string; stateCode: string; latitude: number; longitude: number };
+export type DiscoveryGpsLocation = {
+  country: { code: string; name: string };
+  state: { code: string; name: string } | null;
+  city: { code: string; name: string };
+};
 
 let cityNames: CityNameEntry[] | undefined;
 let cityPoints: Map<string, CityPoint> | undefined;
+const gpsCityPoints = new Map<string, GpsCityPoint[]>();
+
+function distanceKm(
+  latitudeA: number,
+  longitudeA: number,
+  latitudeB: number,
+  longitudeB: number,
+): number {
+  const radians = (degrees: number) => (degrees * Math.PI) / 180;
+  const latitudeDelta = radians(latitudeB - latitudeA);
+  const longitudeDelta = radians(longitudeB - longitudeA);
+  const a =
+    Math.sin(latitudeDelta / 2) ** 2 +
+    Math.cos(radians(latitudeA)) *
+      Math.cos(radians(latitudeB)) *
+      Math.sin(longitudeDelta / 2) ** 2;
+  return 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function getGpsCityPoints(countryCode: string): GpsCityPoint[] {
+  const cached = gpsCityPoints.get(countryCode);
+  if (cached) return cached;
+  const points = (City.getCitiesOfCountry(countryCode) ?? []).flatMap((city) => {
+    const latitude = Number(city.latitude);
+    const longitude = Number(city.longitude);
+    if (
+      !Number.isFinite(latitude) ||
+      !Number.isFinite(longitude) ||
+      latitude < -90 ||
+      latitude > 90 ||
+      longitude < -180 ||
+      longitude > 180
+    ) {
+      return [];
+    }
+    return [{ name: city.name, stateCode: city.stateCode, latitude, longitude }];
+  });
+  gpsCityPoints.set(countryCode, points);
+  return points;
+}
+
+/**
+ * Resolve a one-time GPS fix to the nearest supported city in its country.
+ * Raw coordinates remain in memory and are never persisted or returned.
+ */
+export function resolveDiscoveryGpsLocation(
+  latitude: number,
+  longitude: number,
+  countryCode: string,
+): DiscoveryGpsLocation | null {
+  if (
+    !Number.isFinite(latitude) ||
+    !Number.isFinite(longitude) ||
+    latitude < -90 ||
+    latitude > 90 ||
+    longitude < -180 ||
+    longitude > 180
+  ) {
+    return null;
+  }
+
+  const country = Country.getAllCountries().find(
+    (item) => item.isoCode === countryCode,
+  );
+  if (!country) return null;
+
+  const states = new Map(
+    State.getStatesOfCountry(countryCode).map((state) => [
+      state.isoCode,
+      state.name,
+    ]),
+  );
+  let nearest:
+    | { city: GpsCityPoint; distance: number }
+    | undefined;
+
+  for (const city of getGpsCityPoints(countryCode)) {
+    const distance = distanceKm(
+      latitude,
+      longitude,
+      city.latitude,
+      city.longitude,
+    );
+    if (!nearest || distance < nearest.distance) nearest = { city, distance };
+  }
+
+  if (!nearest) return null;
+  return {
+    country: { code: country.isoCode, name: country.name },
+    state: states.has(nearest.city.stateCode)
+      ? { code: nearest.city.stateCode, name: states.get(nearest.city.stateCode)! }
+      : null,
+    city: { code: nearest.city.name, name: nearest.city.name },
+  };
+}
 
 function normalize(value: string): string {
   return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLocaleLowerCase();

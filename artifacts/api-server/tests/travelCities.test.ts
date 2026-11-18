@@ -3,10 +3,12 @@ import test from "node:test";
 import {
   distanceBetweenCities,
   findRealTravelCity,
+  resolveDiscoveryGpsLocation,
   resolveDiscoveryLocation,
   resolvePreferredDiscoveryArea,
   searchRealTravelCities,
 } from "../src/lib/travelCities.ts";
+import { City } from "country-state-city";
 
 test("travel city search returns canonical real city names", () => {
   assert.equal(findRealTravelCity(" lagos "), "Lagos");
@@ -96,4 +98,28 @@ test("distance radius can resolve real city-center distances", () => {
     { country: "Nigeria", state: "Lagos", city: "Lagos" },
   );
   assert.ok(distance !== null && distance > 400 && distance < 700);
+});
+
+test("GPS resolves to the nearest supported city without returning coordinates", () => {
+  const lagos = (City.getCitiesOfCountry("NG") ?? []).find(
+    (city) => city.name === "Lagos" && city.stateCode === "LA",
+  );
+  assert.ok(lagos?.latitude && lagos.longitude);
+  const resolved = resolveDiscoveryGpsLocation(
+    Number(lagos.latitude),
+    Number(lagos.longitude),
+    "NG",
+  );
+  assert.deepEqual(resolved, {
+    country: { code: "NG", name: "Nigeria" },
+    state: { code: "LA", name: "Lagos" },
+    city: { code: "Lagos", name: "Lagos" },
+  });
+  assert.ok(resolved && !("latitude" in resolved) && !("longitude" in resolved));
+});
+
+test("GPS resolver rejects invalid coordinates and coordinates outside mapped land", () => {
+  assert.equal(resolveDiscoveryGpsLocation(91, 0, "NG"), null);
+  assert.equal(resolveDiscoveryGpsLocation(0, 181, "NG"), null);
+  assert.equal(resolveDiscoveryGpsLocation(0, 0, "INVALID"), null);
 });

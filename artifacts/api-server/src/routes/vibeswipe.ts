@@ -22,6 +22,8 @@ import {
   GetBoostStatusResponse,
   GetDiscoverProfilesQueryParams,
   GetDiscoverProfilesResponse,
+  ResolveDiscoveryLocationBody,
+  ResolveDiscoveryLocationResponse,
   GetMatchesResponse,
   GetMessagesParams,
   GetMessagesResponse,
@@ -137,6 +139,7 @@ import { FaceVerificationError } from "../lib/luxand";
 import {
   distanceBetweenCities,
   findRealTravelCity,
+  resolveDiscoveryGpsLocation,
   resolvePreferredDiscoveryArea,
   searchRealTravelCities,
 } from "../lib/travelCities";
@@ -1134,6 +1137,32 @@ router.delete("/vibeswipe/reactions/undo", async (req, res): Promise<void> => {
       targetUserId: latest.toUserId,
     }),
   );
+});
+
+router.post("/vibeswipe/discover/location", async (req, res): Promise<void> => {
+  const input = ResolveDiscoveryLocationBody.safeParse(req.body);
+  if (!input.success) {
+    res.status(400).json({ error: "Provide valid current-location coordinates." });
+    return;
+  }
+  const countryCode = countryCodeFromCoordinates(
+    input.data.latitude,
+    input.data.longitude,
+  );
+  const location = countryCode
+    ? resolveDiscoveryGpsLocation(
+        input.data.latitude,
+        input.data.longitude,
+        countryCode,
+      )
+    : null;
+  if (!location) {
+    res.status(422).json({
+      error: "We couldn’t find a supported nearby city. Choose a location manually.",
+    });
+    return;
+  }
+  res.json(ResolveDiscoveryLocationResponse.parse(location));
 });
 
 router.get("/vibeswipe/discover", async (req, res): Promise<void> => {

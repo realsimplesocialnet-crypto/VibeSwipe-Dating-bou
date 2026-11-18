@@ -173,7 +173,7 @@ test("Reel creator details stay aligned with a prominent profile block", () => {
   assert.match(css, /\.reel-age \{ font-size: 15px/);
   assert.match(css, /\.reel-location \{ font-size: 12px/);
   assert.match(css, /\.reel-meta \{ position: absolute; left: 20px; right: 84px; bottom: calc\(env\(safe-area-inset-bottom\) \+ 22px\)/);
-  assert.match(slide, /className=\{`reel-meta \$\{compact \? "is-compact" : ""\} \$\{navigationVisible \? "is-nav-visible" : ""\}`\}/);
+  assert.match(slide, /className=\{`reel-meta \$\{searchSuggestion && !compact \? "has-search" : ""\} \$\{compact \? "is-compact" : ""\} \$\{navigationVisible \? "is-nav-visible" : ""\}`\}/);
 });
 
 test("Reels route is code-split and autoplay fallback shows no explanatory message", () => {
@@ -236,15 +236,23 @@ test("Reel action rail and profile grid show persisted like, comment, save and s
     assert.ok(nativeReel.includes(id), `native Reel action is missing ${id}`);
   }
   const rail = slide.slice(slide.indexOf("className={`reel-rail"), slide.indexOf("className={`reel-meta"));
-  const actionOrder = ["button-like-reel-", "button-comments-reel-", "button-share-reel-", "button-save-reel-"]
+  const actionOrder = ["button-like-reel-", "button-comments-reel-", "button-share-reel-", "button-create-reel-"]
     .map((id) => rail.indexOf(id));
   assert.ok(actionOrder.every((position, index) => position >= 0 && (index === 0 || position > actionOrder[index - 1])));
   assert.equal((rail.match(/data-testid=\{`button-/g) ?? []).length, 4);
+  assert.doesNotMatch(rail, /button-save-reel-|>Save</);
+  assert.match(read("../src/pages/reels-feed.tsx"), /button-save-reel-\$\{activeReel\.id\}/);
+  assert.match(read("../src/pages/reels-feed.tsx"), /onCreateReel=\{\(\) => setLocation\(`\/reels\/new\?returnTo=/);
   assert.doesNotMatch(rail, /button-message-creator|Follow|Remix|Download|Music|button-delete-reel/);
+  assert.doesNotMatch(slide, /Search\s*["“]/);
+  assert.match(read("../public/service-worker.js"), /CACHE_NAME = 'myage-shell-v12'/);
   assert.match(slide, /type=\"range\"[\s\S]*?onChange=\{\(event\) => seekVideo\(event\.currentTarget\.value\)\}/);
   assert.match(slide, /onTimeUpdate=\{\(event\) => \{[\s\S]*?setProgress\(\(element\.currentTime \/ element\.duration\) \* 100\)/);
   assert.match(slide, /element\.currentTime = \(nextProgress \/ 100\) \* element\.duration/);
   const css = read("../src/components/reels/reels.css");
+  assert.match(css, /--reels-accent: hsl\(var\(--primary\)\)/);
+  assert.match(css, /\.reel-rail button\.is-on[^}]*var\(--reels-accent\)/);
+  assert.doesNotMatch(css, /#3678d4|--reels-blue/);
   assert.match(css, /\.reel-rail button svg \{ height: 24px; width: 24px/);
   assert.match(css, /\.reel-rail button \{[^}]*height: 56px;[^}]*font-size: 12px/);
   assert.match(css, /\.reel-rail \{ gap: 4px; \}/);
@@ -267,10 +275,13 @@ test("Reels put the creator photo beside the name and keep Follow off the rail",
   assert.match(slide, /data-testid=\{`link-reel-profile-\$\{reel\.id\}`\}/);
   assert.match(feed, /data-testid=\"button-reels-more\"/);
   assert.match(feed, /data-testid=\"link-reels-saved\"/);
-  assert.match(feed, /data-testid=\"link-create-reel\"/);
+  assert.match(slide, /data-testid=\{`button-create-reel-\$\{reel\.id\}`\}/);
+  assert.doesNotMatch(feed, /data-testid=\"link-create-reel\"/);
   assert.match(feed, /data-testid=\{`button-delete-reel-\$\{activeReel\.id\}`\}/);
-  assert.doesNotMatch(slide, /reel-search-suggestion|button-reel-search-suggestion|Search “/);
-  assert.doesNotMatch(feed, /reelCaptionSearchSuggestion|searchSuggestion=|onSearchSuggestion/);
+  assert.match(slide, /reel-search-suggestion/);
+  assert.match(slide, /reelSearchSuggestion\(\{ caption: reel\.caption, creatorLocation: reel\.creatorLocation \}\)/);
+  assert.match(feed, /onSearchSuggestion=\{openSearch\}/);
+  assert.match(read("../public/service-worker.js"), /CACHE_NAME = 'myage-shell-v12'/);
   assert.match(feed, /data-testid="button-search-reels"/);
   assert.doesNotMatch(feed, /useGetMatches|messageCreator|button-message-creator/);
   assert.doesNotMatch(slide, /button-message-creator|MessageSquare|button-follow-creator|reel-follow-button/);

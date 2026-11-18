@@ -41,6 +41,8 @@ import type {
   CheckAdditionalProfilePhoto200,
   DailyLikeStatus,
   DeleteMessageInput,
+  DiscoveryLocationCoordinatesInput,
+  DiscoveryLocationSelection,
   EmergencyContact,
   EmergencyContactInput,
   FaceVerificationConsent,
@@ -2237,6 +2239,94 @@ export function useGetDiscoverProfiles<TData = Awaited<ReturnType<typeof getDisc
 
 
 
+
+export const getResolveDiscoveryLocationUrl = () => {
+
+
+
+
+  return `/api/vibeswipe/discover/location`
+}
+
+/**
+ * @summary Resolve a one-time GPS fix to the nearest supported discovery city
+ */
+export const resolveDiscoveryLocation = async (discoveryLocationCoordinatesInput: DiscoveryLocationCoordinatesInput, options?: Parameters<typeof customFetch>[1]): Promise<DiscoveryLocationSelection> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<DiscoveryLocationSelection>(getResolveDiscoveryLocationUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(discoveryLocationCoordinatesInput)
+  }
+);}
+
+
+
+
+
+export const getResolveDiscoveryLocationMutationKey = () => ['resolveDiscoveryLocation'] as const;
+
+export const getResolveDiscoveryLocationMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resolveDiscoveryLocation>>, TError,ResolveDiscoveryLocationMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof resolveDiscoveryLocation>>, TError,ResolveDiscoveryLocationMutationVariables, TContext> => {
+
+const mutationKey = getResolveDiscoveryLocationMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof resolveDiscoveryLocation>>, ResolveDiscoveryLocationMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  resolveDiscoveryLocation(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ResolveDiscoveryLocationMutationResult = NonNullable<Awaited<ReturnType<typeof resolveDiscoveryLocation>>>
+    export type ResolveDiscoveryLocationMutationBody = BodyType<DiscoveryLocationCoordinatesInput>
+    export type ResolveDiscoveryLocationMutationError = ErrorType<void>
+    export type ResolveDiscoveryLocationMutationVariables = {data: BodyType<DiscoveryLocationCoordinatesInput>}
+
+    /**
+ * @summary Resolve a one-time GPS fix to the nearest supported discovery city
+ */
+export const useResolveDiscoveryLocation = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resolveDiscoveryLocation>>, TError,ResolveDiscoveryLocationMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof resolveDiscoveryLocation>>,
+        TError,
+        ResolveDiscoveryLocationMutationVariables,
+        TContext
+      > => {
+      return useMutation(getResolveDiscoveryLocationMutationOptions(options), queryClient);
+    }
 
 export const getCreateReactionUrl = () => {
 

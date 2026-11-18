@@ -12,6 +12,9 @@ import {
   getGetVibeSwipeSettingsQueryKey,
   getProfileDatingState,
   getProfileFollowSummary,
+  formatDiscoveryLocationStatus,
+  geolocationFailureMessage,
+  locationPermissionFailureMessage,
   useBlockProfile,
   useCreateReaction,
   useActivateBoost,
@@ -23,12 +26,14 @@ import {
   useGetVibeSwipeSettings,
   useRecordProfileView,
   useReportProfile,
+  useResolveDiscoveryLocation,
   useUndoLastPass,
   type Profile,
 } from "@workspace/api-client-react";
 import { Feather } from "@expo/vector-icons";
 import { useAuth } from "@clerk/expo";
-import { City, Country } from "country-state-city";
+import * as Location from "expo-location";
+import { City, Country, State } from "country-state-city";
 import { router } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { Image as PositionedImage } from "expo-image";
@@ -40,6 +45,7 @@ import {
   Alert,
   Animated,
   Image,
+  Linking,
   Modal,
   PanResponder,
   Platform,
@@ -193,6 +199,9 @@ export default function DiscoverScreen() {
   const { getToken } = useAuth();
   const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
+  const [locationPermission, requestLocationPermission] =
+    Location.useForegroundPermissions();
+  const resolveLocation = useResolveDiscoveryLocation();
   const reaction = useCreateReaction();
   const reportProfile = useReportProfile();
   const blockProfile = useBlockProfile();
@@ -207,8 +216,13 @@ export default function DiscoverScreen() {
   const [gender, setGender] = useState<string | undefined>(undefined);
   const [selectedCountry, setSelectedCountry] = useState<(typeof FILTER_COUNTRIES)[number] | null>(null);
   const [countrySearch, setCountrySearch] = useState("");
+  const [selectedState, setSelectedState] = useState<{ code: string; name: string } | null>(null);
+  const [stateSearch, setStateSearch] = useState("");
   const [city, setCity] = useState("");
   const [citySearch, setCitySearch] = useState("");
+  const [locating, setLocating] = useState(false);
+  const [locationMessage, setLocationMessage] = useState("");
+  const [canOpenLocationSettings, setCanOpenLocationSettings] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
   const [banner, setBanner] = useState("");
@@ -226,11 +240,27 @@ export default function DiscoverScreen() {
     if (!search || selectedCountry?.name === countrySearch) return [];
     return FILTER_COUNTRIES.filter((item) => item.name.toLocaleLowerCase().includes(search)).slice(0, 8);
   }, [countrySearch, selectedCountry]);
+  const statesInCountry = useMemo(
+    () => selectedCountry
+      ? State.getStatesOfCountry(selectedCountry.code).map(({ isoCode, name }) => ({ code: isoCode, name }))
+      : [],
+    [selectedCountry],
+  );
+  const stateSuggestions = useMemo(() => {
+    const search = stateSearch.trim().toLocaleLowerCase();
+    if (!selectedCountry || !search || selectedState?.name === stateSearch) return [];
+    return statesInCountry
+      .filter((item) => item.name.toLocaleLowerCase().includes(search))
+      .slice(0, 8);
+  }, [selectedCountry, selectedState, stateSearch, statesInCountry]);
   const citiesInCountry = useMemo(() => {
     if (!selectedCountry) return [];
-    return [...new Set((City.getCitiesOfCountry(selectedCountry.code) ?? []).map(({ name }) => name))]
+    const entries = selectedState
+      ? City.getCitiesOfState(selectedCountry.code, selectedState.code)
+      : City.getCitiesOfCountry(selectedCountry.code) ?? [];
+    return [...new Set(entries.map(({ name }) => name))]
       .sort((a, b) => a.localeCompare(b));
-  }, [selectedCountry]);
+  }, [selectedCountry, selectedState]);
   const citySuggestions = useMemo(() => {
     const search = citySearch.trim().toLocaleLowerCase();
     if (!selectedCountry || search.length < 2 || city === citySearch) return [];
@@ -246,8 +276,8 @@ export default function DiscoverScreen() {
   const topInset = Math.max(insets.top, Platform.OS === "web" ? 67 : 12);
   const actionBottom = Platform.OS === "web" ? 100 : Math.max(insets.bottom + 62, 82);
   const discoverParams = useMemo(
-    () => ({ ageMin, ageMax, ...(gender ? { gender } : {}), ...(selectedCountry ? { country: selectedCountry.name } : {}), ...(city.trim() ? { city: city.trim() } : {}) }),
-    [ageMin, ageMax, city, gender, selectedCountry],
+    () => ({ ageMin, ageMax, ...(gender ? { gender } : {}), ...(selectedCountry ? { country: selectedCountry.name } : {}), ...(selectedState ? { state: selectedState.name } : {}), ...(city.trim() ? { city: city.trim() } : {}) }),
+    [ageMin, ageMax, city, gender, selectedCountry, selectedState],
   );
   const feedKey = JSON.stringify([discoverParams, discoverySettings.data?.travelMode, discoverySettings.data?.travelCity, myProfile.data?.country, myProfile.data?.preferences.discoveryLocation]);
   const discover = useGetDiscoverProfiles(discoverParams, {
@@ -441,6 +471,90 @@ export default function DiscoverScreen() {
     } catch {
       await boostStatus.refetch();
       Alert.alert("Boost unavailable", "Your Boost is active or still cooling down.");
+    }
+  }
+
+  async function useCurrentLocation() {
+    setLocationMessage("");
+    setCanOpenLocationSettings(false);
+    if (discoverySettings.data?.travelMode) {
+      setLocationMessage("Turn off Travel Mode before changing your discovery location.");
+      return;
+    }
+    setLocating(true);
+    try {
+      let latitude: number;
+      let longitude: number;
+      if (Platform.OS === "web") {
+        if (!globalThis.navigator?.geolocation) {
+          throw new Error("location-unavailable");
+        }
+        const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+          globalThis.navigator.geolocation.getCurrentPosition(resolve, reject, {
+            enableHighAccuracy: false,
+            maximumAge: 0,
+            timeout: 12_000,
+          });
+        });
+        latitude = position.coords.latitude;
+        longitude = position.coords.longitude;
+      } else {
+        const permission = locationPermission?.granted
+          ? locationPermission
+          : await requestLocationPermission();
+        if (!permission.granted) {
+          const settingsRequired =
+            permission.status === "denied" && permission.canAskAgain === false;
+          setCanOpenLocationSettings(settingsRequired);
+          setLocationMessage(
+            locationPermissionFailureMessage(!settingsRequired),
+          );
+          return;
+        }
+        const position = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.Balanced,
+        });
+        latitude = position.coords.latitude;
+        longitude = position.coords.longitude;
+      }
+
+      const resolved = await resolveLocation.mutateAsync({
+        data: { latitude, longitude },
+      });
+      const country = FILTER_COUNTRIES.find(
+        (item) => item.code === resolved.country.code,
+      );
+      if (!country) throw new Error("unsupported-country");
+      const state = resolved.state
+        ? statesInCountry.find((item) => item.code === resolved.state?.code)
+          ?? State.getStatesOfCountry(country.code)
+            .map(({ isoCode, name }) => ({ code: isoCode, name }))
+            .find((item) => item.code === resolved.state?.code)
+          ?? null
+        : null;
+      if (resolved.state && !state) throw new Error("unsupported-state");
+      const cityOptions = state
+        ? City.getCitiesOfState(country.code, state.code)
+        : City.getCitiesOfCountry(country.code) ?? [];
+      if (!cityOptions.some((item) => item.name === resolved.city.name)) {
+        throw new Error("unsupported-city");
+      }
+
+      setSelectedCountry(country);
+      setCountrySearch(country.name);
+      setSelectedState(state);
+      setStateSearch(state?.name ?? "");
+      setCity(resolved.city.name);
+      setCitySearch(resolved.city.name);
+      setLocationMessage(formatDiscoveryLocationStatus(resolved));
+    } catch (error) {
+      const code =
+        typeof error === "object" && error && "code" in error
+          ? Number((error as { code: unknown }).code)
+          : undefined;
+      setLocationMessage(geolocationFailureMessage(code));
+    } finally {
+      setLocating(false);
     }
   }
 
@@ -649,13 +763,71 @@ export default function DiscoverScreen() {
                   Travel Mode is active. Turn it off in Settings to search another country.
                 </Text>
               ) : null}
+              <Pressable
+                testID="use-current-discovery-location"
+                accessibilityRole="button"
+                accessibilityLabel="Use current location to choose a nearby city"
+                disabled={Boolean(discoverySettings.data?.travelMode) || locating}
+                onPress={() => void useCurrentLocation()}
+                style={[
+                  styles.filterSuggestion,
+                  {
+                    borderColor: colors.primary,
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 8,
+                    opacity: discoverySettings.data?.travelMode || locating ? 0.55 : 1,
+                  },
+                ]}
+              >
+                {locating ? (
+                  <ActivityIndicator size="small" color={colors.primary} />
+                ) : (
+                  <Feather name="map-pin" size={16} color={colors.primary} />
+                )}
+                <Text style={{ color: colors.primary, fontSize: 13, fontWeight: "700" }}>
+                  {locating ? "Finding nearest city…" : "Use current location"}
+                </Text>
+              </Pressable>
+              <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>
+                Uses GPS once to choose a supported city. Coordinates are not saved.
+              </Text>
+              {locationMessage ? (
+                <Text
+                  accessibilityRole={canOpenLocationSettings ? "alert" : "text"}
+                  style={{
+                    color: locationMessage.startsWith("Using ") ? colors.primary : colors.destructive,
+                    fontSize: 12,
+                  }}
+                >
+                  {locationMessage}
+                </Text>
+              ) : null}
+              {canOpenLocationSettings && Platform.OS !== "web" ? (
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() => {
+                    void Linking.openSettings().catch(() => {
+                      setLocationMessage("Could not open Settings. Choose a location manually.");
+                      setCanOpenLocationSettings(false);
+                    });
+                  }}
+                >
+                  <Text style={{ color: colors.primary, fontSize: 12, fontWeight: "700" }}>
+                    Open Settings
+                  </Text>
+                </Pressable>
+              ) : null}
               <Text style={[styles.label, { color: colors.foreground }]}>Country</Text>
               <TextInput
                 value={countrySearch}
                 onChangeText={(value) => {
                   setCountrySearch(value);
+                  setLocationMessage("");
                   if (value !== selectedCountry?.name) {
                     setSelectedCountry(null);
+                    setSelectedState(null);
+                    setStateSearch("");
                     setCity("");
                     setCitySearch("");
                   }
@@ -666,26 +838,48 @@ export default function DiscoverScreen() {
                 style={[styles.filterInput, styles.cityInput, { borderColor: colors.border, color: colors.foreground }]}
               />
               {selectedCountry ? (
-                <Pressable onPress={() => { setSelectedCountry(null); setCountrySearch(""); setCity(""); setCitySearch(""); }}>
+                <Pressable onPress={() => { setSelectedCountry(null); setCountrySearch(""); setSelectedState(null); setStateSearch(""); setCity(""); setCitySearch(""); setLocationMessage(""); }}>
                   <Text style={{ color: colors.primary, fontSize: 12, fontWeight: "600" }}>Clear country · default feed</Text>
                 </Pressable>
               ) : null}
               {countrySuggestions.map((item) => (
-                <Pressable key={item.code} onPress={() => { setSelectedCountry(item); setCountrySearch(item.name); setCity(""); setCitySearch(""); }} style={[styles.filterSuggestion, { borderColor: colors.border }]}>
+                <Pressable key={item.code} onPress={() => { setSelectedCountry(item); setCountrySearch(item.name); setSelectedState(null); setStateSearch(""); setCity(""); setCitySearch(""); setLocationMessage(""); }} style={[styles.filterSuggestion, { borderColor: colors.border }]}>
+                  <Text style={{ color: colors.foreground }}>{item.name}</Text>
+                </Pressable>
+              ))}
+              <Text style={[styles.label, { color: colors.foreground }]}>State / region</Text>
+              <TextInput
+                value={stateSearch}
+                onChangeText={(value) => {
+                  setStateSearch(value);
+                  setLocationMessage("");
+                  if (value !== selectedState?.name) {
+                    setSelectedState(null);
+                    setCity("");
+                    setCitySearch("");
+                  }
+                }}
+                editable={Boolean(selectedCountry) && !discoverySettings.data?.travelMode}
+                placeholder={selectedCountry ? "Any state or region" : "Select a country first"}
+                placeholderTextColor={colors.mutedForeground}
+                style={[styles.filterInput, styles.cityInput, { borderColor: colors.border, color: colors.foreground, opacity: selectedCountry ? 1 : 0.5 }]}
+              />
+              {stateSuggestions.map((item) => (
+                <Pressable key={item.code} onPress={() => { setSelectedState(item); setStateSearch(item.name); setCity(""); setCitySearch(""); setLocationMessage(""); }} style={[styles.filterSuggestion, { borderColor: colors.border }]}>
                   <Text style={{ color: colors.foreground }}>{item.name}</Text>
                 </Pressable>
               ))}
               <Text style={[styles.label, { color: colors.foreground }]}>City</Text>
               <TextInput
                 value={citySearch}
-                onChangeText={(value) => { setCitySearch(value); if (value !== city) setCity(""); }}
+                onChangeText={(value) => { setCitySearch(value); setLocationMessage(""); if (value !== city) setCity(""); }}
                 editable={Boolean(selectedCountry) && !discoverySettings.data?.travelMode}
                 placeholder={selectedCountry ? "Any city" : "Select a country first"}
                 placeholderTextColor={colors.mutedForeground}
                 style={[styles.filterInput, styles.cityInput, { borderColor: colors.border, color: colors.foreground, opacity: selectedCountry ? 1 : 0.5 }]}
               />
               <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>
-                {selectedCountry ? "Choose a city suggestion, or leave blank for the whole country." : "Choose a country to search its cities."}
+                {selectedCountry ? `Choose a city suggestion, or leave blank for ${selectedState ? selectedState.name : "the whole country"}.` : "Choose a country to search its cities."}
               </Text>
               {citySuggestions.map((name) => (
                 <Pressable key={name} onPress={() => { setCity(name); setCitySearch(name); }} style={[styles.filterSuggestion, { borderColor: colors.border }]}>
@@ -696,9 +890,9 @@ export default function DiscoverScreen() {
                 <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>No city match. Select a suggestion or clear the field for any city.</Text>
               ) : null}
               <Pressable
-                disabled={Boolean(countrySearch.trim() && !selectedCountry) || Boolean(citySearch.trim() && !city)}
+                disabled={Boolean(countrySearch.trim() && !selectedCountry) || Boolean(stateSearch.trim() && !selectedState) || Boolean(citySearch.trim() && !city)}
                 onPress={() => { setFilterOpen(false); }}
-                style={[styles.primaryButton, { backgroundColor: colors.primary, opacity: (countrySearch.trim() && !selectedCountry) || (citySearch.trim() && !city) ? 0.5 : 1 }]}
+                style={[styles.primaryButton, { backgroundColor: colors.primary, opacity: (countrySearch.trim() && !selectedCountry) || (stateSearch.trim() && !selectedState) || (citySearch.trim() && !city) ? 0.5 : 1 }]}
               >
                 <Text style={styles.buttonWhite}>Show profiles</Text>
               </Pressable>

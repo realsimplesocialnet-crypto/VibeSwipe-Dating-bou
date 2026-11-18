@@ -395,6 +395,25 @@ paths:
               schema:
                 type: array
                 items: { $ref: "#/components/schemas/Profile" }
+  /vibeswipe/discover/location:
+    post:
+      operationId: resolveDiscoveryLocation
+      tags: [vibeswipe]
+      summary: Resolve a one-time GPS fix to the nearest supported discovery city
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DiscoveryLocationCoordinatesInput" }
+      responses:
+        "200":
+          description: Country, state or region, and nearest supported city; raw coordinates are not returned
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DiscoveryLocationSelection" }
+        "400": { description: Invalid coordinates }
+        "401": { description: Sign in required }
+        "422": { description: No supported city could be resolved }
   /vibeswipe/reactions:
     post:
       operationId: createReaction
@@ -1891,6 +1910,29 @@ components:
       type: http
       scheme: bearer
   schemas:
+    DiscoveryLocationCoordinatesInput:
+      type: object
+      required: [latitude, longitude]
+      additionalProperties: false
+      properties:
+        latitude: { type: number, minimum: -90, maximum: 90 }
+        longitude: { type: number, minimum: -180, maximum: 180 }
+    DiscoveryLocationOption:
+      type: object
+      required: [code, name]
+      properties:
+        code: { type: string }
+        name: { type: string }
+    DiscoveryLocationSelection:
+      type: object
+      required: [country, state, city]
+      properties:
+        country: { $ref: "#/components/schemas/DiscoveryLocationOption" }
+        state:
+          oneOf:
+            - $ref: "#/components/schemas/DiscoveryLocationOption"
+            - type: "null"
+        city: { $ref: "#/components/schemas/DiscoveryLocationOption" }
     AdminSession:
       type: object
       required: [userId, name, email, timezone]

@@ -5,6 +5,30 @@
  * VibeSwipe dating profile, discovery, matching, messaging, and safety API
  * OpenAPI spec version: 0.1.0
  */
+export interface DiscoveryLocationCoordinatesInput {
+  /**
+     * @minimum -90
+     * @maximum 90
+     */
+  latitude: number;
+  /**
+     * @minimum -180
+     * @maximum 180
+     */
+  longitude: number;
+}
+
+export interface DiscoveryLocationOption {
+  code: string;
+  name: string;
+}
+
+export interface DiscoveryLocationSelection {
+  country: DiscoveryLocationOption;
+  state: DiscoveryLocationOption | null;
+  city: DiscoveryLocationOption;
+}
+
 export interface AdminSession {
   userId: string;
   name: string;

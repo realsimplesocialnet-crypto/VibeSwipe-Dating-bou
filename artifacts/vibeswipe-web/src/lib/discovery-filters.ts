@@ -15,6 +15,16 @@ export function validDiscoveryAges(min: number, max: number): boolean {
   return Number.isInteger(min) && Number.isInteger(max) && min >= 18 && max <= 120 && min <= max;
 }
 
+export function clearDiscoveryLocation(filters: DiscoveryFilters): DiscoveryFilters {
+  return {
+    ...filters,
+    country: null,
+    state: null,
+    city: "",
+    includePassed: false,
+  };
+}
+
 export function discoveryFilterParams(filters: DiscoveryFilters | null): GetDiscoverProfilesParams {
   // An untouched feed uses the member's saved preferences on the server.
   if (!filters) return {};

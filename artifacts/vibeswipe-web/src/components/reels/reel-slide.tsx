@@ -1,23 +1,25 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "wouter";
 import type { Reel } from "@workspace/api-client-react";
-import { Bookmark, Heart, MapPin, MessageCircle, Pause, Play, Send, Volume2, VolumeX } from "lucide-react";
+import { ChevronRight, Heart, MapPin, MessageCircle, Pause, Play, Plus, Search, Send, Volume2, VolumeX } from "lucide-react";
 import { VerifiedBadge } from "@/components/verified-badge";
 import { ReelAvatar } from "@/components/reels/reel-avatar";
 import { formatCount, reelMediaUrl } from "@/lib/reels";
+import { reelSearchSuggestion } from "@/lib/reel-search-suggestion";
 import { isOfflineReelWifi } from "@/lib/offline-reels";
 
 type Props = {
   reel: Reel; index: number; active: boolean; near: boolean; muted: boolean; pageHidden: boolean;
   compact: boolean; navigationVisible: boolean; returnTo: string;
-  likePending: boolean; savePending: boolean;
+  likePending: boolean;
   onAutoplayMuted: () => void; onToggleSound: () => void;
-  onLike: () => void; onComment: () => void; onShare: () => void; onSave: () => void;
+  onLike: () => void; onComment: () => void; onShare: () => void; onCreateReel: () => void;
+  onSearchSuggestion: (query: string) => void;
   onView: () => void;
   offlineSaved: boolean; onAutoCache: () => void;
 };
 
-export function ReelSlide({ reel, index, active, near, muted, pageHidden, compact, navigationVisible, returnTo, likePending, savePending, onAutoplayMuted, onToggleSound, onLike, onComment, onShare, onSave, onView, offlineSaved, onAutoCache }: Props) {
+export function ReelSlide({ reel, index, active, near, muted, pageHidden, compact, navigationVisible, returnTo, likePending, onAutoplayMuted, onToggleSound, onLike, onComment, onShare, onCreateReel, onSearchSuggestion, onView, offlineSaved, onAutoCache }: Props) {
   const video = useRef<HTMLVideoElement>(null);
   const autoCacheRequested = useRef(false);
   const viewRecorded = useRef(false);
@@ -145,6 +147,7 @@ export function ReelSlide({ reel, index, active, near, muted, pageHidden, compac
   const reelReturnParams = new URLSearchParams({ returnTo });
   const creatorProfileReturn = `/reels/${encodeURIComponent(reel.id)}?${reelReturnParams.toString()}`;
   const creatorProfileHref = `/profile/${encodeURIComponent(reel.creatorId)}?returnTo=${encodeURIComponent(creatorProfileReturn)}`;
+  const searchSuggestion = reelSearchSuggestion({ caption: reel.caption, creatorLocation: reel.creatorLocation });
   const creatorIdentity = <span className="reel-identity flex min-w-0 items-center gap-2 rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary">
     <span className="reel-creator-avatar-ring" data-testid={`reel-creator-avatar-${reel.id}`}>
       {near
@@ -197,15 +200,26 @@ export function ReelSlide({ reel, index, active, near, muted, pageHidden, compac
         <MessageCircle size={28} strokeWidth={1.8} /><span data-testid={`text-comment-count-${reel.id}`}>{formatCount(reel.commentCount)}</span>
       </button>
       <button type="button" onClick={onShare} aria-label={`Share, ${formatCount(reel.shareCount)} shares`} data-testid={`button-share-reel-${reel.id}`}><Send size={28} strokeWidth={1.8} /><span data-testid={`text-share-count-${reel.id}`}>{formatCount(reel.shareCount)}</span></button>
-      <button type="button" onClick={onSave} disabled={savePending} aria-pressed={reel.savedByMe} aria-label={reel.savedByMe ? "Remove from saved" : "Save"} data-testid={`button-save-reel-${reel.id}`} className={reel.savedByMe ? "is-saved" : ""}>
-        <Bookmark size={28} strokeWidth={1.8} fill={reel.savedByMe ? "currentColor" : "none"} /><span>Save</span>
+      <button type="button" onClick={onCreateReel} aria-label="Create a Reel" data-testid={`button-create-reel-${reel.id}`} className="reel-create-action">
+        <Plus size={27} strokeWidth={2} />
       </button>
     </div>
 
-    <div className={`reel-meta ${compact ? "is-compact" : ""} ${navigationVisible ? "is-nav-visible" : ""}`}>
+    <div className={`reel-meta ${searchSuggestion && !compact ? "has-search" : ""} ${compact ? "is-compact" : ""} ${navigationVisible ? "is-nav-visible" : ""}`}>
       {reel.isOwner ? creatorIdentity : <Link href={creatorProfileHref} aria-label={`Open ${reel.creatorName}'s profile`} data-testid={`link-reel-profile-${reel.id}`} className="inline-flex max-w-full no-underline">{creatorIdentity}</Link>}
       {!compact && reel.caption && <p className="reel-caption" data-testid={`text-reel-caption-${reel.id}`}>{reel.caption}</p>}
     </div>
+    {searchSuggestion && !compact && <button
+      type="button"
+      className={`reel-search-suggestion ${navigationVisible ? "" : "is-nav-hidden"}`}
+      onClick={() => onSearchSuggestion(searchSuggestion)}
+      aria-label={`Search Reels for ${searchSuggestion}`}
+      data-testid={`button-reel-search-suggestion-${reel.id}`}
+    >
+      <Search size={17} aria-hidden="true" />
+      <span>Search · {searchSuggestion}</span>
+      <ChevronRight size={17} aria-hidden="true" />
+    </button>}
     <input
       className="reel-progress"
       type="range"
