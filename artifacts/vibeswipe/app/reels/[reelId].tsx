@@ -23,7 +23,7 @@ import { Feather } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import { VideoView, useVideoPlayer } from "expo-video";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, KeyboardAvoidingView, Linking, Modal, Platform, Pressable, ScrollView, Share, StyleSheet, Text, TextInput, View } from "react-native";
 import { useQueryClient } from "@tanstack/react-query";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { usePremiumColors } from "@/hooks/useColors";
@@ -38,12 +38,14 @@ export default function ProfileReelScreen() {
   const insets = useSafeAreaInsets();
   const [token, setToken] = useState<string | null>(null);
   const [shareVisible, setShareVisible] = useState(false);
+  const [androidShareTargetsVisible, setAndroidShareTargetsVisible] = useState(false);
   const [commentsVisible, setCommentsVisible] = useState(false);
   const [commentDraft, setCommentDraft] = useState("");
   const [pendingMatchId, setPendingMatchId] = useState<string | null>(null);
   const [sentTo, setSentTo] = useState<Record<string, boolean>>({});
   const [shareError, setShareError] = useState("");
   const [actionError, setActionError] = useState("");
+  const externalSharePending = useRef(false);
   const recordView = useRecordReelView();
   const recordShare = useRecordReelShare();
   const likeReel = useLikeReel();
@@ -160,6 +162,82 @@ export default function ProfileReelScreen() {
     }
   }
 
+  async function shareToApps() {
+    const reel = reelQuery.data;
+    if (Platform.OS !== "ios" || !reel || externalSharePending.current) return;
+    externalSharePending.current = true;
+    setShareError("");
+    setActionError("");
+    setShareVisible(false);
+    try {
+      await new Promise<void>((resolve) => setTimeout(resolve, Platform.OS === "ios" ? 320 : 120));
+      const origin = (process.env.EXPO_PUBLIC_WEB_URL
+        || (process.env.EXPO_PUBLIC_DOMAIN ? `https://${process.env.EXPO_PUBLIC_DOMAIN}` : "https://myage.beauty")
+      ).replace(/\/+$/, "");
+      const url = `${origin}/reels/${reel.id}`;
+      const message = `${reel.caption || `${reel.creatorName} on Myage Reels`}\n\n${url}`;
+      const result = await Share.share(
+        { title: `${reel.creatorName} on Reels`, message, url },
+        { dialogTitle: "Share Reel" },
+      );
+      if (result.action !== Share.sharedAction) return;
+      try {
+        const updated = await recordShare.mutateAsync({ reelId: reel.id });
+        queryClient.setQueryData<Reel>(getGetReelQueryKey(reel.id), (current) =>
+          current ? { ...current, shareCount: updated.shareCount } : current,
+        );
+        refreshReelLists(reel.creatorId);
+      } catch {
+        setActionError("The Reel was shared, but its count did not sync. Reopen it while online.");
+      }
+    } catch {
+      setActionError("Could not open the share menu. Try again.");
+    } finally {
+      externalSharePending.current = false;
+    }
+  }
+
+  async function shareToExternalApp(target: "whatsapp" | "telegram" | "messages" | "email") {
+    const reel = reelQuery.data;
+    if (Platform.OS !== "android" || !reel || externalSharePending.current) return;
+    externalSharePending.current = true;
+    setShareError("");
+    setActionError("");
+    setShareVisible(false);
+    try {
+      await new Promise<void>((resolve) => setTimeout(resolve, 120));
+      const origin = (process.env.EXPO_PUBLIC_WEB_URL
+        || (process.env.EXPO_PUBLIC_DOMAIN ? `https://${process.env.EXPO_PUBLIC_DOMAIN}` : "https://myage.beauty")
+      ).replace(/\/+$/, "");
+      const url = `${origin}/reels/${reel.id}`;
+      const message = `${reel.caption || `${reel.creatorName} on Myage Reels`}\n\n${url}`;
+      const encodedUrl = encodeURIComponent(url);
+      const encodedMessage = encodeURIComponent(message);
+      const encodedSubject = encodeURIComponent(`${reel.creatorName} on Myage Reels`);
+      const targetUrl = target === "whatsapp"
+        ? `https://wa.me/?text=${encodedMessage}`
+        : target === "telegram"
+          ? `https://t.me/share/url?url=${encodedUrl}&text=${encodeURIComponent(reel.caption || "Watch this Reel")}`
+          : target === "messages"
+            ? `sms:?body=${encodedMessage}`
+            : `mailto:?subject=${encodedSubject}&body=${encodedMessage}`;
+      await Linking.openURL(targetUrl);
+      try {
+        const updated = await recordShare.mutateAsync({ reelId: reel.id });
+        queryClient.setQueryData<Reel>(getGetReelQueryKey(reel.id), (current) =>
+          current ? { ...current, shareCount: updated.shareCount } : current,
+        );
+        refreshReelLists(reel.creatorId);
+      } catch {
+        setActionError("The Reel was shared, but its count did not sync. Reopen it while online.");
+      }
+    } catch {
+      setActionError("Could not open that app. Try another share option.");
+    } finally {
+      externalSharePending.current = false;
+    }
+  }
+
   async function shareToMatch(matchId: string) {
     const reel = reelQuery.data;
     if (!reel || pendingMatchId || sentTo[matchId]) return;
@@ -241,6 +319,7 @@ export default function ProfileReelScreen() {
                 testID="button-share-reel"
                 onPress={() => {
                   setShareError("");
+                  setAndroidShareTargetsVisible(false);
                   setShareVisible(true);
                 }}
                 style={styles.actionButton}
@@ -289,6 +368,67 @@ export default function ProfileReelScreen() {
               </Pressable>
             </View>
             {shareError ? <Text accessibilityRole="alert" style={[styles.shareError, { color: colors.destructive }]}>{shareError}</Text> : null}
+            {Platform.OS === "android" ? (
+              <>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={androidShareTargetsVisible ? "Hide share apps" : "Choose an app to share this Reel"}
+                  testID="button-share-to-apps"
+                  onPress={() => setAndroidShareTargetsVisible((visible) => !visible)}
+                  style={[styles.shareAppsButton, { backgroundColor: colors.background, borderColor: colors.primary }]}
+                >
+                  <View style={[styles.shareAppsIcon, { backgroundColor: colors.primary }]}>
+                    <Feather name="share-2" size={18} color={colors.primaryForeground} />
+                  </View>
+                  <View style={styles.shareAppsCopy}>
+                    <Text style={[styles.shareAppsTitle, { color: colors.foreground }]}>Share to apps</Text>
+                    <Text style={[styles.shareAppsSubtitle, { color: colors.mutedForeground }]}>WhatsApp, Telegram, Messages, Email</Text>
+                  </View>
+                  <Feather name="chevron-right" size={18} color={colors.mutedForeground} />
+                </Pressable>
+                {androidShareTargetsVisible ? (
+                  <View style={styles.shareAppTargets}>
+                    {([
+                      ["whatsapp", "WhatsApp", "message-circle"],
+                      ["telegram", "Telegram", "send"],
+                      ["messages", "Messages", "message-square"],
+                      ["email", "Email", "mail"],
+                    ] as const).map(([target, label, icon]) => (
+                      <Pressable
+                        key={target}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Share Reel with ${label}`}
+                        testID={`button-share-reel-${target}`}
+                        onPress={() => void shareToExternalApp(target)}
+                        style={[styles.shareAppTarget, { backgroundColor: colors.background }]}
+                      >
+                        <View style={[styles.shareAppTargetIcon, { backgroundColor: colors.primary }]}>
+                          <Feather name={icon} size={18} color={colors.primaryForeground} />
+                        </View>
+                        <Text style={[styles.shareAppTargetLabel, { color: colors.foreground }]}>{label}</Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                ) : null}
+              </>
+            ) : (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Share Reel to another app"
+                testID="button-share-to-apps"
+                onPress={() => void shareToApps()}
+                style={[styles.shareAppsButton, { backgroundColor: colors.background, borderColor: colors.primary }]}
+              >
+                <View style={[styles.shareAppsIcon, { backgroundColor: colors.primary }]}>
+                  <Feather name="share-2" size={18} color={colors.primaryForeground} />
+                </View>
+                <View style={styles.shareAppsCopy}>
+                  <Text style={[styles.shareAppsTitle, { color: colors.foreground }]}>Share to apps</Text>
+                  <Text style={[styles.shareAppsSubtitle, { color: colors.mutedForeground }]}>Messages, WhatsApp, and more</Text>
+                </View>
+                <Feather name="chevron-right" size={18} color={colors.mutedForeground} />
+              </Pressable>
+            )}
             <Text style={[styles.shareSectionTitle, { color: colors.mutedForeground }]}>SEND IN A CHAT</Text>
             {matches.isLoading ? (
               <ActivityIndicator color={colors.primary} style={styles.shareLoading} />
@@ -408,6 +548,15 @@ const styles = StyleSheet.create({
   closeShare: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
   shareError: { marginTop: 3, fontSize: 12, fontWeight: "600" },
   shareSectionTitle: { marginTop: 10, marginBottom: 6, fontSize: 11, fontWeight: "800", letterSpacing: 1.2 },
+  shareAppsButton: { minHeight: 62, flexDirection: "row", alignItems: "center", gap: 12, borderWidth: 1, borderRadius: 17, paddingHorizontal: 12, marginTop: 8 },
+  shareAppsIcon: { width: 38, height: 38, alignItems: "center", justifyContent: "center", borderRadius: 13 },
+  shareAppsCopy: { flex: 1, gap: 3 },
+  shareAppsTitle: { fontSize: 14, fontWeight: "800" },
+  shareAppsSubtitle: { fontSize: 11, fontWeight: "600" },
+  shareAppTargets: { flexDirection: "row", justifyContent: "space-between", gap: 4, marginTop: 12 },
+  shareAppTarget: { flex: 1, minHeight: 72, alignItems: "center", justifyContent: "center", gap: 5, borderRadius: 14 },
+  shareAppTargetIcon: { width: 34, height: 34, alignItems: "center", justifyContent: "center", borderRadius: 17 },
+  shareAppTargetLabel: { fontSize: 10, fontWeight: "700" },
   shareLoading: { paddingVertical: 28 },
   shareEmpty: { minHeight: 76, justifyContent: "center" },
   shareEmptyText: { paddingVertical: 15, fontSize: 13, lineHeight: 19 },

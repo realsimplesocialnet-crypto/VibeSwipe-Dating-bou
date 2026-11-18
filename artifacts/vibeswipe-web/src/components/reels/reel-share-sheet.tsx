@@ -36,15 +36,13 @@ export function ReelShareSheet({ reel, onClose, onCountChange }: { reel: Reel; o
   async function nativeShare() {
     try { await navigator.share({ title: `${reel.creatorName} on Reels`, text: reel.caption || "Watch this Reel", url }); }
     catch (error) { if ((error as { name?: string }).name !== "AbortError") setStatus("Sharing is not available here. Copy the link instead."); return; }
-    try { await trackShare(); setStatus(""); }
+    try { await trackShare(); setStatus(""); onClose(); }
     catch { setStatus("Shared, but the share count could not be updated."); }
   }
   async function copy() {
     try { await navigator.clipboard.writeText(url); }
     catch { setStatus("Copy failed. Long-press the link to copy it."); return; }
     setStatus("Link copied.");
-    try { await trackShare(); }
-    catch { setStatus("Link copied, but the share count could not be updated."); }
   }
   async function sendTo(matchId: string) {
     setPending(matchId); setStatus("");
