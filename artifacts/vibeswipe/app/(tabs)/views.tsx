@@ -60,7 +60,7 @@ function timeAgo(value?: string | null): string {
   return new Date(value).toLocaleDateString();
 }
 
-export default function MessagesScreen() {
+export default function ChatsScreen() {
   const colors = useColors();
   const queryClient = useQueryClient();
   const matches = useGetMatches({ query: { refetchInterval: 10_000, refetchOnMount: "always", staleTime: 0 } });
@@ -75,6 +75,7 @@ export default function MessagesScreen() {
     new Date(b.lastMessageAt ?? b.updatedAt).getTime() - new Date(a.lastMessageAt ?? a.updatedAt).getTime()), [matches.data]);
   const newMatches = allMatches.filter((match) => !match.lastMessage);
   const chats = allMatches.filter((match) => Boolean(match.lastMessage));
+  const unreadTotal = allMatches.reduce((total, match) => total + (match.unreadCount ?? 0), 0);
 
   async function refreshSafetyAndLists() {
     await Promise.all([
@@ -158,8 +159,13 @@ export default function MessagesScreen() {
   return (
     <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: colors.messagesBackground }}><View style={styles.screen}>
       <View style={[styles.brandHeader, { justifyContent: "flex-end" }]}><Pressable accessibilityRole="button" accessibilityLabel="Notifications" onPress={() => router.push("/(tabs)/activity")} style={{ padding: 8 }}><Feather name="bell" size={24} color={colors.foreground}/></Pressable></View>
-      <Text style={[styles.title, { color: colors.foreground }]}>Messages</Text>
-      <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>Only mutual matches appear here. <Feather name="heart" size={16} color={colors.primary}/></Text>
+      <View style={styles.chatsHeading} testID="chats-header">
+        <View style={styles.chatIconPlate}>
+          <Feather name="inbox" size={44} color="#075c44" />
+          {unreadTotal > 0 ? <View accessibilityLabel={`${unreadTotal} unread chats`} testID="chat-unread-total" style={styles.chatUnreadBadge}><Text style={styles.chatUnreadText}>{unreadTotal > 99 ? "99+" : unreadTotal}</Text></View> : null}
+        </View>
+        <Text style={[styles.title, styles.chatsTitle, { color: colors.foreground }]}>Chats</Text>
+      </View>
       {matches.isLoading ? <ActivityIndicator color={colors.primary} style={styles.loading} /> : null}
       {matches.isError ? (
         <Pressable onPress={() => void matches.refetch()} style={styles.errorBox}>
@@ -410,6 +416,11 @@ const styles = StyleSheet.create({
   monogram: { fontSize: 34, fontWeight: "900", letterSpacing: -3 },
   brandName: { fontSize: 22, fontWeight: "800" },
   title: { fontSize: 38, fontWeight: "800", letterSpacing: -1.3 },
+  chatsHeading: { alignItems: "center", marginBottom: 18 },
+  chatIconPlate: { width: 176, height: 80, borderRadius: 48, backgroundColor: "#d9f8dc", alignItems: "center", justifyContent: "center", position: "relative" },
+  chatUnreadBadge: { position: "absolute", top: -3, right: -2, minWidth: 78, height: 40, borderRadius: 22, backgroundColor: "#20a568", paddingHorizontal: 12, alignItems: "center", justifyContent: "center" },
+  chatUnreadText: { color: "#fff", fontSize: 19, fontWeight: "900", lineHeight: 22 },
+  chatsTitle: { marginTop: 16, fontSize: 38, fontWeight: "900", letterSpacing: -0.8 },
   subtitle: { fontSize: 14, marginTop: 8, marginBottom: 22 },
   badge: { minWidth: 28, height: 28, paddingHorizontal: 6, borderRadius: 14, alignItems: "center", justifyContent: "center" },
   badgeText: { fontSize: 13, fontWeight: "800" },

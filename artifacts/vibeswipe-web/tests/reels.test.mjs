@@ -68,7 +68,7 @@ test("five bottom tabs keep Reels while Matches is reached through Activity", ()
   const app = read("../src/App.tsx");
   const navigation = app.split("const navItems = [")[1].split("];")[0];
   assert.deepEqual([...navigation.matchAll(/label: '([^']+)'/g)].map(m => m[1]),
-    ["Discover", "Reels", "Messages", "Activity"]);
+    ["Discover", "Reels", "Chats", "Activity"]);
   assert.match(app, /data-testid="mobile-nav-profile"/);
   assert.ok(!navigation.includes("href: '/matches'"));
   const activity = read("../src/components/social-hub.tsx");

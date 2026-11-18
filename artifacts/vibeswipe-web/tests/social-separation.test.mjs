@@ -26,7 +26,7 @@ test('native Activity excludes chat-message notices and places its four summary 
   assert.ok(native.indexOf('testID="activity-summary"') < native.indexOf('testID={`follow-notice-'));
   const tabs = source('../../vibeswipe/app/(tabs)/_layout.tsx');
   assert.match(tabs, /messageBadge = counts\?\.messages/);
-  assert.match(tabs, /NativeTabs\.Trigger\.Label>Messages/);
+  assert.match(tabs, /NativeTabs\.Trigger\.Label>Chats/);
 });
 
 test('Likes and Views use their dedicated real data and expose profile viewing, not chat', () => {
@@ -70,6 +70,6 @@ test('native bottom navigation remains exactly the five selected tabs', () => {
   assert.deepEqual([...tabs.matchAll(/<NativeTabs\.Trigger\s+name="([^"]+)"([^>]*)>/g)]
     .filter(m => !/\bhidden\b/.test(m[2])).map(m => m[1]),
     ['index', 'matches', 'views', 'activity', 'profile']);
-  assert.match(tabs, /title: 'Messages'/);
+  assert.match(tabs, /title: 'Chats'/);
   assert.doesNotMatch(tabs, /title: 'Likes'|title: 'Views'/);
 });

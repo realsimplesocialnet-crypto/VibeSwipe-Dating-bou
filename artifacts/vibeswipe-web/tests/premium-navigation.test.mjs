@@ -41,7 +41,7 @@ test("all five buttons share the original 50px height and equal widths with no l
   assert.match(css, /\.mnav-label \{[^}]*white-space:nowrap/);
   const labels = app.split("const navItems = [")[1].split("];")[0];
   assert.deepEqual([...labels.matchAll(/label: '([^']+)'/g)].map(m => m[1]),
-    ["Discover", "Reels", "Messages", "Activity"]);
+    ["Discover", "Reels", "Chats", "Activity"]);
   assert.match(app, /data-testid="mobile-nav-profile"[^>]*className=\{`mnav-item/);
 });
 

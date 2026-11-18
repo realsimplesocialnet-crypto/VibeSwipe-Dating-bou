@@ -35,8 +35,8 @@ function NativeTabLayout() {
         {matchBadge > 0 ? <NativeTabs.Trigger.Badge>{matchBadge > 99 ? '99+' : String(matchBadge)}</NativeTabs.Trigger.Badge> : null}
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="views">
-        <NativeTabs.Trigger.Icon sf={{ default: 'message', selected: 'message.fill' }} />
-        <NativeTabs.Trigger.Label>Messages</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon sf={{ default: 'tray', selected: 'tray.fill' }} drawable="inbox" />
+        <NativeTabs.Trigger.Label>Chats</NativeTabs.Trigger.Label>
         {messageBadge > 0 ? <NativeTabs.Trigger.Badge>{messageBadge > 99 ? '99+' : String(messageBadge)}</NativeTabs.Trigger.Badge> : null}
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="activity">
@@ -128,10 +128,10 @@ function ClassicTabLayout() {
       <Tabs.Screen
         name="views"
         options={{
-          title: 'Messages',
+          title: 'Chats',
           headerShown: false,
           tabBarBadge: messageBadge || undefined,
-          tabBarIcon: ({ color }) => <Feather name="message-circle" size={21} color={typeof color === 'string' ? color : colors.primary} />,
+          tabBarIcon: ({ color }) => <Feather name="inbox" size={21} color={typeof color === 'string' ? color : colors.primary} />,
         }}
       />
       <Tabs.Screen

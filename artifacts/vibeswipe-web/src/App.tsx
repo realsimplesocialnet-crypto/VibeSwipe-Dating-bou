@@ -26,7 +26,7 @@ import {
 import { Link, Redirect, Route, Switch, useLocation, useParams, Router as WouterRouter } from 'wouter';
 import {
   ArrowLeft, ArrowRight, Bell, Clapperboard, Check, ChevronDown, ChevronRight, CircleHelp, Compass, Eye, EyeOff,
-  Heart, ImagePlus, MapPin, MessageCircle, MoreHorizontal, Navigation, Search, Settings,
+  Heart, ImagePlus, Inbox, MapPin, MessageCircle, MoreHorizontal, Navigation, Search, Settings,
   Shield, SlidersHorizontal, Mars, Venus, NonBinary, Briefcase, Pencil, Camera, Sparkles, Star, UserRound, UserPlus, Users, Volume2, X, Zap, Flag, Ban, Images, Coffee, CupSoda, Music, ImageIcon, Paperclip, SendHorizontal, LoaderCircle, MessageCircleMore,
 } from 'lucide-react';
 import NotFound from '@/pages/not-found';
@@ -123,7 +123,7 @@ function Brand({ compact = false, small = false }: { compact?: boolean; small?: 
 const navItems = [
   { href: '/discover', label: 'Discover', icon: Compass },
   { href: '/reels', label: 'Reels', icon: Clapperboard },
-  { href: '/messages', label: 'Messages', icon: MessageCircle }, { href: '/notifications', label: 'Activity', icon: Bell },
+  { href: '/messages', label: 'Chats', icon: Inbox }, { href: '/notifications', label: 'Activity', icon: Bell },
 ];
 
 function UnreadMessageBadge({ count, mobile = false }: { count: number; mobile?: boolean }) {
@@ -214,7 +214,7 @@ function AppShell({ children }: { children: ReactNode }) {
       {!isReelsViewer && <aside className="fixed inset-y-0 left-0 z-30 hidden w-[248px] flex-col border-r border-border bg-background px-5 py-6 lg:flex">
         <div className="mb-4 mt-2 px-3 text-[10px] font-bold uppercase tracking-[.2em] text-muted-foreground">Your space</div>
         <nav className="space-y-1">
-          {navItems.map(({ href, label, icon: Icon }) => <Link key={href} href={href} data-testid={`nav-${label.toLowerCase()}`} className={`flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold transition-colors ${activeLocation === href ? 'bg-accent text-[#ff80b6]' : 'text-muted-foreground hover:bg-white/[.04] hover:text-foreground'}`}><Icon size={18}/>{label}{label === 'Messages' && <UnreadMessageBadge count={unreadMessageCount}/>}</Link>)}
+          {navItems.map(({ href, label, icon: Icon }) => <Link key={href} href={href} data-testid={`nav-${label.toLowerCase()}`} className={`flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold transition-colors ${activeLocation === href ? 'bg-accent text-[#ff80b6]' : 'text-muted-foreground hover:bg-white/[.04] hover:text-foreground'}`}><Icon size={18}/>{label}{label === 'Chats' && <UnreadMessageBadge count={unreadMessageCount}/>}</Link>)}
         </nav>
         <div className="mt-auto space-y-2 border-t border-white/[.08] pt-4">
           <Link href="/profile" data-testid="nav-profile" className={`flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold ${location === '/profile' ? 'bg-accent text-[#ff80b6]' : 'text-muted-foreground hover:bg-white/[.04]'}`}><UserRound size={18}/><span className="truncate">{activeName}</span></Link>
@@ -228,7 +228,7 @@ function AppShell({ children }: { children: ReactNode }) {
     </main>
     {profile.data?.id&&<WebPushSettings key={profile.data.id} compact visible={showMainNavigation && !isReelsViewer} accountId={profile.data.id}/>}
     {showMainNavigation && <nav ref={mobileNavRef} aria-label="Primary" aria-hidden={isReelsViewer && !reelsNavigationVisible} className={`${location==='/profile'?'profile-nav ':''}${isReelsViewer ? `reels-mobile-nav ${reelsNavigationVisible ? '' : 'is-hidden'} ` : ''}mobile-nav fixed inset-x-0 bottom-0 ${isReelsViewer ? 'z-[80]' : 'z-30'} ${isReelsViewer ? '' : 'lg:hidden'} flex justify-around bg-background/95 px-2 pt-2 backdrop-blur-xl`}>
-      {navItems.map(({ href, label, icon: Icon }) => <Link key={href} href={href} data-testid={`mobile-nav-${label.toLowerCase()}`} aria-current={activeLocation === href ? 'page' : undefined} className={`mnav-item ${activeLocation === href ? 'is-active text-primary' : 'text-muted-foreground'}`}><span className="mnav-icon"><Icon size={19} strokeWidth={activeLocation === href ? 2.25 : 1.85}/>{label === 'Messages' && <UnreadMessageBadge count={unreadMessageCount} mobile/>}</span><span className="mnav-label">{label}</span></Link>)}
+      {navItems.map(({ href, label, icon: Icon }) => <Link key={href} href={href} data-testid={`mobile-nav-${label.toLowerCase()}`} aria-current={activeLocation === href ? 'page' : undefined} className={`mnav-item ${activeLocation === href ? 'is-active text-primary' : 'text-muted-foreground'}`}><span className="mnav-icon"><Icon size={19} strokeWidth={activeLocation === href ? 2.25 : 1.85}/>{label === 'Chats' && <UnreadMessageBadge count={unreadMessageCount} mobile/>}</span><span className="mnav-label">{label}</span></Link>)}
       <Link href="/profile" data-testid="mobile-nav-profile" aria-current={location === '/profile' ? 'page' : undefined} className={`mnav-item ${location === '/profile' ? 'is-active text-primary' : 'text-muted-foreground'}`}><span className="mnav-icon"><UserRound size={19} strokeWidth={location === '/profile' ? 2.25 : 1.85}/></span><span className="mnav-label">Profile</span></Link>
     </nav>}
   </div>;
@@ -562,7 +562,7 @@ function timeAgo(value?: string | null) {
   if (elapsed < 604_800_000) return `${Math.floor(elapsed / 86_400_000)}d ago`;
   return new Date(value).toLocaleDateString();
 }
-function MessagesPage() {
+function ChatsPage() {
   const matches = useGetMatches({ query: { queryKey: getGetMatchesQueryKey(), refetchInterval: 10000, refetchOnMount: 'always', refetchOnWindowFocus: true, staleTime: 0 } });
   const stories = useGetStories({ query: { queryKey: getGetStoriesQueryKey(), refetchInterval: 60000 } });
   const list = useMemo(() => (matches.data ?? []).filter(m=>!m.profile.isDemo&&!m.blockedByMe&&!m.blockedMe).sort((a, b) => {
@@ -575,11 +575,13 @@ function MessagesPage() {
   const unreadTotal = list.reduce((sum, m) => sum + ((m as MatchListExtras).unreadCount ?? 0), 0);
   return <div className="messages-page min-h-[calc(100dvh-48px)] lg:min-h-[100dvh]">
     <div className="page-in mx-auto max-w-[720px] px-4 pb-10 pt-6 md:px-8 md:pt-10" data-testid="messages-page-content">
-      <div className="flex items-end justify-between gap-4">
-        <h1 className="brand text-[2.5rem] font-extrabold leading-none tracking-[-.05em] md:text-5xl">Messages</h1>
-        {unreadTotal > 0 && <span data-testid="text-unread-total" className="mb-1 rounded-full bg-primary/15 px-3 py-1 text-xs font-bold text-primary">{unreadTotal} unread</span>}
+      <div className="flex flex-col items-center text-center" data-testid="chats-header">
+        <div className="relative flex h-20 w-44 items-center justify-center rounded-full bg-[#d9f8dc]">
+          <Inbox size={48} strokeWidth={3} aria-hidden="true" className="text-[#075c44]" />
+          {unreadTotal > 0 && <span aria-label={`${unreadTotal} unread chats`} data-testid="text-unread-total" className="absolute -right-1 -top-1 flex h-10 min-w-20 items-center justify-center rounded-full bg-[#20a568] px-3 text-lg font-black leading-none text-white shadow-sm">{unreadTotal > 99 ? '99+' : unreadTotal}</span>}
+        </div>
+        <h1 className="mt-4 text-[2.5rem] font-black leading-none tracking-[-.04em] md:text-5xl">Chats</h1>
       </div>
-      <p className="mt-3 flex items-center gap-2 text-[15px] text-muted-foreground">Only mutual matches appear here.<Heart size={17} fill="currentColor" aria-hidden="true" className="text-primary"/></p>
       <div className="mt-6">
         {matches.isLoading ? <div className="space-y-3" aria-label="Loading conversations">{[0,1,2].map(i => <div key={i} className="msg-card flex items-center gap-4 rounded-[22px] p-4"><div className="h-[68px] w-[68px] animate-pulse rounded-full bg-muted"/><div className="flex-1 space-y-2"><div className="h-4 w-32 animate-pulse rounded bg-muted"/><div className="h-3 w-48 animate-pulse rounded bg-muted"/></div></div>)}</div>
           : matches.isError && !matches.data ? <Retry error={matches.error} text="We couldn’t load your messages. Check your connection and try again." onRetry={() => void matches.refetch()} />
@@ -1023,7 +1025,7 @@ function LikesRoute(){return <ShellPage><InboundPeoplePage kind="likes" avatar={
 function FollowListRoute({kind}:{kind:'followers'|'following'}){const params=useParams<{profileId:string}>();return <ShellPage><FollowListPage profileId={params.profileId||''} kind={kind} avatar={p=><Avatar profile={p}/>}/></ShellPage>}
 function FollowersRoute(){return <FollowListRoute kind="followers"/>}
 function FollowingRoute(){return <FollowListRoute kind="following"/>}
-function MessagesRoute(){return <ShellPage><MessagesPage/></ShellPage>}
+function ChatsRoute(){return <ShellPage><ChatsPage/></ShellPage>}
 function NotificationsRoute(){return <ShellPage><ActivityOverview avatar={p=><Avatar profile={p}/>}/></ShellPage>}
 function ViewedNotificationProfileRoute(){const params=useParams<{profileId:string}>();return <ShellPage><PublicProfile id={params.profileId||''} actionReturnTo="/notifications"/></ShellPage>}
 function PublicProfileRoute(){const params=useParams<{profileId:string}>();const returnTo=safeAppReturnPath(new URLSearchParams(window.location.search).get('returnTo'),'/discover');return <ShellPage><PublicProfile id={params.profileId||''} actionReturnTo={returnTo}/></ShellPage>}
@@ -1056,7 +1058,7 @@ function ClerkRoutes(){const [,setLocation]=useLocation();return <ClerkProvider 
   <Route path="/sign-up/*?" component={BrandedSignUp}/>
   {import.meta.env.DEV&&<Route path="/create-account-preview"><div className="border-b border-primary/20 bg-accent px-5 py-3 text-center text-xs leading-5 text-foreground" role="note">Form preview only. Email-code signup still needs the authentication setting changed.</div><ProfileFirstSignup previewOnly/></Route>}
   <Route path="/onboarding" component={OnboardingRoute}/><Route path="/discover" component={DiscoverRoute}/><Route path="/search" component={SearchRoute}/><Route path="/stories/new" component={StoryComposerRoute}/><Route path="/reels" component={ReelsRoute}/><Route path="/reels/new" component={ReelComposerRoute}/><Route path="/reels/saved" component={ReelsLibraryRoute}/><Route path="/reels/:reelId" component={ReelRoute}/><Route path="/matches" component={MatchesRoute}/>
-  <Route path="/chat/:matchId" component={ChatRoute}/><Route path="/views" component={ViewsRoute}/><Route path="/likes" component={LikesRoute}/><Route path="/messages" component={MessagesRoute}/><Route path="/notifications" component={NotificationsRoute}/>
+  <Route path="/chat/:matchId" component={ChatRoute}/><Route path="/views" component={ViewsRoute}/><Route path="/likes" component={LikesRoute}/><Route path="/messages" component={ChatsRoute}/><Route path="/notifications" component={NotificationsRoute}/>
    <Route path="/privacy-policy" component={PrivacyPolicyRoute}/><Route path="/terms" component={CommunityGuidelinesRoute}/><Route path="/community-guidelines" component={CommunityGuidelinesRoute}/>
    <Route path="/safety-center" component={SafetyCenterRoute}/><Route path="/report-safety" component={ReportSafetyRoute}/><Route path="/safety/location" component={PublicLocationShareRoute}/>
   <Route path="/profile" component={ProfileRoute}/><Route path="/profile/edit" component={ProfileEditRoute}/><Route path="/profile/:profileId/followers" component={FollowersRoute}/><Route path="/profile/:profileId/following" component={FollowingRoute}/><Route path="/profile/:profileId/from-notifications" component={ViewedNotificationProfileRoute}/><Route path="/profile/:profileId" component={PublicProfileRoute}/><Route path="/verify-profile" component={FaceVerificationRoute}/><Route path="/settings" component={SettingsRoute}/><Route path="/settings/:section" component={SettingsSectionRoute}/><Route component={NotFound}/>

@@ -37,19 +37,22 @@ test('the native header opens the real match profile without sending anything', 
   assert.doesNotMatch(action, /\bsend\(|mutate(?:Async)?\(/);
 });
 
-test('Messages stays the conversation tab while Views opens separately under Activity', () => {
-  assert.match(web, /href: '\/messages', label: 'Messages', icon: MessageCircle/);
+test('Chats stays the conversation tab while Views opens separately under Activity', () => {
+  assert.match(web, /href: '\/messages', label: 'Chats', icon: Inbox/);
   assert.doesNotMatch(web, /label: 'Views'/);
   assert.match(web, /function ViewsRoute\(\).*<InboundPeoplePage kind="views"/);
   assert.doesNotMatch(web, /link-matches-messages|link-messages-back/);
 });
 
-test('website Messages uses real match data, excludes demo and blocked profiles, and renders unread counts', () => {
-  const messages = web.slice(web.indexOf('function MessagesPage()'), web.indexOf('function NotificationsPage()'));
+test('website Chats uses real match data, excludes demo and blocked profiles, and renders unread counts', () => {
+  const messages = web.slice(web.indexOf('function ChatsPage()'), web.indexOf('function NotificationsPage()'));
   assert.match(messages, /useGetMatches/);
   assert.match(messages, /!m\.profile\.isDemo&&!m\.blockedByMe&&!m\.blockedMe/);
   assert.doesNotMatch(messages, /useGetDiscoverProfiles|useGetWhoViewedYou/);
-  assert.match(messages, /Only mutual matches appear here\./);
+  assert.doesNotMatch(messages, /Only mutual matches appear here\./);
+  assert.match(messages, /data-testid="chats-header"/);
+  assert.match(messages, />Chats<\/h1>/);
+  assert.match(messages, /unreadTotal > 99 \? '99\+' : unreadTotal/);
   assert.match(messages, /extras\.unreadCount!>99\?'99\+':extras\.unreadCount/);
   assert.match(messages, /returnTo=%2Fmessages/);
 });
@@ -57,16 +60,19 @@ test('website Messages uses real match data, excludes demo and blocked profiles,
 test('native old Messages links redirect to the one tab instead of rendering a duplicate list', () => {
   const messages = readFileSync(new URL('../../vibeswipe/app/messages.tsx', import.meta.url), 'utf8');
   assert.match(messages, /<Redirect href="\/\(tabs\)\/views" \/>/);
-  assert.doesNotMatch(messages, /<MessagesScreen/);
+  assert.doesNotMatch(messages, /<ChatsScreen/);
   const tabs = readFileSync(new URL('../../vibeswipe/app/(tabs)/_layout.tsx', import.meta.url), 'utf8');
-  assert.match(tabs, /<NativeTabs\.Trigger\.Label>Messages<\/NativeTabs\.Trigger\.Label>/);
+  assert.match(tabs, /<NativeTabs\.Trigger\.Label>Chats<\/NativeTabs\.Trigger\.Label>/);
   assert.doesNotMatch(tabs, /title: 'Views'|<NativeTabs\.Trigger\.Label>Views</);
 });
 
-test('native Messages shows only real unblocked matches and uses the real unread badge count', () => {
+test('native Chats shows only real unblocked matches and uses the real unread badge count', () => {
   const messages = readFileSync(new URL('../../vibeswipe/app/(tabs)/views.tsx', import.meta.url), 'utf8');
-  assert.match(messages, /export default function MessagesScreen/);
+  assert.match(messages, /export default function ChatsScreen/);
   assert.match(messages, /!m\.profile\.isDemo && !m\.blockedByMe && !m\.blockedMe/);
-  assert.match(messages, /Only mutual matches appear here\./);
+  assert.doesNotMatch(messages, /Only mutual matches appear here\./);
+  assert.match(messages, /testID="chats-header"/);
+  assert.match(messages, />Chats<\/Text>/);
+  assert.match(messages, /unreadTotal > 99 \? "99\+" : unreadTotal/);
   assert.match(messages, /item\.unreadCount! > 99 \? "99\+" : item\.unreadCount/);
 });

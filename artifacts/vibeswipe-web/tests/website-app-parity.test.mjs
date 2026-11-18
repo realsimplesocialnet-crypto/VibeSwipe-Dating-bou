@@ -20,7 +20,7 @@ test("website and Home Screen visitors enter through the same welcome and accoun
 
 test("core app screens do not require installation or branch into a limited website", () => {
   assert.doesNotMatch(app, /useStandaloneMode|isStandaloneApp|navigator\.standalone|display-mode:/);
-  for (const route of ["Discover", "Messages", "Reels", "Profile", "Settings"]) {
+  for (const route of ["Discover", "Chats", "Reels", "Profile", "Settings"]) {
     const wrapper = app.match(new RegExp(`function ${route}Route\\(\\)[^\\n]+`))?.[0] ?? "";
     assert.match(wrapper, /<ShellPage>/, `${route} uses the shared authenticated app shell`);
   }
