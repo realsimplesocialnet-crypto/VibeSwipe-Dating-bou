@@ -1,23 +1,22 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "wouter";
 import type { Reel } from "@workspace/api-client-react";
-import { Bookmark, Check, Download, Heart, LoaderCircle, MapPin, MessageCircle, Music2, Pause, Play, Plus, Send, Trash2 } from "lucide-react";
+import { Bookmark, Check, Download, Heart, MapPin, MessageCircle, Music2, Pause, Play, Send, Trash2 } from "lucide-react";
 import { VerifiedBadge } from "@/components/verified-badge";
-import { ReelAvatar } from "@/components/reels/reel-avatar";
 import { formatCount, reelMediaUrl } from "@/lib/reels";
 import { isOfflineReelWifi } from "@/lib/offline-reels";
 
 type Props = {
   reel: Reel; index: number; active: boolean; near: boolean; muted: boolean; pageHidden: boolean;
   compact: boolean; navigationVisible: boolean; showHint: boolean; returnTo: string;
-  likePending: boolean; savePending: boolean; followPending: boolean;
+  likePending: boolean; savePending: boolean;
   onAutoplayMuted: () => void;
-  onLike: () => void; onComment: () => void; onShare: () => void; onSave: () => void; onFollow: () => void; onDelete: () => void;
+  onLike: () => void; onComment: () => void; onShare: () => void; onSave: () => void; onDelete: () => void;
   onView: () => void;
   offlineSaved: boolean; offlineSaving: boolean; onSaveOffline: () => void; onAutoCache: () => void;
 };
 
-export function ReelSlide({ reel, index, active, near, muted, pageHidden, compact, navigationVisible, showHint, returnTo, likePending, savePending, followPending, onAutoplayMuted, onLike, onComment, onShare, onSave, onFollow, onDelete, onView, offlineSaved, offlineSaving, onSaveOffline, onAutoCache }: Props) {
+export function ReelSlide({ reel, index, active, near, muted, pageHidden, compact, navigationVisible, showHint, returnTo, likePending, savePending, onAutoplayMuted, onLike, onComment, onShare, onSave, onDelete, onView, offlineSaved, offlineSaving, onSaveOffline, onAutoCache }: Props) {
   const video = useRef<HTMLVideoElement>(null);
   const bar = useRef<HTMLDivElement>(null);
   const autoCacheRequested = useRef(false);
@@ -141,15 +140,6 @@ export function ReelSlide({ reel, index, active, near, muted, pageHidden, compac
     <div className="reel-shade" aria-hidden="true" />
 
     <div className={`reel-rail ${compact ? "is-compact" : ""} ${navigationVisible ? "is-nav-visible" : ""}`}>
-      {!reel.isOwner && <button type="button" onClick={onFollow} disabled={followPending}
-        aria-label={reel.creatorFollowedByMe ? `Unfollow ${reel.creatorName}` : `Follow ${reel.creatorName}`}
-        aria-pressed={reel.creatorFollowedByMe} data-testid={`button-follow-creator-${reel.id}`}
-        className={`reel-follow-button ${reel.creatorFollowedByMe ? "is-following" : ""}`}>
-        <ReelAvatar reference={reel.creatorPhoto} name={reel.creatorName} size={42} />
-        <span className="reel-follow-badge" aria-hidden="true">
-          {followPending ? <LoaderCircle size={12} className="animate-spin" /> : reel.creatorFollowedByMe ? <Check size={12} /> : <Plus size={12} />}
-        </span>
-      </button>}
       <button type="button" onClick={onLike} disabled={likePending} aria-pressed={reel.likedByMe} aria-label={reel.likedByMe ? "Unlike" : "Like"} data-testid={`button-like-reel-${reel.id}`} className={reel.likedByMe ? "is-on" : ""}>
         <Heart size={26} strokeWidth={1.8} fill={reel.likedByMe ? "currentColor" : "none"} /><span data-testid={`text-like-count-${reel.id}`}>{formatCount(reel.likeCount)}</span>
       </button>

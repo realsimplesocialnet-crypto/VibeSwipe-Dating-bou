@@ -63,17 +63,17 @@ Reels navigation, action icons, labels, and counts should use bold, high-contras
 
 **How to apply:** Give the Reels/Friends tabs, search and add controls, like/comment/share actions, navigation labels, and view/count badges clear weight and contrast without changing the brand palette.
 
-Keep the vertical action rail compact and ordered creator Follow, Like, Comment, Save, Share, then offline save, with a music-artwork slot at the bottom.
+Keep the vertical action rail compact and ordered Like, Comment, Save, Share, then offline save, with a music-artwork slot at the bottom. Do not show the creator avatar or a Follow/plus badge on the rail; the creator name remains the profile link. Keep the top add button for posting a Reel.
 
-**Why:** The user asked for TikTok-style creator follow, engagement actions, and a reserved place for music artwork; they also objected to showing the creator photo twice.
+**Why:** The user asked to remove the profile-attached plus badge from the Reels screen.
 
-**How to apply:** Put one creator avatar with a plus/check Follow badge at the top of the rail; do not repeat it beside the name or in the music slot. Keep the like action for the Reel itself, preserve separate offline saving, and use a music icon until track artwork exists. Do not build music selection or playback until requested.
+**How to apply:** Keep Reel engagement and offline-save controls stable, make the creator name the profile entry point, and use a music icon until track artwork exists. Do not build music selection or playback until requested.
 
-Keep the creator's name, age, location, and caption compact at the lower left; the single creator photo belongs in the Follow control on the action rail.
+Keep the creator's name, age, location, and caption compact at the lower left; do not duplicate the creator photo elsewhere on the Reel.
 
-**Why:** The user approved TikTok's lower-left creator text size and requested the profile avatar with a Follow badge on the action rail instead of repeating the photo.
+**Why:** The user approved TikTok's lower-left creator text size and later asked to remove the profile photo and plus badge from the action rail.
 
-**How to apply:** Keep the name and age on one line, location directly below, and caption at 15px in the web feed. Avoid banners or another avatar in this lower-left block.
+**How to apply:** Keep the name and age on one line, location directly below, and caption at 15px in the web feed. Avoid banners or repeated profile photos.
 
 Use a plain, unboxed search icon and flat search field; avoid circular buttons and pill-like borders around Reels search.
 
