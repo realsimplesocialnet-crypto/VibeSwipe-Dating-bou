@@ -63,11 +63,11 @@ Reels navigation, action icons, labels, and counts should use bold, high-contras
 
 **How to apply:** Give the Reels/Friends tabs, search and add controls, like/comment/share actions, navigation labels, and view/count badges clear weight and contrast without changing the brand palette.
 
-Keep the vertical action rail compact and ordered Like, Comment, Share, Save. Do not show Message, Follow/plus, Remix, download, or music controls on the rail. Keep Saved Reels, posting, and owner-only deletion inside the top More menu. Show the creator avatar with a colored ring beside the lower-left name, which remains the profile link. Use blue for the active Reels tab on this screen.
+Keep the vertical action rail compact and ordered Like, Comment, Share, Save. Do not show Message, Follow/plus, Remix, download, or music controls on the rail. Keep Saved Reels, posting, and owner-only deletion inside the top More menu. Show the creator avatar with a colored ring beside the lower-left name, which remains the profile link. Keep the active Reels bottom tab and its indicator pink to match the app-wide navigation; keep the action rail visually compact.
 
-**Why:** The user’s latest Reels redesign request specifies exactly four rail actions and a blue Reels active-tab accent, while preserving existing saved, posting, and delete features.
+**Why:** The user initially requested a blue Reels accent, then clarified that the navigation should match Myage’s pink accent and asked for smaller, more tightly spaced actions.
 
-**How to apply:** Keep the profile link on the creator identity, keep Wi-Fi auto-caching separate from the visible action rail, and retain the four requested buttons in this order. Do not add a direct-message control or music selection/playback to the Reels rail.
+**How to apply:** Keep the profile link on the creator identity, keep Wi-Fi auto-caching separate from the visible action rail, and retain the four requested buttons in this order. Use the app’s pink selected-state treatment for Reels navigation. Do not add a direct-message control or music selection/playback to the Reels rail.
 
 Keep the creator's photo, name, age, location, and caption compact at the lower left; do not duplicate the creator photo elsewhere on the Reel.
 

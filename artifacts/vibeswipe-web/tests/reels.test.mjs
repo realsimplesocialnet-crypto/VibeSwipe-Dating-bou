@@ -246,10 +246,13 @@ test("Reel action rail and profile grid show persisted like, comment, save and s
   assert.match(slide, /element\.currentTime = \(nextProgress \/ 100\) \* element\.duration/);
   assert.match(slide, /button-reel-search-suggestion-/);
   const css = read("../src/components/reels/reels.css");
-  assert.match(css, /\.reel-rail button svg \{ height: 28px; width: 28px/);
-  assert.match(css, /\.reel-rail button \{[^}]*height: 68px;[^}]*font-size: 13px/);
-  assert.match(css, /--reels-blue: #3678d4/);
-  assert.match(css, /\.reels-mobile-nav \.mnav-item\.is-active \{ color: var\(--reels-blue\)/);
+  assert.match(css, /\.reel-rail button svg \{ height: 24px; width: 24px/);
+  assert.match(css, /\.reel-rail button \{[^}]*height: 56px;[^}]*font-size: 12px/);
+  assert.match(css, /\.reel-rail \{ gap: 4px; \}/);
+  assert.match(css, /\.reels-feed-tabs button\.is-active::after[^}]*background: hsl\(var\(--primary\)\)/);
+  assert.doesNotMatch(css, /\.reels-mobile-nav \.mobile-nav-indicator::before/);
+  assert.match(css, /\.reels-mobile-nav \.mnav-item\.is-active \{ color: #f34e9a !important/);
+  assert.match(css, /\.reels-mobile-nav \.mnav-item\.is-active \.mnav-label \{ color: #f34e9a/);
 });
 
 test("Reels put the creator photo beside the name and keep Follow off the rail", () => {
