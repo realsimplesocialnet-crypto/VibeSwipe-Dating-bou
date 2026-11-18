@@ -7,11 +7,11 @@ export function storyExpiresAt(createdAt: Date): Date {
 export function canViewStory({
   viewerId,
   ownerId,
-  hasUnblockedMatch,
+  hasMutualFollow,
 }: {
   viewerId: string;
   ownerId: string;
-  hasUnblockedMatch: boolean;
+  hasMutualFollow: boolean;
 }): boolean {
-  return viewerId === ownerId || hasUnblockedMatch;
+  return viewerId === ownerId || hasMutualFollow;
 }

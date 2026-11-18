@@ -1494,10 +1494,10 @@ paths:
     get:
       operationId: getStories
       tags: [vibeswipe]
-      summary: List active stories from the signed-in user and mutual matches
+      summary: List active stories from the signed-in user and mutual follows
       responses:
         "200":
-          description: Active own and matched-user stories, ordered by newest story
+          description: Active own and mutual-follower stories, ordered by newest story
           content:
             application/json:
               schema:
@@ -1540,7 +1540,7 @@ paths:
     post:
       operationId: markStoryViewed
       tags: [vibeswipe]
-      summary: Record that the signed-in user viewed an active matched story
+      summary: Record that the signed-in user viewed an active mutual-follow story
       parameters:
         - in: path
           name: storyId
@@ -2678,7 +2678,7 @@ components:
     StoryGroup:
       type: object
       properties:
-        matchId: { type: string, format: uuid }
+        matchId: { type: [string, "null"], format: uuid, description: "Present only when the viewer and story owner can chat" }
         poster: { $ref: "#/components/schemas/StoryPoster" }
         stories:
           type: array
@@ -2690,10 +2690,10 @@ components:
         ownStories:
           type: array
           items: { $ref: "#/components/schemas/StoryItem" }
-        matches:
+        mutualFollows:
           type: array
           items: { $ref: "#/components/schemas/StoryGroup" }
-      required: [ownStories, matches]
+      required: [ownStories, mutualFollows]
     StoryInput:
       type: object
       properties:

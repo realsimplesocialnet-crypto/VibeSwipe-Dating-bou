@@ -5,43 +5,41 @@ import {
   lte,
   or,
 } from "drizzle-orm";
-import { db, blocksTable, matchesTable, storiesTable } from "@workspace/db";
+import {
+  db,
+  blocksTable,
+  storiesTable,
+  vibeSwipeFollowsTable,
+} from "@workspace/db";
 import { logger } from "./logger";
 import { removeUnreferencedProfileMedia } from "./profileMediaCleanup";
 
 const STORY_CLEANUP_BATCH_SIZE = 100;
 
-export async function getUnblockedMatchBetween(
+export async function hasUnblockedMutualFollowBetween(
   firstUserId: string,
   secondUserId: string,
-) {
-  const [match] = await db
-    .select({
-      id: matchesTable.id,
-      userAId: matchesTable.userAId,
-      userBId: matchesTable.userBId,
-    })
-    .from(matchesTable)
-    .where(
-      or(
+): Promise<boolean> {
+  if (firstUserId === secondUserId) return false;
+  const [mutualFollow, block] = await Promise.all([
+    db
+      .select({ followerId: vibeSwipeFollowsTable.followerId })
+      .from(vibeSwipeFollowsTable)
+      .where(or(
         and(
-          eq(matchesTable.userAId, firstUserId),
-          eq(matchesTable.userBId, secondUserId),
+          eq(vibeSwipeFollowsTable.followerId, firstUserId),
+          eq(vibeSwipeFollowsTable.followedId, secondUserId),
         ),
         and(
-          eq(matchesTable.userAId, secondUserId),
-          eq(matchesTable.userBId, firstUserId),
+          eq(vibeSwipeFollowsTable.followerId, secondUserId),
+          eq(vibeSwipeFollowsTable.followedId, firstUserId),
         ),
-      ),
-    )
-    .limit(1);
-  if (!match) return null;
-
-  const [block] = await db
-    .select({ id: blocksTable.id })
-    .from(blocksTable)
-    .where(
-      or(
+      ))
+      .limit(2),
+    db
+      .select({ id: blocksTable.id })
+      .from(blocksTable)
+      .where(or(
         and(
           eq(blocksTable.blockerId, firstUserId),
           eq(blocksTable.blockedId, secondUserId),
@@ -50,10 +48,10 @@ export async function getUnblockedMatchBetween(
           eq(blocksTable.blockerId, secondUserId),
           eq(blocksTable.blockedId, firstUserId),
         ),
-      ),
-    )
-    .limit(1);
-  return block ? null : match;
+      ))
+      .limit(1),
+  ]);
+  return mutualFollow.length > 0 && block.length === 0;
 }
 
 export async function cleanupExpiredStories(): Promise<number> {

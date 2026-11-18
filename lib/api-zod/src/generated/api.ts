@@ -2250,7 +2250,7 @@ export const GetMediaPreviewResponse = zod.unknown()
 
 
 /**
- * @summary List active stories from the signed-in user and mutual matches
+ * @summary List active stories from the signed-in user and mutual follows
  */
 export const getStoriesResponseOwnStoriesItemMediaUrlMax = 100;
 
@@ -2259,12 +2259,12 @@ export const getStoriesResponseOwnStoriesItemCaptionMax = 500;
 export const getStoriesResponseOwnStoriesItemBackgroundColorRegExp = new RegExp('^#[0-9a-fA-F]{6}$');
 export const getStoriesResponseOwnStoriesItemLikeCountMin = 0;
 
-export const getStoriesResponseMatchesItemStoriesItemMediaUrlMax = 100;
+export const getStoriesResponseMutualFollowsItemStoriesItemMediaUrlMax = 100;
 
-export const getStoriesResponseMatchesItemStoriesItemCaptionMax = 500;
+export const getStoriesResponseMutualFollowsItemStoriesItemCaptionMax = 500;
 
-export const getStoriesResponseMatchesItemStoriesItemBackgroundColorRegExp = new RegExp('^#[0-9a-fA-F]{6}$');
-export const getStoriesResponseMatchesItemStoriesItemLikeCountMin = 0;
+export const getStoriesResponseMutualFollowsItemStoriesItemBackgroundColorRegExp = new RegExp('^#[0-9a-fA-F]{6}$');
+export const getStoriesResponseMutualFollowsItemStoriesItemLikeCountMin = 0;
 
 
 
@@ -2281,8 +2281,8 @@ export const GetStoriesResponse = zod.object({
   "likeCount": zod.number().int().min(getStoriesResponseOwnStoriesItemLikeCountMin),
   "likedByMe": zod.boolean()
 })),
-  "matches": zod.array(zod.object({
-  "matchId": zod.string().uuid(),
+  "mutualFollows": zod.array(zod.object({
+  "matchId": zod.string().uuid().nullable().describe('Present only when the viewer and story owner can chat'),
   "poster": zod.object({
   "id": zod.string(),
   "name": zod.string(),
@@ -2290,14 +2290,14 @@ export const GetStoriesResponse = zod.object({
 }),
   "stories": zod.array(zod.object({
   "id": zod.string().uuid(),
-  "mediaUrl": zod.string().max(getStoriesResponseMatchesItemStoriesItemMediaUrlMax).nullable(),
+  "mediaUrl": zod.string().max(getStoriesResponseMutualFollowsItemStoriesItemMediaUrlMax).nullable(),
   "mediaType": zod.union([zod.literal('image'),zod.literal('video'),zod.literal(null)]).nullable(),
-  "caption": zod.string().max(getStoriesResponseMatchesItemStoriesItemCaptionMax),
-  "backgroundColor": zod.string().regex(getStoriesResponseMatchesItemStoriesItemBackgroundColorRegExp).nullable(),
+  "caption": zod.string().max(getStoriesResponseMutualFollowsItemStoriesItemCaptionMax),
+  "backgroundColor": zod.string().regex(getStoriesResponseMutualFollowsItemStoriesItemBackgroundColorRegExp).nullable(),
   "createdAt": zod.coerce.date(),
   "expiresAt": zod.coerce.date(),
   "viewed": zod.boolean(),
-  "likeCount": zod.number().int().min(getStoriesResponseMatchesItemStoriesItemLikeCountMin),
+  "likeCount": zod.number().int().min(getStoriesResponseMutualFollowsItemStoriesItemLikeCountMin),
   "likedByMe": zod.boolean()
 }))
 }))
@@ -2339,7 +2339,7 @@ export const DeleteStoryResponse = zod.void()
 
 
 /**
- * @summary Record that the signed-in user viewed an active matched story
+ * @summary Record that the signed-in user viewed an active mutual-follow story
  */
 export const MarkStoryViewedParams = zod.object({
   "storyId": zod.coerce.string().uuid()

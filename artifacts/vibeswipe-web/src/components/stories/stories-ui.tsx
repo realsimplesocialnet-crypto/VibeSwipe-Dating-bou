@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
@@ -143,15 +143,15 @@ function StoryAvatar({ reference, name, className = "" }: { reference: string | 
 export function StoriesRow({mode="all"}:{mode?:"all"|"own"|"matches"}) {
   const feed = useGetStories({ query: { queryKey: getGetStoriesQueryKey(), refetchInterval: 30_000 } });
   const profile = useGetMyProfile();
-  const [active, setActive] = useState<{ stories: StoryItem[]; name: string; photo: string | null; matchId?: string } | null>(null);
+  const [active, setActive] = useState<ActiveStory | null>(null);
   const own = feed.data?.ownStories ?? [];
-  const matches = feed.data?.matches ?? [];
+  const mutualFollows = feed.data?.mutualFollows ?? [];
   if(mode==="own")return <div className="relative h-11 w-11 shrink-0">
     {own.length?<button type="button" onClick={()=>setActive({stories:own,name:profile.data?.name||"Your story",photo:profile.data?.photos?.[0]??null})} aria-label="View your story" className="h-11 w-11 overflow-hidden rounded-full border-2 border-primary p-[2px]"><StoryAvatar reference={profile.data?.photos?.[0]??null} name={profile.data?.name??"You"} className="h-full w-full"/></button>:<Link href="/stories/new?returnTo=%2Fdiscover&mode=text" aria-label="Write a text story" data-testid="button-write-text-story" className="block h-11 w-11 overflow-hidden rounded-full border-2 border-primary/40"><StoryAvatar reference={profile.data?.photos?.[0]??null} name={profile.data?.name??"You"} className="h-full w-full"/></Link>}
     <StoryCameraTrigger label="Open camera to add a story" testId="button-camera-add-story" className="absolute -bottom-0.5 -right-0.5 flex h-5 w-5 items-center justify-center rounded-full border-2 border-background bg-primary text-primary-foreground"><Plus size={12}/></StoryCameraTrigger>
     <StoryViewer active={active} onClose={()=>setActive(null)}/>
   </div>;
-  if(mode==="matches"&&!feed.isLoading&&!feed.isError&&!matches.length)return null;
+  if(mode==="matches"&&!feed.isLoading&&!feed.isError&&!mutualFollows.length)return null;
   return <section className="mb-4 -mx-4 w-[calc(100%+2rem)]" aria-label="Stories" data-testid="section-stories">
     {feed.isLoading
       ? <div className="hide-scrollbar flex min-h-[100px] gap-3 overflow-x-auto px-5 pb-1" aria-label="Loading stories">
@@ -175,7 +175,7 @@ export function StoriesRow({mode="all"}:{mode?:"all"|"own"|"matches"}) {
             </span>
             <span className="w-full truncate text-[11px] font-medium text-foreground">Your story</span>
           </div>}
-          {matches.map((group) => <button type="button" key={group.matchId} onClick={() => setActive({ stories: group.stories, name: group.poster.name, photo: group.poster.photo, matchId: group.matchId, profileId: group.poster.id })} data-testid={`button-story-${group.matchId}`} aria-label={`View ${group.poster.name}'s story`} className="group flex w-[72px] shrink-0 flex-col items-center gap-1.5 text-center">
+          {mutualFollows.map((group) => <button type="button" key={group.poster.id} onClick={() => setActive({ stories: group.stories, name: group.poster.name, photo: group.poster.photo, matchId: group.matchId, profileId: group.poster.id })} data-testid={`button-story-${group.poster.id}`} aria-label={`View ${group.poster.name}'s story`} className="group flex w-[72px] shrink-0 flex-col items-center gap-1.5 text-center">
             <span className={`flex h-[68px] w-[68px] items-center justify-center overflow-hidden rounded-full p-[2px] transition-transform group-hover:scale-[1.04] ${group.stories.some((story) => !story.viewed) ? "bg-gradient-to-br from-[#ef9bc7] via-[#bd8ae1] to-[#8e79d5]" : "bg-white/25"}`}><span className="h-full w-full overflow-hidden rounded-full"><StoryAvatar reference={group.poster.photo} name={group.poster.name} className="h-full w-full text-xl"/></span></span>
             <span className="w-full truncate text-[11px] font-medium text-foreground">{group.poster.name.split(/\s+/)[0].slice(0, 12)}</span>
           </button>)}
@@ -184,7 +184,7 @@ export function StoriesRow({mode="all"}:{mode?:"all"|"own"|"matches"}) {
   </section>;
 }
 
-type ActiveStory = { stories: StoryItem[]; name: string; photo: string | null; matchId?: string; profileId?: string };
+type ActiveStory = { stories: StoryItem[]; name: string; photo: string | null; matchId?: string | null; profileId?: string };
 
 export function MatchStoryAvatar({
   matchId,
@@ -285,10 +285,21 @@ function StoryViewer({ active, onClose }: { active: ActiveStory | null; onClose:
   const [notice, setNotice] = useState("");
   const [followOverride, setFollowOverride] = useState<{ profileId: string; value: boolean } | null>(null);
   const [likeOverrides, setLikeOverrides] = useState<Record<string, { likedByMe: boolean; likeCount: number }>>({});
+  const overlayHistory = useRef(false);
+  const onCloseRef = useRef(onClose);
   const touchStart = useRef<{ x: number; y: number } | null>(null);
   const justOpened = useRef(false);
   const current = active?.stories[index];
   const media = useProtectedStoryMedia(current?.mediaUrl ?? null);
+
+  useEffect(() => { onCloseRef.current = onClose; }, [onClose]);
+  const closeViewer = useCallback(() => {
+    if (overlayHistory.current) {
+      window.history.back();
+      return;
+    }
+    onCloseRef.current();
+  }, []);
 
   useEffect(() => {
     justOpened.current = Boolean(active);
@@ -300,15 +311,29 @@ function StoryViewer({ active, onClose }: { active: ActiveStory | null; onClose:
     setLikeOverrides({});
   }, [active]);
   useEffect(() => {
+    if (!active) return;
+    if (!overlayHistory.current) {
+      window.history.pushState({ myageStoryViewer: true }, "", window.location.href);
+      overlayHistory.current = true;
+    }
+    const handlePopState = () => {
+      if (!overlayHistory.current) return;
+      overlayHistory.current = false;
+      onCloseRef.current();
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, [active]);
+  useEffect(() => {
     if (!active || !current) return;
     setElapsed(0);
-    if (!current.viewed && active.matchId) {
+    if (!current.viewed && active.profileId) {
       queryClient.setQueryData<StoriesFeed>(getGetStoriesQueryKey(), (old) => old ? ({
-        ...old, matches: old.matches.map((group) => group.matchId === active.matchId ? { ...group, stories: group.stories.map((story) => story.id === current.id ? { ...story, viewed: true } : story) } : group),
+        ...old, mutualFollows: old.mutualFollows.map((group) => group.poster.id === active.profileId ? { ...group, stories: group.stories.map((story) => story.id === current.id ? { ...story, viewed: true } : story) } : group),
       }) : old);
       void markViewed.mutateAsync({ storyId: current.id }).then(() => queryClient.invalidateQueries({ queryKey: getGetStoriesQueryKey() })).catch(() => undefined);
     }
-  }, [active?.matchId, current?.id]);
+  }, [active?.profileId, current?.id]);
   useEffect(() => {
     if (!active || !current || current.mediaType === "video") return;
     const progress = window.setInterval(() => setElapsed((value) => Math.min(5000, value + 50)), 50);
@@ -320,18 +345,18 @@ function StoryViewer({ active, onClose }: { active: ActiveStory | null; onClose:
   }, [active, current?.id, current?.mediaType]);
   useEffect(() => {
     if (!active) return;
-    const key = (event: KeyboardEvent) => { if (event.key === "Escape") onClose(); if (event.key === "ArrowRight") setIndex((value) => value + 1); if (event.key === "ArrowLeft") setIndex((value) => Math.max(0, value - 1)); };
+    const key = (event: KeyboardEvent) => { if (event.key === "Escape") closeViewer(); if (event.key === "ArrowRight") setIndex((value) => value + 1); if (event.key === "ArrowLeft") setIndex((value) => Math.max(0, value - 1)); };
     window.addEventListener("keydown", key);
     return () => window.removeEventListener("keydown", key);
-  }, [active, onClose]);
+  }, [active, closeViewer]);
   useEffect(() => {
     if (!active) return;
     if (justOpened.current) {
       justOpened.current = false;
       return;
     }
-    if (index >= active.stories.length) onClose();
-  }, [index, active, onClose]);
+    if (index >= active.stories.length) closeViewer();
+  }, [index, active, closeViewer]);
 
   async function sendReply(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -375,6 +400,13 @@ function StoryViewer({ active, onClose }: { active: ActiveStory | null; onClose:
         queryClient.invalidateQueries({ queryKey: getGetProfileFollowingQueryKey() }),
         queryClient.invalidateQueries({ queryKey: getGetNotificationsQueryKey() }),
       ]);
+      if (!next) {
+        queryClient.setQueryData<StoriesFeed>(getGetStoriesQueryKey(), (old) => old ? ({
+          ...old,
+          mutualFollows: old.mutualFollows.filter((group) => group.poster.id !== profileId),
+        }) : old);
+        closeViewer();
+      }
     } catch {
       setFollowOverride({ profileId, value: !next });
       if (previousSummary) queryClient.setQueryData(summaryKey, previousSummary);
@@ -388,14 +420,14 @@ function StoryViewer({ active, onClose }: { active: ActiveStory | null; onClose:
     queryClient.setQueryData<StoriesFeed>(getGetStoriesQueryKey(), (old) => old ? ({
       ...old,
       ownStories: old.ownStories.map((story) => story.id === storyId ? { ...story, likedByMe: liked, likeCount: count } : story),
-      matches: old.matches.map((group) => ({
+      mutualFollows: old.mutualFollows.map((group) => ({
         ...group,
         stories: group.stories.map((story) => story.id === storyId ? { ...story, likedByMe: liked, likeCount: count } : story),
       })),
     }) : old);
   }
   async function toggleStoryLike() {
-    if (!current || !active?.matchId || likeStory.isPending || unlikeStory.isPending) return;
+    if (!current || !active?.profileId || likeStory.isPending || unlikeStory.isPending) return;
     const previous = { likedByMe, likeCount };
     const nextLiked = !likedByMe;
     const optimisticCount = Math.max(0, likeCount + (nextLiked ? 1 : -1));
@@ -431,10 +463,10 @@ function StoryViewer({ active, onClose }: { active: ActiveStory | null; onClose:
   }
   const textOnly = !current?.mediaUrl;
   return createPortal(<AnimatePresence>
-    {active && current && <motion.div key="story-overlay" initial={{ opacity: 0, y: 28, scale: .985 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 22, scale: .985 }} transition={{ duration: .24, ease: [.22, .8, .2, 1] }} className="fixed inset-0 z-[80] flex items-center justify-center bg-[#100d14] sm:bg-[#100d14]/95 sm:p-4" data-testid="overlay-story-viewer" role="dialog" aria-modal="true" aria-label={`${active.name}'s story`}>
+     {active && current && <motion.div key="story-overlay" initial={{ opacity: 0, y: 28, scale: .985 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 22, scale: .985 }} transition={{ duration: .24, ease: [.22, .8, .2, 1] }} className="fixed inset-0 z-[80] flex items-center justify-center bg-[#100d14] sm:bg-[#100d14]/95 sm:p-4" data-testid="overlay-story-viewer" role="dialog" aria-modal="true" aria-label={`${active.name}'s story`}>
       <div className="relative flex h-[100dvh] w-full max-w-[510px] flex-col overflow-hidden bg-[#201a27] sm:h-[min(860px,94dvh)] sm:rounded-[30px] sm:border sm:border-white/10 sm:shadow-2xl"
         onTouchStart={(event) => { touchStart.current = { x: event.touches[0].clientX, y: event.touches[0].clientY }; }}
-        onTouchEnd={(event) => { const start = touchStart.current; if (!start) return; const dy = event.changedTouches[0].clientY - start.y; if (dy > 75) onClose(); touchStart.current = null; }}>
+         onTouchEnd={(event) => { const start = touchStart.current; if (!start) return; const dy = event.changedTouches[0].clientY - start.y; if (dy > 75) closeViewer(); touchStart.current = null; }}>
         <div className="pointer-events-none absolute inset-0" style={{ background: textOnly ? `linear-gradient(150deg, ${current.backgroundColor || "#614777"}, #211b2b 82%)` : "#211b2b" }}>
           {media.url && current.mediaType === "video" ? <video key={current.id} src={media.url} autoPlay playsInline onTimeUpdate={(event) => { const video = event.currentTarget; if (video.duration) setElapsed((video.currentTime / video.duration) * 5000); }} onEnded={() => setIndex((value) => value + 1)} className="h-full w-full object-cover" aria-label="Story video" /> : media.url ? <img src={media.url} alt="" className="h-full w-full object-cover"/> : textOnly ? <div className="flex h-full items-center justify-center px-10 text-center"><p className="brand max-w-sm whitespace-pre-wrap text-3xl font-bold leading-[1.2] text-white sm:text-4xl">{current.caption || "A moment, shared."}</p></div> : <div className="flex h-full items-center justify-center text-sm text-white/75">{media.isLoading ? "Loading private story…" : media.isError ? "This story couldn’t load." : "Story media unavailable."}</div>}
           {!textOnly && current.caption && <div className="absolute inset-x-0 bottom-24 bg-gradient-to-t from-black/75 via-black/25 to-transparent px-7 pb-6 pt-20 text-center text-[15px] leading-6 text-white">{current.caption}</div>}
@@ -449,14 +481,14 @@ function StoryViewer({ active, onClose }: { active: ActiveStory | null; onClose:
             </div>
             {profileId && <button type="button" onClick={() => void toggleFollow()} disabled={followPending || followSummary.isLoading}
               aria-label={following ? `Unfollow ${active.name}` : `Follow ${active.name}`} aria-pressed={following}
-              data-testid="button-story-follow" className="flex h-8 min-w-[68px] shrink-0 items-center justify-center rounded-full bg-white px-3 text-xs font-semibold text-[#211b27] disabled:opacity-75">
+              data-testid="button-story-follow" className={`flex h-8 min-w-[68px] shrink-0 items-center justify-center rounded-full border px-3 text-xs font-semibold disabled:opacity-75 ${following ? "border-primary/65 bg-primary/15 text-primary" : "border-primary bg-primary text-primary-foreground"}`}>
               {followPending || followSummary.isLoading ? <LoaderCircle size={14} className="animate-spin"/> : following ? "Following" : "Follow"}
             </button>}
             {profileId && <button type="button" onClick={() => void shareStory()} data-testid="button-story-share" aria-label={`Share ${active.name}'s profile`}
               className="flex h-9 w-9 shrink-0 items-center justify-center text-white">
               <Share2 size={19}/>
             </button>}
-            <button type="button" onClick={onClose} data-testid="button-close-story" aria-label="Close story" className="flex h-9 w-9 shrink-0 items-center justify-center text-white">
+             <button type="button" onClick={closeViewer} data-testid="button-close-story" aria-label="Close story" className="flex h-9 w-9 shrink-0 items-center justify-center text-white">
               <X size={21}/>
             </button>
           </div>
@@ -467,16 +499,18 @@ function StoryViewer({ active, onClose }: { active: ActiveStory | null; onClose:
         </div>
         <div className="relative z-10 mt-auto px-4 pb-[max(env(safe-area-inset-bottom),18px)] sm:px-5">
           {notice && <p role="status" data-testid="status-story-reply" className="mb-2 text-center text-xs text-white">{notice}</p>}
-          {active.matchId && <form onSubmit={(event) => void sendReply(event)} className="flex items-center gap-2">
-            <input value={reply} onChange={(event) => setReply(event.target.value)} maxLength={1900} disabled={send.isPending} placeholder={`Reply to ${active.name}…`} aria-label={`Reply to ${active.name}'s story`} data-testid="input-story-reply" className="min-h-12 min-w-0 flex-1 rounded-full border border-white/25 bg-black/25 px-4 text-sm text-white outline-none placeholder:text-white/65 focus:border-white/60"/>
-            <button type="submit" disabled={!reply.trim() || send.isPending} aria-label="Send story reply" data-testid="button-send-story-reply" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary text-[#24111b] disabled:opacity-45">{send.isPending ? <LoaderCircle className="animate-spin" size={17}/> : <Send size={17}/>}</button>
+          {active.profileId && <div className="flex items-center gap-2">
+            {active.matchId ? <form onSubmit={(event) => void sendReply(event)} className="flex min-w-0 flex-1 items-center gap-2">
+              <input value={reply} onChange={(event) => setReply(event.target.value)} maxLength={1900} disabled={send.isPending} placeholder={`Reply to ${active.name}…`} aria-label={`Reply to ${active.name}'s story`} data-testid="input-story-reply" className="min-h-12 min-w-0 flex-1 rounded-full border border-white/25 bg-black/25 px-4 text-sm text-white outline-none placeholder:text-white/65 focus:border-white/60"/>
+              <button type="submit" disabled={!reply.trim() || send.isPending} aria-label="Send story reply" data-testid="button-send-story-reply" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary text-[#24111b] disabled:opacity-45">{send.isPending ? <LoaderCircle className="animate-spin" size={17}/> : <Send size={17}/>}</button>
+            </form> : <span className="min-w-0 flex-1"/>}
             <button type="button" onClick={() => void toggleStoryLike()} disabled={likeStory.isPending || unlikeStory.isPending}
               aria-pressed={likedByMe} aria-label={likedByMe ? `Unlike ${active.name}'s story` : `Like ${active.name}'s story`}
               data-testid="button-like-story" className={`flex h-11 w-11 shrink-0 items-center justify-center text-white disabled:opacity-60 ${likedByMe ? "text-primary" : ""}`}>
               {likeStory.isPending || unlikeStory.isPending ? <LoaderCircle size={19} className="animate-spin"/> : <Heart size={23} fill={likedByMe ? "currentColor" : "none"}/>}
               <span className="sr-only">{likeCount} likes</span>
             </button>
-          </form>}
+          </div>}
         </div>
       </div>
     </motion.div>}
@@ -571,7 +605,7 @@ export function StoryComposerPage({ returnTo, initialMode = "text" }: { returnTo
       await createStory.mutateAsync({ data: input });
       await client.invalidateQueries({ queryKey: getGetStoriesQueryKey() });
       setSuccess(true);
-      toast({ title: "Story posted", description: "Your story is now available to your matches." });
+      toast({ title: "Story posted", description: "Only people who follow each other can see it." });
       window.setTimeout(() => setLocation(returnTo), 700);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Your story couldn’t be posted. Please try again.");
@@ -594,7 +628,7 @@ export function StoryComposerPage({ returnTo, initialMode = "text" }: { returnTo
         </div> : <>
           <input ref={galleryRef} type="file" accept="image/*,video/*" className="hidden" onChange={(event) => { void chooseFile(event.target.files?.[0]); event.currentTarget.value = ""; }} data-testid="input-story-gallery"/>
           <div className={`story-media-preview relative mx-auto flex h-[min(34dvh,300px)] min-h-[220px] w-full max-w-[360px] items-center justify-center overflow-hidden rounded-[22px] border border-white/[.08] md:h-[min(42vh,390px)] md:max-w-full ${preview ? "bg-black" : "bg-[linear-gradient(145deg,#392c45,#241e2b)]"}`}>
-            {preview ? mediaType === "video" ? <video src={preview} controls playsInline className="max-h-[280px] max-w-full object-contain md:max-h-[390px]" data-testid="preview-story-video"/> : <img src={preview} alt="Selected story preview" className="max-h-[280px] max-w-full object-contain md:max-h-[390px]" data-testid="preview-story-photo"/> : <div className="px-7 text-center"><span className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-white/[.07] text-[#d9b7ec]"><ImagePlus size={22}/></span><p className="mt-4 text-sm font-semibold">Your moment stays between you and your matches.</p><p className="mt-1 text-xs leading-5 text-muted-foreground">Add a photo or a video up to 60 seconds.</p></div>}
+            {preview ? mediaType === "video" ? <video src={preview} controls playsInline className="max-h-[280px] max-w-full object-contain md:max-h-[390px]" data-testid="preview-story-video"/> : <img src={preview} alt="Selected story preview" className="max-h-[280px] max-w-full object-contain md:max-h-[390px]" data-testid="preview-story-photo"/> : <div className="px-7 text-center"><span className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-white/[.07] text-[#d9b7ec]"><ImagePlus size={22}/></span><p className="mt-4 text-sm font-semibold">Only people who follow each other can see this.</p><p className="mt-1 text-xs leading-5 text-muted-foreground">Add a photo or a video up to 60 seconds.</p></div>}
           </div>
           <div className="mt-3 grid grid-cols-2 gap-2"><button type="button" onClick={() => setLocation(`/stories/camera?${new URLSearchParams({ returnTo }).toString()}`)} data-testid="button-story-camera" className="flex min-h-11 items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[.035] text-sm font-semibold hover:bg-white/[.07]"><Camera size={16}/>Open camera</button><button type="button" onClick={() => galleryRef.current?.click()} data-testid="button-story-gallery" className="flex min-h-11 items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[.035] text-sm font-semibold hover:bg-white/[.07]"><Video size={16}/>Upload media</button></div>
           {file && <div className="mt-3 flex min-w-0 items-center justify-between gap-3 text-xs text-muted-foreground"><span className="min-w-0 flex-1 truncate">{file.name} · {(file.size / 1024 / 1024).toFixed(1)} MB</span><button type="button" onClick={() => { setFile(null); setFileContentType(""); }} data-testid="button-remove-story-media" aria-label="Remove selected media" className="shrink-0 rounded-lg p-2 text-muted-foreground hover:text-foreground"><X size={15}/></button></div>}
@@ -606,8 +640,8 @@ export function StoryComposerPage({ returnTo, initialMode = "text" }: { returnTo
       </section>
       <aside className="hidden md:block">
         <div className="sticky top-8">
-          <div className="text-[10px] font-bold uppercase tracking-[.2em] text-primary">A close circle</div><h2 className="brand mt-3 max-w-sm text-3xl font-bold leading-tight">Not a post for everyone. A moment for your people.</h2><p className="mt-4 max-w-sm text-sm leading-6 text-muted-foreground">Stories are shared only with your mutual matches, disappear after their time, and never go on a public profile.</p>
-          <div className="mt-7 flex items-center gap-3 rounded-2xl border border-white/[.08] bg-white/[.025] p-4"><span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#694c7f]/25 text-[#d8b4ee]"><ShieldCheck size={18}/></span><p className="text-xs leading-5 text-muted-foreground">Keep it personal. Replies arrive in your existing match chat.</p></div>
+           <div className="text-[10px] font-bold uppercase tracking-[.2em] text-primary">A close circle</div><h2 className="brand mt-3 max-w-sm text-3xl font-bold leading-tight">Not a post for everyone. A moment for your people.</h2><p className="mt-4 max-w-sm text-sm leading-6 text-muted-foreground">Only people who follow each other can see your stories. They disappear after 24 hours and never appear on a public profile.</p>
+           <div className="mt-7 flex items-center gap-3 rounded-2xl border border-white/[.08] bg-white/[.025] p-4"><span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#694c7f]/25 text-[#d8b4ee]"><ShieldCheck size={18}/></span><p className="text-xs leading-5 text-muted-foreground">Keep it personal. Replies are available in an existing match chat.</p></div>
         </div>
       </aside>
     </div>

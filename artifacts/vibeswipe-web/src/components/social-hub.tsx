@@ -107,9 +107,11 @@ export function ActivityOverview({ avatar }: { avatar: AvatarFn }) {
       </Link>}
     </section>
     {notes.isLoading ? <Skel /> : notes.isError && !notes.data ? <Err text="We couldn't load your activity." onRetry={() => void notes.refetch()} /> : null}
-    {followNotices.length > 0 && <section className="mb-3 space-y-2" aria-label="New followers">
+    {followNotices.length > 0 && <section className="mb-5" aria-label="New followers">
+      <h2 className="mb-2 px-1 text-base font-bold">New followers</h2>
+      <div className="space-y-1">
       {followNotices.map(n => <div key={n.id} data-testid={`follow-notice-${n.id}`}
-        className="sh-card flex w-full items-center gap-3 rounded-[18px] px-3 py-3 text-left">
+        className="sh-follow-notice-row flex w-full items-center gap-3 py-2.5 text-left">
         <button type="button" onClick={async () => {
           if (!n.readAt) {
             try { await mark.mutateAsync({ notificationId: n.id }); } catch { /* Keep the profile reachable. */ }
@@ -117,20 +119,22 @@ export function ActivityOverview({ avatar }: { avatar: AvatarFn }) {
           }
           go(`/profile/${n.actor.id}?returnTo=%2Fnotifications`);
         }} className="flex min-w-0 flex-1 items-center gap-3 text-left" aria-label={`${n.actor.name} started following you. Open profile`}>
-          <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full">
+          {!n.readAt && <span className="h-2 w-2 shrink-0 rounded-full bg-[#55cbe5]" aria-label="Unread" />}
+          <div className="h-[52px] w-[52px] shrink-0 overflow-hidden rounded-full">
             {avatar(n.actor)}
-            <span className="absolute -bottom-0.5 -right-0.5 flex h-5 w-5 items-center justify-center rounded-full border-2 border-[hsl(var(--card))] bg-primary text-primary-foreground"><UserPlus size={11} /></span>
           </div>
-          <span className="min-w-0 flex-1 text-sm"><strong className="text-primary">{n.actor.name}</strong> started following you.</span>
-          {!n.readAt && <span className="h-2 w-2 shrink-0 rounded-full bg-primary" aria-label="Unread" />}
+          <span className="min-w-0 flex-1 text-sm">
+            <strong className="block truncate text-foreground">{n.actor.name}</strong>
+            <span className="sh-muted block truncate">started following you. <time dateTime={n.createdAt}>{ago(n.createdAt)}</time></span>
+          </span>
         </button>
         <div className="sh-follow-notice-actions">
-          <time className="sh-muted text-xs" dateTime={n.createdAt}>{ago(n.createdAt)}</time>
           <ProfileFollowNotificationAction profileId={n.actor.id} viewerId={me.data?.id} onFollow={() => {
             if (!n.readAt) void mark.mutateAsync({ notificationId: n.id }).catch(() => undefined).finally(() => qc.invalidateQueries({ queryKey: getGetNotificationsQueryKey() }));
           }} />
         </div>
       </div>)}
+      </div>
     </section>}
     {reelNotices.length > 0 && <section className="mb-4 space-y-2" aria-label="Reel likes">
       {reelNotices.map(n => <button key={n.id} type="button" data-testid={`reel-like-notice-${n.id}`}
@@ -296,7 +300,9 @@ function FollowActionButton({ profileId, viewerId, isFollowing, followsYou, chec
 
 export function ProfileFollowNotificationAction({ profileId, viewerId, onFollow }: { profileId: string; viewerId?: string; onFollow: () => void }) {
   const summary = useGetProfileFollowSummary(profileId, { query: { queryKey: getGetProfileFollowSummaryQueryKey(profileId), refetchOnMount: 'always' } });
-  if (!summary.data?.followsYou || summary.data.isFollowing) return null;
+  if (!summary.data) return <button type="button" disabled={summary.isLoading} onClick={() => void summary.refetch()} aria-label={summary.isError ? 'Retry follow status' : 'Checking follow status'}
+    className="sh-follow-button sh-follow-notice-loading">{summary.isError ? 'Retry' : <LoaderCircle size={15} className="animate-spin"/>}</button>;
+  if (!summary.data.followsYou || summary.data.isFollowing) return null;
   return <FollowActionButton profileId={profileId} viewerId={viewerId} isFollowing={summary.data.isFollowing} followsYou={summary.data.followsYou}
     onChange={following => { if (following) onFollow(); }} />;
 }
@@ -395,7 +401,7 @@ export function MutualMatchesPage(_props: { avatar: AvatarFn }) {
     {matches.isLoading ? <Skel /> : matches.isError && !matches.data ? <Err text="We couldn't load your matches." onRetry={() => void matches.refetch()} />
       : !list.length ? <Link href="/discover" data-testid="link-empty-discover" className="inline-flex rounded-2xl bg-primary px-5 py-3 font-bold text-primary-foreground">Explore profiles</Link>
       : <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">{list.map(m => <li key={m.id} data-testid={`card-match-${m.id}`} className="sh-card flex items-center gap-3 rounded-[22px] p-3.5">
-        <MatchStoryAvatar matchId={m.id} profile={m.profile} storyGroup={stories.data?.matches.find(g => g.matchId === m.id)} returnTo="/matches" />
+        <MatchStoryAvatar matchId={m.id} profile={m.profile} storyGroup={stories.data?.mutualFollows.find(g => g.poster.id === m.profile.id)} returnTo="/matches" />
         <Link href={`/chat/${m.id}?returnTo=%2Fmatches`} onClick={() => readNotice(m.profile.id, 'new_match')} data-testid={`link-match-name-${m.id}`} className="min-w-0 flex-1 truncate text-[17px] font-bold">{m.profile.name}{m.profile.age !== null && m.profile.showAge !== false ? `, ${m.profile.age}` : ''}</Link>
         <Link href={`/chat/${m.id}?returnTo=%2Fmatches`} onClick={() => readNotice(m.profile.id, 'new_match')} data-testid={`link-match-chat-${m.id}`} aria-label={`Chat with ${m.profile.name}`} className="sh-chat flex h-11 w-11 shrink-0 items-center justify-center rounded-full"><MessageCircle size={20} aria-hidden="true" /></Link>
       </li>)}</ul>}

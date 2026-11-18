@@ -7975,7 +7975,7 @@ export const getGetStoriesUrl = () => {
 }
 
 /**
- * @summary List active stories from the signed-in user and mutual matches
+ * @summary List active stories from the signed-in user and mutual follows
  */
 export const getStories = async ( options?: Parameters<typeof customFetch>[1]): Promise<StoriesFeed> => {
 
@@ -8046,7 +8046,7 @@ export function useGetStories<TData = Awaited<ReturnType<typeof getStories>>, TE
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
- * @summary List active stories from the signed-in user and mutual matches
+ * @summary List active stories from the signed-in user and mutual follows
  */
 
 export function useGetStories<TData = Awaited<ReturnType<typeof getStories>>, TError = ErrorType<unknown>>(
@@ -8238,7 +8238,7 @@ export const getMarkStoryViewedUrl = (storyId: string,) => {
 }
 
 /**
- * @summary Record that the signed-in user viewed an active matched story
+ * @summary Record that the signed-in user viewed an active mutual-follow story
  */
 export const markStoryViewed = async (storyId: string, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
 
@@ -8290,7 +8290,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type MarkStoryViewedMutationVariables = {storyId: string}
 
     /**
- * @summary Record that the signed-in user viewed an active matched story
+ * @summary Record that the signed-in user viewed an active mutual-follow story
  */
 export const useMarkStoryViewed = <TError = ErrorType<void>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof markStoryViewed>>, TError,MarkStoryViewedMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}

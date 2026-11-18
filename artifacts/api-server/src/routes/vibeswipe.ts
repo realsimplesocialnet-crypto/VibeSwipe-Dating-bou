@@ -140,7 +140,7 @@ import {
   resolvePreferredDiscoveryArea,
   searchRealTravelCities,
 } from "../lib/travelCities";
-import { getUnblockedMatchBetween } from "../lib/vibeswipeStories";
+import { hasUnblockedMutualFollowBetween } from "../lib/vibeswipeStories";
 import { canViewStory } from "../lib/vibeswipeStoryRules";
 import { canViewReelMedia } from "../lib/reels-visibility";
 import { automaticDiscovery, countryValues, discoveryTier, minimumDiscoveryPool, regionalCountryValues, smartDiscoveryPool } from "../lib/discovery-pool";
@@ -2041,6 +2041,10 @@ router.post(
     let storyReplyId: string | null = null;
     if (body.data.storyId) {
       const partnerId = match.userAId === userId ? match.userBId : match.userAId;
+      if (!(await hasUnblockedMutualFollowBetween(userId, partnerId))) {
+        res.status(403).json({ error: "Follow each other to reply to a story." });
+        return;
+      }
       const [story] = await db
         .select({ id: storiesTable.id, userId: storiesTable.userId, expiresAt: storiesTable.expiresAt })
         .from(storiesTable)
@@ -2729,15 +2733,15 @@ async function authorizeMediaRead(
         ),
       )
       .limit(1);
-    const storyMatch =
+    const storyFollow =
       activeStory && activeStory.userId !== userId
-        ? await getUnblockedMatchBetween(userId, activeStory.userId)
+        ? await hasUnblockedMutualFollowBetween(userId, activeStory.userId)
         : null;
     const storyVisible = activeStory
       ? canViewStory({
           viewerId: userId,
           ownerId: activeStory.userId,
-          hasUnblockedMatch: !!storyMatch,
+          hasMutualFollow: !!storyFollow,
         })
       : false;
     if (asset.matchId) {

@@ -10,5 +10,5 @@ import type { StoryItem } from './storyItem';
 
 export interface StoriesFeed {
   ownStories: StoryItem[];
-  matches: StoryGroup[];
+  mutualFollows: StoryGroup[];
 }

@@ -9,7 +9,11 @@ import type { StoryItem } from './storyItem';
 import type { StoryPoster } from './storyPoster';
 
 export interface StoryGroup {
-  matchId: string;
+  /**
+     * Present only when the viewer and story owner can chat
+     * @nullable
+     */
+  matchId: string | null;
   poster: StoryPoster;
   stories: StoryItem[];
 }

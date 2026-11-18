@@ -1230,14 +1230,18 @@ export interface StoryLikeResult {
 }
 
 export interface StoryGroup {
-  matchId: string;
+  /**
+     * Present only when the viewer and story owner can chat
+     * @nullable
+     */
+  matchId: string | null;
   poster: StoryPoster;
   stories: StoryItem[];
 }
 
 export interface StoriesFeed {
   ownStories: StoryItem[];
-  matches: StoryGroup[];
+  mutualFollows: StoryGroup[];
 }
 
 export type StoryInputMediaType = typeof StoryInputMediaType[keyof typeof StoryInputMediaType];

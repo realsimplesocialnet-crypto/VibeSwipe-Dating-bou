@@ -8,7 +8,7 @@ import {
   MarkStoryViewedParams,
   RequestStoryMediaUploadBody,
   RequestStoryMediaUploadResponse,
-  StoryLikeResult,
+  type StoryLikeResult,
   TranscodeStoryVideoParams,
   TranscodeStoryVideoResponse,
   UnlikeStoryParams,
@@ -33,13 +33,14 @@ import {
   storyLikesTable,
   storiesTable,
   storyViewsTable,
+  vibeSwipeFollowsTable,
 } from "@workspace/db";
 import { requireAuth } from "../middlewares/auth";
 import { ObjectStorageService } from "../lib/objectStorage";
 import { removeUnreferencedProfileMedia } from "../lib/profileMediaCleanup";
 import {
   cleanupExpiredStories,
-  getUnblockedMatchBetween,
+  hasUnblockedMutualFollowBetween,
 } from "../lib/vibeswipeStories";
 import { canViewStory, storyExpiresAt } from "../lib/vibeswipeStoryRules";
 import {
@@ -112,8 +113,8 @@ async function visibleStoryForLike(storyId: string, viewerId: string) {
     .limit(1);
   if (!story) return { status: 404 as const };
   if (story.userId === viewerId) return { status: 403 as const };
-  const match = await getUnblockedMatchBetween(viewerId, story.userId);
-  if (!canViewStory({ viewerId, ownerId: story.userId, hasUnblockedMatch: !!match })) {
+  const hasMutualFollow = await hasUnblockedMutualFollowBetween(viewerId, story.userId);
+  if (!canViewStory({ viewerId, ownerId: story.userId, hasMutualFollow })) {
     return { status: 403 as const };
   }
   return { status: 200 as const, storyId: story.id };
@@ -129,16 +130,30 @@ router.get("/vibeswipe/stories", async (req, res): Promise<void> => {
     .where(and(eq(storiesTable.userId, userId), gt(storiesTable.expiresAt, now)))
     .orderBy(desc(storiesTable.createdAt));
 
-  const matchRows = await db
-    .select({
-      id: matchesTable.id,
-      userAId: matchesTable.userAId,
-      userBId: matchesTable.userBId,
-    })
-    .from(matchesTable)
-    .where(
-      or(eq(matchesTable.userAId, userId), eq(matchesTable.userBId, userId)),
-    );
+  const [matchRows, mutualFollowRows] = await Promise.all([
+    db
+      .select({
+        id: matchesTable.id,
+        userAId: matchesTable.userAId,
+        userBId: matchesTable.userBId,
+      })
+      .from(matchesTable)
+      .where(
+        or(eq(matchesTable.userAId, userId), eq(matchesTable.userBId, userId)),
+      ),
+    db
+      .select({ profileId: vibeSwipeFollowsTable.followedId })
+      .from(vibeSwipeFollowsTable)
+      .where(and(
+        eq(vibeSwipeFollowsTable.followerId, userId),
+        sql`EXISTS (
+          SELECT 1
+          FROM vibeswipe_follows AS reciprocal_follow
+          WHERE reciprocal_follow.follower_id = ${vibeSwipeFollowsTable.followedId}
+            AND reciprocal_follow.followed_id = ${userId}
+        )`,
+      )),
+  ]);
   const partnerById = new Map<string, string>();
   for (const match of matchRows) {
     const partnerId =
@@ -147,13 +162,13 @@ router.get("/vibeswipe/stories", async (req, res): Promise<void> => {
       partnerById.set(partnerId, match.id);
     }
   }
-  const partnerIds = [...partnerById.keys()];
+  const partnerIds = [...new Set(mutualFollowRows.map((row) => row.profileId))];
   if (partnerIds.length === 0) {
     const likes = await storyLikesFor(ownStories.map((story) => story.id), userId);
     res.json(
       GetStoriesResponse.parse({
         ownStories: ownStories.map((story) => storyItem(story, true, likes.get(story.id))),
-        matches: [],
+        mutualFollows: [],
       }),
     );
     return;
@@ -179,7 +194,7 @@ router.get("/vibeswipe/stories", async (req, res): Promise<void> => {
     res.json(
       GetStoriesResponse.parse({
         ownStories: ownStories.map((story) => storyItem(story, true, likes.get(story.id))),
-        matches: [],
+        mutualFollows: [],
       }),
     );
     return;
@@ -222,12 +237,12 @@ router.get("/vibeswipe/stories", async (req, res): Promise<void> => {
   const profilesById = new Map(profiles.map((profile) => [profile.id, profile]));
   const grouped = new Map<
     string,
-    { matchId: string; poster: { id: string; name: string; photo: string | null }; stories: ReturnType<typeof storyItem>[] }
+    { matchId: string | null; poster: { id: string; name: string; photo: string | null }; stories: ReturnType<typeof storyItem>[] }
   >();
   for (const story of matchStories) {
     const poster = profilesById.get(story.userId);
-    const matchId = partnerById.get(story.userId);
-    if (!poster || !matchId) continue;
+    if (!poster) continue;
+    const matchId = partnerById.get(story.userId) ?? null;
     const group = grouped.get(story.userId) ?? {
       matchId,
       poster: {
@@ -240,13 +255,13 @@ router.get("/vibeswipe/stories", async (req, res): Promise<void> => {
     group.stories.push(storyItem(story, viewedIds.has(story.id), likeStats.get(story.id)));
     grouped.set(story.userId, group);
   }
-  const matches = [...grouped.values()].sort((first, second) =>
+  const mutualFollows = [...grouped.values()].sort((first, second) =>
     second.stories[0].createdAt.localeCompare(first.stories[0].createdAt),
   );
   res.json(
     GetStoriesResponse.parse({
         ownStories: ownStories.map((story) => storyItem(story, true, likeStats.get(story.id))),
-      matches,
+      mutualFollows,
     }),
   );
 });
@@ -260,7 +275,7 @@ router.post("/vibeswipe/stories/:storyId/like", async (req, res): Promise<void> 
   const viewerId = currentUserId(req);
   const visible = await visibleStoryForLike(params.data.storyId, viewerId);
   if (visible.status !== 200) {
-    res.status(visible.status).json({ error: visible.status === 404 ? "This story has expired or was removed." : "Only mutual matches can like this story." });
+    res.status(visible.status).json({ error: visible.status === 404 ? "This story has expired or was removed." : "Only mutual followers can like this story." });
     return;
   }
   await db.insert(storyLikesTable).values({ storyId: visible.storyId, userId: viewerId }).onConflictDoNothing();
@@ -268,7 +283,8 @@ router.post("/vibeswipe/stories/:storyId/like", async (req, res): Promise<void> 
     .select({ likeCount: count() })
     .from(storyLikesTable)
     .where(eq(storyLikesTable.storyId, visible.storyId));
-  res.json(StoryLikeResult.parse({ liked: true, likeCount: result?.likeCount ?? 0 }));
+  const response: StoryLikeResult = { liked: true, likeCount: result?.likeCount ?? 0 };
+  res.json(response);
 });
 
 router.delete("/vibeswipe/stories/:storyId/like", async (req, res): Promise<void> => {
@@ -280,7 +296,7 @@ router.delete("/vibeswipe/stories/:storyId/like", async (req, res): Promise<void
   const viewerId = currentUserId(req);
   const visible = await visibleStoryForLike(params.data.storyId, viewerId);
   if (visible.status !== 200) {
-    res.status(visible.status).json({ error: visible.status === 404 ? "This story has expired or was removed." : "Only mutual matches can like this story." });
+    res.status(visible.status).json({ error: visible.status === 404 ? "This story has expired or was removed." : "Only mutual followers can like this story." });
     return;
   }
   await db.delete(storyLikesTable).where(and(
@@ -291,7 +307,8 @@ router.delete("/vibeswipe/stories/:storyId/like", async (req, res): Promise<void
     .select({ likeCount: count() })
     .from(storyLikesTable)
     .where(eq(storyLikesTable.storyId, visible.storyId));
-  res.json(StoryLikeResult.parse({ liked: false, likeCount: result?.likeCount ?? 0 }));
+  const response: StoryLikeResult = { liked: false, likeCount: result?.likeCount ?? 0 };
+  res.json(response);
 });
 
 router.post("/vibeswipe/stories/uploads/request-url", async (req, res): Promise<void> => {
@@ -492,11 +509,11 @@ router.post(
       res.status(404).json({ error: "This story has expired or was removed." });
       return;
     }
-    const match = story.userId === userId
-      ? null
-      : await getUnblockedMatchBetween(userId, story.userId);
-    if (!canViewStory({ viewerId: userId, ownerId: story.userId, hasUnblockedMatch: !!match })) {
-      res.status(403).json({ error: "Only mutual matches can view this story." });
+    const hasMutualFollow = story.userId === userId
+      ? false
+      : await hasUnblockedMutualFollowBetween(userId, story.userId);
+    if (!canViewStory({ viewerId: userId, ownerId: story.userId, hasMutualFollow })) {
+      res.status(403).json({ error: "Only mutual followers can view this story." });
       return;
     }
     if (story.userId !== userId) {

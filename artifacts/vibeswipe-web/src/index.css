@@ -229,6 +229,20 @@ html[data-theme="light"] .public-profile {
 .public-profile .pp-identity-copy { min-width: 0; }
 .public-profile .pp-avatar-identity { width: 92px; height: 92px; }
 .public-profile .pp-identity-panel .pp-avatar-identity { padding: 3px; }
+.public-profile .pp-identity-panel .pp-avatar.story-profile-avatar {
+  border: 0;
+  padding: 3px;
+  transition: transform .18s ease, box-shadow .18s ease;
+}
+.public-profile .pp-identity-panel .pp-avatar.story-profile-avatar:active { transform: scale(.96); }
+.public-profile .pp-identity-panel .pp-avatar.story-profile-avatar.is-unseen {
+  background: conic-gradient(from 205deg, #ff4f9b, #ffc35c, #da5bca, #ff4f9b);
+  box-shadow: 0 0 0 2px hsl(var(--pp-card)), 0 0 0 4px hsl(var(--pp-pink) / .78), 0 14px 34px hsl(var(--pp-shadow) / .24);
+}
+.public-profile .pp-identity-panel .pp-avatar.story-profile-avatar.is-seen {
+  background: linear-gradient(145deg, hsl(var(--pp-pink) / .52), hsl(var(--pp-muted) / .32));
+  box-shadow: 0 0 0 2px hsl(var(--pp-card)), 0 0 0 3px hsl(var(--pp-muted) / .45), 0 10px 24px hsl(var(--pp-shadow) / .16);
+}
 .public-profile .pp-identity-panel-centered .pp-identity-copy { max-width: 100%; }
 .public-profile .sh-profile-social { max-width: 640px; margin: 14px auto 0; }
 .public-profile .sh-profile-stats { gap: 10px; }

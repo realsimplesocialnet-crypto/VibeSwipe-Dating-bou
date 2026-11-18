@@ -18,12 +18,12 @@ test("stories expire exactly 24 hours after creation", () => {
   assert.equal(expiresAt.toISOString(), "2026-11-15T12:00:00.000Z");
 });
 
-test("only the owner or an unblocked mutual match can view a story", () => {
+test("only the owner or an unblocked mutual follower can view a story", () => {
   assert.equal(
     canViewStory({
       viewerId: "viewer",
       ownerId: "viewer",
-      hasUnblockedMatch: false,
+      hasMutualFollow: false,
     }),
     true,
   );
@@ -31,23 +31,23 @@ test("only the owner or an unblocked mutual match can view a story", () => {
     canViewStory({
       viewerId: "stranger",
       ownerId: "owner",
-      hasUnblockedMatch: false,
+      hasMutualFollow: false,
     }),
     false,
   );
   assert.equal(
     canViewStory({
-      viewerId: "match",
+      viewerId: "mutual-follower",
       ownerId: "owner",
-      hasUnblockedMatch: true,
+      hasMutualFollow: true,
     }),
     true,
   );
   assert.equal(
     canViewStory({
-      viewerId: "blocked-match",
+      viewerId: "blocked-follower",
       ownerId: "owner",
-      hasUnblockedMatch: false,
+      hasMutualFollow: false,
     }),
     false,
   );
