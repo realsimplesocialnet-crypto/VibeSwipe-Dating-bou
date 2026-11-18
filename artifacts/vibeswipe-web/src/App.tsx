@@ -1,4 +1,4 @@
-import { lazy, memo, Suspense, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, memo, Suspense, type ReactNode, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { OnboardingVideoBackground } from '@/components/onboarding-video-background';
 import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
 import { ClerkProvider, SignIn, useClerk, useSignUp, useUser } from '@clerk/react';
@@ -459,8 +459,10 @@ function ChatPage({matchId,returnTo='/matches'}:{matchId:string;returnTo?:string
   const [voiceActive,setVoiceActive]=useState(false);
   const [,setLocation]=useLocation(); const qc=useQueryClient(); const profile=useGetMyProfile(); const matches=useGetMatches({query:{refetchInterval:12000}}); const match=matches.data?.find(m=>m.id===matchId); const blocked=!!match?.blockedByMe||!!match?.blockedMe;
   const msgs=useGetMessages(matchId,{query:{enabled:!!match,queryKey:getGetMessagesQueryKey(matchId),refetchInterval:10000}}); const typing=useGetTypingStatus(matchId,{query:{enabled:!!match,queryKey:['/api/vibeswipe/matches',matchId,'typing'],refetchInterval:3500}}); const receipt=useGetChatReadReceipt(matchId,{query:{enabled:!!match,queryKey:getGetChatReadReceiptQueryKey(matchId),refetchInterval:5000}}); const presence=useGetMatchPresence(matchId,{query:{enabled:!!match,queryKey:getGetMatchPresenceQueryKey(matchId),refetchInterval:15000}}); const heartbeat=useHeartbeatPresence();
-  const ice=useGetIcebreakers({query:{enabled:!!match,queryKey:['/api/vibeswipe/icebreakers']}}); const send=useSendMessage(); const updateTyping=useUpdateTypingStatus(); const markRead=useMarkChatRead(); const del=useDeleteMessage(); const clear=useClearChat(); const unmatch=useUnmatchMatch(); const block=useBlockProfile(); const unblock=useUnblockProfile(); const report=useReportProfile(); const theme=useUpdateChatTheme(); const upload=useRequestChatMediaUpload(); const transcode=useTranscodeProfileVideo(); const [draft,setDraft]=useState(''); const [error,setError]=useState(''); const [actions,setActions]=useState(false); const [themeOpen,setThemeOpen]=useState(false); const [deleteTarget,setDeleteTarget]=useState<Message|null>(null); const [busy,setBusy]=useState(false); const bottom=useRef<HTMLDivElement>(null); const inputRef=useRef<HTMLTextAreaElement>(null);
+  const ice=useGetIcebreakers({query:{enabled:!!match,queryKey:['/api/vibeswipe/icebreakers']}}); const send=useSendMessage(); const updateTyping=useUpdateTypingStatus(); const markRead=useMarkChatRead(); const del=useDeleteMessage(); const clear=useClearChat(); const unmatch=useUnmatchMatch(); const block=useBlockProfile(); const unblock=useUnblockProfile(); const report=useReportProfile(); const theme=useUpdateChatTheme(); const upload=useRequestChatMediaUpload(); const transcode=useTranscodeProfileVideo(); const [draft,setDraft]=useState(''); const [error,setError]=useState(''); const [actions,setActions]=useState(false); const [themeOpen,setThemeOpen]=useState(false); const [deleteTarget,setDeleteTarget]=useState<Message|null>(null); const [busy,setBusy]=useState(false); const messageListRef=useRef<HTMLDivElement>(null); const messageContentRef=useRef<HTMLDivElement>(null); const stickToLatest=useRef(true); const inputRef=useRef<HTMLTextAreaElement>(null);
   const messages=(msgs.data??[]).slice().reverse(); const last=messages[messages.length-1];
+  const scrollToLatest=useCallback(()=>{const list=messageListRef.current;if(list)list.scrollTop=list.scrollHeight},[]);
+  const handleMessageListScroll=useCallback(()=>{const list=messageListRef.current;if(!list)return;stickToLatest.current=list.scrollHeight-list.clientHeight-list.scrollTop<80},[]);
   const [chatViewport,setChatViewport]=useState(()=>chatViewportFrame(window.visualViewport?.height??window.innerHeight,window.visualViewport?.offsetTop??0,window.innerHeight,false));
   const fullChatHeight=useRef(window.visualViewport?.height??window.innerHeight);
   useEffect(()=>{
@@ -476,7 +478,7 @@ function ChatPage({matchId,returnTo='/matches'}:{matchId:string;returnTo?:string
       const frame=chatViewportFrame(height,viewport?.offsetTop??0,Math.max(fullChatHeight.current,window.innerHeight),editing);
       if(!editing)fullChatHeight.current=height;
       setChatViewport(frame);
-      if(editing)requestAnimationFrame(()=>{const list=bottom.current?.parentElement;list?.scrollTo({top:list.scrollHeight})});
+      if(editing)requestAnimationFrame(scrollToLatest);
     };
     resize();
     viewport?.addEventListener('resize',resize);
@@ -485,7 +487,7 @@ function ChatPage({matchId,returnTo='/matches'}:{matchId:string;returnTo?:string
     document.addEventListener('focusin',resize);
     document.addEventListener('focusout',resize);
     return()=>{viewport?.removeEventListener('resize',resize);viewport?.removeEventListener('scroll',resize);window.removeEventListener('resize',resize);document.removeEventListener('focusin',resize);document.removeEventListener('focusout',resize);document.body.style.overflow=previousBodyOverflow;document.documentElement.style.overflow=previousHtmlOverflow};
-  },[]);
+  },[scrollToLatest]);
   useEffect(()=>{if(last&&last.senderId!==profile.data?.id&&!last.isRead)markRead.mutate({matchId},{onSuccess:()=>{void qc.invalidateQueries({queryKey:getGetMatchesQueryKey()});void qc.invalidateQueries({queryKey:getGetNotificationsQueryKey()})}});},[last?.id,profile.data?.id]);
   useEffect(()=>{heartbeat.mutate({data:{isActive:true}});const beat=window.setInterval(()=>heartbeat.mutate({data:{isActive:document.visibilityState==='visible'}}),30000);const visibility=()=>heartbeat.mutate({data:{isActive:document.visibilityState==='visible'}});document.addEventListener('visibilitychange',visibility);return()=>{clearInterval(beat);document.removeEventListener('visibilitychange',visibility)}},[]);
   useEffect(()=>{if(blocked)return;const t=setTimeout(()=>updateTyping.mutate({matchId,data:{isTyping:!!draft.trim()}}),300);return()=>clearTimeout(t)},[draft,blocked,matchId]);
@@ -513,7 +515,15 @@ function ChatPage({matchId,returnTo='/matches'}:{matchId:string;returnTo?:string
     stream.onerror=()=>{ /* EventSource reconnects automatically and resumes with Last-Event-ID. */ };
     return()=>stream.close();
   },[matchId,Boolean(match),blocked,qc]);
-  useEffect(()=>{const list=bottom.current?.parentElement;list?.scrollTo({top:list.scrollHeight,behavior:'smooth'})},[messages.length]);
+  useLayoutEffect(()=>{stickToLatest.current=true;scrollToLatest()},[matchId,scrollToLatest]);
+  useLayoutEffect(()=>{if(stickToLatest.current)scrollToLatest()},[messages.length,last?.id,typing.data?.isTyping,scrollToLatest]);
+  useEffect(()=>{
+    const content=messageContentRef.current;
+    if(!content||typeof ResizeObserver==='undefined')return;
+    const observer=new ResizeObserver(()=>{if(stickToLatest.current)scrollToLatest()});
+    observer.observe(content);
+    return()=>observer.disconnect();
+  },[matchId,matches.isLoading,msgs.isLoading,scrollToLatest]);
   if(matches.isLoading||msgs.isLoading)return <PageFrame><div className="h-16 animate-pulse rounded-2xl bg-white/[.04]"/><div className="mt-6"><Busy/></div></PageFrame>;
   if(matches.isError&&!matches.data)return <PageFrame><Retry error={matches.error} text="We couldn’t load your conversations. Check your connection and try again." onRetry={()=>void matches.refetch()}/></PageFrame>;
   if(!match)return <PageFrame><Empty title="Conversation unavailable" detail="This chat may have ended or the match is no longer available." action={<Link href={returnTo} data-testid="link-back-matches" className="rounded-xl bg-secondary px-4 py-2.5 font-bold">{returnTo==='/views'?'Back to messages':returnTo==='/notifications'?'Back to activity':'Back to matches'}</Link>}/></PageFrame>;
@@ -539,7 +549,8 @@ function ChatPage({matchId,returnTo='/matches'}:{matchId:string;returnTo?:string
     </header>
     {blocked&&<div className="mx-4 mt-3 rounded-xl border border-rose-300/30 bg-rose-400/10 px-4 py-3 text-sm text-rose-500">Messaging is unavailable while this profile is blocked.</div>}
     {msgs.isError&&<button onClick={()=>void msgs.refetch()} data-testid="button-retry-messages" className="mx-4 mt-3 rounded-xl bg-rose-400/10 p-2.5 text-xs font-semibold text-rose-500">Messages failed to load. Tap to retry.</button>}
-    <div className="chat-wallpaper hide-scrollbar min-h-0 flex-1 overflow-y-auto px-2.5 pb-2 pt-1 md:px-6" data-testid="chat-message-list">
+    <div ref={messageListRef} onScroll={handleMessageListScroll} className="chat-wallpaper hide-scrollbar min-h-0 flex-1 overflow-y-auto px-2.5 pb-2 pt-1 md:px-6" data-testid="chat-message-list">
+      <div ref={messageContentRef} className="min-h-full">
       {!messages.length&&!msgs.isError&&!blocked&&<div className="chat-empty-intro mx-auto max-w-xl pb-2 pt-2 text-center" data-testid="chat-empty-state">
         <Heart aria-hidden="true" size={56} strokeWidth={1.2} className="mx-auto fill-[var(--chat-accent)] text-[var(--chat-accent)] opacity-50"/>
         <h2 className="mt-4 font-serif text-[clamp(1.9rem,6vw,2.75rem)] leading-[1.1] tracking-[-.035em] text-[var(--chat-accent)]">A good conversation starts here</h2>
@@ -552,7 +563,9 @@ function ChatPage({matchId,returnTo='/matches'}:{matchId:string;returnTo?:string
         </div>
       </div>}
       {messages.map((m,index)=>{const mine=m.senderId===profile.data?.id;const prev=messages[index-1];const grouped=!!prev&&prev.senderId===m.senderId&&new Date(m.createdAt).getTime()-new Date(prev.createdAt).getTime()<5*60_000;const voiceAvatar=mine?(profile.data?<Avatar profile={profile.data} size="sm"/>:null):<Avatar profile={match.profile} size="sm"/>;return <ChatMessageBubble key={m.id} message={m} mine={mine} myId={profile.data?.id} partnerName={match.profile.name} groupedWithPrevious={grouped} avatar={voiceAvatar?<span className="block h-full w-full [&>div]:h-full [&>div]:w-full">{voiceAvatar}</span>:null} mediaUrl={reference=>mediaUrl(reference)} renderText={text=><SharedReelContent content={text} returnTo={`/chat/${matchId}`}/>} onActions={()=>setDeleteTarget(m)}/>})}
-      {typing.data?.isTyping&&<div className="mt-2 inline-block rounded-[12px] rounded-tl-[4px] bg-[hsl(var(--chat-card))] px-3 py-1.5 text-xs italic text-[hsl(var(--chat-muted))]">{match.profile.name} is typing…</div>}<div ref={bottom}/></div>
+      {typing.data?.isTyping&&<div className="mt-2 inline-block rounded-[12px] rounded-tl-[4px] bg-[hsl(var(--chat-card))] px-3 py-1.5 text-xs italic text-[hsl(var(--chat-muted))]">{match.profile.name} is typing…</div>}
+      </div>
+    </div>
     {receipt.data?.readAt&&<div className="chat-wallpaper px-4 pb-0.5 text-right text-[10px] text-[hsl(var(--chat-muted))]">Seen {new Date(receipt.data.readAt).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'})}</div>}
     {error&&<div role="alert" className="px-4 pb-1 text-xs font-medium text-rose-500">{error}</div>}{busy&&<div role="status" className="px-4 pb-1 text-xs text-[hsl(var(--chat-muted))]" data-testid="status-chat-uploading">Uploading attachment…</div>}
     <div data-testid="chat-composer" className="shrink-0 px-1.5 pb-1.5 pt-1 md:px-4" style={{paddingBottom:chatViewport.keyboardOpen?0:'max(.375rem,env(safe-area-inset-bottom))'}}>

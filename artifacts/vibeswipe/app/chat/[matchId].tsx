@@ -34,7 +34,7 @@ import { File } from "expo-file-system";
 import * as ImagePicker from "expo-image-picker";
 import { fetch as expoFetch } from "expo/fetch";
 import { KeyboardAvoidingView, useKeyboardState } from "react-native-keyboard-controller";
-import { router, useLocalSearchParams } from "expo-router";
+import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { type ComponentRef, useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -165,6 +165,13 @@ export default function ChatScreen() {
     ? mediaTheme(match!.chatTheme, colors.primary) : colors.primary;
   const themedBackground = messages.data?.length === 0 ? colors.profileGradientMiddle : colors.background;
   const themedForeground = colors.foreground;
+
+  useFocusEffect(useCallback(() => {
+    const frame = requestAnimationFrame(() => {
+      listRef.current?.scrollToOffset({ offset: 0, animated: false });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [matchId]));
 
   useEffect(() => {
     if (!matches.isLoading && matches.data && !match) router.replace(returnPath as never);
@@ -590,6 +597,7 @@ export default function ChatScreen() {
       ) : null}
       {error ? <Text accessibilityRole="alert" style={[styles.error, { color: colors.destructive }]}>{error}</Text> : null}
       <FlatList
+        key={matchId}
         ref={listRef}
         inverted={sortedMessages.length > 0}
         data={sortedMessages}

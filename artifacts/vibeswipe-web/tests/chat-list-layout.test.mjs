@@ -10,3 +10,11 @@ test("web chat conversations use flat rows instead of separate cards", () => {
   assert.doesNotMatch(list, /msg-card[^"]*rounded-\[22px\]/);
   assert.match(list, /data-testid=\{`card-conversation-\$\{m\.id\}`\}/);
 });
+
+test("web chat opens at the latest message without a visible scroll animation", () => {
+  assert.match(source, /useLayoutEffect/);
+  assert.match(source, /list\.scrollTop=list\.scrollHeight/);
+  assert.match(source, /messageListRef=\{?useRef<HTMLDivElement>\(null\)/);
+  assert.match(source, /onScroll=\{handleMessageListScroll\}[^>]*data-testid="chat-message-list"/);
+  assert.match(source, /new ResizeObserver/);
+});
