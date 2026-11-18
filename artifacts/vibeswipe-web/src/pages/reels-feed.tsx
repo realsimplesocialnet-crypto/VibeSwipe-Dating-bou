@@ -7,7 +7,7 @@ import {
   useDeleteReel, useGetMatches, useGetReel, useLikeReel, useRecordReelView, useSaveReel,
   useUnlikeReel, useUnsaveReel, type Reel,
 } from "@workspace/api-client-react";
-import { ArrowLeft, Bookmark, Clapperboard, LoaderCircle, Plus, Search, Users, Volume2, VolumeX, X } from "lucide-react";
+import { ArrowLeft, Bookmark, Clapperboard, LoaderCircle, Plus, Search, Users, X } from "lucide-react";
 import { ReelSlide } from "@/components/reels/reel-slide";
 import { ReelComments } from "@/components/reels/reel-comments";
 import { ReelShareSheet } from "@/components/reels/reel-share-sheet";
@@ -483,6 +483,7 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
               likePending={like.isPending || unlike.isPending} savePending={save.isPending || unsave.isPending}
             returnTo={ownPath}
              onAutoplayMuted={() => setMuted(true)}
+              onToggleSound={() => setMuted((value) => !value)}
               offlineSaved={offlineIds.has(reel.id)}
               onAutoCache={() => void cacheOffline(reel, false)}
               onLike={() => void toggle("like", reel)} onSave={() => void toggle("save", reel)}
@@ -499,13 +500,10 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
           <button type="button" role="tab" aria-selected={feedMode === "reels"} onClick={() => changeFeedMode("reels")} className={feedMode === "reels" ? "is-active" : ""} data-testid="tab-reels-feed">Reels</button>
           <button type="button" role="tab" aria-selected={feedMode === "friends"} onClick={() => changeFeedMode("friends")} className={feedMode === "friends" ? "is-active" : ""} data-testid="tab-friends-feed">Friends</button>
         </nav> : <h1 className="reels-title">Reels</h1>}
-        <div className="ml-auto flex flex-col items-end gap-3">
-          <div className="flex items-center gap-2">
+        <div className="ml-auto flex items-center gap-2">
               <button type="button" onClick={() => { setSearchText(""); setDebouncedSearchText(""); setSearchOpen(true); }} aria-label="Search Reels" data-testid="button-search-reels" className="reels-search-trigger"><Search size={20} /></button>
             <Link href={`/reels/saved?returnTo=${encodeURIComponent(resumePath)}`} aria-label="Saved Reels" data-testid="link-reels-saved" className="reels-icon"><Bookmark size={20} /></Link>
             <Link href={`/reels/new?returnTo=${encodeURIComponent(ownPath)}`} aria-label="Post a Reel" data-testid="link-create-reel" className="reels-plus"><Plus size={20} /></Link>
-          </div>
-          {reels.length > 0 && <button type="button" onClick={() => setMuted((value) => !value)} aria-label={muted ? "Turn sound on" : "Mute"} aria-pressed={!muted} data-testid="button-reels-mute" className="reels-sound">{muted ? <VolumeX size={18} /> : <Volume2 size={18} />}</button>}
         </div>
       </header>
       {searchOpen && <section className="reels-search-overlay" role="dialog" aria-modal="true" aria-label="Search Reels" data-testid="reels-search-overlay">

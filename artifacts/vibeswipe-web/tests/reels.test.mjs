@@ -119,7 +119,7 @@ test("Reels viewer keeps autoplay muted, inline and paused offscreen or hidden",
   assert.match(slide, /setBlocked\(true\)/);
   assert.match(slide, /name === "NotAllowedError" && !muted/);
   assert.match(slide, /element\.muted = true;\s*const mutedAttempt = element\.play\(\)/);
-  assert.match(slide, /aria-label="Play Reel" className="reel-blocked reel-blocked-play"/);
+  assert.doesNotMatch(slide, /button-reel-autoplay-blocked|reel-blocked-play/);
   assert.doesNotMatch(slide, /Your browser paused autoplay/);
   const feed = read("../src/pages/reels-feed.tsx");
   assert.match(feed, /onAutoplayMuted=\{\(\) => setMuted\(true\)\}/);
@@ -132,7 +132,9 @@ test("tapping anywhere on a Reel toggles playback without hiding navigation", ()
   const slide = read("../src/components/reels/reel-slide.tsx");
   const feed = read("../src/pages/reels-feed.tsx");
   const css = read("../src/components/reels/reels.css");
-  assert.match(slide, /className="reel-tap" onClick=\{togglePlayback\}/);
+  assert.match(slide, /className="reel-tap" onClick=\{handleVideoTap\}/);
+  assert.match(slide, /function handleVideoTap\(\)/);
+  assert.match(slide, /now - previousTap\.at < 300/);
   const playbackHandler = slide.match(/function togglePlayback\(\) \{([\s\S]*?)\n  \}/)?.[1] ?? "";
   assert.match(playbackHandler, /element\.pause\(\)/);
   assert.match(playbackHandler, /element\.play\(\)/);
@@ -143,6 +145,20 @@ test("tapping anywhere on a Reel toggles playback without hiding navigation", ()
   assert.match(css, /--reels-navigation-space/);
   assert.match(css, /\.reel-meta\.is-nav-visible \{ bottom: 32px/);
   assert.match(css, /data-navigation-visible="false"\]:not\(\[data-comments-open="true"\]\) \.reel-progress/);
+});
+
+test("Reel playback and sound use video taps without permanent top controls", () => {
+  const slide = read("../src/components/reels/reel-slide.tsx");
+  const feed = read("../src/pages/reels-feed.tsx");
+  const css = read("../src/components/reels/reels.css");
+  assert.match(slide, /onToggleSound\(\)/);
+  assert.match(slide, /showFlash\(muted \? "sound-on" : "sound-off"\)/);
+  assert.match(slide, /Volume2 size=\{34\}/);
+  assert.match(slide, /VolumeX size=\{34\}/);
+  assert.match(slide, /button-toggle-reel-sound-accessible-/);
+  assert.doesNotMatch(feed, /button-reels-mute|reels-sound|Volume2|VolumeX/);
+  assert.doesNotMatch(css, /\.reels-sound/);
+  assert.doesNotMatch(slide, /button-reel-autoplay-blocked|reel-blocked-play/);
 });
 
 test("Reel creator details stay aligned while using a smaller, lower profile block", () => {
@@ -166,7 +182,7 @@ test("Reels route is code-split and autoplay fallback shows no explanatory messa
   assert.match(app, /const ReelsFeedPage = lazy\(\(\) => import\('@\/pages\/reels-feed'\)/);
   assert.match(app, /<Suspense fallback=/);
   assert.doesNotMatch(slide, /Your browser paused autoplay/);
-  assert.match(slide, /reel-blocked-play/);
+  assert.doesNotMatch(slide, /reel-blocked-play|button-reel-autoplay-blocked/);
 });
 
 test("Reel views count as soon as playback starts, without requiring a watch-time threshold", () => {

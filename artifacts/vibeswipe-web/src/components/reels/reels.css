@@ -16,12 +16,11 @@
 .reel-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .reel-loading { position: absolute; inset: 0; background: linear-gradient(110deg, #15111a 30%, #241b26 50%, #15111a 70%); background-size: 220% 100%; animation: reel-shimmer 1.4s linear infinite; }
 @keyframes reel-shimmer { to { background-position: -220% 0; } }
-.reel-tap { position: absolute; inset: 0; z-index: 1; background: transparent; cursor: pointer; }
+.reel-tap { position: absolute; inset: 0; z-index: 1; background: transparent; cursor: pointer; touch-action: manipulation; }
 .reel-shade { pointer-events: none; position: absolute; inset: 0; z-index: 1; background: linear-gradient(to bottom, rgb(8 6 10 / .55), transparent 18%, transparent 52%, rgb(8 6 10 / .82)); }
 .reel-flash { position: absolute; left: 50%; top: 50%; z-index: 3; display: flex; height: 76px; width: 76px; align-items: center; justify-content: center; border-radius: 999px; background: rgb(0 0 0 / .45); transform: translate(-50%, -50%); animation: reel-flash .52s ease-out forwards; pointer-events: none; }
 @keyframes reel-flash { from { opacity: 1; transform: translate(-50%, -50%) scale(.8); } to { opacity: 0; transform: translate(-50%, -50%) scale(1.15); } }
 .reel-blocked { position: absolute; left: 50%; top: 50%; z-index: 4; display: flex; max-width: 80%; flex-direction: column; align-items: center; gap: 10px; border-radius: 22px; background: rgb(12 10 15 / .78); padding: 16px 20px; text-align: center; font-size: 14px; font-weight: 600; transform: translate(-50%, -50%); backdrop-filter: blur(10px); }
-.reel-blocked-play { width:64px; height:64px; max-width:none; justify-content:center; border:1px solid rgb(255 255 255 / .22); border-radius:999px; padding:0; color:#fff; box-shadow:0 8px 28px rgb(0 0 0 / .28); }
 .reel-rail { position: absolute; right: 10px; bottom: calc(env(safe-area-inset-bottom) + 14px); z-index: 2; display: flex; flex-direction: column; align-items: center; gap: 8px; }
 .reel-rail.is-nav-visible, .reel-rail.is-compact { bottom: 14px; }
 .reel-rail button { display: flex; height: 50px; width: 56px; flex: none; flex-direction: column; align-items: center; justify-content: flex-start; gap: 2px; min-width: 56px; color: #fff; font-size: 10px; font-weight: 700; line-height: 1; white-space: nowrap; filter: drop-shadow(0 1px 3px rgb(0 0 0 / .5)); transition: color .15s ease, opacity .15s ease; }
@@ -72,7 +71,6 @@
 .reels-search-trigger:focus-visible { outline: 2px solid hsl(var(--primary)); outline-offset: 2px; }
 .reels-title { margin-top: 6px; font-size: 24px; font-weight: 800; letter-spacing: -.02em; text-shadow: 0 1px 6px rgb(0 0 0 / .4); }
 .reels-plus { display: flex; height: 38px; width: 38px; align-items: center; justify-content: center; border-radius: 10px; border: 1.5px solid hsl(var(--primary)); color: hsl(var(--primary)); background: rgb(12 10 15 / .25); }
-.reels-sound { display: flex; height: 38px; width: 38px; align-items: center; justify-content: center; border-radius: 999px; background: rgb(20 18 24 / .65); color: #fff; backdrop-filter: blur(8px); }
 .reels-notice { position: absolute; left: 50%; top: calc(max(env(safe-area-inset-top), 14px) + 52px); z-index: 6; max-width: 86%; transform: translateX(-50%); border-radius: 999px; background: rgb(20 16 24 / .86); padding: 8px 16px; font-size: 13px; font-weight: 600; text-align: center; backdrop-filter: blur(8px); }
 .reels-empty { display: flex; height: 100%; flex-direction: column; align-items: center; justify-content: center; padding: 0 28px; text-align: center; background: radial-gradient(ellipse at 50% 35%, #33202f, #0c0a0f 70%); }
 .reels-empty-mark { display: flex; height: 64px; width: 64px; align-items: center; justify-content: center; border-radius: 20px; border: 1.5px solid hsl(var(--primary) / .6); color: hsl(var(--primary)); }
@@ -109,8 +107,6 @@
 .reels-icon:hover { background: rgb(8 6 10 / .72); }
 .reels-plus { height: 38px; width: 38px; border-width: 1.5px; border-radius: 10px; background: rgb(12 10 15 / .25); }
 .reels-plus svg { height: 21px; width: 21px; stroke-width: 2.2; }
-.reels-sound { height: 38px; width: 38px; border: 1px solid rgb(255 255 255 / .2); background: rgb(8 6 10 / .76); }
-.reels-sound svg { height: 18px; width: 18px; stroke-width: 2.1; }
 .reel-rail { gap: 8px; }
 .reel-rail button { height: 50px; font-size: 10px; text-shadow: 0 1px 5px rgb(0 0 0 / .86); }
 .reel-rail button svg { height: 26px; width: 26px; stroke-width: 2; }

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "wouter";
 import type { Reel } from "@workspace/api-client-react";
-import { Bookmark, Heart, MapPin, MessageCircle, MessageSquare, Pause, Play, Send, Trash2 } from "lucide-react";
+import { Bookmark, Heart, MapPin, MessageCircle, MessageSquare, Pause, Play, Send, Trash2, Volume2, VolumeX } from "lucide-react";
 import { VerifiedBadge } from "@/components/verified-badge";
 import { ReelAvatar } from "@/components/reels/reel-avatar";
 import { formatCount, reelMediaUrl } from "@/lib/reels";
@@ -11,23 +11,24 @@ type Props = {
   reel: Reel; index: number; active: boolean; near: boolean; muted: boolean; pageHidden: boolean;
   compact: boolean; navigationVisible: boolean; showHint: boolean; returnTo: string;
   likePending: boolean; savePending: boolean;
-  onAutoplayMuted: () => void;
+  onAutoplayMuted: () => void; onToggleSound: () => void;
   onLike: () => void; onComment: () => void; onMessage: () => void; onShare: () => void; onSave: () => void; onDelete: () => void;
   onView: () => void;
   offlineSaved: boolean; onAutoCache: () => void;
 };
 
-export function ReelSlide({ reel, index, active, near, muted, pageHidden, compact, navigationVisible, showHint, returnTo, likePending, savePending, onAutoplayMuted, onLike, onComment, onMessage, onShare, onSave, onDelete, onView, offlineSaved, onAutoCache }: Props) {
+export function ReelSlide({ reel, index, active, near, muted, pageHidden, compact, navigationVisible, showHint, returnTo, likePending, savePending, onAutoplayMuted, onToggleSound, onLike, onComment, onMessage, onShare, onSave, onDelete, onView, offlineSaved, onAutoCache }: Props) {
   const video = useRef<HTMLVideoElement>(null);
   const bar = useRef<HTMLDivElement>(null);
   const autoCacheRequested = useRef(false);
   const viewRecorded = useRef(false);
   const flashTimer = useRef<number | null>(null);
+  const lastVideoTap = useRef<{ at: number; wasPlaying: boolean } | null>(null);
   const [userPaused, setUserPaused] = useState(false);
   const [blocked, setBlocked] = useState(false);
   const [failed, setFailed] = useState(false);
   const [ready, setReady] = useState(false);
-  const [flash, setFlash] = useState<"play" | "pause" | null>(null);
+  const [flash, setFlash] = useState<"play" | "pause" | "sound-on" | "sound-off" | null>(null);
 
   useEffect(() => { if (!active) setUserPaused(false); }, [active]);
   useEffect(() => () => { if (flashTimer.current !== null) window.clearTimeout(flashTimer.current); }, []);
@@ -42,8 +43,8 @@ export function ReelSlide({ reel, index, active, near, muted, pageHidden, compac
       const name = (error as { name?: string }).name;
       if (name === "AbortError") return;
       if (name === "NotAllowedError" && !muted) {
-        // iPhone permits inline autoplay when muted. A real tap on the sound
-        // control can enable audio afterward without restarting the Reel.
+        // iPhone permits inline autoplay when muted. Double-tap can request
+        // sound without an always-visible volume button.
         element.muted = true;
         const mutedAttempt = element.play();
         if (mutedAttempt) {
@@ -78,14 +79,50 @@ export function ReelSlide({ reel, index, active, near, muted, pageHidden, compac
           void element.play().then(() => { setBlocked(false); onAutoplayMuted(); }).catch(() => setBlocked(true));
         } else if (name !== "AbortError") setBlocked(true);
       });
-      setFlash("play");
+      showFlash("play");
     } else {
       setUserPaused(true);
       element.pause();
-      setFlash("pause");
+      showFlash("pause");
     }
+  }
+
+  function showFlash(next: "play" | "pause" | "sound-on" | "sound-off") {
+    setFlash(next);
     if (flashTimer.current !== null) window.clearTimeout(flashTimer.current);
     flashTimer.current = window.setTimeout(() => { flashTimer.current = null; setFlash(null); }, 520);
+  }
+
+  function toggleSound() {
+    onToggleSound();
+    showFlash(muted ? "sound-on" : "sound-off");
+  }
+
+  function handleVideoTap() {
+    const now = performance.now();
+    const previousTap = lastVideoTap.current;
+    if (previousTap && now - previousTap.at < 300) {
+      lastVideoTap.current = null;
+      const element = video.current;
+      if (previousTap.wasPlaying && element) {
+        setUserPaused(false);
+        element.muted = muted;
+        const attempt = element.play();
+        if (attempt) void attempt.then(() => setBlocked(false)).catch(() => setBlocked(true));
+      } else {
+        setUserPaused(true);
+        element?.pause();
+      }
+      toggleSound();
+      return;
+    }
+
+    const element = video.current;
+    lastVideoTap.current = {
+      at: now,
+      wasPlaying: Boolean(element && !element.paused && !blocked && !userPaused),
+    };
+    togglePlayback();
   }
 
   function retry() {
@@ -137,11 +174,9 @@ export function ReelSlide({ reel, index, active, near, muted, pageHidden, compac
       data-testid={`video-reel-${reel.id}`}
     />
     {!ready && !failed && <div className="reel-loading" aria-hidden="true" />}
-    <button type="button" className="reel-tap" onClick={togglePlayback} aria-label={userPaused || blocked ? "Play Reel" : "Pause Reel"} aria-pressed={!userPaused && !blocked} data-testid={`button-toggle-reel-playback-${reel.id}`} />
-    {flash && <span className="reel-flash" aria-hidden="true">{flash === "play" ? <Play size={34} fill="currentColor" /> : <Pause size={34} fill="currentColor" />}</span>}
-    {active && blocked && !failed && <button type="button" onClick={togglePlayback} aria-label="Play Reel" className="reel-blocked reel-blocked-play" data-testid="button-reel-autoplay-blocked">
-      <Play size={26} fill="currentColor" />
-    </button>}
+    <button type="button" className="reel-tap" onClick={handleVideoTap} aria-label={`${userPaused || blocked ? "Play" : "Pause"} Reel. Double-tap to ${muted ? "turn sound on" : "mute"}.`} aria-pressed={!userPaused && !blocked} data-testid={`button-toggle-reel-playback-${reel.id}`} />
+    {active && <button type="button" className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-10 focus:rounded-full focus:bg-black/80 focus:p-3 focus:text-white" onClick={toggleSound} aria-label={muted ? "Turn Reel sound on" : "Mute Reel"} data-testid={`button-toggle-reel-sound-accessible-${reel.id}`} />}
+    {flash && <span className="reel-flash" aria-hidden="true">{flash === "play" ? <Play size={34} fill="currentColor" /> : flash === "pause" ? <Pause size={34} fill="currentColor" /> : flash === "sound-on" ? <Volume2 size={34} /> : <VolumeX size={34} />}</span>}
     {failed && <div className="reel-blocked" role="alert"><span>This video could not load.</span><button type="button" onClick={retry} className="reel-pill" data-testid={`button-retry-reel-${reel.id}`}>Try again</button></div>}
     <div className="reel-shade" aria-hidden="true" />
 
