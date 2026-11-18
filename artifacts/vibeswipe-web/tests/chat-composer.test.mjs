@@ -3,6 +3,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { searchChatsByPersonName } from '../src/lib/chat-search.ts';
 
 const web = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8');
 const native = readFileSync(new URL('../../vibeswipe/app/chat/[matchId].tsx', import.meta.url), 'utf8');
@@ -44,15 +45,28 @@ test('Chats stays the conversation tab while Views opens separately under Activi
   assert.doesNotMatch(web, /link-matches-messages|link-messages-back/);
 });
 
+test('chat search prioritizes an exact person name over other partial name matches', () => {
+  const chats = [
+    { profile: { name: 'Monday John' } },
+    { profile: { name: 'Monday' } },
+    { profile: { name: 'John Monday' } },
+  ];
+  assert.deepEqual(searchChatsByPersonName(chats, ' monday '), [chats[1]]);
+  assert.deepEqual(searchChatsByPersonName(chats, 'john'), [chats[0], chats[2]]);
+});
+
 test('website Chats uses real match data, excludes demo and blocked profiles, and renders unread counts', () => {
   const messages = web.slice(web.indexOf('function ChatsPage()'), web.indexOf('function NotificationsPage()'));
   assert.match(messages, /useGetMatches/);
   assert.match(messages, /!m\.profile\.isDemo&&!m\.blockedByMe&&!m\.blockedMe/);
   assert.doesNotMatch(messages, /useGetDiscoverProfiles|useGetWhoViewedYou/);
-  assert.doesNotMatch(messages, /Only mutual matches appear here\./);
+  assert.match(messages, /data-testid="input-search-chats"/);
+  assert.match(messages, /searchChatsByPersonName\(list, search\)/);
+  assert.match(messages, /filter === 'unread'/);
+  assert.match(messages, /filter === 'new'/);
+  assert.match(messages, /href="\/stories\/new"[^>]+data-testid="button-create-story-from-chats"/);
   assert.match(messages, /data-testid="chats-header"/);
-  assert.match(messages, />Chats<\/h1>/);
-  assert.match(messages, /unreadTotal > 99 \? '99\+' : unreadTotal/);
+  assert.match(messages, /<h1[^>]*>Chats<\/h1>/);
   assert.match(messages, /extras\.unreadCount!>99\?'99\+':extras\.unreadCount/);
   assert.match(messages, /returnTo=%2Fmessages/);
 });
@@ -70,9 +84,9 @@ test('native Chats shows only real unblocked matches and uses the real unread ba
   const messages = readFileSync(new URL('../../vibeswipe/app/(tabs)/views.tsx', import.meta.url), 'utf8');
   assert.match(messages, /export default function ChatsScreen/);
   assert.match(messages, /!m\.profile\.isDemo && !m\.blockedByMe && !m\.blockedMe/);
-  assert.doesNotMatch(messages, /Only mutual matches appear here\./);
-  assert.match(messages, /testID="chats-header"/);
-  assert.match(messages, />Chats<\/Text>/);
-  assert.match(messages, /unreadTotal > 99 \? "99\+" : unreadTotal/);
+  assert.match(messages, /testID="input-search-chats"/);
+  assert.match(messages, /profile\.name\.trim\(\)\.toLocaleLowerCase\(\) === query/);
+  assert.match(messages, /filter === "unread"/);
+  assert.match(messages, /filter === "new"/);
   assert.match(messages, /item\.unreadCount! > 99 \? "99\+" : item\.unreadCount/);
 });

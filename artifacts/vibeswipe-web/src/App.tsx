@@ -49,6 +49,7 @@ import { ChatVoiceNoteRecorder } from '@/components/chat-voice-note-recorder';
 import { chatViewportFrame } from '@/lib/chat-viewport';
 import { isDiscoverSetupRequired, isProfileMissing, shouldRetryDiscover, shouldRetryProfile } from '@/lib/profile-query-state';
 import { totalUnreadMessages, unreadBadgeLabel } from '@/lib/unread-messages';
+import { searchChatsByPersonName } from '@/lib/chat-search';
 import { PROFILE_PHOTO_ACCEPT, photoUploadCanRetry, prepareProfilePhoto, uploadProfilePhotoBytes, validatePhotoFile } from '@/lib/profile-photo-upload';
 import { checkAdditionalProfilePhoto } from '@workspace/api-client-react';
 import { userErrorMessage } from '@/lib/user-errors';
@@ -563,6 +564,8 @@ function timeAgo(value?: string | null) {
   return new Date(value).toLocaleDateString();
 }
 function ChatsPage() {
+  const [search, setSearch] = useState('');
+  const [filter, setFilter] = useState<'all' | 'unread' | 'new'>('all');
   const matches = useGetMatches({ query: { queryKey: getGetMatchesQueryKey(), refetchInterval: 10000, refetchOnMount: 'always', refetchOnWindowFocus: true, staleTime: 0 } });
   const stories = useGetStories({ query: { queryKey: getGetStoriesQueryKey(), refetchInterval: 60000 } });
   const list = useMemo(() => (matches.data ?? []).filter(m=>!m.profile.isDemo&&!m.blockedByMe&&!m.blockedMe).sort((a, b) => {
@@ -570,22 +573,35 @@ function ChatsPage() {
     const bt = new Date((b as MatchListExtras).lastMessageAt ?? b.updatedAt).getTime();
     return bt - at;
   }), [matches.data]);
-  const newMatches = list.filter(m => !m.lastMessage);
-  const chats = list.filter(m => Boolean(m.lastMessage));
+  const searched = searchChatsByPersonName(list, search);
   const unreadTotal = list.reduce((sum, m) => sum + ((m as MatchListExtras).unreadCount ?? 0), 0);
+  const newMatches = filter === 'unread' ? [] : searched.filter(m => !m.lastMessage && (filter === 'all' || filter === 'new'));
+  const chats = filter === 'new' ? [] : searched.filter(m => Boolean(m.lastMessage) && (filter !== 'unread' || ((m as MatchListExtras).unreadCount ?? 0) > 0));
   return <div className="messages-page min-h-[calc(100dvh-48px)] lg:min-h-[100dvh]">
     <div className="page-in mx-auto max-w-[720px] px-4 pb-10 pt-6 md:px-8 md:pt-10" data-testid="messages-page-content">
-      <div className="flex flex-col items-center text-center" data-testid="chats-header">
-        <div className="relative flex h-20 w-44 items-center justify-center rounded-full bg-[#d9f8dc]">
-          <Inbox size={48} strokeWidth={3} aria-hidden="true" className="text-[#075c44]" />
-          {unreadTotal > 0 && <span aria-label={`${unreadTotal} unread chats`} data-testid="text-unread-total" className="absolute -right-1 -top-1 flex h-10 min-w-20 items-center justify-center rounded-full bg-[#20a568] px-3 text-lg font-black leading-none text-white shadow-sm">{unreadTotal > 99 ? '99+' : unreadTotal}</span>}
-        </div>
-        <h1 className="mt-4 text-[2.5rem] font-black leading-none tracking-[-.04em] md:text-5xl">Chats</h1>
+      <div className="flex items-center justify-between" data-testid="chats-header">
+        <h1 className="text-3xl font-black leading-tight tracking-[-.04em] md:text-4xl">Chats</h1>
+        <Link href="/stories/new" aria-label="Create a story" data-testid="button-create-story-from-chats" className="flex h-11 w-11 items-center justify-center rounded-full border border-border bg-card text-foreground shadow-sm transition-colors hover:bg-accent">
+          <Camera size={21} strokeWidth={2.4} aria-hidden="true" />
+        </Link>
       </div>
-      <div className="mt-6">
+      <label className="mt-5 flex h-12 items-center gap-3 rounded-full border border-border bg-card px-4 shadow-sm focus-within:ring-2 focus-within:ring-primary/35">
+        <Search size={19} aria-hidden="true" className="shrink-0 text-muted-foreground" />
+        <input type="search" value={search} onChange={event => setSearch(event.target.value)} maxLength={100} placeholder="Search by name" aria-label="Search chats by person name" data-testid="input-search-chats" className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground" />
+        {search && <button type="button" onClick={() => setSearch('')} aria-label="Clear chat search" className="text-sm font-bold text-primary">Clear</button>}
+      </label>
+      <div className="mt-3 flex gap-2 overflow-x-auto pb-1" aria-label="Chat filters">
+        {([
+          ['all', 'All'],
+          ['unread', unreadTotal ? `Unread ${unreadTotal > 99 ? '99+' : unreadTotal}` : 'Unread'],
+          ['new', 'New matches'],
+        ] as const).map(([value, label]) => <button key={value} type="button" aria-pressed={filter === value} data-testid={`chat-filter-${value}`} onClick={() => setFilter(value)} className={`shrink-0 rounded-full border px-4 py-2 text-sm font-bold transition-colors ${filter === value ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-card text-muted-foreground hover:text-foreground'}`}>{label}</button>)}
+      </div>
+      <div className="mt-5">
         {matches.isLoading ? <div className="space-y-3" aria-label="Loading conversations">{[0,1,2].map(i => <div key={i} className="msg-card flex items-center gap-4 rounded-[22px] p-4"><div className="h-[68px] w-[68px] animate-pulse rounded-full bg-muted"/><div className="flex-1 space-y-2"><div className="h-4 w-32 animate-pulse rounded bg-muted"/><div className="h-3 w-48 animate-pulse rounded bg-muted"/></div></div>)}</div>
           : matches.isError && !matches.data ? <Retry error={matches.error} text="We couldn’t load your messages. Check your connection and try again." onRetry={() => void matches.refetch()} />
           : !list.length ? <Empty title="No conversations yet" detail="When you and someone both say yes, your conversation opens here." action={<Link href="/discover" data-testid="link-messages-discover" className="inline-flex rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground">Go to Discover</Link>} />
+          : !newMatches.length && !chats.length ? <div className="rounded-2xl border border-border bg-card px-4 py-8 text-center text-sm font-medium text-muted-foreground" data-testid="empty-chat-search">{search.trim() ? 'No chats found for that name.' : filter === 'unread' ? 'No unread chats.' : 'No new matches.'}</div>
           : <div className="space-y-7">
             {newMatches.length > 0 && <section aria-label="New matches" data-testid="section-new-matches">
               <h2 className="mb-3 text-xs font-extrabold uppercase tracking-[.18em] text-primary">New Matches</h2>
