@@ -35,18 +35,18 @@ export const GetAdminDashboardQueryParams = zod.object({
   "from": zod.coerce.string().regex(getAdminDashboardQueryFromRegExp).optional(),
   "to": zod.coerce.string().regex(getAdminDashboardQueryToRegExp).optional(),
   "userId": zod.coerce.string().max(getAdminDashboardQueryUserIdMax).optional(),
-  "chatId": zod.coerce.string().uuid().optional()
+  "chatId": zod.uuid().optional()
 })
 
 export const GetAdminDashboardResponse = zod.object({
   "section": zod.string(),
-  "page": zod.number().int(),
-  "pageSize": zod.number().int(),
-  "total": zod.number().int(),
+  "page": zod.int(),
+  "pageSize": zod.int(),
+  "total": zod.int(),
   "users": zod.array(zod.object({
   "id": zod.string(),
   "name": zod.string(),
-  "age": zod.number().int(),
+  "age": zod.int(),
   "city": zod.string(),
   "state": zod.string().nullable(),
   "country": zod.string().nullable(),
@@ -59,7 +59,7 @@ export const GetAdminDashboardResponse = zod.object({
   "suspended": zod.boolean(),
   "deactivated": zod.boolean(),
   "online": zod.boolean(),
-  "connectionCount": zod.number().int(),
+  "connectionCount": zod.int(),
   "joinedAt": zod.string(),
   "lastSeenAt": zod.string().nullable(),
   "username": zod.string().nullable(),
@@ -74,7 +74,7 @@ export const GetAdminDashboardResponse = zod.object({
   "userBName": zod.string(),
   "createdAt": zod.string(),
   "lastMessageAt": zod.string().nullable(),
-  "messageCount": zod.number().int(),
+  "messageCount": zod.int(),
   "lastMessage": zod.string().nullable()
 })),
   "messages": zod.array(zod.object({
@@ -94,7 +94,7 @@ export const GetAdminDashboardResponse = zod.object({
   "userAName": zod.string(),
   "userBName": zod.string(),
   "status": zod.enum(['mutual', 'pending_like', 'pending_super_like']),
-  "mutualCount": zod.number().int(),
+  "mutualCount": zod.int(),
   "createdAt": zod.string()
 })),
   "activity": zod.array(zod.object({
@@ -103,17 +103,17 @@ export const GetAdminDashboardResponse = zod.object({
   "createdAt": zod.string()
 })),
   "stats": zod.object({
-  "totalUsers": zod.number().int(),
-  "onlineUsers": zod.number().int(),
-  "activeChats": zod.number().int(),
-  "signupsToday": zod.number().int(),
-  "totalMatches": zod.number().int(),
-  "pendingLikes": zod.number().int()
+  "totalUsers": zod.int(),
+  "onlineUsers": zod.int(),
+  "activeChats": zod.int(),
+  "signupsToday": zod.int(),
+  "totalMatches": zod.int(),
+  "pendingLikes": zod.int()
 }),
   "selectedUser": zod.union([zod.object({
   "id": zod.string(),
   "name": zod.string(),
-  "age": zod.number().int(),
+  "age": zod.int(),
   "city": zod.string(),
   "state": zod.string().nullable(),
   "country": zod.string().nullable(),
@@ -126,7 +126,7 @@ export const GetAdminDashboardResponse = zod.object({
   "suspended": zod.boolean(),
   "deactivated": zod.boolean(),
   "online": zod.boolean(),
-  "connectionCount": zod.number().int(),
+  "connectionCount": zod.int(),
   "joinedAt": zod.string(),
   "lastSeenAt": zod.string().nullable(),
   "username": zod.string().nullable(),
@@ -141,7 +141,7 @@ export const GetAdminDashboardResponse = zod.object({
   "userBName": zod.string(),
   "createdAt": zod.string(),
   "lastMessageAt": zod.string().nullable(),
-  "messageCount": zod.number().int(),
+  "messageCount": zod.int(),
   "lastMessage": zod.string().nullable()
 }),zod.null()])
 })
@@ -167,11 +167,11 @@ export const GetAdminPostsQueryParams = zod.object({
 })
 
 export const GetAdminPostsResponse = zod.object({
-  "page": zod.number().int(),
-  "pageSize": zod.number().int(),
-  "total": zod.number().int(),
+  "page": zod.int(),
+  "pageSize": zod.int(),
+  "total": zod.int(),
   "posts": zod.array(zod.object({
-  "id": zod.string().uuid(),
+  "id": zod.uuid(),
   "kind": zod.enum(['reel', 'story']),
   "authorId": zod.string(),
   "authorName": zod.string(),
@@ -192,7 +192,7 @@ export const GetAdminPostsResponse = zod.object({
  */
 export const RemoveAdminPostParams = zod.object({
   "kind": zod.enum(['reel', 'story']),
-  "id": zod.coerce.string().uuid()
+  "id": zod.uuid()
 })
 
 export const RemoveAdminPostBody = zod.object({
@@ -208,7 +208,7 @@ export const RemoveAdminPostResponse = zod.object({
  * @summary Inspect post media through private administrator access; each successful inspection is audited
  */
 export const GetAdminPostMediaParams = zod.object({
-  "mediaId": zod.coerce.string().uuid()
+  "mediaId": zod.uuid()
 })
 
 export const GetAdminPostMediaResponse = zod.unknown()
@@ -236,7 +236,7 @@ export const getAdminChatExportQueryToRegExp = new RegExp('^[0-9]{4}-[0-9]{2}-[0
 
 
 export const GetAdminChatExportQueryParams = zod.object({
-  "chatId": zod.coerce.string().uuid(),
+  "chatId": zod.uuid(),
   "format": zod.enum(['txt', 'json']),
   "from": zod.coerce.string().regex(getAdminChatExportQueryFromRegExp).optional(),
   "to": zod.coerce.string().regex(getAdminChatExportQueryToRegExp).optional()
@@ -250,7 +250,7 @@ export const GetAdminChatExportResponse = zod.object({
 
 
 export const GetAdminMediaParams = zod.object({
-  "mediaId": zod.coerce.string().uuid()
+  "mediaId": zod.uuid()
 })
 
 export const GetAdminMediaResponse = zod.unknown()
@@ -273,7 +273,7 @@ export const getOnboardingDraftResponseStepMax = 13;
 
 
 export const GetOnboardingDraftResponse = zod.object({
-  "step": zod.number().int().min(1).max(getOnboardingDraftResponseStepMax),
+  "step": zod.int().min(1).max(getOnboardingDraftResponseStepMax),
   "data": zod.record(zod.string(), zod.unknown()),
   "updatedAt": zod.coerce.date().nullable()
 })
@@ -287,7 +287,7 @@ export const saveOnboardingDraftBodyStepMax = 13;
 
 
 export const SaveOnboardingDraftBody = zod.object({
-  "step": zod.number().int().min(1).max(saveOnboardingDraftBodyStepMax),
+  "step": zod.int().min(1).max(saveOnboardingDraftBodyStepMax),
   "data": zod.record(zod.string(), zod.unknown())
 })
 
@@ -296,7 +296,7 @@ export const saveOnboardingDraftResponseStepMax = 13;
 
 
 export const SaveOnboardingDraftResponse = zod.object({
-  "step": zod.number().int().min(1).max(saveOnboardingDraftResponseStepMax),
+  "step": zod.int().min(1).max(saveOnboardingDraftResponseStepMax),
   "data": zod.record(zod.string(), zod.unknown()),
   "updatedAt": zod.coerce.date().nullable()
 })
@@ -332,7 +332,7 @@ export const getMyProfileResponsePreferencesDiscoveryLocationRadiusKmMax = 500;
 export const GetMyProfileResponse = zod.object({
   "id": zod.string(),
   "name": zod.string(),
-  "age": zod.number().int().nullable(),
+  "age": zod.int().nullable(),
   "showAge": zod.boolean(),
   "showDistance": zod.boolean(),
   "gender": zod.string(),
@@ -351,16 +351,16 @@ export const GetMyProfileResponse = zod.object({
   "superLikedYou": zod.boolean().optional(),
   "discoveryExpanded": zod.boolean().optional().describe('The default discovery batch includes members outside the home country because the eligible local pool is below the minimum.'),
   "preferences": zod.object({
-  "ageMin": zod.number().int().min(getMyProfileResponsePreferencesAgeMinMin).max(getMyProfileResponsePreferencesAgeMinMax),
-  "ageMax": zod.number().int().min(getMyProfileResponsePreferencesAgeMaxMin).max(getMyProfileResponsePreferencesAgeMaxMax),
+  "ageMin": zod.int().min(getMyProfileResponsePreferencesAgeMinMin).max(getMyProfileResponsePreferencesAgeMinMax),
+  "ageMax": zod.int().min(getMyProfileResponsePreferencesAgeMaxMin).max(getMyProfileResponsePreferencesAgeMaxMax),
   "gender": zod.string(),
-  "distanceKm": zod.number().int().min(1).max(getMyProfileResponsePreferencesDistanceKmMax),
+  "distanceKm": zod.int().min(1).max(getMyProfileResponsePreferencesDistanceKmMax),
   "discoveryLocation": zod.object({
   "scope": zod.enum(['city', 'state', 'country', 'radius']),
   "country": zod.string().max(getMyProfileResponsePreferencesDiscoveryLocationCountryMax).nullable(),
   "state": zod.string().max(getMyProfileResponsePreferencesDiscoveryLocationStateMax).nullable(),
   "city": zod.string().max(getMyProfileResponsePreferencesDiscoveryLocationCityMax).nullable(),
-  "radiusKm": zod.number().int().min(1).max(getMyProfileResponsePreferencesDiscoveryLocationRadiusKmMax).nullable()
+  "radiusKm": zod.int().min(1).max(getMyProfileResponsePreferencesDiscoveryLocationRadiusKmMax).nullable()
 }).optional()
 })
 })
@@ -420,7 +420,7 @@ export const saveMyProfileBodyPreferencesDiscoveryLocationRadiusKmMax = 500;
 
 export const SaveMyProfileBody = zod.object({
   "name": zod.string().min(1).max(saveMyProfileBodyNameMax),
-  "age": zod.number().int().min(saveMyProfileBodyAgeMin).max(saveMyProfileBodyAgeMax),
+  "age": zod.int().min(saveMyProfileBodyAgeMin).max(saveMyProfileBodyAgeMax),
   "gender": zod.string().min(1).max(saveMyProfileBodyGenderMax),
   "lookingFor": zod.string().min(1).max(saveMyProfileBodyLookingForMax),
   "bio": zod.string().max(saveMyProfileBodyBioMax),
@@ -433,16 +433,16 @@ export const SaveMyProfileBody = zod.object({
   "photos": zod.array(zod.string().max(saveMyProfileBodyPhotosItemMax)).min(1).max(saveMyProfileBodyPhotosMax),
   "videoUrl": zod.string().max(saveMyProfileBodyVideoUrlMax).nullish(),
   "preferences": zod.object({
-  "ageMin": zod.number().int().min(saveMyProfileBodyPreferencesAgeMinMin).max(saveMyProfileBodyPreferencesAgeMinMax),
-  "ageMax": zod.number().int().min(saveMyProfileBodyPreferencesAgeMaxMin).max(saveMyProfileBodyPreferencesAgeMaxMax),
+  "ageMin": zod.int().min(saveMyProfileBodyPreferencesAgeMinMin).max(saveMyProfileBodyPreferencesAgeMinMax),
+  "ageMax": zod.int().min(saveMyProfileBodyPreferencesAgeMaxMin).max(saveMyProfileBodyPreferencesAgeMaxMax),
   "gender": zod.string(),
-  "distanceKm": zod.number().int().min(1).max(saveMyProfileBodyPreferencesDistanceKmMax),
+  "distanceKm": zod.int().min(1).max(saveMyProfileBodyPreferencesDistanceKmMax),
   "discoveryLocation": zod.object({
   "scope": zod.enum(['city', 'state', 'country', 'radius']),
   "country": zod.string().max(saveMyProfileBodyPreferencesDiscoveryLocationCountryMax).nullable(),
   "state": zod.string().max(saveMyProfileBodyPreferencesDiscoveryLocationStateMax).nullable(),
   "city": zod.string().max(saveMyProfileBodyPreferencesDiscoveryLocationCityMax).nullable(),
-  "radiusKm": zod.number().int().min(1).max(saveMyProfileBodyPreferencesDiscoveryLocationRadiusKmMax).nullable()
+  "radiusKm": zod.int().min(1).max(saveMyProfileBodyPreferencesDiscoveryLocationRadiusKmMax).nullable()
 }).optional()
 })
 })
@@ -468,7 +468,7 @@ export const saveMyProfileResponsePreferencesDiscoveryLocationRadiusKmMax = 500;
 export const SaveMyProfileResponse = zod.object({
   "id": zod.string(),
   "name": zod.string(),
-  "age": zod.number().int().nullable(),
+  "age": zod.int().nullable(),
   "showAge": zod.boolean(),
   "showDistance": zod.boolean(),
   "gender": zod.string(),
@@ -487,16 +487,16 @@ export const SaveMyProfileResponse = zod.object({
   "superLikedYou": zod.boolean().optional(),
   "discoveryExpanded": zod.boolean().optional().describe('The default discovery batch includes members outside the home country because the eligible local pool is below the minimum.'),
   "preferences": zod.object({
-  "ageMin": zod.number().int().min(saveMyProfileResponsePreferencesAgeMinMin).max(saveMyProfileResponsePreferencesAgeMinMax),
-  "ageMax": zod.number().int().min(saveMyProfileResponsePreferencesAgeMaxMin).max(saveMyProfileResponsePreferencesAgeMaxMax),
+  "ageMin": zod.int().min(saveMyProfileResponsePreferencesAgeMinMin).max(saveMyProfileResponsePreferencesAgeMinMax),
+  "ageMax": zod.int().min(saveMyProfileResponsePreferencesAgeMaxMin).max(saveMyProfileResponsePreferencesAgeMaxMax),
   "gender": zod.string(),
-  "distanceKm": zod.number().int().min(1).max(saveMyProfileResponsePreferencesDistanceKmMax),
+  "distanceKm": zod.int().min(1).max(saveMyProfileResponsePreferencesDistanceKmMax),
   "discoveryLocation": zod.object({
   "scope": zod.enum(['city', 'state', 'country', 'radius']),
   "country": zod.string().max(saveMyProfileResponsePreferencesDiscoveryLocationCountryMax).nullable(),
   "state": zod.string().max(saveMyProfileResponsePreferencesDiscoveryLocationStateMax).nullable(),
   "city": zod.string().max(saveMyProfileResponsePreferencesDiscoveryLocationCityMax).nullable(),
-  "radiusKm": zod.number().int().min(1).max(saveMyProfileResponsePreferencesDiscoveryLocationRadiusKmMax).nullable()
+  "radiusKm": zod.int().min(1).max(saveMyProfileResponsePreferencesDiscoveryLocationRadiusKmMax).nullable()
 }).optional()
 })
 })
@@ -526,7 +526,7 @@ export const StartFaceVerificationBody = zod.object({
 })
 
 export const StartFaceVerificationResponse = zod.object({
-  "sessionId": zod.string().uuid(),
+  "sessionId": zod.uuid(),
   "expiresAt": zod.coerce.date()
 })
 
@@ -535,7 +535,7 @@ export const StartFaceVerificationResponse = zod.object({
  * @summary Verify a live selfie and matching photos, then automatically activate the badge
  */
 export const CompleteFaceVerificationParams = zod.object({
-  "sessionId": zod.coerce.string().uuid()
+  "sessionId": zod.uuid()
 })
 
 export const CompleteFaceVerificationResponse = zod.object({
@@ -567,19 +567,19 @@ export const GetAdminVerificationRequestsQueryParams = zod.object({
 
 export const GetAdminVerificationRequestsResponse = zod.object({
   "requests": zod.array(zod.object({
-  "id": zod.string().uuid(),
+  "id": zod.uuid(),
   "userId": zod.string(),
   "name": zod.string(),
-  "age": zod.number().int(),
+  "age": zod.int(),
   "status": zod.enum(['awaiting_review', 'approved', 'rejected', 'cancelled']),
   "submittedAt": zod.coerce.date(),
   "reviewedAt": zod.string().nullable(),
   "rejectionReason": zod.string().nullable(),
   "photoAvailable": zod.boolean()
 })),
-  "page": zod.number().int(),
-  "pageSize": zod.number().int(),
-  "total": zod.number().int()
+  "page": zod.int(),
+  "pageSize": zod.int(),
+  "total": zod.int()
 })
 
 
@@ -587,7 +587,7 @@ export const GetAdminVerificationRequestsResponse = zod.object({
  * @summary Privately view the exact photo used for automatic verification
  */
 export const GetAdminVerificationPhotoParams = zod.object({
-  "requestId": zod.coerce.string().uuid()
+  "requestId": zod.uuid()
 })
 
 export const GetAdminVerificationPhotoResponse = zod.unknown()
@@ -598,7 +598,7 @@ export const GetAdminVerificationPhotoResponse = zod.unknown()
  * @summary Retired manual decisions; verification is automatic
  */
 export const ReviewFaceVerificationParams = zod.object({
-  "requestId": zod.coerce.string().uuid()
+  "requestId": zod.uuid()
 })
 
 export const reviewFaceVerificationBodyReasonMax = 300;
@@ -660,7 +660,7 @@ export const getDiscoverProfilesResponsePreferencesDiscoveryLocationRadiusKmMax 
 export const GetDiscoverProfilesResponseItem = zod.object({
   "id": zod.string(),
   "name": zod.string(),
-  "age": zod.number().int().nullable(),
+  "age": zod.int().nullable(),
   "showAge": zod.boolean(),
   "showDistance": zod.boolean(),
   "gender": zod.string(),
@@ -679,16 +679,16 @@ export const GetDiscoverProfilesResponseItem = zod.object({
   "superLikedYou": zod.boolean().optional(),
   "discoveryExpanded": zod.boolean().optional().describe('The default discovery batch includes members outside the home country because the eligible local pool is below the minimum.'),
   "preferences": zod.object({
-  "ageMin": zod.number().int().min(getDiscoverProfilesResponsePreferencesAgeMinMin).max(getDiscoverProfilesResponsePreferencesAgeMinMax),
-  "ageMax": zod.number().int().min(getDiscoverProfilesResponsePreferencesAgeMaxMin).max(getDiscoverProfilesResponsePreferencesAgeMaxMax),
+  "ageMin": zod.int().min(getDiscoverProfilesResponsePreferencesAgeMinMin).max(getDiscoverProfilesResponsePreferencesAgeMinMax),
+  "ageMax": zod.int().min(getDiscoverProfilesResponsePreferencesAgeMaxMin).max(getDiscoverProfilesResponsePreferencesAgeMaxMax),
   "gender": zod.string(),
-  "distanceKm": zod.number().int().min(1).max(getDiscoverProfilesResponsePreferencesDistanceKmMax),
+  "distanceKm": zod.int().min(1).max(getDiscoverProfilesResponsePreferencesDistanceKmMax),
   "discoveryLocation": zod.object({
   "scope": zod.enum(['city', 'state', 'country', 'radius']),
   "country": zod.string().max(getDiscoverProfilesResponsePreferencesDiscoveryLocationCountryMax).nullable(),
   "state": zod.string().max(getDiscoverProfilesResponsePreferencesDiscoveryLocationStateMax).nullable(),
   "city": zod.string().max(getDiscoverProfilesResponsePreferencesDiscoveryLocationCityMax).nullable(),
-  "radiusKm": zod.number().int().min(1).max(getDiscoverProfilesResponsePreferencesDiscoveryLocationRadiusKmMax).nullable()
+  "radiusKm": zod.int().min(1).max(getDiscoverProfilesResponsePreferencesDiscoveryLocationRadiusKmMax).nullable()
 }).optional()
 })
 })
@@ -708,7 +708,7 @@ export const CreateReactionBody = zod.object({
 
 export const CreateReactionResponse = zod.object({
   "matched": zod.boolean(),
-  "matchId": zod.string().uuid().nullish()
+  "matchId": zod.uuid().nullish()
 })
 
 
@@ -730,7 +730,7 @@ export const getSuperLikeStatusResponseRemainingMax = 1;
 
 
 export const GetSuperLikeStatusResponse = zod.object({
-  "remaining": zod.number().int().min(getSuperLikeStatusResponseRemainingMin).max(getSuperLikeStatusResponseRemainingMax),
+  "remaining": zod.int().min(getSuperLikeStatusResponseRemainingMin).max(getSuperLikeStatusResponseRemainingMax),
   "resetsAt": zod.coerce.date().nullable()
 })
 
@@ -744,8 +744,8 @@ export const getDailyLikeStatusResponseRemainingMin = 0;
 
 
 export const GetDailyLikeStatusResponse = zod.object({
-  "limit": zod.number().int().min(1),
-  "remaining": zod.number().int().min(getDailyLikeStatusResponseRemainingMin),
+  "limit": zod.int().min(1),
+  "remaining": zod.int().min(getDailyLikeStatusResponseRemainingMin),
   "resetAt": zod.coerce.date().nullable()
 })
 
@@ -782,7 +782,7 @@ export const getIcebreakersResponseQuestionMax = 240;
 
 
 export const GetIcebreakersResponseItem = zod.object({
-  "id": zod.string().uuid(),
+  "id": zod.uuid(),
   "question": zod.string().min(1).max(getIcebreakersResponseQuestionMax)
 })
 export const GetIcebreakersResponse = zod.array(GetIcebreakersResponseItem)
@@ -888,10 +888,10 @@ export const listEmergencyContactsResponseSlotMax = 3;
 
 
 export const ListEmergencyContactsResponseItem = zod.object({
-  "id": zod.string().uuid(),
+  "id": zod.uuid(),
   "name": zod.string().min(1).max(listEmergencyContactsResponseNameMax),
   "phone": zod.string().min(listEmergencyContactsResponsePhoneMin).max(listEmergencyContactsResponsePhoneMax),
-  "slot": zod.number().int().min(1).max(listEmergencyContactsResponseSlotMax),
+  "slot": zod.int().min(1).max(listEmergencyContactsResponseSlotMax),
   "createdAt": zod.coerce.date()
 })
 export const ListEmergencyContactsResponse = zod.array(ListEmergencyContactsResponseItem)
@@ -922,10 +922,10 @@ export const addEmergencyContactResponseSlotMax = 3;
 
 
 export const AddEmergencyContactResponse = zod.object({
-  "id": zod.string().uuid(),
+  "id": zod.uuid(),
   "name": zod.string().min(1).max(addEmergencyContactResponseNameMax),
   "phone": zod.string().min(addEmergencyContactResponsePhoneMin).max(addEmergencyContactResponsePhoneMax),
-  "slot": zod.number().int().min(1).max(addEmergencyContactResponseSlotMax),
+  "slot": zod.int().min(1).max(addEmergencyContactResponseSlotMax),
   "createdAt": zod.coerce.date()
 })
 
@@ -934,7 +934,7 @@ export const AddEmergencyContactResponse = zod.object({
  * @summary Remove one of the signed-in user's emergency contacts
  */
 export const DeleteEmergencyContactParams = zod.object({
-  "contactId": zod.coerce.string().uuid()
+  "contactId": zod.uuid()
 })
 
 export const DeleteEmergencyContactResponse = zod.void()
@@ -944,7 +944,7 @@ export const DeleteEmergencyContactResponse = zod.void()
  * @summary Get the signed-in user's active location share
  */
 export const GetMyLocationShareResponse = zod.object({
-  "shareId": zod.string().uuid().nullable(),
+  "shareId": zod.uuid().nullable(),
   "expiresAt": zod.coerce.date().nullable(),
   "updatedAt": zod.coerce.date().nullable()
 })
@@ -972,7 +972,7 @@ export const createLocationShareResponseTokenMax = 60;
 
 
 export const CreateLocationShareResponse = zod.object({
-  "shareId": zod.string().uuid(),
+  "shareId": zod.uuid(),
   "token": zod.string().min(createLocationShareResponseTokenMin).max(createLocationShareResponseTokenMax),
   "expiresAt": zod.coerce.date()
 })
@@ -982,7 +982,7 @@ export const CreateLocationShareResponse = zod.object({
  * @summary Update coordinates for an active location share
  */
 export const UpdateLocationShareParams = zod.object({
-  "shareId": zod.coerce.string().uuid()
+  "shareId": zod.uuid()
 })
 
 export const updateLocationShareBodyLatitudeMin = -90;
@@ -1007,7 +1007,7 @@ export const UpdateLocationShareResponse = zod.object({
  * @summary Stop an active location share
  */
 export const StopLocationShareParams = zod.object({
-  "shareId": zod.coerce.string().uuid()
+  "shareId": zod.uuid()
 })
 
 export const StopLocationShareResponse = zod.void()
@@ -1065,11 +1065,11 @@ export const getMatchesResponseUnreadCountMin = 0;
 
 
 export const GetMatchesResponseItem = zod.object({
-  "id": zod.string().uuid(),
+  "id": zod.uuid(),
   "profile": zod.object({
   "id": zod.string(),
   "name": zod.string(),
-  "age": zod.number().int().nullable(),
+  "age": zod.int().nullable(),
   "showAge": zod.boolean(),
   "showDistance": zod.boolean(),
   "gender": zod.string(),
@@ -1088,22 +1088,22 @@ export const GetMatchesResponseItem = zod.object({
   "superLikedYou": zod.boolean().optional(),
   "discoveryExpanded": zod.boolean().optional().describe('The default discovery batch includes members outside the home country because the eligible local pool is below the minimum.'),
   "preferences": zod.object({
-  "ageMin": zod.number().int().min(getMatchesResponseProfilePreferencesAgeMinMin).max(getMatchesResponseProfilePreferencesAgeMinMax),
-  "ageMax": zod.number().int().min(getMatchesResponseProfilePreferencesAgeMaxMin).max(getMatchesResponseProfilePreferencesAgeMaxMax),
+  "ageMin": zod.int().min(getMatchesResponseProfilePreferencesAgeMinMin).max(getMatchesResponseProfilePreferencesAgeMinMax),
+  "ageMax": zod.int().min(getMatchesResponseProfilePreferencesAgeMaxMin).max(getMatchesResponseProfilePreferencesAgeMaxMax),
   "gender": zod.string(),
-  "distanceKm": zod.number().int().min(1).max(getMatchesResponseProfilePreferencesDistanceKmMax),
+  "distanceKm": zod.int().min(1).max(getMatchesResponseProfilePreferencesDistanceKmMax),
   "discoveryLocation": zod.object({
   "scope": zod.enum(['city', 'state', 'country', 'radius']),
   "country": zod.string().max(getMatchesResponseProfilePreferencesDiscoveryLocationCountryMax).nullable(),
   "state": zod.string().max(getMatchesResponseProfilePreferencesDiscoveryLocationStateMax).nullable(),
   "city": zod.string().max(getMatchesResponseProfilePreferencesDiscoveryLocationCityMax).nullable(),
-  "radiusKm": zod.number().int().min(1).max(getMatchesResponseProfilePreferencesDiscoveryLocationRadiusKmMax).nullable()
+  "radiusKm": zod.int().min(1).max(getMatchesResponseProfilePreferencesDiscoveryLocationRadiusKmMax).nullable()
 }).optional()
 })
 }),
   "lastMessage": zod.string().nullish(),
   "lastMessageAt": zod.coerce.date().nullish(),
-  "unreadCount": zod.number().int().min(getMatchesResponseUnreadCountMin).optional().describe('Incoming visible messages newer than the member\'s last chat read or clear time.'),
+  "unreadCount": zod.int().min(getMatchesResponseUnreadCountMin).optional().describe('Incoming visible messages newer than the member\'s last chat read or clear time.'),
   "updatedAt": zod.coerce.date(),
   "blockedByMe": zod.boolean(),
   "blockedMe": zod.boolean(),
@@ -1116,7 +1116,7 @@ export const GetMatchesResponse = zod.array(GetMatchesResponseItem)
  * @summary Send a message in a match
  */
 export const SendMessageParams = zod.object({
-  "matchId": zod.coerce.string().uuid()
+  "matchId": zod.uuid()
 })
 
 export const sendMessageBodyContentMax = 2000;
@@ -1127,11 +1127,11 @@ export const sendMessageBodyMediaReferenceMax = 100;
 
 
 export const SendMessageBody = zod.object({
-  "storyId": zod.string().uuid().optional().describe('Reply to this active story by the other match participant'),
+  "storyId": zod.uuid().optional().describe('Reply to this active story by the other match participant'),
   "content": zod.string().min(1).max(sendMessageBodyContentMax).optional(),
   "mediaReference": zod.string().min(1).max(sendMessageBodyMediaReferenceMax).optional(),
   "mediaType": zod.enum(['image', 'video', 'audio']).optional(),
-  "mediaDuration": zod.number().int().min(1).optional()
+  "mediaDuration": zod.int().min(1).optional()
 })
 
 export const sendMessageResponseMediaReferenceMax = 100;
@@ -1142,18 +1142,18 @@ export const sendMessageResponseStoryReplyOneMediaReferenceMax = 100;
 
 
 export const SendMessageResponse = zod.object({
-  "id": zod.string().uuid(),
-  "matchId": zod.string().uuid(),
+  "id": zod.uuid(),
+  "matchId": zod.uuid(),
   "senderId": zod.string(),
   "content": zod.string(),
   "createdAt": zod.coerce.date(),
   "mediaReference": zod.string().max(sendMessageResponseMediaReferenceMax).nullish(),
   "mediaType": zod.union([zod.literal('image'),zod.literal('video'),zod.literal('audio'),zod.literal(null)]).nullish(),
-  "mediaDuration": zod.number().int().min(1).nullish(),
+  "mediaDuration": zod.int().min(1).nullish(),
   "deletedForEveryone": zod.boolean(),
   "isRead": zod.boolean(),
   "storyReply": zod.union([zod.object({
-  "storyId": zod.string().uuid(),
+  "storyId": zod.uuid(),
   "storyOwnerId": zod.string(),
   "available": zod.boolean(),
   "mediaReference": zod.string().max(sendMessageResponseStoryReplyOneMediaReferenceMax).nullable(),
@@ -1167,7 +1167,7 @@ export const SendMessageResponse = zod.object({
  * @summary Get messages for a match
  */
 export const GetMessagesParams = zod.object({
-  "matchId": zod.coerce.string().uuid()
+  "matchId": zod.uuid()
 })
 
 export const getMessagesResponseMediaReferenceMax = 100;
@@ -1178,18 +1178,18 @@ export const getMessagesResponseStoryReplyOneMediaReferenceMax = 100;
 
 
 export const GetMessagesResponseItem = zod.object({
-  "id": zod.string().uuid(),
-  "matchId": zod.string().uuid(),
+  "id": zod.uuid(),
+  "matchId": zod.uuid(),
   "senderId": zod.string(),
   "content": zod.string(),
   "createdAt": zod.coerce.date(),
   "mediaReference": zod.string().max(getMessagesResponseMediaReferenceMax).nullish(),
   "mediaType": zod.union([zod.literal('image'),zod.literal('video'),zod.literal('audio'),zod.literal(null)]).nullish(),
-  "mediaDuration": zod.number().int().min(1).nullish(),
+  "mediaDuration": zod.int().min(1).nullish(),
   "deletedForEveryone": zod.boolean(),
   "isRead": zod.boolean(),
   "storyReply": zod.union([zod.object({
-  "storyId": zod.string().uuid(),
+  "storyId": zod.uuid(),
   "storyOwnerId": zod.string(),
   "available": zod.boolean(),
   "mediaReference": zod.string().max(getMessagesResponseStoryReplyOneMediaReferenceMax).nullable(),
@@ -1204,8 +1204,8 @@ export const GetMessagesResponse = zod.array(GetMessagesResponseItem)
  * @summary Delete a message for the signed-in user or for everyone
  */
 export const DeleteMessageParams = zod.object({
-  "matchId": zod.coerce.string().uuid(),
-  "messageId": zod.coerce.string().uuid()
+  "matchId": zod.uuid(),
+  "messageId": zod.uuid()
 })
 
 export const DeleteMessageBody = zod.object({
@@ -1219,7 +1219,7 @@ export const DeleteMessageResponse = zod.void()
  * @summary Remove a match and its shared chat history
  */
 export const UnmatchMatchParams = zod.object({
-  "matchId": zod.coerce.string().uuid()
+  "matchId": zod.uuid()
 })
 
 export const UnmatchMatchResponse = zod.void()
@@ -1230,11 +1230,11 @@ export const UnmatchMatchResponse = zod.void()
  * @summary Stream new messages for a match
  */
 export const StreamMatchMessagesParams = zod.object({
-  "matchId": zod.coerce.string().uuid()
+  "matchId": zod.uuid()
 })
 
 export const StreamMatchMessagesHeader = zod.object({
-  "Last-Event-ID": zod.string().uuid().optional().describe('Most recently received message ID; messages after it are replayed on connection.')
+  "Last-Event-ID": zod.uuid().optional().describe('Most recently received message ID; messages after it are replayed on connection.')
 })
 
 export const StreamMatchMessagesResponse = zod.unknown()
@@ -1244,7 +1244,7 @@ export const StreamMatchMessagesResponse = zod.unknown()
  * @summary Clear messages from the signed-in user's chat view
  */
 export const ClearChatParams = zod.object({
-  "matchId": zod.coerce.string().uuid()
+  "matchId": zod.uuid()
 })
 
 export const ClearChatResponse = zod.void()
@@ -1254,7 +1254,7 @@ export const ClearChatResponse = zod.void()
  * @summary Hide a conversation from the signed-in user's chat list
  */
 export const DeleteChatParams = zod.object({
-  "matchId": zod.coerce.string().uuid()
+  "matchId": zod.uuid()
 })
 
 export const DeleteChatResponse = zod.void()
@@ -1264,7 +1264,7 @@ export const DeleteChatResponse = zod.void()
  * @summary Get the other participant's typing status
  */
 export const GetTypingStatusParams = zod.object({
-  "matchId": zod.coerce.string().uuid()
+  "matchId": zod.uuid()
 })
 
 export const GetTypingStatusResponse = zod.object({
@@ -1276,7 +1276,7 @@ export const GetTypingStatusResponse = zod.object({
  * @summary Update the signed-in user's temporary typing status
  */
 export const UpdateTypingStatusParams = zod.object({
-  "matchId": zod.coerce.string().uuid()
+  "matchId": zod.uuid()
 })
 
 export const UpdateTypingStatusBody = zod.object({
@@ -1290,7 +1290,7 @@ export const UpdateTypingStatusResponse = zod.void()
  * @summary Save the signed-in user's chat appearance for a match
  */
 export const UpdateChatThemeParams = zod.object({
-  "matchId": zod.coerce.string().uuid()
+  "matchId": zod.uuid()
 })
 
 export const UpdateChatThemeBody = zod.object({
@@ -1306,7 +1306,7 @@ export const UpdateChatThemeResponse = zod.object({
  * @summary Request a media upload URL for a matched chat
  */
 export const RequestChatMediaUploadParams = zod.object({
-  "matchId": zod.coerce.string().uuid()
+  "matchId": zod.uuid()
 })
 
 export const requestChatMediaUploadBodyNameMax = 255;
@@ -1317,14 +1317,14 @@ export const requestChatMediaUploadBodySizeMax = 524288000;
 
 export const RequestChatMediaUploadBody = zod.object({
   "name": zod.string().min(1).max(requestChatMediaUploadBodyNameMax),
-  "size": zod.number().int().min(1).max(requestChatMediaUploadBodySizeMax),
+  "size": zod.int().min(1).max(requestChatMediaUploadBodySizeMax),
   "contentType": zod.enum(['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'video/mp4', 'video/quicktime', 'audio/mp4', 'audio/m4a', 'audio/aac', 'audio/wav']),
   "mediaType": zod.enum(['image', 'video', 'audio'])
 })
 
 export const RequestChatMediaUploadResponse = zod.object({
-  "uploadURL": zod.string().url(),
-  "mediaId": zod.string().uuid(),
+  "uploadURL": zod.url(),
+  "mediaId": zod.uuid(),
   "mediaReference": zod.string()
 })
 
@@ -1333,7 +1333,7 @@ export const RequestChatMediaUploadResponse = zod.object({
  * @summary Get the other participant's online and last-seen status
  */
 export const GetMatchPresenceParams = zod.object({
-  "matchId": zod.coerce.string().uuid()
+  "matchId": zod.uuid()
 })
 
 export const GetMatchPresenceResponse = zod.object({
@@ -1346,7 +1346,7 @@ export const GetMatchPresenceResponse = zod.object({
  * @summary Get when the other participant last read the chat
  */
 export const GetChatReadReceiptParams = zod.object({
-  "matchId": zod.coerce.string().uuid()
+  "matchId": zod.uuid()
 })
 
 export const GetChatReadReceiptResponse = zod.object({
@@ -1358,7 +1358,7 @@ export const GetChatReadReceiptResponse = zod.object({
  * @summary Mark the chat read for the signed-in user
  */
 export const MarkChatReadParams = zod.object({
-  "matchId": zod.coerce.string().uuid()
+  "matchId": zod.uuid()
 })
 
 export const MarkChatReadResponse = zod.void()
@@ -1404,8 +1404,8 @@ export const getProfileFollowSummaryResponseFollowingCountMin = 0;
 
 
 export const GetProfileFollowSummaryResponse = zod.object({
-  "followersCount": zod.number().int().min(getProfileFollowSummaryResponseFollowersCountMin),
-  "followingCount": zod.number().int().min(getProfileFollowSummaryResponseFollowingCountMin),
+  "followersCount": zod.int().min(getProfileFollowSummaryResponseFollowersCountMin),
+  "followingCount": zod.int().min(getProfileFollowSummaryResponseFollowingCountMin),
   "isFollowing": zod.boolean(),
   "followsYou": zod.boolean()
 })
@@ -1423,7 +1423,7 @@ export const GetProfileDatingStateParams = zod.object({
 
 export const GetProfileDatingStateResponse = zod.object({
   "reaction": zod.union([zod.literal('like'),zod.literal('super'),zod.literal(null)]).nullable(),
-  "matchId": zod.string().uuid().nullable()
+  "matchId": zod.uuid().nullable()
 })
 
 
@@ -1457,8 +1457,8 @@ export const followProfileResponseFollowingCountMin = 0;
 
 
 export const FollowProfileResponse = zod.object({
-  "followersCount": zod.number().int().min(followProfileResponseFollowersCountMin),
-  "followingCount": zod.number().int().min(followProfileResponseFollowingCountMin),
+  "followersCount": zod.int().min(followProfileResponseFollowersCountMin),
+  "followingCount": zod.int().min(followProfileResponseFollowingCountMin),
   "isFollowing": zod.boolean(),
   "followsYou": zod.boolean()
 })
@@ -1528,7 +1528,7 @@ export const GetProfileFollowersResponse = zod.object({
   "profile": zod.object({
   "id": zod.string(),
   "name": zod.string(),
-  "age": zod.number().int().nullable(),
+  "age": zod.int().nullable(),
   "showAge": zod.boolean(),
   "showDistance": zod.boolean(),
   "gender": zod.string(),
@@ -1547,16 +1547,16 @@ export const GetProfileFollowersResponse = zod.object({
   "superLikedYou": zod.boolean().optional(),
   "discoveryExpanded": zod.boolean().optional().describe('The default discovery batch includes members outside the home country because the eligible local pool is below the minimum.'),
   "preferences": zod.object({
-  "ageMin": zod.number().int().min(getProfileFollowersResponseEntriesItemProfilePreferencesAgeMinMin).max(getProfileFollowersResponseEntriesItemProfilePreferencesAgeMinMax),
-  "ageMax": zod.number().int().min(getProfileFollowersResponseEntriesItemProfilePreferencesAgeMaxMin).max(getProfileFollowersResponseEntriesItemProfilePreferencesAgeMaxMax),
+  "ageMin": zod.int().min(getProfileFollowersResponseEntriesItemProfilePreferencesAgeMinMin).max(getProfileFollowersResponseEntriesItemProfilePreferencesAgeMinMax),
+  "ageMax": zod.int().min(getProfileFollowersResponseEntriesItemProfilePreferencesAgeMaxMin).max(getProfileFollowersResponseEntriesItemProfilePreferencesAgeMaxMax),
   "gender": zod.string(),
-  "distanceKm": zod.number().int().min(1).max(getProfileFollowersResponseEntriesItemProfilePreferencesDistanceKmMax),
+  "distanceKm": zod.int().min(1).max(getProfileFollowersResponseEntriesItemProfilePreferencesDistanceKmMax),
   "discoveryLocation": zod.object({
   "scope": zod.enum(['city', 'state', 'country', 'radius']),
   "country": zod.string().max(getProfileFollowersResponseEntriesItemProfilePreferencesDiscoveryLocationCountryMax).nullable(),
   "state": zod.string().max(getProfileFollowersResponseEntriesItemProfilePreferencesDiscoveryLocationStateMax).nullable(),
   "city": zod.string().max(getProfileFollowersResponseEntriesItemProfilePreferencesDiscoveryLocationCityMax).nullable(),
-  "radiusKm": zod.number().int().min(1).max(getProfileFollowersResponseEntriesItemProfilePreferencesDiscoveryLocationRadiusKmMax).nullable()
+  "radiusKm": zod.int().min(1).max(getProfileFollowersResponseEntriesItemProfilePreferencesDiscoveryLocationRadiusKmMax).nullable()
 }).optional()
 })
 }),
@@ -1564,10 +1564,10 @@ export const GetProfileFollowersResponse = zod.object({
   "followsYou": zod.boolean(),
   "followedAt": zod.coerce.date()
 })),
-  "total": zod.number().int().min(getProfileFollowersResponseTotalMin),
-  "offset": zod.number().int().min(getProfileFollowersResponseOffsetMin),
-  "limit": zod.number().int().min(1),
-  "nextOffset": zod.number().int().min(getProfileFollowersResponseNextOffsetMin).nullable()
+  "total": zod.int().min(getProfileFollowersResponseTotalMin),
+  "offset": zod.int().min(getProfileFollowersResponseOffsetMin),
+  "limit": zod.int().min(1),
+  "nextOffset": zod.int().min(getProfileFollowersResponseNextOffsetMin).nullable()
 })
 
 
@@ -1622,7 +1622,7 @@ export const GetProfileFollowingResponse = zod.object({
   "profile": zod.object({
   "id": zod.string(),
   "name": zod.string(),
-  "age": zod.number().int().nullable(),
+  "age": zod.int().nullable(),
   "showAge": zod.boolean(),
   "showDistance": zod.boolean(),
   "gender": zod.string(),
@@ -1641,16 +1641,16 @@ export const GetProfileFollowingResponse = zod.object({
   "superLikedYou": zod.boolean().optional(),
   "discoveryExpanded": zod.boolean().optional().describe('The default discovery batch includes members outside the home country because the eligible local pool is below the minimum.'),
   "preferences": zod.object({
-  "ageMin": zod.number().int().min(getProfileFollowingResponseEntriesItemProfilePreferencesAgeMinMin).max(getProfileFollowingResponseEntriesItemProfilePreferencesAgeMinMax),
-  "ageMax": zod.number().int().min(getProfileFollowingResponseEntriesItemProfilePreferencesAgeMaxMin).max(getProfileFollowingResponseEntriesItemProfilePreferencesAgeMaxMax),
+  "ageMin": zod.int().min(getProfileFollowingResponseEntriesItemProfilePreferencesAgeMinMin).max(getProfileFollowingResponseEntriesItemProfilePreferencesAgeMinMax),
+  "ageMax": zod.int().min(getProfileFollowingResponseEntriesItemProfilePreferencesAgeMaxMin).max(getProfileFollowingResponseEntriesItemProfilePreferencesAgeMaxMax),
   "gender": zod.string(),
-  "distanceKm": zod.number().int().min(1).max(getProfileFollowingResponseEntriesItemProfilePreferencesDistanceKmMax),
+  "distanceKm": zod.int().min(1).max(getProfileFollowingResponseEntriesItemProfilePreferencesDistanceKmMax),
   "discoveryLocation": zod.object({
   "scope": zod.enum(['city', 'state', 'country', 'radius']),
   "country": zod.string().max(getProfileFollowingResponseEntriesItemProfilePreferencesDiscoveryLocationCountryMax).nullable(),
   "state": zod.string().max(getProfileFollowingResponseEntriesItemProfilePreferencesDiscoveryLocationStateMax).nullable(),
   "city": zod.string().max(getProfileFollowingResponseEntriesItemProfilePreferencesDiscoveryLocationCityMax).nullable(),
-  "radiusKm": zod.number().int().min(1).max(getProfileFollowingResponseEntriesItemProfilePreferencesDiscoveryLocationRadiusKmMax).nullable()
+  "radiusKm": zod.int().min(1).max(getProfileFollowingResponseEntriesItemProfilePreferencesDiscoveryLocationRadiusKmMax).nullable()
 }).optional()
 })
 }),
@@ -1658,10 +1658,10 @@ export const GetProfileFollowingResponse = zod.object({
   "followsYou": zod.boolean(),
   "followedAt": zod.coerce.date()
 })),
-  "total": zod.number().int().min(getProfileFollowingResponseTotalMin),
-  "offset": zod.number().int().min(getProfileFollowingResponseOffsetMin),
-  "limit": zod.number().int().min(1),
-  "nextOffset": zod.number().int().min(getProfileFollowingResponseNextOffsetMin).nullable()
+  "total": zod.int().min(getProfileFollowingResponseTotalMin),
+  "offset": zod.int().min(getProfileFollowingResponseOffsetMin),
+  "limit": zod.int().min(1),
+  "nextOffset": zod.int().min(getProfileFollowingResponseNextOffsetMin).nullable()
 })
 
 
@@ -1690,7 +1690,7 @@ export const GetWhoLikedYouResponseItem = zod.object({
   "profile": zod.object({
   "id": zod.string(),
   "name": zod.string(),
-  "age": zod.number().int().nullable(),
+  "age": zod.int().nullable(),
   "showAge": zod.boolean(),
   "showDistance": zod.boolean(),
   "gender": zod.string(),
@@ -1709,16 +1709,16 @@ export const GetWhoLikedYouResponseItem = zod.object({
   "superLikedYou": zod.boolean().optional(),
   "discoveryExpanded": zod.boolean().optional().describe('The default discovery batch includes members outside the home country because the eligible local pool is below the minimum.'),
   "preferences": zod.object({
-  "ageMin": zod.number().int().min(getWhoLikedYouResponseProfilePreferencesAgeMinMin).max(getWhoLikedYouResponseProfilePreferencesAgeMinMax),
-  "ageMax": zod.number().int().min(getWhoLikedYouResponseProfilePreferencesAgeMaxMin).max(getWhoLikedYouResponseProfilePreferencesAgeMaxMax),
+  "ageMin": zod.int().min(getWhoLikedYouResponseProfilePreferencesAgeMinMin).max(getWhoLikedYouResponseProfilePreferencesAgeMinMax),
+  "ageMax": zod.int().min(getWhoLikedYouResponseProfilePreferencesAgeMaxMin).max(getWhoLikedYouResponseProfilePreferencesAgeMaxMax),
   "gender": zod.string(),
-  "distanceKm": zod.number().int().min(1).max(getWhoLikedYouResponseProfilePreferencesDistanceKmMax),
+  "distanceKm": zod.int().min(1).max(getWhoLikedYouResponseProfilePreferencesDistanceKmMax),
   "discoveryLocation": zod.object({
   "scope": zod.enum(['city', 'state', 'country', 'radius']),
   "country": zod.string().max(getWhoLikedYouResponseProfilePreferencesDiscoveryLocationCountryMax).nullable(),
   "state": zod.string().max(getWhoLikedYouResponseProfilePreferencesDiscoveryLocationStateMax).nullable(),
   "city": zod.string().max(getWhoLikedYouResponseProfilePreferencesDiscoveryLocationCityMax).nullable(),
-  "radiusKm": zod.number().int().min(1).max(getWhoLikedYouResponseProfilePreferencesDiscoveryLocationRadiusKmMax).nullable()
+  "radiusKm": zod.int().min(1).max(getWhoLikedYouResponseProfilePreferencesDiscoveryLocationRadiusKmMax).nullable()
 }).optional()
 })
 }),
@@ -1753,7 +1753,7 @@ export const GetWhoViewedYouResponseItem = zod.object({
   "profile": zod.object({
   "id": zod.string(),
   "name": zod.string(),
-  "age": zod.number().int().nullable(),
+  "age": zod.int().nullable(),
   "showAge": zod.boolean(),
   "showDistance": zod.boolean(),
   "gender": zod.string(),
@@ -1772,16 +1772,16 @@ export const GetWhoViewedYouResponseItem = zod.object({
   "superLikedYou": zod.boolean().optional(),
   "discoveryExpanded": zod.boolean().optional().describe('The default discovery batch includes members outside the home country because the eligible local pool is below the minimum.'),
   "preferences": zod.object({
-  "ageMin": zod.number().int().min(getWhoViewedYouResponseProfilePreferencesAgeMinMin).max(getWhoViewedYouResponseProfilePreferencesAgeMinMax),
-  "ageMax": zod.number().int().min(getWhoViewedYouResponseProfilePreferencesAgeMaxMin).max(getWhoViewedYouResponseProfilePreferencesAgeMaxMax),
+  "ageMin": zod.int().min(getWhoViewedYouResponseProfilePreferencesAgeMinMin).max(getWhoViewedYouResponseProfilePreferencesAgeMinMax),
+  "ageMax": zod.int().min(getWhoViewedYouResponseProfilePreferencesAgeMaxMin).max(getWhoViewedYouResponseProfilePreferencesAgeMaxMax),
   "gender": zod.string(),
-  "distanceKm": zod.number().int().min(1).max(getWhoViewedYouResponseProfilePreferencesDistanceKmMax),
+  "distanceKm": zod.int().min(1).max(getWhoViewedYouResponseProfilePreferencesDistanceKmMax),
   "discoveryLocation": zod.object({
   "scope": zod.enum(['city', 'state', 'country', 'radius']),
   "country": zod.string().max(getWhoViewedYouResponseProfilePreferencesDiscoveryLocationCountryMax).nullable(),
   "state": zod.string().max(getWhoViewedYouResponseProfilePreferencesDiscoveryLocationStateMax).nullable(),
   "city": zod.string().max(getWhoViewedYouResponseProfilePreferencesDiscoveryLocationCityMax).nullable(),
-  "radiusKm": zod.number().int().min(1).max(getWhoViewedYouResponseProfilePreferencesDiscoveryLocationRadiusKmMax).nullable()
+  "radiusKm": zod.int().min(1).max(getWhoViewedYouResponseProfilePreferencesDiscoveryLocationRadiusKmMax).nullable()
 }).optional()
 })
 }),
@@ -1825,12 +1825,12 @@ export const getNotificationsResponseUnreadCountsFollowsMin = 0;
 
 export const GetNotificationsResponse = zod.object({
   "notifications": zod.array(zod.object({
-  "id": zod.string().uuid(),
+  "id": zod.uuid(),
   "type": zod.enum(['new_match', 'new_message', 'new_like', 'new_super_like', 'new_follow', 'profile_view', 'reel_like', 'reel_comment_reply']),
   "actor": zod.object({
   "id": zod.string(),
   "name": zod.string(),
-  "age": zod.number().int().nullable(),
+  "age": zod.int().nullable(),
   "showAge": zod.boolean(),
   "showDistance": zod.boolean(),
   "gender": zod.string(),
@@ -1849,33 +1849,33 @@ export const GetNotificationsResponse = zod.object({
   "superLikedYou": zod.boolean().optional(),
   "discoveryExpanded": zod.boolean().optional().describe('The default discovery batch includes members outside the home country because the eligible local pool is below the minimum.'),
   "preferences": zod.object({
-  "ageMin": zod.number().int().min(getNotificationsResponseNotificationsItemActorPreferencesAgeMinMin).max(getNotificationsResponseNotificationsItemActorPreferencesAgeMinMax),
-  "ageMax": zod.number().int().min(getNotificationsResponseNotificationsItemActorPreferencesAgeMaxMin).max(getNotificationsResponseNotificationsItemActorPreferencesAgeMaxMax),
+  "ageMin": zod.int().min(getNotificationsResponseNotificationsItemActorPreferencesAgeMinMin).max(getNotificationsResponseNotificationsItemActorPreferencesAgeMinMax),
+  "ageMax": zod.int().min(getNotificationsResponseNotificationsItemActorPreferencesAgeMaxMin).max(getNotificationsResponseNotificationsItemActorPreferencesAgeMaxMax),
   "gender": zod.string(),
-  "distanceKm": zod.number().int().min(1).max(getNotificationsResponseNotificationsItemActorPreferencesDistanceKmMax),
+  "distanceKm": zod.int().min(1).max(getNotificationsResponseNotificationsItemActorPreferencesDistanceKmMax),
   "discoveryLocation": zod.object({
   "scope": zod.enum(['city', 'state', 'country', 'radius']),
   "country": zod.string().max(getNotificationsResponseNotificationsItemActorPreferencesDiscoveryLocationCountryMax).nullable(),
   "state": zod.string().max(getNotificationsResponseNotificationsItemActorPreferencesDiscoveryLocationStateMax).nullable(),
   "city": zod.string().max(getNotificationsResponseNotificationsItemActorPreferencesDiscoveryLocationCityMax).nullable(),
-  "radiusKm": zod.number().int().min(1).max(getNotificationsResponseNotificationsItemActorPreferencesDiscoveryLocationRadiusKmMax).nullable()
+  "radiusKm": zod.int().min(1).max(getNotificationsResponseNotificationsItemActorPreferencesDiscoveryLocationRadiusKmMax).nullable()
 }).optional()
 })
 }),
-  "matchId": zod.string().uuid().nullish(),
-  "messageId": zod.string().uuid().nullish(),
-  "reelId": zod.string().uuid().nullish(),
-  "commentId": zod.string().uuid().nullable(),
+  "matchId": zod.uuid().nullish(),
+  "messageId": zod.uuid().nullish(),
+  "reelId": zod.uuid().nullish(),
+  "commentId": zod.uuid().nullable(),
   "createdAt": zod.coerce.date(),
   "readAt": zod.coerce.date().nullable()
 })),
   "unreadCounts": zod.object({
-  "matches": zod.number().int().min(getNotificationsResponseUnreadCountsMatchesMin),
-  "messages": zod.number().int().min(getNotificationsResponseUnreadCountsMessagesMin),
-  "views": zod.number().int().min(getNotificationsResponseUnreadCountsViewsMin),
-  "likes": zod.number().int().min(getNotificationsResponseUnreadCountsLikesMin),
-  "reels": zod.number().int().min(getNotificationsResponseUnreadCountsReelsMin),
-  "follows": zod.number().int().min(getNotificationsResponseUnreadCountsFollowsMin)
+  "matches": zod.int().min(getNotificationsResponseUnreadCountsMatchesMin),
+  "messages": zod.int().min(getNotificationsResponseUnreadCountsMessagesMin),
+  "views": zod.int().min(getNotificationsResponseUnreadCountsViewsMin),
+  "likes": zod.int().min(getNotificationsResponseUnreadCountsLikesMin),
+  "reels": zod.int().min(getNotificationsResponseUnreadCountsReelsMin),
+  "follows": zod.int().min(getNotificationsResponseUnreadCountsFollowsMin)
 })
 })
 
@@ -1888,7 +1888,7 @@ export const markNotificationsReadBodyNotificationIdsMax = 500;
 
 
 export const MarkNotificationsReadBody = zod.object({
-  "notificationIds": zod.array(zod.string().uuid()).min(1).max(markNotificationsReadBodyNotificationIdsMax)
+  "notificationIds": zod.array(zod.uuid()).min(1).max(markNotificationsReadBodyNotificationIdsMax)
 })
 
 export const MarkNotificationsReadResponse = zod.void()
@@ -1898,7 +1898,7 @@ export const MarkNotificationsReadResponse = zod.void()
  * @summary Mark one notification as read
  */
 export const MarkNotificationReadParams = zod.object({
-  "notificationId": zod.coerce.string().uuid()
+  "notificationId": zod.uuid()
 })
 
 export const MarkNotificationReadResponse = zod.void()
@@ -1930,7 +1930,7 @@ export const saveWebPushSubscriptionBodyKeysAuthMax = 100;
 
 
 export const SaveWebPushSubscriptionBody = zod.object({
-  "endpoint": zod.string().url().max(saveWebPushSubscriptionBodyEndpointMax),
+  "endpoint": zod.url().max(saveWebPushSubscriptionBodyEndpointMax),
   "keys": zod.object({
   "p256dh": zod.string().min(saveWebPushSubscriptionBodyKeysP256dhMin).max(saveWebPushSubscriptionBodyKeysP256dhMax),
   "auth": zod.string().min(saveWebPushSubscriptionBodyKeysAuthMin).max(saveWebPushSubscriptionBodyKeysAuthMax)
@@ -1948,7 +1948,7 @@ export const deleteWebPushSubscriptionBodyEndpointMax = 2048;
 
 
 export const DeleteWebPushSubscriptionBody = zod.object({
-  "endpoint": zod.string().url().max(deleteWebPushSubscriptionBodyEndpointMax)
+  "endpoint": zod.url().max(deleteWebPushSubscriptionBodyEndpointMax)
 })
 
 export const DeleteWebPushSubscriptionResponse = zod.void()
@@ -1997,7 +1997,7 @@ export const GetProfileByIdParams = zod.object({
 export const GetProfileByIdResponse = zod.object({
   "id": zod.string(),
   "name": zod.string(),
-  "age": zod.number().int().nullable(),
+  "age": zod.int().nullable(),
   "showAge": zod.boolean(),
   "gender": zod.string(),
   "lookingFor": zod.string(),
@@ -2037,10 +2037,10 @@ export const getProfileReelsResponseItemsItemSaveCountMin = 0;
 
 export const GetProfileReelsResponse = zod.object({
   "items": zod.array(zod.object({
-  "id": zod.string().uuid(),
+  "id": zod.uuid(),
   "creatorId": zod.string(),
   "creatorName": zod.string(),
-  "creatorAge": zod.number().int().nullable(),
+  "creatorAge": zod.int().nullable(),
   "creatorLocation": zod.string(),
   "creatorVerified": zod.boolean(),
   "creatorPhoto": zod.string().nullable(),
@@ -2048,11 +2048,11 @@ export const GetProfileReelsResponse = zod.object({
   "videoReference": zod.string(),
   "caption": zod.string(),
   "durationSeconds": zod.number().nullable(),
-  "likeCount": zod.number().int(),
-  "commentCount": zod.number().int(),
-  "viewCount": zod.number().int().min(getProfileReelsResponseItemsItemViewCountMin),
-  "shareCount": zod.number().int().min(getProfileReelsResponseItemsItemShareCountMin),
-  "saveCount": zod.number().int().min(getProfileReelsResponseItemsItemSaveCountMin),
+  "likeCount": zod.int(),
+  "commentCount": zod.int(),
+  "viewCount": zod.int().min(getProfileReelsResponseItemsItemViewCountMin),
+  "shareCount": zod.int().min(getProfileReelsResponseItemsItemShareCountMin),
+  "saveCount": zod.int().min(getProfileReelsResponseItemsItemSaveCountMin),
   "likedByMe": zod.boolean(),
   "savedByMe": zod.boolean(),
   "isOwner": zod.boolean(),
@@ -2087,7 +2087,7 @@ export const GetBlockedProfilesResponseItem = zod.object({
   "profile": zod.object({
   "id": zod.string(),
   "name": zod.string(),
-  "age": zod.number().int().nullable(),
+  "age": zod.int().nullable(),
   "showAge": zod.boolean(),
   "showDistance": zod.boolean(),
   "gender": zod.string(),
@@ -2106,16 +2106,16 @@ export const GetBlockedProfilesResponseItem = zod.object({
   "superLikedYou": zod.boolean().optional(),
   "discoveryExpanded": zod.boolean().optional().describe('The default discovery batch includes members outside the home country because the eligible local pool is below the minimum.'),
   "preferences": zod.object({
-  "ageMin": zod.number().int().min(getBlockedProfilesResponseProfilePreferencesAgeMinMin).max(getBlockedProfilesResponseProfilePreferencesAgeMinMax),
-  "ageMax": zod.number().int().min(getBlockedProfilesResponseProfilePreferencesAgeMaxMin).max(getBlockedProfilesResponseProfilePreferencesAgeMaxMax),
+  "ageMin": zod.int().min(getBlockedProfilesResponseProfilePreferencesAgeMinMin).max(getBlockedProfilesResponseProfilePreferencesAgeMinMax),
+  "ageMax": zod.int().min(getBlockedProfilesResponseProfilePreferencesAgeMaxMin).max(getBlockedProfilesResponseProfilePreferencesAgeMaxMax),
   "gender": zod.string(),
-  "distanceKm": zod.number().int().min(1).max(getBlockedProfilesResponseProfilePreferencesDistanceKmMax),
+  "distanceKm": zod.int().min(1).max(getBlockedProfilesResponseProfilePreferencesDistanceKmMax),
   "discoveryLocation": zod.object({
   "scope": zod.enum(['city', 'state', 'country', 'radius']),
   "country": zod.string().max(getBlockedProfilesResponseProfilePreferencesDiscoveryLocationCountryMax).nullable(),
   "state": zod.string().max(getBlockedProfilesResponseProfilePreferencesDiscoveryLocationStateMax).nullable(),
   "city": zod.string().max(getBlockedProfilesResponseProfilePreferencesDiscoveryLocationCityMax).nullable(),
-  "radiusKm": zod.number().int().min(1).max(getBlockedProfilesResponseProfilePreferencesDiscoveryLocationRadiusKmMax).nullable()
+  "radiusKm": zod.int().min(1).max(getBlockedProfilesResponseProfilePreferencesDiscoveryLocationRadiusKmMax).nullable()
 }).optional()
 })
 }),
@@ -2178,14 +2178,14 @@ export const requestProfileMediaUploadBodySizeMax = 524288000;
 
 export const RequestProfileMediaUploadBody = zod.object({
   "name": zod.string().min(1).max(requestProfileMediaUploadBodyNameMax),
-  "size": zod.number().int().min(1).max(requestProfileMediaUploadBodySizeMax),
+  "size": zod.int().min(1).max(requestProfileMediaUploadBodySizeMax),
   "contentType": zod.enum(['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'video/mp4', 'video/quicktime', 'audio/mp4', 'audio/m4a', 'audio/aac', 'audio/wav']),
   "mediaType": zod.enum(['image', 'video', 'audio'])
 })
 
 export const RequestProfileMediaUploadResponse = zod.object({
-  "uploadURL": zod.string().url(),
-  "mediaId": zod.string().uuid(),
+  "uploadURL": zod.url(),
+  "mediaId": zod.uuid(),
   "mediaReference": zod.string()
 })
 
@@ -2194,7 +2194,7 @@ export const RequestProfileMediaUploadResponse = zod.object({
  * @summary Check an uploaded photo against the verified main face before adding it
  */
 export const CheckAdditionalProfilePhotoParams = zod.object({
-  "mediaId": zod.coerce.string().uuid()
+  "mediaId": zod.uuid()
 })
 
 export const CheckAdditionalProfilePhotoResponse = zod.object({
@@ -2206,7 +2206,7 @@ export const CheckAdditionalProfilePhotoResponse = zod.object({
  * @summary Compress an uploaded profile video for playback
  */
 export const TranscodeProfileVideoParams = zod.object({
-  "mediaId": zod.coerce.string().uuid()
+  "mediaId": zod.uuid()
 })
 
 export const transcodeProfileVideoResponseSizeMax = 52428800;
@@ -2222,10 +2222,10 @@ export const transcodeProfileVideoResponseHeightMax = 1280;
 
 export const TranscodeProfileVideoResponse = zod.object({
   "mediaReference": zod.string(),
-  "size": zod.number().int().min(1).max(transcodeProfileVideoResponseSizeMax),
+  "size": zod.int().min(1).max(transcodeProfileVideoResponseSizeMax),
   "duration": zod.number().gt(transcodeProfileVideoResponseDurationExclusiveMin).max(transcodeProfileVideoResponseDurationMax),
-  "width": zod.number().int().min(1).max(transcodeProfileVideoResponseWidthMax),
-  "height": zod.number().int().min(1).max(transcodeProfileVideoResponseHeightMax)
+  "width": zod.int().min(1).max(transcodeProfileVideoResponseWidthMax),
+  "height": zod.int().min(1).max(transcodeProfileVideoResponseHeightMax)
 })
 
 
@@ -2233,7 +2233,7 @@ export const TranscodeProfileVideoResponse = zod.object({
  * @summary Stream a media file referenced by a profile
  */
 export const GetProfileMediaParams = zod.object({
-  "mediaId": zod.coerce.string().uuid()
+  "mediaId": zod.uuid()
 })
 
 export const GetProfileMediaResponse = zod.unknown()
@@ -2243,7 +2243,7 @@ export const GetProfileMediaResponse = zod.unknown()
  * @summary Small compressed JPEG thumbnail of a photo or video, with the same authorization as the original
  */
 export const GetMediaPreviewParams = zod.object({
-  "mediaId": zod.coerce.string().uuid()
+  "mediaId": zod.uuid()
 })
 
 export const GetMediaPreviewResponse = zod.unknown()
@@ -2270,7 +2270,7 @@ export const getStoriesResponseMutualFollowsItemStoriesItemLikeCountMin = 0;
 
 export const GetStoriesResponse = zod.object({
   "ownStories": zod.array(zod.object({
-  "id": zod.string().uuid(),
+  "id": zod.uuid(),
   "mediaUrl": zod.string().max(getStoriesResponseOwnStoriesItemMediaUrlMax).nullable(),
   "mediaType": zod.union([zod.literal('image'),zod.literal('video'),zod.literal(null)]).nullable(),
   "caption": zod.string().max(getStoriesResponseOwnStoriesItemCaptionMax),
@@ -2278,18 +2278,18 @@ export const GetStoriesResponse = zod.object({
   "createdAt": zod.coerce.date(),
   "expiresAt": zod.coerce.date(),
   "viewed": zod.boolean(),
-  "likeCount": zod.number().int().min(getStoriesResponseOwnStoriesItemLikeCountMin),
+  "likeCount": zod.int().min(getStoriesResponseOwnStoriesItemLikeCountMin),
   "likedByMe": zod.boolean()
 })),
   "mutualFollows": zod.array(zod.object({
-  "matchId": zod.string().uuid().nullable().describe('Present only when the viewer and story owner can chat'),
+  "matchId": zod.uuid().nullable().describe('Present only when the viewer and story owner can chat'),
   "poster": zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "photo": zod.string().nullable()
 }),
   "stories": zod.array(zod.object({
-  "id": zod.string().uuid(),
+  "id": zod.uuid(),
   "mediaUrl": zod.string().max(getStoriesResponseMutualFollowsItemStoriesItemMediaUrlMax).nullable(),
   "mediaType": zod.union([zod.literal('image'),zod.literal('video'),zod.literal(null)]).nullable(),
   "caption": zod.string().max(getStoriesResponseMutualFollowsItemStoriesItemCaptionMax),
@@ -2297,7 +2297,7 @@ export const GetStoriesResponse = zod.object({
   "createdAt": zod.coerce.date(),
   "expiresAt": zod.coerce.date(),
   "viewed": zod.boolean(),
-  "likeCount": zod.number().int().min(getStoriesResponseMutualFollowsItemStoriesItemLikeCountMin),
+  "likeCount": zod.int().min(getStoriesResponseMutualFollowsItemStoriesItemLikeCountMin),
   "likedByMe": zod.boolean()
 }))
 }))
@@ -2322,7 +2322,7 @@ export const CreateStoryBody = zod.object({
 })
 
 export const CreateStoryResponse = zod.object({
-  "id": zod.string().uuid(),
+  "id": zod.uuid(),
   "createdAt": zod.coerce.date(),
   "expiresAt": zod.coerce.date()
 })
@@ -2332,7 +2332,7 @@ export const CreateStoryResponse = zod.object({
  * @summary Delete the signed-in user's story
  */
 export const DeleteStoryParams = zod.object({
-  "storyId": zod.coerce.string().uuid()
+  "storyId": zod.uuid()
 })
 
 export const DeleteStoryResponse = zod.void()
@@ -2342,7 +2342,7 @@ export const DeleteStoryResponse = zod.void()
  * @summary Record that the signed-in user viewed an active mutual-follow story
  */
 export const MarkStoryViewedParams = zod.object({
-  "storyId": zod.coerce.string().uuid()
+  "storyId": zod.uuid()
 })
 
 export const MarkStoryViewedResponse = zod.void()
@@ -2352,7 +2352,7 @@ export const MarkStoryViewedResponse = zod.void()
  * @summary Like an active story visible to the signed-in user
  */
 export const LikeStoryParams = zod.object({
-  "storyId": zod.coerce.string().uuid()
+  "storyId": zod.uuid()
 })
 
 export const likeStoryResponseLikeCountMin = 0;
@@ -2361,7 +2361,7 @@ export const likeStoryResponseLikeCountMin = 0;
 
 export const LikeStoryResponse = zod.object({
   "liked": zod.boolean(),
-  "likeCount": zod.number().int().min(likeStoryResponseLikeCountMin)
+  "likeCount": zod.int().min(likeStoryResponseLikeCountMin)
 })
 
 
@@ -2369,7 +2369,7 @@ export const LikeStoryResponse = zod.object({
  * @summary Remove the signed-in user's like from a story
  */
 export const UnlikeStoryParams = zod.object({
-  "storyId": zod.coerce.string().uuid()
+  "storyId": zod.uuid()
 })
 
 export const unlikeStoryResponseLikeCountMin = 0;
@@ -2378,7 +2378,7 @@ export const unlikeStoryResponseLikeCountMin = 0;
 
 export const UnlikeStoryResponse = zod.object({
   "liked": zod.boolean(),
-  "likeCount": zod.number().int().min(unlikeStoryResponseLikeCountMin)
+  "likeCount": zod.int().min(unlikeStoryResponseLikeCountMin)
 })
 
 
@@ -2393,14 +2393,14 @@ export const requestStoryMediaUploadBodySizeMax = 524288000;
 
 export const RequestStoryMediaUploadBody = zod.object({
   "name": zod.string().min(1).max(requestStoryMediaUploadBodyNameMax),
-  "size": zod.number().int().min(1).max(requestStoryMediaUploadBodySizeMax),
+  "size": zod.int().min(1).max(requestStoryMediaUploadBodySizeMax),
   "contentType": zod.enum(['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'video/mp4', 'video/quicktime', 'audio/mp4', 'audio/m4a', 'audio/aac', 'audio/wav']),
   "mediaType": zod.enum(['image', 'video', 'audio'])
 })
 
 export const RequestStoryMediaUploadResponse = zod.object({
-  "uploadURL": zod.string().url(),
-  "mediaId": zod.string().uuid(),
+  "uploadURL": zod.url(),
+  "mediaId": zod.uuid(),
   "mediaReference": zod.string()
 })
 
@@ -2409,7 +2409,7 @@ export const RequestStoryMediaUploadResponse = zod.object({
  * @summary Compress a story video and enforce the 60 second limit
  */
 export const TranscodeStoryVideoParams = zod.object({
-  "mediaId": zod.coerce.string().uuid()
+  "mediaId": zod.uuid()
 })
 
 export const transcodeStoryVideoResponseSizeMax = 52428800;
@@ -2425,10 +2425,10 @@ export const transcodeStoryVideoResponseHeightMax = 1280;
 
 export const TranscodeStoryVideoResponse = zod.object({
   "mediaReference": zod.string(),
-  "size": zod.number().int().min(1).max(transcodeStoryVideoResponseSizeMax),
+  "size": zod.int().min(1).max(transcodeStoryVideoResponseSizeMax),
   "duration": zod.number().gt(transcodeStoryVideoResponseDurationExclusiveMin).max(transcodeStoryVideoResponseDurationMax),
-  "width": zod.number().int().min(1).max(transcodeStoryVideoResponseWidthMax),
-  "height": zod.number().int().min(1).max(transcodeStoryVideoResponseHeightMax)
+  "width": zod.int().min(1).max(transcodeStoryVideoResponseWidthMax),
+  "height": zod.int().min(1).max(transcodeStoryVideoResponseHeightMax)
 })
 
 
@@ -2461,10 +2461,10 @@ export const getReelsFeedResponseItemsItemSaveCountMin = 0;
 
 export const GetReelsFeedResponse = zod.object({
   "items": zod.array(zod.object({
-  "id": zod.string().uuid(),
+  "id": zod.uuid(),
   "creatorId": zod.string(),
   "creatorName": zod.string(),
-  "creatorAge": zod.number().int().nullable(),
+  "creatorAge": zod.int().nullable(),
   "creatorLocation": zod.string(),
   "creatorVerified": zod.boolean(),
   "creatorPhoto": zod.string().nullable(),
@@ -2472,11 +2472,11 @@ export const GetReelsFeedResponse = zod.object({
   "videoReference": zod.string(),
   "caption": zod.string(),
   "durationSeconds": zod.number().nullable(),
-  "likeCount": zod.number().int(),
-  "commentCount": zod.number().int(),
-  "viewCount": zod.number().int().min(getReelsFeedResponseItemsItemViewCountMin),
-  "shareCount": zod.number().int().min(getReelsFeedResponseItemsItemShareCountMin),
-  "saveCount": zod.number().int().min(getReelsFeedResponseItemsItemSaveCountMin),
+  "likeCount": zod.int(),
+  "commentCount": zod.int(),
+  "viewCount": zod.int().min(getReelsFeedResponseItemsItemViewCountMin),
+  "shareCount": zod.int().min(getReelsFeedResponseItemsItemShareCountMin),
+  "saveCount": zod.int().min(getReelsFeedResponseItemsItemSaveCountMin),
   "likedByMe": zod.boolean(),
   "savedByMe": zod.boolean(),
   "isOwner": zod.boolean(),
@@ -2494,7 +2494,7 @@ export const createReelBodyCaptionMax = 300;
 
 
 export const CreateReelBody = zod.object({
-  "mediaId": zod.string().uuid(),
+  "mediaId": zod.uuid(),
   "caption": zod.string().max(createReelBodyCaptionMax).optional()
 })
 
@@ -2507,10 +2507,10 @@ export const createReelResponseSaveCountMin = 0;
 
 
 export const CreateReelResponse = zod.object({
-  "id": zod.string().uuid(),
+  "id": zod.uuid(),
   "creatorId": zod.string(),
   "creatorName": zod.string(),
-  "creatorAge": zod.number().int().nullable(),
+  "creatorAge": zod.int().nullable(),
   "creatorLocation": zod.string(),
   "creatorVerified": zod.boolean(),
   "creatorPhoto": zod.string().nullable(),
@@ -2518,11 +2518,11 @@ export const CreateReelResponse = zod.object({
   "videoReference": zod.string(),
   "caption": zod.string(),
   "durationSeconds": zod.number().nullable(),
-  "likeCount": zod.number().int(),
-  "commentCount": zod.number().int(),
-  "viewCount": zod.number().int().min(createReelResponseViewCountMin),
-  "shareCount": zod.number().int().min(createReelResponseShareCountMin),
-  "saveCount": zod.number().int().min(createReelResponseSaveCountMin),
+  "likeCount": zod.int(),
+  "commentCount": zod.int(),
+  "viewCount": zod.int().min(createReelResponseViewCountMin),
+  "shareCount": zod.int().min(createReelResponseShareCountMin),
+  "saveCount": zod.int().min(createReelResponseSaveCountMin),
   "likedByMe": zod.boolean(),
   "savedByMe": zod.boolean(),
   "isOwner": zod.boolean(),
@@ -2534,7 +2534,7 @@ export const CreateReelResponse = zod.object({
  * @summary Process and automatically check a full-length Reel before publishing
  */
 export const TranscodeReelVideoParams = zod.object({
-  "mediaId": zod.coerce.string().uuid()
+  "mediaId": zod.uuid()
 })
 
 export const transcodeReelVideoResponseSizeMax = 524288000;
@@ -2549,10 +2549,10 @@ export const transcodeReelVideoResponseHeightMax = 1280;
 
 export const TranscodeReelVideoResponse = zod.object({
   "mediaReference": zod.string(),
-  "size": zod.number().int().min(1).max(transcodeReelVideoResponseSizeMax),
+  "size": zod.int().min(1).max(transcodeReelVideoResponseSizeMax),
   "duration": zod.number().gt(transcodeReelVideoResponseDurationExclusiveMin),
-  "width": zod.number().int().min(1).max(transcodeReelVideoResponseWidthMax),
-  "height": zod.number().int().min(1).max(transcodeReelVideoResponseHeightMax)
+  "width": zod.int().min(1).max(transcodeReelVideoResponseWidthMax),
+  "height": zod.int().min(1).max(transcodeReelVideoResponseHeightMax)
 })
 
 
@@ -2577,10 +2577,10 @@ export const getSavedReelsResponseItemsItemSaveCountMin = 0;
 
 export const GetSavedReelsResponse = zod.object({
   "items": zod.array(zod.object({
-  "id": zod.string().uuid(),
+  "id": zod.uuid(),
   "creatorId": zod.string(),
   "creatorName": zod.string(),
-  "creatorAge": zod.number().int().nullable(),
+  "creatorAge": zod.int().nullable(),
   "creatorLocation": zod.string(),
   "creatorVerified": zod.boolean(),
   "creatorPhoto": zod.string().nullable(),
@@ -2588,11 +2588,11 @@ export const GetSavedReelsResponse = zod.object({
   "videoReference": zod.string(),
   "caption": zod.string(),
   "durationSeconds": zod.number().nullable(),
-  "likeCount": zod.number().int(),
-  "commentCount": zod.number().int(),
-  "viewCount": zod.number().int().min(getSavedReelsResponseItemsItemViewCountMin),
-  "shareCount": zod.number().int().min(getSavedReelsResponseItemsItemShareCountMin),
-  "saveCount": zod.number().int().min(getSavedReelsResponseItemsItemSaveCountMin),
+  "likeCount": zod.int(),
+  "commentCount": zod.int(),
+  "viewCount": zod.int().min(getSavedReelsResponseItemsItemViewCountMin),
+  "shareCount": zod.int().min(getSavedReelsResponseItemsItemShareCountMin),
+  "saveCount": zod.int().min(getSavedReelsResponseItemsItemSaveCountMin),
   "likedByMe": zod.boolean(),
   "savedByMe": zod.boolean(),
   "isOwner": zod.boolean(),
@@ -2623,10 +2623,10 @@ export const getMyReelsResponseItemsItemSaveCountMin = 0;
 
 export const GetMyReelsResponse = zod.object({
   "items": zod.array(zod.object({
-  "id": zod.string().uuid(),
+  "id": zod.uuid(),
   "creatorId": zod.string(),
   "creatorName": zod.string(),
-  "creatorAge": zod.number().int().nullable(),
+  "creatorAge": zod.int().nullable(),
   "creatorLocation": zod.string(),
   "creatorVerified": zod.boolean(),
   "creatorPhoto": zod.string().nullable(),
@@ -2634,11 +2634,11 @@ export const GetMyReelsResponse = zod.object({
   "videoReference": zod.string(),
   "caption": zod.string(),
   "durationSeconds": zod.number().nullable(),
-  "likeCount": zod.number().int(),
-  "commentCount": zod.number().int(),
-  "viewCount": zod.number().int().min(getMyReelsResponseItemsItemViewCountMin),
-  "shareCount": zod.number().int().min(getMyReelsResponseItemsItemShareCountMin),
-  "saveCount": zod.number().int().min(getMyReelsResponseItemsItemSaveCountMin),
+  "likeCount": zod.int(),
+  "commentCount": zod.int(),
+  "viewCount": zod.int().min(getMyReelsResponseItemsItemViewCountMin),
+  "shareCount": zod.int().min(getMyReelsResponseItemsItemShareCountMin),
+  "saveCount": zod.int().min(getMyReelsResponseItemsItemSaveCountMin),
   "likedByMe": zod.boolean(),
   "savedByMe": zod.boolean(),
   "isOwner": zod.boolean(),
@@ -2652,7 +2652,7 @@ export const GetMyReelsResponse = zod.object({
  * @summary Open one visible Reel
  */
 export const GetReelParams = zod.object({
-  "reelId": zod.coerce.string().uuid()
+  "reelId": zod.uuid()
 })
 
 export const getReelResponseViewCountMin = 0;
@@ -2664,10 +2664,10 @@ export const getReelResponseSaveCountMin = 0;
 
 
 export const GetReelResponse = zod.object({
-  "id": zod.string().uuid(),
+  "id": zod.uuid(),
   "creatorId": zod.string(),
   "creatorName": zod.string(),
-  "creatorAge": zod.number().int().nullable(),
+  "creatorAge": zod.int().nullable(),
   "creatorLocation": zod.string(),
   "creatorVerified": zod.boolean(),
   "creatorPhoto": zod.string().nullable(),
@@ -2675,11 +2675,11 @@ export const GetReelResponse = zod.object({
   "videoReference": zod.string(),
   "caption": zod.string(),
   "durationSeconds": zod.number().nullable(),
-  "likeCount": zod.number().int(),
-  "commentCount": zod.number().int(),
-  "viewCount": zod.number().int().min(getReelResponseViewCountMin),
-  "shareCount": zod.number().int().min(getReelResponseShareCountMin),
-  "saveCount": zod.number().int().min(getReelResponseSaveCountMin),
+  "likeCount": zod.int(),
+  "commentCount": zod.int(),
+  "viewCount": zod.int().min(getReelResponseViewCountMin),
+  "shareCount": zod.int().min(getReelResponseShareCountMin),
+  "saveCount": zod.int().min(getReelResponseSaveCountMin),
   "likedByMe": zod.boolean(),
   "savedByMe": zod.boolean(),
   "isOwner": zod.boolean(),
@@ -2691,7 +2691,7 @@ export const GetReelResponse = zod.object({
  * @summary Delete a Reel posted by the signed-in user
  */
 export const DeleteReelParams = zod.object({
-  "reelId": zod.coerce.string().uuid()
+  "reelId": zod.uuid()
 })
 
 export const DeleteReelResponse = zod.void()
@@ -2701,7 +2701,7 @@ export const DeleteReelResponse = zod.void()
  * @summary Record a Reel playback and return its updated view count
  */
 export const RecordReelViewParams = zod.object({
-  "reelId": zod.coerce.string().uuid()
+  "reelId": zod.uuid()
 })
 
 export const recordReelViewResponseViewCountMin = 0;
@@ -2709,7 +2709,7 @@ export const recordReelViewResponseViewCountMin = 0;
 
 
 export const RecordReelViewResponse = zod.object({
-  "viewCount": zod.number().int().min(recordReelViewResponseViewCountMin)
+  "viewCount": zod.int().min(recordReelViewResponseViewCountMin)
 })
 
 
@@ -2717,7 +2717,7 @@ export const RecordReelViewResponse = zod.object({
  * @summary Record one completed share and return the updated share count
  */
 export const RecordReelShareParams = zod.object({
-  "reelId": zod.coerce.string().uuid()
+  "reelId": zod.uuid()
 })
 
 export const recordReelShareResponseShareCountMin = 0;
@@ -2725,12 +2725,12 @@ export const recordReelShareResponseShareCountMin = 0;
 
 
 export const RecordReelShareResponse = zod.object({
-  "shareCount": zod.number().int().min(recordReelShareResponseShareCountMin)
+  "shareCount": zod.int().min(recordReelShareResponseShareCountMin)
 })
 
 
 export const LikeReelParams = zod.object({
-  "reelId": zod.coerce.string().uuid()
+  "reelId": zod.uuid()
 })
 
 export const likeReelResponseSaveCountMin = 0;
@@ -2742,15 +2742,15 @@ export const likeReelResponseShareCountMin = 0;
 export const LikeReelResponse = zod.object({
   "likedByMe": zod.boolean(),
   "savedByMe": zod.boolean(),
-  "likeCount": zod.number().int(),
-  "commentCount": zod.number().int(),
-  "saveCount": zod.number().int().min(likeReelResponseSaveCountMin),
-  "shareCount": zod.number().int().min(likeReelResponseShareCountMin)
+  "likeCount": zod.int(),
+  "commentCount": zod.int(),
+  "saveCount": zod.int().min(likeReelResponseSaveCountMin),
+  "shareCount": zod.int().min(likeReelResponseShareCountMin)
 })
 
 
 export const UnlikeReelParams = zod.object({
-  "reelId": zod.coerce.string().uuid()
+  "reelId": zod.uuid()
 })
 
 export const unlikeReelResponseSaveCountMin = 0;
@@ -2762,15 +2762,15 @@ export const unlikeReelResponseShareCountMin = 0;
 export const UnlikeReelResponse = zod.object({
   "likedByMe": zod.boolean(),
   "savedByMe": zod.boolean(),
-  "likeCount": zod.number().int(),
-  "commentCount": zod.number().int(),
-  "saveCount": zod.number().int().min(unlikeReelResponseSaveCountMin),
-  "shareCount": zod.number().int().min(unlikeReelResponseShareCountMin)
+  "likeCount": zod.int(),
+  "commentCount": zod.int(),
+  "saveCount": zod.int().min(unlikeReelResponseSaveCountMin),
+  "shareCount": zod.int().min(unlikeReelResponseShareCountMin)
 })
 
 
 export const SaveReelParams = zod.object({
-  "reelId": zod.coerce.string().uuid()
+  "reelId": zod.uuid()
 })
 
 export const saveReelResponseSaveCountMin = 0;
@@ -2782,15 +2782,15 @@ export const saveReelResponseShareCountMin = 0;
 export const SaveReelResponse = zod.object({
   "likedByMe": zod.boolean(),
   "savedByMe": zod.boolean(),
-  "likeCount": zod.number().int(),
-  "commentCount": zod.number().int(),
-  "saveCount": zod.number().int().min(saveReelResponseSaveCountMin),
-  "shareCount": zod.number().int().min(saveReelResponseShareCountMin)
+  "likeCount": zod.int(),
+  "commentCount": zod.int(),
+  "saveCount": zod.int().min(saveReelResponseSaveCountMin),
+  "shareCount": zod.int().min(saveReelResponseShareCountMin)
 })
 
 
 export const UnsaveReelParams = zod.object({
-  "reelId": zod.coerce.string().uuid()
+  "reelId": zod.uuid()
 })
 
 export const unsaveReelResponseSaveCountMin = 0;
@@ -2802,21 +2802,21 @@ export const unsaveReelResponseShareCountMin = 0;
 export const UnsaveReelResponse = zod.object({
   "likedByMe": zod.boolean(),
   "savedByMe": zod.boolean(),
-  "likeCount": zod.number().int(),
-  "commentCount": zod.number().int(),
-  "saveCount": zod.number().int().min(unsaveReelResponseSaveCountMin),
-  "shareCount": zod.number().int().min(unsaveReelResponseShareCountMin)
+  "likeCount": zod.int(),
+  "commentCount": zod.int(),
+  "saveCount": zod.int().min(unsaveReelResponseSaveCountMin),
+  "shareCount": zod.int().min(unsaveReelResponseShareCountMin)
 })
 
 
 export const GetReelCommentsParams = zod.object({
-  "reelId": zod.coerce.string().uuid()
+  "reelId": zod.uuid()
 })
 
 export const GetReelCommentsResponseItem = zod.object({
-  "id": zod.string().uuid(),
-  "reelId": zod.string().uuid(),
-  "parentCommentId": zod.string().uuid().nullable(),
+  "id": zod.uuid(),
+  "reelId": zod.uuid(),
+  "parentCommentId": zod.uuid().nullable(),
   "authorId": zod.string(),
   "authorName": zod.string(),
   "authorPhoto": zod.string().nullable(),
@@ -2828,7 +2828,7 @@ export const GetReelCommentsResponse = zod.array(GetReelCommentsResponseItem)
 
 
 export const CreateReelCommentParams = zod.object({
-  "reelId": zod.coerce.string().uuid()
+  "reelId": zod.uuid()
 })
 
 export const createReelCommentBodyContentMax = 500;
@@ -2837,13 +2837,13 @@ export const createReelCommentBodyContentMax = 500;
 
 export const CreateReelCommentBody = zod.object({
   "content": zod.string().min(1).max(createReelCommentBodyContentMax),
-  "parentCommentId": zod.string().uuid().optional()
+  "parentCommentId": zod.uuid().optional()
 })
 
 export const CreateReelCommentResponse = zod.object({
-  "id": zod.string().uuid(),
-  "reelId": zod.string().uuid(),
-  "parentCommentId": zod.string().uuid().nullable(),
+  "id": zod.uuid(),
+  "reelId": zod.uuid(),
+  "parentCommentId": zod.uuid().nullable(),
   "authorId": zod.string(),
   "authorName": zod.string(),
   "authorPhoto": zod.string().nullable(),
@@ -2857,8 +2857,8 @@ export const CreateReelCommentResponse = zod.object({
  * @summary Delete own comment, or any comment on own Reel
  */
 export const DeleteReelCommentParams = zod.object({
-  "reelId": zod.coerce.string().uuid(),
-  "commentId": zod.coerce.string().uuid()
+  "reelId": zod.uuid(),
+  "commentId": zod.uuid()
 })
 
 export const DeleteReelCommentResponse = zod.void()
