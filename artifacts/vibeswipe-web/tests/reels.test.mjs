@@ -148,9 +148,11 @@ test("tapping anywhere on a Reel toggles playback without hiding navigation", ()
 test("Reel creator details stay aligned while using a smaller, lower profile block", () => {
   const slide = read("../src/components/reels/reel-slide.tsx");
   const css = read("../src/components/reels/reels.css");
-  assert.match(slide, /className="reel-identity flex min-w-0 items-center gap-0/);
-  assert.doesNotMatch(slide.slice(slide.indexOf("const creatorIdentity"), slide.indexOf("return <section")), /ReelAvatar/);
-  assert.match(css, /\.reel-identity \{ position: relative; top: 6px; gap: 0/);
+  const creatorIdentity = slide.slice(slide.indexOf("const creatorIdentity"), slide.indexOf("return <section"));
+  assert.match(slide, /className="reel-identity flex min-w-0 items-center gap-2/);
+  assert.match(creatorIdentity, /reel-creator-avatar-ring/);
+  assert.match(creatorIdentity, /ReelAvatar reference=\{reel\.creatorPhoto\}/);
+  assert.match(css, /\.reel-identity \{ position: relative; top: 0; gap: 10px/);
   assert.match(css, /\.reel-name \{ font-size: 18px/);
   assert.match(css, /\.reel-age \{ font-size: 15px/);
   assert.match(css, /\.reel-location \{ font-size: 12px/);
@@ -217,7 +219,7 @@ test("Reel action rail and profile grid show persisted like, comment, save and s
   for (const id of ["button-like-reel", "button-comments-reel", "button-save-reel", "button-share-reel", "button-post-reel-comment"]) {
     assert.ok(nativeReel.includes(id), `native Reel action is missing ${id}`);
   }
-  const actionOrder = ["button-like-reel", "button-comments-reel", "button-save-reel-", "button-share-reel-", "button-save-reel-offline"]
+  const actionOrder = ["button-like-reel", "button-comments-reel", "button-share-reel-", "button-save-reel-", "button-save-reel-offline"]
     .map((id) => slide.indexOf(id));
   assert.ok(actionOrder.every((position, index) => position >= 0 && (index === 0 || position > actionOrder[index - 1])));
   assert.match(slide, /reel-music-slot[^]*?reel-music-artwork-slot/);
@@ -229,13 +231,14 @@ test("Reel action rail and profile grid show persisted like, comment, save and s
   assert.match(css, /\.reel-music-slot \{ display: flex; height: 42px; width: 42px/);
 });
 
-test("Reels keep the creator Follow badge off the action rail", () => {
+test("Reels put the creator photo beside the name and keep Follow off the rail", () => {
   const slide = read("../src/components/reels/reel-slide.tsx");
   const feed = read("../src/pages/reels-feed.tsx");
   const route = read("../../api-server/src/routes/vibeswipe-reels.ts");
   const spec = read("../../../lib/api-spec/openapi.yaml");
   const creatorIdentity = slide.slice(slide.indexOf("const creatorIdentity"), slide.indexOf("return <section"));
-  assert.doesNotMatch(creatorIdentity, /ReelAvatar/);
+  assert.match(creatorIdentity, /reel-creator-avatar-ring/);
+  assert.match(creatorIdentity, /ReelAvatar reference=\{reel\.creatorPhoto\}/);
   assert.doesNotMatch(slide, /button-follow-creator|reel-follow-button|reel-follow-badge|onFollow/);
   assert.doesNotMatch(feed, /toggleCreatorFollow|useFollowProfile|pendingCreatorFollows/);
   assert.match(slide, /data-testid=\{`link-reel-profile-\$\{reel\.id\}`\}/);

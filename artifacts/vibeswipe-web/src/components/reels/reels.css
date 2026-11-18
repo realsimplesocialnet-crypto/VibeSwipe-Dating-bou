@@ -41,6 +41,8 @@
 .reel-progress > div { height: 100%; background: hsl(var(--primary)); transform-origin: left; transform: scaleX(0); transition: transform .25s linear; }
 .reel-avatar { flex: none; display: inline-flex; align-items: center; justify-content: center; overflow: hidden; border-radius: 999px; border: 2px solid hsl(var(--primary)); background: #3a2636; font-weight: 800; color: #fff; }
 .reel-avatar img { height: 100%; width: 100%; object-fit: cover; }
+.reel-creator-avatar-ring { display: inline-flex; flex: none; align-items: center; justify-content: center; width: 46px; height: 46px; border-radius: 999px; padding: 2px; background: conic-gradient(from 210deg, #ffc44d, #f34e9a 42%, #a855f7 72%, #ffc44d); box-shadow: 0 1px 6px rgb(0 0 0 / .4); }
+.reel-creator-avatar-ring .reel-avatar { border-color: #0c0a0f; }
 .reels-top { position: absolute; top: 0; left: 0; right: 0; z-index: 5; display: flex; align-items: flex-start; gap: 10px; padding: max(env(safe-area-inset-top), 14px) 14px 0; pointer-events: none; }
 .reels-top > * { pointer-events: auto; }
 .reels-search-overlay { position: absolute; inset: 0; z-index: 9; display: flex; flex-direction: column; gap: 16px; background: #100d13; padding: max(env(safe-area-inset-top), 14px) 14px max(env(safe-area-inset-bottom), 16px); }
@@ -129,7 +131,7 @@
 .reels-mobile-nav .mnav-icon { height: 19px; width: 19px; }
 .reels-mobile-nav .mnav-icon svg { height: 19px; width: 19px; stroke-width: 1.85; }
 .reels-mobile-nav .mnav-label { font-size: 10px; font-weight: 600; letter-spacing: .02em; opacity: .82 !important; }
-.reel-identity { position: relative; top: 6px; gap: 0; }
+.reel-identity { position: relative; top: 0; gap: 10px; }
 .reel-name { font-size: 18px; }
 .reel-age { font-size: 15px; }
 .reel-location { font-size: 12px; }

@@ -3,6 +3,7 @@ import { Link } from "wouter";
 import type { Reel } from "@workspace/api-client-react";
 import { Bookmark, Check, Download, Heart, MapPin, MessageCircle, Music2, Pause, Play, Send, Trash2 } from "lucide-react";
 import { VerifiedBadge } from "@/components/verified-badge";
+import { ReelAvatar } from "@/components/reels/reel-avatar";
 import { formatCount, reelMediaUrl } from "@/lib/reels";
 import { isOfflineReelWifi } from "@/lib/offline-reels";
 
@@ -98,7 +99,12 @@ export function ReelSlide({ reel, index, active, near, muted, pageHidden, compac
   const reelReturnParams = new URLSearchParams({ returnTo });
   const creatorProfileReturn = `/reels/${encodeURIComponent(reel.id)}?${reelReturnParams.toString()}`;
   const creatorProfileHref = `/profile/${encodeURIComponent(reel.creatorId)}?returnTo=${encodeURIComponent(creatorProfileReturn)}`;
-  const creatorIdentity = <span className="reel-identity flex min-w-0 items-center gap-0 rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary">
+  const creatorIdentity = <span className="reel-identity flex min-w-0 items-center gap-2 rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary">
+    <span className="reel-creator-avatar-ring" data-testid={`reel-creator-avatar-${reel.id}`}>
+      {near
+        ? <ReelAvatar reference={reel.creatorPhoto} name={reel.creatorName} size={40} />
+        : <span className="reel-avatar" style={{ width: 40, height: 40 }} aria-hidden="true">{reel.creatorName.trim().charAt(0).toUpperCase() || "M"}</span>}
+    </span>
     <span className="min-w-0">
       <span className="reel-name" data-testid={`text-reel-creator-${reel.id}`}>{reel.creatorName}{reel.creatorAge !== null && <span className="reel-age">, {reel.creatorAge}</span>}<VerifiedBadge verified={reel.creatorVerified} /></span>
       {reel.creatorLocation && <span className="reel-location"><MapPin size={14} className="shrink-0 text-primary" /><span className="truncate">{reel.creatorLocation}</span></span>}
@@ -146,10 +152,10 @@ export function ReelSlide({ reel, index, active, near, muted, pageHidden, compac
       <button type="button" onClick={onComment} aria-label="Comments" data-testid={`button-comments-reel-${reel.id}`}>
         <MessageCircle size={26} strokeWidth={1.8} /><span data-testid={`text-comment-count-${reel.id}`}>{formatCount(reel.commentCount)}</span>
       </button>
+      <button type="button" onClick={onShare} aria-label={`Share, ${formatCount(reel.shareCount)} shares`} data-testid={`button-share-reel-${reel.id}`}><Send size={26} strokeWidth={1.8} /><span data-testid={`text-share-count-${reel.id}`}>{formatCount(reel.shareCount)}</span></button>
       <button type="button" onClick={onSave} disabled={savePending} aria-pressed={reel.savedByMe} aria-label={reel.savedByMe ? "Remove from saved" : "Save"} data-testid={`button-save-reel-${reel.id}`} className={reel.savedByMe ? "is-saved" : ""}>
         <Bookmark size={26} strokeWidth={1.8} fill={reel.savedByMe ? "currentColor" : "none"} /><span data-testid={`text-save-count-${reel.id}`}>{formatCount(reel.saveCount)}</span>
       </button>
-      <button type="button" onClick={onShare} aria-label={`Share, ${formatCount(reel.shareCount)} shares`} data-testid={`button-share-reel-${reel.id}`}><Send size={26} strokeWidth={1.8} /><span data-testid={`text-share-count-${reel.id}`}>{formatCount(reel.shareCount)}</span></button>
       <button type="button" onClick={onSaveOffline} disabled={offlineSaved || offlineSaving} aria-label={offlineSaved ? "Saved for offline replay" : offlineSaving ? "Saving video offline" : "Save video offline"} data-testid={`button-save-reel-offline-${reel.id}`} className={offlineSaved ? "is-saved" : ""}>
         {offlineSaved ? <Check size={25} strokeWidth={2}/> : <Download size={25} strokeWidth={1.8}/>}
       </button>
