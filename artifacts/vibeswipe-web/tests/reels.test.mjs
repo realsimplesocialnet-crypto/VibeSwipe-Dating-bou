@@ -184,6 +184,17 @@ test("Reel action rail and profile grid show persisted like, comment, save and s
   }
 });
 
+test("Reels restore their full viewport after returning from an external share app", () => {
+  const feed = read("../src/pages/reels-feed.tsx");
+  const share = read("../src/components/reels/reel-share-sheet.tsx");
+  assert.match(feed, /window\.addEventListener\("pageshow", refreshAfterResume\)/);
+  assert.match(feed, /document\.addEventListener\("visibilitychange", refreshAfterResume\)/);
+  assert.match(feed, /setControlsVisible\(true\)/);
+  assert.match(feed, /Math\.max\(height, window\.innerHeight\)/);
+  assert.match(share, /onClose\(\);\s*void sharePromise\.then/);
+  assert.match(share, /await send\.mutateAsync[\s\S]*?onClose\(\)/);
+});
+
 test("Reels UI copy contains no emoji", () => {
   for (const file of ["../src/pages/reels-feed.tsx", "../src/pages/reel-composer.tsx", "../src/pages/reels-library.tsx", "../src/components/reels/reel-slide.tsx", "../src/components/reels/reel-comments.tsx", "../src/components/reels/reel-share-sheet.tsx"]) {
     assert.ok(!/\p{Extended_Pictographic}/u.test(read(file)), file);

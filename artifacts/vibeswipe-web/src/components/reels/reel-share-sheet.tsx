@@ -4,7 +4,7 @@ import {
   getGetMatchesQueryKey, getGetMyReelsQueryKey, getGetProfileReelsQueryKey, getGetReelQueryKey,
   getGetReelsFeedQueryKey, getGetSavedReelsQueryKey, useGetMatches, useRecordReelShare, useSendMessage, type Reel,
 } from "@workspace/api-client-react";
-import { Check, Copy, Share2, X } from "lucide-react";
+import { Copy, Share2, X } from "lucide-react";
 import { ReelAvatar } from "@/components/reels/reel-avatar";
 import { reelShareMessage, reelShareUrl } from "@/lib/reels";
 import { userErrorMessage } from "@/lib/user-errors";
@@ -14,7 +14,6 @@ export function ReelShareSheet({ reel, onClose, onCountChange, onCountError }: {
   const matches = useGetMatches({ query: { queryKey: getGetMatchesQueryKey() } });
   const send = useSendMessage();
   const recordShare = useRecordReelShare();
-  const [sent, setSent] = useState<Record<string, boolean>>({});
   const [pending, setPending] = useState<string | null>(null);
   const [status, setStatus] = useState("");
   const url = reelShareUrl(window.location.origin, import.meta.env.BASE_URL, reel.id);
@@ -33,27 +32,36 @@ export function ReelShareSheet({ reel, onClose, onCountChange, onCountError }: {
     ]) void client.invalidateQueries({ queryKey });
   }
 
-  async function nativeShare() {
-    try { await navigator.share({ title: `${reel.creatorName} on Reels`, text: reel.caption || "Watch this Reel", url }); }
-    catch (error) { if ((error as { name?: string }).name !== "AbortError") setStatus("Sharing is not available here. Copy the link instead."); return; }
+  function nativeShare() {
+    let sharePromise: Promise<void>;
+    try {
+      sharePromise = navigator.share({ title: `${reel.creatorName} on Reels`, text: reel.caption || "Watch this Reel", url });
+    } catch {
+      setStatus("Sharing is not available here. Copy the link instead.");
+      return;
+    }
     onClose();
-    void trackShare().catch(() => onCountError?.("Shared, but the share count could not be updated."));
+    void sharePromise.then(() => trackShare()).catch((error: unknown) => {
+      if ((error as { name?: string }).name !== "AbortError") onCountError?.("Shared, but the share count could not be updated.");
+    });
   }
   async function copy() {
     try { await navigator.clipboard.writeText(url); }
     catch { setStatus("Copy failed. Long-press the link to copy it."); return; }
-    setStatus("Link copied.");
+    onClose();
   }
   async function sendTo(matchId: string) {
     setPending(matchId); setStatus("");
+    let sent = false;
     try {
       await send.mutateAsync({ matchId, data: { content: reelShareMessage(url, reel.creatorName) } });
-      setSent((value) => ({ ...value, [matchId]: true }));
+      sent = true;
       void client.invalidateQueries({ queryKey: getGetMatchesQueryKey() });
-      void trackShare().catch(() => setStatus("Sent, but the share count could not be updated."));
+      onClose();
+      void trackShare().catch(() => onCountError?.("Sent, but the share count could not be updated."));
     } catch (error) {
       setStatus(userErrorMessage(error, "That message did not send. Try again."));
-    } finally { setPending(null); }
+    } finally { if (!sent) setPending(null); }
   }
 
   return <div className="reel-sheet-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
@@ -72,8 +80,8 @@ export function ReelShareSheet({ reel, onClose, onCountChange, onCountError }: {
           : <ul className="space-y-1">{chats.map((match) => <li key={match.id} className="flex items-center gap-3 rounded-2xl px-2 py-2 hover:bg-white/[.05]">
             <ReelAvatar reference={match.profile.photos?.[0] ?? null} name={match.profile.name} size={40} />
             <span className="min-w-0 flex-1 truncate text-sm font-semibold">{match.profile.name}</span>
-            <button type="button" onClick={() => void sendTo(match.id)} disabled={pending === match.id || sent[match.id]} data-testid={`button-share-to-${match.id}`} className={`inline-flex min-w-[72px] items-center justify-center gap-1 rounded-full px-4 py-2 text-xs font-bold ${sent[match.id] ? "bg-white/10 text-white/70" : "bg-primary text-primary-foreground"} disabled:cursor-default`}>
-              {sent[match.id] ? <><Check size={13} />Sent</> : pending === match.id ? "Sending" : "Send"}
+            <button type="button" onClick={() => void sendTo(match.id)} disabled={pending === match.id} data-testid={`button-share-to-${match.id}`} className="inline-flex min-w-[72px] items-center justify-center gap-1 rounded-full bg-primary px-4 py-2 text-xs font-bold text-primary-foreground disabled:cursor-default disabled:opacity-60">
+              {pending === match.id ? "Sending" : "Send"}
             </button>
           </li>)}</ul>}
       </div>

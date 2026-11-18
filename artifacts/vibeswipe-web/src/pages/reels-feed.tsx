@@ -39,23 +39,39 @@ function useReelsViewport() {
     const htmlOverflow = document.documentElement.style.overflow;
     document.body.style.overflow = "hidden";
     document.documentElement.style.overflow = "hidden";
+    let settledRefresh = 0;
     const update = () => {
+      if (document.visibilityState === "hidden") return;
       const focused = document.activeElement;
       const editing = focused instanceof HTMLElement && (focused.tagName === "INPUT" || focused.tagName === "TEXTAREA" || focused.isContentEditable);
       const height = viewport?.height ?? window.innerHeight;
-      if (!editing) baseline.current = height;
-      setFrame(reelsViewportFrame(height, viewport?.offsetTop ?? 0, Math.max(baseline.current, window.innerHeight), editing));
+      const frameHeight = editing ? height : Math.max(height, window.innerHeight);
+      const frameTop = editing ? viewport?.offsetTop ?? 0 : 0;
+      if (!editing) baseline.current = frameHeight;
+      setFrame(reelsViewportFrame(frameHeight, frameTop, Math.max(baseline.current, window.innerHeight), editing));
+    };
+    const refreshAfterResume = () => {
+      window.requestAnimationFrame(update);
+      window.clearTimeout(settledRefresh);
+      settledRefresh = window.setTimeout(update, 180);
     };
     update();
     viewport?.addEventListener("resize", update);
     viewport?.addEventListener("scroll", update);
     window.addEventListener("resize", update);
+    window.addEventListener("focus", refreshAfterResume);
+    window.addEventListener("pageshow", refreshAfterResume);
+    document.addEventListener("visibilitychange", refreshAfterResume);
     document.addEventListener("focusin", update);
     document.addEventListener("focusout", update);
     return () => {
       viewport?.removeEventListener("resize", update);
       viewport?.removeEventListener("scroll", update);
       window.removeEventListener("resize", update);
+      window.removeEventListener("focus", refreshAfterResume);
+      window.removeEventListener("pageshow", refreshAfterResume);
+      document.removeEventListener("visibilitychange", refreshAfterResume);
+      window.clearTimeout(settledRefresh);
       document.removeEventListener("focusin", update);
       document.removeEventListener("focusout", update);
       document.body.style.overflow = bodyOverflow;
@@ -116,6 +132,20 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
     setAppNavigationVisible(navigationVisible);
   }, [navigationVisible, setAppNavigationVisible]);
   useEffect(() => () => setAppNavigationVisible(true), [setAppNavigationVisible]);
+  useEffect(() => {
+    const restoreReelControls = () => {
+      if (document.visibilityState === "hidden") return;
+      setControlsVisible(true);
+    };
+    document.addEventListener("visibilitychange", restoreReelControls);
+    window.addEventListener("focus", restoreReelControls);
+    window.addEventListener("pageshow", restoreReelControls);
+    return () => {
+      document.removeEventListener("visibilitychange", restoreReelControls);
+      window.removeEventListener("focus", restoreReelControls);
+      window.removeEventListener("pageshow", restoreReelControls);
+    };
+  }, []);
 
   const openComments = useCallback((reelId: string) => {
     const currentState = window.history.state;
