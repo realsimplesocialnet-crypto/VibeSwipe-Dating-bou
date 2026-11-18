@@ -18,3 +18,8 @@ test("web chat opens at the latest message without a visible scroll animation", 
   assert.match(source, /onScroll=\{handleMessageListScroll\}[^>]*data-testid="chat-message-list"/);
   assert.match(source, /new ResizeObserver/);
 });
+
+test("sending a chat message does not blur the input before the tap submits", () => {
+  assert.match(source, /<textarea ref=\{inputRef\}[^>]*data-testid="input-chat-message"/);
+  assert.match(source, /<button type="submit" onMouseDown=\{event=>\{if\(document\.activeElement===inputRef\.current\)event\.preventDefault\(\)\}\}[^>]*data-testid="button-send-message"/);
+});
