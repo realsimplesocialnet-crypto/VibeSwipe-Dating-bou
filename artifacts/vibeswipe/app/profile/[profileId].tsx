@@ -10,7 +10,6 @@ import {
   useCreateReaction,
   useUnlikeProfile,
   useGetDailyLikeStatus,
-  useGetMatches,
   useGetMyProfile,
   useGetProfileById,
   useGetProfileDatingState,
@@ -19,6 +18,7 @@ import {
   type ProfileDatingState,
 } from "@workspace/api-client-react";
 import { Feather } from "@expo/vector-icons";
+import { Image as ExpoImage } from "expo-image";
 import { MatchCelebration } from "@/components/MatchCelebration";
 import { ProfileReelsSection } from "@/components/ProfileReelsSection";
 import { ProfileFollowStats } from "@/components/ProfileFollow";
@@ -26,10 +26,10 @@ import { router, useLocalSearchParams } from "expo-router";
 import { useAuth } from "@clerk/expo";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Image, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
+import { ActivityIndicator, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import type { ComponentProps } from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { profileImageSource } from "@/lib/media";
+import { profileImagePreviewSource, profileImageSource } from "@/lib/media";
 import { usePremiumColors } from "@/hooks/useColors";
 
 export default function PublicProfileScreen() {
@@ -58,11 +58,9 @@ export default function PublicProfileScreen() {
   const reaction = useCreateReaction();
   const unlike = useUnlikeProfile();
   const dailyLikeStatus = useGetDailyLikeStatus({ query: { queryKey: getGetDailyLikeStatusQueryKey() } });
-  const profile = useGetProfileById(id, { query: { queryKey: getGetProfileByIdQueryKey(id), enabled: !!id } });
-  const datingState = useGetProfileDatingState(id, { query: { queryKey: getGetProfileDatingStateQueryKey(id), enabled: !!id, staleTime: 60_000 } });
-  const matches = useGetMatches({ query: { queryKey: getGetMatchesQueryKey(), enabled: !!id, staleTime: 30_000 } });
-  const profileMatch = matches.data?.find((match) => match.profile.id === id);
-  const matchId = profileMatch?.id ?? datingState.data?.matchId ?? null;
+  const profile = useGetProfileById(id, { query: { queryKey: getGetProfileByIdQueryKey(id), enabled: !!id, staleTime: 10 * 60_000, gcTime: 30 * 60_000, refetchOnMount: "always" } });
+  const datingState = useGetProfileDatingState(id, { query: { queryKey: getGetProfileDatingStateQueryKey(id), enabled: !!id, staleTime: 10 * 60_000, gcTime: 30 * 60_000, refetchOnMount: "always" } });
+  const matchId = datingState.isError ? null : datingState.data?.matchId ?? null;
   const recordView = useRecordProfileView();
   const confirmationTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const busy = useRef(false);
@@ -74,7 +72,7 @@ export default function PublicProfileScreen() {
     else router.replace((fromLikes ? "/(tabs)/activity/likes" : "/(tabs)/activity") as never);
   }
   function openMatchedChat() {
-    if (!matchId || profileMatch?.blockedByMe || profileMatch?.blockedMe) return;
+    if (!matchId || datingState.isError) return;
     router.push({ pathname: "/chat/[matchId]", params: { matchId } });
   }
 
@@ -90,6 +88,21 @@ export default function PublicProfileScreen() {
       active = false;
     };
   }, [getToken]);
+  useEffect(() => {
+    if (!token) return;
+    const references = (profile.data?.photos ?? []).slice(0, 2);
+    const sources = references
+      .map((reference) => profileImagePreviewSource(reference, token))
+      .filter((source): source is { uri: string; headers?: Record<string, string> } =>
+        typeof source === "object" && source !== null && "uri" in source && typeof source.uri === "string",
+      );
+    if (sources.length) {
+      void ExpoImage.prefetch(sources.map((source) => source.uri), {
+        cachePolicy: "memory-disk",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+    }
+  }, [profile.data?.id, profile.data?.photos?.[0], profile.data?.photos?.[1], token]);
   useEffect(() => {
     setViewer(null);
     setAvatarError(false);
@@ -235,14 +248,15 @@ export default function PublicProfileScreen() {
     { icon: "heart", label: "Looking for", value: user.lookingFor || "Not shared", testID: "public-profile-looking-for" },
     { icon: "user", label: "Gender", value: user.gender || "Not shared", testID: "public-profile-gender" },
   ];
-  const avatarSource = photos.length ? profileImageSource(photos[0], token) : undefined;
+  const avatarSource = photos.length ? profileImagePreviewSource(photos[0], token) : undefined;
   const viewerWidth = Math.min(width, 900);
   const heroHeight = Math.min(Math.max(height * 0.42, 280), 420);
   const mediaColumnWidth = width >= 820 ? Math.min(360, Math.floor((Math.min(width, 900) - 48) * 0.44)) : Math.max(0, Math.min(width, 900) - (width < 380 ? 32 : 48));
   const photoTileWidth = Math.max(72, Math.floor((mediaColumnWidth - 16) / 3));
+  const actionStatusLoading = (!datingState.data && datingState.isLoading) || (!alreadyLiked && !dailyLikeStatus.data && dailyLikeStatus.isLoading);
   const dateActionDisabled = matchId
-    ? Boolean(profileMatch?.blockedByMe || profileMatch?.blockedMe)
-    : locked || datingState.isLoading || (!alreadyLiked && dailyLikeStatus.isLoading) || superLiked || (!alreadyLiked && (likeOut || (!datingState.data && !datingState.isError)));
+    ? false
+    : locked || actionStatusLoading || superLiked || (!alreadyLiked && (likeOut || (!datingState.data && !datingState.isError)));
   const datingAction = (
     <View style={{ flex: 1, minWidth: 0, alignItems: "stretch" }}>
       <Pressable
@@ -262,10 +276,10 @@ export default function PublicProfileScreen() {
           opacity: dateActionDisabled ? 0.58 : pressed ? 0.82 : 1,
         }]}
       >
-        {reaction.isPending || unlike.isPending ? <ActivityIndicator color={alreadyLiked && !matchId ? colors.profileEdit : colors.profileEditForeground} /> : <Feather name={matchId ? "message-circle" : superLiked ? "star" : "heart"} size={17} color={alreadyLiked && !matchId ? colors.profileEdit : colors.profileEditForeground} />}
+        {reaction.isPending || unlike.isPending || actionStatusLoading ? <ActivityIndicator size="small" color={alreadyLiked && !matchId ? colors.profileEdit : colors.profileEditForeground} /> : <Feather name={matchId ? "message-circle" : superLiked ? "star" : "heart"} size={17} color={alreadyLiked && !matchId ? colors.profileEdit : colors.profileEditForeground} />}
         <Text style={{ color: alreadyLiked && !matchId ? colors.profileEdit : colors.profileEditForeground, fontWeight: "800", fontSize: 13 }}>
-          {matchId ? (profileMatch?.blockedByMe || profileMatch?.blockedMe ? "Unavailable" : "Message")
-            : datingState.isLoading ? "Checking…"
+          {matchId ? "Message"
+            : actionStatusLoading ? (fromLikes ? "Like Back" : "Like")
               : datingState.isError ? "Retry"
                 : superLiked ? "Super liked"
                   : alreadyLiked ? "Liked"
@@ -292,7 +306,7 @@ export default function PublicProfileScreen() {
 
         {fromLikes ? (
           <Pressable testID="public-profile-hero" accessibilityRole="imagebutton" accessibilityLabel={`Open ${user.name}'s main photo`} disabled={!photos.length} onPress={() => setViewer(0)} style={[styles.likesHero, { height: heroHeight, backgroundColor: colors.profileCard, shadowColor: colors.profileChipForeground }]}>
-            {avatarSource && !avatarError ? <Image source={avatarSource} onError={() => setAvatarError(true)} style={StyleSheet.absoluteFill} resizeMode="cover" accessibilityLabel={`${user.name}'s main photo`} /> : <Text style={[styles.heroInitial, { color: colors.profileEdit }]}>{user.name.trim().slice(0, 1).toUpperCase()}</Text>}
+            {avatarSource && !avatarError ? <ExpoImage source={avatarSource} onError={() => setAvatarError(true)} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="memory-disk" transition={150} priority="high" accessibilityLabel={`${user.name}'s main photo`} /> : <Text style={[styles.heroInitial, { color: colors.profileEdit }]}>{user.name.trim().slice(0, 1).toUpperCase()}</Text>}
           </Pressable>
         ) : null}
 
@@ -311,7 +325,7 @@ export default function PublicProfileScreen() {
           <View style={[styles.identityPanel, { backgroundColor: colors.profileCard, borderColor: colors.border, shadowColor: colors.profileChipForeground }]}>
             <Pressable testID="public-profile-avatar" accessibilityRole="imagebutton" accessibilityLabel={`Open ${user.name}'s main photo`} disabled={!photos.length} onPress={() => setViewer(0)} style={[styles.avatarRing, { borderColor: colors.profileEdit, backgroundColor: colors.profileCard, shadowColor: colors.profileChipForeground }]}>
               {avatarSource && !avatarError
-                ? <Image source={avatarSource} onError={() => setAvatarError(true)} style={styles.avatar} resizeMode="cover" accessibilityLabel={`${user.name}'s main photo`} />
+                ? <ExpoImage source={avatarSource} onError={() => setAvatarError(true)} style={styles.avatar} contentFit="cover" cachePolicy="memory-disk" transition={150} priority="high" accessibilityLabel={`${user.name}'s main photo`} />
                 : <Text style={[styles.initial, { color: colors.profileEdit }]}>{user.name.trim().slice(0, 1).toUpperCase()}</Text>}
             </Pressable>
             <View style={styles.identityCopy}>
@@ -362,10 +376,10 @@ export default function PublicProfileScreen() {
               {photos.length ? (
                 <View testID="public-profile-photo-grid" style={styles.photoGrid}>
                   {photos.map((photo, index) => {
-                    const source = profileImageSource(photo, token);
+                    const source = profileImagePreviewSource(photo, token);
                     return (
                       <Pressable key={`${photo}-${index}`} testID={`public-profile-photo-${index}`} accessibilityRole="imagebutton" accessibilityLabel={`Open photo ${index + 1} of ${photos.length}`} onPress={() => setViewer(index)} style={({ pressed }) => [styles.thumb, { width: photoTileWidth, backgroundColor: colors.profileChip, transform: [{ scale: pressed ? 0.96 : 1 }] }]}>
-                        {source ? <Image source={source} style={StyleSheet.absoluteFill} resizeMode="cover" /> : null}
+                        {source ? <ExpoImage source={source} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="memory-disk" transition={150} priority={index === 0 ? "high" : "normal"} /> : null}
                       </Pressable>
                     );
                   })}
@@ -395,10 +409,10 @@ export default function PublicProfileScreen() {
             style={{ flex: 1, alignSelf: "center", width: viewerWidth }}
           >
             {photos.map((photo, index) => {
-              const source = profileImageSource(photo, token);
+                  const source = profileImageSource(photo, token);
               return (
                 <View key={`${photo}-v-${index}`} style={{ width: viewerWidth, height, alignItems: "center", justifyContent: "center" }}>
-                  {source ? <Image source={source} style={{ width: viewerWidth, height: height * 0.78 }} resizeMode="contain" accessibilityLabel={`${user.name}'s photo ${index + 1}`} /> : null}
+                  {source ? <ExpoImage source={source} style={{ width: viewerWidth, height: height * 0.78 }} contentFit="contain" cachePolicy="memory-disk" transition={150} accessibilityLabel={`${user.name}'s photo ${index + 1}`} /> : null}
                 </View>
               );
             })}

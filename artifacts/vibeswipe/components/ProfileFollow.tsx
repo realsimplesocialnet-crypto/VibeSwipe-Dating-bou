@@ -45,21 +45,31 @@ export function ProfileFollowButton({ profileId, viewerId, isFollowing: initialI
     if (pending) return;
     const next = !isFollowing;
     const previous = isFollowing;
+    const summaryKey = getGetProfileFollowSummaryQueryKey(profileId);
+    const viewerKey = viewerId ? getGetProfileFollowSummaryQueryKey(viewerId) : null;
+    const previousSummary = client.getQueryData<{ followersCount: number; followingCount: number; isFollowing: boolean; followsYou: boolean }>(summaryKey);
+    const previousViewerSummary = viewerKey ? client.getQueryData<{ followersCount: number; followingCount: number; isFollowing: boolean; followsYou: boolean }>(viewerKey) : undefined;
     setError("");
     setOverride({ base: initialIsFollowing, value: next });
+    if (previousSummary) client.setQueryData(summaryKey, {
+      ...previousSummary,
+      followersCount: Math.max(0, previousSummary.followersCount + (next ? 1 : -1)),
+      isFollowing: next,
+    });
+    if (viewerKey && previousViewerSummary) client.setQueryData(viewerKey, {
+      ...previousViewerSummary,
+      followingCount: Math.max(0, previousViewerSummary.followingCount + (next ? 1 : -1)),
+    });
     try {
       if (next) {
         const summary = await follow.mutateAsync({ profileId });
-        client.setQueryData(getGetProfileFollowSummaryQueryKey(profileId), summary);
+        client.setQueryData(summaryKey, summary);
       } else {
         await unfollow.mutateAsync({ profileId });
-        client.setQueryData(getGetProfileFollowSummaryQueryKey(profileId), (old: {
-          followersCount: number; followingCount: number; isFollowing: boolean; followsYou: boolean;
-        } | undefined) => old ? { ...old, followersCount: Math.max(0, old.followersCount - 1), isFollowing: false } : old);
       }
-      await Promise.all([
-        client.invalidateQueries({ queryKey: getGetProfileFollowSummaryQueryKey(profileId) }),
-        viewerId ? client.invalidateQueries({ queryKey: getGetProfileFollowSummaryQueryKey(viewerId) }) : Promise.resolve(),
+      void Promise.all([
+        client.invalidateQueries({ queryKey: summaryKey }),
+        viewerKey ? client.invalidateQueries({ queryKey: viewerKey }) : Promise.resolve(),
         client.invalidateQueries({ queryKey: getGetProfileFollowersQueryKey() }),
         client.invalidateQueries({ queryKey: getGetProfileFollowingQueryKey() }),
         client.invalidateQueries({ queryKey: getGetNotificationsQueryKey() }),
@@ -67,6 +77,8 @@ export function ProfileFollowButton({ profileId, viewerId, isFollowing: initialI
       onChange?.(next);
     } catch {
       setOverride({ base: initialIsFollowing, value: previous });
+      if (previousSummary) client.setQueryData(summaryKey, previousSummary);
+      if (viewerKey && previousViewerSummary) client.setQueryData(viewerKey, previousViewerSummary);
       setError(next ? "Could not follow. Try again." : "Could not unfollow. Try again.");
     }
   }
@@ -85,9 +97,10 @@ export function ProfileFollowButton({ profileId, viewerId, isFollowing: initialI
           { borderColor: colors.profileEdit, backgroundColor: isFollowing ? "transparent" : colors.profileEdit, opacity: pending ? 0.55 : pressed ? 0.8 : 1 },
         ]}
       >
-        {pending || checking ? <ActivityIndicator size="small" color={colors.profileEdit} /> : (
+        {checking ? <ActivityIndicator size="small" color={colors.profileEdit} /> : (
           <>
-            {!isFollowing && <Feather name="user-plus" size={14} color={colors.profileEditForeground} />}
+            {pending && <ActivityIndicator size="small" color={isFollowing ? colors.profileEdit : colors.profileEditForeground} />}
+            {!isFollowing && !pending && <Feather name="user-plus" size={14} color={colors.profileEditForeground} />}
             <Text style={{ color: isFollowing ? colors.profileEdit : colors.profileEditForeground, fontWeight: "800", fontSize: 12 }}>
               {isFollowing ? "Following" : followsYou ? "Follow back" : "Follow"}
             </Text>
@@ -129,10 +142,12 @@ export function ProfileFollowStats({ profileId, viewerId, showAction = true, dat
       queryKey: getGetProfileFollowSummaryQueryKey(profileId),
       refetchOnWindowFocus: true,
       refetchOnReconnect: true,
-      staleTime: 60_000,
+      staleTime: 10 * 60_000,
+      gcTime: 30 * 60_000,
+      refetchOnMount: "always",
     },
   });
-  const checkingRelationship = query.isFetching && !query.data?.isFollowing && !query.data?.followsYou;
+  const checkingRelationship = false;
   return (
     <View style={styles.statsWrap} testID="profile-follow-stats">
       <View style={[styles.stats, { backgroundColor: colors.profileCard, borderColor: colors.border }]}>
@@ -143,7 +158,7 @@ export function ProfileFollowStats({ profileId, viewerId, showAction = true, dat
           onPress={() => router.push({ pathname: "/followers/[profileId]", params: { profileId } })}
           style={styles.stat}
         >
-          <Text style={[styles.statValue, { color: colors.profileLabel }]}>{query.isLoading ? "—" : query.data?.followersCount ?? 0}</Text>
+          {query.data ? <Text style={[styles.statValue, { color: colors.profileLabel }]}>{query.data.followersCount}</Text> : query.isError ? <Text style={[styles.statValue, { color: colors.profileLabel }]}>—</Text> : <View testID="skeleton-profile-follower-count" style={{ width: 24, height: 16, borderRadius: 8, backgroundColor: colors.border, opacity: 0.65 }} />}
           <Text style={[styles.statLabel, { color: colors.profileMuted }]}>Followers</Text>
         </Pressable>
         <View style={[styles.statRule, { backgroundColor: colors.profileRule }]} />
@@ -154,7 +169,7 @@ export function ProfileFollowStats({ profileId, viewerId, showAction = true, dat
           onPress={() => router.push({ pathname: "/following/[profileId]", params: { profileId } })}
           style={styles.stat}
         >
-          <Text style={[styles.statValue, { color: colors.profileLabel }]}>{query.isLoading ? "—" : query.data?.followingCount ?? 0}</Text>
+          {query.data ? <Text style={[styles.statValue, { color: colors.profileLabel }]}>{query.data.followingCount}</Text> : query.isError ? <Text style={[styles.statValue, { color: colors.profileLabel }]}>—</Text> : <View testID="skeleton-profile-following-count" style={{ width: 24, height: 16, borderRadius: 8, backgroundColor: colors.border, opacity: 0.65 }} />}
           <Text style={[styles.statLabel, { color: colors.profileMuted }]}>Following</Text>
         </Pressable>
       </View>
@@ -162,7 +177,7 @@ export function ProfileFollowStats({ profileId, viewerId, showAction = true, dat
         <View style={styles.actionsRow}>
           {query.data
             ? <ProfileFollowButton profileId={profileId} viewerId={viewerId} isFollowing={query.data.isFollowing} followsYou={query.data.followsYou} checking={checkingRelationship} />
-            : <View style={[styles.actionPlaceholder, { backgroundColor: colors.profileCard, borderColor: colors.border }]}><Text style={{ color: colors.profileMuted, fontWeight: "700", fontSize: 12 }}>{query.isError ? "Unavailable" : "Loading…"}</Text></View>}
+            : <View accessibilityLabel={query.isError ? "Follow status unavailable" : "Loading follow status"} style={[styles.actionPlaceholder, { backgroundColor: colors.profileCard, borderColor: colors.border }]}>{query.isError ? <Text style={{ color: colors.profileMuted, fontWeight: "700", fontSize: 12 }}>Unavailable</Text> : <><ActivityIndicator size="small" color={colors.primary}/><Text style={{ color: colors.profileMuted, fontWeight: "700", fontSize: 12 }}>Follow</Text></>}</View>}
           {datingAction}
         </View>
       ) : null}

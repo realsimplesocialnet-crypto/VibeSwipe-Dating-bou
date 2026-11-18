@@ -234,7 +234,25 @@ router.get(
     const userId = currentUserId(req);
     const profileId = params.data.profileId;
     const [profile] = await db
-      .select()
+      .select({
+        id: profilesTable.id,
+        name: profilesTable.name,
+        age: profilesTable.age,
+        showAge: profilesTable.showAge,
+        gender: profilesTable.gender,
+        lookingFor: profilesTable.lookingFor,
+        bio: profilesTable.bio,
+        city: profilesTable.city,
+        country: profilesTable.country,
+        state: profilesTable.state,
+        interests: profilesTable.interests,
+        occupation: profilesTable.occupation,
+        occupationOther: profilesTable.occupationOther,
+        photos: profilesTable.photos,
+        isDemo: profilesTable.isDemo,
+        isVerified: profilesTable.isVerified,
+        deactivated: profilesTable.deactivated,
+      })
       .from(profilesTable)
       .where(eq(profilesTable.id, profileId))
       .limit(1);
@@ -249,8 +267,22 @@ router.get(
 
     res.json(
       GetProfileByIdResponse.parse({
-        ...profile,
+        id: profile.id,
+        name: profile.name,
         age: profileId === userId || profile.showAge ? profile.age : null,
+        showAge: profile.showAge,
+        gender: profile.gender,
+        lookingFor: profile.lookingFor,
+        bio: profile.bio,
+        city: profile.city,
+        country: profile.country,
+        state: profile.state,
+        interests: profile.interests,
+        occupation: profile.occupation,
+        occupationOther: profile.occupationOther,
+        photos: profile.photos,
+        isDemo: profile.isDemo,
+        isVerified: profile.isVerified,
       }),
     );
   },

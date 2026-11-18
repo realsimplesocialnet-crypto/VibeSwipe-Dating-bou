@@ -20,7 +20,7 @@ import {
   vibeSwipeFollowsTable,
   vibeSwipeNotificationsTable,
 } from "@workspace/db";
-import { and, count, desc, eq, ilike, inArray, notInArray, or, type SQL } from "drizzle-orm";
+import { and, count, desc, eq, ilike, inArray, notInArray, or, sql, type SQL } from "drizzle-orm";
 import { Router, type IRouter, type Request } from "express";
 import { requireAuth } from "../middlewares/auth";
 import { planNewFollowNotification } from "../lib/vibeswipeFollowPolicy";
@@ -62,30 +62,13 @@ async function blockedBetween(userA: string, userB: string): Promise<boolean> {
 }
 
 async function followSummary(viewerId: string, profileId: string) {
-  const [followers, following, followsTarget, targetFollowsViewer] = await Promise.all([
-    db.select({ value: count() }).from(vibeSwipeFollowsTable)
-      .where(eq(vibeSwipeFollowsTable.followedId, profileId)),
-    db.select({ value: count() }).from(vibeSwipeFollowsTable)
-      .where(eq(vibeSwipeFollowsTable.followerId, profileId)),
-    db.select({ followerId: vibeSwipeFollowsTable.followerId })
-      .from(vibeSwipeFollowsTable)
-      .where(and(
-        eq(vibeSwipeFollowsTable.followerId, viewerId),
-        eq(vibeSwipeFollowsTable.followedId, profileId),
-      )).limit(1),
-    db.select({ followerId: vibeSwipeFollowsTable.followerId })
-      .from(vibeSwipeFollowsTable)
-      .where(and(
-        eq(vibeSwipeFollowsTable.followerId, profileId),
-        eq(vibeSwipeFollowsTable.followedId, viewerId),
-      )).limit(1),
-  ]);
-  return {
-    followersCount: Number(followers[0]?.value ?? 0),
-    followingCount: Number(following[0]?.value ?? 0),
-    isFollowing: followsTarget.length > 0,
-    followsYou: targetFollowsViewer.length > 0,
-  };
+  const [summary] = await db.select({
+    followersCount: sql<number>`(select count(*) from ${vibeSwipeFollowsTable} where ${vibeSwipeFollowsTable.followedId} = ${profileId})`.mapWith(Number),
+    followingCount: sql<number>`(select count(*) from ${vibeSwipeFollowsTable} where ${vibeSwipeFollowsTable.followerId} = ${profileId})`.mapWith(Number),
+    isFollowing: sql<boolean>`exists (select 1 from ${vibeSwipeFollowsTable} where ${vibeSwipeFollowsTable.followerId} = ${viewerId} and ${vibeSwipeFollowsTable.followedId} = ${profileId})`.mapWith(Boolean),
+    followsYou: sql<boolean>`exists (select 1 from ${vibeSwipeFollowsTable} where ${vibeSwipeFollowsTable.followerId} = ${profileId} and ${vibeSwipeFollowsTable.followedId} = ${viewerId})`.mapWith(Boolean),
+  }).from(profilesTable).where(eq(profilesTable.id, profileId)).limit(1);
+  return summary ?? { followersCount: 0, followingCount: 0, isFollowing: false, followsYou: false };
 }
 
 router.get(

@@ -1,4 +1,4 @@
-import { lazy, Suspense, type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, memo, Suspense, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { OnboardingVideoBackground } from '@/components/onboarding-video-background';
 import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
 import { ClerkProvider, SignIn, useClerk, useSignUp, useUser } from '@clerk/react';
@@ -10,13 +10,13 @@ import {
   getStreamMatchMessagesQueryKey, getGetTypingStatusQueryKey,
   getGetMyProfileQueryKey, getGetNotificationsQueryKey, getGetOnboardingDraftQueryKey, getGetProfileMediaQueryKey,
   getGetProfileByIdQueryKey, getGetProfileDatingStateQueryKey, getGetStoriesQueryKey, getGetSuperLikeStatusQueryKey, getGetVibeSwipeSettingsQueryKey,
-  getGetMatchPresenceQueryKey, getGetWhoLikedYouQueryKey, getGetProfileFollowSummaryQueryKey,
-  getProfileById, getProfileFollowSummary, getProfileDatingState,
+  getGetMatchPresenceQueryKey, getGetWhoLikedYouQueryKey, getGetProfileFollowSummaryQueryKey, getGetMediaPreviewQueryKey,
+  getProfileById, getProfileFollowSummary, getProfileDatingState, getMediaPreview,
   useActivateBoost, useBlockProfile, useClearChat,
   useClearOnboardingDraft, useCreateReaction, useDeleteChat, useDeleteMessage,
   useGetBoostStatus, useGetChatReadReceipt, useGetDailyLikeStatus,
   useGetDiscoverProfiles, useGetIcebreakers, useGetMatches, useGetMessages, useGetMyProfile,
-  useGetNotifications, useGetOnboardingDraft, useGetProfileById, useGetProfileDatingState, useGetProfileMedia, useGetStories, useGetSuperLikeStatus, useGetVibeSwipeSettings,
+  useGetNotifications, useGetOnboardingDraft, useGetProfileById, useGetProfileDatingState, useGetProfileMedia, useGetMediaPreview, useGetStories, useGetSuperLikeStatus, useGetVibeSwipeSettings,
   useGetTypingStatus, useGetMatchPresence, useMarkChatRead, useGetWhoViewedYou,
   useMarkNotificationRead, useRecordProfileView, useReportProfile, useSaveMyProfile,
   useSaveOnboardingDraft, useSendMessage, useTranscodeProfileVideo, useUnblockProfile,
@@ -352,13 +352,28 @@ function Avatar({ profile, size = 'md' }: { profile: Profile; size?: 'sm'|'md'|'
   useEffect(()=>setBroken(false),[profile.photos?.[0]]);
   return <div className={`${classes} shrink-0 overflow-hidden rounded-full bg-[linear-gradient(145deg,#703a58,#302333)] ring-1 ring-white/10`} data-testid={`avatar-${profile.id}`}>{src&&!broken?<MediaImage reference={profile.photos?.[0]} onError={()=>setBroken(true)} className="h-full w-full object-cover" alt={`${profile.name}'s profile`}/>:<span className="flex h-full items-center justify-center font-bold text-[#ffd3e6]">{profile.name?.slice(0,1)?.toUpperCase()||'V'}</span>}</div>;
 }
- function MediaImage({reference,className,alt,onError,onLoad,fallbackSrc}:{reference?:string;className:string;alt:string;onError?:()=>void;onLoad?:()=>void;fallbackSrc?:string}) {
+  function MediaImage({reference,className,alt,onError,onLoad,fallbackSrc,fullResolution=false,progressive=false,loading='lazy',fetchPriority}:{reference?:string;className:string;alt:string;onError?:()=>void;onLoad?:()=>void;fallbackSrc?:string;fullResolution?:boolean;progressive?:boolean;loading?:'eager'|'lazy';fetchPriority?:'high'|'low'|'auto'}) {
   const id=reference?.startsWith('media:')?reference.slice(6):'';
-  const media=useGetProfileMedia(id,{query:{enabled:!!id,queryKey:getGetProfileMediaQueryKey(id)}});
-  const [objectUrl,setObjectUrl]=useState('');
-  useEffect(()=>{if(!media.data)return;const url=URL.createObjectURL(media.data);setObjectUrl(url);return()=>URL.revokeObjectURL(url)},[media.data]);
-   const src=id?(objectUrl||fallbackSrc):mediaUrl(reference);
-   return src?<img src={src} onLoad={()=>{if(!id||objectUrl)onLoad?.()}} onError={onError} className={className} alt={alt}/>:null;
+    const preview=useGetMediaPreview(id,{query:{enabled:!!id&&!fullResolution,queryKey:getGetMediaPreviewQueryKey(id),staleTime:10*60_000,gcTime:30*60_000}});
+    const [previewLoaded,setPreviewLoaded]=useState(false);
+    const full=useGetProfileMedia(id,{query:{enabled:!!id&&(fullResolution||(progressive&&previewLoaded)),queryKey:getGetProfileMediaQueryKey(id),staleTime:10*60_000,gcTime:30*60_000}});
+    const [previewUrl,setPreviewUrl]=useState('');
+    const [fullUrl,setFullUrl]=useState('');
+    useEffect(()=>{if(!preview.data){setPreviewUrl('');return}const url=URL.createObjectURL(preview.data);setPreviewUrl(url);return()=>URL.revokeObjectURL(url)},[preview.data]);
+    useEffect(()=>{if(!full.data){setFullUrl('');return}const url=URL.createObjectURL(full.data);setFullUrl(url);return()=>URL.revokeObjectURL(url)},[full.data]);
+    const previewSrc=id?(previewUrl||fallbackSrc):mediaUrl(reference);
+    const src=fullResolution?(fullUrl||fallbackSrc):previewSrc;
+    const [loaded,setLoaded]=useState(false);
+    const [fullLoaded,setFullLoaded]=useState(false);
+    useEffect(()=>{setLoaded(false);setPreviewLoaded(false);setFullLoaded(false)},[id,reference]);
+    if(progressive&&!fullResolution&&id){
+      return <span className={`relative block h-full w-full overflow-hidden ${className.includes('rounded-full')?'rounded-full':''}`} aria-label={alt}>
+        <span aria-hidden="true" className={`absolute inset-0 animate-pulse bg-[hsl(var(--pp-soft))] transition-opacity duration-200 ${loaded?'opacity-0':'opacity-100'}`}/>
+        {previewSrc&&<img src={previewSrc} loading={loading} fetchPriority={fetchPriority} onLoad={()=>{setLoaded(true);setPreviewLoaded(true);if(previewUrl)onLoad?.()}} onError={onError} className={`${className} absolute inset-0 transition-[filter,opacity] duration-200 ${fullLoaded?'opacity-0':'opacity-100'} ${loaded?'blur-0':'scale-[1.02] blur-sm'}`} alt={alt}/>}
+        {fullUrl&&<img src={fullUrl} loading="eager" fetchPriority="low" onLoad={()=>{setFullLoaded(true);onLoad?.()}} onError={onError} className={`${className} absolute inset-0 transition-opacity duration-300 ${fullLoaded?'opacity-100':'opacity-0'}`} alt={alt}/>}
+      </span>;
+    }
+    return src?<img src={src} loading={loading} fetchPriority={fetchPriority} onLoad={()=>{setLoaded(true);if(!id||previewUrl||fullUrl)onLoad?.()}} onError={onError} className={`${className} transition-[filter,opacity] duration-200 ${loaded?'opacity-100 blur-0':'scale-[1.02] opacity-70 blur-sm'}`} alt={alt}/>:null;
 }
 function Empty({ title, detail, action }: { title: string; detail: string; action?: ReactNode }) { return <div className="rounded-[24px] border border-dashed border-white/10 bg-white/[.02] px-6 py-14 text-center"><div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-accent text-primary"><Sparkles size={23}/></div><h3 className="mt-5 text-lg font-bold">{title}</h3><p className="mx-auto mt-2 max-w-md text-sm leading-6 text-muted-foreground">{detail}</p>{action&&<div className="mt-5">{action}</div>}</div>; }
 
@@ -825,16 +840,20 @@ const choices=(values:string[],key:string)=> <div className="grid grid-cols-2 ga
  <div className="profile-setup-controls mt-8 flex items-center justify-between gap-3 border-t border-white/[.08] pt-5"><button disabled={step===0||uploading||saveDraft.isPending||saveProfile.isPending} onClick={()=>setStep(s=>Math.max(0,s-1))} data-testid="button-onboarding-back" className="min-h-11 rounded-xl border border-white/10 px-4 py-3 text-sm font-semibold disabled:opacity-35">Back</button><button disabled={uploading||saveDraft.isPending||saveProfile.isPending||(step===5&&!data.photos.length)||(step===0&&(!data.country||!data.countrySource))} onClick={()=>void next()} data-testid="button-onboarding-next" className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-bold text-[#26111b] disabled:opacity-50">{saveProfile.isPending?'Saving profile…':saveDraft.isPending?'Saving…':step===9?'Finish setup':'Continue'}<ArrowRight size={16}/></button></div></div></div></PageFrame>}
 
 function Row({icon:Icon,title,children,testId}:{icon:typeof Heart;title:string;children:ReactNode;testId:string}){return <section className="pp-card flex items-center gap-3.5" data-testid={testId}><span className="pp-icon"><Icon size={22}/></span><div className="min-w-0 flex-1 text-[15px] leading-6 text-foreground"><h2 className="pp-label">{title}</h2>{children}</div></section>}
+const ProfileInterestChips=memo(function ProfileInterestChips({interests}:{interests:string[]}){return <div className="mt-4 flex flex-wrap gap-2" data-testid="section-interests">{interests.map(interest=><span key={interest} className="pp-pill">{interest}</span>)}</div>});
+const ProfilePhotoGallery=memo(function ProfilePhotoGallery({photos,name,onOpen}:{photos:string[];name:string;onOpen:(index:number)=>void}){return <section className="pp-media-section" data-testid="section-more-photos"><div className="pp-media-heading"><h2 className="pp-label">Photos</h2><span className="text-xs font-semibold text-[hsl(var(--pp-muted))]">{photos.length}</span></div>{photos.length?<div data-testid="public-profile-gallery" className="pp-gallery-grid">{photos.map((photo,index)=><button key={`${photo}-${index}`} type="button" onClick={()=>onOpen(index)} aria-label={`Open photo ${index+1} of ${photos.length}`} data-testid={`button-public-profile-photo-${index}`} className="pp-thumb"><MediaImage reference={photo} progressive alt={`${name}'s photo ${index+1}`} className="h-full w-full object-cover" loading={index<2?'eager':'lazy'} fetchPriority={index===0?'high':'auto'}/></button>)}</div>:<p className="mt-2 text-sm text-[hsl(var(--pp-muted))]">No photos shared yet.</p>}</section>});
+function PublicProfileLoading(){return <div className="public-profile min-h-[100dvh]"><main aria-label="Loading profile" className="page-in pp-main mx-auto w-full max-w-md px-4 pb-[calc(6rem+env(safe-area-inset-bottom))] pt-2"><div className="flex justify-between"><div className="h-10 w-10 animate-pulse rounded-full bg-[hsl(var(--pp-soft))]"/><div className="h-10 w-10 animate-pulse rounded-full bg-[hsl(var(--pp-soft))]"/></div><div className="pp-identity-panel mt-4"><div className="pp-avatar-identity animate-pulse rounded-full bg-[hsl(var(--pp-soft))]"/><div className="min-w-0 flex-1 space-y-3"><div className="h-6 w-4/5 animate-pulse rounded bg-[hsl(var(--pp-soft))]"/><div className="h-4 w-3/5 animate-pulse rounded bg-[hsl(var(--pp-soft))]"/></div></div><div className="sh-profile-social"><div className="sh-profile-stats"><div className="sh-profile-stat animate-pulse"/><div className="sh-profile-stat animate-pulse"/></div><div className="sh-profile-actions"><div className="sh-follow-button animate-pulse"/><div className="sh-dating-button animate-pulse"/></div></div><div className="pp-layout mt-5"><div className="pp-profile-details"><section className="pp-card"><div className="h-3 w-24 animate-pulse rounded bg-[hsl(var(--pp-soft))]"/><div className="mt-4 h-5 w-3/4 animate-pulse rounded bg-[hsl(var(--pp-soft))]"/><div className="mt-4 flex flex-wrap gap-2" data-testid="skeleton-profile-interests" aria-hidden="true"><span className="pp-pill w-[72px] animate-pulse text-transparent"/><span className="pp-pill w-[104px] animate-pulse text-transparent"/><span className="pp-pill w-[84px] animate-pulse text-transparent"/></div><div className="pp-facts"><div className="pp-fact h-[68px] animate-pulse"/><div className="pp-fact h-[68px] animate-pulse"/><div className="pp-fact h-[68px] animate-pulse"/><div className="pp-fact h-[68px] animate-pulse"/></div></section></div><div className="pp-profile-media"><section className="pp-media-section"><div className="pp-media-heading"><div className="h-3 w-16 animate-pulse rounded bg-[hsl(var(--pp-soft))]"/><div className="h-3 w-6 animate-pulse rounded bg-[hsl(var(--pp-soft))]"/></div><div className="pp-gallery-grid" aria-hidden="true"><div className="pp-thumb animate-pulse"/><div className="pp-thumb animate-pulse"/><div className="pp-thumb animate-pulse"/></div></section></div></div></main></div>}
 function PublicProfile({id,actionReturnTo='/discover'}:{id:string;actionReturnTo?:string}){
   const fromLikes=actionReturnTo==='/likes';
   const me=useGetMyProfile();
-  const q=useGetProfileById(id,{query:{queryKey:getGetProfileByIdQueryKey(id),staleTime:60_000}});const datingState=useGetProfileDatingState(id,{query:{queryKey:getGetProfileDatingStateQueryKey(id),enabled:!!id,staleTime:60_000}});const matches=useGetMatches({query:{queryKey:getGetMatchesQueryKey(),enabled:!!id,staleTime:30_000}});const profileMatch=matches.data?.find(match=>match.profile.id===id);const matchedId=profileMatch?.id??datingState.data?.matchId??null;const view=useRecordProfileView();const seen=useRef('');const [photoError,setPhotoError]=useState(false);const [viewer,setViewer]=useState<number|null>(null);
+  const q=useGetProfileById(id,{query:{queryKey:getGetProfileByIdQueryKey(id),staleTime:10*60_000,gcTime:30*60_000,refetchOnMount:'always'}});const datingState=useGetProfileDatingState(id,{query:{queryKey:getGetProfileDatingStateQueryKey(id),enabled:!!id,staleTime:10*60_000,gcTime:30*60_000,refetchOnMount:'always'}});const matchedId=datingState.isError?null:datingState.data?.matchId??null;const view=useRecordProfileView();const seen=useRef('');const [photoError,setPhotoError]=useState(false);const [viewer,setViewer]=useState<number|null>(null);const openPhoto=useCallback((index:number)=>setViewer(index),[]);
    const client=useQueryClient();const [,setLocation]=useLocation();const reaction=useCreateReaction();const unlike=useUnlikeProfile();const likes=useGetDailyLikeStatus({query:{queryKey:getGetDailyLikeStatusQueryKey()}});
   const [confirmation,setConfirmation]=useState<{text:string;kind:'like'}|null>(null);const [actionError,setActionError]=useState('');const block=useBlockProfile();const report=useReportProfile();const [menu,setMenu]=useState(false);const [confirmSafety,setConfirmSafety]=useState<'block'|'report'|null>(null);const [safetyError,setSafetyError]=useState('');const [reported,setReported]=useState(false);const [matchResult,setMatchResult]=useState<{name:string;matchId:string|null}|null>(null);
   const confirmationTimer=useRef<number|null>(null);const busy=useRef(false);const mounted=useRef(true);const currentId=useRef(id);currentId.current=id;
   useEffect(()=>{mounted.current=true;return()=>{mounted.current=false;if(confirmationTimer.current!==null)window.clearTimeout(confirmationTimer.current)}},[]);
   useEffect(()=>{if(q.data?.id&&seen.current!==q.data.id){seen.current=q.data.id;view.mutate({profileId:q.data.id})}},[q.data?.id]);
   useEffect(()=>{setPhotoError(false);setViewer(null)},[q.data?.id,q.data?.photos?.[0]]);
+    useEffect(()=>{for(const reference of (q.data?.photos??[]).slice(0,2)){if(!reference.startsWith('media:'))continue;const mediaId=reference.slice(6);void client.prefetchQuery({queryKey:getGetMediaPreviewQueryKey(mediaId),queryFn:({signal})=>getMediaPreview(mediaId,{signal}),staleTime:10*60_000,gcTime:30*60_000})}},[q.data?.id,q.data?.photos?.[0],q.data?.photos?.[1],client]);
   const likeRemaining=likes.data?.remaining;
    const alreadyLiked=datingState.data?.reaction==='like';
    const superLiked=datingState.data?.reaction==='super';
@@ -884,23 +903,24 @@ function PublicProfile({id,actionReturnTo='/discover'}:{id:string;actionReturnTo
       void likes.refetch();
     }
   }
-  function openMatchedChat(){const matchId=profileMatch?.id??datingState.data?.matchId;if(!matchId||profileMatch?.blockedByMe||profileMatch?.blockedMe)return;const origin=`/profile/${encodeURIComponent(id)}?returnTo=${encodeURIComponent(actionReturnTo)}`;setLocation(`/chat/${encodeURIComponent(matchId)}?returnTo=${encodeURIComponent(origin)}`)}
+  function openMatchedChat(){if(!matchedId||datingState.isError)return;const origin=`/profile/${encodeURIComponent(id)}?returnTo=${encodeURIComponent(actionReturnTo)}`;setLocation(`/chat/${encodeURIComponent(matchedId)}?returnTo=${encodeURIComponent(origin)}`)}
   async function runSafety(kind:'block'|'report'){if(!q.data)return;setSafetyError('');try{if(kind==='block'){await block.mutateAsync({data:{targetUserId:q.data.id}});void client.invalidateQueries({queryKey:getGetMatchesQueryKey()});setConfirmSafety(null);setMenu(false);setLocation(actionReturnTo)}else{await report.mutateAsync({data:{targetUserId:q.data.id,reason:'other'}});setReported(true);setConfirmSafety(null)}}catch(error){setSafetyError(error instanceof Error&&error.message?error.message:kind==='block'?'Could not block this profile. Please try again.':'Could not send the report. Please try again.')}}
   useEffect(()=>{if(viewer===null)return;const len=q.data?.photos?.length??0;const onKey=(e:KeyboardEvent)=>{if(e.key==='Escape')setViewer(null);if(e.key==='ArrowRight')setViewer(v=>v===null?v:Math.min(len-1,v+1));if(e.key==='ArrowLeft')setViewer(v=>v===null?v:Math.max(0,v-1))};window.addEventListener('keydown',onKey);return()=>window.removeEventListener('keydown',onKey)},[viewer,q.data?.photos?.length]);
-  if(q.isLoading)return <div className="public-profile min-h-[100dvh]"><div className="mx-auto max-w-md px-5 pt-2" aria-label="Loading profile"><div className="mx-auto h-32 w-32 animate-pulse rounded-full bg-[hsl(var(--pp-soft))]"/><div className="mx-auto mt-5 h-6 w-40 animate-pulse rounded-full bg-[hsl(var(--pp-soft))]"/><div className="mt-8 h-40 animate-pulse rounded-3xl bg-[hsl(var(--pp-card))]"/></div></div>;
-   if(q.isError||!q.data)return <div className="public-profile min-h-[100dvh] px-5 pt-2"><Link href={actionReturnTo} replace aria-label="Back" data-testid="link-public-profile-back-top" className="pp-round"><ArrowLeft size={20}/></Link><div className="mx-auto mt-16 max-w-sm"><Retry onRetry={()=>void q.refetch()} text="Profile unavailable."/></div></div>;
+    if(q.isError&&!q.data)return <div className="public-profile min-h-[100dvh] px-5 pt-2"><Link href={actionReturnTo} replace aria-label="Back" data-testid="link-public-profile-back-top" className="pp-round"><ArrowLeft size={20}/></Link><div className="mx-auto mt-16 max-w-sm"><Retry onRetry={()=>void q.refetch()} text="Profile unavailable."/></div></div>;
+  if(!q.data)return <PublicProfileLoading/>;
   const profile=q.data;const photos=profile.photos??[];const location=[profile.city,profile.state,profile.country].filter(Boolean).join(', ');const headerLocation=[profile.city,profile.state].filter(Boolean).join(', ')||location;
   const work=profile.occupation==='Other'?(profile.occupationOther||'Other'):(profile.occupation||'');
   const facts=[profile.showAge&&profile.age!==null?{icon:Sparkles,label:'Age',value:String(profile.age)}:null,{icon:Briefcase,label:'Work',value:work||'Not shared'},{icon:Heart,label:'Looking for',value:profile.lookingFor||'Not shared'},{icon:Users,label:'Gender',value:profile.gender||'Not shared'}].filter(Boolean) as {icon:typeof Heart;label:string;value:string}[];
   const likeOut=likeRemaining===0;
-   const actionBusy=locked||datingState.isLoading||(!alreadyLiked&&likes.isLoading);
+   const actionStatusLoading=(!datingState.data&&datingState.isLoading)||(!alreadyLiked&&likes.isLoading&&!likes.data);
+   const actionBusy=locked||actionStatusLoading;
   const datingAction=<div className="sh-dating-slot">
-    <button type="button" onClick={()=>{if(matchedId){if(!profileMatch?.blockedByMe&&!profileMatch?.blockedMe)openMatchedChat();return}if(datingState.isError){void datingState.refetch();return}void reactLike()}}
-      disabled={matchedId?Boolean(profileMatch?.blockedByMe||profileMatch?.blockedMe):actionBusy||superLiked||(!alreadyLiked&&(likeOut||!datingState.data))}
+    <button type="button" onClick={()=>{if(matchedId){openMatchedChat();return}if(datingState.isError){void datingState.refetch();return}void reactLike()}}
+      disabled={matchedId?false:actionBusy||superLiked||(!alreadyLiked&&(likeOut||!datingState.data))}
       data-testid={matchedId?'button-viewed-profile-message':'button-viewed-profile-like'}
       aria-label={matchedId?`Message ${profile.name}`:alreadyLiked?`Unlike ${profile.name}`:superLiked?`Super liked ${profile.name}`:fromLikes?`Like ${profile.name} back`:`Like ${profile.name}`}
       className={`sh-dating-button${alreadyLiked&&!matchedId?' sh-dating-liked':''}`}
-    >{matchedId?<><MessageCircle size={17}/>Message</>:datingState.isLoading?'Checking…':datingState.isError?'Retry':reaction.isPending||unlike.isPending?<><LoaderCircle size={16} className="animate-spin"/>{alreadyLiked?'Liked':'Like'}</>:superLiked?<><Star size={17} fill="currentColor"/>Super liked</>:alreadyLiked?<><Heart size={17} fill="currentColor"/>Liked</>:likeOut?'No likes left':<><Heart size={17}/>{fromLikes?'Like Back':'Like'}</>}</button>
+    >{matchedId?<><MessageCircle size={17}/>Message</>:actionStatusLoading?<><LoaderCircle size={15} className="animate-spin"/>{fromLikes?'Like Back':'Like'}</>:datingState.isError?'Retry':reaction.isPending||unlike.isPending?<><LoaderCircle size={16} className="animate-spin"/>{alreadyLiked?'Liked':'Like'}</>:superLiked?<><Star size={17} fill="currentColor"/>Super liked</>:alreadyLiked?<><Heart size={17} fill="currentColor"/>Liked</>:likeOut?'No likes left':<><Heart size={17}/>{fromLikes?'Like Back':'Like'}</>}</button>
     {actionError&&<span role="alert" className="sh-dating-error">{actionError}</span>}
     {!actionError&&likeOut&&!alreadyLiked&&!matchedId&&<span className="sh-dating-error">Today’s likes are used up.</span>}
   </div>;
@@ -909,12 +929,12 @@ function PublicProfile({id,actionReturnTo='/discover'}:{id:string;actionReturnTo
       <Link href={actionReturnTo} replace aria-label="Back" data-testid="link-public-profile-back-top" className="pp-round"><ArrowLeft size={20}/></Link>
       <button type="button" onClick={()=>{setSafetyError('');setConfirmSafety(null);setMenu(true)}} aria-label={`More actions for ${profile.name}`} data-testid="button-public-profile-more" className="pp-round"><MoreHorizontal size={20}/></button>
     </div>
-    {fromLikes&&<button type="button" disabled={!photos.length} onClick={()=>setViewer(0)} aria-label={`Open ${profile.name}'s main photo`} data-testid="public-profile-hero" className="pp-avatar pp-avatar-hero mt-4">
-      {photos.length&&!photoError?<MediaImage reference={photos[0]} alt={`${profile.name}'s main photo`} onError={()=>setPhotoError(true)} className="h-full w-full object-cover"/>:<span className="brand text-5xl font-bold">{profile.name.trim().slice(0,1).toUpperCase()}</span>}
+       {fromLikes&&<button type="button" disabled={!photos.length} onClick={()=>setViewer(0)} aria-label={`Open ${profile.name}'s main photo`} data-testid="public-profile-hero" className="pp-avatar pp-avatar-hero mt-4">
+        {photos.length&&!photoError?<MediaImage reference={photos[0]} progressive alt={`${profile.name}'s main photo`} onError={()=>setPhotoError(true)} className="h-full w-full object-cover" loading="eager" fetchPriority="high"/>:<span className="brand text-5xl font-bold">{profile.name.trim().slice(0,1).toUpperCase()}</span>}
     </button>}
     <header className={`pp-identity-panel ${fromLikes?'pp-identity-panel-centered mt-4':'mt-4'}`}>
       {!fromLikes&&<button type="button" disabled={!photos.length} onClick={()=>setViewer(0)} aria-label={`Open ${profile.name}'s main photo`} data-testid="button-public-profile-avatar" className="pp-avatar pp-avatar-identity">
-        {photos.length&&!photoError?<MediaImage reference={photos[0]} alt={`${profile.name}'s main photo`} onError={()=>setPhotoError(true)} className="h-full w-full rounded-full object-cover"/>:<span className="brand text-4xl font-bold">{profile.name.trim().slice(0,1).toUpperCase()}</span>}
+          {photos.length&&!photoError?<MediaImage reference={photos[0]} progressive alt={`${profile.name}'s main photo`} onError={()=>setPhotoError(true)} className="h-full w-full rounded-full object-cover" loading="eager" fetchPriority="high"/>:<span className="brand text-4xl font-bold">{profile.name.trim().slice(0,1).toUpperCase()}</span>}
       </button>}
       <div className="pp-identity-copy">
         <h1 data-testid="text-public-profile-name" className="break-words text-[1.55rem] font-extrabold leading-tight tracking-[-.035em] sm:text-[1.85rem]">{profile.name}{profile.showAge&&profile.age!==null&&<span className="font-semibold text-[hsl(var(--pp-muted))]">, {profile.age}</span>}<VerifiedBadge verified={profile.isVerified}/></h1>
@@ -927,7 +947,7 @@ function PublicProfile({id,actionReturnTo='/discover'}:{id:string;actionReturnTo
         <section className="pp-card" data-testid="section-about">
           <h2 className="pp-label">About me</h2>
           <p className="mt-2 whitespace-pre-wrap text-[15px] leading-6">{profile.bio||'No bio added yet.'}</p>
-          {profile.interests.length>0&&<div className="mt-4 flex flex-wrap gap-2" data-testid="section-interests">{profile.interests.map(interest=><span key={interest} className="pp-pill">{interest}</span>)}</div>}
+          {profile.interests.length>0&&<ProfileInterestChips interests={profile.interests}/>}
           {location&&location!==headerLocation&&<p className="mt-4 text-[13px] text-[hsl(var(--pp-muted))]">Based in {location}</p>}
           <div className="pp-facts" data-testid="section-facts">
             {facts.map(f=><div key={f.label} className="pp-fact" data-testid={`section-${f.label.toLowerCase().replace(/\s/g,'-')}`}><span className="pp-icon"><f.icon size={17}/></span><span className="min-w-0"><span className="block text-[11px] font-semibold text-[hsl(var(--pp-muted))]">{f.label}</span><span className="mt-0.5 block break-words text-[13px] font-bold">{f.value}</span></span></div>)}
@@ -935,17 +955,14 @@ function PublicProfile({id,actionReturnTo='/discover'}:{id:string;actionReturnTo
         </section>
       </div>
       <div className="pp-profile-media">
-        <section className="pp-media-section" data-testid="section-more-photos">
-          <div className="pp-media-heading"><h2 className="pp-label">Photos</h2><span className="text-xs font-semibold text-[hsl(var(--pp-muted))]">{photos.length}</span></div>
-          {photos.length?<div data-testid="public-profile-gallery" className="pp-gallery-grid">{photos.map((photo,index)=><button key={`${photo}-${index}`} type="button" onClick={()=>setViewer(index)} aria-label={`Open photo ${index+1} of ${photos.length}`} data-testid={`button-public-profile-photo-${index}`} className="pp-thumb"><MediaImage reference={photo} alt={`${profile.name}'s photo ${index+1}`} className="h-full w-full object-cover"/></button>)}</div>:<p className="mt-2 text-sm text-[hsl(var(--pp-muted))]">No photos shared yet.</p>}
-        </section>
+        <ProfilePhotoGallery photos={photos} name={profile.name} onOpen={openPhoto}/>
         <ProfileReelsSection profileId={profile.id} returnTo={`/profile/${encodeURIComponent(id)}?returnTo=${encodeURIComponent(actionReturnTo)}`} layout="grid" />
       </div>
     </div>
     </main>
    {viewer!==null&&photos[viewer]&&<div className="fixed inset-0 z-[70] flex flex-col bg-[hsl(330_20%_6%/.94)]" role="dialog" aria-modal="true" aria-label={`${profile.name}'s photos`} data-testid="public-profile-photo-viewer" onTouchStart={e=>{(e.currentTarget as HTMLElement).dataset.x=String(e.touches[0].clientX)}} onTouchEnd={e=>{const start=Number((e.currentTarget as HTMLElement).dataset.x);const dx=e.changedTouches[0].clientX-start;if(Math.abs(dx)>50)setViewer(v=>v===null?v:Math.max(0,Math.min(photos.length-1,v+(dx<0?1:-1))))}}>
     <div className="flex items-center justify-between px-4 pt-[calc(1rem+env(safe-area-inset-top))] text-[hsl(330_30%_96%)]"><span className="text-sm font-semibold">{viewer+1} / {photos.length}</span><button type="button" autoFocus onClick={()=>setViewer(null)} aria-label="Close photos" data-testid="button-close-photo-viewer" className="flex h-11 w-11 items-center justify-center rounded-full bg-[hsl(0_0%_100%/.12)]"><X size={22}/></button></div>
-    <div className="relative flex flex-1 items-center justify-center p-4"><MediaImage reference={photos[viewer]} alt={`${profile.name}'s photo ${viewer+1}`} className="max-h-full max-w-full rounded-2xl object-contain"/>
+    <div className="relative flex flex-1 items-center justify-center p-4"><MediaImage reference={photos[viewer]} alt={`${profile.name}'s photo ${viewer+1}`} className="max-h-full max-w-full rounded-2xl object-contain" fullResolution loading="eager"/>
      {viewer>0&&<button type="button" onClick={()=>setViewer(viewer-1)} aria-label="Previous photo" className="absolute left-3 flex h-11 w-11 items-center justify-center rounded-full bg-[hsl(0_0%_100%/.14)] text-[hsl(330_30%_96%)]"><ArrowLeft size={20}/></button>}
      {viewer<photos.length-1&&<button type="button" onClick={()=>setViewer(viewer+1)} aria-label="Next photo" className="absolute right-3 flex h-11 w-11 items-center justify-center rounded-full bg-[hsl(0_0%_100%/.14)] text-[hsl(330_30%_96%)]"><ArrowRight size={20}/></button>}
     </div>
@@ -1071,8 +1088,38 @@ function SettingsThemeSync() {
   }, [isLoaded, lightMode]);
   return null;
 }
-function ClerkCacheSync(){const {user}=useUser();const client=useQueryClient();const previous=useRef<string|null|undefined>(undefined);useEffect(()=>{const id=user?.id??null;if(previous.current!==undefined&&previous.current!==id)client.clear();previous.current=id},[user?.id,client]);return null}
-function ProfileNavigationPrefetcher(){const {user}=useUser();const client=useQueryClient();useEffect(()=>{if(!user?.id)return;const prefetch=(event:Event)=>{const target=event.target;if(!(target instanceof Element))return;const anchor=target.closest<HTMLAnchorElement>('a[href]');if(!anchor)return;let url:URL;try{url=new URL(anchor.href,window.location.href)}catch{return}if(url.origin!==window.location.origin)return;let path=url.pathname;if(basePath&&path.startsWith(`${basePath}/`))path=path.slice(basePath.length);const match=path.match(/^\/profile\/([^/]+)$/);if(!match)return;let profileId:string;try{profileId=decodeURIComponent(match[1])}catch{return}if(!profileId||profileId===user.id)return;void client.prefetchQuery({queryKey:getGetProfileByIdQueryKey(profileId),queryFn:({signal})=>getProfileById(profileId,{signal}),staleTime:60_000});void client.prefetchQuery({queryKey:getGetProfileFollowSummaryQueryKey(profileId),queryFn:({signal})=>getProfileFollowSummary(profileId,{signal}),staleTime:60_000});void client.prefetchQuery({queryKey:getGetProfileDatingStateQueryKey(profileId),queryFn:({signal})=>getProfileDatingState(profileId,{signal}),staleTime:60_000})};document.addEventListener('pointerover',prefetch,true);document.addEventListener('pointerdown',prefetch,true);return()=>{document.removeEventListener('pointerover',prefetch,true);document.removeEventListener('pointerdown',prefetch,true)}},[user?.id,client]);return null}
+function postOfflineProfileCacheMessage(message:{type:string;userId?:string}){if(!('serviceWorker'in navigator))return;const controller=navigator.serviceWorker.controller;if(controller){controller.postMessage(message);return}void navigator.serviceWorker.ready.then(registration=>(registration.active??navigator.serviceWorker.controller)?.postMessage(message)).catch(()=>{})}
+function ClerkCacheSync(){const {user,isLoaded}=useUser();const client=useQueryClient();const previous=useRef<string|null|undefined>(undefined);useEffect(()=>{if(!isLoaded)return;const id=user?.id??null;const changed=previous.current!==undefined&&previous.current!==id;if(changed)client.clear();if(changed||!id)postOfflineProfileCacheMessage({type:'myage:clear-profile-cache'});if(id)postOfflineProfileCacheMessage({type:'myage:set-profile-cache-user',userId:id});previous.current=id},[user?.id,isLoaded,client]);return null}
+function ProfileNavigationPrefetcher(){
+  const {user}=useUser();
+  const client=useQueryClient();
+  useEffect(()=>{
+    if(!user?.id)return;
+    const prefetch=(event:Event)=>{
+      const target=event.target;
+      if(!(target instanceof Element))return;
+      const anchor=target.closest<HTMLAnchorElement>('a[href]');
+      if(!anchor)return;
+      let url:URL;
+      try{url=new URL(anchor.href,window.location.href)}catch{return}
+      if(url.origin!==window.location.origin)return;
+      let path=url.pathname;
+      if(basePath&&path.startsWith(`${basePath}/`))path=path.slice(basePath.length);
+      const match=path.match(/^\/profile\/([^/]+)$/);
+      if(!match)return;
+      let profileId:string;
+      try{profileId=decodeURIComponent(match[1])}catch{return}
+      if(!profileId||profileId===user.id)return;
+      void client.prefetchQuery({queryKey:getGetProfileByIdQueryKey(profileId),queryFn:({signal})=>getProfileById(profileId,{signal}),staleTime:10*60_000,gcTime:30*60_000});
+      void client.prefetchQuery({queryKey:getGetProfileFollowSummaryQueryKey(profileId),queryFn:({signal})=>getProfileFollowSummary(profileId,{signal}),staleTime:10*60_000,gcTime:30*60_000});
+      void client.prefetchQuery({queryKey:getGetProfileDatingStateQueryKey(profileId),queryFn:({signal})=>getProfileDatingState(profileId,{signal}),staleTime:10*60_000,gcTime:30*60_000});
+    };
+    document.addEventListener('pointerover',prefetch,true);
+    document.addEventListener('pointerdown',prefetch,true);
+    return()=>{document.removeEventListener('pointerover',prefetch,true);document.removeEventListener('pointerdown',prefetch,true)};
+  },[user?.id,client]);
+  return null;
+}
 function ClerkRoutes(){const [,setLocation]=useLocation();return <ClerkProvider publishableKey={clerkPubKey} proxyUrl={clerkProxyUrl} appearance={appearance} signInUrl={pathFor('/sign-in')} signUpUrl={pathFor('/sign-up')} localization={{signIn:{start:{title:'Welcome back',subtitle:'Your next good conversation is waiting.'}},signUp:{start:{title:'Make room for a spark',subtitle:'Create your adults-only Myage account.'}}}} routerPush={to=>setLocation(to.startsWith(basePath)?to.slice(basePath.length)||'/':to)} routerReplace={to=>setLocation(to.startsWith(basePath)?to.slice(basePath.length)||'/':to,{replace:true})}><ClerkCacheSync/><ProfileNavigationPrefetcher/><SettingsThemeSync/><Suspense fallback={<div className="flex min-h-[45dvh] items-center justify-center text-primary" aria-label="Loading"><LoaderCircle className="animate-spin" size={22}/></div>}><Switch>
   <Route path="/" component={HomeRedirect}/>
   <Route path="/welcome" component={WelcomeRoute}/>

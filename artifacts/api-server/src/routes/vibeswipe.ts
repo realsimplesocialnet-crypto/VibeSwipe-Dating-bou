@@ -2808,7 +2808,7 @@ router.get(
     try {
       const file = await objectStorage.getObjectEntityFile(asset.objectPath);
       const bytes = await getMediaPreview(asset.id, asset.mediaType, () => file.createReadStream());
-      res.setHeader("Content-Type", "image/jpeg");
+      res.setHeader("Content-Type", "image/webp");
       res.setHeader("Content-Length", String(bytes.length));
       // Private: the browser may keep it for this session, shared caches may not.
       res.setHeader("Cache-Control", "private, max-age=600");

@@ -1,13 +1,18 @@
-/* Cache the app shell and explicitly approved public Reels only. */
+/* Cache the app shell, approved public Reels, and account-scoped recent profiles. */
 const CACHE_NAME = 'myage-shell-v11';
 const REEL_CACHE_NAME = 'myage-offline-reels-v1';
+const PROFILE_CACHE_NAME = 'myage-offline-profiles-v1';
 const MAX_OFFLINE_REELS = 3;
 const MAX_OFFLINE_REEL_BYTES = 50 * 1024 * 1024;
 const MAX_OFFLINE_TOTAL_BYTES = 120 * 1024 * 1024;
 const MAX_OFFLINE_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+const MAX_OFFLINE_PROFILES = 20;
+const MAX_OFFLINE_PROFILE_PHOTOS = 40;
+const MAX_OFFLINE_PROFILE_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 const scopeUrl = new URL(self.registration.scope);
 const offlineUrl = new URL('offline.html', scopeUrl).href;
 const appShellUrl = new URL('index.html', scopeUrl).href;
+let activeProfileCacheUserId = null;
 const shell = [
   new URL('open.html', scopeUrl).href,
   new URL('manifest.json', scopeUrl).href,
@@ -247,6 +252,182 @@ async function cachedRangeResponse(response, range) {
       'Accept-Ranges': 'bytes',
     },
   });
+}
+
+function isSafeProfileCacheUserId(value) {
+  return typeof value === 'string' && value.length > 0 && value.length <= 255 && /^[a-zA-Z0-9_-]+$/.test(value);
+}
+
+function profileCachePartitionPath(userId) {
+  return new URL(`__offline-profiles/${encodeURIComponent(userId)}/`, scopeUrl).pathname;
+}
+
+function profileCacheKey(userId, profileId) {
+  return new URL(`__offline-profiles/${encodeURIComponent(userId)}/profiles/${encodeURIComponent(profileId)}.json`, scopeUrl).href;
+}
+
+function profilePhotoCacheKey(userId, mediaId) {
+  return new URL(`__offline-profiles/${encodeURIComponent(userId)}/photos/${encodeURIComponent(mediaId)}.webp`, scopeUrl).href;
+}
+
+function publicProfileCacheProjection(value, requestedId) {
+  if (!value || typeof value !== 'object' || value.id !== requestedId || typeof value.name !== 'string') return null;
+  if (!Array.isArray(value.photos) || !Array.isArray(value.interests)) return null;
+  return {
+    id: value.id,
+    name: value.name,
+    age: Number.isInteger(value.age) ? value.age : null,
+    showAge: Boolean(value.showAge),
+    gender: typeof value.gender === 'string' ? value.gender : '',
+    lookingFor: typeof value.lookingFor === 'string' ? value.lookingFor : '',
+    bio: typeof value.bio === 'string' ? value.bio : '',
+    city: typeof value.city === 'string' ? value.city : '',
+    country: typeof value.country === 'string' ? value.country : null,
+    state: typeof value.state === 'string' ? value.state : null,
+    interests: value.interests.filter((item) => typeof item === 'string'),
+    occupation: typeof value.occupation === 'string' ? value.occupation : '',
+    occupationOther: typeof value.occupationOther === 'string' ? value.occupationOther : '',
+    photos: value.photos.filter((item) => typeof item === 'string'),
+    isDemo: Boolean(value.isDemo),
+    isVerified: Boolean(value.isVerified),
+  };
+}
+
+function responseWithOfflineMarker(response) {
+  const headers = new Headers(response.headers);
+  headers.set('x-myage-offline-cache', 'profile');
+  return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
+}
+
+async function trimOfflineProfiles(cache, userId) {
+  const partition = profileCachePartitionPath(userId);
+  const keys = await cache.keys();
+  const profileRows = [];
+  const photoRows = [];
+  for (const request of keys) {
+    const pathname = new URL(request.url).pathname;
+    if (!pathname.startsWith(partition)) continue;
+    const response = await cache.match(request);
+    const cachedAt = Number(response?.headers.get('x-myage-profile-cached-at')) || 0;
+    if (pathname.includes('/profiles/')) profileRows.push({ request, cachedAt });
+    else if (pathname.includes('/photos/')) photoRows.push({ request, cachedAt });
+  }
+  const now = Date.now();
+  for (const rows of [profileRows, photoRows]) {
+    rows.sort((a, b) => a.cachedAt - b.cachedAt);
+    const max = rows === profileRows ? MAX_OFFLINE_PROFILES : MAX_OFFLINE_PROFILE_PHOTOS;
+    for (const row of rows) {
+      if (now - row.cachedAt > MAX_OFFLINE_PROFILE_AGE_MS) {
+        await cache.delete(row.request);
+        row.remove = true;
+      }
+    }
+    const remaining = rows.filter((row) => !row.remove);
+    while (remaining.length > max) await cache.delete(remaining.shift().request);
+  }
+}
+
+async function cachePublicProfileResponse(cache, userId, profileId, response) {
+  let profile;
+  try {
+    profile = publicProfileCacheProjection(await response.clone().json(), profileId);
+  } catch {
+    return;
+  }
+  if (!profile) return;
+  const headers = new Headers(response.headers);
+  headers.set('content-type', 'application/json; charset=utf-8');
+  headers.set('x-myage-profile-cached-at', String(Date.now()));
+  for (const header of ['content-length', 'content-encoding', 'content-range', 'etag', 'last-modified', 'set-cookie']) headers.delete(header);
+  await cache.put(profileCacheKey(userId, profileId), new Response(JSON.stringify(profile), {
+    status: 200,
+    headers,
+  }));
+  await trimOfflineProfiles(cache, userId);
+}
+
+async function cachedPublicProfile(cache, userId, profileId) {
+  const key = profileCacheKey(userId, profileId);
+  const response = await cache.match(key);
+  if (!response) return null;
+  const cachedAt = Number(response.headers.get('x-myage-profile-cached-at')) || 0;
+  if (!cachedAt || Date.now() - cachedAt > MAX_OFFLINE_PROFILE_AGE_MS) {
+    await cache.delete(key);
+    return null;
+  }
+  return responseWithOfflineMarker(response);
+}
+
+async function fetchPublicProfile(request, profileId) {
+  const userId = activeProfileCacheUserId;
+  if (!isSafeProfileCacheUserId(userId)) return fetch(request);
+  const cache = await caches.open(PROFILE_CACHE_NAME);
+  try {
+    const response = await fetch(request);
+    if ([401, 403, 404].includes(response.status)) {
+      await cache.delete(profileCacheKey(userId, profileId));
+      return response;
+    }
+    if (response.status === 200 && response.headers.get('content-type')?.toLowerCase().includes('application/json')) {
+      await cachePublicProfileResponse(cache, userId, profileId, response);
+    } else if (response.status >= 500) {
+      return (await cachedPublicProfile(cache, userId, profileId)) || response;
+    }
+    return response;
+  } catch (error) {
+    const cached = await cachedPublicProfile(cache, userId, profileId);
+    if (cached) return cached;
+    throw error;
+  }
+}
+
+async function profileUsesPhoto(cache, userId, mediaId) {
+  const partition = profileCachePartitionPath(userId);
+  for (const request of await cache.keys()) {
+    const pathname = new URL(request.url).pathname;
+    if (!pathname.startsWith(partition) || !pathname.includes('/profiles/')) continue;
+    const profile = await cache.match(request);
+    if (!profile) continue;
+    try {
+      const data = await profile.json();
+      if (data.photos?.includes(`media:${mediaId}`)) return true;
+    } catch {
+      await cache.delete(request);
+    }
+  }
+  return false;
+}
+
+async function fetchPublicProfilePhoto(request, mediaId) {
+  const userId = activeProfileCacheUserId;
+  if (!isSafeProfileCacheUserId(userId)) return fetch(request);
+  const cache = await caches.open(PROFILE_CACHE_NAME);
+  const key = profilePhotoCacheKey(userId, mediaId);
+  if (!await profileUsesPhoto(cache, userId, mediaId)) return fetch(request);
+  try {
+    const response = await fetch(request);
+    if ([401, 403, 404].includes(response.status)) {
+      await cache.delete(key);
+      return response;
+    }
+    const contentLength = Number(response.headers.get('content-length'));
+    if (response.ok &&
+        response.headers.get('content-type')?.toLowerCase().startsWith('image/webp') &&
+        (!Number.isFinite(contentLength) || contentLength <= 128 * 1024)) {
+      const headers = new Headers(response.headers);
+      headers.set('x-myage-profile-cached-at', String(Date.now()));
+      const copy = new Response(response.clone().body, { status: response.status, statusText: response.statusText, headers });
+      await cache.put(key, copy);
+      await trimOfflineProfiles(cache, userId);
+    }
+    return response;
+  } catch (error) {
+    const cached = await cache.match(key);
+    const cachedAt = Number(cached?.headers.get('x-myage-profile-cached-at')) || 0;
+    if (cached && Date.now() - cachedAt <= MAX_OFFLINE_PROFILE_AGE_MS) return responseWithOfflineMarker(cached);
+    if (cached) await cache.delete(key);
+    throw error;
+  }
 }
 
 self.addEventListener('install', (event) => {

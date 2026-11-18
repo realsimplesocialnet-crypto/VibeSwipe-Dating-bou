@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -22,24 +22,28 @@ function fixture(args: string[], name: string): Buffer {
   } finally { rmSync(dir, { recursive: true, force: true }); }
 }
 const previewTemps = () => readdirSync(tmpdir()).filter(name => name.startsWith("vibeswipe-preview-")).length;
-function jpegSize(bytes: Buffer): { width: number; height: number } {
-  for (let i = 2; i < bytes.length;) {
-    const marker = bytes[i + 1]; const length = bytes.readUInt16BE(i + 2);
-    if (marker >= 0xc0 && marker <= 0xc3) return { height: bytes.readUInt16BE(i + 5), width: bytes.readUInt16BE(i + 7) };
-    i += 2 + length;
-  }
-  throw new Error("no SOF");
+function webpSize(bytes: Buffer): { width: number; height: number } {
+  const dir = mkdtempSync(join(tmpdir(), "webp-size-"));
+  try {
+    const file = join(dir, "preview.webp");
+    writeFileSync(file, bytes);
+    const result = spawnSync("ffprobe", ["-v", "error", "-select_streams", "v:0", "-show_entries", "stream=width,height", "-of", "csv=s=x:p=0", file], { encoding: "utf8" });
+    assert.equal(result.status, 0, result.stderr);
+    const [width, height] = result.stdout.trim().split("x").map(Number);
+    return { width, height };
+  } finally { rmSync(dir, { recursive: true, force: true }); }
 }
 
-test("photo preview is a small bounded JPEG made from the stored original, then cached", async () => {
+test("photo preview is a small bounded WebP made from the stored original, then cached", async () => {
   const original = fixture(["-f", "lavfi", "-i", "testsrc=size=1600x1200", "-frames:v", "1"], "big.png");
   const before = previewTemps();
   let reads = 0;
   const id = "11111111-1111-4111-8111-111111111111";
   const bytes = await getMediaPreview(id, "image", () => { reads += 1; return Readable.from([original]); });
-  assert.equal(bytes[0], 0xff); assert.equal(bytes[1], 0xd8);
+  assert.equal(bytes.subarray(0, 4).toString(), "RIFF");
+  assert.equal(bytes.subarray(8, 12).toString(), "WEBP");
   assert.ok(bytes.length <= PREVIEW_MAX_BYTES);
-  const size = jpegSize(bytes);
+  const size = webpSize(bytes);
   assert.ok(Math.max(size.width, size.height) <= 320, JSON.stringify(size));
   assert.ok(bytes.length < original.length / 4);
   await getMediaPreview(id, "image", () => { reads += 1; return Readable.from([original]); });
@@ -54,7 +58,7 @@ test("photo preview is a small bounded JPEG made from the stored original, then 
 test("video preview takes a real frame", async () => {
   const video = fixture(["-f", "lavfi", "-i", "testsrc=size=640x360:duration=2", "-pix_fmt", "yuv420p", "-c:v", "libx264", "-movflags", "+faststart"], "clip.mp4");
   const bytes = await getMediaPreview("22222222-2222-4222-8222-222222222222", "video", () => Readable.from([video]));
-  assert.deepEqual(jpegSize(bytes), { width: 320, height: 180 });
+  assert.deepEqual(webpSize(bytes), { width: 320, height: 180 });
   evictMediaPreview("22222222-2222-4222-8222-222222222222");
 });
 

@@ -1295,7 +1295,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Profile"
+                $ref: "#/components/schemas/PublicProfileDetails"
         "403":
           description: Profile is unavailable
         "404":
@@ -2100,6 +2100,30 @@ components:
       properties:
         status: { type: string, enum: [approved, rejected] }
         message: { type: string }
+    PublicProfileDetails:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        age: { type: [integer, "null"] }
+        showAge: { type: boolean }
+        gender: { type: string }
+        lookingFor: { type: string }
+        bio: { type: string }
+        city: { type: string }
+        country: { type: [string, "null"] }
+        state: { type: [string, "null"] }
+        interests:
+          type: array
+          items: { type: string }
+        occupation: { type: string }
+        occupationOther: { type: string }
+        photos:
+          type: array
+          items: { type: string }
+        isDemo: { type: boolean }
+        isVerified: { type: boolean }
+      required: [id, name, age, showAge, gender, lookingFor, bio, city, country, state, interests, occupation, occupationOther, photos, isDemo, isVerified]
     Profile:
       type: object
       properties:

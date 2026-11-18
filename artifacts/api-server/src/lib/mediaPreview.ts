@@ -103,17 +103,17 @@ async function render(source: () => Readable, kind: "image" | "video"): Promise<
   const dir = await mkdtemp(join(tmpdir(), "vibeswipe-preview-"));
   try {
     const input = join(dir, "source");
-    const output = join(dir, "preview.jpg");
+    const output = join(dir, "preview.webp");
     await pipeline(source(), limitBytes(kind === "video" ? VIDEO_SOURCE_LIMIT : IMAGE_SOURCE_LIMIT), createWriteStream(input));
-    const tail = ["-frames:v", "1", "-vf", previewFilterArgs(), "-q:v", "7", "-map_metadata", "-1", "-f", "image2", "-y", output];
+    const tail = ["-frames:v", "1", "-vf", previewFilterArgs(), "-map_metadata", "-1", "-an", "-sn", "-dn", "-c:v", "libwebp", "-quality", "75", "-compression_level", "6", "-f", "webp", "-y", output];
     if (kind === "video") {
       try { await ffmpeg(["-hide_banner", "-loglevel", "error", "-ss", "0.4", "-i", input, ...tail]); }
       catch { await ffmpeg(["-hide_banner", "-loglevel", "error", "-i", input, ...tail]); }
     } else await ffmpeg(["-hide_banner", "-loglevel", "error", "-i", input, ...tail]);
     let bytes = await readFile(output);
     if (bytes.length > PREVIEW_MAX_BYTES) {
-      await ffmpeg(["-hide_banner", "-loglevel", "error", "-i", output, "-q:v", "16", "-y", join(dir, "smaller.jpg")]);
-      bytes = await readFile(join(dir, "smaller.jpg"));
+      await ffmpeg(["-hide_banner", "-loglevel", "error", "-i", output, "-c:v", "libwebp", "-quality", "50", "-compression_level", "6", "-f", "webp", "-y", join(dir, "smaller.webp")]);
+      bytes = await readFile(join(dir, "smaller.webp"));
     }
     if (!bytes.length || bytes.length > PREVIEW_MAX_BYTES) throw new PreviewUnreadableError();
     return bytes;

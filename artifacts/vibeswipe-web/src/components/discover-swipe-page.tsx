@@ -9,10 +9,16 @@ import {
   getGetBoostStatusQueryKey,
   getGetDailyLikeStatusQueryKey,
   getGetDiscoverProfilesQueryKey,
+  getGetProfileByIdQueryKey,
+  getGetProfileDatingStateQueryKey,
+  getGetProfileFollowSummaryQueryKey,
+  getGetMediaPreviewQueryKey,
   getGetMatchesQueryKey,
-  getGetProfileMediaQueryKey,
   getGetSuperLikeStatusQueryKey,
   getGetVibeSwipeSettingsQueryKey,
+  getProfileDatingState,
+  getProfileFollowSummary,
+  getMediaPreview,
   useActivateBoost,
   useBlockProfile,
   useCreateReaction,
@@ -20,7 +26,7 @@ import {
   useGetDailyLikeStatus,
   useGetDiscoverProfiles,
   useGetMyProfile,
-  useGetProfileMedia,
+  useGetMediaPreview,
   useGetSuperLikeStatus,
   useGetVibeSwipeSettings,
   useRecordProfileView,
@@ -89,6 +95,27 @@ export function DiscoverSwipePage() {
   });
   const { profiles, index, setIndex, refill } = useDiscoveryDeck(discover.data, feedKey);
   const profile = profiles[index];
+  useEffect(() => {
+    const upcoming = profiles.slice(index, index + 8);
+    for (const candidate of upcoming) {
+      const key = getGetProfileByIdQueryKey(candidate.id);
+      const cached = queryClient.getQueryState(key);
+      if (!cached?.data || Date.now() - cached.dataUpdatedAt > 10 * 60_000) {
+        void queryClient.prefetchQuery({ queryKey: key, queryFn: async () => candidate, staleTime: 10 * 60_000, gcTime: 30 * 60_000 });
+      }
+    }
+    for (const candidate of upcoming.slice(0, 3)) {
+      const reference = candidate.photos?.[0];
+      if (!reference?.startsWith("media:")) continue;
+      const mediaId = reference.slice(6);
+      void queryClient.prefetchQuery({
+        queryKey: getGetMediaPreviewQueryKey(mediaId),
+        queryFn: ({ signal }) => getMediaPreview(mediaId, { signal }),
+        staleTime: 10 * 60_000,
+        gcTime: 30 * 60_000,
+      });
+    }
+  }, [profiles, index, queryClient]);
   const worldwide = Boolean(profile?.discoveryExpanded || discover.data?.some(p => p.discoveryExpanded));
   const reaction = useCreateReaction();
   const undo = useUndoLastPass();
@@ -290,7 +317,16 @@ export function DiscoverSwipePage() {
         }}
         onClick={() => {
           if (suppressCardOpen.current || swipeLock.current) return;
-           setLocation(`/profile/${profile.id}?returnTo=%2Fdiscover`);
+          const key = getGetProfileByIdQueryKey(profile.id);
+          const cachedProfile = queryClient.getQueryState(key);
+          if (!cachedProfile?.data || Date.now() - cachedProfile.dataUpdatedAt > 10 * 60_000) {
+            void queryClient.prefetchQuery({ queryKey: key, queryFn: async () => profile, staleTime: 10 * 60_000, gcTime: 30 * 60_000 });
+          }
+          const followKey = getGetProfileFollowSummaryQueryKey(profile.id);
+          void queryClient.prefetchQuery({ queryKey: followKey, queryFn: ({ signal }) => getProfileFollowSummary(profile.id, { signal }), staleTime: 10 * 60_000, gcTime: 30 * 60_000 });
+          const datingKey = getGetProfileDatingStateQueryKey(profile.id);
+          void queryClient.prefetchQuery({ queryKey: datingKey, queryFn: ({ signal }) => getProfileDatingState(profile.id, { signal }), staleTime: 10 * 60_000, gcTime: 30 * 60_000 });
+          setLocation(`/profile/${profile.id}?returnTo=%2Fdiscover`);
         }}
         onKeyDown={(event) => {
           if (!swipeLock.current && event.target === event.currentTarget && (event.key === "Enter" || event.key === " ")) {
@@ -304,7 +340,7 @@ export function DiscoverSwipePage() {
       >
         <div className="relative min-h-0 flex-1">
           {profile.photos?.[0]
-            ? <ProfilePhoto key={profile.id} reference={profile.photos[0]} alt={`${profile.name}${profile.age !== null ? `, ${profile.age}` : ""}`} className="absolute inset-0 h-full w-full object-cover object-top" />
+             ? <ProfilePhoto key={profile.id} reference={profile.photos[0]} alt={`${profile.name}${profile.age !== null ? `, ${profile.age}` : ""}`} className="absolute inset-0 h-full w-full object-cover object-top" />
             : <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_25%,#9f6076,#382b3a_55%,#1b1820)]" />}
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#130f16] via-[#17121a]/10 to-[#17121a]/10" />
           <button type="button" onClick={(event) => { event.stopPropagation(); setOptionsOpen(true); }} data-testid="button-profile-details" aria-label={`Profile options for ${profile.name}`} className="absolute right-4 top-4 z-[2] rounded-full border border-white/20 bg-black/40 p-2.5 text-white backdrop-blur"><MoreHorizontal size={19} /></button>
@@ -333,8 +369,8 @@ export function DiscoverSwipePage() {
 
 function ProfilePhoto({ reference, alt, className }: { reference: string; alt: string; className: string }) {
   const mediaId = reference.startsWith("media:") ? reference.slice(6) : "";
-  const media = useGetProfileMedia(mediaId, {
-    query: { enabled: Boolean(mediaId), queryKey: getGetProfileMediaQueryKey(mediaId) },
+  const media = useGetMediaPreview(mediaId, {
+    query: { enabled: Boolean(mediaId), queryKey: getGetMediaPreviewQueryKey(mediaId), staleTime: 10 * 60_000, gcTime: 30 * 60_000 },
   });
   const [objectUrl, setObjectUrl] = useState("");
   useEffect(() => {
@@ -344,7 +380,7 @@ function ProfilePhoto({ reference, alt, className }: { reference: string; alt: s
     return () => URL.revokeObjectURL(url);
   }, [media.data]);
   const src = mediaId ? objectUrl : mediaUrl(reference);
-  return src ? <img src={src} alt={alt} className={className} /> : null;
+  return src ? <img src={src} alt={alt} className={className} loading="eager" fetchPriority="high" decoding="async" /> : null;
 }
 
 function FilterDialog({ open, onClose, value, travelMode, onApply }: {

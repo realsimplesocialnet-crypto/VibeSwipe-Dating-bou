@@ -21,20 +21,30 @@ test('member profiles preserve separate follow and dating actions', () => {
 });
 
 test('matched profiles replace swipe actions with a link to their existing chat', () => {
-  assert.match(member, /profileMatch=matches\.data\?\.find/);
+  assert.match(member, /matchedId=datingState\.isError\?null:datingState\.data\?\.matchId/);
   assert.match(member, /datingAction/);
-  assert.match(native, /profileMatch = matches\.data\?\.find/);
+  assert.match(native, /const matchId = datingState\.isError \? null : datingState\.data\?\.matchId/);
   assert.match(native, /public-profile-message/);
-  assert.match(member, /profileMatch\?/);
-  assert.match(native, /profileMatch\?\.blockedByMe/);
+  assert.match(member, /function openMatchedChat\(\)\{if\(!matchedId\|\|datingState\.isError\)return/);
+  assert.match(native, /if \(!matchId \|\| datingState\.isError\) return;/);
 });
 
 test('public profiles reuse cached data and prefetch when a member link is approached', () => {
   const prefetcher = app.slice(app.indexOf('function ProfileNavigationPrefetcher()'), app.indexOf('function ClerkRoutes()'));
-  for (const source of [member, native]) {
-    assert.match(source, /staleTime:60_000/);
-    assert.doesNotMatch(source, /refetchInterval:12_000|refetchOnMount:'always'|refetchOnMount: "always"/);
-  }
+  const publicProfile = app.slice(app.indexOf('function PublicProfile('), app.indexOf('function StoryCameraRoute()'));
+  const discoverPage = read('../src/components/discover-swipe-page.tsx');
+  const nativeDiscover = read('../../vibeswipe/app/(tabs)/index.tsx');
+  assert.match(member, /staleTime:10\*60_000/);
+  assert.match(native, /staleTime: 10 \* 60_000/);
+  for (const source of [member, native]) assert.doesNotMatch(source, /refetchInterval:12_000/);
+  assert.match(member, /refetchOnMount:'always'/);
+  assert.match(discoverPage, /profiles\.slice\(index, index \+ 8\)/);
+  assert.match(nativeDiscover, /profiles\.slice\(index, index \+ 8\)/);
+  assert.match(member, /getGetMediaPreviewQueryKey/);
+  assert.match(native, /profileImagePreviewSource/);
+  assert.doesNotMatch(publicProfile, /useGetMatches\(/);
+  assert.doesNotMatch(native, /useGetMatches\(/);
+  assert.match(read('../src/components/social-hub.tsx'), /LoaderCircle size=\{15\}/);
   assert.match(prefetcher, /client\.prefetchQuery/);
   assert.match(prefetcher, /addEventListener\('pointerdown'/);
   assert.match(prefetcher, /getProfileById/);

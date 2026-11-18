@@ -21,7 +21,7 @@ import {
   type StoriesFeed,
   type Profile,
 } from "@workspace/api-client-react";
-import { ArrowLeft, Check, ImagePlus, LoaderCircle, Plus, Send, ShieldCheck, Video, X } from "lucide-react";
+import { ArrowLeft, Camera, Check, ImagePlus, LoaderCircle, Plus, Send, ShieldCheck, Video, X } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 const STORY_PREFIX = "Replied to your story: ";

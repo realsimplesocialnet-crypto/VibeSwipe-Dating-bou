@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation } from 'wouter';
 import { useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, ChevronRight, Eye, Heart, MessageCircle, RefreshCw, Search, Star, Users, UserPlus } from 'lucide-react';
+import { ArrowLeft, ChevronRight, Eye, Heart, LoaderCircle, MessageCircle, RefreshCw, Search, Star, Users, UserPlus } from 'lucide-react';
 import {
   getGetMatchesQueryKey, getGetNotificationsQueryKey, getGetProfileFollowSummaryQueryKey, getGetProfileFollowersQueryKey,
   getGetProfileFollowingQueryKey, getGetStoriesQueryKey, getGetWhoLikedYouQueryKey, getGetWhoViewedYouQueryKey,
@@ -249,19 +249,30 @@ function FollowActionButton({ profileId, viewerId, isFollowing, followsYou, chec
     setError('');
     const previous = following;
     const next = !following;
+    const summaryKey = getGetProfileFollowSummaryQueryKey(profileId);
+    const viewerKey = viewerId ? getGetProfileFollowSummaryQueryKey(viewerId) : null;
+    const previousSummary = client.getQueryData<{ followersCount: number; followingCount: number; isFollowing: boolean; followsYou: boolean }>(summaryKey);
+    const previousViewerSummary = viewerKey ? client.getQueryData<{ followersCount: number; followingCount: number; isFollowing: boolean; followsYou: boolean }>(viewerKey) : undefined;
     setOverride({ base: isFollowing, value: next });
+    if (previousSummary) client.setQueryData(summaryKey, {
+      ...previousSummary,
+      followersCount: Math.max(0, previousSummary.followersCount + (next ? 1 : -1)),
+      isFollowing: next,
+    });
+    if (viewerKey && previousViewerSummary) client.setQueryData(viewerKey, {
+      ...previousViewerSummary,
+      followingCount: Math.max(0, previousViewerSummary.followingCount + (next ? 1 : -1)),
+    });
     try {
       if (next) {
         const result = await follow.mutateAsync({ profileId });
-        client.setQueryData(getGetProfileFollowSummaryQueryKey(profileId), result);
+        client.setQueryData(summaryKey, result);
       } else {
         await unfollow.mutateAsync({ profileId });
-        client.setQueryData(getGetProfileFollowSummaryQueryKey(profileId), (old: { followersCount: number; followingCount: number; isFollowing: boolean; followsYou: boolean } | undefined) =>
-          old ? { ...old, followersCount: Math.max(0, old.followersCount - 1), isFollowing: false } : old);
       }
-      await Promise.all([
-        client.invalidateQueries({ queryKey: getGetProfileFollowSummaryQueryKey(profileId) }),
-        viewerId ? client.invalidateQueries({ queryKey: getGetProfileFollowSummaryQueryKey(viewerId) }) : Promise.resolve(),
+      void Promise.all([
+        client.invalidateQueries({ queryKey: summaryKey }),
+        viewerKey ? client.invalidateQueries({ queryKey: viewerKey }) : Promise.resolve(),
         client.invalidateQueries({ queryKey: getGetProfileFollowersQueryKey() }),
         client.invalidateQueries({ queryKey: getGetProfileFollowingQueryKey() }),
         client.invalidateQueries({ queryKey: getGetNotificationsQueryKey() }),
@@ -269,13 +280,15 @@ function FollowActionButton({ profileId, viewerId, isFollowing, followsYou, chec
       onChange?.(next);
     } catch {
       setOverride({ base: isFollowing, value: previous });
+      if (previousSummary) client.setQueryData(summaryKey, previousSummary);
+      if (viewerKey && previousViewerSummary) client.setQueryData(viewerKey, previousViewerSummary);
       setError(next ? 'Could not follow. Try again.' : 'Could not unfollow. Try again.');
     }
   }
   return <div className="sh-follow-action">
     <button type="button" onClick={() => void toggle()} disabled={pending || checking} aria-pressed={following}
       data-testid={`button-follow-${profileId}`} className={`sh-follow-button ${following ? 'sh-following' : ''}`}>
-      {pending ? 'Saving…' : checking ? 'Checking…' : following ? 'Following' : followsYou ? 'Follow back' : 'Follow'}
+      {checking ? 'Checking…' : <span className="inline-flex items-center justify-center gap-1.5">{pending&&<LoaderCircle size={13} className="animate-spin" aria-hidden="true"/>}{following ? 'Following' : followsYou ? 'Follow back' : 'Follow'}</span>}
     </button>
     {error && <span role="alert" className="sh-follow-error">{error}</span>}
   </div>;
@@ -293,21 +306,22 @@ export function ProfileSocialActions({ profileId, viewerId, showAction = true, c
     queryKey: getGetProfileFollowSummaryQueryKey(profileId),
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,
-    staleTime: 60_000,
+    staleTime: 10 * 60_000,
+    gcTime: 30 * 60_000,
+    refetchOnMount: 'always',
   } });
-  const checkingRelationship = summary.isFetching && !summary.data?.isFollowing && !summary.data?.followsYou;
   return <section className={`sh-profile-social${compact ? ' sh-profile-social-compact' : ''}`} data-testid="profile-follow-stats">
     <div className="sh-profile-stats">
       <Link href={`/profile/${profileId}/followers`} data-testid="link-profile-followers" className="sh-profile-stat">
-        <strong>{summary.isLoading ? '—' : summary.data?.followersCount ?? 0}</strong><span>Followers</span>
+        <strong>{summary.data?.followersCount ?? (summary.isError ? '—' : <span className="inline-block h-5 w-8 animate-pulse rounded bg-current/10 align-middle" aria-label="Loading followers"/>)}</strong><span>Followers</span>
       </Link>
       <Link href={`/profile/${profileId}/following`} data-testid="link-profile-following" className="sh-profile-stat">
-        <strong>{summary.isLoading ? '—' : summary.data?.followingCount ?? 0}</strong><span>Following</span>
+        <strong>{summary.data?.followingCount ?? (summary.isError ? '—' : <span className="inline-block h-5 w-8 animate-pulse rounded bg-current/10 align-middle" aria-label="Loading following"/>)}</strong><span>Following</span>
       </Link>
     </div>
     {showAction && viewerId && viewerId !== profileId && <div className="sh-profile-actions">
-      {summary.data ? <FollowActionButton profileId={profileId} viewerId={viewerId} isFollowing={summary.data.isFollowing} followsYou={summary.data.followsYou} checking={checkingRelationship} />
-        : <button type="button" disabled className="sh-follow-button">{summary.isError ? 'Unavailable' : 'Loading…'}</button>}
+      {summary.data ? <FollowActionButton profileId={profileId} viewerId={viewerId} isFollowing={summary.data.isFollowing} followsYou={summary.data.followsYou} />
+        : <button type="button" disabled aria-label={summary.isError ? 'Follow status unavailable' : 'Loading follow status'} className="sh-follow-button">{summary.isError ? 'Unavailable' : <><LoaderCircle size={15} className="animate-spin"/><span>Follow</span></>}</button>}
       {datingAction}
     </div>}
   </section>;

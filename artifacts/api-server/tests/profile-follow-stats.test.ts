@@ -27,6 +27,6 @@ test("public profile follow-back labels use the refreshed follow relationship", 
     assert.match(component, /followsYou \? ["']Follow back["'] : ["']Follow["']/);
     assert.match(component, /refetchOnWindowFocus: true/);
     assert.match(component, /refetchOnReconnect: true/);
-    assert.match(component, /staleTime: 0/);
+    assert.match(component, /staleTime: ?60_000/);
   }
 });

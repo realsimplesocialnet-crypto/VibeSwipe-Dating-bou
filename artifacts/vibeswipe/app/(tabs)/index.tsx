@@ -3,10 +3,15 @@ import {
   getGetBoostStatusQueryKey,
   getGetDailyLikeStatusQueryKey,
   getGetDiscoverProfilesQueryKey,
+  getGetProfileByIdQueryKey,
+  getGetProfileDatingStateQueryKey,
+  getGetProfileFollowSummaryQueryKey,
   getGetMatchesQueryKey,
   getGetNotificationsQueryKey,
   getGetSuperLikeStatusQueryKey,
   getGetVibeSwipeSettingsQueryKey,
+  getProfileDatingState,
+  getProfileFollowSummary,
   useBlockProfile,
   useCreateReaction,
   useActivateBoost,
@@ -48,7 +53,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useColors } from "@/hooks/useColors";
-import { profileImageSource } from "@/lib/media";
+import { profileImagePreviewSource } from "@/lib/media";
 import { MatchCelebration } from "@/components/MatchCelebration";
 
 const useDiscoveryDeck = createUseDiscoveryDeck(useState);
@@ -121,7 +126,7 @@ function SwipeCard({
       },
     ],
   };
-  const poster = profileImageSource(profile.photos[0], token);
+  const poster = profileImagePreviewSource(profile.photos[0], token);
   const heroSource = typeof poster === "number" ? poster : poster && "uri" in poster ? { uri: poster.uri, headers: poster.headers } : null;
 
   return (
@@ -250,6 +255,34 @@ export default function DiscoverScreen() {
   });
   const { profiles, index, setIndex, refill } = useDiscoveryDeck(discover.data, feedKey);
   const profile = profiles[index];
+  useEffect(() => {
+    for (const candidate of profiles.slice(index, index + 8)) {
+      const key = getGetProfileByIdQueryKey(candidate.id);
+      const cached = queryClient.getQueryState(key);
+      if (!cached?.data || Date.now() - cached.dataUpdatedAt > 10 * 60_000) {
+        void queryClient.prefetchQuery({
+          queryKey: key,
+          queryFn: async () => candidate,
+          staleTime: 10 * 60_000,
+          gcTime: 30 * 60_000,
+        });
+      }
+    }
+  }, [profiles, index, queryClient]);
+  useEffect(() => {
+    if (!token) return;
+    const sources = profiles.slice(index, index + 3)
+      .map((candidate) => profileImagePreviewSource(candidate.photos?.[0], token))
+      .filter((source): source is { uri: string } =>
+        typeof source === "object" && source !== null && "uri" in source && typeof source.uri === "string",
+      );
+    if (sources.length) {
+      void PositionedImage.prefetch(sources.map((source) => source.uri), {
+        cachePolicy: "memory-disk",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+    }
+  }, [profiles, index, token]);
   const worldwide = Boolean(profile?.discoveryExpanded || discover.data?.some(p => p.discoveryExpanded));
   const tailRequested = useRef("");
   useEffect(() => {
@@ -492,7 +525,23 @@ export default function DiscoverScreen() {
           token={token}
           onSwipe={(direction) => void swipe(direction)}
           onPressDetails={() => setDetailOpen(true)}
-          onOpenProfile={() => router.push({ pathname: "/profile/[profileId]", params: { profileId: profile.id } })}
+          onOpenProfile={() => {
+            const followKey = getGetProfileFollowSummaryQueryKey(profile.id);
+            const datingKey = getGetProfileDatingStateQueryKey(profile.id);
+            void queryClient.prefetchQuery({
+              queryKey: followKey,
+              queryFn: ({ signal }) => getProfileFollowSummary(profile.id, { signal }),
+              staleTime: 10 * 60_000,
+              gcTime: 30 * 60_000,
+            });
+            void queryClient.prefetchQuery({
+              queryKey: datingKey,
+              queryFn: ({ signal }) => getProfileDatingState(profile.id, { signal }),
+              staleTime: 10 * 60_000,
+              gcTime: 30 * 60_000,
+            });
+            router.push({ pathname: "/profile/[profileId]", params: { profileId: profile.id } });
+          }}
           topInset={topInset}
           actionBottom={actionBottom}
         />
