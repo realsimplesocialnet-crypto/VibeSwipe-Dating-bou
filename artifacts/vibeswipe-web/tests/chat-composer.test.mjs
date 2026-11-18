@@ -80,6 +80,16 @@ test('story composer returns to its entry screen when canceled or after posting'
   assert.doesNotMatch(composer, /setLocation\("\/discover"\)/);
 });
 
+test('story composer keeps media preview compact and prevents phone-width overflow', () => {
+  const stories = readFileSync(new URL('../src/components/stories/stories-ui.tsx', import.meta.url), 'utf8');
+  const composer = stories.slice(stories.indexOf('export function StoryComposerPage('));
+  assert.match(composer, /overflow-x-hidden/);
+  assert.match(composer, /story-media-preview relative mx-auto flex h-\[min\(34dvh,300px\)\] min-h-\[220px\] w-full max-w-\[360px\]/);
+  assert.match(composer, /max-h-\[280px\] max-w-full object-contain md:max-h-\[390px\]/);
+  assert.match(composer, /flex min-w-0 items-center justify-between gap-3/);
+  assert.match(composer, /min-w-0 flex-1 truncate/);
+});
+
 test('native old Messages links redirect to the one tab instead of rendering a duplicate list', () => {
   const messages = readFileSync(new URL('../../vibeswipe/app/messages.tsx', import.meta.url), 'utf8');
   assert.match(messages, /<Redirect href="\/\(tabs\)\/views" \/>/);

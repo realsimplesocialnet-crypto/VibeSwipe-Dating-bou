@@ -15,6 +15,12 @@ Back controls must sit below the iPhone clock/notch and return to the screen the
 
 **How to apply:** Account for the device's safe area once, keep Back easy to tap, and carry a validated same-app return destination through settings, verification, story creation, and other nested flows. Do not force a global home destination on cancel or completion.
 
+On phones, keep the Story composer compact and app-like: constrain photo/video previews, keep the selected filename from widening the page, and leave the posting controls easy to reach.
+
+**Why:** The user showed the mobile Story composer becoming oversized and horizontally clipped after selecting media, and asked for a normal phone-app preview.
+
+**How to apply:** Use a smaller centered media preview on narrow screens, preserve the full image with `object-fit: contain`, and truncate long filenames without allowing horizontal page overflow.
+
 Discover's bottom tabs must stay at the same screen position as Matches, including after switching tabs and using the iPhone Home Screen app. Check the rendered interaction before declaring this fixed.
 
 **Why:** The user repeatedly showed Discover alone leaving a large bottom gap and said to check it before asking them to try again.
