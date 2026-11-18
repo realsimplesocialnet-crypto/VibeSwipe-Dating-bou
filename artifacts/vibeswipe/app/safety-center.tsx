@@ -255,7 +255,7 @@ export default function SafetyCenterScreen() {
           <Feather name="arrow-left" size={20} color={colors.foreground} />
         </Pressable>
         <View>
-          <Text style={[styles.eyebrow, { color: colors.primary }]}>VIBESWIPE</Text>
+          <Text style={[styles.eyebrow, { color: colors.primary }]}>MYAGE</Text>
           <Text style={[styles.title, { color: colors.foreground }]}>Safety Center</Text>
         </View>
       </View>

@@ -322,7 +322,7 @@ export function OnboardingWizard() {
       ) : null}
 
       {step === 2 ? (
-        <StepFrame title="How old are you?" subtitle="VibeSwipe is only for adults aged 18 and over.">
+        <StepFrame title="How old are you?" subtitle="Myage is only for adults aged 18 and over.">
           <TextInput
             testID="profile-age"
             value={values.age}

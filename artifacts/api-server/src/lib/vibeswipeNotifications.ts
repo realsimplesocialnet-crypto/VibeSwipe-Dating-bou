@@ -34,13 +34,13 @@ export async function createVibeSwipeNotification(
     (input.matchId !== undefined && !uuidPattern.test(input.matchId)) ||
     (input.messageId !== undefined && !uuidPattern.test(input.messageId))
   ) {
-    throw new Error("Invalid VibeSwipe notification input.");
+    throw new Error("Invalid Myage notification input.");
   }
   const recipientId = input.recipientId.trim();
   const actorId = input.actorId.trim();
   const { type, matchId, messageId } = input;
   if (recipientId === actorId) {
-    throw new Error("A VibeSwipe notification cannot target its actor.");
+    throw new Error("A Myage notification cannot target its actor.");
   }
 
   const requiresMatch = type === "new_match" || type === "new_message";
@@ -71,7 +71,7 @@ export async function createVibeSwipeNotification(
     .where(eq(profilesTable.id, actorId))
     .limit(1);
   if (!recipient || !actor) {
-    throw new Error("VibeSwipe notification users must have profiles.");
+    throw new Error("Myage notification users must have profiles.");
   }
 
   if (matchId) {

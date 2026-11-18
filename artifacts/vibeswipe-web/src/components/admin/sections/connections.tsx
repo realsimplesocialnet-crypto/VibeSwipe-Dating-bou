@@ -43,7 +43,7 @@ export function ConnectionsSection() {
     <SectionHeader eyebrow="Friends / Connections" title="Matches and likes" right={<LiveDot fetching={r.isFetching} />} />
     <div className="mb-4 flex gap-3 rounded-xl border border-[var(--a-line)] bg-[var(--a-panel)] p-4 text-sm leading-6 text-[var(--a-mute)]" data-testid="text-connections-explainer">
       <Info size={16} className="mt-1 shrink-0 text-[var(--a-rose)]" />
-      <p>VibeSwipe has no friend-request system. A <span className="font-bold text-[var(--a-ink)]">mutual match</span> is two members liking each other, which opens a chat. A <span className="font-bold text-[var(--a-ink)]">pending like</span> is one-way and has not been returned yet.</p>
+      <p>Myage has no friend-request system. A <span className="font-bold text-[var(--a-ink)]">mutual match</span> is two members liking each other, which opens a chat. A <span className="font-bold text-[var(--a-ink)]">pending like</span> is one-way and has not been returned yet.</p>
     </div>
     <div className="a-panel overflow-hidden">
       <div className="flex items-center gap-3 border-b border-[var(--a-line)] p-3">

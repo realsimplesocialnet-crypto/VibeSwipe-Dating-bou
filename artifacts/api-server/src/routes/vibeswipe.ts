@@ -745,7 +745,7 @@ router.put("/vibeswipe/me", async (req, res): Promise<void> => {
     body.city = "";
   }
   if (body.age < 18) {
-    res.status(400).json({ error: "VibeSwipe is for adults 18 and older." });
+    res.status(400).json({ error: "Myage is for adults 18 and older." });
     return;
   }
 

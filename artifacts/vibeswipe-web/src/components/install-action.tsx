@@ -104,7 +104,7 @@ export function InstallAction({ className = '', compact = false, banner = false 
   return <div ref={bannerRef} data-testid={banner ? 'mobile-install-banner' : undefined}
     className={banner ? 'sticky top-0 z-40 border-b border-primary/20 bg-card text-card-foreground shadow-sm' : `relative ${className}`}>
     <div className={banner ? 'mx-auto flex max-w-6xl items-center gap-3 px-4 py-3' : undefined}>
-    {banner && <><img src={`${import.meta.env.BASE_URL}myage-icon-192-v7.png`} alt="" className="h-10 w-10 shrink-0 rounded-xl" /><div className="min-w-0 flex-1"><p className="text-xs font-bold leading-5">Get the full VibeSwipe experience</p><p className="text-[11px] text-muted-foreground">Add the app to your home screen</p></div></>}
+    {banner && <><img src={`${import.meta.env.BASE_URL}myage-icon-192-v7.png`} alt="" className="h-10 w-10 shrink-0 rounded-xl" /><div className="min-w-0 flex-1"><p className="text-xs font-bold leading-5">Get the full Myage experience</p><p className="text-[11px] text-muted-foreground">Add the app to your home screen</p></div></>}
     <button onClick={() => void install()} disabled={busy} aria-expanded={showHelp} aria-controls={showHelp ? helpId : undefined}
       data-testid={banner ? 'button-install-banner' : 'button-install-app'} aria-label={compact ? 'Install app options' : undefined}
       className={`inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-xl ${banner ? 'min-h-11 bg-primary px-3 text-xs font-bold text-primary-foreground hover:opacity-90' : `border border-border bg-secondary/40 ${compact ? 'h-11 w-11' : 'px-3.5 py-2.5'} text-sm font-semibold text-foreground hover:bg-secondary`} disabled:opacity-50`}>
