@@ -182,8 +182,25 @@ function ReelThumbnail({
           <Feather name="eye" size={10} color="#fff" />
           <Text numberOfLines={1} style={styles.viewCountText} testID={`text-profile-reel-views-${reel.id}`}>{viewLabel}</Text>
         </View>
+        {layout === "grid" ? (
+          <View pointerEvents="none" style={styles.engagementCounts} testID={`text-profile-reel-interactions-${reel.id}`}>
+            <Count icon="heart" value={reel.likeCount} />
+            <Count icon="message-circle" value={reel.commentCount} />
+            <Count icon="bookmark" value={reel.saveCount} />
+            <Count icon="send" value={reel.shareCount} />
+          </View>
+        ) : null}
       </View>
     </Pressable>
+  );
+}
+
+function Count({ icon, value }: { icon: "heart" | "message-circle" | "bookmark" | "send"; value: number }) {
+  return (
+    <View style={styles.engagementItem}>
+      <Feather name={icon} size={9} color="#fff" />
+      <Text numberOfLines={1} style={styles.engagementText}>{formatViewCount(value)}</Text>
+    </View>
   );
 }
 
@@ -200,6 +217,9 @@ const styles = StyleSheet.create({
   playBadge: { position: "absolute", left: "50%", top: "50%", width: 30, height: 30, marginLeft: -15, marginTop: -15, borderRadius: 15, backgroundColor: "rgba(0,0,0,0.52)", alignItems: "center", justifyContent: "center" },
   viewCount: { position: "absolute", left: 4, right: 4, bottom: 4, minHeight: 20, paddingHorizontal: 4, borderRadius: 10, backgroundColor: "rgba(0,0,0,0.72)", flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 3 },
   viewCountText: { color: "#fff", fontSize: 9, lineHeight: 12, fontWeight: "700", flexShrink: 1 },
+  engagementCounts: { position: "absolute", left: 4, right: 4, bottom: 28, minHeight: 19, flexDirection: "row", alignItems: "center", justifyContent: "space-around", gap: 2, borderRadius: 8, backgroundColor: "rgba(0,0,0,0.78)", paddingHorizontal: 2 },
+  engagementItem: { minWidth: 0, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 2 },
+  engagementText: { maxWidth: 25, color: "#fff", fontSize: 8, lineHeight: 10, fontWeight: "800" },
   empty: { fontSize: 13, lineHeight: 19, paddingVertical: 2 },
   loading: { alignSelf: "flex-start", marginVertical: 14, marginLeft: 4 },
   more: { width: 34 },

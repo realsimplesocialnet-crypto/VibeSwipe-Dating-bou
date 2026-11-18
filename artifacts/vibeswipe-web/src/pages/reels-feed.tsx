@@ -352,13 +352,18 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
   }
 
   async function toggle(kind: "like" | "save", reel: Reel) {
-    const before = { likedByMe: reel.likedByMe, likeCount: reel.likeCount, savedByMe: reel.savedByMe };
+    const before = { likedByMe: reel.likedByMe, likeCount: reel.likeCount, savedByMe: reel.savedByMe, saveCount: reel.saveCount };
     const on = kind === "like" ? !reel.likedByMe : !reel.savedByMe;
-    patch(reel.id, kind === "like" ? { likedByMe: on, likeCount: Math.max(0, reel.likeCount + (on ? 1 : -1)) } : { savedByMe: on });
+    patch(reel.id, kind === "like"
+      ? { likedByMe: on, likeCount: Math.max(0, reel.likeCount + (on ? 1 : -1)) }
+      : { savedByMe: on, saveCount: Math.max(0, reel.saveCount + (on ? 1 : -1)) });
     try {
       const mutation = kind === "like" ? (on ? like : unlike) : (on ? save : unsave);
       patch(reel.id, await mutation.mutateAsync({ reelId: reel.id }));
       if (kind === "save") void client.invalidateQueries({ queryKey: getGetSavedReelsQueryKey() });
+      void client.invalidateQueries({ queryKey: getGetReelQueryKey(reel.id) });
+      void client.invalidateQueries({ queryKey: getGetProfileReelsQueryKey({ profileId: reel.creatorId }) });
+      void client.invalidateQueries({ queryKey: getGetMyReelsQueryKey() });
     } catch (error) {
       patch(reel.id, before);
       if ((error as { status?: number }).status === 404) { setRemoved((set) => new Set(set).add(reel.id)); setNotice("This Reel is no longer available."); }
@@ -502,7 +507,12 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
       {notice && <p role="status" className="reels-notice" data-testid="status-reels">{notice}</p>}
       {initialReelId && single.isError && <p role="status" className="reels-notice" data-testid="status-reel-unavailable">That Reel is no longer available. Showing other Reels.</p>}
     </div>
-    {commentReel && <ReelComments key={commentReel.id} reelId={commentReel.id} creatorId={commentReel.creatorId} returnTo={returnTo} focusCommentId={initialCommentId} onClose={closeComments} onCountChange={(delta) => patch(commentReel.id, { commentCount: Math.max(0, commentReel.commentCount + delta) })} />}
+    {commentReel && <ReelComments key={commentReel.id} reelId={commentReel.id} creatorId={commentReel.creatorId} returnTo={returnTo} commentCount={commentReel.commentCount} focusCommentId={initialCommentId} onClose={closeComments} onCountChange={(delta) => {
+      patch(commentReel.id, { commentCount: Math.max(0, commentReel.commentCount + delta) });
+      void client.invalidateQueries({ queryKey: getGetReelQueryKey(commentReel.id) });
+      void client.invalidateQueries({ queryKey: getGetProfileReelsQueryKey({ profileId: commentReel.creatorId }) });
+      void client.invalidateQueries({ queryKey: getGetMyReelsQueryKey() });
+    }} />}
     {shareFor && <ReelShareSheet reel={shareFor} onClose={() => setShareFor(null)} onCountChange={(count) => patchShareCount(shareFor.id, count)} />}
     {deleteFor && <div className="reel-sheet-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setDeleteFor(null); }}>
       <section className="reel-sheet" role="alertdialog" aria-modal="true" aria-label="Delete Reel">

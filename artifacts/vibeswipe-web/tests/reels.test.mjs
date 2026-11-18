@@ -165,6 +165,25 @@ test("Reels routes sit outside the main navigation shell and comments sit below 
   assert.match(css, /\.reel-comments \{ flex: 0 0 auto/);
 });
 
+test("Reel action rail and profile grid show persisted like, comment, save and share counts", () => {
+  const slide = read("../src/components/reels/reel-slide.tsx");
+  const profile = read("../src/components/profile-reels-section.tsx");
+  const mobileProfile = read("../../vibeswipe/components/ProfileReelsSection.tsx");
+  for (const file of [slide, profile, mobileProfile]) {
+    assert.match(file, /saveCount/);
+    assert.match(file, /likeCount/);
+    assert.match(file, /commentCount/);
+    assert.match(file, /shareCount/);
+  }
+  assert.match(slide, /text-save-count-\$\{reel\.id\}/);
+  assert.match(profile, /text-profile-reel-interactions-\$\{reel\.id\}/);
+  assert.match(mobileProfile, /text-profile-reel-interactions-\$\{reel\.id\}/);
+  const nativeReel = read("../../vibeswipe/app/reels/[reelId].tsx");
+  for (const id of ["button-like-reel", "button-comments-reel", "button-save-reel", "button-share-reel", "button-post-reel-comment"]) {
+    assert.ok(nativeReel.includes(id), `native Reel action is missing ${id}`);
+  }
+});
+
 test("Reels UI copy contains no emoji", () => {
   for (const file of ["../src/pages/reels-feed.tsx", "../src/pages/reel-composer.tsx", "../src/pages/reels-library.tsx", "../src/components/reels/reel-slide.tsx", "../src/components/reels/reel-comments.tsx", "../src/components/reels/reel-share-sheet.tsx"]) {
     assert.ok(!/\p{Extended_Pictographic}/u.test(read(file)), file);

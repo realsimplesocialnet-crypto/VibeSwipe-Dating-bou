@@ -11,4 +11,8 @@ export interface ReelEngagement {
   savedByMe: boolean;
   likeCount: number;
   commentCount: number;
+  /** @minimum 0 */
+  saveCount: number;
+  /** @minimum 0 */
+  shareCount: number;
 }

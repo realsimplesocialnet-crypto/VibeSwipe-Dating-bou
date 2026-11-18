@@ -26,6 +26,8 @@ export interface Reel {
   viewCount: number;
   /** @minimum 0 */
   shareCount: number;
+  /** @minimum 0 */
+  saveCount: number;
   likedByMe: boolean;
   savedByMe: boolean;
   isOwner: boolean;

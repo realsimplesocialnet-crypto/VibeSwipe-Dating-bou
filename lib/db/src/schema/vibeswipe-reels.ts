@@ -44,6 +44,14 @@ export const reelSavesTable = pgTable("vibeswipe_reel_saves", {
   byUser: index("vibeswipe_reel_saves_user_idx").on(t.userId, t.createdAt),
 }));
 
+export const reelSharesTable = pgTable("vibeswipe_reel_shares", {
+  reelId: uuid("reel_id").notNull().references(() => reelsTable.id, { onDelete: "cascade" }),
+  userId: text("user_id").notNull().references(() => profilesTable.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  pk: primaryKey({ name: "vibeswipe_reel_shares_pk", columns: [t.reelId, t.userId] }),
+}));
+
 export const reelCommentsTable = pgTable("vibeswipe_reel_comments", {
   id: uuid("id").defaultRandom().primaryKey(),
   reelId: uuid("reel_id").notNull().references(() => reelsTable.id, { onDelete: "cascade" }),

@@ -85,14 +85,36 @@ test("Reel playback counts persist, return immediately, and exclude creator self
   assert.match(schema, /ADD COLUMN IF NOT EXISTS view_count integer NOT NULL DEFAULT 0/);
 });
 
-test("completed Reel shares increment a persistent count and return it to the client", () => {
+test("Reel shares count one persisted interaction per account and preserve the old aggregate", () => {
   assert.match(apiSpec, /\/vibeswipe\/reels\/\{reelId\}\/shares:/);
   assert.match(apiSpec, /shareCount: \{ type: integer, minimum: 0 \}/);
   assert.match(reelTable, /shareCount: integer\("share_count"\)\.notNull\(\)\.default\(0\)/);
+  assert.match(reelTable, /export const reelSharesTable = pgTable\("vibeswipe_reel_shares"/);
+  assert.match(reelTable, /primaryKey\(\{ name: "vibeswipe_reel_shares_pk", columns: \[t\.reelId, t\.userId\] \}\)/);
   assert.match(reels, /router\.post\("\/vibeswipe\/reels\/:reelId\/shares"/);
-  assert.match(reels, /shareCount: sql`\$\{reelsTable\.shareCount\} \+ 1`/);
+  assert.match(reels, /\.insert\(reelSharesTable\)[\s\S]*?\.onConflictDoNothing\(\)/);
+  assert.match(reels, /shareCount: sql<number>`\$\{reelsTable\.shareCount\} \+ \(SELECT count\(\*\)::int FROM \$\{reelSharesTable\}/);
   assert.match(reels, /shareCount: Number\(updated\.shareCount\)/);
   assert.match(reels, /shareCount: Number\(row\.shareCount\)/);
+  assert.match(schema, /ADD COLUMN IF NOT EXISTS share_count integer NOT NULL DEFAULT 0/);
+  assert.match(schema, /CREATE TABLE IF NOT EXISTS vibeswipe_reel_shares/);
+});
+
+test("like and save endpoints return counts from unique persisted rows", () => {
+  assert.match(reelTable, /vibeswipe_reel_likes_pk[\s\S]*columns: \[t\.reelId, t\.userId\]/);
+  assert.match(reelTable, /vibeswipe_reel_saves_pk[\s\S]*columns: \[t\.reelId, t\.userId\]/);
+  assert.match(reels, /saveCount: sql<number>`\(SELECT count\(\*\)::int FROM \$\{reelSavesTable\}/);
+  assert.match(reels, /saveCount: Number\(row\.saveCount\)/);
+  assert.match(reels, /saveCount: Number\(row\.saveCount\), shareCount: Number\(row\.shareCount\)/);
+  assert.match(apiSpec, /saveCount: \{ type: integer, minimum: 0 \}/);
+  assert.match(apiSpec, /required: \[likedByMe, savedByMe, likeCount, commentCount, saveCount, shareCount\]/);
+});
+
+test("comments remain repeatable per account and Reel counts include the full comment total", () => {
+  assert.match(reelTable, /export const reelCommentsTable = pgTable\("vibeswipe_reel_comments", \{\s+id: uuid\("id"\)\.defaultRandom\(\)\.primaryKey\(\)/);
+  assert.doesNotMatch(reelTable.match(/export const reelCommentsTable = pgTable\([\s\S]*?\n\}\);/)?.[0] ?? "", /unique|primaryKey\(\{[^}]*userId/);
+  assert.match(reels, /commentCount: sql<number>`\(SELECT count\(\*\)::int FROM \$\{reelCommentsTable\}/);
+  assert.match(reels, /tx\.insert\(reelCommentsTable\)\.values/);
 });
 
 test("the share sheet counts only completed shares and displays the updated total", () => {

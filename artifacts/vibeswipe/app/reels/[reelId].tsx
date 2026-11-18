@@ -1,19 +1,29 @@
 import { useAuth } from "@clerk/expo";
 import {
   getGetMatchesQueryKey,
+  getGetMyReelsQueryKey,
   getGetProfileReelsQueryKey,
   getGetReelQueryKey,
+  getGetReelCommentsQueryKey,
+  getGetReelsFeedQueryKey,
+  useCreateReelComment,
   useGetMatches,
   useGetReel,
+  useGetReelComments,
+  useLikeReel,
   useRecordReelShare,
   useRecordReelView,
+  useSaveReel,
   useSendMessage,
+  useUnlikeReel,
+  useUnsaveReel,
+  type Reel,
 } from "@workspace/api-client-react";
 import { Feather } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import { VideoView, useVideoPlayer } from "expo-video";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { useQueryClient } from "@tanstack/react-query";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { usePremiumColors } from "@/hooks/useColors";
@@ -28,17 +38,28 @@ export default function ProfileReelScreen() {
   const insets = useSafeAreaInsets();
   const [token, setToken] = useState<string | null>(null);
   const [shareVisible, setShareVisible] = useState(false);
+  const [commentsVisible, setCommentsVisible] = useState(false);
+  const [commentDraft, setCommentDraft] = useState("");
   const [pendingMatchId, setPendingMatchId] = useState<string | null>(null);
   const [sentTo, setSentTo] = useState<Record<string, boolean>>({});
   const [shareError, setShareError] = useState("");
+  const [actionError, setActionError] = useState("");
   const recordView = useRecordReelView();
   const recordShare = useRecordReelShare();
+  const likeReel = useLikeReel();
+  const unlikeReel = useUnlikeReel();
+  const saveReel = useSaveReel();
+  const unsaveReel = useUnsaveReel();
+  const createComment = useCreateReelComment();
   const matches = useGetMatches({
     query: { queryKey: getGetMatchesQueryKey(), enabled: shareVisible },
   });
   const sendMessage = useSendMessage();
   const viewRecorded = useRef(false);
-  const reelQuery = useGetReel(reelId ?? "", { query: { enabled: Boolean(reelId) } });
+  const reelQuery = useGetReel(reelId ?? "", { query: { enabled: Boolean(reelId), refetchInterval: 5_000 } });
+  const commentsQuery = useGetReelComments(reelId ?? "", {
+    query: { enabled: commentsVisible && Boolean(reelId), refetchInterval: commentsVisible ? 5_000 : false },
+  });
 
   useEffect(() => {
     let active = true;
@@ -91,6 +112,54 @@ export default function ProfileReelScreen() {
     }
   }
 
+  function refreshReelLists(creatorId: string) {
+    void queryClient.invalidateQueries({ queryKey: getGetProfileReelsQueryKey({ profileId: creatorId }) });
+    void queryClient.invalidateQueries({ queryKey: getGetMyReelsQueryKey() });
+    void queryClient.invalidateQueries({ queryKey: getGetReelsFeedQueryKey() });
+  }
+
+  async function toggleLike() {
+    const reel = reelQuery.data;
+    if (!reel || likeReel.isPending || unlikeReel.isPending) return;
+    setActionError("");
+    try {
+      const result = await (reel.likedByMe ? unlikeReel : likeReel).mutateAsync({ reelId: reel.id });
+      queryClient.setQueryData<Reel>(getGetReelQueryKey(reel.id), (current) => current ? { ...current, ...result } : current);
+      refreshReelLists(reel.creatorId);
+    } catch {
+      setActionError("Your like did not save. Try again.");
+    }
+  }
+
+  async function toggleSave() {
+    const reel = reelQuery.data;
+    if (!reel || saveReel.isPending || unsaveReel.isPending) return;
+    setActionError("");
+    try {
+      const result = await (reel.savedByMe ? unsaveReel : saveReel).mutateAsync({ reelId: reel.id });
+      queryClient.setQueryData<Reel>(getGetReelQueryKey(reel.id), (current) => current ? { ...current, ...result } : current);
+      refreshReelLists(reel.creatorId);
+    } catch {
+      setActionError("Saving did not work. Try again.");
+    }
+  }
+
+  async function postComment() {
+    const reel = reelQuery.data;
+    const content = commentDraft.trim();
+    if (!reel || !content || createComment.isPending) return;
+    setActionError("");
+    try {
+      const comment = await createComment.mutateAsync({ reelId: reel.id, data: { content } });
+      queryClient.setQueryData(getGetReelCommentsQueryKey(reel.id), (current: typeof commentsQuery.data) => [...(current ?? []), comment]);
+      queryClient.setQueryData<Reel>(getGetReelQueryKey(reel.id), (current) => current ? { ...current, commentCount: current.commentCount + 1 } : current);
+      setCommentDraft("");
+      refreshReelLists(reel.creatorId);
+    } catch {
+      setActionError("Your comment did not post. Try again.");
+    }
+  }
+
   async function shareToMatch(matchId: string) {
     const reel = reelQuery.data;
     if (!reel || pendingMatchId || sentTo[matchId]) return;
@@ -108,9 +177,7 @@ export default function ProfileReelScreen() {
         queryClient.setQueryData(getGetReelQueryKey(reel.id), (current) =>
           current ? { ...current, shareCount: result.shareCount } : current,
         );
-        void queryClient.invalidateQueries({
-          queryKey: getGetProfileReelsQueryKey({ profileId: reel.creatorId }),
-        });
+        refreshReelLists(reel.creatorId);
       } catch {
         setShareError("Sent, but the share count could not be updated.");
       }
@@ -131,21 +198,7 @@ export default function ProfileReelScreen() {
             <Feather name="arrow-left" size={22} color={colors.foreground} />
           </Pressable>
           <Text style={[styles.headerTitle, { color: colors.foreground }]}>Reels</Text>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={`Share Reel, ${reelQuery.data?.shareCount ?? 0} shares`}
-            testID="button-share-reel"
-            disabled={!reelQuery.data}
-            onPress={() => {
-              setShareError("");
-              setShareVisible(true);
-            }}
-            style={styles.shareButton}
-          >
-            <Feather name="share-2" size={18} color={colors.primary} />
-            <Text style={[styles.shareButtonText, { color: colors.primary }]}>Share</Text>
-            {reelQuery.data ? <Text style={[styles.shareCount, { color: colors.mutedForeground }]}>{reelQuery.data.shareCount}</Text> : null}
-          </Pressable>
+          <View style={styles.headerSpacer} />
         </View>
         <View style={styles.videoStage}>
           {source ? (
@@ -158,6 +211,57 @@ export default function ProfileReelScreen() {
               <Pressable accessibilityRole="button" onPress={() => void reelQuery.refetch()}><Text style={[styles.retry, { color: colors.primary }]}>Try again</Text></Pressable>
             </View>
           ) : null}
+          {reelQuery.data ? (
+            <View style={styles.actionRail}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`${reelQuery.data.likedByMe ? "Unlike" : "Like"}, ${reelQuery.data.likeCount}`}
+                accessibilityState={{ selected: reelQuery.data.likedByMe, disabled: likeReel.isPending || unlikeReel.isPending }}
+                testID="button-like-reel"
+                disabled={likeReel.isPending || unlikeReel.isPending}
+                onPress={() => void toggleLike()}
+                style={styles.actionButton}
+              >
+                <Feather name="heart" size={25} color={reelQuery.data.likedByMe ? colors.primary : "#fff"} />
+                <Text style={styles.actionCount}>{reelQuery.data.likeCount}</Text>
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`Comments, ${reelQuery.data.commentCount}`}
+                testID="button-comments-reel"
+                onPress={() => setCommentsVisible(true)}
+                style={styles.actionButton}
+              >
+                <Feather name="message-circle" size={25} color="#fff" />
+                <Text style={styles.actionCount}>{reelQuery.data.commentCount}</Text>
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`Share Reel, ${reelQuery.data.shareCount} shares`}
+                testID="button-share-reel"
+                onPress={() => {
+                  setShareError("");
+                  setShareVisible(true);
+                }}
+                style={styles.actionButton}
+              >
+                <Feather name="send" size={24} color="#fff" />
+                <Text style={styles.actionCount}>{reelQuery.data.shareCount}</Text>
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`${reelQuery.data.savedByMe ? "Remove from saved" : "Save"}, ${reelQuery.data.saveCount}`}
+                accessibilityState={{ selected: reelQuery.data.savedByMe, disabled: saveReel.isPending || unsaveReel.isPending }}
+                testID="button-save-reel"
+                disabled={saveReel.isPending || unsaveReel.isPending}
+                onPress={() => void toggleSave()}
+                style={styles.actionButton}
+              >
+                <Feather name="bookmark" size={25} color={reelQuery.data.savedByMe ? colors.primary : "#fff"} />
+                <Text style={styles.actionCount}>{reelQuery.data.saveCount}</Text>
+              </Pressable>
+            </View>
+          ) : null}
         </View>
         {reelQuery.data ? (
           <View style={styles.caption}>
@@ -165,6 +269,7 @@ export default function ProfileReelScreen() {
               {reelQuery.data.creatorName}{reelQuery.data.creatorAge ? `, ${reelQuery.data.creatorAge}` : ""}
             </Text>
             {reelQuery.data.caption ? <Text style={[styles.captionText, { color: colors.mutedForeground }]}>{reelQuery.data.caption}</Text> : null}
+            {actionError ? <Text accessibilityRole="alert" style={[styles.shareError, { color: colors.destructive }]}>{actionError}</Text> : null}
           </View>
         ) : null}
       </View>
@@ -224,6 +329,57 @@ export default function ProfileReelScreen() {
           </View>
         </View>
       </Modal>
+      <Modal transparent visible={commentsVisible} animationType="slide" onRequestClose={() => setCommentsVisible(false)}>
+        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={styles.commentBackdrop}>
+          <Pressable accessibilityRole="button" accessibilityLabel="Close comments" onPress={() => setCommentsVisible(false)} style={StyleSheet.absoluteFill} />
+          <View style={[styles.commentSheet, { backgroundColor: colors.card }]}>
+            <View style={styles.shareHeading}>
+              <Text style={[styles.shareTitle, { color: colors.foreground }]}>Comments <Text style={{ color: colors.mutedForeground }}>{reelQuery.data?.commentCount ?? 0}</Text></Text>
+              <Pressable accessibilityRole="button" accessibilityLabel="Close comments" onPress={() => setCommentsVisible(false)} style={styles.closeShare}>
+                <Feather name="x" size={20} color={colors.foreground} />
+              </Pressable>
+            </View>
+            {commentsQuery.isLoading ? (
+              <ActivityIndicator color={colors.primary} style={styles.shareLoading} />
+            ) : commentsQuery.isError ? (
+              <Pressable accessibilityRole="button" onPress={() => void commentsQuery.refetch()} style={styles.shareEmpty}>
+                <Text style={[styles.shareEmptyText, { color: colors.mutedForeground }]}>Comments could not load. Tap to retry.</Text>
+              </Pressable>
+            ) : (
+              <ScrollView style={styles.commentList} keyboardShouldPersistTaps="handled">
+                {(commentsQuery.data ?? []).map((comment) => (
+                  <View key={comment.id} style={styles.commentRow}>
+                    <ProfileAvatar profile={{ name: comment.authorName, photos: comment.authorPhoto ? [comment.authorPhoto] : [] } as never} size={34} />
+                    <View style={styles.commentCopy}>
+                      <Text style={[styles.commentAuthor, { color: colors.foreground }]}>{comment.authorName}</Text>
+                      <Text style={[styles.commentText, { color: colors.mutedForeground }]}>{comment.content}</Text>
+                    </View>
+                  </View>
+                ))}
+                {!commentsQuery.data?.length ? <Text style={[styles.shareEmptyText, { color: colors.mutedForeground }]}>{reelQuery.data?.commentCount ? "Comments aren’t available right now." : "No comments yet. Say something kind."}</Text> : null}
+              </ScrollView>
+            )}
+            {actionError ? <Text accessibilityRole="alert" style={[styles.shareError, { color: colors.destructive }]}>{actionError}</Text> : null}
+            <View style={[styles.commentComposer, { borderColor: colors.border }]}>
+              <TextInput
+                accessibilityLabel="Add a comment"
+                testID="input-reel-comment"
+                value={commentDraft}
+                onChangeText={setCommentDraft}
+                maxLength={500}
+                placeholder="Add a comment"
+                placeholderTextColor={colors.mutedForeground}
+                style={[styles.commentInput, { color: colors.foreground }]}
+                returnKeyType="send"
+                onSubmitEditing={() => void postComment()}
+              />
+              <Pressable accessibilityRole="button" accessibilityLabel="Post comment" testID="button-post-reel-comment" disabled={!commentDraft.trim() || createComment.isPending} onPress={() => void postComment()} style={[styles.commentSend, { backgroundColor: colors.primary }, (!commentDraft.trim() || createComment.isPending) && styles.disabled]}>
+                {createComment.isPending ? <ActivityIndicator size="small" color={colors.primaryForeground} /> : <Feather name="arrow-up" size={19} color={colors.primaryForeground} />}
+              </Pressable>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -232,12 +388,13 @@ const styles = StyleSheet.create({
   safe: { flex: 1 },
   page: { flex: 1, paddingHorizontal: 12 },
   header: { height: 54, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  headerSpacer: { width: 42 },
   back: { width: 42, height: 42, alignItems: "center", justifyContent: "center" },
   headerTitle: { fontSize: 19, fontWeight: "800" },
-  shareButton: { minWidth: 78, height: 42, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 5 },
-  shareButtonText: { fontSize: 13, fontWeight: "800" },
-  shareCount: { fontSize: 11, fontWeight: "700" },
   videoStage: { flex: 1, minHeight: 200, borderRadius: 18, overflow: "hidden", backgroundColor: "#000", alignItems: "center", justifyContent: "center" },
+  actionRail: { position: "absolute", right: 8, bottom: 16, alignItems: "center", gap: 16 },
+  actionButton: { minWidth: 42, minHeight: 48, alignItems: "center", justifyContent: "center", gap: 2 },
+  actionCount: { color: "#fff", fontSize: 11, fontWeight: "800", textShadowColor: "#000", textShadowRadius: 4 },
   caption: { paddingHorizontal: 4, paddingVertical: 14, gap: 5 },
   creator: { fontSize: 15, fontWeight: "700" },
   captionText: { fontSize: 14, lineHeight: 20 },
@@ -255,6 +412,17 @@ const styles = StyleSheet.create({
   shareEmpty: { minHeight: 76, justifyContent: "center" },
   shareEmptyText: { paddingVertical: 15, fontSize: 13, lineHeight: 19 },
   shareList: { marginBottom: 4 },
+  commentBackdrop: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.55)" },
+  commentSheet: { maxHeight: "68%", minHeight: "46%", borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 16, paddingTop: 12, paddingBottom: 12 },
+  commentList: { flexGrow: 1, marginVertical: 8 },
+  commentRow: { flexDirection: "row", gap: 10, paddingVertical: 9 },
+  commentCopy: { flex: 1, gap: 3 },
+  commentAuthor: { fontSize: 12, fontWeight: "800" },
+  commentText: { fontSize: 13, lineHeight: 18 },
+  commentComposer: { minHeight: 48, flexDirection: "row", alignItems: "center", gap: 8, borderWidth: 1, borderRadius: 26, paddingLeft: 14, paddingRight: 4 },
+  commentInput: { minWidth: 0, flex: 1, paddingVertical: 8, fontSize: 15 },
+  commentSend: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center" },
+  disabled: { opacity: 0.45 },
   shareRecipient: { minHeight: 62, flexDirection: "row", alignItems: "center", gap: 11, borderRadius: 16, paddingHorizontal: 10, marginVertical: 3 },
   shareRecipientSent: { opacity: 0.76 },
   shareRecipientName: { flex: 1, fontSize: 14, fontWeight: "700" },

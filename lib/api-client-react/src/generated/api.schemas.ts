@@ -1280,6 +1280,8 @@ export interface Reel {
   viewCount: number;
   /** @minimum 0 */
   shareCount: number;
+  /** @minimum 0 */
+  saveCount: number;
   likedByMe: boolean;
   savedByMe: boolean;
   isOwner: boolean;
@@ -1313,6 +1315,10 @@ export interface ReelEngagement {
   savedByMe: boolean;
   likeCount: number;
   commentCount: number;
+  /** @minimum 0 */
+  saveCount: number;
+  /** @minimum 0 */
+  shareCount: number;
 }
 
 export interface ReelComment {

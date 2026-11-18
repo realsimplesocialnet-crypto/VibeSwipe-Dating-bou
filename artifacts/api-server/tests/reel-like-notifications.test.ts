@@ -129,7 +129,8 @@ test("Reels start with sound requested and keep the volume control", () => {
   assert.match(feed, /const \[muted, setMuted\] = useState\(false\)/);
   assert.match(feed, /aria-label=\{muted \? "Turn sound on" : "Mute"\}/);
   assert.match(slide, /playsInline muted=\{muted\} loop/);
-  assert.match(slide, /Your browser paused autoplay\. Tap to play\./);
+  assert.doesNotMatch(slide, /Your browser paused autoplay\. Tap to play\./);
+  assert.match(slide, /data-testid="button-reel-autoplay-blocked"/);
 });
 
 test("Reel comments close by tapping the video or swiping down and use a compact composer", () => {

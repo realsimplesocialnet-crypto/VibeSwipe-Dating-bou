@@ -7,7 +7,7 @@ import {
   RecordReelShareResponse, RecordReelViewResponse, TranscodeReelVideoParams, TranscodeReelVideoResponse,
 } from "@workspace/api-zod";
 import {
-  blocksTable, db, mediaAssetsTable, profilesTable, reelCommentsTable, reelLikesTable, reelSavesTable, reelViewsTable, reelsTable, storiesTable, vibeSwipeFollowsTable, vibeSwipeNotificationsTable,
+  blocksTable, db, mediaAssetsTable, profilesTable, reelCommentsTable, reelLikesTable, reelSavesTable, reelSharesTable, reelViewsTable, reelsTable, storiesTable, vibeSwipeFollowsTable, vibeSwipeNotificationsTable,
 } from "@workspace/db";
 import { and, asc, desc, eq, isNull, ne, or, sql, type SQL } from "drizzle-orm";
 import { Router, type IRouter, type Request } from "express";
@@ -68,11 +68,12 @@ function reelColumns(viewerId: string) {
     id: reelsTable.id, userId: reelsTable.userId, mediaId: reelsTable.mediaId, caption: reelsTable.caption,
     durationSeconds: reelsTable.durationSeconds, createdAt: reelsTable.createdAt,
     viewCount: sql<number>`(SELECT count(*)::int FROM ${reelViewsTable} WHERE ${reelViewsTable.reelId} = ${reelsTable.id})`,
-    shareCount: reelsTable.shareCount,
+    shareCount: sql<number>`${reelsTable.shareCount} + (SELECT count(*)::int FROM ${reelSharesTable} WHERE ${reelSharesTable.reelId} = ${reelsTable.id})`,
     name: profilesTable.name, age: profilesTable.age, showAge: profilesTable.showAge, city: profilesTable.city,
     state: profilesTable.state, country: profilesTable.country, isVerified: profilesTable.isVerified, photos: profilesTable.photos,
     likeCount: sql<number>`(SELECT count(*)::int FROM ${reelLikesTable} WHERE ${reelLikesTable.reelId} = ${reelsTable.id})`,
     commentCount: sql<number>`(SELECT count(*)::int FROM ${reelCommentsTable} WHERE ${reelCommentsTable.reelId} = ${reelsTable.id})`,
+    saveCount: sql<number>`(SELECT count(*)::int FROM ${reelSavesTable} WHERE ${reelSavesTable.reelId} = ${reelsTable.id})`,
     likedByMe: sql<boolean>`EXISTS (SELECT 1 FROM ${reelLikesTable} WHERE ${reelLikesTable.reelId} = ${reelsTable.id} AND ${reelLikesTable.userId} = ${viewerId})`,
     savedByMe: sql<boolean>`EXISTS (SELECT 1 FROM ${reelSavesTable} WHERE ${reelSavesTable.reelId} = ${reelsTable.id} AND ${reelSavesTable.userId} = ${viewerId})`,
   };
@@ -93,7 +94,7 @@ function project(row: ReelRow, viewerId: string) {
     creatorLocation: reelLocation([row.city, row.state, row.country]), creatorVerified: row.isVerified,
     creatorPhoto: row.photos[0] ?? null, videoReference: `media:${row.mediaId}`, caption: row.caption,
     durationSeconds: row.durationSeconds, likeCount: Number(row.likeCount), commentCount: Number(row.commentCount),
-    viewCount: Number(row.viewCount), shareCount: Number(row.shareCount),
+    viewCount: Number(row.viewCount), shareCount: Number(row.shareCount), saveCount: Number(row.saveCount),
     likedByMe: Boolean(row.likedByMe), savedByMe: Boolean(row.savedByMe), isOwner: row.userId === viewerId, createdAt: row.createdAt,
   };
 }
@@ -105,7 +106,11 @@ async function findVisibleReel(viewerId: string, reelId: string) {
 
 async function engagement(viewerId: string, reelId: string) {
   const row = await findVisibleReel(viewerId, reelId);
-  return row ? { likedByMe: Boolean(row.likedByMe), savedByMe: Boolean(row.savedByMe), likeCount: Number(row.likeCount), commentCount: Number(row.commentCount) } : null;
+  return row ? {
+    likedByMe: Boolean(row.likedByMe), savedByMe: Boolean(row.savedByMe),
+    likeCount: Number(row.likeCount), commentCount: Number(row.commentCount),
+    saveCount: Number(row.saveCount), shareCount: Number(row.shareCount),
+  } : null;
 }
 
 function afterCursor(cursorText: string | undefined, column: typeof reelsTable.createdAt | typeof reelSavesTable.createdAt): SQL | undefined | false {
@@ -272,13 +277,10 @@ router.post("/vibeswipe/reels/:reelId/shares", async (req, res): Promise<void> =
   const viewerId = uid(req);
   const reel = await findVisibleReel(viewerId, params.data.reelId);
   if (!reel) { res.status(404).json({ error: "This Reel is no longer available." }); return; }
-  const [updated] = await db.update(reelsTable)
-    .set({ shareCount: sql`${reelsTable.shareCount} + 1` })
-    .where(and(
-      eq(reelsTable.id, params.data.reelId),
-      visibleReelCondition(viewerId),
-    ))
-    .returning({ shareCount: reelsTable.shareCount });
+  await db.insert(reelSharesTable)
+    .values({ reelId: params.data.reelId, userId: viewerId })
+    .onConflictDoNothing();
+  const updated = await findVisibleReel(viewerId, params.data.reelId);
   if (!updated) { res.status(404).json({ error: "This Reel is no longer available." }); return; }
   res.json(RecordReelShareResponse.parse({ shareCount: Number(updated.shareCount) }));
 });

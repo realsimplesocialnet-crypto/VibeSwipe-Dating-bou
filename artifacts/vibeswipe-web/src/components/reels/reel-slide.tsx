@@ -149,7 +149,7 @@ export function ReelSlide({ reel, index, active, near, muted, pageHidden, compac
       </button>
       <button type="button" onClick={onShare} aria-label={`Share, ${formatCount(reel.shareCount)} shares`} data-testid={`button-share-reel-${reel.id}`}><Send size={27} strokeWidth={1.8} /><span data-testid={`text-share-count-${reel.id}`}>{formatCount(reel.shareCount)}</span></button>
       <button type="button" onClick={onSave} aria-pressed={reel.savedByMe} aria-label={reel.savedByMe ? "Remove from saved" : "Save"} data-testid={`button-save-reel-${reel.id}`} className={reel.savedByMe ? "is-saved" : ""}>
-        <Bookmark size={28} strokeWidth={1.8} fill={reel.savedByMe ? "currentColor" : "none"} />
+        <Bookmark size={28} strokeWidth={1.8} fill={reel.savedByMe ? "currentColor" : "none"} /><span data-testid={`text-save-count-${reel.id}`}>{formatCount(reel.saveCount)}</span>
       </button>
       <button type="button" onClick={onSaveOffline} disabled={offlineSaved || offlineSaving} aria-label={offlineSaved ? "Saved for offline replay" : offlineSaving ? "Saving video offline" : "Save video offline"} data-testid={`button-save-reel-offline-${reel.id}`} className={offlineSaved ? "is-saved" : ""}>
         {offlineSaved ? <Check size={25} strokeWidth={2}/> : <Download size={25} strokeWidth={1.8}/>}

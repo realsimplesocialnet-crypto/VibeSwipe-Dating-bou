@@ -1,5 +1,5 @@
 import { useInfiniteQuery } from "@tanstack/react-query";
-import { Clapperboard, Eye, Play } from "lucide-react";
+import { Bookmark, Clapperboard, Eye, Heart, MessageCircle, Play, Send } from "lucide-react";
 import { Link } from "wouter";
 import { getGetProfileReelsQueryKey, getProfileReels, type Reel } from "@workspace/api-client-react";
 import { formatCount, reelMediaUrl } from "@/lib/reels";
@@ -95,10 +95,11 @@ export function ProfileReelsSection({
 
 function ProfileReelThumbnail({ reel, returnTo, layout }: { reel: Reel; returnTo: string; layout: "carousel" | "grid" }) {
   const viewCount = Number(reel.viewCount ?? 0);
+  const interactionCounts = `${formatCount(reel.likeCount)} likes, ${formatCount(reel.commentCount)} comments, ${formatCount(reel.saveCount)} saves, ${formatCount(reel.shareCount)} shares`;
   return (
     <Link
       href={`/reels/${encodeURIComponent(reel.id)}?profileId=${encodeURIComponent(reel.creatorId)}&returnTo=${encodeURIComponent(returnTo)}`}
-      aria-label={`Play Reel: ${reel.caption || `posted by ${reel.creatorName}`}, ${formatCount(viewCount)} ${viewCount === 1 ? "view" : "views"}`}
+      aria-label={`Play Reel: ${reel.caption || `posted by ${reel.creatorName}`}, ${formatCount(viewCount)} ${viewCount === 1 ? "view" : "views"}, ${interactionCounts}`}
       data-testid={`link-profile-reel-${reel.id}`}
       className={`group relative overflow-hidden rounded-xl border border-white/10 bg-black/40 shadow-md ${layout === "grid" ? "aspect-[3/4] w-full min-w-0" : "aspect-[9/16] w-[76px] shrink-0 sm:w-[86px]"}`}
     >
@@ -115,6 +116,14 @@ function ProfileReelThumbnail({ reel, returnTo, layout }: { reel: Reel; returnTo
           <Play size={15} fill="currentColor" />
         </span>
       </span>
+      {layout === "grid" && (
+        <span className="absolute inset-x-1 bottom-8 flex items-center justify-around gap-1 rounded-xl bg-black/85 px-1 py-1 text-[9px] font-extrabold leading-none text-white" aria-label={interactionCounts} data-testid={`text-profile-reel-interactions-${reel.id}`}>
+          <span className="flex items-center gap-0.5"><Heart size={10} />{formatCount(reel.likeCount)}</span>
+          <span className="flex items-center gap-0.5"><MessageCircle size={10} />{formatCount(reel.commentCount)}</span>
+          <span className="flex items-center gap-0.5"><Bookmark size={10} />{formatCount(reel.saveCount)}</span>
+          <span className="flex items-center gap-0.5"><Send size={10} />{formatCount(reel.shareCount)}</span>
+        </span>
+      )}
       <span className="absolute inset-x-1 bottom-1 flex items-center justify-center gap-1 rounded-full border border-white/25 bg-black/85 px-1 py-1 text-[10px] font-extrabold leading-none tracking-tight text-white shadow-lg" data-testid={`text-profile-reel-views-${reel.id}`}>
         <Eye size={11} strokeWidth={2.5} aria-hidden="true" />
         {formatCount(viewCount)} {viewCount === 1 ? "view" : "views"}

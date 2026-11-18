@@ -39,7 +39,7 @@ function ExpandableCommentText({ commentId, content, prefix }: { commentId: stri
   </>;
 }
 
-export function ReelComments({ reelId, creatorId, returnTo, onClose, onCountChange, focusCommentId }: { reelId: string; creatorId: string; returnTo: string; onClose: () => void; onCountChange: (delta: number) => void; focusCommentId?: string | null }) {
+export function ReelComments({ reelId, creatorId, returnTo, commentCount, onClose, onCountChange, focusCommentId }: { reelId: string; creatorId: string; returnTo: string; commentCount: number; onClose: () => void; onCountChange: (delta: number) => void; focusCommentId?: string | null }) {
   const client = useQueryClient();
   const key = getGetReelCommentsQueryKey(reelId);
   const comments = useGetReelComments(reelId, { query: { queryKey: key } });
@@ -53,7 +53,8 @@ export function ReelComments({ reelId, creatorId, returnTo, onClose, onCountChan
   const input = useRef<HTMLInputElement>(null);
   const touchStart = useRef<{ x: number; y: number } | null>(null);
   const [replyingTo, setReplyingTo] = useState<ReelComment | null>(null);
-  const count = comments.data?.length ?? 0;
+  const count = commentCount;
+  const visibleCount = comments.data?.length ?? 0;
   function startCloseGesture(event: ReactTouchEvent<HTMLElement>) {
     const target = event.target;
     if (target instanceof Element && target.closest("input, button, a, textarea")) {
@@ -72,7 +73,7 @@ export function ReelComments({ reelId, creatorId, returnTo, onClose, onCountChan
     const deltaY = touch.clientY - start.y;
     if (deltaY > 64 && Math.abs(deltaX) < 80 && (list.current?.scrollTop ?? 0) <= 0) onClose();
   }
-  useEffect(() => { list.current?.scrollTo({ top: list.current.scrollHeight }); }, [count]);
+  useEffect(() => { list.current?.scrollTo({ top: list.current.scrollHeight }); }, [visibleCount]);
   useEffect(() => {
     if (!focusCommentId || !comments.data) return;
     list.current?.querySelector<HTMLElement>(`[data-comment-id="${focusCommentId}"]`)?.scrollIntoView({ block: "center" });
@@ -130,7 +131,7 @@ export function ReelComments({ reelId, creatorId, returnTo, onClose, onCountChan
     <div ref={list} className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4">
       {comments.isLoading ? <div className="space-y-3 py-2" aria-label="Loading comments">{[0, 1, 2].map((i) => <div key={i} className="flex gap-3"><span className="h-8 w-8 rounded-full bg-white/10" /><span className="h-8 flex-1 rounded-xl bg-white/[.06]" /></div>)}</div>
         : comments.isError ? <div className="py-6 text-center text-sm text-white/60">Comments could not load.<button type="button" onClick={() => void comments.refetch()} className="ml-2 font-semibold text-primary" data-testid="button-retry-comments">Retry</button></div>
-        : !count ? <p className="py-6 text-center text-sm text-white/55" data-testid="text-no-comments">No comments yet. Say something kind.</p>
+        : !visibleCount ? <p className="py-6 text-center text-sm text-white/55" data-testid="text-no-comments">{count ? "Comments aren’t available right now." : "No comments yet. Say something kind."}</p>
         : <ul className="space-y-4 pb-2">{comments.data!.filter((comment) => !comment.parentCommentId).map((comment) => <li key={comment.id} data-testid={`comment-${comment.id}`}>
           <div className="flex gap-3" data-comment-id={comment.id}>
             <Link href={profileHref(comment.authorId, comment.id)} aria-label={`Open ${comment.authorName}'s profile`} data-testid={`link-reel-comment-profile-${comment.id}`} className="h-8 w-8 shrink-0 rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary">

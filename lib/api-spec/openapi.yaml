@@ -2668,11 +2668,12 @@ components:
         commentCount: { type: integer }
         viewCount: { type: integer, minimum: 0 }
         shareCount: { type: integer, minimum: 0 }
+        saveCount: { type: integer, minimum: 0 }
         likedByMe: { type: boolean }
         savedByMe: { type: boolean }
         isOwner: { type: boolean }
         createdAt: { type: string, format: date-time }
-      required: [id, creatorId, creatorName, creatorAge, creatorLocation, creatorVerified, creatorPhoto, videoReference, caption, durationSeconds, likeCount, commentCount, viewCount, shareCount, likedByMe, savedByMe, isOwner, createdAt]
+      required: [id, creatorId, creatorName, creatorAge, creatorLocation, creatorVerified, creatorPhoto, videoReference, caption, durationSeconds, likeCount, commentCount, viewCount, shareCount, saveCount, likedByMe, savedByMe, isOwner, createdAt]
     ReelViewCount:
       type: object
       properties:
@@ -2704,7 +2705,9 @@ components:
         savedByMe: { type: boolean }
         likeCount: { type: integer }
         commentCount: { type: integer }
-      required: [likedByMe, savedByMe, likeCount, commentCount]
+        saveCount: { type: integer, minimum: 0 }
+        shareCount: { type: integer, minimum: 0 }
+      required: [likedByMe, savedByMe, likeCount, commentCount, saveCount, shareCount]
     ReelComment:
       type: object
       properties:
