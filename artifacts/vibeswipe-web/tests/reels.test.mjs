@@ -217,6 +217,8 @@ test("Reel action rail and profile grid show persisted like, comment, save and s
     .map((id) => slide.indexOf(id));
   assert.ok(actionOrder.every((position, index) => position >= 0 && (index === 0 || position > actionOrder[index - 1])));
   assert.match(slide, /reel-music-slot[^]*?reel-music-artwork-slot/);
+  assert.match(slide, /<Music2 size=\{20\} strokeWidth=\{1\.8\} \/>/);
+  assert.doesNotMatch(slide, /reel-music-artwork-slot[^]*?ReelAvatar reference=\{reel\.creatorPhoto\}/);
   const css = read("../src/components/reels/reels.css");
   assert.match(css, /\.reel-rail button svg \{ height: 26px; width: 26px/);
   assert.match(css, /\.reel-rail button \{ height: 50px; font-size: 12px/);

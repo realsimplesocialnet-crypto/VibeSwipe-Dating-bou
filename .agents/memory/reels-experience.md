@@ -65,9 +65,9 @@ Reels navigation, action icons, labels, and counts should use bold, high-contras
 
 Keep the vertical action rail compact and ordered Like, Comment, Save, Share, with a circular creator/artwork slot at the bottom for future music.
 
-**Why:** The user asked for smaller, cleaner action controls and a reserved place for music artwork, without asking to add music playback yet.
+**Why:** The user asked for smaller, cleaner action controls and a reserved place for music artwork, then pointed out that repeating the creator photo there duplicates the profile image beside the name.
 
-**How to apply:** Keep labels readable at phone size, preserve separate offline saving, and do not build music selection or playback until requested.
+**How to apply:** Keep labels readable at phone size, preserve separate offline saving, and do not build music selection or playback until requested. Never reuse the creator's profile photo in the music slot; use a music icon until track artwork exists.
 
 Keep the creator photo, name, age and location block compact, aligned in a straight row, and slightly lower over the Reel; do not enlarge it into a banner.
 

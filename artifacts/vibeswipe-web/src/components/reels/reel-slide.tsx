@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "wouter";
 import type { Reel } from "@workspace/api-client-react";
-import { Bookmark, Check, Download, Heart, MapPin, MessageCircle, Pause, Play, Send, Trash2 } from "lucide-react";
+import { Bookmark, Check, Download, Heart, MapPin, MessageCircle, Music2, Pause, Play, Send, Trash2 } from "lucide-react";
 import { VerifiedBadge } from "@/components/verified-badge";
 import { ReelAvatar } from "@/components/reels/reel-avatar";
 import { formatCount, reelMediaUrl } from "@/lib/reels";
@@ -157,7 +157,7 @@ export function ReelSlide({ reel, index, active, near, muted, pageHidden, compac
       </button>
       {reel.isOwner && <button type="button" onClick={onDelete} aria-label="Delete your Reel" data-testid={`button-delete-reel-${reel.id}`}><Trash2 size={24} strokeWidth={1.8} /></button>}
       <div className="reel-music-slot" aria-hidden="true" data-testid={`reel-music-artwork-slot-${reel.id}`}>
-        <ReelAvatar reference={reel.creatorPhoto} name={reel.creatorName} size={38} />
+        <Music2 size={20} strokeWidth={1.8} />
       </div>
     </div>
 

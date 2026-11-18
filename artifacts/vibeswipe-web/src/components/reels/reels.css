@@ -110,7 +110,6 @@
 .reel-rail button { height: 50px; font-size: 12px; text-shadow: 0 1px 5px rgb(0 0 0 / .86); }
 .reel-rail button svg { height: 26px; width: 26px; stroke-width: 2; }
 .reel-music-slot { display: flex; height: 42px; width: 42px; align-items: center; justify-content: center; overflow: hidden; border: 2px solid rgb(255 255 255 / .9); border-radius: 999px; background: rgb(8 6 10 / .86); box-shadow: 0 1px 6px rgb(0 0 0 / .45); }
-.reel-music-slot .reel-avatar { height: 100%; width: 100%; border: 0; }
 .reel-rail.is-compact .reel-music-slot { display: none; }
 .reel-name { font-size: 18px; font-weight: 750; letter-spacing: -.01em; text-shadow: 0 1px 5px rgb(0 0 0 / .7); }
 .reel-age { font-size: 15px; font-weight: 650; color: #fff; }
