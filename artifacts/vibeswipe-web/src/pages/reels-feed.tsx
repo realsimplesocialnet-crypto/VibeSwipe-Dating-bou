@@ -175,7 +175,7 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
 
   const historyResumeReelId = initialHistoryMarker?.reelId;
   const singleReelId = initialReelId ?? historyResumeReelId;
-  const single = useGetReel(singleReelId ?? "", { query: { enabled: Boolean(singleReelId), queryKey: getGetReelQueryKey(singleReelId ?? ""), retry: false } });
+  const single = useGetReel(singleReelId ?? "", { query: { enabled: Boolean(singleReelId), queryKey: getGetReelQueryKey(singleReelId ?? ""), retry: false, refetchInterval: 5_000 } });
   const feedParams = { feed: feedMode, limit: 6 };
   const feed = useInfiniteQuery({
     queryKey: [...getGetReelsFeedQueryKey(feedParams), "pages"],
@@ -184,6 +184,8 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
     getNextPageParam: (last) => last.nextCursor,
     enabled: !profileId,
     refetchOnWindowFocus: false,
+    refetchInterval: 5_000,
+    refetchIntervalInBackground: false,
   });
   const profileFeed = useInfiniteQuery({
     queryKey: [...getGetProfileReelsQueryKey({ profileId }), "viewer"],
@@ -194,6 +196,8 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
     enabled: Boolean(profileId),
     staleTime: 60_000,
     refetchOnWindowFocus: false,
+    refetchInterval: 5_000,
+    refetchIntervalInBackground: false,
   });
   const searchFeed = useInfiniteQuery({
     queryKey: [...getGetReelsFeedQueryKey({ q: debouncedSearchText, limit: 6 }), "search-pages"],
@@ -436,6 +440,7 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
           : reels.map((reel, index) => <ReelSlide
              key={reel.id} reel={reel} index={index} active={index === active && !searchOpen} near={Math.abs(index - active) <= 1}
             muted={muted} pageHidden={pageHidden} compact={commentsFor === reel.id} showHint={index === 0 && reels.length > 1}
+             likePending={like.isPending || unlike.isPending} savePending={save.isPending || unsave.isPending}
             returnTo={ownPath}
               onToggleNavigation={() => {
                 if (commentsFor === reel.id) closeComments();

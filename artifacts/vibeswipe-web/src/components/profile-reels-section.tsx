@@ -116,14 +116,12 @@ function ProfileReelThumbnail({ reel, returnTo, layout }: { reel: Reel; returnTo
           <Play size={15} fill="currentColor" />
         </span>
       </span>
-      {layout === "grid" && (
-        <span className="absolute inset-x-1 bottom-8 flex items-center justify-around gap-1 rounded-xl bg-black/85 px-1 py-1 text-[9px] font-extrabold leading-none text-white" aria-label={interactionCounts} data-testid={`text-profile-reel-interactions-${reel.id}`}>
+      <span className={`absolute inset-x-1 bottom-8 grid gap-x-1 gap-y-1 rounded-xl bg-black/85 px-1 py-1 text-[9px] font-extrabold leading-none text-white ${layout === "grid" ? "grid-cols-4" : "grid-cols-2"}`} aria-label={interactionCounts} data-testid={`text-profile-reel-interactions-${reel.id}`}>
           <span className="flex items-center gap-0.5"><Heart size={10} />{formatCount(reel.likeCount)}</span>
           <span className="flex items-center gap-0.5"><MessageCircle size={10} />{formatCount(reel.commentCount)}</span>
           <span className="flex items-center gap-0.5"><Bookmark size={10} />{formatCount(reel.saveCount)}</span>
           <span className="flex items-center gap-0.5"><Send size={10} />{formatCount(reel.shareCount)}</span>
-        </span>
-      )}
+      </span>
       <span className="absolute inset-x-1 bottom-1 flex items-center justify-center gap-1 rounded-full border border-white/25 bg-black/85 px-1 py-1 text-[10px] font-extrabold leading-none tracking-tight text-white shadow-lg" data-testid={`text-profile-reel-views-${reel.id}`}>
         <Eye size={11} strokeWidth={2.5} aria-hidden="true" />
         {formatCount(viewCount)} {viewCount === 1 ? "view" : "views"}
