@@ -122,10 +122,11 @@ test("the share sheet counts only completed shares and displays the updated tota
   assert.match(shareSheet, /navigator\.share\(/);
   assert.match(shareSheet, /await navigator\.clipboard\.writeText/);
   assert.match(shareSheet, /await send\.mutateAsync/);
-  assert.equal((shareSheet.match(/void trackShare\(\)/g) ?? []).length, 2);
+  assert.equal((shareSheet.match(/void trackShare\(\)/g) ?? []).length, 1);
   const copyAction = shareSheet.match(/async function copy\(\) \{([\s\S]*?)\n  \}/)?.[1] ?? "";
   assert.doesNotMatch(copyAction, /trackShare/);
   assert.match(shareSheet, /sharePromise = navigator\.share\([\s\S]*?\);\s*\}\s*catch[\s\S]*?onClose\(\);\s*void sharePromise\.then/);
+  assert.match(shareSheet, /sharePromise\.then\(\(\) => trackShare\(\)\)/);
   assert.match(copyAction, /onClose\(\)/);
   assert.match(shareSheet, /await send\.mutateAsync[\s\S]*?onClose\(\)/);
   assert.match(shareSheet, /filter\(\(match\) => !match\.blockedByMe && !match\.blockedMe\)/);
