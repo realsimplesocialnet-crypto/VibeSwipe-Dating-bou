@@ -206,6 +206,13 @@ test("Reel action rail and profile grid show persisted like, comment, save and s
   for (const id of ["button-like-reel", "button-comments-reel", "button-save-reel", "button-share-reel", "button-post-reel-comment"]) {
     assert.ok(nativeReel.includes(id), `native Reel action is missing ${id}`);
   }
+  const actionOrder = ["button-like-reel", "button-comments-reel", "button-save-reel-", "button-share-reel-"]
+    .map((id) => slide.indexOf(id));
+  assert.ok(actionOrder.every((position, index) => position >= 0 && (index === 0 || position > actionOrder[index - 1])));
+  assert.match(slide, /reel-music-slot[^]*?reel-music-artwork-slot/);
+  const css = read("../src/components/reels/reels.css");
+  assert.match(css, /\.reel-rail button svg \{ height: 25px; width: 25px/);
+  assert.match(css, /\.reel-music-slot \{ display: flex; height: 42px; width: 42px/);
 });
 
 test("Reels restore their full viewport after returning from an external share app", () => {

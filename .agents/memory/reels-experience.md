@@ -63,6 +63,12 @@ Reels navigation, action icons, labels, and counts should use bold, high-contras
 
 **How to apply:** Give the Reels/Friends tabs, search and add controls, like/comment/share actions, navigation labels, and view/count badges clear weight and contrast without changing the brand palette.
 
+Keep the vertical action rail compact and ordered Like, Comment, Save, Share, with a circular creator/artwork slot at the bottom for future music.
+
+**Why:** The user asked for smaller, cleaner action controls and a reserved place for music artwork, without asking to add music playback yet.
+
+**How to apply:** Keep labels readable at phone size, preserve separate offline saving, and do not build music selection or playback until requested.
+
 Keep the creator photo, name, age and location block compact, aligned in a straight row, and slightly lower over the Reel; do not enlarge it into a banner.
 
 **Why:** The user asked to shrink and lower the creator identity block while keeping its straight alignment.
