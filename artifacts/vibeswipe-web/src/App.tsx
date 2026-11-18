@@ -151,6 +151,7 @@ function AppShell({ children }: { children: ReactNode }) {
   const showMainNavigation = ['/discover', '/matches', '/messages', '/notifications', '/views', '/likes', '/profile'].includes(location) || isReelsViewer;
   const isSocialPage = ['/matches', '/messages', '/notifications', '/views', '/likes'].includes(location);
   const activeLocation = ['/matches', '/views', '/likes'].includes(location) ? '/notifications' : isReelsViewer ? '/reels' : location;
+  const mobileActiveIndex = activeLocation === '/reels' ? 1 : activeLocation === '/messages' ? 2 : activeLocation === '/notifications' ? 3 : activeLocation === '/profile' ? 4 : 0;
   const settingsReturnTo = `${location}${window.location.search}${window.location.hash}`;
   const { user } = useUser();
   const profile = useGetMyProfile();
@@ -231,6 +232,7 @@ function AppShell({ children }: { children: ReactNode }) {
     </main>
     {profile.data?.id&&<WebPushSettings key={profile.data.id} compact visible={showMainNavigation && !isReelsViewer} accountId={profile.data.id}/>}
     {showMainNavigation && <nav ref={mobileNavRef} aria-label="Primary" aria-hidden={isReelsViewer && !reelsNavigationVisible} className={`${location==='/profile'?'profile-nav ':''}${isReelsViewer ? `reels-mobile-nav ${reelsNavigationVisible ? '' : 'is-hidden'} ` : ''}mobile-nav fixed inset-x-0 bottom-0 ${isReelsViewer ? 'z-[80]' : 'z-30'} ${isReelsViewer ? '' : 'lg:hidden'} flex justify-around bg-background/95 px-2 pt-2 backdrop-blur-xl`}>
+      <span aria-hidden="true" className="mobile-nav-indicator" style={{ transform: `translate3d(${mobileActiveIndex * 100}%, 0, 0)` }} />
       {navItems.map(({ href, label, icon: Icon }) => <Link key={href} href={href} data-testid={`mobile-nav-${label.toLowerCase()}`} aria-current={activeLocation === href ? 'page' : undefined} className={`mnav-item ${activeLocation === href ? 'is-active text-primary' : 'text-muted-foreground'}`}><span className="mnav-icon"><Icon size={19} strokeWidth={activeLocation === href ? 2.25 : 1.85}/>{label === 'Chats' && <UnreadMessageBadge count={unreadMessageCount} mobile/>}</span><span className="mnav-label">{label}</span></Link>)}
       <Link href="/profile" data-testid="mobile-nav-profile" aria-current={location === '/profile' ? 'page' : undefined} className={`mnav-item ${location === '/profile' ? 'is-active text-primary' : 'text-muted-foreground'}`}><span className="mnav-icon"><UserRound size={19} strokeWidth={location === '/profile' ? 2.25 : 1.85}/></span><span className="mnav-label">Profile</span></Link>
     </nav>}

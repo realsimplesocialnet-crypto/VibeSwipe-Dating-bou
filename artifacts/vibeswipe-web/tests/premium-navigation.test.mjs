@@ -48,13 +48,16 @@ test("all five buttons share equal widths and clear, unclipped labels", () => {
   assert.match(app, /data-testid="mobile-nav-profile"[^>]*className=\{`mnav-item/);
 });
 
-test("selected icons have a contained pink highlight and accessible focus/motion states", () => {
-  assert.match(css, /\.mnav-icon \{[^}]*isolation:isolate/);
-  assert.match(css, /\.mnav-icon::before \{[^}]*rgb\(243 78 154 \/ .2\)/);
-  assert.match(css, /\.mnav-item\.is-active \.mnav-icon::before \{ opacity:1/);
+test("the active tab highlight glides between tabs and respects reduced motion", () => {
+  assert.match(app, /className="mobile-nav-indicator"/);
+  assert.match(app, /translate3d\(\$\{mobileActiveIndex \* 100\}%, 0, 0\)/);
+  assert.match(app, /const mobileActiveIndex = activeLocation === '\/reels' \? 1 : activeLocation === '\/messages' \? 2 : activeLocation === '\/notifications' \? 3 : activeLocation === '\/profile' \? 4 : 0/);
+  assert.match(css, /\.mobile-nav-indicator \{[^}]*transition:transform 120ms cubic-bezier\(\.2,\.8,\.2,1\)/);
+  assert.match(css, /\.mobile-nav-indicator::before \{[^}]*rgb\(243 78 154 \/ .2\)/);
+  assert.doesNotMatch(css, /\.mnav-icon::before/);
   assert.match(css, /\.mnav-item\.is-active \{ color:#f34e9a !important; font-weight:750/);
   assert.match(css, /\.mnav-item\.is-active \.mnav-label \{ color:#fff; opacity:1/);
   assert.match(css, /\.mnav-item:focus-visible/);
-  assert.match(css, /prefers-reduced-motion: reduce[^}]*\.mnav-item/);
+  assert.match(css, /prefers-reduced-motion: reduce[^}]*\.mobile-nav-indicator/);
   assert.equal((app.match(/aria-current=\{/g) ?? []).length >= 2, true);
 });
