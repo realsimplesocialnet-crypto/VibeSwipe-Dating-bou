@@ -518,7 +518,7 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
       void client.invalidateQueries({ queryKey: getGetProfileReelsQueryKey({ profileId: commentReel.creatorId }) });
       void client.invalidateQueries({ queryKey: getGetMyReelsQueryKey() });
     }} />}
-    {shareFor && <ReelShareSheet reel={shareFor} onClose={() => setShareFor(null)} onCountChange={(count) => patchShareCount(shareFor.id, count)} />}
+    {shareFor && <ReelShareSheet reel={shareFor} onClose={() => setShareFor(null)} onCountChange={(count) => patchShareCount(shareFor.id, count)} onCountError={setNotice} />}
     {deleteFor && <div className="reel-sheet-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setDeleteFor(null); }}>
       <section className="reel-sheet" role="alertdialog" aria-modal="true" aria-label="Delete Reel">
         <h2 className="text-base font-bold">Delete this Reel?</h2>

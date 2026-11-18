@@ -9,7 +9,7 @@ import { ReelAvatar } from "@/components/reels/reel-avatar";
 import { reelShareMessage, reelShareUrl } from "@/lib/reels";
 import { userErrorMessage } from "@/lib/user-errors";
 
-export function ReelShareSheet({ reel, onClose, onCountChange }: { reel: Reel; onClose: () => void; onCountChange: (count: number) => void }) {
+export function ReelShareSheet({ reel, onClose, onCountChange, onCountError }: { reel: Reel; onClose: () => void; onCountChange: (count: number) => void; onCountError?: (message: string) => void }) {
   const client = useQueryClient();
   const matches = useGetMatches({ query: { queryKey: getGetMatchesQueryKey() } });
   const send = useSendMessage();
@@ -36,8 +36,8 @@ export function ReelShareSheet({ reel, onClose, onCountChange }: { reel: Reel; o
   async function nativeShare() {
     try { await navigator.share({ title: `${reel.creatorName} on Reels`, text: reel.caption || "Watch this Reel", url }); }
     catch (error) { if ((error as { name?: string }).name !== "AbortError") setStatus("Sharing is not available here. Copy the link instead."); return; }
-    try { await trackShare(); setStatus(""); onClose(); }
-    catch { setStatus("Shared, but the share count could not be updated."); }
+    onClose();
+    void trackShare().catch(() => onCountError?.("Shared, but the share count could not be updated."));
   }
   async function copy() {
     try { await navigator.clipboard.writeText(url); }
@@ -50,8 +50,7 @@ export function ReelShareSheet({ reel, onClose, onCountChange }: { reel: Reel; o
       await send.mutateAsync({ matchId, data: { content: reelShareMessage(url, reel.creatorName) } });
       setSent((value) => ({ ...value, [matchId]: true }));
       void client.invalidateQueries({ queryKey: getGetMatchesQueryKey() });
-      try { await trackShare(); }
-      catch { setStatus("Sent, but the share count could not be updated."); }
+      void trackShare().catch(() => setStatus("Sent, but the share count could not be updated."));
     } catch (error) {
       setStatus(userErrorMessage(error, "That message did not send. Try again."));
     } finally { setPending(null); }

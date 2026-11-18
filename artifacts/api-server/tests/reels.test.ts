@@ -122,10 +122,10 @@ test("the share sheet counts only completed shares and displays the updated tota
   assert.match(shareSheet, /await navigator\.share/);
   assert.match(shareSheet, /await navigator\.clipboard\.writeText/);
   assert.match(shareSheet, /await send\.mutateAsync/);
-  assert.equal((shareSheet.match(/await trackShare\(\)/g) ?? []).length, 2);
+  assert.equal((shareSheet.match(/void trackShare\(\)/g) ?? []).length, 2);
   const copyAction = shareSheet.match(/async function copy\(\) \{([\s\S]*?)\n  \}/)?.[1] ?? "";
   assert.doesNotMatch(copyAction, /trackShare/);
-  assert.match(shareSheet, /await trackShare\(\); setStatus\(\"\"\); onClose\(\)/);
+  assert.match(shareSheet, /onClose\(\);\s*void trackShare\(\)\.catch/);
   assert.match(shareSheet, /filter\(\(match\) => !match\.blockedByMe && !match\.blockedMe\)/);
   assert.match(reelSlide, /text-share-count-\$\{reel\.id\}/);
   assert.match(nativeChat, /pathname: "\/reels\/\[reelId\]"/);
@@ -136,6 +136,7 @@ test("the share sheet counts only completed shares and displays the updated tota
   assert.match(nativeReel, /result\.action !== Share\.sharedAction/);
   assert.match(nativeReel, /Linking\.openURL\(targetUrl\)/);
   assert.match(nativeReel, /button-share-reel-\$\{target\}/);
+  assert.match(nativeReel, /void recordShare\.mutateAsync/);
   assert.match(nativeReel, /filter\(\(match\) => !match\.blockedByMe && !match\.blockedMe\)/);
   assert.match(nativeReel, /Shared a Reel: \/reels\/\$\{reel\.id\}/);
 });

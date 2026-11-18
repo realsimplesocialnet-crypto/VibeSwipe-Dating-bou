@@ -120,6 +120,19 @@ export default function ProfileReelScreen() {
     void queryClient.invalidateQueries({ queryKey: getGetReelsFeedQueryKey() });
   }
 
+  function recordCompletedShare(reel: Reel, destination: "apps" | "chat") {
+    void recordShare.mutateAsync({ reelId: reel.id }).then((updated) => {
+      queryClient.setQueryData<Reel>(getGetReelQueryKey(reel.id), (current) =>
+        current ? { ...current, shareCount: updated.shareCount } : current,
+      );
+      refreshReelLists(reel.creatorId);
+    }).catch(() => {
+      const message = "The Reel was shared, but its count did not sync. Reopen it while online.";
+      if (destination === "apps") setActionError(message);
+      else setShareError(message);
+    });
+  }
+
   async function toggleLike() {
     const reel = reelQuery.data;
     if (!reel || likeReel.isPending || unlikeReel.isPending) return;
@@ -181,15 +194,7 @@ export default function ProfileReelScreen() {
         { dialogTitle: "Share Reel" },
       );
       if (result.action !== Share.sharedAction) return;
-      try {
-        const updated = await recordShare.mutateAsync({ reelId: reel.id });
-        queryClient.setQueryData<Reel>(getGetReelQueryKey(reel.id), (current) =>
-          current ? { ...current, shareCount: updated.shareCount } : current,
-        );
-        refreshReelLists(reel.creatorId);
-      } catch {
-        setActionError("The Reel was shared, but its count did not sync. Reopen it while online.");
-      }
+      recordCompletedShare(reel, "apps");
     } catch {
       setActionError("Could not open the share menu. Try again.");
     } finally {
@@ -222,15 +227,7 @@ export default function ProfileReelScreen() {
             ? `sms:?body=${encodedMessage}`
             : `mailto:?subject=${encodedSubject}&body=${encodedMessage}`;
       await Linking.openURL(targetUrl);
-      try {
-        const updated = await recordShare.mutateAsync({ reelId: reel.id });
-        queryClient.setQueryData<Reel>(getGetReelQueryKey(reel.id), (current) =>
-          current ? { ...current, shareCount: updated.shareCount } : current,
-        );
-        refreshReelLists(reel.creatorId);
-      } catch {
-        setActionError("The Reel was shared, but its count did not sync. Reopen it while online.");
-      }
+      recordCompletedShare(reel, "apps");
     } catch {
       setActionError("Could not open that app. Try another share option.");
     } finally {
@@ -250,15 +247,7 @@ export default function ProfileReelScreen() {
       });
       setSentTo((current) => ({ ...current, [matchId]: true }));
       void queryClient.invalidateQueries({ queryKey: getGetMatchesQueryKey() });
-      try {
-        const result = await recordShare.mutateAsync({ reelId: reel.id });
-        queryClient.setQueryData(getGetReelQueryKey(reel.id), (current) =>
-          current ? { ...current, shareCount: result.shareCount } : current,
-        );
-        refreshReelLists(reel.creatorId);
-      } catch {
-        setShareError("Sent, but the share count could not be updated.");
-      }
+      recordCompletedShare(reel, "chat");
     } catch {
       setShareError("That Reel did not send. Try again.");
     } finally {
