@@ -40,3 +40,9 @@ Users installed the Android app from the website, not from a supplied TWA APK. T
 **Why:** The user corrected the missing-Chrome diagnosis and confirmed website installation.
 
 **How to apply:** Treat the message as a host-browser/installed-launcher availability problem, not proof Chrome is absent. Browser-created WebAPK launcher checks run before website JavaScript; manifest changes, service workers, and a website recovery page cannot intercept that native dialog. Do not fabricate TWA package names or signing fingerprints. Explain when affected users must replace the installed launcher, warn about unsent drafts/sign-in, and never clear account or browser data automatically.
+
+The app should show its usable shell and cached screen content promptly on launch; do not hold the whole app on a loading screen while remote data refreshes. Never bypass authentication or show another account's private data to achieve this.
+
+**Why:** The user repeatedly asked for Myage to open steadily without a prolonged or recurring loading screen.
+
+**How to apply:** Render safe shell and same-account cached content first, then verify authentication and refresh data in the background. Use a clear retry only for a real failure, and preserve account and local drafts during recovery.

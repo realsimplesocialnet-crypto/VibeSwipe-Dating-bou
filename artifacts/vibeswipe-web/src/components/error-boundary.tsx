@@ -35,7 +35,7 @@ function toError(value: unknown): Error {
   }
 }
 
-function DefaultFallback({ error, resetError }: ErrorFallbackProps) {
+function DefaultFallback({ error }: ErrorFallbackProps) {
   return (
     <div role="alert" className="min-h-[100dvh] w-full flex items-center justify-center bg-[#121015] p-6 text-[#fff2f7]">
       <div className="max-w-lg w-full rounded-3xl border border-white/10 bg-[#211d25] p-7 text-center">
@@ -54,7 +54,8 @@ function DefaultFallback({ error, resetError }: ErrorFallbackProps) {
         ) : null}
         <button
           type="button"
-          onClick={resetError}
+          onClick={() => window.location.reload()}
+          data-testid="button-reload-after-screen-error"
           className="mt-5 rounded-xl bg-[#f34e9a] px-5 py-3 text-sm font-bold text-[#24111b]"
         >
           Try again
