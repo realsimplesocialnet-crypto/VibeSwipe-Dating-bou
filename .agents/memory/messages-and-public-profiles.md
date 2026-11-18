@@ -34,3 +34,9 @@ The default chat uses the user's light, white-and-pink reference. The header pho
 **Why:** The user explicitly requested that tapping a suggested question puts its text into the input, with a separate Send button.
 
 **How to apply:** Preserve this distinction on both web/PWA and native, including when revising empty-conversation suggestions or icons.
+
+Stories are private to unblocked mutual followers, not public and not merely dating matches. A profile's active-story ring opens the story viewer without leaving the profile; closing it or using device Back returns to that same profile. Use the app's pink for Follow back actions. Story replies still require an existing mutual-match chat.
+
+**Why:** The user chose mutual follows as the story audience, showed the desired story and Follow back references, and asked to use their own color.
+
+**How to apply:** Enforce mutual-follow privacy for story lists, views, likes, and media reads. Keep the profile route behind the story viewer, and do not let following alone unlock messaging.
