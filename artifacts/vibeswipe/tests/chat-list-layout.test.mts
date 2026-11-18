@@ -5,11 +5,13 @@ import { readFileSync } from "node:fs";
 const source = readFileSync(new URL("../app/(tabs)/views.tsx", import.meta.url), "utf8");
 const conversationSource = readFileSync(new URL("../app/chat/[matchId].tsx", import.meta.url), "utf8");
 
-test("native chat conversations are flat rows with a subtle divider", () => {
+test("native chat conversations are flat rows without divider lines", () => {
   const styles = source.match(/row:\s*\{([^}]+)\}/)?.[1] ?? "";
-  assert.match(source, /styles\.row, \{ borderBottomColor: colors\.border \}/);
-  assert.match(styles, /borderBottomWidth/);
+  assert.match(source, /<View style=\{styles\.row\}>/);
+  assert.doesNotMatch(styles, /borderBottom/);
   assert.doesNotMatch(styles, /borderRadius|backgroundColor|shadow|elevation/);
+  const newMatchCard = source.match(/newMatchCard:\s*\{([^}]+)\}/)?.[1] ?? "";
+  assert.doesNotMatch(newMatchCard, /borderWidth/);
 });
 
 test("native conversation opens at newest message on every focus", () => {

@@ -223,7 +223,7 @@ export default function ChatsScreen() {
                   accessibilityRole="button"
                   accessibilityLabel={`Start a chat with ${match.profile.name}`}
                   onPress={() => router.push({ pathname: "/chat/[matchId]", params: { matchId: match.id, returnTo: "messages" } } as never)}
-                  style={({ pressed }) => [styles.newMatchCard, { backgroundColor: colors.profileCard, borderColor: colors.border, opacity: pressed ? 0.84 : 1 }]}
+                  style={({ pressed }) => [styles.newMatchCard, { backgroundColor: colors.profileCard, opacity: pressed ? 0.84 : 1 }]}
                 >
                   <ProfileAvatar profile={match.profile} size={58} />
                   <Text numberOfLines={1} style={[styles.newMatchName, { color: colors.foreground }]}>{match.profile.name}{match.profile.age !== null ? `, ${match.profile.age}` : ""}</Text>
@@ -243,7 +243,7 @@ export default function ChatsScreen() {
           const unread = !isBlocked && (item.unreadCount ?? 0) > 0;
           const stamp = item.lastMessageAt ?? item.updatedAt;
           return (
-            <View style={[styles.row, { borderBottomColor: colors.border }]}>
+            <View style={styles.row}>
               <Pressable
                 disabled={isBlocked}
                 onPress={() => router.push({ pathname: "/chat/[matchId]", params: { matchId: item.id, returnTo: "messages" } } as never)}
@@ -458,7 +458,7 @@ const styles = StyleSheet.create({
   badgeText: { fontSize: 13, fontWeight: "800" },
   loading: { marginTop: 40 },
   list: { paddingBottom: 18 },
-  row: { minHeight: 84, flexDirection: "row", alignItems: "center", gap: 6, borderBottomWidth: StyleSheet.hairlineWidth, paddingHorizontal: 0 },
+  row: { minHeight: 84, flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 0 },
   meta: { alignSelf: "stretch", alignItems: "flex-end", justifyContent: "space-between", paddingVertical: 18 },
   dot: { width: 11, height: 11, borderRadius: 6 },
   dotSpace: { height: 11 },
@@ -475,7 +475,7 @@ const styles = StyleSheet.create({
   errorText: { fontSize: 13 },
   sectionTitle: { fontSize: 17, fontWeight: "700", marginBottom: 2 },
   newMatchesRow: { gap: 10, paddingVertical: 4, paddingRight: 4 },
-  newMatchCard: { width: 152, minHeight: 184, alignItems: "center", justifyContent: "center", gap: 7, borderWidth: StyleSheet.hairlineWidth, borderRadius: 20, padding: 12 },
+  newMatchCard: { width: 152, minHeight: 184, alignItems: "center", justifyContent: "center", gap: 7, borderRadius: 20, padding: 12 },
   newMatchName: { maxWidth: "100%", fontSize: 14, fontWeight: "800" },
   newMatchSub: { fontSize: 11, lineHeight: 15, textAlign: "center" },
   newMatchAction: { fontSize: 12, fontWeight: "800", marginTop: 2 },

@@ -174,10 +174,7 @@ html[data-theme="light"] .app-shell.profile-shell { background:linear-gradient(1
   .op-overview .op-section { padding-block:4px; }
   .op-section .op-thumb { height:32px; }
 }
-/* Messages list (/views) */
-.messages-page .msg-card { background:hsl(var(--card)); border:1px solid hsl(var(--border) / .6); box-shadow:0 10px 30px hsl(252 30% 3% / .28); }
 html[data-theme="light"] .messages-page { background:linear-gradient(180deg,#fdf7fa 0%,#f8f6fa 100%); }
-html[data-theme="light"] .messages-page .msg-card { background:#fffdfe; border-color:#f1e6ec; box-shadow:0 8px 24px rgba(160,90,120,.10); }
 .public-profile {
   --pp-bg: 240 6% 6%; --pp-card: 240 6% 11%; --pp-soft: 48 7% 16%; --pp-line: 40 5% 20%; --pp-fg: 40 20% 94%; --pp-muted: 40 7% 64%;
   --pp-pink: 334 87% 63%; --pp-gold: 334 87% 63%; --pp-shadow: 240 10% 3%;
@@ -398,10 +395,8 @@ html[data-theme="light"] .discover-sticky { background:linear-gradient(135deg,rg
 .messages-shell { background:#0F0F12; }
 .messages-shell > header { background:transparent; border-color:hsl(var(--border) / .35); }
 .messages-shell .messages-page { background:transparent; }
-.messages-shell .msg-card { min-height:110px; box-shadow:0 5px 16px rgba(45,10,30,.08); }
 html[data-theme="light"] .messages-shell { --card:0 0% 100%; --primary:334 87% 63%; --primary-foreground:252 20% 9%; background:#ffedf1; }
 html[data-theme="light"] .messages-shell .messages-page { background:transparent; }
-html[data-theme="light"] .messages-shell .msg-card { background:#fff; border-color:rgba(255,255,255,.8); box-shadow:0 5px 13px rgba(123,56,83,.09); }
 
 /* Edit Profile (own, edit mode) */
 .profile-edit { --pe-bg:335 22% 9%; --pe-card:335 16% 14%; --pe-soft:335 20% 20%; --pe-fg:330 30% 96%; --pe-muted:330 10% 70%; --pe-pink:334 87% 63%; --pe-shadow:340 60% 3%; background:hsl(var(--pe-bg)); color:hsl(var(--pe-fg)); }
