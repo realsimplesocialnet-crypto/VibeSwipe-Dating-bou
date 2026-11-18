@@ -7,18 +7,20 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { File } from "@google-cloud/storage";
 import {
-  MAX_PROFILE_VIDEO_SOURCE_BYTES, transcodeReelVideo, validateTranscodedProfileVideo,
+  MAX_PROFILE_VIDEO_SOURCE_BYTES, reelTranscodeTimeoutMs, transcodeReelVideo, validateTranscodedProfileVideo,
 } from "../src/lib/profileVideoTranscoder.ts";
 import { reelAssetProblem } from "../src/lib/reel-cursor.ts";
 
-test("Reels accept three minutes and longer while profile and Story limits stay unchanged", () => {
-  for (const duration of [180, 185, 300, 900, 3600]) {
+test("Reels have no duration cap while profile videos stay capped at 30 seconds", () => {
+  for (const duration of [60, 180, 185, 300, 900, 3600, 10800]) {
     const video = { size: 1024, duration, width: 720, height: 1280 };
     assert.doesNotThrow(() => validateTranscodedProfileVideo(video, null, MAX_PROFILE_VIDEO_SOURCE_BYTES));
     assert.throws(() => validateTranscodedProfileVideo(video), /30 seconds/);
-    assert.throws(() => validateTranscodedProfileVideo(video, 15), /15 seconds/);
+    if (duration <= 60) assert.doesNotThrow(() => validateTranscodedProfileVideo(video, 60));
+    else assert.throws(() => validateTranscodedProfileVideo(video, 60), /60 seconds/);
     assert.equal(reelAssetProblem({ ownerId: "me", mediaType: "video", contentType: "video/mp4", durationSeconds: duration, matchId: null }, "me"), null);
   }
+  assert.ok(reelTranscodeTimeoutMs(3 * 60 * 60) > 600_000);
 });
 
 test("long Reels still reject invalid durations and oversized output", () => {

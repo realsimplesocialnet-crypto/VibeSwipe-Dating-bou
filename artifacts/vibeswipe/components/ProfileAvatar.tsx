@@ -10,7 +10,7 @@ export function ProfileAvatar({
   profile,
   size = 58,
 }: {
-  profile: Profile;
+  profile: Pick<Profile, "name" | "photos" | "isVerified">;
   size?: number;
 }) {
   const colors = useColors();

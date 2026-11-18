@@ -87,11 +87,11 @@ Reels should request playback with sound enabled by default, with controls to pa
 
 **How to apply:** Attempt to autoplay the active video unmuted, pause off-screen videos, and keep a clear play action if the browser blocks autoplay. Do not require the volume icon to be tapped just to request sound, and do not replace playback with static previews.
 
-Reels must support videos of three minutes or longer, not inherit the short profile-video duration cap.
+Reels have no app-imposed duration cap; Story videos are limited to 60 seconds. Keep file-size, safety and processing safeguards separate from Reel duration.
 
-**Why:** The user corrected the initial limit with “Video 3 minutes or more.”
+**Why:** The user clarified that Reels can be any length, including hours, while Story videos should be one minute maximum.
 
-**How to apply:** Preserve the full Reel during processing rather than clipping it. Keep upload-size/resource safeguards separate from video length, and do not change profile or Story limits as a side effect.
+**How to apply:** Do not add duration checks or trim Reels in selection, upload, transcoding, moderation or publishing. Preserve the full clip, retain resource safeguards such as upload-size limits, and enforce the separate 60-second Story limit on client and server.
 
 Safety approval must refer to the exact checked video, not a client-writable upload destination. Unknown, failed, outdated or rejected checks must never make a Reel public.
 

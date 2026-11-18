@@ -340,7 +340,7 @@ router.post("/vibeswipe/stories", async (req, res): Promise<void> => {
         asset.durationSeconds > MAX_STORY_VIDEO_DURATION_SECONDS
       ) {
         res.status(400).json({
-          error: "Prepare a video that is 15 seconds or shorter before posting.",
+          error: "Prepare a video that is 60 seconds or shorter before posting.",
         });
         return;
       }

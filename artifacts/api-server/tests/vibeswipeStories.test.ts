@@ -53,17 +53,17 @@ test("only the owner or an unblocked mutual match can view a story", () => {
   );
 });
 
-test("story video validation allows at most 15 seconds", () => {
+test("story video validation allows at most 60 seconds", () => {
   assert.doesNotThrow(() =>
     validateTranscodedProfileVideo(
-      { size: 1024, duration: 15, width: 720, height: 1280 },
+      { size: 1024, duration: 60, width: 720, height: 1280 },
       MAX_STORY_VIDEO_DURATION_SECONDS,
     ),
   );
   assert.throws(
     () =>
       validateTranscodedProfileVideo(
-        { size: 1024, duration: 15.01, width: 720, height: 1280 },
+        { size: 1024, duration: 60.01, width: 720, height: 1280 },
         MAX_STORY_VIDEO_DURATION_SECONDS,
       ),
     ProfileVideoValidationError,

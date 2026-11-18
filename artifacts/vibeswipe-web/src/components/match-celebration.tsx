@@ -7,7 +7,7 @@ import "./match-celebration.css";
 export type MatchCelebrationProps = {
   visible: boolean;
   self: Profile | null;
-  other: Profile | null;
+  other: Pick<Profile, "name" | "photos"> | null;
   canMessage: boolean;
   onMessage: () => void;
   onKeepSwiping: () => void;
@@ -18,7 +18,7 @@ function publicUrl(ref: string) {
   return "";
 }
 
-function MatchPhoto({ profile, variant }: { profile: Profile | null; variant: "self" | "other" }) {
+function MatchPhoto({ profile, variant }: { profile: Pick<Profile, "name" | "photos"> | null; variant: "self" | "other" }) {
   const ref = profile?.photos?.[0] ?? "";
   const mediaId = ref.startsWith("media:") ? ref.slice(6) : "";
   const media = useGetProfileMedia(mediaId, { query: { enabled: Boolean(mediaId), queryKey: getGetProfileMediaQueryKey(mediaId) } });

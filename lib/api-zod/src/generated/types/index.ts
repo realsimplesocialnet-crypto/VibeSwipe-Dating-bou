@@ -112,6 +112,7 @@ export * from './profilePreferences';
 export * from './profileVideoTranscodeResult';
 export * from './profileView';
 export * from './publicLocationShare';
+export * from './publicProfileDetails';
 export * from './reactionInput';
 export * from './reactionInputType';
 export * from './reactionResult';

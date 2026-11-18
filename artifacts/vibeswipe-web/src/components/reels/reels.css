@@ -1,6 +1,6 @@
 /* Reels: a dark, full-bleed viewing room with the app's pink as the only accent. */
 .reels-root { --reels-navigation-space: 0px; position: fixed; inset: 0; z-index: 70; height: calc(var(--reels-viewport-height, 100dvh) - var(--reels-navigation-space)); display: flex; flex-direction: column; background: #0c0a0f; color: #fff; overflow: hidden; max-width: 480px; margin: 0 auto; box-shadow: 0 0 0 100vmax #070609; transition: height .22s ease; }
-.reels-root[data-navigation-visible="true"] { --reels-navigation-space: calc(62px + max(env(safe-area-inset-bottom, 0px) - 18px, 4px)); }
+.reels-root[data-navigation-visible="true"] { --reels-navigation-space: calc(58px + max(env(safe-area-inset-bottom, 0px) - 18px, 4px)); }
 .reels-mobile-nav { left: 50% !important; right: auto !important; width: min(100%, 480px); border-top: 1px solid rgb(255 255 255 / .12); background: rgb(12 10 15 / .88) !important; transform: translateX(-50%); transition: transform .24s ease, opacity .2s ease; }
 .reels-mobile-nav.is-hidden { pointer-events: none; opacity: 0; transform: translate(-50%, calc(100% + env(safe-area-inset-bottom, 0px))); }
 .reels-feed-tabs { display: flex; min-width: 0; align-items: center; gap: 16px; margin: 0 auto; padding-top: 7px; }
@@ -94,40 +94,41 @@
 .reel-tile { aspect-ratio: 9 / 14; overflow: hidden; border-radius: 12px; background: #1d1720; position: relative; }
 .reel-tile-meta { position: absolute; inset: auto 0 0 0; display: flex; align-items: center; gap: 4px; padding: 18px 8px 6px; font-size: 11px; font-weight: 700; background: linear-gradient(transparent, rgb(0 0 0 / .7)); }
 
-/* Bold, high-contrast controls and labels for confident one-handed viewing. */
-.reels-feed-tabs { gap: 19px; }
-.reels-feed-tabs button { padding-bottom: 9px; color: rgb(255 255 255 / .92); font-size: 15px; font-weight: 800; letter-spacing: .01em; -webkit-text-stroke: .15px currentColor; }
-.reels-feed-tabs button.is-active { font-weight: 900; }
-.reels-feed-tabs button.is-active::after { height: 3px; }
-.reels-icon { height: 42px; width: 42px; flex: none; border: 1px solid rgb(255 255 255 / .2); background: rgb(8 6 10 / .48); }
-.reels-icon svg { height: 23px; width: 23px; stroke-width: 2.5; }
+/* Keep Reel controls compact and consistent with the rest of the app. */
+.reels-feed-tabs { gap: 16px; }
+.reels-feed-tabs button { color: rgb(255 255 255 / .82); font-size: 14px; font-weight: 650; }
+.reels-feed-tabs button.is-active { font-weight: 700; }
+.reels-feed-tabs button.is-active::after { height: 2px; }
+.reels-icon { height: 40px; width: 40px; flex: none; border: 1px solid rgb(255 255 255 / .2); background: rgb(8 6 10 / .48); }
+.reels-icon svg { height: 21px; width: 21px; stroke-width: 2.1; }
 .reels-icon:hover { background: rgb(8 6 10 / .72); }
-.reels-plus { height: 42px; width: 42px; border-width: 2px; border-radius: 12px; background: hsl(var(--primary) / .12); }
-.reels-plus svg { height: 24px; width: 24px; stroke-width: 2.8; }
-.reels-sound { height: 42px; width: 42px; border: 1px solid rgb(255 255 255 / .2); background: rgb(8 6 10 / .76); }
-.reels-sound svg { height: 20px; width: 20px; stroke-width: 2.5; }
+.reels-plus { height: 38px; width: 38px; border-width: 1.5px; border-radius: 10px; background: rgb(12 10 15 / .25); }
+.reels-plus svg { height: 21px; width: 21px; stroke-width: 2.2; }
+.reels-sound { height: 38px; width: 38px; border: 1px solid rgb(255 255 255 / .2); background: rgb(8 6 10 / .76); }
+.reels-sound svg { height: 18px; width: 18px; stroke-width: 2.1; }
 .reel-rail button { text-shadow: 0 1px 5px rgb(0 0 0 / .86); }
-.reel-rail button svg { height: 25px; width: 25px; stroke-width: 2.35; }
+.reel-rail button svg { height: 22px; width: 22px; stroke-width: 2.1; }
 .reel-music-slot { display: flex; height: 42px; width: 42px; align-items: center; justify-content: center; overflow: hidden; border: 2px solid rgb(255 255 255 / .9); border-radius: 999px; background: rgb(8 6 10 / .86); box-shadow: 0 1px 6px rgb(0 0 0 / .45); }
 .reel-music-slot .reel-avatar { height: 100%; width: 100%; border: 0; }
 .reel-rail.is-compact .reel-music-slot { display: none; }
-.reel-name { font-size: 22px; font-weight: 900; letter-spacing: -.015em; text-shadow: 0 1px 5px rgb(0 0 0 / .7); }
-.reel-age { font-size: 17px; font-weight: 800; color: #fff; }
-.reel-location { font-size: 14px; font-weight: 700; color: rgb(255 255 255 / .96); text-shadow: 0 1px 4px rgb(0 0 0 / .65); }
-.reel-caption { font-size: 15px; font-weight: 650; color: #fff; text-shadow: 0 1px 4px rgb(0 0 0 / .7); }
+.reel-name { font-size: 18px; font-weight: 750; letter-spacing: -.01em; text-shadow: 0 1px 5px rgb(0 0 0 / .7); }
+.reel-age { font-size: 15px; font-weight: 650; color: #fff; }
+.reel-location { font-size: 12px; font-weight: 600; color: rgb(255 255 255 / .96); text-shadow: 0 1px 4px rgb(0 0 0 / .65); }
+.reel-caption { font-size: 14px; font-weight: 550; color: #fff; text-shadow: 0 1px 4px rgb(0 0 0 / .7); }
 .reel-hint { font-weight: 700; color: #fff; }
 .reels-search-field { border-width: 1.5px; color: rgb(255 255 255 / .88); }
 .reels-search-field input { font-size: 15px; font-weight: 700; }
 .reels-search-field input::placeholder { color: rgb(255 255 255 / .7); font-weight: 650; }
 .reels-search-hint, .reels-search-status { color: rgb(255 255 255 / .84); font-weight: 650; }
 .reels-search-label { color: rgb(255 255 255 / .9); font-size: 14px; font-weight: 800; }
-.reels-mobile-nav .mnav-item { min-height: 54px; gap: 5px; color: rgb(255 255 255 / .9); font-size: 11px; font-weight: 800; }
-.reels-mobile-nav .mnav-item.is-active { color: hsl(var(--primary)); font-weight: 900; }
-.reels-mobile-nav .mnav-icon { height: 22px; width: 22px; }
-.reels-mobile-nav .mnav-icon svg { height: 22px; width: 22px; stroke-width: 2.35; }
-.reels-mobile-nav .mnav-label { font-size: 11px; font-weight: 800; letter-spacing: .02em; opacity: 1 !important; }
+.reels-mobile-nav .mnav-item { min-height: 50px; gap: 4px; color: rgb(255 255 255 / .9); font-size: 10px; font-weight: 600; }
+.reels-mobile-nav .mnav-item.is-active { color: hsl(var(--primary)); font-weight: 700; }
+.reels-mobile-nav .mnav-icon { height: 19px; width: 19px; }
+.reels-mobile-nav .mnav-icon svg { height: 19px; width: 19px; stroke-width: 1.85; }
+.reels-mobile-nav .mnav-label { font-size: 10px; font-weight: 600; letter-spacing: .02em; opacity: .82 !important; }
 .reel-identity { position: relative; top: 6px; gap: 10px; }
-.reel-name { font-size: 19px; }
-.reel-age { font-size: 15px; }
-.reel-location { font-size: 12px; }
+.reel-name { font-size: 17px; }
+.reel-age { font-size: 14px; }
+.reel-location { font-size: 11px; }
+.reels-mobile-nav .mnav-item.is-active .mnav-label { opacity: 1 !important; }
 @media (prefers-reduced-motion: reduce) { .reel-flash, .reel-comments, .reel-sheet, .reel-loading { animation: none; } .reels-mobile-nav { transition: none; } }

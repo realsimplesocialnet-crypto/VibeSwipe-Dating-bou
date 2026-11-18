@@ -1577,7 +1577,7 @@ paths:
     post:
       operationId: transcodeStoryVideo
       tags: [vibeswipe]
-      summary: Compress a story video and enforce the 15 second limit
+      summary: Compress a story video and enforce the 60 second limit
       parameters:
         - in: path
           name: mediaId
@@ -2671,7 +2671,7 @@ components:
       properties:
         mediaReference: { type: string }
         size: { type: integer, minimum: 1, maximum: 52428800 }
-        duration: { type: number, exclusiveMinimum: 0, maximum: 15 }
+        duration: { type: number, exclusiveMinimum: 0, maximum: 60 }
         width: { type: integer, minimum: 1, maximum: 1280 }
         height: { type: integer, minimum: 1, maximum: 1280 }
       required: [mediaReference, size, duration, width, height]

@@ -26,7 +26,7 @@ import { toast } from "@/hooks/use-toast";
 
 const STORY_PREFIX = "Replied to your story: ";
 const TEXT_BACKGROUNDS = ["#5c3b78", "#814e72", "#4e557f", "#8e5c69", "#594f70"];
-const STORY_VIDEO_MAX_SECONDS = 15;
+const STORY_VIDEO_MAX_SECONDS = 60;
 const STORY_IMAGE_MAX_BYTES = 15 * 1024 * 1024;
 const STORY_VIDEO_MAX_BYTES = 100 * 1024 * 1024;
 let pendingStoryMediaFile: File | null = null;
@@ -374,10 +374,10 @@ export function StoryComposerPage({ returnTo, initialMode = "text" }: { returnTo
     if (isVideo) {
       setCheckingVideo(true);
       try {
-        setBusyLabel("Checking video length…");
+          setBusyLabel("Checking video length…");
         const duration = await readVideoDuration(next);
         if (duration > STORY_VIDEO_MAX_SECONDS) {
-          setError("Story videos must be 15 seconds or shorter.");
+            setError("Story videos must be 60 seconds or shorter.");
           return;
         }
       } catch (reason) {
@@ -439,7 +439,7 @@ export function StoryComposerPage({ returnTo, initialMode = "text" }: { returnTo
         </div> : <>
           <input ref={galleryRef} type="file" accept="image/*,video/*" className="hidden" onChange={(event) => { void chooseFile(event.target.files?.[0]); event.currentTarget.value = ""; }} data-testid="input-story-gallery"/>
           <div className={`story-media-preview relative mx-auto flex h-[min(34dvh,300px)] min-h-[220px] w-full max-w-[360px] items-center justify-center overflow-hidden rounded-[22px] border border-white/[.08] md:h-[min(42vh,390px)] md:max-w-full ${preview ? "bg-black" : "bg-[linear-gradient(145deg,#392c45,#241e2b)]"}`}>
-            {preview ? mediaType === "video" ? <video src={preview} controls playsInline className="max-h-[280px] max-w-full object-contain md:max-h-[390px]" data-testid="preview-story-video"/> : <img src={preview} alt="Selected story preview" className="max-h-[280px] max-w-full object-contain md:max-h-[390px]" data-testid="preview-story-photo"/> : <div className="px-7 text-center"><span className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-white/[.07] text-[#d9b7ec]"><ImagePlus size={22}/></span><p className="mt-4 text-sm font-semibold">Your moment stays between you and your matches.</p><p className="mt-1 text-xs leading-5 text-muted-foreground">Add a photo or a short video, up to 15 seconds.</p></div>}
+            {preview ? mediaType === "video" ? <video src={preview} controls playsInline className="max-h-[280px] max-w-full object-contain md:max-h-[390px]" data-testid="preview-story-video"/> : <img src={preview} alt="Selected story preview" className="max-h-[280px] max-w-full object-contain md:max-h-[390px]" data-testid="preview-story-photo"/> : <div className="px-7 text-center"><span className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-white/[.07] text-[#d9b7ec]"><ImagePlus size={22}/></span><p className="mt-4 text-sm font-semibold">Your moment stays between you and your matches.</p><p className="mt-1 text-xs leading-5 text-muted-foreground">Add a photo or a video up to 60 seconds.</p></div>}
           </div>
           <div className="mt-3 grid grid-cols-2 gap-2"><button type="button" onClick={() => setLocation(`/stories/camera?${new URLSearchParams({ returnTo }).toString()}`)} data-testid="button-story-camera" className="flex min-h-11 items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[.035] text-sm font-semibold hover:bg-white/[.07]"><Camera size={16}/>Open camera</button><button type="button" onClick={() => galleryRef.current?.click()} data-testid="button-story-gallery" className="flex min-h-11 items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[.035] text-sm font-semibold hover:bg-white/[.07]"><Video size={16}/>Upload media</button></div>
           {file && <div className="mt-3 flex min-w-0 items-center justify-between gap-3 text-xs text-muted-foreground"><span className="min-w-0 flex-1 truncate">{file.name} · {(file.size / 1024 / 1024).toFixed(1)} MB</span><button type="button" onClick={() => { setFile(null); setFileContentType(""); }} data-testid="button-remove-story-media" aria-label="Remove selected media" className="shrink-0 rounded-lg p-2 text-muted-foreground hover:text-foreground"><X size={15}/></button></div>}

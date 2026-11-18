@@ -92,11 +92,12 @@ test("only supported, bounded videos are accepted for upload", () => {
   assert.match(reelFileProblem({ name: "a.jpg", type: "image/jpeg", size: 10 }), /MP4 or MOV/);
 });
 
-test("Reels composer uses full-length processing rather than the short profile-video endpoint", () => {
+test("Reels composer states there is no duration cap and uses full-length processing", () => {
   const composer = read("../src/pages/reel-composer.tsx");
   assert.match(composer, /useTranscodeReelVideo/);
   assert.doesNotMatch(composer, /useTranscodeProfileVideo|REEL_MAX_SECONDS/);
-  assert.match(composer, /3 minutes or longer/);
+  assert.match(composer, /no Reel duration limit/i);
+  assert.match(composer, /500 MB/);
 });
 
 test("media urls stay on the protected endpoint and return paths stay in-app", () => {
@@ -146,9 +147,9 @@ test("Reel creator details stay aligned while using a smaller, lower profile blo
   assert.match(slide, /className="reel-identity flex min-w-0 items-center gap-2\.5/);
   assert.match(slide, /size=\{compact \? 36 : 46\}/);
   assert.match(css, /\.reel-identity \{ position: relative; top: 6px; gap: 10px/);
-  assert.match(css, /\.reel-name \{ font-size: 19px/);
-  assert.match(css, /\.reel-age \{ font-size: 15px/);
-  assert.match(css, /\.reel-location \{ font-size: 12px/);
+  assert.match(css, /\.reel-name \{ font-size: 17px/);
+  assert.match(css, /\.reel-age \{ font-size: 14px/);
+  assert.match(css, /\.reel-location \{ font-size: 11px/);
   assert.match(css, /\.reel-meta \{ position: absolute; left: 16px; right: 74px; bottom: calc\(env\(safe-area-inset-bottom\) \+ 14px\)/);
   assert.match(slide, /className=\{`reel-meta \$\{compact \? "is-compact" : ""\} \$\{navigationVisible \? "is-nav-visible" : ""\}`\}/);
 });
@@ -217,7 +218,7 @@ test("Reel action rail and profile grid show persisted like, comment, save and s
   assert.ok(actionOrder.every((position, index) => position >= 0 && (index === 0 || position > actionOrder[index - 1])));
   assert.match(slide, /reel-music-slot[^]*?reel-music-artwork-slot/);
   const css = read("../src/components/reels/reels.css");
-  assert.match(css, /\.reel-rail button svg \{ height: 25px; width: 25px/);
+  assert.match(css, /\.reel-rail button svg \{ height: 22px; width: 22px/);
   assert.match(css, /\.reel-music-slot \{ display: flex; height: 42px; width: 42px/);
 });
 

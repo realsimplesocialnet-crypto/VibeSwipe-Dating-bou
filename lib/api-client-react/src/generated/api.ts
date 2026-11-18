@@ -89,6 +89,7 @@ import type {
   ProfileVideoTranscodeResult,
   ProfileView,
   PublicLocationShare,
+  PublicProfileDetails,
   ReactionInput,
   ReactionResult,
   ReadReceiptStatus,
@@ -6977,9 +6978,9 @@ export const getGetProfileByIdUrl = (profileId: string,) => {
 /**
  * @summary Get a profile opened from a notification
  */
-export const getProfileById = async (profileId: string, options?: Parameters<typeof customFetch>[1]): Promise<Profile> => {
+export const getProfileById = async (profileId: string, options?: Parameters<typeof customFetch>[1]): Promise<PublicProfileDetails> => {
 
-  return customFetch<Profile>(getGetProfileByIdUrl(profileId),
+  return customFetch<PublicProfileDetails>(getGetProfileByIdUrl(profileId),
   {
     ...options,
     method: 'GET'
@@ -8398,7 +8399,7 @@ export const getTranscodeStoryVideoUrl = (mediaId: string,) => {
 }
 
 /**
- * @summary Compress a story video and enforce the 15 second limit
+ * @summary Compress a story video and enforce the 60 second limit
  */
 export const transcodeStoryVideo = async (mediaId: string, options?: Parameters<typeof customFetch>[1]): Promise<StoryVideoTranscodeResult> => {
 
@@ -8450,7 +8451,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type TranscodeStoryVideoMutationVariables = {mediaId: string}
 
     /**
- * @summary Compress a story video and enforce the 15 second limit
+ * @summary Compress a story video and enforce the 60 second limit
  */
 export const useTranscodeStoryVideo = <TError = ErrorType<void>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof transcodeStoryVideo>>, TError,TranscodeStoryVideoMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}

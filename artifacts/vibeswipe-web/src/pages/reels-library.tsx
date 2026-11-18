@@ -49,7 +49,7 @@ export function ReelsLibraryPage() {
         : !items.length ? <div className="flex flex-col items-center py-16 text-center">
           <span className="reels-empty-mark">{tab === "saved" ? <Bookmark size={26} /> : <Clapperboard size={26} />}</span>
           <p className="mt-4 font-bold">{tab === "saved" ? "Nothing saved yet" : "You have not posted a Reel"}</p>
-          <p className="mt-1 max-w-[260px] text-sm text-white/55">{tab === "saved" ? "Tap the bookmark on any Reel. Only you can see what you save." : "Record or choose a short video to share with the community."}</p>
+          <p className="mt-1 max-w-[260px] text-sm text-white/55">{tab === "saved" ? "Tap the bookmark on any Reel. Only you can see what you save." : "Record or choose a video to share with the community."}</p>
           <Link href={tab === "saved" ? `/reels?returnTo=${encodeURIComponent(here)}` : `/reels/new?returnTo=${encodeURIComponent(here)}`} className="reels-primary mt-6" data-testid="link-library-empty-action">{tab === "saved" ? "Browse Reels" : "Post a Reel"}</Link>
         </div>
         : <ul className="grid grid-cols-3 gap-1.5 pb-10">{items.map((reel: Reel) => <li key={reel.id} className="relative">

@@ -88,7 +88,7 @@ export function ReelComposerPage() {
           : <div className="flex h-full flex-col items-center justify-center px-8 text-center">
             <span className="reels-empty-mark"><Film size={28} /></span>
             <p className="mt-5 text-lg font-bold">Record or choose a video</p>
-            <p className="mt-1 text-sm leading-6 text-white/60">Videos of 3 minutes or longer are supported. MP4 or MOV, up to 500 MB. Your video goes live after processing finishes; longer videos may take more time.</p>
+            <p className="mt-1 text-sm leading-6 text-white/60">There is no Reel duration limit. MP4 or MOV videos up to 500 MB are supported; longer videos may take more time to upload and process.</p>
           </div>}
       </div>
       <div className="grid grid-cols-2 gap-2">

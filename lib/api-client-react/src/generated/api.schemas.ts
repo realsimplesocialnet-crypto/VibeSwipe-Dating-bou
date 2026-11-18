@@ -392,6 +392,28 @@ export interface FaceVerificationDecisionResult {
   message: string;
 }
 
+export interface PublicProfileDetails {
+  id: string;
+  name: string;
+  /** @nullable */
+  age: number | null;
+  showAge: boolean;
+  gender: string;
+  lookingFor: string;
+  bio: string;
+  city: string;
+  /** @nullable */
+  country: string | null;
+  /** @nullable */
+  state: string | null;
+  interests: string[];
+  occupation: string;
+  occupationOther: string;
+  photos: string[];
+  isDemo: boolean;
+  isVerified: boolean;
+}
+
 export interface Profile {
   id: string;
   name: string;
@@ -1244,7 +1266,7 @@ export interface StoryVideoTranscodeResult {
      */
   size: number;
   /**
-     * @maximum 15
+     * @maximum 60
      * @exclusiveMinimum 0
      */
   duration: number;

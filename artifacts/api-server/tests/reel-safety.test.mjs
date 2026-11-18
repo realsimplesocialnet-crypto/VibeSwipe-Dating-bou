@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
+import { reelSafetyExtractionTimeoutMs, reelSafetySamplingPlan } from "../src/lib/reel-safety-sampling.ts";
 import { explicitScore, rejectExplicitFrame, ReelSafetyError } from "../src/lib/reel-safety-policy.ts";
 const read = name => readFileSync(new URL(`../src/${name}`, import.meta.url), "utf8");
 test("unsafe classifications are rejected, ordinary frames pass", () => {
@@ -29,11 +30,19 @@ test("checked video is sealed before atomic approval, not reused from a writable
   assert.match(service, /result\.rowCount !== 0\)\.catch\(\(\) => true\)/);
   assert.match(service, /if \(!referenced\) await storage\.deleteObjectEntity/);
 });
-test("checks span the full timeline without a short duration cutoff", () => {
+test("long video safety samples stay distributed across the entire timeline", () => {
+  const short = reelSafetySamplingPlan(180);
+  assert.equal(short.framesPerSecond, 1);
+  const threeHours = reelSafetySamplingPlan(3 * 60 * 60);
+  assert.equal(threeHours.framesPerSecond, 1 / 18);
+  assert.equal(threeHours.minimumFrameCount, 570);
+  assert.throws(() => reelSafetySamplingPlan(0), RangeError);
+  assert.ok(reelSafetyExtractionTimeoutMs(3 * 60 * 60) > 180_000);
   const checker = read("lib/reel-safety-checker.ts");
-  assert.match(checker, /fps=1:round=up/);
-  assert.match(checker, /frames\.length < Math\.floor\(duration\)/);
+  assert.match(checker, /fps=\$\{sampling\.framesPerSecond/);
+  assert.match(checker, /frames\.length < sampling\.minimumFrameCount/);
+  assert.match(checker, /reelSafetyExtractionTimeoutMs\(duration\)/);
   assert.match(checker, /for \(const frame of frames\)/);
-  assert.doesNotMatch(checker, /"-t"|"60"|"180"/);
+  assert.doesNotMatch(checker, /"-t"|"60"/);
   assert.match(read("index.ts"), /void checkExistingReels\(\)/);
 });

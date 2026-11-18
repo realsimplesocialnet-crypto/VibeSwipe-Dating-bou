@@ -8,13 +8,13 @@ import { useColors } from "@/hooks/useColors";
 export type MatchCelebrationProps = {
   visible: boolean;
   self: Profile | null;
-  other: Profile | null;
+  other: Pick<Profile, "name" | "photos" | "isVerified"> | null;
   canMessage: boolean;
   onMessage: () => void;
   onKeepSwiping: () => void;
 };
 
-function Photo({ profile, size, ring, tilt }: { profile: Profile | null; size: number; ring: string; tilt: string }) {
+function Photo({ profile, size, ring, tilt }: { profile: Pick<Profile, "name" | "photos" | "isVerified"> | null; size: number; ring: string; tilt: string }) {
   const colors = useColors();
   return (
     <View style={[styles.photo, { width: size + 10, height: size + 10, borderRadius: (size + 10) / 2, backgroundColor: ring, transform: [{ rotate: tilt }] }]}>

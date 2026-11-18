@@ -618,7 +618,7 @@ function ChatsPage() {
         ] as const).map(([value, label]) => <button key={value} type="button" aria-pressed={filter === value} data-testid={`chat-filter-${value}`} onClick={() => setFilter(value)} className={`shrink-0 rounded-full border px-4 py-2 text-sm font-bold transition-colors ${filter === value ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-card text-muted-foreground hover:text-foreground'}`}>{label}</button>)}
       </div>
       <div className="mt-5">
-        {matches.isLoading ? <div className="space-y-3" aria-label="Loading conversations">{[0,1,2].map(i => <div key={i} className="msg-card flex items-center gap-4 rounded-[22px] p-4"><div className="h-[68px] w-[68px] animate-pulse rounded-full bg-muted"/><div className="flex-1 space-y-2"><div className="h-4 w-32 animate-pulse rounded bg-muted"/><div className="h-3 w-48 animate-pulse rounded bg-muted"/></div></div>)}</div>
+        {matches.isLoading ? <div aria-label="Loading conversations">{[0,1,2].map(i => <div key={i} className="flex items-center gap-4 border-b border-border py-4"><div className="h-[56px] w-[56px] animate-pulse rounded-full bg-muted"/><div className="flex-1 space-y-2"><div className="h-4 w-32 animate-pulse rounded bg-muted"/><div className="h-3 w-48 animate-pulse rounded bg-muted"/></div></div>)}</div>
           : matches.isError && !matches.data ? <Retry error={matches.error} text="We couldn’t load your messages. Check your connection and try again." onRetry={() => void matches.refetch()} />
           : !list.length ? <Empty title="No conversations yet" detail="When you and someone both say yes, your conversation opens here." action={<Link href="/discover" data-testid="link-messages-discover" className="inline-flex rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground">Go to Discover</Link>} />
           : !newMatches.length && !chats.length ? <div className="rounded-2xl border border-border bg-card px-4 py-8 text-center text-sm font-medium text-muted-foreground" data-testid="empty-chat-search">{search.trim() ? 'No chats found for that name.' : filter === 'unread' ? 'No unread chats.' : 'No new matches.'}</div>
@@ -640,7 +640,7 @@ function ChatsPage() {
             const blocked = m.blockedByMe || m.blockedMe;
             const unread = !blocked && (extras.unreadCount ?? 0) > 0;
             const preview = m.blockedByMe ? 'You blocked this person. Unblock from Matches to chat again.' : m.blockedMe ? 'Messaging is unavailable with this person.' : m.lastMessage || 'You matched. Say hello.';
-            return <li key={m.id} data-testid={`card-conversation-${m.id}`} className={`msg-card relative flex items-center gap-4 rounded-[22px] p-3.5 transition-transform md:p-4 ${blocked ? 'opacity-70' : 'hover:-translate-y-px'}`}>
+             return <li key={m.id} data-testid={`card-conversation-${m.id}`} className={`relative flex items-center gap-4 border-b border-border py-4 transition-colors hover:bg-accent/30 ${blocked ? 'opacity-70' : ''}`}>
               <div className="msg-avatar shrink-0"><MatchStoryAvatar matchId={m.id} profile={m.profile} storyGroup={stories.data?.matches.find(g => g.matchId === m.id)} disabled={blocked} returnTo="/messages" /></div>
               {blocked
                 ? <div className="min-w-0 flex-1" data-testid={`status-conversation-blocked-${m.id}`}><div className="truncate text-[17px] font-bold">{m.profile.name}</div><div className="mt-1 text-sm text-destructive">{preview}</div></div>

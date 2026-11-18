@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { readFileSync } from "node:fs";
 import { reelSlideIndex, reelsViewportFrame } from "../src/lib/reels-viewport.ts";
 
 test("iPhone keyboard pan keeps both Reel and comment input within the visible viewport", () => {
@@ -42,4 +43,13 @@ test("negative visual viewport offsets cannot pull the full-bleed viewer offscre
   const frame = reelsViewportFrame(844, -12, 844, false);
   assert.equal(frame.top, 0);
   assert.equal(frame.height, 844);
+});
+
+test("Reels navigation uses the same compact icon and label sizing as other tabs", () => {
+  const reelsCss = readFileSync(new URL("../src/components/reels/reels.css", import.meta.url), "utf8");
+  const appCss = readFileSync(new URL("../src/index.css", import.meta.url), "utf8");
+  assert.match(appCss, /\.mobile-nav \.mnav-item[^}]*min-height:50px[^}]*font-size:10px/);
+  assert.match(reelsCss, /\.reels-mobile-nav \.mnav-item \{ min-height: 50px;[^}]*font-size: 10px;/);
+  assert.match(reelsCss, /\.reels-mobile-nav \.mnav-icon \{ height: 19px; width: 19px; \}/);
+  assert.doesNotMatch(reelsCss, /\.reels-mobile-nav \.mnav-item \{[^}]*font-size: 11px/);
 });

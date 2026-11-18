@@ -9,7 +9,8 @@ import type { File } from "@google-cloud/storage";
 export const MAX_PROFILE_VIDEO_BYTES = 50 * 1024 * 1024;
 export const MAX_PROFILE_VIDEO_DURATION_SECONDS = 30;
 export const MAX_PROFILE_VIDEO_SOURCE_BYTES = 500 * 1024 * 1024;
-export const MAX_STORY_VIDEO_DURATION_SECONDS = 15;
+export const MAX_STORY_VIDEO_DURATION_SECONDS = 60;
+const MAX_CHILD_PROCESS_TIMEOUT_MS = 2_147_000_000;
 
 export class ProfileVideoValidationError extends Error {
   constructor(message: string) {
@@ -42,7 +43,7 @@ export function validateTranscodedProfileVideo(
   if (maxDurationSeconds !== null && video.duration > maxDurationSeconds) {
     throw new ProfileVideoValidationError(
       maxDurationSeconds === MAX_STORY_VIDEO_DURATION_SECONDS
-        ? "Story videos must be 15 seconds or shorter."
+        ? "Story videos must be 60 seconds or shorter."
         : "Profile videos must be 30 seconds or shorter.",
     );
   }
@@ -116,16 +117,23 @@ export async function transcodeProfileVideo(
   if (
     !Number.isFinite(maxDurationSeconds) ||
     maxDurationSeconds <= 0 ||
-    maxDurationSeconds > MAX_PROFILE_VIDEO_DURATION_SECONDS
+    maxDurationSeconds > MAX_STORY_VIDEO_DURATION_SECONDS
   ) {
     throw new ProfileVideoValidationError("The video duration limit is invalid.");
   }
   return transcodeVideo(source, maxDurationSeconds);
 }
 
-/** Reels preserve the complete video; file size and processing time remain bounded. */
+/** Reels preserve the complete video; processing time scales with source duration. */
 export async function transcodeReelVideo(source: File, consumeCheckedOutput?: (path: string, video: TranscodedProfileVideo) => Promise<void>): Promise<TranscodedProfileVideo> {
   return transcodeVideo(source, null, consumeCheckedOutput);
+}
+
+export function reelTranscodeTimeoutMs(durationSeconds: number): number {
+  if (!Number.isFinite(durationSeconds) || durationSeconds <= 0) {
+    throw new ProfileVideoValidationError("This video could not be read.");
+  }
+  return Math.min(MAX_CHILD_PROCESS_TIMEOUT_MS, Math.max(600_000, Math.ceil(durationSeconds * 3_000)));
 }
 
 async function transcodeVideo(source: File, maxDurationSeconds: number | null, consumeCheckedOutput?: (path: string, video: TranscodedProfileVideo) => Promise<void>): Promise<TranscodedProfileVideo> {
@@ -143,6 +151,7 @@ async function transcodeVideo(source: File, maxDurationSeconds: number | null, c
   const outputPath = join(workingDirectory, "compressed.mp4");
   try {
     await pipeline(source.createReadStream(), createWriteStream(inputPath));
+    const sourceVideo = maxDurationSeconds === null ? await probeVideo(inputPath) : null;
     await run("ffmpeg", [
       "-hide_banner", "-loglevel", "error", "-y",
       "-i", inputPath,
@@ -159,7 +168,7 @@ async function transcodeVideo(source: File, maxDurationSeconds: number | null, c
       "-b:a", "128k",
       "-movflags", "+faststart",
       outputPath,
-    ], maxDurationSeconds === null ? 600_000 : 120_000);
+    ], sourceVideo ? reelTranscodeTimeoutMs(sourceVideo.duration) : 120_000);
 
     const outputStats = await stat(outputPath);
     const video = await probeVideo(outputPath);

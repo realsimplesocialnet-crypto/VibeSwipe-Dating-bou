@@ -243,7 +243,7 @@ export default function ChatsScreen() {
           const unread = !isBlocked && (item.unreadCount ?? 0) > 0;
           const stamp = item.lastMessageAt ?? item.updatedAt;
           return (
-            <View style={[styles.row, { backgroundColor: colors.profileCard, borderColor: colors.border }]}>
+            <View style={[styles.row, { borderBottomColor: colors.border }]}>
               <Pressable
                 disabled={isBlocked}
                 onPress={() => router.push({ pathname: "/chat/[matchId]", params: { matchId: item.id, returnTo: "messages" } } as never)}
@@ -458,12 +458,12 @@ const styles = StyleSheet.create({
   badgeText: { fontSize: 13, fontWeight: "800" },
   loading: { marginTop: 40 },
   list: { paddingBottom: 18 },
-  row: { minHeight: 96, flexDirection: "row", alignItems: "center", gap: 6, borderWidth: StyleSheet.hairlineWidth, borderRadius: 22, paddingHorizontal: 12, marginBottom: 12, shadowColor: "#7a3a5a", shadowOpacity: 0.1, shadowRadius: 14, shadowOffset: { width: 0, height: 6 }, elevation: 2 },
+  row: { minHeight: 84, flexDirection: "row", alignItems: "center", gap: 6, borderBottomWidth: StyleSheet.hairlineWidth, paddingHorizontal: 0 },
   meta: { alignSelf: "stretch", alignItems: "flex-end", justifyContent: "space-between", paddingVertical: 18 },
   dot: { width: 11, height: 11, borderRadius: 6 },
   dotSpace: { height: 11 },
   time: { fontSize: 12 },
-  rowMain: { flex: 1, minHeight: 78, flexDirection: "row", alignItems: "center", gap: 12 },
+  rowMain: { flex: 1, minHeight: 76, flexDirection: "row", alignItems: "center", gap: 12 },
   copy: { flex: 1, gap: 5 },
   name: { fontSize: 17, fontWeight: "700" },
   last: { fontSize: 14 },

@@ -1994,30 +1994,11 @@ export const GetProfileByIdParams = zod.object({
   "profileId": zod.coerce.string().min(1)
 })
 
-export const getProfileByIdResponsePreferencesAgeMinMin = 18;
-export const getProfileByIdResponsePreferencesAgeMinMax = 120;
-
-export const getProfileByIdResponsePreferencesAgeMaxMin = 18;
-export const getProfileByIdResponsePreferencesAgeMaxMax = 120;
-
-export const getProfileByIdResponsePreferencesDistanceKmMax = 500;
-
-export const getProfileByIdResponsePreferencesDiscoveryLocationCountryMax = 100;
-
-export const getProfileByIdResponsePreferencesDiscoveryLocationStateMax = 100;
-
-export const getProfileByIdResponsePreferencesDiscoveryLocationCityMax = 100;
-
-export const getProfileByIdResponsePreferencesDiscoveryLocationRadiusKmMax = 500;
-
-
-
 export const GetProfileByIdResponse = zod.object({
   "id": zod.string(),
   "name": zod.string(),
   "age": zod.number().int().nullable(),
   "showAge": zod.boolean(),
-  "showDistance": zod.boolean(),
   "gender": zod.string(),
   "lookingFor": zod.string(),
   "bio": zod.string(),
@@ -2028,24 +2009,8 @@ export const GetProfileByIdResponse = zod.object({
   "occupation": zod.string(),
   "occupationOther": zod.string(),
   "photos": zod.array(zod.string()),
-  "videoUrl": zod.string().nullish(),
   "isDemo": zod.boolean(),
-  "isVerified": zod.boolean().optional().describe('Public verification badge; never writable through profile input.'),
-  "superLikedYou": zod.boolean().optional(),
-  "discoveryExpanded": zod.boolean().optional().describe('The default discovery batch includes members outside the home country because the eligible local pool is below the minimum.'),
-  "preferences": zod.object({
-  "ageMin": zod.number().int().min(getProfileByIdResponsePreferencesAgeMinMin).max(getProfileByIdResponsePreferencesAgeMinMax),
-  "ageMax": zod.number().int().min(getProfileByIdResponsePreferencesAgeMaxMin).max(getProfileByIdResponsePreferencesAgeMaxMax),
-  "gender": zod.string(),
-  "distanceKm": zod.number().int().min(1).max(getProfileByIdResponsePreferencesDistanceKmMax),
-  "discoveryLocation": zod.object({
-  "scope": zod.enum(['city', 'state', 'country', 'radius']),
-  "country": zod.string().max(getProfileByIdResponsePreferencesDiscoveryLocationCountryMax).nullable(),
-  "state": zod.string().max(getProfileByIdResponsePreferencesDiscoveryLocationStateMax).nullable(),
-  "city": zod.string().max(getProfileByIdResponsePreferencesDiscoveryLocationCityMax).nullable(),
-  "radiusKm": zod.number().int().min(1).max(getProfileByIdResponsePreferencesDiscoveryLocationRadiusKmMax).nullable()
-}).optional()
-})
+  "isVerified": zod.boolean()
 })
 
 
@@ -2398,7 +2363,7 @@ export const RequestStoryMediaUploadResponse = zod.object({
 
 
 /**
- * @summary Compress a story video and enforce the 15 second limit
+ * @summary Compress a story video and enforce the 60 second limit
  */
 export const TranscodeStoryVideoParams = zod.object({
   "mediaId": zod.coerce.string().uuid()
@@ -2407,7 +2372,7 @@ export const TranscodeStoryVideoParams = zod.object({
 export const transcodeStoryVideoResponseSizeMax = 52428800;
 
 export const transcodeStoryVideoResponseDurationExclusiveMin = 0;
-export const transcodeStoryVideoResponseDurationMax = 15;
+export const transcodeStoryVideoResponseDurationMax = 60;
 
 export const transcodeStoryVideoResponseWidthMax = 1280;
 

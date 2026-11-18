@@ -14,7 +14,7 @@ export interface StoryVideoTranscodeResult {
      */
   size: number;
   /**
-     * @maximum 15
+     * @maximum 60
      * @exclusiveMinimum 0
      */
   duration: number;
