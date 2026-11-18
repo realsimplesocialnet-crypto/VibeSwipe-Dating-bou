@@ -10,7 +10,8 @@ import {
   getStreamMatchMessagesQueryKey, getGetTypingStatusQueryKey,
   getGetMyProfileQueryKey, getGetNotificationsQueryKey, getGetOnboardingDraftQueryKey, getGetProfileMediaQueryKey,
   getGetProfileByIdQueryKey, getGetProfileDatingStateQueryKey, getGetStoriesQueryKey, getGetSuperLikeStatusQueryKey, getGetVibeSwipeSettingsQueryKey,
-  getGetMatchPresenceQueryKey, getGetWhoLikedYouQueryKey,
+  getGetMatchPresenceQueryKey, getGetWhoLikedYouQueryKey, getGetProfileFollowSummaryQueryKey,
+  getProfileById, getProfileFollowSummary, getProfileDatingState,
   useActivateBoost, useBlockProfile, useClearChat,
   useClearOnboardingDraft, useCreateReaction, useDeleteChat, useDeleteMessage,
   useGetBoostStatus, useGetChatReadReceipt, useGetDailyLikeStatus,
@@ -34,7 +35,8 @@ import { VerifiedBadge } from '@/components/verified-badge';
 import { InstallAction, MobileInstallBanner } from '@/components/install-action';
 import { InstalledWelcome } from '@/components/installed-welcome';
 import { MatchCelebration } from '@/components/match-celebration';
-import { MatchStoryAvatar, StoryComposerPage } from '@/components/stories/stories-ui';
+import { MatchStoryAvatar, StoryCameraTrigger, StoryComposerPage } from '@/components/stories/stories-ui';
+import { StoryCameraPage } from '@/components/stories/story-camera-page';
 import { SignupPasswordField } from '@/components/signup-password-field';
 import { ProfileFirstSignup } from '@/components/profile-first-signup';
 import { OnboardingCountryStep } from '@/components/onboarding-country-step';
@@ -581,9 +583,12 @@ function ChatsPage() {
     <div className="page-in mx-auto max-w-[720px] px-4 pb-10 pt-6 md:px-8 md:pt-10" data-testid="messages-page-content">
       <div className="flex items-center justify-between" data-testid="chats-header">
         <h1 className="text-3xl font-black leading-tight tracking-[-.04em] md:text-4xl">Chats</h1>
-        <Link href="/stories/new?returnTo=%2Fmessages" aria-label="Create a story" data-testid="button-create-story-from-chats" className="flex h-11 w-11 items-center justify-center rounded-full border border-border bg-card text-foreground shadow-sm transition-colors hover:bg-accent">
-          <Camera size={21} strokeWidth={2.4} aria-hidden="true" />
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link href="/stories/new?returnTo=%2Fmessages&mode=text" aria-label="Write a text story" data-testid="button-write-story-from-chats" className="flex h-11 w-11 items-center justify-center rounded-full border border-border bg-card text-sm font-bold text-foreground shadow-sm transition-colors hover:bg-accent">Aa</Link>
+          <StoryCameraTrigger returnTo="/messages" label="Open camera to create a story" testId="button-create-story-from-chats" className="flex h-11 w-11 items-center justify-center rounded-full border border-border bg-card text-foreground shadow-sm transition-colors hover:bg-accent">
+            <Camera size={21} strokeWidth={2.4} aria-hidden="true" />
+          </StoryCameraTrigger>
+        </div>
       </div>
       <label className="mt-5 flex h-12 items-center gap-3 rounded-full border border-border bg-card px-4 shadow-sm focus-within:ring-2 focus-within:ring-primary/35">
         <Search size={19} aria-hidden="true" className="shrink-0 text-muted-foreground" />
@@ -823,7 +828,7 @@ function Row({icon:Icon,title,children,testId}:{icon:typeof Heart;title:string;c
 function PublicProfile({id,actionReturnTo='/discover'}:{id:string;actionReturnTo?:string}){
   const fromLikes=actionReturnTo==='/likes';
   const me=useGetMyProfile();
-  const q=useGetProfileById(id,{query:{queryKey:getGetProfileByIdQueryKey(id)}});const datingState=useGetProfileDatingState(id,{query:{queryKey:getGetProfileDatingStateQueryKey(id),enabled:!!id,refetchOnMount:'always',refetchOnWindowFocus:true,staleTime:0}});const matches=useGetMatches({query:{queryKey:getGetMatchesQueryKey(),enabled:!!id,refetchInterval:12000,refetchOnMount:'always',refetchOnWindowFocus:true,staleTime:0}});const profileMatch=matches.data?.find(match=>match.profile.id===id);const matchedId=profileMatch?.id??datingState.data?.matchId??null;const view=useRecordProfileView();const seen=useRef('');const [photoError,setPhotoError]=useState(false);const [viewer,setViewer]=useState<number|null>(null);
+  const q=useGetProfileById(id,{query:{queryKey:getGetProfileByIdQueryKey(id),staleTime:60_000}});const datingState=useGetProfileDatingState(id,{query:{queryKey:getGetProfileDatingStateQueryKey(id),enabled:!!id,staleTime:60_000}});const matches=useGetMatches({query:{queryKey:getGetMatchesQueryKey(),enabled:!!id,staleTime:30_000}});const profileMatch=matches.data?.find(match=>match.profile.id===id);const matchedId=profileMatch?.id??datingState.data?.matchId??null;const view=useRecordProfileView();const seen=useRef('');const [photoError,setPhotoError]=useState(false);const [viewer,setViewer]=useState<number|null>(null);
    const client=useQueryClient();const [,setLocation]=useLocation();const reaction=useCreateReaction();const unlike=useUnlikeProfile();const likes=useGetDailyLikeStatus({query:{queryKey:getGetDailyLikeStatusQueryKey()}});
   const [confirmation,setConfirmation]=useState<{text:string;kind:'like'}|null>(null);const [actionError,setActionError]=useState('');const block=useBlockProfile();const report=useReportProfile();const [menu,setMenu]=useState(false);const [confirmSafety,setConfirmSafety]=useState<'block'|'report'|null>(null);const [safetyError,setSafetyError]=useState('');const [reported,setReported]=useState(false);const [matchResult,setMatchResult]=useState<{name:string;matchId:string|null}|null>(null);
   const confirmationTimer=useRef<number|null>(null);const busy=useRef(false);const mounted=useRef(true);const currentId=useRef(id);currentId.current=id;
@@ -1026,7 +1031,8 @@ function ReelsRoute(){return <ShellPage><ReelsFeedPage/></ShellPage>}
 function ReelRoute(){const params=useParams<{reelId:string}>();return <ShellPage><ReelsFeedPage key={params.reelId} initialReelId={params.reelId}/></ShellPage>}
 function ReelComposerRoute(){return <ShellPage><ReelComposerPage/></ShellPage>}
 function ReelsLibraryRoute(){return <ShellPage><ReelsLibraryPage/></ShellPage>}
-function StoryComposerRoute(){const returnTo=safeAppReturnPath(new URLSearchParams(window.location.search).get('returnTo'),'/discover');return <ShellPage><StoryComposerPage returnTo={returnTo}/></ShellPage>}
+function StoryComposerRoute(){const params=new URLSearchParams(window.location.search);const returnTo=safeAppReturnPath(params.get('returnTo'),'/discover');const initialMode=params.get('mode')==='media'?'media':'text';return <ShellPage><StoryComposerPage returnTo={returnTo} initialMode={initialMode}/></ShellPage>}
+function StoryCameraRoute(){const returnTo=safeAppReturnPath(new URLSearchParams(window.location.search).get('returnTo'),'/discover');return <ShellPage><StoryCameraPage returnTo={returnTo}/></ShellPage>}
 function MatchesRoute(){return <ShellPage><MutualMatchesPage avatar={p=><Avatar profile={p}/>}/></ShellPage>}
 function VisitorsPage(){
   const visitors=useGetWhoViewedYou({query:{refetchInterval:30000,refetchOnMount:'always'}});
@@ -1066,14 +1072,15 @@ function SettingsThemeSync() {
   return null;
 }
 function ClerkCacheSync(){const {user}=useUser();const client=useQueryClient();const previous=useRef<string|null|undefined>(undefined);useEffect(()=>{const id=user?.id??null;if(previous.current!==undefined&&previous.current!==id)client.clear();previous.current=id},[user?.id,client]);return null}
-function ClerkRoutes(){const [,setLocation]=useLocation();return <ClerkProvider publishableKey={clerkPubKey} proxyUrl={clerkProxyUrl} appearance={appearance} signInUrl={pathFor('/sign-in')} signUpUrl={pathFor('/sign-up')} localization={{signIn:{start:{title:'Welcome back',subtitle:'Your next good conversation is waiting.'}},signUp:{start:{title:'Make room for a spark',subtitle:'Create your adults-only Myage account.'}}}} routerPush={to=>setLocation(to.startsWith(basePath)?to.slice(basePath.length)||'/':to)} routerReplace={to=>setLocation(to.startsWith(basePath)?to.slice(basePath.length)||'/':to,{replace:true})}><ClerkCacheSync/><SettingsThemeSync/><Suspense fallback={<div className="flex min-h-[45dvh] items-center justify-center text-primary" aria-label="Loading"><LoaderCircle className="animate-spin" size={22}/></div>}><Switch>
+function ProfileNavigationPrefetcher(){const {user}=useUser();const client=useQueryClient();useEffect(()=>{if(!user?.id)return;const prefetch=(event:Event)=>{const target=event.target;if(!(target instanceof Element))return;const anchor=target.closest<HTMLAnchorElement>('a[href]');if(!anchor)return;let url:URL;try{url=new URL(anchor.href,window.location.href)}catch{return}if(url.origin!==window.location.origin)return;let path=url.pathname;if(basePath&&path.startsWith(`${basePath}/`))path=path.slice(basePath.length);const match=path.match(/^\/profile\/([^/]+)$/);if(!match)return;let profileId:string;try{profileId=decodeURIComponent(match[1])}catch{return}if(!profileId||profileId===user.id)return;void client.prefetchQuery({queryKey:getGetProfileByIdQueryKey(profileId),queryFn:({signal})=>getProfileById(profileId,{signal}),staleTime:60_000});void client.prefetchQuery({queryKey:getGetProfileFollowSummaryQueryKey(profileId),queryFn:({signal})=>getProfileFollowSummary(profileId,{signal}),staleTime:60_000});void client.prefetchQuery({queryKey:getGetProfileDatingStateQueryKey(profileId),queryFn:({signal})=>getProfileDatingState(profileId,{signal}),staleTime:60_000})};document.addEventListener('pointerover',prefetch,true);document.addEventListener('pointerdown',prefetch,true);return()=>{document.removeEventListener('pointerover',prefetch,true);document.removeEventListener('pointerdown',prefetch,true)}},[user?.id,client]);return null}
+function ClerkRoutes(){const [,setLocation]=useLocation();return <ClerkProvider publishableKey={clerkPubKey} proxyUrl={clerkProxyUrl} appearance={appearance} signInUrl={pathFor('/sign-in')} signUpUrl={pathFor('/sign-up')} localization={{signIn:{start:{title:'Welcome back',subtitle:'Your next good conversation is waiting.'}},signUp:{start:{title:'Make room for a spark',subtitle:'Create your adults-only Myage account.'}}}} routerPush={to=>setLocation(to.startsWith(basePath)?to.slice(basePath.length)||'/':to)} routerReplace={to=>setLocation(to.startsWith(basePath)?to.slice(basePath.length)||'/':to,{replace:true})}><ClerkCacheSync/><ProfileNavigationPrefetcher/><SettingsThemeSync/><Suspense fallback={<div className="flex min-h-[45dvh] items-center justify-center text-primary" aria-label="Loading"><LoaderCircle className="animate-spin" size={22}/></div>}><Switch>
   <Route path="/" component={HomeRedirect}/>
   <Route path="/welcome" component={WelcomeRoute}/>
   <Route path="/admin" component={AdminPage}/><Route path="/admin/:section" component={AdminPage}/>
   <Route path="/sign-in/*?"><div className="auth-sign-in grain flex min-h-[100dvh] flex-col bg-background px-4"><header className="mb-6 shrink-0 px-2" data-testid="header-sign-in-brand"><Brand/></header><main className="flex w-full flex-1 flex-col items-center justify-center"><SignIn routing="path" path={pathFor('/sign-in')} signUpUrl={pathFor('/sign-up')}/><p className="mt-5 text-center text-xs text-muted-foreground"><Link href="/privacy-policy" className="hover:text-primary">Privacy Policy</Link><span className="px-2">·</span><Link href="/terms" className="hover:text-primary">Terms of Service</Link></p></main></div></Route>
   <Route path="/sign-up/*?" component={BrandedSignUp}/>
   {import.meta.env.DEV&&<Route path="/create-account-preview"><div className="border-b border-primary/20 bg-accent px-5 py-3 text-center text-xs leading-5 text-foreground" role="note">Form preview only. Email-code signup still needs the authentication setting changed.</div><ProfileFirstSignup previewOnly/></Route>}
-  <Route path="/onboarding" component={OnboardingRoute}/><Route path="/discover" component={DiscoverRoute}/><Route path="/search" component={SearchRoute}/><Route path="/stories/new" component={StoryComposerRoute}/><Route path="/reels" component={ReelsRoute}/><Route path="/reels/new" component={ReelComposerRoute}/><Route path="/reels/saved" component={ReelsLibraryRoute}/><Route path="/reels/:reelId" component={ReelRoute}/><Route path="/matches" component={MatchesRoute}/>
+  <Route path="/onboarding" component={OnboardingRoute}/><Route path="/discover" component={DiscoverRoute}/><Route path="/search" component={SearchRoute}/><Route path="/stories/camera" component={StoryCameraRoute}/><Route path="/stories/new" component={StoryComposerRoute}/><Route path="/reels" component={ReelsRoute}/><Route path="/reels/new" component={ReelComposerRoute}/><Route path="/reels/saved" component={ReelsLibraryRoute}/><Route path="/reels/:reelId" component={ReelRoute}/><Route path="/matches" component={MatchesRoute}/>
   <Route path="/chat/:matchId" component={ChatRoute}/><Route path="/views" component={ViewsRoute}/><Route path="/likes" component={LikesRoute}/><Route path="/messages" component={ChatsRoute}/><Route path="/notifications" component={NotificationsRoute}/>
    <Route path="/privacy-policy" component={PrivacyPolicyRoute}/><Route path="/terms" component={CommunityGuidelinesRoute}/><Route path="/community-guidelines" component={CommunityGuidelinesRoute}/>
    <Route path="/safety-center" component={SafetyCenterRoute}/><Route path="/report-safety" component={ReportSafetyRoute}/><Route path="/safety/location" component={PublicLocationShareRoute}/>

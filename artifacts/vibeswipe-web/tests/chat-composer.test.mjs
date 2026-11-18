@@ -64,7 +64,8 @@ test('website Chats uses real match data, excludes demo and blocked profiles, an
   assert.match(messages, /searchChatsByPersonName\(list, search\)/);
   assert.match(messages, /filter === 'unread'/);
   assert.match(messages, /filter === 'new'/);
-  assert.match(messages, /href="\/stories\/new\?returnTo=%2Fmessages"[^>]+data-testid="button-create-story-from-chats"/);
+  assert.match(messages, /<StoryCameraTrigger returnTo="\/messages"[^>]+testId="button-create-story-from-chats"/);
+  assert.match(messages, /href="\/stories\/new\?returnTo=%2Fmessages&mode=text"[^>]+data-testid="button-write-story-from-chats"/);
   assert.match(messages, /data-testid="chats-header"/);
   assert.match(messages, /<h1[^>]*>Chats<\/h1>/);
   assert.match(messages, /extras\.unreadCount!>99\?'99\+':extras\.unreadCount/);
@@ -74,7 +75,7 @@ test('website Chats uses real match data, excludes demo and blocked profiles, an
 test('story composer returns to its entry screen when canceled or after posting', () => {
   const stories = readFileSync(new URL('../src/components/stories/stories-ui.tsx', import.meta.url), 'utf8');
   const composer = stories.slice(stories.indexOf('export function StoryComposerPage('));
-  assert.match(web, /function StoryComposerRoute\(\)\{const returnTo=safeAppReturnPath\(new URLSearchParams\(window\.location\.search\)\.get\('returnTo'\),'\/discover'\);return <ShellPage><StoryComposerPage returnTo=\{returnTo\}\/><\/ShellPage>\}/);
+  assert.match(web, /function StoryComposerRoute\(\)\{const params=new URLSearchParams\(window\.location\.search\);const returnTo=safeAppReturnPath\(params\.get\('returnTo'\),'\/discover'\);const initialMode=params\.get\('mode'\)==='media'\?'media':'text';return <ShellPage><StoryComposerPage returnTo=\{returnTo\} initialMode=\{initialMode\}\/><\/ShellPage>\}/);
   assert.match(composer, /onClick=\{\(\) => setLocation\(returnTo\)\} aria-label="Back"/);
   assert.match(composer, /window\.setTimeout\(\(\) => setLocation\(returnTo\), 700\)/);
   assert.doesNotMatch(composer, /setLocation\("\/discover"\)/);
@@ -88,6 +89,23 @@ test('story composer keeps media preview compact and prevents phone-width overfl
   assert.match(composer, /max-h-\[280px\] max-w-full object-contain md:max-h-\[390px\]/);
   assert.match(composer, /flex min-w-0 items-center justify-between gap-3/);
   assert.match(composer, /min-w-0 flex-1 truncate/);
+});
+
+test('story camera entry opens capture directly and keeps text and gallery creation available', () => {
+  const stories = readFileSync(new URL('../src/components/stories/stories-ui.tsx', import.meta.url), 'utf8');
+  const camera = stories.slice(stories.indexOf('export function StoryCameraTrigger('), stories.indexOf('function storyContentType('));
+  const composer = stories.slice(stories.indexOf('export function StoryComposerPage('));
+  assert.match(camera, /setLocation\(`\/stories\/camera\?/);
+  const cameraPage = readFileSync(new URL('../src/components/stories/story-camera-page.tsx', import.meta.url), 'utf8');
+  assert.match(cameraPage, /navigator\.mediaDevices\.getUserMedia/);
+  assert.match(cameraPage, /button-story-camera-upload/);
+  assert.match(cameraPage, /button-story-camera-text/);
+  assert.match(cameraPage, /stageStoryMediaFile\(file\)/);
+  assert.match(composer, /consume|pendingStoryMediaFile = null/);
+  assert.match(composer, /button-story-text-mode/);
+  assert.match(composer, /button-story-gallery/);
+  assert.match(composer, /initialMode/);
+  assert.match(stories, /mode=text/);
 });
 
 test('native old Messages links redirect to the one tab instead of rendering a duplicate list', () => {

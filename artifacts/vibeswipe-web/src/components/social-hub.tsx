@@ -291,10 +291,9 @@ export function ProfileFollowNotificationAction({ profileId, viewerId, onFollow 
 export function ProfileSocialActions({ profileId, viewerId, showAction = true, compact = false, datingAction }: { profileId: string; viewerId?: string; showAction?: boolean; compact?: boolean; datingAction?: ReactNode }) {
   const summary = useGetProfileFollowSummary(profileId, { query: {
     queryKey: getGetProfileFollowSummaryQueryKey(profileId),
-    refetchOnMount: 'always',
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,
-    staleTime: 0,
+    staleTime: 60_000,
   } });
   const checkingRelationship = summary.isFetching && !summary.data?.isFollowing && !summary.data?.followsYou;
   return <section className={`sh-profile-social${compact ? ' sh-profile-social-compact' : ''}`} data-testid="profile-follow-stats">

@@ -29,6 +29,23 @@ test('matched profiles replace swipe actions with a link to their existing chat'
   assert.match(native, /profileMatch\?\.blockedByMe/);
 });
 
+test('public profiles reuse cached data and prefetch when a member link is approached', () => {
+  const prefetcher = app.slice(app.indexOf('function ProfileNavigationPrefetcher()'), app.indexOf('function ClerkRoutes()'));
+  for (const source of [member, native]) {
+    assert.match(source, /staleTime:60_000/);
+    assert.doesNotMatch(source, /refetchInterval:12_000|refetchOnMount:'always'|refetchOnMount: "always"/);
+  }
+  assert.match(prefetcher, /client\.prefetchQuery/);
+  assert.match(prefetcher, /addEventListener\('pointerdown'/);
+  assert.match(prefetcher, /getProfileById/);
+  assert.match(prefetcher, /getProfileFollowSummary/);
+  assert.match(prefetcher, /getProfileDatingState/);
+  assert.match(read('../src/components/social-hub.tsx'), /staleTime: 60_000/);
+  assert.match(read('../src/components/profile-reels-section.tsx'), /refetchInterval: 60_000/);
+  assert.match(read('../../vibeswipe/components/ProfileFollow.tsx'), /staleTime: 60_000/);
+  assert.match(read('../../vibeswipe/components/ProfileReelsSection.tsx'), /refetchInterval: 60_000/);
+});
+
 test('video calling controls and signaling are removed from both apps', () => {
   for (const source of [app, nativeChat]) {
     assert.doesNotMatch(source, /button-start-video-call|Start video call|useVideoCall/);

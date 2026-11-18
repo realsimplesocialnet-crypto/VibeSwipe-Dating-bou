@@ -127,10 +127,9 @@ export function ProfileFollowStats({ profileId, viewerId, showAction = true, dat
   const query = useGetProfileFollowSummary(profileId, {
     query: {
       queryKey: getGetProfileFollowSummaryQueryKey(profileId),
-      refetchOnMount: "always",
       refetchOnWindowFocus: true,
       refetchOnReconnect: true,
-      staleTime: 0,
+      staleTime: 60_000,
     },
   });
   const checkingRelationship = query.isFetching && !query.data?.isFollowing && !query.data?.followsYou;

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
@@ -29,6 +29,30 @@ const TEXT_BACKGROUNDS = ["#5c3b78", "#814e72", "#4e557f", "#8e5c69", "#594f70"]
 const STORY_VIDEO_MAX_SECONDS = 15;
 const STORY_IMAGE_MAX_BYTES = 15 * 1024 * 1024;
 const STORY_VIDEO_MAX_BYTES = 100 * 1024 * 1024;
+let pendingStoryMediaFile: File | null = null;
+export function stageStoryMediaFile(file: File) {
+  pendingStoryMediaFile = file;
+}
+
+export function StoryCameraTrigger({
+  returnTo = "/discover",
+  className,
+  children,
+  label = "Open camera to create a story",
+  testId = "button-open-story-camera",
+}: {
+  returnTo?: string;
+  className: string;
+  children: ReactNode;
+  label?: string;
+  testId?: string;
+}) {
+  const [, setLocation] = useLocation();
+  const query = new URLSearchParams({ returnTo });
+  return <button type="button" onClick={() => setLocation(`/stories/camera?${query.toString()}`)} aria-label={label} data-testid={testId} className={className}>
+    {children}
+  </button>;
+}
 
 function storyContentType(file: File): string | null {
   const mime = file.type.toLowerCase();
@@ -113,8 +137,8 @@ export function StoriesRow({mode="all"}:{mode?:"all"|"own"|"matches"}) {
   const own = feed.data?.ownStories ?? [];
   const matches = feed.data?.matches ?? [];
   if(mode==="own")return <div className="relative h-11 w-11 shrink-0">
-    {own.length?<button type="button" onClick={()=>setActive({stories:own,name:profile.data?.name||"Your story",photo:profile.data?.photos?.[0]??null})} aria-label="View your story" className="h-11 w-11 overflow-hidden rounded-full border-2 border-primary p-[2px]"><StoryAvatar reference={profile.data?.photos?.[0]??null} name={profile.data?.name??"You"} className="h-full w-full"/></button>:<Link href="/stories/new" aria-label="Add your story" className="block h-11 w-11 overflow-hidden rounded-full border-2 border-primary/40"><StoryAvatar reference={profile.data?.photos?.[0]??null} name={profile.data?.name??"You"} className="h-full w-full"/></Link>}
-    <Link href="/stories/new" aria-label="Add a story" className="absolute -bottom-0.5 -right-0.5 flex h-5 w-5 items-center justify-center rounded-full border-2 border-background bg-primary text-primary-foreground"><Plus size={12}/></Link>
+    {own.length?<button type="button" onClick={()=>setActive({stories:own,name:profile.data?.name||"Your story",photo:profile.data?.photos?.[0]??null})} aria-label="View your story" className="h-11 w-11 overflow-hidden rounded-full border-2 border-primary p-[2px]"><StoryAvatar reference={profile.data?.photos?.[0]??null} name={profile.data?.name??"You"} className="h-full w-full"/></button>:<Link href="/stories/new?returnTo=%2Fdiscover&mode=text" aria-label="Write a text story" data-testid="button-write-text-story" className="block h-11 w-11 overflow-hidden rounded-full border-2 border-primary/40"><StoryAvatar reference={profile.data?.photos?.[0]??null} name={profile.data?.name??"You"} className="h-full w-full"/></Link>}
+    <StoryCameraTrigger label="Open camera to add a story" testId="button-camera-add-story" className="absolute -bottom-0.5 -right-0.5 flex h-5 w-5 items-center justify-center rounded-full border-2 border-background bg-primary text-primary-foreground"><Plus size={12}/></StoryCameraTrigger>
     <StoryViewer active={active} onClose={()=>setActive(null)}/>
   </div>;
   if(mode==="matches"&&!feed.isLoading&&!feed.isError&&!matches.length)return null;
@@ -134,10 +158,10 @@ export function StoriesRow({mode="all"}:{mode?:"all"|"own"|"matches"}) {
                       <span className="h-full w-full overflow-hidden rounded-full"><StoryAvatar reference={profile.data?.photos?.[0] ?? null} name={profile.data?.name ?? "You"} className="h-full w-full text-xl"/></span>
                     </span>
                   </button>
-                : <Link href="/stories/new" data-testid="button-own-story" aria-label="Add your story" className="group absolute inset-0 overflow-hidden rounded-full transition-transform hover:scale-[1.04]">
+                : <Link href="/stories/new?returnTo=%2Fdiscover&mode=text" data-testid="button-own-story" aria-label="Write a text story" className="group absolute inset-0 overflow-hidden rounded-full transition-transform hover:scale-[1.04]">
                     <StoryAvatar reference={profile.data?.photos?.[0] ?? null} name={profile.data?.name ?? "You"} className="h-full w-full text-xl"/>
                   </Link>}
-              <Link href="/stories/new" data-testid="link-create-story" aria-label="Add a story" className="absolute -bottom-0.5 -right-0.5 z-[1] flex h-6 w-6 items-center justify-center rounded-full border-2 border-[#17141b] bg-primary text-[#25131f] transition-transform hover:scale-110"><Plus size={14}/></Link>
+              <StoryCameraTrigger returnTo="/discover" data-testid="link-create-story" label="Open camera to add a story" className="absolute -bottom-0.5 -right-0.5 z-[1] flex h-6 w-6 items-center justify-center rounded-full border-2 border-[#17141b] bg-primary text-[#25131f] transition-transform hover:scale-110"><Plus size={14}/></StoryCameraTrigger>
             </span>
             <span className="w-full truncate text-[11px] font-medium text-foreground">Your story</span>
           </div>}
@@ -309,7 +333,7 @@ function timeAgo(date: string) {
   return minutes < 1 ? "Just now" : minutes < 60 ? `${minutes}m ago` : `${Math.floor(minutes / 60)}h ago`;
 }
 
-export function StoryComposerPage({ returnTo }: { returnTo: string }) {
+export function StoryComposerPage({ returnTo, initialMode = "text" }: { returnTo: string; initialMode?: "text" | "media" }) {
   const [, setLocation] = useLocation();
   const client = useQueryClient();
   const requestUpload = useRequestStoryMediaUpload();
@@ -317,7 +341,7 @@ export function StoryComposerPage({ returnTo }: { returnTo: string }) {
   const createStory = useCreateStory();
   const [caption, setCaption] = useState("");
   const [background, setBackground] = useState(TEXT_BACKGROUNDS[0]);
-  const [mode, setMode] = useState<"text" | "media">("text");
+  const [mode, setMode] = useState<"text" | "media">(initialMode);
   const [file, setFile] = useState<File | null>(null);
   const [fileContentType, setFileContentType] = useState("");
   const [preview, setPreview] = useState("");
@@ -325,7 +349,6 @@ export function StoryComposerPage({ returnTo }: { returnTo: string }) {
   const [success, setSuccess] = useState(false);
   const [busyLabel, setBusyLabel] = useState("");
   const [checkingVideo, setCheckingVideo] = useState(false);
-  const cameraRef = useRef<HTMLInputElement>(null);
   const galleryRef = useRef<HTMLInputElement>(null);
   const mediaType = fileContentType.startsWith("video/") ? "video" : "image";
   const busy = Boolean(busyLabel) || checkingVideo;
@@ -334,6 +357,11 @@ export function StoryComposerPage({ returnTo }: { returnTo: string }) {
     const url = URL.createObjectURL(file); setPreview(url);
     return () => URL.revokeObjectURL(url);
   }, [file]);
+  useEffect(() => {
+    const pending = pendingStoryMediaFile;
+    pendingStoryMediaFile = null;
+    if (pending) void chooseFile(pending);
+  }, []);
 
   async function chooseFile(next?: File) {
     if (!next) return;
@@ -409,12 +437,11 @@ export function StoryComposerPage({ returnTo }: { returnTo: string }) {
           <label className="block text-xs font-semibold text-muted-foreground">Your words <span className="font-normal">(optional background)</span><textarea value={caption} onChange={(event) => setCaption(event.target.value)} maxLength={500} rows={6} placeholder="A small moment from today…" data-testid="input-story-caption" className="field mt-2 min-h-[164px] resize-none rounded-[20px] px-4 py-4 text-base leading-7 placeholder:text-muted-foreground/70"/></label>
           <div><div className="mb-2 text-xs font-semibold text-muted-foreground">Choose a tone</div><div className="flex flex-wrap gap-2">{TEXT_BACKGROUNDS.map((color) => <button key={color} type="button" onClick={() => setBackground(color)} aria-label={`Choose background ${color}`} aria-pressed={background === color} data-testid={`button-story-color-${color.slice(1)}`} className={`h-9 w-9 rounded-full border-2 transition-transform ${background === color ? "scale-110 border-white" : "border-white/20"}`} style={{ backgroundColor: color }}/>)}</div></div>
         </div> : <>
-          <input ref={cameraRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={(event) => { void chooseFile(event.target.files?.[0]); event.currentTarget.value = ""; }} data-testid="input-story-camera"/>
           <input ref={galleryRef} type="file" accept="image/*,video/*" className="hidden" onChange={(event) => { void chooseFile(event.target.files?.[0]); event.currentTarget.value = ""; }} data-testid="input-story-gallery"/>
           <div className={`story-media-preview relative mx-auto flex h-[min(34dvh,300px)] min-h-[220px] w-full max-w-[360px] items-center justify-center overflow-hidden rounded-[22px] border border-white/[.08] md:h-[min(42vh,390px)] md:max-w-full ${preview ? "bg-black" : "bg-[linear-gradient(145deg,#392c45,#241e2b)]"}`}>
             {preview ? mediaType === "video" ? <video src={preview} controls playsInline className="max-h-[280px] max-w-full object-contain md:max-h-[390px]" data-testid="preview-story-video"/> : <img src={preview} alt="Selected story preview" className="max-h-[280px] max-w-full object-contain md:max-h-[390px]" data-testid="preview-story-photo"/> : <div className="px-7 text-center"><span className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-white/[.07] text-[#d9b7ec]"><ImagePlus size={22}/></span><p className="mt-4 text-sm font-semibold">Your moment stays between you and your matches.</p><p className="mt-1 text-xs leading-5 text-muted-foreground">Add a photo or a short video, up to 15 seconds.</p></div>}
           </div>
-          <div className="mt-3 grid grid-cols-2 gap-2"><button type="button" onClick={() => cameraRef.current?.click()} data-testid="button-story-camera" className="flex min-h-11 items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[.035] text-sm font-semibold hover:bg-white/[.07]"><ImagePlus size={16}/>Take photo</button><button type="button" onClick={() => galleryRef.current?.click()} data-testid="button-story-gallery" className="flex min-h-11 items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[.035] text-sm font-semibold hover:bg-white/[.07]"><Video size={16}/>Choose media</button></div>
+          <div className="mt-3 grid grid-cols-2 gap-2"><button type="button" onClick={() => setLocation(`/stories/camera?${new URLSearchParams({ returnTo }).toString()}`)} data-testid="button-story-camera" className="flex min-h-11 items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[.035] text-sm font-semibold hover:bg-white/[.07]"><Camera size={16}/>Open camera</button><button type="button" onClick={() => galleryRef.current?.click()} data-testid="button-story-gallery" className="flex min-h-11 items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[.035] text-sm font-semibold hover:bg-white/[.07]"><Video size={16}/>Upload media</button></div>
           {file && <div className="mt-3 flex min-w-0 items-center justify-between gap-3 text-xs text-muted-foreground"><span className="min-w-0 flex-1 truncate">{file.name} · {(file.size / 1024 / 1024).toFixed(1)} MB</span><button type="button" onClick={() => { setFile(null); setFileContentType(""); }} data-testid="button-remove-story-media" aria-label="Remove selected media" className="shrink-0 rounded-lg p-2 text-muted-foreground hover:text-foreground"><X size={15}/></button></div>}
           <label className="mt-5 block text-xs font-semibold text-muted-foreground">Caption <span className="font-normal">· optional</span><textarea value={caption} onChange={(event) => setCaption(event.target.value)} maxLength={500} rows={2} placeholder="Add a thought…" data-testid="input-story-media-caption" className="field mt-2 min-h-[86px] resize-none rounded-[16px]"/></label>
         </>}

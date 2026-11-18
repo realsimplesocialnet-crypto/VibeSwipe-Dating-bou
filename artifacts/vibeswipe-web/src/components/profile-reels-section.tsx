@@ -24,7 +24,7 @@ export function ProfileReelsSection({
     getNextPageParam: (page) => page.nextCursor ?? undefined,
     enabled: Boolean(profileId),
     staleTime: 60_000,
-    refetchInterval: 5_000,
+    refetchInterval: 60_000,
     refetchIntervalInBackground: false,
   });
   const reels = reelsQuery.data?.pages.flatMap((page) => page.items) ?? [];
