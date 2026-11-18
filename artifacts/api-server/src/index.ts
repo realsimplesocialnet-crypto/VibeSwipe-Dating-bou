@@ -10,6 +10,7 @@ import { cleanupFaceVerificationSessions, ensureFaceVerificationSchema } from ".
 import { cleanupAdminMediaDeletions } from "./lib/adminMediaCleanup";
 import { checkExistingReels } from "./lib/reel-safety";
 import { finishPendingFaceVerifications } from "./lib/automatic-face-verification-worker";
+import { cleanupSecurityRateLimits, ensureSecuritySchema } from "./lib/security-schema";
 
 const rawPort = process.env["PORT"];
 
@@ -59,7 +60,7 @@ const runProfileMediaCleanup = async (): Promise<void> => {
   }
 };
 
-void ensureAdminSchema().then(ensureFaceVerificationSchema).then(ensureReelsSchema).then(ensureChatSchema).then(() => {
+void ensureSecuritySchema().then(ensureAdminSchema).then(ensureFaceVerificationSchema).then(ensureReelsSchema).then(ensureChatSchema).then(() => {
   httpServer.once("error", (err) => {
     logger.error({ err }, "Error listening on port");
     process.exit(1);
@@ -79,6 +80,12 @@ void ensureAdminSchema().then(ensureFaceVerificationSchema).then(ensureReelsSche
       60 * 60 * 1000,
     );
     cleanupTimer.unref();
+    const rateLimitCleanupTimer = setInterval(() => {
+      void cleanupSecurityRateLimits().catch((err) => {
+        logger.warn({ err }, "Could not prune expired API rate-limit records");
+      });
+    }, 6 * 60 * 60 * 1000);
+    rateLimitCleanupTimer.unref();
   });
 }).catch((err: unknown) => {
   logger.error({ err }, "Unable to prepare account moderation storage");

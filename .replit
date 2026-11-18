@@ -4,6 +4,36 @@ modules = ["nodejs-24", "python-base-3.13", "postgresql-16"]
 router = "application"
 deploymentTarget = "autoscale"
 
+[[deployment.responseHeaders]]
+path = "/*"
+name = "X-Content-Type-Options"
+value = "nosniff"
+
+[[deployment.responseHeaders]]
+path = "/*"
+name = "X-Frame-Options"
+value = "DENY"
+
+[[deployment.responseHeaders]]
+path = "/*"
+name = "Referrer-Policy"
+value = "strict-origin-when-cross-origin"
+
+[[deployment.responseHeaders]]
+path = "/*"
+name = "X-Permitted-Cross-Domain-Policies"
+value = "none"
+
+[[deployment.responseHeaders]]
+path = "/*"
+name = "X-XSS-Protection"
+value = "0"
+
+[[deployment.responseHeaders]]
+path = "/*"
+name = "Strict-Transport-Security"
+value = "max-age=15552000"
+
 [deployment.postBuild]
 args = ["pnpm", "store", "prune"]
 env = { "CI" = "true" }
