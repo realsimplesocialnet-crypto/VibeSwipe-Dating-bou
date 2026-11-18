@@ -304,7 +304,7 @@ const styles = StyleSheet.create({
   stats: { flex: 1, minHeight: 58, borderWidth: 1, borderRadius: 15, flexDirection: "row", alignItems: "center" },
   stat: { flex: 1, alignItems: "center", justifyContent: "center", paddingVertical: 7 },
   statValue: { fontSize: 22, lineHeight: 25, fontWeight: "900" },
-  statLabel: { fontSize: 11, fontWeight: "600" },
+  statLabel: { fontSize: 12, fontWeight: "800" },
   statRule: { width: StyleSheet.hairlineWidth, height: 34 },
   actionsRow: { flexDirection: "row", alignItems: "flex-start", gap: 9 },
   actionPlaceholder: { flex: 1, minHeight: 42, borderWidth: 1.5, borderRadius: 999, alignItems: "center", justifyContent: "center" },
