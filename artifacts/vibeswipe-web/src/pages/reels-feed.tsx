@@ -104,7 +104,6 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
   const initialHistoryMarker = readReelCommentsHistoryMarker(window.history.state);
   const initialFeedMode = new URLSearchParams(window.location.search).get("tab") === "friends" ? "friends" : "reels";
   const [feedMode, setFeedMode] = useState<"reels" | "friends">(initialFeedMode);
-  const [controlsVisible, setControlsVisible] = useState(true);
   const [active, setActive] = useState(initialHistoryMarker?.activeIndex ?? 0);
   const activeRef = useRef(0);
   activeRef.current = active;
@@ -127,25 +126,11 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
   const [offlineIds, setOfflineIds] = useState<Set<string>>(() => new Set());
   const [offlineSavingIds, setOfflineSavingIds] = useState<Set<string>>(() => new Set());
   const [offline, setOffline] = useState(!navigator.onLine);
-  const navigationVisible = controlsVisible && !commentsFor && !searchOpen && !viewport.keyboardOpen;
+  const navigationVisible = !commentsFor && !searchOpen && !viewport.keyboardOpen;
   useEffect(() => {
     setAppNavigationVisible(navigationVisible);
   }, [navigationVisible, setAppNavigationVisible]);
   useEffect(() => () => setAppNavigationVisible(true), [setAppNavigationVisible]);
-  useEffect(() => {
-    const restoreReelControls = () => {
-      if (document.visibilityState === "hidden") return;
-      setControlsVisible(true);
-    };
-    document.addEventListener("visibilitychange", restoreReelControls);
-    window.addEventListener("focus", restoreReelControls);
-    window.addEventListener("pageshow", restoreReelControls);
-    return () => {
-      document.removeEventListener("visibilitychange", restoreReelControls);
-      window.removeEventListener("focus", restoreReelControls);
-      window.removeEventListener("pageshow", restoreReelControls);
-    };
-  }, []);
 
   const openComments = useCallback((reelId: string) => {
     const currentState = window.history.state;
@@ -460,7 +445,7 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
     ? `/reels/${reels[active].id}?${resumeParams.toString()}`
     : ownPath;
 
-  return <div className="reels-root" style={{ top: viewport.top, bottom: "auto", height: viewport.height, ["--reels-comments-height" as string]: `${viewport.commentsHeight}px` }} data-keyboard-open={viewport.keyboardOpen} data-comments-open={Boolean(commentReel)} data-navigation-visible={navigationVisible} data-testid="page-reels">
+  return <div className="reels-root" style={{ top: viewport.top, bottom: "auto", ["--reels-viewport-height" as string]: `${viewport.height}px`, ["--reels-comments-height" as string]: `${viewport.commentsHeight}px` }} data-keyboard-open={viewport.keyboardOpen} data-comments-open={Boolean(commentReel)} data-navigation-visible={navigationVisible} data-testid="page-reels">
     <div className="reels-stage">
       <div ref={scroller} className={`reels-scroller ${commentsFor ? "is-locked" : ""}`} data-testid="reels-scroller">
         {loading ? <div className="reel-slide"><div className="reel-loading" aria-label="Loading Reels" /></div>
@@ -469,13 +454,9 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
           : !reels.length ? <div className="reels-empty"><span className="reels-empty-mark"><Clapperboard size={30} /></span><p className="mt-5 text-xl font-bold">No Reels yet</p><p className="mt-1 max-w-[260px] text-sm leading-6 text-white/60">Be the first to share a short video with the community.</p><Link href="/reels/new" className="reels-primary mt-6" data-testid="link-post-first-reel">Post a Reel</Link></div>
           : reels.map((reel, index) => <ReelSlide
              key={reel.id} reel={reel} index={index} active={index === active && !searchOpen} near={Math.abs(index - active) <= 1}
-             muted={muted} pageHidden={pageHidden} compact={commentsFor === reel.id} controlsVisible={navigationVisible} showHint={index === 0 && reels.length > 1}
+              muted={muted} pageHidden={pageHidden} compact={commentsFor === reel.id} navigationVisible={navigationVisible} showHint={index === 0 && reels.length > 1}
              likePending={like.isPending || unlike.isPending} savePending={save.isPending || unsave.isPending}
             returnTo={ownPath}
-              onToggleNavigation={() => {
-                if (commentsFor === reel.id) closeComments();
-                else setControlsVisible((visible) => !visible);
-              }}
              onAutoplayMuted={() => setMuted(true)}
              offlineSaved={offlineIds.has(reel.id)} offlineSaving={offlineSavingIds.has(reel.id)}
              onSaveOffline={() => void cacheOffline(reel, true)} onAutoCache={() => void cacheOffline(reel, false)}

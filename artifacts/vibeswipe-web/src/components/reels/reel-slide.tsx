@@ -9,20 +9,20 @@ import { isOfflineReelWifi } from "@/lib/offline-reels";
 
 type Props = {
   reel: Reel; index: number; active: boolean; near: boolean; muted: boolean; pageHidden: boolean;
-  compact: boolean; controlsVisible: boolean; showHint: boolean; returnTo: string;
+  compact: boolean; navigationVisible: boolean; showHint: boolean; returnTo: string;
   likePending: boolean; savePending: boolean;
-  onToggleNavigation: () => void;
   onAutoplayMuted: () => void;
   onLike: () => void; onComment: () => void; onShare: () => void; onSave: () => void; onDelete: () => void;
   onView: () => void;
   offlineSaved: boolean; offlineSaving: boolean; onSaveOffline: () => void; onAutoCache: () => void;
 };
 
-export function ReelSlide({ reel, index, active, near, muted, pageHidden, compact, controlsVisible, showHint, returnTo, likePending, savePending, onToggleNavigation, onAutoplayMuted, onLike, onComment, onShare, onSave, onDelete, onView, offlineSaved, offlineSaving, onSaveOffline, onAutoCache }: Props) {
+export function ReelSlide({ reel, index, active, near, muted, pageHidden, compact, navigationVisible, showHint, returnTo, likePending, savePending, onAutoplayMuted, onLike, onComment, onShare, onSave, onDelete, onView, offlineSaved, offlineSaving, onSaveOffline, onAutoCache }: Props) {
   const video = useRef<HTMLVideoElement>(null);
   const bar = useRef<HTMLDivElement>(null);
   const autoCacheRequested = useRef(false);
   const viewRecorded = useRef(false);
+  const flashTimer = useRef<number | null>(null);
   const [userPaused, setUserPaused] = useState(false);
   const [blocked, setBlocked] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -30,6 +30,7 @@ export function ReelSlide({ reel, index, active, near, muted, pageHidden, compac
   const [flash, setFlash] = useState<"play" | "pause" | null>(null);
 
   useEffect(() => { if (!active) setUserPaused(false); }, [active]);
+  useEffect(() => () => { if (flashTimer.current !== null) window.clearTimeout(flashTimer.current); }, []);
   useEffect(() => { if (video.current) video.current.muted = muted; }, [muted]);
   useEffect(() => {
     const element = video.current;
@@ -66,25 +67,25 @@ export function ReelSlide({ reel, index, active, near, muted, pageHidden, compac
 
   function togglePlayback() {
     const element = video.current;
-    if (compact) {
-      if (blocked && !userPaused && element) {
-        element.muted = muted;
-        void element.play().then(() => setBlocked(false)).catch(() => setBlocked(true));
-      }
-      return;
-    }
     if (!element || failed) return;
     if (blocked || element.paused) {
       setUserPaused(false);
       element.muted = muted;
-      void element.play().then(() => setBlocked(false)).catch(() => setBlocked(true));
+      void element.play().then(() => setBlocked(false)).catch((error: unknown) => {
+        const name = (error as { name?: string }).name;
+        if (name === "NotAllowedError" && !muted) {
+          element.muted = true;
+          void element.play().then(() => { setBlocked(false); onAutoplayMuted(); }).catch(() => setBlocked(true));
+        } else if (name !== "AbortError") setBlocked(true);
+      });
       setFlash("play");
     } else {
       setUserPaused(true);
       element.pause();
       setFlash("pause");
     }
-    window.setTimeout(() => setFlash(null), 520);
+    if (flashTimer.current !== null) window.clearTimeout(flashTimer.current);
+    flashTimer.current = window.setTimeout(() => { flashTimer.current = null; setFlash(null); }, 520);
   }
 
   function retry() {
@@ -132,28 +133,25 @@ export function ReelSlide({ reel, index, active, near, muted, pageHidden, compac
       data-testid={`video-reel-${reel.id}`}
     />
     {!ready && !failed && <div className="reel-loading" aria-hidden="true" />}
-    <button type="button" className="reel-tap" onClick={onToggleNavigation} aria-label={compact ? "Close comments" : controlsVisible ? "Hide Reel controls" : "Show Reel controls"} data-testid={`button-toggle-reel-controls-${reel.id}`} />
+    <button type="button" className="reel-tap" onClick={togglePlayback} aria-label={userPaused || blocked ? "Play Reel" : "Pause Reel"} aria-pressed={!userPaused && !blocked} data-testid={`button-toggle-reel-playback-${reel.id}`} />
     {flash && <span className="reel-flash" aria-hidden="true">{flash === "play" ? <Play size={34} fill="currentColor" /> : <Pause size={34} fill="currentColor" />}</span>}
     {active && blocked && !failed && <button type="button" onClick={togglePlayback} aria-label="Play Reel" className="reel-blocked reel-blocked-play" data-testid="button-reel-autoplay-blocked">
       <Play size={26} fill="currentColor" />
     </button>}
-    {!compact && !blocked && <button type="button" onClick={togglePlayback} aria-label={userPaused ? "Play Reel" : "Pause Reel"} aria-pressed={userPaused} className="reel-playback-control" data-testid={`button-reel-playback-${reel.id}`}>
-      {userPaused ? <Play size={18} fill="currentColor" /> : <Pause size={18} fill="currentColor" />}
-    </button>}
     {failed && <div className="reel-blocked" role="alert"><span>This video could not load.</span><button type="button" onClick={retry} className="reel-pill" data-testid={`button-retry-reel-${reel.id}`}>Try again</button></div>}
     <div className="reel-shade" aria-hidden="true" />
 
-    <div className={`reel-rail ${compact ? "is-compact" : ""}`}>
+    <div className={`reel-rail ${compact ? "is-compact" : ""} ${navigationVisible ? "is-nav-visible" : ""}`}>
       <button type="button" onClick={onLike} disabled={likePending} aria-pressed={reel.likedByMe} aria-label={reel.likedByMe ? "Unlike" : "Like"} data-testid={`button-like-reel-${reel.id}`} className={reel.likedByMe ? "is-on" : ""}>
         <Heart size={29} strokeWidth={1.8} fill={reel.likedByMe ? "currentColor" : "none"} /><span data-testid={`text-like-count-${reel.id}`}>{formatCount(reel.likeCount)}</span>
       </button>
       <button type="button" onClick={onComment} aria-label="Comments" data-testid={`button-comments-reel-${reel.id}`}>
         <MessageCircle size={28} strokeWidth={1.8} /><span data-testid={`text-comment-count-${reel.id}`}>{formatCount(reel.commentCount)}</span>
       </button>
+      <button type="button" onClick={onShare} aria-label={`Share, ${formatCount(reel.shareCount)} shares`} data-testid={`button-share-reel-${reel.id}`}><Send size={27} strokeWidth={1.8} /><span data-testid={`text-share-count-${reel.id}`}>{formatCount(reel.shareCount)}</span></button>
       <button type="button" onClick={onSave} disabled={savePending} aria-pressed={reel.savedByMe} aria-label={reel.savedByMe ? "Remove from saved" : "Save"} data-testid={`button-save-reel-${reel.id}`} className={reel.savedByMe ? "is-saved" : ""}>
         <Bookmark size={28} strokeWidth={1.8} fill={reel.savedByMe ? "currentColor" : "none"} /><span data-testid={`text-save-count-${reel.id}`}>{formatCount(reel.saveCount)}</span>
       </button>
-      <button type="button" onClick={onShare} aria-label={`Share, ${formatCount(reel.shareCount)} shares`} data-testid={`button-share-reel-${reel.id}`}><Send size={27} strokeWidth={1.8} /><span data-testid={`text-share-count-${reel.id}`}>{formatCount(reel.shareCount)}</span></button>
       <button type="button" onClick={onSaveOffline} disabled={offlineSaved || offlineSaving} aria-label={offlineSaved ? "Saved for offline replay" : offlineSaving ? "Saving video offline" : "Save video offline"} data-testid={`button-save-reel-offline-${reel.id}`} className={offlineSaved ? "is-saved" : ""}>
         {offlineSaved ? <Check size={25} strokeWidth={2}/> : <Download size={25} strokeWidth={1.8}/>}
       </button>
@@ -163,7 +161,7 @@ export function ReelSlide({ reel, index, active, near, muted, pageHidden, compac
       </div>
     </div>
 
-    <div className={`reel-meta ${compact ? "is-compact" : ""}`}>
+    <div className={`reel-meta ${compact ? "is-compact" : ""} ${navigationVisible ? "is-nav-visible" : ""}`}>
       {reel.isOwner ? creatorIdentity : <Link href={creatorProfileHref} aria-label={`Open ${reel.creatorName}'s profile`} data-testid={`link-reel-profile-${reel.id}`} className="inline-flex max-w-full no-underline">{creatorIdentity}</Link>}
       {!compact && reel.caption && <p className="reel-caption" data-testid={`text-reel-caption-${reel.id}`}>{reel.caption}</p>}
       {!compact && showHint && <p className="reel-hint">Swipe up for more</p>}

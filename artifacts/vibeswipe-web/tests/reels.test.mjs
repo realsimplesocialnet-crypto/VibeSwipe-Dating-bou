@@ -119,20 +119,25 @@ test("Reels viewer keeps autoplay muted, inline and paused offscreen or hidden",
   const feed = read("../src/pages/reels-feed.tsx");
   assert.match(feed, /onAutoplayMuted=\{\(\) => setMuted\(true\)\}/);
   assert.match(feed, /visibilitychange/);
-  assert.match(feed, /useState\(true\)/);
+  assert.match(feed, /useState\(document\.visibilityState === "hidden"\)/);
   assert.match(feed, /getNextPageParam/);
 });
 
-test("tapping a Reel toggles navigation only; a separate control pauses playback", () => {
+test("tapping anywhere on a Reel toggles playback without hiding navigation", () => {
   const slide = read("../src/components/reels/reel-slide.tsx");
   const feed = read("../src/pages/reels-feed.tsx");
   const css = read("../src/components/reels/reels.css");
-  assert.match(slide, /className="reel-tap" onClick=\{onToggleNavigation\}/);
+  assert.match(slide, /className="reel-tap" onClick=\{togglePlayback\}/);
   const playbackHandler = slide.match(/function togglePlayback\(\) \{([\s\S]*?)\n  \}/)?.[1] ?? "";
-  assert.doesNotMatch(playbackHandler, /onToggleNavigation/);
-  assert.match(slide, /className="reel-playback-control" data-testid=\{`button-reel-playback-/);
-  assert.match(feed, /controlsVisible=\{navigationVisible\}/);
-  assert.match(css, /data-navigation-visible="false"\] \.reel-playback-control/);
+  assert.match(playbackHandler, /element\.pause\(\)/);
+  assert.match(playbackHandler, /element\.play\(\)/);
+  assert.match(slide, /data-testid=\{`button-toggle-reel-playback-/);
+  assert.doesNotMatch(slide, /reel-playback-control|onToggleNavigation/);
+  assert.match(feed, /navigationVisible = !commentsFor && !searchOpen && !viewport\.keyboardOpen/);
+  assert.doesNotMatch(feed, /setControlsVisible/);
+  assert.match(css, /--reels-navigation-space/);
+  assert.match(css, /\.reel-meta\.is-nav-visible \{ bottom: 32px/);
+  assert.match(css, /data-navigation-visible="false"\]:not\(\[data-comments-open="true"\]\) \.reel-progress/);
 });
 
 test("Reel creator details stay aligned while using a smaller, lower profile block", () => {
@@ -144,7 +149,8 @@ test("Reel creator details stay aligned while using a smaller, lower profile blo
   assert.match(css, /\.reel-name \{ font-size: 19px/);
   assert.match(css, /\.reel-age \{ font-size: 15px/);
   assert.match(css, /\.reel-location \{ font-size: 12px/);
-  assert.match(css, /\.reel-meta \{ position: absolute; left: 16px; right: 74px; bottom: calc\(env\(safe-area-inset-bottom\) \+ 78px\)/);
+  assert.match(css, /\.reel-meta \{ position: absolute; left: 16px; right: 74px; bottom: calc\(env\(safe-area-inset-bottom\) \+ 14px\)/);
+  assert.match(slide, /className=\{`reel-meta \$\{compact \? "is-compact" : ""\} \$\{navigationVisible \? "is-nav-visible" : ""\}`\}/);
 });
 
 test("Reels route is code-split and autoplay fallback shows no explanatory message", () => {
@@ -206,7 +212,7 @@ test("Reel action rail and profile grid show persisted like, comment, save and s
   for (const id of ["button-like-reel", "button-comments-reel", "button-save-reel", "button-share-reel", "button-post-reel-comment"]) {
     assert.ok(nativeReel.includes(id), `native Reel action is missing ${id}`);
   }
-  const actionOrder = ["button-like-reel", "button-comments-reel", "button-save-reel-", "button-share-reel-"]
+  const actionOrder = ["button-like-reel", "button-comments-reel", "button-share-reel-", "button-save-reel-"]
     .map((id) => slide.indexOf(id));
   assert.ok(actionOrder.every((position, index) => position >= 0 && (index === 0 || position > actionOrder[index - 1])));
   assert.match(slide, /reel-music-slot[^]*?reel-music-artwork-slot/);
@@ -215,12 +221,13 @@ test("Reel action rail and profile grid show persisted like, comment, save and s
   assert.match(css, /\.reel-music-slot \{ display: flex; height: 42px; width: 42px/);
 });
 
-test("Reels restore their full viewport after returning from an external share app", () => {
+test("Reels restore their full viewport and navigation after returning from an external share app", () => {
   const feed = read("../src/pages/reels-feed.tsx");
   const share = read("../src/components/reels/reel-share-sheet.tsx");
   assert.match(feed, /window\.addEventListener\("pageshow", refreshAfterResume\)/);
   assert.match(feed, /document\.addEventListener\("visibilitychange", refreshAfterResume\)/);
-  assert.match(feed, /setControlsVisible\(true\)/);
+  assert.match(feed, /setAppNavigationVisible\(true\)/);
+  assert.match(feed, /--reels-viewport-height/);
   assert.match(feed, /Math\.max\(height, window\.innerHeight\)/);
   assert.match(share, /onClose\(\);\s*void sharePromise\.then/);
   assert.match(share, /await send\.mutateAsync[\s\S]*?onClose\(\)/);
