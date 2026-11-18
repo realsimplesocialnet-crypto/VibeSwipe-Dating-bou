@@ -9,7 +9,7 @@ import { isOfflineReelWifi } from "@/lib/offline-reels";
 
 type Props = {
   reel: Reel; index: number; active: boolean; near: boolean; muted: boolean; pageHidden: boolean;
-  compact: boolean; showHint: boolean; returnTo: string;
+  compact: boolean; controlsVisible: boolean; showHint: boolean; returnTo: string;
   likePending: boolean; savePending: boolean;
   onToggleNavigation: () => void;
   onAutoplayMuted: () => void;
@@ -18,7 +18,7 @@ type Props = {
   offlineSaved: boolean; offlineSaving: boolean; onSaveOffline: () => void; onAutoCache: () => void;
 };
 
-export function ReelSlide({ reel, index, active, near, muted, pageHidden, compact, showHint, returnTo, likePending, savePending, onToggleNavigation, onAutoplayMuted, onLike, onComment, onShare, onSave, onDelete, onView, offlineSaved, offlineSaving, onSaveOffline, onAutoCache }: Props) {
+export function ReelSlide({ reel, index, active, near, muted, pageHidden, compact, controlsVisible, showHint, returnTo, likePending, savePending, onToggleNavigation, onAutoplayMuted, onLike, onComment, onShare, onSave, onDelete, onView, offlineSaved, offlineSaving, onSaveOffline, onAutoCache }: Props) {
   const video = useRef<HTMLVideoElement>(null);
   const bar = useRef<HTMLDivElement>(null);
   const autoCacheRequested = useRef(false);
@@ -65,7 +65,6 @@ export function ReelSlide({ reel, index, active, near, muted, pageHidden, compac
   }, [active, pageHidden, userPaused, failed, near]);
 
   function togglePlayback() {
-    onToggleNavigation();
     const element = video.current;
     if (compact) {
       if (blocked && !userPaused && element) {
@@ -99,8 +98,8 @@ export function ReelSlide({ reel, index, active, near, muted, pageHidden, compac
   const reelReturnParams = new URLSearchParams({ returnTo });
   const creatorProfileReturn = `/reels/${encodeURIComponent(reel.id)}?${reelReturnParams.toString()}`;
   const creatorProfileHref = `/profile/${encodeURIComponent(reel.creatorId)}?returnTo=${encodeURIComponent(creatorProfileReturn)}`;
-  const creatorIdentity = <span className="flex min-w-0 items-center gap-3 rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary">
-    <ReelAvatar reference={reel.creatorPhoto} name={reel.creatorName} size={compact ? 38 : 52} />
+  const creatorIdentity = <span className="reel-identity flex min-w-0 items-center gap-2.5 rounded-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary">
+    <ReelAvatar reference={reel.creatorPhoto} name={reel.creatorName} size={compact ? 36 : 46} />
     <span className="min-w-0">
       <span className="reel-name" data-testid={`text-reel-creator-${reel.id}`}>{reel.creatorName}{reel.creatorAge !== null && <span className="reel-age">, {reel.creatorAge}</span>}<VerifiedBadge verified={reel.creatorVerified} /></span>
       {reel.creatorLocation && <span className="reel-location"><MapPin size={14} className="shrink-0 text-primary" /><span className="truncate">{reel.creatorLocation}</span></span>}
@@ -133,10 +132,13 @@ export function ReelSlide({ reel, index, active, near, muted, pageHidden, compac
       data-testid={`video-reel-${reel.id}`}
     />
     {!ready && !failed && <div className="reel-loading" aria-hidden="true" />}
-    <button type="button" className="reel-tap" onClick={togglePlayback} aria-label={compact ? "Close comments" : paused ? "Play Reel" : "Pause Reel"} data-testid={`button-toggle-play-${reel.id}`} />
+    <button type="button" className="reel-tap" onClick={onToggleNavigation} aria-label={compact ? "Close comments" : controlsVisible ? "Hide Reel controls" : "Show Reel controls"} data-testid={`button-toggle-reel-controls-${reel.id}`} />
     {flash && <span className="reel-flash" aria-hidden="true">{flash === "play" ? <Play size={34} fill="currentColor" /> : <Pause size={34} fill="currentColor" />}</span>}
     {active && blocked && !failed && <button type="button" onClick={togglePlayback} aria-label="Play Reel" className="reel-blocked reel-blocked-play" data-testid="button-reel-autoplay-blocked">
       <Play size={26} fill="currentColor" />
+    </button>}
+    {!compact && !blocked && <button type="button" onClick={togglePlayback} aria-label={userPaused ? "Play Reel" : "Pause Reel"} aria-pressed={userPaused} className="reel-playback-control" data-testid={`button-reel-playback-${reel.id}`}>
+      {userPaused ? <Play size={18} fill="currentColor" /> : <Pause size={18} fill="currentColor" />}
     </button>}
     {failed && <div className="reel-blocked" role="alert"><span>This video could not load.</span><button type="button" onClick={retry} className="reel-pill" data-testid={`button-retry-reel-${reel.id}`}>Try again</button></div>}
     <div className="reel-shade" aria-hidden="true" />

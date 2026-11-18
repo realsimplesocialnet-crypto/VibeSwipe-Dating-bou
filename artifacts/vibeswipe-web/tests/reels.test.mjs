@@ -123,6 +123,30 @@ test("Reels viewer keeps autoplay muted, inline and paused offscreen or hidden",
   assert.match(feed, /getNextPageParam/);
 });
 
+test("tapping a Reel toggles navigation only; a separate control pauses playback", () => {
+  const slide = read("../src/components/reels/reel-slide.tsx");
+  const feed = read("../src/pages/reels-feed.tsx");
+  const css = read("../src/components/reels/reels.css");
+  assert.match(slide, /className="reel-tap" onClick=\{onToggleNavigation\}/);
+  const playbackHandler = slide.match(/function togglePlayback\(\) \{([\s\S]*?)\n  \}/)?.[1] ?? "";
+  assert.doesNotMatch(playbackHandler, /onToggleNavigation/);
+  assert.match(slide, /className="reel-playback-control" data-testid=\{`button-reel-playback-/);
+  assert.match(feed, /controlsVisible=\{navigationVisible\}/);
+  assert.match(css, /data-navigation-visible="false"\] \.reel-playback-control/);
+});
+
+test("Reel creator details stay aligned while using a smaller, lower profile block", () => {
+  const slide = read("../src/components/reels/reel-slide.tsx");
+  const css = read("../src/components/reels/reels.css");
+  assert.match(slide, /className="reel-identity flex min-w-0 items-center gap-2\.5/);
+  assert.match(slide, /size=\{compact \? 36 : 46\}/);
+  assert.match(css, /\.reel-identity \{ position: relative; top: 6px; gap: 10px/);
+  assert.match(css, /\.reel-name \{ font-size: 19px/);
+  assert.match(css, /\.reel-age \{ font-size: 15px/);
+  assert.match(css, /\.reel-location \{ font-size: 12px/);
+  assert.match(css, /\.reel-meta \{ position: absolute; left: 16px; right: 74px; bottom: calc\(env\(safe-area-inset-bottom\) \+ 78px\)/);
+});
+
 test("Reels route is code-split and autoplay fallback shows no explanatory message", () => {
   const app = read("../src/App.tsx");
   const slide = read("../src/components/reels/reel-slide.tsx");

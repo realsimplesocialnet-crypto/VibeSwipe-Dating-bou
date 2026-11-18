@@ -469,7 +469,7 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
           : !reels.length ? <div className="reels-empty"><span className="reels-empty-mark"><Clapperboard size={30} /></span><p className="mt-5 text-xl font-bold">No Reels yet</p><p className="mt-1 max-w-[260px] text-sm leading-6 text-white/60">Be the first to share a short video with the community.</p><Link href="/reels/new" className="reels-primary mt-6" data-testid="link-post-first-reel">Post a Reel</Link></div>
           : reels.map((reel, index) => <ReelSlide
              key={reel.id} reel={reel} index={index} active={index === active && !searchOpen} near={Math.abs(index - active) <= 1}
-            muted={muted} pageHidden={pageHidden} compact={commentsFor === reel.id} showHint={index === 0 && reels.length > 1}
+             muted={muted} pageHidden={pageHidden} compact={commentsFor === reel.id} controlsVisible={navigationVisible} showHint={index === 0 && reels.length > 1}
              likePending={like.isPending || unlike.isPending} savePending={save.isPending || unsave.isPending}
             returnTo={ownPath}
               onToggleNavigation={() => {
