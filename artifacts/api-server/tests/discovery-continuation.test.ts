@@ -93,6 +93,26 @@ test("returning from a profile restores the same discovery card after the feed r
   assert.equal(deck.index, 1);
 });
 
+test("a remount before the feed response keeps the cached card until fresh data arrives", () => {
+  let saved: any;
+  const state = ((initial: any) => {
+    if (saved === undefined) saved = typeof initial === "function" ? initial() : initial;
+    return [saved, (next: any) => { saved = typeof next === "function" ? next(saved) : next; }];
+  }) as Parameters<typeof createUseDiscoveryDeck>[0];
+  const hook = createUseDiscoveryDeck(state);
+  const original = [{ id: "seen" }, { id: "current" }, { id: "tail" }];
+  let deck = hook(original, "pending-response-feed");
+  deck.setIndex(1);
+  saved = undefined;
+
+  deck = hook(undefined, "pending-response-feed");
+  assert.equal(deck.profiles[deck.index].id, "current");
+
+  deck = hook([{ id: "new-first" }, { id: "tail" }], "pending-response-feed");
+  assert.equal(deck.profiles[deck.index].id, "current");
+  assert.deepEqual(deck.profiles.map(profile => profile.id), ["seen", "current", "new-first", "tail"]);
+});
+
 test("empty server results stay truthful rather than fabricating members", () => {
   const result = continueDiscoveryDeck([{ id: "liked" }], [], 1);
   assert.equal(result.profiles[result.index], undefined);

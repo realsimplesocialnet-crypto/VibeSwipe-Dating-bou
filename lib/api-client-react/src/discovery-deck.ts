@@ -52,7 +52,10 @@ export function createUseDiscoveryDeck(useState: StateHook) {
     const deck = cached.source === data ? cached : {
       ...cached,
       source: data,
-      profiles: reconcileDiscoveryDeck(cached.profiles, data ?? [], cached.index),
+      // A route can remount before React Query has restored its cached response.
+      // Keep the visible card until fresh data arrives instead of reconciling it
+      // against a temporary empty result.
+      profiles: data ? reconcileDiscoveryDeck(cached.profiles, data, cached.index) : cached.profiles,
     };
     remember(deck);
     return deck;
