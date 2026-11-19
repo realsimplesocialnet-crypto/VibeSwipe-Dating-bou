@@ -20,3 +20,9 @@ The swipe feed should continue with unseen eligible people first, then recycle s
 **Why:** The user reported that after liking and skipping profiles the feed said everyone was finished, and asked for continued swiping rather than a permanent end.
 
 **How to apply:** Revisit passes without deleting reaction history or weakening filters/privacy. Fetch a fresh round after swipes finish; a prefetch begun before the final swipe can still contain a now-liked profile. Do not promise infinitely many unique people.
+
+Member search should show eligible profiles immediately when opened, before a query is typed; typing then filters those same real discovery profiles. Never include the signed-in member in their own results.
+
+**Why:** The user wants people visible as soon as Search opens and noticed the empty result while searching for their own profile.
+
+**How to apply:** Reuse the authenticated discovery endpoint and its eligibility/privacy checks for the initial suggestions. Keep self-exclusion and clearly explain when a search only matches the signed-in member.

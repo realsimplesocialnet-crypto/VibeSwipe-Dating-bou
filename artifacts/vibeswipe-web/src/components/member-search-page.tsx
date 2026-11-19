@@ -19,10 +19,10 @@ export function MemberSearchPage() {
   const [query, setQuery] = useState(() => new URLSearchParams(window.location.search).get("q") ?? "");
   const [debouncedQuery, setDebouncedQuery] = useState(query.trim().replace(/\s+/g, " "));
   const myProfile = useGetMyProfile();
-  const request = useMemo(() => ({ q: debouncedQuery }), [debouncedQuery]);
+  const isSearching = debouncedQuery.length >= 2;
+  const request = useMemo(() => isSearching ? { q: debouncedQuery } : {}, [isSearching, debouncedQuery]);
   const results = useGetDiscoverProfiles<Profile[]>(request, {
     query: {
-      enabled: debouncedQuery.length >= 2,
       refetchOnWindowFocus: false,
       staleTime: 30_000,
     },
@@ -48,6 +48,8 @@ export function MemberSearchPage() {
 
   const profiles = results.data ?? [];
   const isSearchingForSelf = Boolean(
+    isSearching
+    &&
     myProfile.data?.name
     && myProfile.data.name.toLocaleLowerCase().includes(debouncedQuery.toLocaleLowerCase()),
   );
@@ -78,21 +80,23 @@ export function MemberSearchPage() {
         />
       </label>
 
-      {debouncedQuery.length >= 2 && results.isLoading && (
-        <div className="flex justify-center py-8" role="status" aria-label="Searching">
+      {results.isLoading && (
+        <div className="flex justify-center py-8" role="status" aria-label={isSearching ? "Searching" : "Finding people"}>
           <LoaderCircle size={22} className="animate-spin text-primary" />
         </div>
       )}
-      {debouncedQuery.length >= 2 && results.isError && (
+      {results.isError && (
         <p role="alert" className="py-8 text-center text-sm text-muted-foreground">Search unavailable</p>
       )}
-      {debouncedQuery.length >= 2 && !results.isLoading && !results.isError && profiles.length === 0 && (
+      {!results.isLoading && !results.isError && profiles.length === 0 && (
         <p className="py-8 text-center text-sm text-muted-foreground">
-          {isSearchingForSelf ? "Your own profile isn’t shown in member search." : "No members found"}
+          {isSearchingForSelf
+            ? "Your own profile isn’t shown in member search."
+            : isSearching ? "No members found" : "No people to show right now"}
         </p>
       )}
       {profiles.length > 0 && (
-        <ul aria-label="Search results" className="mt-4 space-y-2">
+        <ul aria-label={isSearching ? "Search results" : "People"} className="mt-4 space-y-2">
           {profiles.map((profile) => {
             const imageUrl = profileMediaUrl(profile.photos[0]);
             const place = [profile.city?.trim(), profile.country?.trim()].filter(Boolean).join(", ");
