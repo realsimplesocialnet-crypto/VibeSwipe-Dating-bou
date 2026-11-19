@@ -151,6 +151,9 @@ test("Reels action rail places Save above Share on web and mobile", () => {
   }
   assert.match(web, /if \(name === "share"\) return <svg width="36" height="36"/);
   assert.match(web, /<Icon size=\{36\} className="drop-shadow-lg" strokeWidth=\{2\} fill="currentColor"/);
+  assert.match(styles, /\.reel-action-button \{[^}]*color: #f34e9a/);
+  assert.match(styles, /\.reel-action-button\.is-on, \.reel-action-button\.is-saved \{ color: #ff79b7/);
+  assert.match(native, /const selectedColor = filled \? "#ff79b7" : "#f34e9a"/);
   assert.match(styles, /\.reel-rail \{[^}]*bottom: 24px/);
   assert.match(styles, /\.reel-action-button > svg \{[^}]*width:36px; height:36px/);
   assert.match(styles, /\.reel-search-suggestion \{[^}]*right: 56px/);
