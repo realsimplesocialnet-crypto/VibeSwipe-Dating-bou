@@ -26,13 +26,13 @@ import { Image as CachedImage } from "expo-image";
 import { router, useLocalSearchParams } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { VideoView, useVideoPlayer } from "expo-video";
+import { setAudioModeAsync, useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
 import { File, Paths } from "expo-file-system";
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, Alert, KeyboardAvoidingView, Linking, Modal, Platform, Pressable, ScrollView, Share, StyleSheet, Text, TextInput, View, useWindowDimensions } from "react-native";
 import { useQueryClient } from "@tanstack/react-query";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { usePremiumColors } from "@/hooks/useColors";
-import Svg, { Defs, LinearGradient as SvgLinearGradient, Path, Stop } from "react-native-svg";
 
 type ReelIconName = "like" | "comment" | "share" | "save";
 
@@ -41,25 +41,8 @@ function formatReelCount(value: number) {
 }
 
 function ReelActionIcon({ name, filled = false }: { name: ReelIconName; filled?: boolean }) {
-  const gradientId = `native-reel-${useId().replace(/:/g, "")}`;
-  const stroke = `url(#${gradientId})`;
-  return (
-      <Svg width={34} height={34} viewBox="0 0 24 24" fill="none">
-      <Defs>
-        <SvgLinearGradient id={gradientId} x1="3" y1="2" x2="21" y2="22">
-          <Stop offset="0" stopColor="#ff63aa" />
-          <Stop offset="1" stopColor="#a875ff" />
-        </SvgLinearGradient>
-      </Defs>
-      {name === "like" ? <Path d="M20.8 4.7a5.4 5.4 0 0 0-7.7 0L12 5.8l-1.1-1.1a5.4 5.4 0 0 0-7.7 7.7l1.1 1.1L12 21l7.7-7.5 1.1-1.1a5.4 5.4 0 0 0 0-7.7Z" stroke={filled ? stroke : "#fff"} strokeWidth={2.1} strokeLinecap="round" strokeLinejoin="round" fill={filled ? stroke : "#fff"} /> : null}
-      {name === "comment" ? <>
-        <Path d="M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.4 8.4 0 0 1 3.8-.9h.5a8.5 8.5 0 0 1 8 8v.5Z" stroke="#fff" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
-        <Path d="M8.5 11.5h.01M12.5 11.5h.01M16.5 11.5h.01" stroke="#fff" strokeWidth={2.4} strokeLinecap="round" />
-      </> : null}
-      {name === "share" ? <Path d="M22 2 11 13M22 2 15 22l-4-9-9-4 20-7Z" stroke="#fff" strokeWidth={2.1} strokeLinecap="round" strokeLinejoin="round" /> : null}
-      {name === "save" ? <Path d="M6 4.5A1.5 1.5 0 0 1 7.5 3h9A1.5 1.5 0 0 1 18 4.5V21l-6-4-6 4V4.5Z" stroke={filled ? stroke : "#fff"} strokeWidth={2.1} strokeLinecap="round" strokeLinejoin="round" fill={filled ? stroke : "none"} /> : null}
-    </Svg>
-  );
+  const icons = { like: "heart", comment: "message-circle", share: "send", save: "bookmark" } as const;
+  return <Feather name={icons[name]} size={28} color="#fff" fill={filled ? "#fff" : "none"} />;
 }
 import { mediaUri } from "@/lib/media";
 import { ProfileAvatar } from "@/components/ProfileAvatar";
@@ -117,6 +100,7 @@ export default function ProfileReelScreen() {
   const slideshow = reelQuery.data?.mediaType === "slides" && reelQuery.data.slideReferences.length > 1;
   const slideReferences = reelQuery.data?.slideReferences ?? [];
   const uri = reelQuery.data && !slideshow ? mediaUri(reelQuery.data.videoReference) : null;
+  const soundtrack = reelQuery.data?.soundtrack ?? null;
   useEffect(() => { setSlideIndex(0); }, [reelId]);
   useEffect(() => {
     if (!slideshow || !token) return;
@@ -134,14 +118,41 @@ export default function ProfileReelScreen() {
     () => uri && token ? { uri, headers: { Authorization: `Bearer ${token}` } } : null,
     [token, uri],
   );
+  const soundtrackSource = useMemo(
+    () => soundtrack ? { uri: soundtrack.audioUrl, name: soundtrack.title } : null,
+    [soundtrack?.audioUrl, soundtrack?.title],
+  );
   const player = useVideoPlayer(source, (instance) => {
     instance.loop = false;
   });
+  const soundtrackPlayer = useAudioPlayer(soundtrackSource, { updateInterval: 1000 });
+  const soundtrackStatus = useAudioPlayerStatus(soundtrackPlayer);
+  const [reelVideoPlaying, setReelVideoPlaying] = useState(false);
+
+  useEffect(() => {
+    const subscription = player.addListener("playingChange", (event) => setReelVideoPlaying(event.isPlaying));
+    setReelVideoPlaying(player.playing);
+    return () => subscription.remove();
+  }, [player]);
+
+  useEffect(() => {
+    if (!soundtrack) {
+      soundtrackPlayer.pause();
+      return;
+    }
+    void setAudioModeAsync({ playsInSilentMode: true }).catch(() => undefined);
+    soundtrackPlayer.loop = true;
+    soundtrackPlayer.volume = 1;
+    player.muted = true;
+    if ((slideshow || reelVideoPlaying) && soundtrackStatus.isLoaded) soundtrackPlayer.play();
+    else soundtrackPlayer.pause();
+  }, [player, soundtrackPlayer, soundtrack?.id, soundtrackStatus.isLoaded, slideshow, reelVideoPlaying]);
 
   useEffect(() => {
     if (!source) return;
     const update = (status: string) => {
       if (status === "readyToPlay") {
+        if (soundtrack) player.muted = true;
         player.play();
         if (reelQuery.data && !reelQuery.data.isOwner && !viewRecorded.current) {
           viewRecorded.current = true;
@@ -158,7 +169,7 @@ export default function ProfileReelScreen() {
     update(player.status);
     const subscription = player.addListener("statusChange", (event) => update(event.status));
     return () => subscription.remove();
-  }, [player, source, reelQuery.data, recordView, reelId, queryClient]);
+  }, [player, source, reelQuery.data, recordView, reelId, queryClient, soundtrack?.id]);
 
   function goBack() {
     if (returnTo) {
@@ -475,6 +486,15 @@ export default function ProfileReelScreen() {
               </View>
             </View>
             {reelQuery.data.caption ? <Text style={[styles.captionText, { color: colors.mutedForeground }]}>{reelQuery.data.caption}</Text> : null}
+            {soundtrack ? <View style={styles.soundtrackCredit}>
+              <Feather name="music" size={14} color={colors.primary}/>
+              <Pressable accessibilityRole="link" accessibilityLabel={`Music source: ${soundtrack.title} by ${soundtrack.artist}`} onPress={() => void Linking.openURL(soundtrack.sourceUrl).catch(() => undefined)} style={styles.soundtrackTitle}>
+                <Text numberOfLines={1} style={[styles.soundtrackText, { color: colors.foreground }]}>{soundtrack.title} · {soundtrack.artist}</Text>
+              </Pressable>
+              <Pressable accessibilityRole="link" accessibilityLabel={`Open ${soundtrack.license} license`} onPress={() => void Linking.openURL(soundtrack.licenseUrl).catch(() => undefined)}>
+                <Text style={[styles.soundtrackLicense, { color: colors.mutedForeground }]}>{soundtrack.license}</Text>
+              </Pressable>
+            </View> : null}
             {actionError ? <Text accessibilityRole="alert" style={[styles.shareError, { color: colors.destructive }]}>{actionError}</Text> : null}
           </View>
         ) : null}
@@ -676,9 +696,9 @@ const styles = StyleSheet.create({
   back: { width: 42, height: 42, alignItems: "center", justifyContent: "center" },
   headerTitle: { fontSize: 19, fontWeight: "800" },
   videoStage: { flex: 1, minHeight: 200, overflow: "hidden", backgroundColor: "#000", alignItems: "center", justifyContent: "center" },
-  actionRail: { position: "absolute", right: 10, bottom: 16, alignItems: "center", gap: 13 },
-  actionButton: { width: 60, minWidth: 60, minHeight: 78, alignItems: "center", justifyContent: "flex-start", gap: 7 },
-  actionCount: { color: "#fff", fontSize: 12, fontWeight: "900", letterSpacing: 0.2, textShadowColor: "#000", textShadowRadius: 5 },
+  actionRail: { position: "absolute", right: 12, bottom: 96, alignItems: "center", gap: 20 },
+  actionButton: { minWidth: 44, minHeight: 44, alignItems: "center", justifyContent: "flex-start", gap: 4 },
+  actionCount: { color: "#fff", fontSize: 12, fontWeight: "600", textShadowColor: "#000", textShadowRadius: 5 },
   caption: { paddingHorizontal: 16, paddingVertical: 14, gap: 8 },
   creatorRow: { flexDirection: "row", alignItems: "center", gap: 10 },
   creatorAvatarRing: { width: 42, height: 42, alignItems: "center", justifyContent: "center", borderRadius: 21, padding: 2 },
@@ -686,6 +706,10 @@ const styles = StyleSheet.create({
   creator: { fontSize: 15, fontWeight: "700" },
   creatorLocation: { fontSize: 12 },
   captionText: { fontSize: 14, lineHeight: 20 },
+  soundtrackCredit: { maxWidth: "100%", flexDirection: "row", alignItems: "center", gap: 7, marginTop: 8, alignSelf: "flex-start", borderWidth: 1, borderColor: "rgba(255,255,255,0.14)", borderRadius: 18, backgroundColor: "rgba(12,10,15,0.72)", paddingHorizontal: 10, paddingVertical: 7 },
+  soundtrackTitle: { minWidth: 0, flex: 1 },
+  soundtrackText: { fontSize: 11, fontWeight: "700" },
+  soundtrackLicense: { fontSize: 10, fontWeight: "700", textDecorationLine: "underline" },
   message: { alignItems: "center", gap: 10 },
   messageText: { fontSize: 15 },
   retry: { fontWeight: "700" },

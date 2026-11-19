@@ -2362,6 +2362,17 @@ export const GetProfileReelsResponse = zod.object({
   "audience": zod.enum(['public', 'friends']),
   "slideReferences": zod.array(zod.string()),
   "caption": zod.string(),
+  "soundtrack": zod.union([zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "artist": zod.string(),
+  "category": zod.string(),
+  "audioUrl": zod.url(),
+  "license": zod.string(),
+  "licenseUrl": zod.url(),
+  "sourceUrl": zod.url(),
+  "attribution": zod.string()
+}),zod.null()]),
   "durationSeconds": zod.number().nullable(),
   "likeCount": zod.int(),
   "commentCount": zod.int(),
@@ -2414,6 +2425,17 @@ export const GetProfileLikedReelsResponse = zod.object({
   "audience": zod.enum(['public', 'friends']),
   "slideReferences": zod.array(zod.string()),
   "caption": zod.string(),
+  "soundtrack": zod.union([zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "artist": zod.string(),
+  "category": zod.string(),
+  "audioUrl": zod.url(),
+  "license": zod.string(),
+  "licenseUrl": zod.url(),
+  "sourceUrl": zod.url(),
+  "attribution": zod.string()
+}),zod.null()]),
   "durationSeconds": zod.number().nullable(),
   "likeCount": zod.int(),
   "commentCount": zod.int(),
@@ -2800,6 +2822,24 @@ export const TranscodeStoryVideoResponse = zod.object({
 
 
 /**
+ * @summary List the free, license-attributed Reel music catalog
+ */
+export const GetReelMusicResponse = zod.object({
+  "tracks": zod.array(zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "artist": zod.string(),
+  "category": zod.string(),
+  "audioUrl": zod.url(),
+  "license": zod.string(),
+  "licenseUrl": zod.url(),
+  "sourceUrl": zod.url(),
+  "attribution": zod.string()
+}))
+})
+
+
+/**
  * @summary Page through public Reels with older and recent videos mixed
  */
 export const getReelsFeedQueryCursorMax = 200;
@@ -2842,6 +2882,17 @@ export const GetReelsFeedResponse = zod.object({
   "audience": zod.enum(['public', 'friends']),
   "slideReferences": zod.array(zod.string()),
   "caption": zod.string(),
+  "soundtrack": zod.union([zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "artist": zod.string(),
+  "category": zod.string(),
+  "audioUrl": zod.url(),
+  "license": zod.string(),
+  "licenseUrl": zod.url(),
+  "sourceUrl": zod.url(),
+  "attribution": zod.string()
+}),zod.null()]),
   "durationSeconds": zod.number().nullable(),
   "likeCount": zod.int(),
   "commentCount": zod.int(),
@@ -2866,34 +2917,44 @@ export const createReelBodyOneSlideMediaIdsMax = 10;
 export const createReelBodyOneCaptionMax = 300;
 
 export const createReelBodyOneAudienceDefault = `public`;
+export const createReelBodyOneSoundtrackIdMax = 80;
+
 export const createReelBodyTwoSlideMediaIdsMin = 2;
 export const createReelBodyTwoSlideMediaIdsMax = 10;
 
 export const createReelBodyTwoCaptionMax = 300;
 
 export const createReelBodyTwoAudienceDefault = `public`;
+export const createReelBodyTwoSoundtrackIdMax = 80;
+
 export const createReelBodyThreeSlideMediaIdsMin = 2;
 export const createReelBodyThreeSlideMediaIdsMax = 10;
 
 export const createReelBodyThreeCaptionMax = 300;
 
 export const createReelBodyThreeAudienceDefault = `public`;
+export const createReelBodyThreeSoundtrackIdMax = 80;
+
+
 
 export const CreateReelBody = zod.union([zod.object({
   "mediaId": zod.uuid(),
   "slideMediaIds": zod.array(zod.uuid()).min(createReelBodyOneSlideMediaIdsMin).max(createReelBodyOneSlideMediaIdsMax).optional(),
   "caption": zod.string().max(createReelBodyOneCaptionMax).optional(),
-  "audience": zod.enum(['public', 'friends']).default(createReelBodyOneAudienceDefault)
+  "audience": zod.enum(['public', 'friends']).default(createReelBodyOneAudienceDefault),
+  "soundtrackId": zod.string().max(createReelBodyOneSoundtrackIdMax).nullish()
 }),zod.object({
   "mediaId": zod.uuid().optional(),
   "slideMediaIds": zod.array(zod.uuid()).min(createReelBodyTwoSlideMediaIdsMin).max(createReelBodyTwoSlideMediaIdsMax),
   "caption": zod.string().max(createReelBodyTwoCaptionMax).optional(),
-  "audience": zod.enum(['public', 'friends']).default(createReelBodyTwoAudienceDefault)
+  "audience": zod.enum(['public', 'friends']).default(createReelBodyTwoAudienceDefault),
+  "soundtrackId": zod.string().max(createReelBodyTwoSoundtrackIdMax).nullish()
 })]).and(zod.object({
   "mediaId": zod.uuid().optional(),
   "slideMediaIds": zod.array(zod.uuid()).min(createReelBodyThreeSlideMediaIdsMin).max(createReelBodyThreeSlideMediaIdsMax).optional(),
   "caption": zod.string().max(createReelBodyThreeCaptionMax).optional(),
-  "audience": zod.enum(['public', 'friends']).default(createReelBodyThreeAudienceDefault)
+  "audience": zod.enum(['public', 'friends']).default(createReelBodyThreeAudienceDefault),
+  "soundtrackId": zod.string().max(createReelBodyThreeSoundtrackIdMax).nullish()
 }))
 
 export const createReelResponseViewCountMin = 0;
@@ -2919,6 +2980,17 @@ export const CreateReelResponse = zod.object({
   "audience": zod.enum(['public', 'friends']),
   "slideReferences": zod.array(zod.string()),
   "caption": zod.string(),
+  "soundtrack": zod.union([zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "artist": zod.string(),
+  "category": zod.string(),
+  "audioUrl": zod.url(),
+  "license": zod.string(),
+  "licenseUrl": zod.url(),
+  "sourceUrl": zod.url(),
+  "attribution": zod.string()
+}),zod.null()]),
   "durationSeconds": zod.number().nullable(),
   "likeCount": zod.int(),
   "commentCount": zod.int(),
@@ -2993,6 +3065,17 @@ export const GetSavedReelsResponse = zod.object({
   "audience": zod.enum(['public', 'friends']),
   "slideReferences": zod.array(zod.string()),
   "caption": zod.string(),
+  "soundtrack": zod.union([zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "artist": zod.string(),
+  "category": zod.string(),
+  "audioUrl": zod.url(),
+  "license": zod.string(),
+  "licenseUrl": zod.url(),
+  "sourceUrl": zod.url(),
+  "attribution": zod.string()
+}),zod.null()]),
   "durationSeconds": zod.number().nullable(),
   "likeCount": zod.int(),
   "commentCount": zod.int(),
@@ -3043,6 +3126,17 @@ export const GetMyReelsResponse = zod.object({
   "audience": zod.enum(['public', 'friends']),
   "slideReferences": zod.array(zod.string()),
   "caption": zod.string(),
+  "soundtrack": zod.union([zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "artist": zod.string(),
+  "category": zod.string(),
+  "audioUrl": zod.url(),
+  "license": zod.string(),
+  "licenseUrl": zod.url(),
+  "sourceUrl": zod.url(),
+  "attribution": zod.string()
+}),zod.null()]),
   "durationSeconds": zod.number().nullable(),
   "likeCount": zod.int(),
   "commentCount": zod.int(),
@@ -3088,6 +3182,17 @@ export const GetReelResponse = zod.object({
   "audience": zod.enum(['public', 'friends']),
   "slideReferences": zod.array(zod.string()),
   "caption": zod.string(),
+  "soundtrack": zod.union([zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "artist": zod.string(),
+  "category": zod.string(),
+  "audioUrl": zod.url(),
+  "license": zod.string(),
+  "licenseUrl": zod.url(),
+  "sourceUrl": zod.url(),
+  "attribution": zod.string()
+}),zod.null()]),
   "durationSeconds": zod.number().nullable(),
   "likeCount": zod.int(),
   "commentCount": zod.int(),

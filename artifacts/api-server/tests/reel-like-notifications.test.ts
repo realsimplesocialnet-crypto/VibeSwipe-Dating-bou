@@ -129,7 +129,7 @@ test("Reels request sound and keep an accessible sound control", () => {
   const slide = source("artifacts/vibeswipe-web/src/components/reels/reel-slide.tsx");
   assert.match(feed, /const \[muted, setMuted\] = useState\(false\)/);
   assert.match(slide, /aria-label=\{muted \? "Turn Reel sound on" : "Mute Reel"\}/);
-  assert.match(slide, /playsInline muted=\{muted\} loop/);
+  assert.match(slide, /playsInline muted=\{Boolean\(reel\.soundtrack\) \|\| muted\} loop/);
   assert.doesNotMatch(slide, /Your browser paused autoplay\. Tap to play\./);
   assert.match(slide, /data-testid=\{`button-toggle-reel-playback-/);
 });

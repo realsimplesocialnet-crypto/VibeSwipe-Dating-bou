@@ -7,7 +7,7 @@
  */
 import type { ReelInputAudience } from './reelInputAudience';
 
-export type ReelInput = (unknown & {
+export type ReelInput = (unknown & ({
   mediaId?: string;
   /**
      * @minItems 2
@@ -17,4 +17,9 @@ export type ReelInput = (unknown & {
   /** @maxLength 300 */
   caption?: string;
   audience?: ReelInputAudience;
-});
+  /**
+     * @maxLength 80
+     * @nullable
+     */
+  soundtrackId?: string | null;
+}));

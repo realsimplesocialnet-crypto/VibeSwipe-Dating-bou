@@ -108,6 +108,7 @@ import type {
   ReelCommentInput,
   ReelEngagement,
   ReelInput,
+  ReelMusicCatalog,
   ReelPage,
   ReelShareCount,
   ReelVideoTranscodeResult,
@@ -9628,6 +9629,107 @@ export const useTranscodeStoryVideo = <TError = ErrorType<void>,
       > => {
       return useMutation(getTranscodeStoryVideoMutationOptions(options), queryClient);
     }
+
+export const getGetReelMusicUrl = () => {
+
+
+
+
+  return `/api/vibeswipe/reels/music`
+}
+
+/**
+ * @summary List the free, license-attributed Reel music catalog
+ */
+export const getReelMusic = async ( options?: Parameters<typeof customFetch>[1]): Promise<ReelMusicCatalog> => {
+
+  return customFetch<ReelMusicCatalog>(getGetReelMusicUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetReelMusicQueryKey = () => {
+    return [
+    `/api/vibeswipe/reels/music`
+    ] as const;
+    }
+
+
+export const getGetReelMusicQueryOptions = <TData = Awaited<ReturnType<typeof getReelMusic>>, TError = ErrorType<unknown>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getReelMusic>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetReelMusicQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getReelMusic>>> = ({ signal }) => getReelMusic({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getReelMusic>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetReelMusicQueryResult = NonNullable<Awaited<ReturnType<typeof getReelMusic>>>
+export type GetReelMusicQueryError = ErrorType<unknown>
+
+
+export function useGetReelMusic<TData = Awaited<ReturnType<typeof getReelMusic>>, TError = ErrorType<unknown>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getReelMusic>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getReelMusic>>,
+          TError,
+          Awaited<ReturnType<typeof getReelMusic>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetReelMusic<TData = Awaited<ReturnType<typeof getReelMusic>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getReelMusic>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getReelMusic>>,
+          TError,
+          Awaited<ReturnType<typeof getReelMusic>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetReelMusic<TData = Awaited<ReturnType<typeof getReelMusic>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getReelMusic>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary List the free, license-attributed Reel music catalog
+ */
+
+export function useGetReelMusic<TData = Awaited<ReturnType<typeof getReelMusic>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getReelMusic>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetReelMusicQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export const getGetReelsFeedUrl = (params?: GetReelsFeedParams,) => {
   const normalizedParams = new URLSearchParams();

@@ -2,9 +2,10 @@ import { useEffect, useRef, useState, type TouchEvent } from "react";
 import { useLocation } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
 import {
-  getGetMyReelsQueryKey, getGetReelsFeedQueryKey, useCreateReel, useRequestProfileMediaUpload, useTranscodeReelVideo,
+  getGetMyReelsQueryKey, getGetReelsFeedQueryKey, useCreateReel, useGetReelMusic,
+  useRequestProfileMediaUpload, useTranscodeReelVideo, type ReelMusicTrack,
 } from "@workspace/api-client-react";
-import { ArrowLeft, Camera, ChevronLeft, ChevronRight, Film, Images, RotateCcw, X } from "lucide-react";
+import { ArrowLeft, Camera, Check, ChevronLeft, ChevronRight, ExternalLink, Film, Images, Music2, Pause, Play, RotateCcw, Search, X } from "lucide-react";
 import { prepareProfilePhoto, uploadProfilePhotoBytes } from "@/lib/profile-photo-upload";
 import { readVideoDuration, reelFileProblem, reelVideoContentType, safeReelReturnPath } from "@/lib/reels";
 import { reelPostUnauthorizedMessage, uploadReelVideoBytes } from "@/lib/reel-upload";
@@ -32,6 +33,10 @@ export function ReelComposerPage() {
   const [slidePreviews, setSlidePreviews] = useState<string[]>([]);
   const [slideIndex, setSlideIndex] = useState(0);
   const [caption, setCaption] = useState("");
+  const [soundtrackId, setSoundtrackId] = useState<string | null>(null);
+  const [musicPickerOpen, setMusicPickerOpen] = useState(false);
+  const [musicSearch, setMusicSearch] = useState("");
+  const [previewingTrackId, setPreviewingTrackId] = useState<string | null>(null);
   const [audience, setAudience] = useState<ReelAudience | null>(null);
   const [error, setError] = useState("");
   const [checking, setChecking] = useState(false);
@@ -40,7 +45,15 @@ export function ReelComposerPage() {
   const requestUpload = useRequestProfileMediaUpload();
   const transcode = useTranscodeReelVideo();
   const create = useCreateReel();
+  const musicQuery = useGetReelMusic({ query: { staleTime: 24 * 60 * 60 * 1000 } });
+  const previewAudio = useRef<HTMLAudioElement | null>(null);
   const busy = stage !== "idle";
+  const tracks = musicQuery.data?.tracks ?? [];
+  const selectedTrack = tracks.find((track) => track.id === soundtrackId);
+  const normalizedMusicSearch = musicSearch.trim().toLocaleLowerCase();
+  const filteredTracks = tracks.filter((track) =>
+    `${track.title} ${track.artist} ${track.category}`.toLocaleLowerCase().includes(normalizedMusicSearch),
+  );
 
   useEffect(() => {
     if (!file) { setPreview(""); return; }
@@ -55,6 +68,37 @@ export function ReelComposerPage() {
     setSlideIndex((current) => Math.min(current, Math.max(0, urls.length - 1)));
     return () => urls.forEach((url) => URL.revokeObjectURL(url));
   }, [slideFiles]);
+
+  useEffect(() => () => {
+    previewAudio.current?.pause();
+    previewAudio.current = null;
+  }, []);
+
+  function stopTrackPreview() {
+    previewAudio.current?.pause();
+    previewAudio.current = null;
+    setPreviewingTrackId(null);
+  }
+
+  async function toggleTrackPreview(track: ReelMusicTrack) {
+    if (previewingTrackId === track.id) {
+      stopTrackPreview();
+      return;
+    }
+    previewAudio.current?.pause();
+    setPreviewingTrackId(null);
+    const audio = new Audio(track.audioUrl);
+    audio.preload = "none";
+    audio.onended = () => setPreviewingTrackId(null);
+    previewAudio.current = audio;
+    try {
+      await audio.play();
+      setPreviewingTrackId(track.id);
+    } catch {
+      setError("This preview couldn’t start. Try again.");
+      previewAudio.current = null;
+    }
+  }
 
   async function choose(next: File | undefined) {
     if (!next || busy) return;
@@ -122,7 +166,7 @@ export function ReelComposerPage() {
         }
         setStage("processing");
         const reel = await create.mutateAsync({
-          data: { slideMediaIds: mediaIds, audience: audience!, ...(caption.trim() ? { caption: caption.trim() } : {}) },
+          data: { slideMediaIds: mediaIds, audience: audience!, ...(caption.trim() ? { caption: caption.trim() } : {}), ...(soundtrackId ? { soundtrackId } : {}) },
         });
         void client.invalidateQueries({ queryKey: getGetReelsFeedQueryKey() });
         void client.invalidateQueries({ queryKey: getGetMyReelsQueryKey() });
@@ -137,7 +181,7 @@ export function ReelComposerPage() {
       setStage("processing");
       await transcode.mutateAsync({ mediaId: signed.mediaId });
       setStage("publishing");
-      const reel = await create.mutateAsync({ data: { mediaId: signed.mediaId, audience: audience!, ...(caption.trim() ? { caption: caption.trim() } : {}) } });
+      const reel = await create.mutateAsync({ data: { mediaId: signed.mediaId, audience: audience!, ...(caption.trim() ? { caption: caption.trim() } : {}), ...(soundtrackId ? { soundtrackId } : {}) } });
       void client.invalidateQueries({ queryKey: getGetReelsFeedQueryKey() });
       void client.invalidateQueries({ queryKey: getGetMyReelsQueryKey() });
       setLocation(`/reels/${reel.id}?returnTo=${encodeURIComponent(returnTo)}`, { replace: true });
@@ -171,7 +215,7 @@ export function ReelComposerPage() {
           : <div className="flex h-full flex-col items-center justify-center px-8 text-center">
             <span className="reels-empty-mark">{mode === "slides" ? <Images size={28} /> : <Film size={28} />}</span>
             <p className="mt-5 text-lg font-bold">{mode === "slides" ? "Choose 2–10 photos" : "Record or choose a video"}</p>
-            <p className="mt-1 text-sm leading-6 text-white/60">{mode === "slides" ? "Your photos become a swipeable Reel. Music is not included yet." : "There is no Reel duration limit. MP4 or MOV videos up to 500 MB are supported; longer videos may take more time to upload and process."}</p>
+            <p className="mt-1 text-sm leading-6 text-white/60">{mode === "slides" ? "Your photos become a swipeable Reel." : "There is no Reel duration limit. MP4 or MOV videos up to 500 MB are supported; longer videos may take more time to upload and process."}</p>
           </div>}
       </div>
       {mode === "slides" ? <div className="flex items-center gap-2">
@@ -181,6 +225,19 @@ export function ReelComposerPage() {
         <button type="button" onClick={() => cameraInput.current?.click()} disabled={busy || checking} data-testid="button-record-reel" className="reel-sheet-action">{file ? <RotateCcw size={18} /> : <Camera size={18} />}{file ? "Record again" : "Record"}</button>
         <button type="button" onClick={() => libraryInput.current?.click()} disabled={busy || checking} data-testid="button-choose-reel" className="reel-sheet-action"><Film size={18} />{file ? "Choose another" : "Choose video"}</button>
       </div>}
+      <section aria-label="Reel music" className="rounded-2xl border border-white/10 bg-white/[.04] p-3" data-testid="section-reel-music">
+        <div className="flex items-center gap-3">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-primary"><Music2 size={19}/></span>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-bold text-white">{selectedTrack?.title ?? "Add music"}</p>
+            <p className="truncate text-xs text-white/55">{selectedTrack ? selectedTrack.artist : "Choose a free track for your Reel"}</p>
+          </div>
+          {selectedTrack ? <button type="button" onClick={() => setMusicPickerOpen(true)} disabled={busy} className="rounded-full px-3 py-2 text-xs font-bold text-primary" data-testid="button-change-reel-music">Change</button> : null}
+          {selectedTrack ? <button type="button" onClick={() => { setSoundtrackId(null); stopTrackPreview(); }} disabled={busy} aria-label="Remove music" className="flex h-9 w-9 items-center justify-center rounded-full text-white/65" data-testid="button-remove-reel-music"><X size={18}/></button> : null}
+          {!selectedTrack ? <button type="button" onClick={() => setMusicPickerOpen(true)} disabled={busy} className="rounded-full bg-primary px-4 py-2 text-xs font-extrabold text-primary-foreground" data-testid="button-add-reel-music">Choose</button> : null}
+        </div>
+        {selectedTrack ? <p className="mt-2 pl-[52px] text-[11px] leading-4 text-white/45">{mode === "video" ? "Music replaces the video’s original sound." : "Music plays with your photo slides."} Creator and license credit will appear with your Reel.</p> : null}
+      </section>
       <label className="block text-xs font-semibold text-white/60">Caption<textarea value={caption} onChange={(event) => setCaption(event.target.value)} maxLength={300} rows={2} disabled={busy} placeholder="Say something about this moment" data-testid="input-reel-caption" className="mt-2 w-full resize-none rounded-2xl border border-white/10 bg-white/[.06] px-4 py-3 text-[16px] text-white placeholder:text-white/35 focus:border-primary/60 focus:outline-none" /><span className="mt-1 block text-right font-normal text-white/40">{caption.length}/300</span></label>
       <fieldset className="space-y-2">
         <legend className="text-xs font-semibold text-white/60">Who can see this Reel?</legend>
@@ -195,5 +252,35 @@ export function ReelComposerPage() {
         {busy ? <QuietSpinner size={20} /> : "Post"}
       </button>
     </div>
+    {musicPickerOpen && <div className="fixed inset-0 z-[120] flex items-end justify-center bg-black/65 p-0 sm:items-center sm:p-4" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) { setMusicPickerOpen(false); stopTrackPreview(); } }}>
+      <section role="dialog" aria-modal="true" aria-labelledby="reel-music-title" className="flex max-h-[88dvh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl border border-white/10 bg-[#15131a] shadow-2xl sm:rounded-3xl" data-testid="dialog-reel-music">
+        <header className="flex items-center gap-3 border-b border-white/10 px-5 py-4">
+          <div className="min-w-0 flex-1"><h2 id="reel-music-title" className="text-lg font-extrabold text-white">Choose music</h2><p className="mt-0.5 text-xs text-white/55">Free tracks with creator credit included</p></div>
+          <button type="button" onClick={() => { setMusicPickerOpen(false); stopTrackPreview(); }} aria-label="Close music picker" className="flex h-10 w-10 items-center justify-center rounded-full bg-white/[.07] text-white" data-testid="button-close-reel-music"><X size={19}/></button>
+        </header>
+        <label className="mx-4 mt-4 flex min-h-11 items-center gap-2 rounded-xl border border-white/10 bg-white/[.05] px-3 text-white/55">
+          <Search size={17}/><input type="search" value={musicSearch} onChange={(event) => setMusicSearch(event.target.value)} placeholder="Search tracks" aria-label="Search free music" className="min-w-0 flex-1 bg-transparent text-sm text-white outline-none placeholder:text-white/40" data-testid="input-reel-music-search"/>
+        </label>
+        <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4 pt-2">
+          {musicQuery.isLoading ? <div className="flex justify-center py-8" aria-label="Loading music"><QuietSpinner/></div> : null}
+          {musicQuery.isError ? <div className="py-8 text-center text-sm text-white/70"><p>Music is unavailable right now.</p><button type="button" onClick={() => void musicQuery.refetch()} className="mt-3 font-bold text-primary">Try again</button></div> : null}
+          {!musicQuery.isLoading && !musicQuery.isError && filteredTracks.map((track) => {
+            const isSelected = soundtrackId === track.id;
+            const isPreviewing = previewingTrackId === track.id;
+            return <article key={track.id} className="flex items-center gap-3 border-b border-white/[.07] py-3" data-testid={`reel-music-track-${track.id}`}>
+              <button type="button" onClick={() => void toggleTrackPreview(track)} aria-label={`${isPreviewing ? "Pause" : "Preview"} ${track.title}`} aria-pressed={isPreviewing} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary" data-testid={`button-preview-music-${track.id}`}>{isPreviewing ? <Pause size={18} fill="currentColor"/> : <Play size={18} fill="currentColor"/>}</button>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-bold text-white">{track.title}</p>
+                <p className="truncate text-xs text-white/55">{track.artist} · {track.category}</p>
+                <a href={track.sourceUrl} target="_blank" rel="noreferrer" className="mt-1 inline-flex items-center gap-1 text-[10px] font-semibold text-white/45 underline underline-offset-2" data-testid={`link-music-license-${track.id}`}>{track.license} · details <ExternalLink size={10}/></a>
+              </div>
+              <button type="button" onClick={() => { setSoundtrackId(track.id); setMusicPickerOpen(false); stopTrackPreview(); setError(""); }} className={`flex min-h-9 min-w-[70px] items-center justify-center gap-1 rounded-full px-3 text-xs font-extrabold ${isSelected ? "bg-primary/20 text-primary" : "bg-primary text-primary-foreground"}`} aria-label={isSelected ? `${track.title} selected` : `Use ${track.title}`} data-testid={`button-use-music-${track.id}`}>{isSelected ? <><Check size={14}/>Added</> : "Use"}</button>
+            </article>;
+          })}
+          {!musicQuery.isLoading && !musicQuery.isError && !filteredTracks.length ? <p className="py-8 text-center text-sm text-white/55">No tracks match that search.</p> : null}
+          <p className="pt-4 text-center text-[11px] leading-4 text-white/40">Tracks are licensed for reuse. The creator, source, and license stay attached to the Reel.</p>
+        </div>
+      </section>
+    </div>}
   </div>;
 }

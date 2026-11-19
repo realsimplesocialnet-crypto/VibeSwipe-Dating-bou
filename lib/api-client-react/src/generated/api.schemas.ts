@@ -1466,6 +1466,18 @@ export const ReelAudience = {
   friends: 'friends',
 } as const;
 
+export interface ReelMusicTrack {
+  id: string;
+  title: string;
+  artist: string;
+  category: string;
+  audioUrl: string;
+  license: string;
+  licenseUrl: string;
+  sourceUrl: string;
+  attribution: string;
+}
+
 export interface Reel {
   id: string;
   creatorId: string;
@@ -1482,6 +1494,7 @@ export interface Reel {
   audience: ReelAudience;
   slideReferences: string[];
   caption: string;
+  soundtrack: ReelMusicTrack | null;
   /** @nullable */
   durationSeconds: number | null;
   likeCount: number;
@@ -1496,6 +1509,10 @@ export interface Reel {
   savedByMe: boolean;
   isOwner: boolean;
   createdAt: string;
+}
+
+export interface ReelMusicCatalog {
+  tracks: ReelMusicTrack[];
 }
 
 export interface ReelViewCount {
@@ -1522,7 +1539,7 @@ export const ReelInputAudience = {
   friends: 'friends',
 } as const;
 
-export type ReelInput = (unknown & {
+export type ReelInput = (unknown & ({
   mediaId?: string;
   /**
      * @minItems 2
@@ -1532,7 +1549,12 @@ export type ReelInput = (unknown & {
   /** @maxLength 300 */
   caption?: string;
   audience?: ReelInputAudience;
-});
+  /**
+     * @maxLength 80
+     * @nullable
+     */
+  soundtrackId?: string | null;
+}));
 
 export interface ReelEngagement {
   likedByMe: boolean;

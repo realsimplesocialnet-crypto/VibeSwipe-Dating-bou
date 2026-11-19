@@ -136,6 +136,8 @@ export * from './reelEngagement';
 export * from './reelInput';
 export * from './reelInputAudience';
 export * from './reelMediaType';
+export * from './reelMusicCatalog';
+export * from './reelMusicTrack';
 export * from './reelPage';
 export * from './reelShareCount';
 export * from './reelVideoTranscodeResult';

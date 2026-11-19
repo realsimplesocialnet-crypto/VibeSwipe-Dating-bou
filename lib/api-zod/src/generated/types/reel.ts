@@ -7,6 +7,7 @@
  */
 import type { ReelAudience } from './reelAudience';
 import type { ReelMediaType } from './reelMediaType';
+import type { ReelMusicTrack } from './reelMusicTrack';
 
 export interface Reel {
   id: string;
@@ -24,6 +25,7 @@ export interface Reel {
   audience: ReelAudience;
   slideReferences: string[];
   caption: string;
+  soundtrack: ReelMusicTrack | null;
   /** @nullable */
   durationSeconds: number | null;
   likeCount: number;

@@ -7,7 +7,8 @@ import {
   GetProfileLikedReelsQueryParams, GetProfileLikedReelsResponse, GetProfileReelsQueryParams, GetProfileReelsResponse,
   GetSavedReelsQueryParams, GetSavedReelsResponse, LikeReelParams, LikeReelResponse,
   MarkReelNotInterestedParams, DownloadReelParams,
-  RecordReelShareResponse, RecordReelViewResponse, TranscodeReelVideoParams, TranscodeReelVideoResponse,
+  GetReelMusicResponse, RecordReelShareResponse, RecordReelViewResponse, TranscodeReelVideoParams,
+  TranscodeReelVideoResponse, type ReelMusicTrack,
 } from "@workspace/api-zod";
 import {
   blocksTable, db, mediaAssetsTable, profilesTable, reelCommentsTable, reelLikesTable, reelSavesTable, reelSharesTable, reelSlidesTable, reelViewsTable, reelNotInterestedTable, reelsTable, storiesTable, vibeSwipeFollowsTable, vibeSwipeNotificationsTable,
@@ -26,6 +27,7 @@ import { processSafeReel, processSafeReelImage, reelIsApproved } from "../lib/re
 import { ReelSafetyError } from "../lib/reel-safety-policy";
 import { sendReelCommentReplyPush, sendReelLikePush } from "../lib/vibeswipePush";
 import { canCommentOnReel, canViewLikedVideos, canViewUserProfile } from "../lib/profile-privacy";
+import { getReelSoundtrack, REEL_MUSIC_CATALOG } from "../lib/reel-music-catalog";
 
 const router: IRouter = Router();
 router.use("/vibeswipe/reels", requireAuth);
@@ -33,6 +35,10 @@ router.use("/vibeswipe/profile-reels", requireAuth);
 
 const PAGE_SIZE = 6;
 const reelStorage = new ObjectStorageService();
+
+router.get("/vibeswipe/reels/music", (_req, res): void => {
+  res.json(GetReelMusicResponse.parse({ tracks: REEL_MUSIC_CATALOG }));
+});
 
 router.post("/vibeswipe/reels/uploads/:mediaId/transcode", async (req, res): Promise<void> => {
   const params = TranscodeReelVideoParams.safeParse(req.params);
@@ -71,7 +77,7 @@ function uid(req: Request): string {
 function reelColumns(viewerId: string) {
   return {
     id: reelsTable.id, userId: reelsTable.userId, mediaId: reelsTable.mediaId, mediaType: reelsTable.mediaType,
-    audience: reelsTable.audience, caption: reelsTable.caption,
+    audience: reelsTable.audience, caption: reelsTable.caption, soundtrack: reelsTable.soundtrack,
     durationSeconds: reelsTable.durationSeconds, createdAt: reelsTable.createdAt,
     slideMediaIds: sql<string[]>`COALESCE((
       SELECT array_agg(${reelSlidesTable.mediaId}::text ORDER BY ${reelSlidesTable.position})
@@ -123,6 +129,7 @@ function project(row: ReelRow, viewerId: string) {
     canDownload: row.mediaType === "video" && Boolean(row.allowsDownloads),
     videoReference: `media:${row.mediaId}`, mediaType: row.mediaType as "video" | "slides", audience: row.audience,
     slideReferences: row.slideMediaIds.map((id) => `media:${id}`), caption: row.caption,
+    soundtrack: row.soundtrack as ReelMusicTrack | null,
     durationSeconds: row.durationSeconds, likeCount: Number(row.likeCount), commentCount: Number(row.commentCount),
     viewCount: Number(row.viewCount), shareCount: Number(row.shareCount), saveCount: Number(row.saveCount),
     likedByMe: Boolean(row.likedByMe), savedByMe: Boolean(row.savedByMe), isOwner: row.userId === viewerId, createdAt: row.createdAt,
@@ -336,6 +343,10 @@ router.get("/vibeswipe/reels/saved", async (req, res): Promise<void> => {
 router.post("/vibeswipe/reels", async (req, res): Promise<void> => {
   const body = CreateReelBody.safeParse(req.body);
   if (!body.success) { res.status(400).json({ error: "Choose an approved video or 2–10 photos, with a caption under 300 characters." }); return; }
+  const soundtrack = getReelSoundtrack(body.data.soundtrackId);
+  if (body.data.soundtrackId && !soundtrack) {
+    res.status(400).json({ error: "Choose a music track from the available catalog." }); return;
+  }
   const userId = uid(req);
   if (body.data.slideMediaIds) {
     const mediaIds = body.data.slideMediaIds;
@@ -373,7 +384,8 @@ router.post("/vibeswipe/reels", async (req, res): Promise<void> => {
     }
     const created = await db.transaction(async (tx) => {
       const [reel] = await tx.insert(reelsTable).values({
-         userId, mediaId: mediaIds[0], mediaType: "slides", audience: body.data.audience ?? "public", caption: cleanReelCaption(body.data.caption),
+        userId, mediaId: mediaIds[0], mediaType: "slides", audience: body.data.audience ?? "public", caption: cleanReelCaption(body.data.caption),
+        soundtrack,
         durationSeconds: null, createdAt: new Date(),
       }).onConflictDoNothing({ target: reelsTable.mediaId }).returning({ id: reelsTable.id });
       if (!reel) return null;
@@ -402,7 +414,7 @@ router.post("/vibeswipe/reels", async (req, res): Promise<void> => {
   if (story) { res.status(409).json({ error: "This video is already used by a story." }); return; }
   const [created] = await db.insert(reelsTable).values({
     userId, mediaId: body.data.mediaId, audience: body.data.audience ?? "public", caption: cleanReelCaption(body.data.caption),
-    durationSeconds: asset!.durationSeconds, createdAt: new Date(),
+    soundtrack, durationSeconds: asset!.durationSeconds, createdAt: new Date(),
   }).onConflictDoNothing({ target: reelsTable.mediaId }).returning({ id: reelsTable.id });
   if (!created) { res.status(409).json({ error: "This video has already been posted." }); return; }
   const row = await findVisibleReel(userId, created.id);

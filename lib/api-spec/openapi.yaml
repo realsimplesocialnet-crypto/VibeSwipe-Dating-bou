@@ -1795,6 +1795,17 @@ paths:
           description: Video exceeds story duration or size limits
         "404":
           description: Uploaded video was not found
+  /vibeswipe/reels/music:
+    get:
+      operationId: getReelMusic
+      tags: [vibeswipe]
+      summary: List the free, license-attributed Reel music catalog
+      responses:
+        "200":
+          description: Curated music tracks available without a provider account or API key
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ReelMusicCatalog" }
   /vibeswipe/reels:
     get:
       operationId: getReelsFeed
@@ -3027,6 +3038,7 @@ components:
           type: array
           items: { type: string }
         caption: { type: string }
+        soundtrack: { oneOf: [{ $ref: "#/components/schemas/ReelMusicTrack" }, { type: "null" }] }
         durationSeconds: { type: ["number", "null"] }
         likeCount: { type: integer }
         commentCount: { type: integer }
@@ -3037,7 +3049,27 @@ components:
         savedByMe: { type: boolean }
         isOwner: { type: boolean }
         createdAt: { type: string, format: date-time }
-      required: [id, creatorId, creatorName, creatorLocation, creatorVerified, creatorPhoto, creatorFollowedByMe, canComment, canDownload, videoReference, mediaType, audience, slideReferences, caption, durationSeconds, likeCount, commentCount, viewCount, shareCount, saveCount, likedByMe, savedByMe, isOwner, createdAt]
+      required: [id, creatorId, creatorName, creatorLocation, creatorVerified, creatorPhoto, creatorFollowedByMe, canComment, canDownload, videoReference, mediaType, audience, slideReferences, caption, soundtrack, durationSeconds, likeCount, commentCount, viewCount, shareCount, saveCount, likedByMe, savedByMe, isOwner, createdAt]
+    ReelMusicTrack:
+      type: object
+      properties:
+        id: { type: string }
+        title: { type: string }
+        artist: { type: string }
+        category: { type: string }
+        audioUrl: { type: string, format: uri }
+        license: { type: string }
+        licenseUrl: { type: string, format: uri }
+        sourceUrl: { type: string, format: uri }
+        attribution: { type: string }
+      required: [id, title, artist, category, audioUrl, license, licenseUrl, sourceUrl, attribution]
+    ReelMusicCatalog:
+      type: object
+      properties:
+        tracks:
+          type: array
+          items: { $ref: "#/components/schemas/ReelMusicTrack" }
+      required: [tracks]
     ReelViewCount:
       type: object
       properties:
@@ -3067,6 +3099,7 @@ components:
           items: { type: string, format: uuid }
         caption: { type: string, maxLength: 300 }
         audience: { type: string, enum: [public, friends], default: public }
+        soundtrackId: { type: ["string", "null"], maxLength: 80 }
       oneOf:
         - required: [mediaId]
         - required: [slideMediaIds]

@@ -18,6 +18,7 @@ export const reelsTable = pgTable("vibeswipe_reels", {
   mediaType: text("media_type").notNull().default("video"),
   audience: text("audience").$type<"public" | "friends">().notNull().default("public"),
   caption: text("caption").notNull().default(""),
+  soundtrack: jsonb("soundtrack"),
   durationSeconds: doublePrecision("duration_seconds"),
   viewCount: integer("view_count").notNull().default(0),
   shareCount: integer("share_count").notNull().default(0),

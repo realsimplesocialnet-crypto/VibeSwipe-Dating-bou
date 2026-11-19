@@ -31,6 +31,7 @@ export async function ensureReelsSchema(): Promise<void> {
       created_at timestamptz NOT NULL DEFAULT now())`);
     await client.query("ALTER TABLE vibeswipe_reels ADD COLUMN IF NOT EXISTS view_count integer NOT NULL DEFAULT 0");
     await client.query("ALTER TABLE vibeswipe_reels ADD COLUMN IF NOT EXISTS share_count integer NOT NULL DEFAULT 0");
+    await client.query("ALTER TABLE vibeswipe_reels ADD COLUMN IF NOT EXISTS soundtrack jsonb");
     await client.query("CREATE INDEX IF NOT EXISTS vibeswipe_reels_feed_idx ON vibeswipe_reels(created_at, id)");
     await client.query(`CREATE TABLE IF NOT EXISTS vibeswipe_reel_safety (
       media_id uuid PRIMARY KEY REFERENCES vibeswipe_media_assets(id) ON DELETE CASCADE,
