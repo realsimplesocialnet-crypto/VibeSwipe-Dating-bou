@@ -30,6 +30,7 @@ import { setAudioModeAsync, useAudioPlayer, useAudioPlayerStatus } from "expo-au
 import { File, Paths } from "expo-file-system";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, Alert, KeyboardAvoidingView, Linking, Modal, Platform, Pressable, ScrollView, Share, StyleSheet, Text, TextInput, View, useWindowDimensions } from "react-native";
+import Svg, { Circle, Path } from "react-native-svg";
 import { useQueryClient } from "@tanstack/react-query";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { usePremiumColors } from "@/hooks/useColors";
@@ -41,8 +42,20 @@ function formatReelCount(value: number) {
 }
 
 function ReelActionIcon({ name, filled = false }: { name: ReelIconName; filled?: boolean }) {
-  const icons = { like: "heart", comment: "message-circle", share: "send", save: "bookmark" } as const;
-  return <Feather name={icons[name]} size={28} color="#fff" fill={filled ? "#fff" : "none"} />;
+  const selectedColor = filled ? "#f34e9a" : "#fff";
+  return (
+    <Svg width={36} height={36} viewBox="0 0 24 24">
+      {name === "like" ? <Path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78Z" fill={selectedColor} /> : null}
+      {name === "comment" ? <>
+        <Path d="M12 2.8c-5.15 0-9.3 3.7-9.3 8.25 0 2.3 1.1 4.43 3.04 5.96L5 21l4.42-2.12c.82.23 1.68.35 2.58.35 5.15 0 9.3-3.7 9.3-8.25S17.15 2.8 12 2.8Z" fill="#fff" />
+        <Circle cx={8.2} cy={11.1} r={1.15} fill="#101014" />
+        <Circle cx={12} cy={11.1} r={1.15} fill="#101014" />
+        <Circle cx={15.8} cy={11.1} r={1.15} fill="#101014" />
+      </> : null}
+      {name === "share" ? <Path d="M15.2 3.4a1.05 1.05 0 0 1 1.78-.74l5.2 5.2a1.05 1.05 0 0 1 0 1.48l-5.2 5.2a1.05 1.05 0 0 1-1.78-.74v-2.1c-4.45.08-7.8 1.93-10.3 5.73.3-6.9 3.76-10.52 10.3-11.16V3.4Z" fill="#fff" /> : null}
+      {name === "save" ? <Path d="M6 4.5A1.5 1.5 0 0 1 7.5 3h9A1.5 1.5 0 0 1 18 4.5V21l-6-4-6 4V4.5Z" fill={selectedColor} /> : null}
+    </Svg>
+  );
 }
 import { mediaUri } from "@/lib/media";
 import { ProfileAvatar } from "@/components/ProfileAvatar";
@@ -438,6 +451,18 @@ export default function ProfileReelScreen() {
               </Pressable>
               <Pressable
                 accessibilityRole="button"
+                accessibilityLabel={`${reelQuery.data.savedByMe ? "Remove from saved" : "Save"}, ${reelQuery.data.saveCount}`}
+                accessibilityState={{ selected: reelQuery.data.savedByMe, disabled: saveReel.isPending || unsaveReel.isPending }}
+                testID="button-save-reel"
+                disabled={saveReel.isPending || unsaveReel.isPending}
+                onPress={() => void toggleSave()}
+                style={styles.actionButton}
+              >
+                <ReelActionIcon name="save" filled={reelQuery.data.savedByMe} />
+                <Text style={styles.actionCount}>{formatReelCount(reelQuery.data.saveCount)}</Text>
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
                 accessibilityLabel={`Share Reel, ${reelQuery.data.shareCount} shares`}
                 testID="button-share-reel"
                 onPress={() => {
@@ -449,18 +474,6 @@ export default function ProfileReelScreen() {
               >
                 <ReelActionIcon name="share" />
                 <Text style={styles.actionCount}>{formatReelCount(reelQuery.data.shareCount)}</Text>
-              </Pressable>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={`${reelQuery.data.savedByMe ? "Remove from saved" : "Save"}, ${reelQuery.data.saveCount}`}
-                accessibilityState={{ selected: reelQuery.data.savedByMe, disabled: saveReel.isPending || unsaveReel.isPending }}
-                testID="button-save-reel"
-                disabled={saveReel.isPending || unsaveReel.isPending}
-                onPress={() => void toggleSave()}
-                style={styles.actionButton}
-              >
-                <ReelActionIcon name="save" filled={reelQuery.data.savedByMe} />
-                <Text style={styles.actionCount}>{formatReelCount(reelQuery.data.saveCount)}</Text>
               </Pressable>
             </View>
           ) : null}
@@ -696,9 +709,9 @@ const styles = StyleSheet.create({
   back: { width: 42, height: 42, alignItems: "center", justifyContent: "center" },
   headerTitle: { fontSize: 19, fontWeight: "800" },
   videoStage: { flex: 1, minHeight: 200, overflow: "hidden", backgroundColor: "#000", alignItems: "center", justifyContent: "center" },
-  actionRail: { position: "absolute", right: 12, bottom: 96, alignItems: "center", gap: 20 },
-  actionButton: { minWidth: 44, minHeight: 44, alignItems: "center", justifyContent: "flex-start", gap: 4 },
-  actionCount: { color: "#fff", fontSize: 12, fontWeight: "600", textShadowColor: "#000", textShadowRadius: 5 },
+  actionRail: { position: "absolute", right: 12, bottom: 24, alignItems: "center", gap: 20 },
+  actionButton: { minWidth: 44, minHeight: 54, alignItems: "center", justifyContent: "flex-start", gap: 4 },
+  actionCount: { color: "#fff", fontSize: 14, fontWeight: "700", textShadowColor: "#000", textShadowRadius: 5 },
   caption: { paddingHorizontal: 16, paddingVertical: 14, gap: 8 },
   creatorRow: { flexDirection: "row", alignItems: "center", gap: 10 },
   creatorAvatarRing: { width: 42, height: 42, alignItems: "center", justifyContent: "center", borderRadius: 21, padding: 2 },

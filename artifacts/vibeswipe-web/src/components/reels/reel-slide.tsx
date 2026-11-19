@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type TouchEvent as ReactTouchEvent } from "react";
 import { Link } from "wouter";
 import type { Reel } from "@workspace/api-client-react";
-import { Bookmark, ChevronRight, Heart, MapPin, MessageCircle, Music2, Pause, Play, Search, Send, Volume2, VolumeX } from "lucide-react";
+import { Bookmark, ChevronRight, Heart, MapPin, Music2, Pause, Play, Search, Volume2, VolumeX } from "lucide-react";
 import { VerifiedBadge } from "@/components/verified-badge";
 import { ReelAvatar } from "@/components/reels/reel-avatar";
 import { formatCount, reelMediaUrl } from "@/lib/reels";
@@ -22,16 +22,18 @@ type Props = {
 
 type ReelIconName = "like" | "comment" | "share" | "save";
 
-function ReelActionIcon({ name, filled = false }: { name: ReelIconName; filled?: boolean }) {
-  const icons = { like: Heart, comment: MessageCircle, share: Send, save: Bookmark };
-  const Icon = icons[name];
-  return <Icon
-    size={28}
-    className="text-white drop-shadow-lg"
-    strokeWidth={2}
-    fill={filled ? "currentColor" : "none"}
-    aria-hidden="true"
-  />;
+function ReelActionIcon({ name }: { name: ReelIconName }) {
+  if (name === "comment") return <svg width="36" height="36" viewBox="0 0 24 24" className="drop-shadow-lg" aria-hidden="true">
+    <path d="M12 2.8c-5.15 0-9.3 3.7-9.3 8.25 0 2.3 1.1 4.43 3.04 5.96L5 21l4.42-2.12c.82.23 1.68.35 2.58.35 5.15 0 9.3-3.7 9.3-8.25S17.15 2.8 12 2.8Z" fill="currentColor" />
+    <circle cx="8.2" cy="11.1" r="1.15" fill="#101014" />
+    <circle cx="12" cy="11.1" r="1.15" fill="#101014" />
+    <circle cx="15.8" cy="11.1" r="1.15" fill="#101014" />
+  </svg>;
+  if (name === "share") return <svg width="36" height="36" viewBox="0 0 24 24" className="drop-shadow-lg" aria-hidden="true">
+    <path d="M15.2 3.4a1.05 1.05 0 0 1 1.78-.74l5.2 5.2a1.05 1.05 0 0 1 0 1.48l-5.2 5.2a1.05 1.05 0 0 1-1.78-.74v-2.1c-4.45.08-7.8 1.93-10.3 5.73.3-6.9 3.76-10.52 10.3-11.16V3.4Z" fill="currentColor" />
+  </svg>;
+  const Icon = name === "like" ? Heart : Bookmark;
+  return <Icon size={36} className="drop-shadow-lg" strokeWidth={2} fill="currentColor" aria-hidden="true" />;
 }
 
 export function ReelSlide({ reel, index, active, near, muted, pageHidden, compact, navigationVisible, returnTo, likePending, savePending, onAutoplayMuted, onToggleSound, onLike, onComment, onShare, onSave, onSearchSuggestion, onView, offlineSaved, onAutoCache }: Props) {
@@ -298,15 +300,15 @@ export function ReelSlide({ reel, index, active, near, muted, pageHidden, compac
 
     <div className={`reel-rail ${compact ? "is-compact" : ""} ${navigationVisible ? "is-nav-visible" : ""} ${searchSuggestion && !compact ? "has-search" : ""}`}>
       <button type="button" className={`reel-action-button ${reel.likedByMe ? "is-on" : ""}`} onClick={onLike} disabled={likePending} aria-pressed={reel.likedByMe} aria-label={reel.likedByMe ? "Unlike" : "Like"} data-testid={`button-like-reel-${reel.id}`}>
-        <ReelActionIcon name="like" filled={reel.likedByMe} /><span data-testid={`text-like-count-${reel.id}`}>{formatCount(reel.likeCount)}</span>
+        <ReelActionIcon name="like" /><span data-testid={`text-like-count-${reel.id}`}>{formatCount(reel.likeCount)}</span>
       </button>
       <button type="button" className="reel-action-button" onClick={onComment} aria-label="Comments" data-testid={`button-comments-reel-${reel.id}`}>
         <ReelActionIcon name="comment" /><span data-testid={`text-comment-count-${reel.id}`}>{formatCount(reel.commentCount)}</span>
       </button>
-      <button type="button" className="reel-action-button" onClick={onShare} aria-label={`Share, ${formatCount(reel.shareCount)} shares`} data-testid={`button-share-reel-${reel.id}`}><ReelActionIcon name="share" /><span data-testid={`text-share-count-${reel.id}`}>{formatCount(reel.shareCount)}</span></button>
       <button type="button" className={`reel-action-button ${reel.savedByMe ? "is-saved" : ""}`} onClick={onSave} disabled={savePending} aria-pressed={reel.savedByMe} aria-label={reel.savedByMe ? "Remove from Saved Reels" : "Save Reel"} data-testid={`button-save-reel-${reel.id}`}>
-        <ReelActionIcon name="save" filled={reel.savedByMe} /><span data-testid={`text-save-count-${reel.id}`}>{formatCount(reel.saveCount)}</span>
+        <ReelActionIcon name="save" /><span data-testid={`text-save-count-${reel.id}`}>{formatCount(reel.saveCount)}</span>
       </button>
+      <button type="button" className="reel-action-button" onClick={onShare} aria-label={`Share, ${formatCount(reel.shareCount)} shares`} data-testid={`button-share-reel-${reel.id}`}><ReelActionIcon name="share" /><span data-testid={`text-share-count-${reel.id}`}>{formatCount(reel.shareCount)}</span></button>
     </div>
 
     <div className={`reel-meta ${searchSuggestion && !compact ? "has-search" : ""} ${compact ? "is-compact" : ""} ${navigationVisible ? "is-nav-visible" : ""}`}>

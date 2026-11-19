@@ -28,15 +28,14 @@
 .reel-flash { position: absolute; left: 50%; top: 50%; z-index: 3; display: flex; height: 76px; width: 76px; align-items: center; justify-content: center; border-radius: 999px; background: rgb(0 0 0 / .45); transform: translate(-50%, -50%); animation: reel-flash .52s ease-out forwards; pointer-events: none; }
 @keyframes reel-flash { from { opacity: 1; transform: translate(-50%, -50%) scale(.8); } to { opacity: 0; transform: translate(-50%, -50%) scale(1.15); } }
 .reel-blocked { position: absolute; left: 50%; top: 50%; z-index: 4; display: flex; max-width: 80%; flex-direction: column; align-items: center; gap: 10px; border-radius: 22px; background: rgb(12 10 15 / .78); padding: 16px 20px; text-align: center; font-size: 14px; font-weight: 600; transform: translate(-50%, -50%); backdrop-filter: blur(10px); }
-.reel-rail { position: absolute; right: 12px; bottom: 96px; z-index: 2; display: flex; flex-direction: column; align-items: center; gap: 20px; }
-.reel-rail.is-nav-visible, .reel-rail.is-compact { bottom: 96px; }
-.reel-rail.has-search { bottom: 150px; }
-.reel-rail.has-search.is-nav-visible { bottom: 150px; }
+.reel-rail { position: absolute; right: 12px; bottom: 24px; z-index: 2; display: flex; flex-direction: column; align-items: center; gap: 20px; }
+.reel-rail.is-nav-visible, .reel-rail.is-compact, .reel-rail.has-search, .reel-rail.has-search.is-nav-visible { bottom: 24px; }
 .reel-action-button { display: flex; flex: none; flex-direction: column; align-items: center; justify-content: flex-start; gap: 4px; color: #fff; font-size: 12px; font-weight: 600; line-height: 1; white-space: nowrap; text-shadow: 0 1px 5px rgb(0 0 0 / .9); -webkit-tap-highlight-color: transparent; transition: transform .18s cubic-bezier(.2,.8,.2,1),opacity .18s ease; }
 .reel-action-button:active { transform: scale(.9); }
 .reel-action-button:disabled { opacity: .68; }
-.reel-action-button > svg { display:block; width:28px; height:28px; flex:none; filter:drop-shadow(0 1px 5px rgb(0 0 0 / .82)); }
-.reel-action-button > span { text-align: center; font-size: 12px; font-weight: 600; text-shadow: 0 1px 5px rgb(0 0 0 / .82); }
+.reel-action-button > svg { display:block; width:36px; height:36px; flex:none; filter:drop-shadow(0 1px 5px rgb(0 0 0 / .82)); }
+.reel-action-button.is-on, .reel-action-button.is-saved { color: var(--reels-accent); }
+.reel-action-button > span { color:#fff; text-align: center; font-size: 14px; font-weight: 700; text-shadow: 0 1px 5px rgb(0 0 0 / .82); }
 .reel-meta { position: absolute; left: 18px; right: 100px; bottom: calc(env(safe-area-inset-bottom) + 22px); z-index: 2; display: flex; flex-direction: column; align-items: flex-start; transition: bottom .22s ease; }
 .reel-meta.is-nav-visible { bottom: 22px; }
 .reel-meta.has-search { bottom: calc(env(safe-area-inset-bottom) + 66px); }
@@ -61,7 +60,7 @@
 .reel-progress::-webkit-slider-thumb { appearance: none; -webkit-appearance: none; width: 12px; height: 12px; margin-top: -4.5px; border: 0; border-radius: 50%; background: #fff; box-shadow: 0 1px 4px rgb(0 0 0 / .35); }
 .reel-progress::-moz-range-thumb { width: 12px; height: 12px; border: 0; border-radius: 50%; background: #fff; box-shadow: 0 1px 4px rgb(0 0 0 / .35); }
 .reel-progress:focus-visible { outline: 2px solid var(--reels-accent); outline-offset: 2px; }
-.reel-search-suggestion { position: absolute; left: 0; right: 0; bottom: 22px; z-index: 3; display: flex; min-height: 38px; align-items: center; gap: 9px; overflow: hidden; border-top: 1px solid rgb(255 255 255 / .12); border-bottom: 1px solid rgb(255 255 255 / .12); background: rgb(12 10 15 / .82); padding: 0 17px; color: #fff; text-align: left; text-shadow: 0 1px 3px rgb(0 0 0 / .5); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); -webkit-tap-highlight-color: transparent; }
+.reel-search-suggestion { position: absolute; left: 0; right: 56px; bottom: 22px; z-index: 3; display: flex; min-height: 38px; align-items: center; gap: 9px; overflow: hidden; border-top: 1px solid rgb(255 255 255 / .12); border-bottom: 1px solid rgb(255 255 255 / .12); background: rgb(12 10 15 / .82); padding: 0 17px; color: #fff; text-align: left; text-shadow: 0 1px 3px rgb(0 0 0 / .5); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); -webkit-tap-highlight-color: transparent; }
 .reel-search-suggestion > span { min-width: 0; flex: 1; overflow: hidden; font-size: 13px; font-weight: 650; text-overflow: ellipsis; white-space: nowrap; }
 .reel-search-suggestion > svg:first-child { flex: none; }
 .reel-search-suggestion > svg:last-child { flex: none; opacity: .85; }
@@ -183,7 +182,7 @@
   .reel-name { font-size: 16px; }
   .reel-creator-avatar-ring { width: 56px; height: 56px; }
   .reel-creator-avatar-ring .reel-avatar { width: 48px !important; height: 48px !important; }
-  .reel-rail { right: 7px; }
+  .reel-rail { right: 12px; }
 }
 @media (min-width: 701px) {
   .reels-root { left: 50%; width: min(480px, calc(100dvh * 9 / 16)); transform: translateX(-50%); box-shadow: 0 0 0 100vmax #070609; }

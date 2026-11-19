@@ -134,6 +134,29 @@ test("Reels request sound and keep an accessible sound control", () => {
   assert.match(slide, /data-testid=\{`button-toggle-reel-playback-/);
 });
 
+test("Reels action rail places Save above Share on web and mobile", () => {
+  const web = source("artifacts/vibeswipe-web/src/components/reels/reel-slide.tsx");
+  const styles = source("artifacts/vibeswipe-web/src/components/reels/reels.css");
+  const native = source("artifacts/vibeswipe/app/reels/[reelId].tsx");
+  const webStart = web.indexOf('className={`reel-rail');
+  const webEnd = web.indexOf("</div>", webStart);
+  const nativeStart = native.indexOf("style={styles.actionRail}");
+  const nativeEnd = native.indexOf("</View>", nativeStart);
+  assert.ok(webStart >= 0 && webEnd > webStart);
+  assert.ok(nativeStart >= 0 && nativeEnd > nativeStart);
+  for (const rail of [web.slice(webStart, webEnd), native.slice(nativeStart, nativeEnd)]) {
+    const save = rail.indexOf('ReelActionIcon name="save"');
+    const share = rail.indexOf('ReelActionIcon name="share"');
+    assert.ok(save >= 0 && share > save, "Save must appear before Share in the action rail");
+  }
+  assert.match(web, /if \(name === "share"\) return <svg width="36" height="36"/);
+  assert.match(web, /<Icon size=\{36\} className="drop-shadow-lg" strokeWidth=\{2\} fill="currentColor"/);
+  assert.match(styles, /\.reel-rail \{[^}]*bottom: 24px/);
+  assert.match(styles, /\.reel-action-button > svg \{[^}]*width:36px; height:36px/);
+  assert.match(styles, /\.reel-search-suggestion \{[^}]*right: 56px/);
+  assert.match(native, /actionRail: \{[^}]*bottom: 24/);
+});
+
 test("Reel comments stay open with playback controls and can be swiped down", () => {
   const feed = source("artifacts/vibeswipe-web/src/pages/reels-feed.tsx");
   const slide = source("artifacts/vibeswipe-web/src/components/reels/reel-slide.tsx");
