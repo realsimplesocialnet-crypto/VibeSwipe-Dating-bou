@@ -153,6 +153,7 @@ type UploadOptions = {
   wait?: (milliseconds: number) => Promise<void>;
   onAttempt?: (attempt: number) => void;
   timeoutMs?: number;
+  signal?: AbortSignal;
 };
 
 /** Repeating a PUT to the same signed object is safe; do not create extra assets. */
@@ -160,8 +161,11 @@ export async function uploadProfilePhotoBytes(url: string, file: Blob, options: 
   const fetcher = options.fetcher ?? fetch;
   const wait = options.wait ?? (ms => new Promise(resolve => setTimeout(resolve, ms)));
   for (let attempt = 1; attempt <= 3; attempt++) {
+    if (options.signal?.aborted) throw new PhotoUploadError('PHOTO_CANCELLED', 'Photo upload cancelled.');
     options.onAttempt?.(attempt);
     const controller = new AbortController();
+    const abortUpload = () => controller.abort();
+    options.signal?.addEventListener('abort', abortUpload, { once: true });
     const timer = setTimeout(() => controller.abort(), options.timeoutMs ?? 45_000);
     let retry = true;
     let failure: PhotoUploadError;
@@ -173,12 +177,16 @@ export async function uploadProfilePhotoBytes(url: string, file: Blob, options: 
         ? new PhotoUploadError('PHOTO_PERMISSION', 'The photo upload link was rejected or expired. Retry the upload to get a new link.', response.status)
         : new PhotoUploadError('PHOTO_STORAGE', 'The photo service couldn’t accept your upload. Retry the upload or choose another picture.', response.status);
     } catch {
-      failure = controller.signal.aborted
-        ? new PhotoUploadError('PHOTO_TIMEOUT', 'Your photo upload timed out. Check your connection, then retry the upload.')
-        : new PhotoUploadError('PHOTO_NETWORK', 'Your browser couldn’t reach photo storage. Check your connection, then retry the upload. Your form is still here.');
+      failure = options.signal?.aborted
+        ? new PhotoUploadError('PHOTO_CANCELLED', 'Photo upload cancelled.')
+        : controller.signal.aborted
+          ? new PhotoUploadError('PHOTO_TIMEOUT', 'Your photo upload timed out. Check your connection, then retry the upload.')
+          : new PhotoUploadError('PHOTO_NETWORK', 'Your browser couldn’t reach photo storage. Check your connection, then retry the upload. Your form is still here.');
     } finally {
       clearTimeout(timer);
+      options.signal?.removeEventListener('abort', abortUpload);
     }
+    if (options.signal?.aborted) throw failure;
     if (!retry || attempt === 3) throw failure;
     await wait(attempt * 800);
   }

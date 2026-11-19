@@ -88,6 +88,22 @@ test('network failures retry only three times and give a useful message', async 
   assert.equal(calls, 3);
 });
 
+test('photo upload cancellation stops retrying so signup can leave the photo step', async () => {
+  const controller = new AbortController();
+  let calls = 0;
+  await assert.rejects(uploadProfilePhotoBytes('https://example.com/object', new Blob(['picture']), {
+    signal: controller.signal,
+    wait: async () => {},
+    fetcher: async (_url, init) => {
+      calls++;
+      controller.abort();
+      assert.equal(init.signal.aborted, true);
+      throw new DOMException('Aborted', 'AbortError');
+    },
+  }), error => error.code === 'PHOTO_CANCELLED');
+  assert.equal(calls, 1);
+});
+
 test('public errors explain recovery without exposing internal API responses', () => {
   assert.match(userErrorMessage({ status: 401 }, 'Fallback'), /Sign in again/);
   assert.match(userErrorMessage({ status: 429 }, 'Fallback'), /Wait a moment/);

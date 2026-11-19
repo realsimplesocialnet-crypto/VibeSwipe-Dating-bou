@@ -9,11 +9,13 @@ import {
 import { HobbyMultiSelect, OccupationSelect } from "@/components/ProfileChoiceFields";
 import { Country } from "country-state-city";
 import { Feather } from "@expo/vector-icons";
+import { useAuth } from "@clerk/expo";
 import { useQueryClient } from "@tanstack/react-query";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  BackHandler,
   Platform,
   Pressable,
   ScrollView,
@@ -57,6 +59,7 @@ const COUNTRIES = Country.getAllCountries().sort((a, b) =>
 
 export function OnboardingWizard() {
   const colors = useColors();
+  const { signOut } = useAuth();
   const { ref } = useLocalSearchParams<{ ref?: string | string[] }>();
   const referralFromUrl = (Array.isArray(ref) ? ref[0] : ref ?? "")
     .replace(/[^a-z0-9]/gi, "")
@@ -75,8 +78,10 @@ export function OnboardingWizard() {
   const [locationStatus, setLocationStatus] = useState<"failed" | "saving" | "done">("done");
   const [locationError, setLocationError] = useState("");
   const [error, setError] = useState("");
+  const [switchingToSignIn, setSwitchingToSignIn] = useState(false);
   const [hydrated, setHydrated] = useState(false);
   const completionInFlight = useRef(false);
+  const signingOut = useRef(false);
   const lastSavedKey = useRef("");
   const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -156,6 +161,23 @@ export function OnboardingWizard() {
     setError("");
   }
 
+  async function logInInstead() {
+    if (signingOut.current) return;
+    signingOut.current = true;
+    setSwitchingToSignIn(true);
+    setError("");
+    try {
+      if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
+      await signOut();
+      queryClient.clear();
+      router.replace("/(auth)/sign-in");
+    } catch {
+      signingOut.current = false;
+      setSwitchingToSignIn(false);
+      setError("Could not open sign in. Please try again.");
+    }
+  }
+
   async function persistDraft(nextScreen: number) {
     const draft = await saveDraft.mutateAsync({
       data: {
@@ -190,17 +212,22 @@ export function OnboardingWizard() {
     }
   }
 
-  async function previous() {
+  function previous() {
     if (step <= 0) return;
-    try {
-      if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
-      await persistDraft(step + 1);
-      setStep((current) => current - 1);
-      setError("");
-    } catch {
-      setError("Your progress could not be saved. Please try again.");
-    }
+    if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
+    setStep((current) => current - 1);
+    setError("");
   }
+
+  useEffect(() => {
+    if (Platform.OS !== "android") return;
+    const subscription = BackHandler.addEventListener("hardwareBackPress", () => {
+      if (step > 0) previous();
+      else void logInInstead();
+      return true;
+    });
+    return () => subscription.remove();
+  }, [step]);
 
   async function complete() {
     try {
@@ -218,8 +245,8 @@ export function OnboardingWizard() {
     }
   }
 
-  const isSaving =
-    saveProfile.isPending || saveDraft.isPending || clearDraft.isPending;
+  const isSaving = saveProfile.isPending || clearDraft.isPending;
+  const isDraftSaving = saveDraft.isPending;
   const filteredCountries = COUNTRIES.filter((country) =>
     country.name.toLowerCase().includes(search.trim().toLowerCase()),
   ).slice(0, search.trim() ? 100 : 35);
@@ -248,7 +275,19 @@ export function OnboardingWizard() {
     >
       <View style={styles.header}>
         <Text style={[styles.eyebrow, { color: colors.primary }]}>CREATE YOUR PROFILE</Text>
-        <Text style={[styles.stepCount, { color: colors.mutedForeground }]}>STEP {step + 1} OF {STEP_COUNT}</Text>
+        <View style={styles.headerActions}>
+          <Text style={[styles.stepCount, { color: colors.mutedForeground }]}>STEP {step + 1} OF {STEP_COUNT}</Text>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Leave profile setup and log in"
+            testID="onboarding-sign-in"
+            disabled={switchingToSignIn}
+            onPress={() => void logInInstead()}
+            style={styles.signInButton}
+          >
+            <Text style={[styles.signInText, { color: colors.primary }]}>Log in</Text>
+          </Pressable>
+        </View>
       </View>
       <View style={[styles.progressTrack, { backgroundColor: colors.border }]}>
         <View style={[styles.progressFill, { width: `${((step + 1) / STEP_COUNT) * 100}%`, backgroundColor: colors.primary }]} />
@@ -463,7 +502,7 @@ export function OnboardingWizard() {
         ) : <View style={styles.backPlaceholder} />}
         <Pressable
           testID={step === STEP_COUNT - 1 ? "complete-onboarding" : "profile-step-continue"}
-          disabled={isSaving}
+          disabled={isSaving || isDraftSaving}
           onPress={() => void next()}
           style={[styles.nextButton, { backgroundColor: colors.primary, opacity: isSaving ? 0.65 : 1 }]}
         >
@@ -551,6 +590,9 @@ const styles = StyleSheet.create({
   screen: { flex: 1 },
   container: { flexGrow: 1, paddingHorizontal: 22 },
   header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  headerActions: { flexDirection: "row", alignItems: "center", gap: 10 },
+  signInButton: { minHeight: 40, justifyContent: "center", paddingHorizontal: 8 },
+  signInText: { fontSize: 13, fontWeight: "800" },
   eyebrow: { fontSize: 10, fontWeight: "800", letterSpacing: 1.5 },
   stepCount: { fontSize: 10, fontWeight: "700", letterSpacing: 0.7 },
   progressTrack: { height: 4, borderRadius: 3, overflow: "hidden", marginTop: 13 },

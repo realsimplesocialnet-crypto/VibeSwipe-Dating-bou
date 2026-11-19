@@ -510,6 +510,7 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
                onLike={() => void toggle("like", reel)}
                 onSave={() => void toggle("save", reel)}
                 onSearchSuggestion={openSearch}
+               onNavigateFeed={go}
             onView={() => void recordPlayback(reel)}
               onComment={() => openComments(reel.id)} onShare={() => setShareFor(reel)}
           />)}

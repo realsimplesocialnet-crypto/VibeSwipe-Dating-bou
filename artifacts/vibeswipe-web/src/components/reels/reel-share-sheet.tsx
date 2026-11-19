@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   getGetMatchesQueryKey, getGetMyReelsQueryKey, getGetProfileReelsQueryKey, getGetReelQueryKey,
@@ -66,7 +67,7 @@ export function ReelShareSheet({ reel, onClose, onCountChange, onCountError }: {
     } finally { if (!sent) setPending(null); }
   }
 
-  return <div className="reel-sheet-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+  return createPortal(<div className="reel-sheet-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
     <section className="reel-sheet" role="dialog" aria-modal="true" aria-label="Share Reel" data-testid="sheet-share-reel">
       <header className="reel-share-heading">
         <h2 className="text-base font-bold">Send to</h2>
@@ -101,5 +102,5 @@ export function ReelShareSheet({ reel, onClose, onCountChange, onCountError }: {
         </button>
       </div>
     </section>
-  </div>;
+  </div>, document.body);
 }

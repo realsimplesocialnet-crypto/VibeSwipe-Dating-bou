@@ -69,6 +69,18 @@ The public Reels feed should mix videos older than seven days with recent videos
 
 **How to apply:** Mix the older and recent streams in the public and Friends feeds with independent cursors so pagination does not skip or repeat videos. Keep search and profile Reels in their existing order.
 
+Photo-slide swipes must stay on the current Reel unless the viewer deliberately swipes vertically. Lock horizontal gestures to the image carousel; only a clear vertical swipe advances the feed.
+
+**Why:** The user reported that sideways photo swipes were unintentionally advancing to other Reels.
+
+**How to apply:** Use directional gesture locking and a deliberate threshold for vertical navigation so small diagonal movement never moves the feed.
+
+The “Send to” share sheet must keep both matched recipients and copy/share destinations visible above the app navigation.
+
+**Why:** The user showed the share panel with a recipient and a large empty area while the app navigation covered its sharing options.
+
+**How to apply:** Let the sheet overlay the full viewport and scroll if needed; do not clip it to the Reels stage or place the app navigation above it.
+
 Reels navigation, action icons, labels, and counts should use bold, high-contrast styling with a polished, professional appearance.
 
 **Why:** The user asked for sharper, bolder Reels controls and text that remain easy to see on a phone.

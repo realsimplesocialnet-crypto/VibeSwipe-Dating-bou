@@ -32,3 +32,9 @@ Ask for email and verify its code at the end rather than starting with email/pas
 **Why:** The user explicitly said the website, installed app, and Home Screen app must show “the same thing,” and that users “must put a picture” because it appears on their profile.
 
 **How to apply:** Maintain one shared web/PWA signup implementation, not platform-specific forms. If authentication policy prevents code-only signup, report the blocker honestly rather than adding hidden passwords or pretending signup completed.
+
+After authentication, keep a direct “Log in instead” action available throughout profile setup. Back must remain usable during photo upload or draft autosave; it moves to the prior setup step, while the login action safely signs out and opens the sign-in screen without clearing the saved draft.
+
+**Why:** The user reported that someone was trapped on the required photo step and could not return to sign in with an account they had already created on another phone.
+
+**How to apply:** Keep these exits available in web/PWA and native onboarding. Android hardware Back returns one setup step, and at the first step it opens sign-in. Never make photo upload or routine draft saving block leaving setup.

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type TouchEvent as ReactTouchEvent } from "react";
 import { Link } from "wouter";
 import type { Reel } from "@workspace/api-client-react";
-import { Bookmark, ChevronRight, Forward, Heart, MapPin, Music2, Pause, Play, Search, Volume2, VolumeX } from "lucide-react";
+import { ChevronRight, MapPin, Music2, Pause, Play, Search, Volume2, VolumeX } from "lucide-react";
 import { VerifiedBadge } from "@/components/verified-badge";
 import { ReelAvatar } from "@/components/reels/reel-avatar";
 import { formatCount, reelMediaUrl } from "@/lib/reels";
@@ -18,23 +18,34 @@ type Props = {
   onSearchSuggestion: (query: string) => void;
   onView: () => void;
   offlineSaved: boolean; onAutoCache: () => void;
+  onNavigateFeed: (direction: number) => void;
 };
 
 type ReelIconName = "like" | "comment" | "share" | "save";
 
-function ReelActionIcon({ name }: { name: ReelIconName }) {
-  if (name === "comment") return <svg width="36" height="36" viewBox="0 0 24 24" className="drop-shadow-lg" aria-hidden="true">
-    <path d="M12 2.8c-5.15 0-9.3 3.7-9.3 8.25 0 2.3 1.1 4.43 3.04 5.96L5 21l4.42-2.12c.82.23 1.68.35 2.58.35 5.15 0 9.3-3.7 9.3-8.25S17.15 2.8 12 2.8Z" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
-    <circle cx="8.2" cy="11.1" r="1.05" fill="#f34e9a" />
-    <circle cx="12" cy="11.1" r="1.05" fill="#f34e9a" />
-    <circle cx="15.8" cy="11.1" r="1.05" fill="#f34e9a" />
+function ReelActionIcon({ name, active = false }: { name: ReelIconName; active?: boolean }) {
+  const pink = "#f34e9a";
+  if (name === "like") return <svg width="36" height="36" viewBox="0 0 24 24" className="drop-shadow-lg" aria-hidden="true">
+    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78Z" fill={active ? pink : "#fff"} stroke={active ? "#fff" : pink} strokeWidth="1.35" strokeLinejoin="round" />
   </svg>;
-  if (name === "share") return <Forward size={36} className="drop-shadow-lg" strokeWidth={2} aria-hidden="true" />;
-  const Icon = name === "like" ? Heart : Bookmark;
-  return <Icon size={36} className="drop-shadow-lg" strokeWidth={2} fill="none" aria-hidden="true" />;
+  if (name === "comment") return <svg width="36" height="36" viewBox="0 0 24 24" className="drop-shadow-lg" aria-hidden="true">
+    <path d="M12 2.8c-5.15 0-9.3 3.7-9.3 8.25 0 2.3 1.1 4.43 3.04 5.96L5 21l4.42-2.12c.82.23 1.68.35 2.58.35 5.15 0 9.3-3.7 9.3-8.25S17.15 2.8 12 2.8Z" fill="none" stroke="#fff" strokeWidth="1.8" strokeLinejoin="round" />
+    <path d="M5.15 17.12 5 21l4.42-2.12" fill="none" stroke={pink} strokeWidth="1.8" strokeLinejoin="round" />
+    <circle cx="8.2" cy="11.1" r="1.05" fill={pink} />
+    <circle cx="12" cy="11.1" r="1.05" fill={pink} />
+    <circle cx="15.8" cy="11.1" r="1.05" fill={pink} />
+  </svg>;
+  if (name === "share") return <svg width="36" height="36" viewBox="0 0 24 24" className="drop-shadow-lg" aria-hidden="true">
+    <path d="M15.2 4.1 21 9.8l-5.8 5.8v-3.7c-5.8 0-9.3 1.7-11.5 6.4.4-7.2 4.5-11 11.5-11V4.1Z" fill="none" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M15.2 8.3v3.6" fill="none" stroke={pink} strokeWidth="1.8" strokeLinecap="round" />
+  </svg>;
+  return <svg width="36" height="36" viewBox="0 0 24 24" className="drop-shadow-lg" aria-hidden="true">
+    <path d="M6 3.75h12v17l-6-4-6 4v-17Z" fill={active ? pink : "none"} stroke="#fff" strokeWidth="1.8" strokeLinejoin="round" />
+    <path d="M9 13.4h6" fill="none" stroke={active ? "#fff" : pink} strokeWidth="1.6" strokeLinecap="round" />
+  </svg>;
 }
 
-export function ReelSlide({ reel, index, active, near, muted, pageHidden, compact, navigationVisible, returnTo, likePending, savePending, onAutoplayMuted, onToggleSound, onLike, onComment, onShare, onSave, onSearchSuggestion, onView, offlineSaved, onAutoCache }: Props) {
+export function ReelSlide({ reel, index, active, near, muted, pageHidden, compact, navigationVisible, returnTo, likePending, savePending, onAutoplayMuted, onToggleSound, onLike, onComment, onShare, onSave, onSearchSuggestion, onView, offlineSaved, onAutoCache, onNavigateFeed }: Props) {
   const video = useRef<HTMLVideoElement>(null);
   const soundtrackAudio = useRef<HTMLAudioElement>(null);
   const autoCacheRequested = useRef(false);
@@ -211,16 +222,21 @@ export function ReelSlide({ reel, index, active, near, muted, pageHidden, compac
     if (!slideshow || !start || !touch) return;
     const dx = touch.clientX - start.x;
     const dy = touch.clientY - start.y;
-    if (start.axis === "undecided" && Math.max(Math.abs(dx), Math.abs(dy)) > 8) {
-      start.axis = Math.abs(dx) > Math.abs(dy) ? "horizontal" : "vertical";
+    const absX = Math.abs(dx);
+    const absY = Math.abs(dy);
+    if (start.axis === "undecided" && Math.max(absX, absY) > 12) {
+      if (absX >= absY * 1.2) start.axis = "horizontal";
+      else if (absY > 28 && absY >= absX * 1.4) start.axis = "vertical";
       if (start.axis === "horizontal") {
         setDraggingSlide(true);
         skipNextTap.current = true;
       }
+      if (start.axis === "vertical") skipNextTap.current = true;
     }
-    if (start.axis !== "horizontal") return;
-    event.preventDefault();
-    setSlideDragOffset(dx);
+    if (start.axis === "horizontal") {
+      event.preventDefault();
+      setSlideDragOffset(dx);
+    }
   }
 
   function finishMediaTouch(event: ReactTouchEvent<HTMLButtonElement>) {
@@ -230,20 +246,30 @@ export function ReelSlide({ reel, index, active, near, muted, pageHidden, compac
     if (!slideshow || !start || !touch) return;
     const dx = touch.clientX - start.x;
     const dy = touch.clientY - start.y;
-    const horizontalSwipe = start.axis === "horizontal" || (Math.abs(dx) > 24 && Math.abs(dx) > Math.abs(dy));
-    if (!horizontalSwipe) {
+    const absX = Math.abs(dx);
+    const absY = Math.abs(dy);
+    const horizontalSwipe = start.axis === "horizontal" || (absX > 24 && absX >= absY * 1.2);
+    const verticalSwipe = start.axis === "vertical" || (absY > 24 && absY >= absX * 1.2);
+    if (horizontalSwipe) {
+      event.preventDefault();
+      const threshold = Math.max(28, Math.min(72, window.innerWidth * 0.14));
+      const direction = absX >= threshold ? (dx < 0 ? 1 : -1) : 0;
+      skipNextTap.current = true;
+      if (direction) setSlideIndex((current) => Math.max(0, Math.min(slideCount - 1, current + direction)));
       setSlideDragOffset(0);
       setDraggingSlide(false);
+      window.setTimeout(() => { skipNextTap.current = false; }, 350);
       return;
     }
-    event.preventDefault();
-    const threshold = Math.max(28, Math.min(72, window.innerWidth * 0.14));
-    const direction = Math.abs(dx) >= threshold ? (dx < 0 ? 1 : -1) : 0;
-    skipNextTap.current = true;
-    if (direction) setSlideIndex((current) => Math.max(0, Math.min(slideCount - 1, current + direction)));
+    if (verticalSwipe) {
+      const threshold = Math.max(56, Math.min(96, window.innerHeight * 0.09));
+      const direction = absY >= threshold ? (dy < 0 ? 1 : -1) : 0;
+      skipNextTap.current = true;
+      if (direction) onNavigateFeed(direction);
+      window.setTimeout(() => { skipNextTap.current = false; }, 350);
+    }
     setSlideDragOffset(0);
     setDraggingSlide(false);
-    window.setTimeout(() => { skipNextTap.current = false; }, 350);
   }
 
   function cancelMediaTouch() {
@@ -274,7 +300,7 @@ export function ReelSlide({ reel, index, active, near, muted, pageHidden, compac
   const src = reelMediaUrl(reel.videoReference);
   const paused = userPaused || blocked;
   const tapLabel = slideshow
-    ? `Photo slideshow, ${slideIndex + 1} of ${slideCount}. Swipe left or right to browse.${reel.soundtrack ? ` Tap to ${muted ? "play" : "mute"} the soundtrack.` : ""}`
+    ? `Photo slideshow, ${slideIndex + 1} of ${slideCount}. Swipe left or right to browse; swipe up for the next Reel or down for the previous Reel.${reel.soundtrack ? ` Tap to ${muted ? "play" : "mute"} the soundtrack.` : ""}`
     : `${userPaused || blocked ? "Play" : "Pause"} Reel. Double-tap to ${muted ? "turn sound on" : "mute"}.`;
   const reelReturnParams = new URLSearchParams({ returnTo });
   const creatorProfileReturn = `/reels/${encodeURIComponent(reel.id)}?${reelReturnParams.toString()}`;
@@ -355,13 +381,13 @@ export function ReelSlide({ reel, index, active, near, muted, pageHidden, compac
 
     <div className={`reel-rail ${compact ? "is-compact" : ""} ${navigationVisible ? "is-nav-visible" : ""} ${searchSuggestion && !compact ? "has-search" : ""}`}>
       <button type="button" className={`reel-action-button ${reel.likedByMe ? "is-on" : ""}`} onClick={onLike} disabled={likePending} aria-pressed={reel.likedByMe} aria-label={reel.likedByMe ? "Unlike" : "Like"} data-testid={`button-like-reel-${reel.id}`}>
-        <ReelActionIcon name="like" /><span data-testid={`text-like-count-${reel.id}`}>{formatCount(reel.likeCount)}</span>
+        <ReelActionIcon name="like" active={reel.likedByMe} /><span data-testid={`text-like-count-${reel.id}`}>{formatCount(reel.likeCount)}</span>
       </button>
       <button type="button" className="reel-action-button" onClick={onComment} aria-label="Comments" data-testid={`button-comments-reel-${reel.id}`}>
         <ReelActionIcon name="comment" /><span data-testid={`text-comment-count-${reel.id}`}>{formatCount(reel.commentCount)}</span>
       </button>
       <button type="button" className={`reel-action-button ${reel.savedByMe ? "is-saved" : ""}`} onClick={onSave} disabled={savePending} aria-pressed={reel.savedByMe} aria-label={reel.savedByMe ? "Remove from Saved Reels" : "Save Reel"} data-testid={`button-save-reel-${reel.id}`}>
-        <ReelActionIcon name="save" /><span data-testid={`text-save-count-${reel.id}`}>{formatCount(reel.saveCount)}</span>
+        <ReelActionIcon name="save" active={reel.savedByMe} /><span data-testid={`text-save-count-${reel.id}`}>{formatCount(reel.saveCount)}</span>
       </button>
       <button type="button" className="reel-action-button" onClick={onShare} aria-label={`Share, ${formatCount(reel.shareCount)} shares`} data-testid={`button-share-reel-${reel.id}`}><ReelActionIcon name="share" /><span data-testid={`text-share-count-${reel.id}`}>{formatCount(reel.shareCount)}</span></button>
     </div>

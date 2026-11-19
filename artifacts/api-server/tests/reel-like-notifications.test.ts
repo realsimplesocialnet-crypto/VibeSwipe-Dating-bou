@@ -149,13 +149,16 @@ test("Reels action rail places Save above Share on web and mobile", () => {
     const share = rail.indexOf('ReelActionIcon name="share"');
     assert.ok(save >= 0 && share > save, "Save must appear before Share in the action rail");
   }
-  assert.match(web, /if \(name === "share"\) return <Forward size=\{36\}/);
-  assert.match(web, /<Icon size=\{36\} className="drop-shadow-lg" strokeWidth=\{2\} fill="none"/);
-  assert.match(web, /<circle cx="8\.2" cy="11\.1" r="1\.05" fill="#f34e9a"/);
+  assert.match(web, /fill=\{active \? pink : "#fff"\} stroke=\{active \? "#fff" : pink\}/);
+  assert.match(web, /if \(name === "share"\) return <svg width="36" height="36"/);
+  assert.match(web, /<circle cx="8\.2" cy="11\.1" r="1\.05" fill=\{pink\}/);
+  assert.match(web, /<ReelActionIcon name="like" active=\{reel\.likedByMe\}/);
+  assert.match(web, /<ReelActionIcon name="save" active=\{reel\.savedByMe\}/);
   assert.match(styles, /\.reel-action-button \{[^}]*color: #fff/);
-  assert.match(styles, /\.reel-action-button\.is-on, \.reel-action-button\.is-saved \{ color: var\(--reels-accent\)/);
-  assert.match(native, /const selectedColor = filled \? "#f34e9a" : "#fff"/);
-  assert.match(native, /<Circle cx=\{8\.2\} cy=\{11\.1\} r=\{1\.05\} fill="#f34e9a"/);
+  assert.match(styles, /\.reel-action-button > span \{ color:#fff/);
+  assert.match(native, /fill=\{filled \? pink : "#fff"\} stroke=\{filled \? "#fff" : pink\}/);
+  assert.match(native, /<Circle cx=\{8\.2\} cy=\{11\.1\} r=\{1\.05\} fill=\{pink\}/);
+  assert.match(native, /<Path d="M15\.2 4\.1 21 9\.8/);
   assert.match(styles, /\.reel-rail \{[^}]*bottom: 24px/);
   assert.match(styles, /\.reel-action-button > svg \{[^}]*width:36px; height:36px/);
   assert.match(styles, /\.reel-search-suggestion \{[^}]*right: 56px/);
@@ -165,22 +168,34 @@ test("Reels action rail places Save above Share on web and mobile", () => {
 test("photo Reels track the finger across slides and keep horizontal gestures out of the feed", () => {
   const web = source("artifacts/vibeswipe-web/src/components/reels/reel-slide.tsx");
   const styles = source("artifacts/vibeswipe-web/src/components/reels/reels.css");
+  const feed = source("artifacts/vibeswipe-web/src/pages/reels-feed.tsx");
   const native = source("artifacts/vibeswipe/app/reels/[reelId].tsx");
   assert.match(web, /onTouchMove=\{moveMediaTouch\}/);
   assert.match(web, /setSlideDragOffset\(dx\)/);
   assert.match(web, /const threshold = Math\.max\(28/);
+  assert.match(web, /absX >= absY \* 1\.2/);
+  assert.match(web, /absY > 28 && absY >= absX \* 1\.4/);
+  assert.match(web, /Math\.max\(56, Math\.min\(96, window\.innerHeight \* 0\.09\)\)/);
   assert.match(web, /translate3d\(calc\(-\$\{slideIndex \* 100 \/ slideCount\}% \+ \$\{slideDragOffset\}px\)/);
+  assert.match(web, /if \(direction\) onNavigateFeed\(direction\)/);
   assert.match(styles, /\.reel-photo-track \{[^}]*will-change:transform/);
+  assert.match(styles, /\.reel-tap\.is-slideshow \{ touch-action: none; \}/);
+  assert.match(feed, /onNavigateFeed=\{go\}/);
   assert.match(native, /directionalLockEnabled/);
   assert.match(native, /bounces=\{false\}/);
 });
 
 test("Reel sharing opens with Send to contacts before copy-link and app actions", () => {
   const web = source("artifacts/vibeswipe-web/src/components/reels/reel-share-sheet.tsx");
+  const webStyles = source("artifacts/vibeswipe-web/src/components/reels/reels.css");
   const native = source("artifacts/vibeswipe/app/reels/[reelId].tsx");
   assert.match(web, /<h2 className="text-base font-bold">Send to<\/h2>/);
   assert.ok(web.indexOf("className=\"reel-share-people\"") < web.indexOf("className=\"reel-share-destinations\""));
   assert.match(web, /data-testid="button-copy-reel-link" className="reel-share-destination"/);
+  assert.match(web, /return createPortal\(<div className="reel-sheet-backdrop"/);
+  assert.match(web, /document\.body\)/);
+  assert.match(webStyles, /\.reel-sheet-backdrop \{[^}]*z-index: 120/);
+  assert.match(webStyles, /\.reel-sheet \{[^}]*overflow-y:auto/);
   const shareModal = native.slice(native.indexOf('<Modal transparent visible={shareVisible'), native.indexOf('<Modal transparent visible={moreVisible'));
   assert.match(shareModal, />Send to<\/Text>/);
   assert.ok(shareModal.indexOf("shareChats.map") < shareModal.indexOf('testID="button-copy-reel-link"'));

@@ -43,18 +43,25 @@ function formatReelCount(value: number) {
 }
 
 function ReelActionIcon({ name, filled = false }: { name: ReelIconName; filled?: boolean }) {
-  const selectedColor = filled ? "#f34e9a" : "#fff";
+  const pink = "#f34e9a";
   return (
     <Svg width={36} height={36} viewBox="0 0 24 24">
-      {name === "like" ? <Path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78Z" fill="none" stroke={selectedColor} strokeWidth={1.8} strokeLinejoin="round" /> : null}
+      {name === "like" ? <Path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78Z" fill={filled ? pink : "#fff"} stroke={filled ? "#fff" : pink} strokeWidth={1.35} strokeLinejoin="round" /> : null}
       {name === "comment" ? <>
         <Path d="M12 2.8c-5.15 0-9.3 3.7-9.3 8.25 0 2.3 1.1 4.43 3.04 5.96L5 21l4.42-2.12c.82.23 1.68.35 2.58.35 5.15 0 9.3-3.7 9.3-8.25S17.15 2.8 12 2.8Z" fill="none" stroke="#fff" strokeWidth={1.8} strokeLinejoin="round" />
-        <Circle cx={8.2} cy={11.1} r={1.05} fill="#f34e9a" />
-        <Circle cx={12} cy={11.1} r={1.05} fill="#f34e9a" />
-        <Circle cx={15.8} cy={11.1} r={1.05} fill="#f34e9a" />
+        <Path d="M5.15 17.12 5 21l4.42-2.12" fill="none" stroke={pink} strokeWidth={1.8} strokeLinejoin="round" />
+        <Circle cx={8.2} cy={11.1} r={1.05} fill={pink} />
+        <Circle cx={12} cy={11.1} r={1.05} fill={pink} />
+        <Circle cx={15.8} cy={11.1} r={1.05} fill={pink} />
       </> : null}
-      {name === "share" ? <Path d="M15 17h6v-6M4 18v-2a4 4 0 0 1 4-4h13M15 7l5-5 5 5" fill="none" stroke="#fff" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" /> : null}
-      {name === "save" ? <Path d="M6 3.75h12v17l-6-4-6 4v-17Z" fill="none" stroke={selectedColor} strokeWidth={1.8} strokeLinejoin="round" /> : null}
+      {name === "share" ? <>
+        <Path d="M15.2 4.1 21 9.8l-5.8 5.8v-3.7c-5.8 0-9.3 1.7-11.5 6.4.4-7.2 4.5-11 11.5-11V4.1Z" fill="none" stroke="#fff" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />
+        <Path d="M15.2 8.3v3.6" fill="none" stroke={pink} strokeWidth={1.8} strokeLinecap="round" />
+      </> : null}
+      {name === "save" ? <>
+        <Path d="M6 3.75h12v17l-6-4-6 4v-17Z" fill={filled ? pink : "none"} stroke="#fff" strokeWidth={1.8} strokeLinejoin="round" />
+        <Path d="M9 13.4h6" fill="none" stroke={filled ? "#fff" : pink} strokeWidth={1.6} strokeLinecap="round" />
+      </> : null}
     </Svg>
   );
 }
