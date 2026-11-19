@@ -3,13 +3,14 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useClerk } from "@clerk/react";
 import {
   ArrowLeft, ChevronRight, Eye, EyeOff, Globe2, LockKeyhole, MapPin, Moon, Shield,
-  SlidersHorizontal, UserRound, Bell, Heart, MessageCircle, ShieldCheck, FileText, UserX, Check, LoaderCircle, LogOut,
+  SlidersHorizontal, UserRound, Bell, Heart, MessageCircle, ShieldCheck, FileText, UserX, Check, LoaderCircle, LogOut, Download,
 } from "lucide-react";
 import {
-  getGetBlockedProfilesQueryKey, getGetDiscoverProfilesQueryKey, getGetMyProfileQueryKey, getGetVibeSwipeSettingsQueryKey,
+  getGetBlockedProfilesQueryKey, getGetDiscoverProfilesQueryKey, getGetFollowRequestsQueryKey, getGetMyProfileQueryKey, getGetVibeSwipeSettingsQueryKey,
+  getGetReelsFeedQueryKey, getGetProfileLikedReelsQueryKey, getGetProfileFollowSummaryQueryKey,
   useGetBlockedProfiles, useGetMyProfile, useGetVibeSwipeSettings, useSaveMyProfile,
-  useUnblockProfile, useUpdateVibeSwipeSettings,
-  type Profile, type ProfileInput, type VibeSwipeSettings,
+  useUnblockProfile, useUpdateVibeSwipeSettings, useGetFollowRequests, useApproveFollowRequest, useDeclineFollowRequest,
+  type Profile, type ProfileInput, type VibeSwipeSettings, type FollowRequest,
 } from "@workspace/api-client-react";
 import { Link, useLocation, useParams } from "wouter";
 import { TravelModeSettings } from "@/components/travel-mode-settings";
@@ -33,6 +34,7 @@ type FullSettings = VibeSwipeSettings & {
 const sections = [
   { id: "account", label: "Account", icon: UserRound },
   { id: "privacy", label: "Privacy", icon: EyeOff },
+  { id: "follow-requests", label: "Follow Requests", icon: UserRound },
   { id: "discovery", label: "Discovery", icon: SlidersHorizontal },
   { id: "notifications", label: "Notifications", icon: Bell },
   { id: "safety", label: "Safety", icon: Shield },
@@ -45,6 +47,8 @@ const settingDefaults: FullSettings = {
   incognito: false, showAge: true, showDistance: true, notifyMatches: true, notifyLikes: true,
   notifyMessages: true, notifyProfileViews: true, darkMode: true, language: "en",
   deactivated: false, travelMode: false, travelCity: null,
+  privateAccount: false, whoCanComment: "everyone", whoCanMessage: "everyone",
+  allowDownloads: true, likedVideoAudience: "everyone",
 };
 
 export function SettingsIndexPage() {
@@ -140,6 +144,11 @@ function SectionContent({ section, settings, editReturnTo }: { section: string; 
     try {
       const result = await update.mutateAsync({ data: { ...settings, ...patch } as VibeSwipeSettings });
       queryClient.setQueryData(getGetVibeSwipeSettingsQueryKey(), { ...settings, ...result });
+      if ("privateAccount" in patch || "incognito" in patch || "whoCanComment" in patch || "allowDownloads" in patch) {
+        await queryClient.invalidateQueries({ queryKey: getGetDiscoverProfilesQueryKey() });
+        await queryClient.invalidateQueries({ queryKey: getGetReelsFeedQueryKey() });
+      }
+      if ("likedVideoAudience" in patch) await queryClient.invalidateQueries({ queryKey: getGetProfileLikedReelsQueryKey() });
       setMessage("Saved");
     } catch {
       setError("Couldn’t save that change. Check your connection and try again.");
@@ -200,6 +209,8 @@ function SectionContent({ section, settings, editReturnTo }: { section: string; 
       </div>
     </>}
     {section === "privacy" && <>
+      <SettingGroupTitle title="Privacy"/>
+      <ToggleRow icon={<LockKeyhole size={18}/>} title="Private account" detail="Only approved followers can see your profile and videos." checked={settings.privateAccount} disabled={update.isPending} testId="toggle-private-account" onChange={value=>void saveSettings({privateAccount:value})}/>
       <div className="setting-row">
         <SettingIcon><Eye size={18}/></SettingIcon>
         <label className="min-w-0 flex-1" htmlFor="settings-profile-visibility"><strong>Who can see my profile</strong><small>Choose who can discover your profile.</small></label>
@@ -212,7 +223,15 @@ function SectionContent({ section, settings, editReturnTo }: { section: string; 
       <ToggleRow icon={<UserRound size={18}/>} title="Show my age" detail="Let people see your age on your profile." checked={settings.showAge} disabled={update.isPending} testId="toggle-show-age" onChange={value=>void saveSettings({showAge:value})}/>
       <ToggleRow icon={<MapPin size={18}/>} title="Show my distance" detail="Allow an approximate distance when location-based distance is available." checked={settings.showDistance} disabled={update.isPending} testId="toggle-show-distance" onChange={value=>void saveSettings({showDistance:value})}/>
       <p className="px-1 pt-2 text-xs leading-5 text-muted-foreground">Your exact location is never shown to other members.</p>
+      <SettingGroupTitle title="Interactions"/>
+      <ChoiceRow icon={<MessageCircle size={18}/>} title="Who can comment" detail="Control comments on your Reels." value={settings.whoCanComment} disabled={update.isPending} testId="select-who-can-comment" options={[["everyone","Everyone"],["followers","Followers only"],["no_one","No one"]]} onChange={value=>void saveSettings({whoCanComment:value as FullSettings["whoCanComment"]})}/>
+      <ChoiceRow icon={<MessageCircle size={18}/>} title="Who can message" detail="Control who can start a new chat." value={settings.whoCanMessage} disabled={update.isPending} testId="select-who-can-message" options={[["everyone","Everyone"],["followers","Followers only"],["no_one","No one"]]} onChange={value=>void saveSettings({whoCanMessage:value as FullSettings["whoCanMessage"]})}/>
+      <RouteLink href="/settings/follow-requests" title="Follow requests" detail="Approve or decline people asking to follow you." icon={<UserRound size={18}/>}/>
+      <SettingGroupTitle title="Content"/>
+      <ToggleRow icon={<Download size={18}/>} title="Allow downloads" detail="Let other members download your video Reels." checked={settings.allowDownloads} disabled={update.isPending} testId="toggle-allow-downloads" onChange={value=>void saveSettings({allowDownloads:value})}/>
+      <ChoiceRow icon={<Heart size={18}/>} title="Show liked videos" detail="Choose who can see the Reels you’ve liked." value={settings.likedVideoAudience} disabled={update.isPending} testId="select-liked-video-audience" options={[["everyone","Everyone"],["followers","Followers only"],["only_me","Only me"]]} onChange={value=>void saveSettings({likedVideoAudience:value as FullSettings["likedVideoAudience"]})}/>
     </>}
+    {section === "follow-requests" && <FollowRequestsPanel/>}
     {section === "discovery" && <>
       {profile.isLoading ? <SettingsSkeleton/> : profile.isError ? <InlineError text="Your discovery preferences couldn’t load." onRetry={()=>void profile.refetch()}/> : profile.data && <>
         <PreferencesPanel profile={profile.data} saving={saveProfile.isPending} onSave={savePreferences}/>
@@ -259,6 +278,19 @@ function ToggleRow({ icon, title, detail, checked, disabled, testId, onChange }:
     <button type="button" role="switch" aria-checked={checked} aria-label={title} data-testid={testId} disabled={disabled} onClick={()=>onChange(!checked)} className={`relative h-6 w-11 shrink-0 rounded-full transition-colors disabled:opacity-50 ${checked?'bg-primary':'bg-white/15'}`}>
       <span className={`absolute top-1 h-4 w-4 rounded-full bg-[#211a20] transition-transform ${checked?'translate-x-6':'translate-x-1'}`}/>
     </button>
+  </div>;
+}
+
+function SettingGroupTitle({ title }: { title: string }) {
+  return <h2 className="px-1 pt-4 text-[11px] font-bold uppercase tracking-[.16em] text-primary">{title}</h2>;
+}
+
+function ChoiceRow({ icon, title, detail, value, options, disabled, testId, onChange }: { icon: ReactNode; title: string; detail: string; value: string; options: [string,string][]; disabled: boolean; testId: string; onChange: (value:string)=>void }) {
+  return <div className="setting-row">
+    <SettingIcon>{icon}</SettingIcon><span className="min-w-0 flex-1"><strong>{title}</strong><small>{detail}</small></span>
+    <select aria-label={title} data-testid={testId} value={value} disabled={disabled} onChange={event=>onChange(event.target.value)} className="max-w-40 rounded-lg border border-white/10 bg-[#19161c] px-3 py-2 text-sm text-foreground focus:border-primary/60 focus:outline-none disabled:opacity-50">
+      {options.map(([option,label])=><option key={option} value={option}>{label}</option>)}
+    </select>
   </div>;
 }
 
@@ -313,6 +345,40 @@ function BlockedProfiles() {
         <span className="flex h-9 w-9 items-center justify-center rounded-full bg-accent text-sm font-bold text-primary">{profile.name.slice(0,1).toUpperCase()}</span><strong className="min-w-0 flex-1 truncate text-sm">{profile.name}</strong>
         <button type="button" disabled={unblock.isPending} onClick={()=>unblock.mutate({targetUserId:profile.id},{onSuccess:()=>void queryClient.invalidateQueries({queryKey:getGetBlockedProfilesQueryKey()})})} data-testid={`button-unblock-${profile.id}`} className="rounded-lg border border-white/10 px-3 py-2 text-xs font-bold disabled:opacity-50">Unblock</button>
       </div>)}</div>}
+  </section>;
+}
+
+function FollowRequestsPanel() {
+  const requests = useGetFollowRequests({ query: { queryKey: getGetFollowRequestsQueryKey() } });
+  const me = useGetMyProfile();
+  const approve = useApproveFollowRequest();
+  const decline = useDeclineFollowRequest();
+  const queryClient = useQueryClient();
+  const [error, setError] = useState("");
+  async function respond(requesterId: string, action: "approve" | "decline") {
+    setError("");
+    try {
+      if (action === "approve") await approve.mutateAsync({ requesterId });
+      else await decline.mutateAsync({ requesterId });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: getGetFollowRequestsQueryKey() }),
+        queryClient.invalidateQueries({ queryKey: getGetDiscoverProfilesQueryKey() }),
+        me.data?.id ? queryClient.invalidateQueries({ queryKey: getGetProfileFollowSummaryQueryKey(me.data.id) }) : Promise.resolve(),
+      ]);
+    } catch {
+      setError("That follow request couldn’t be updated. Please try again.");
+    }
+  }
+  return <section className="rounded-2xl border border-white/[.08] bg-card p-5" data-testid="follow-requests-panel">
+    <p className="mb-4 text-sm text-muted-foreground">Review requests from people who want to follow your private account.</p>
+    {requests.isLoading ? <SettingsSkeleton/> : requests.isError ? <InlineError text="Follow requests couldn’t load." onRetry={()=>void requests.refetch()}/> : requests.data?.length
+      ? <div className="space-y-2">{requests.data.map((request: FollowRequest)=><div key={request.requesterId} className="flex items-center gap-3 rounded-xl border border-white/[.07] p-3">
+        {request.photo ? <img src={request.photo} alt="" className="h-10 w-10 rounded-full object-cover"/> : <span className="flex h-10 w-10 items-center justify-center rounded-full bg-accent text-sm font-bold text-primary">{request.displayName.slice(0,1).toUpperCase()}</span>}
+        <span className="min-w-0 flex-1"><strong className="block truncate text-sm">{request.displayName}</strong><small className="text-xs text-muted-foreground">Requested {new Date(request.createdAt).toLocaleDateString()}</small></span>
+        <button type="button" disabled={approve.isPending||decline.isPending} onClick={()=>void respond(request.requesterId,"decline")} className="rounded-lg border border-white/10 px-3 py-2 text-xs font-bold disabled:opacity-50">Decline</button>
+        <button type="button" disabled={approve.isPending||decline.isPending} onClick={()=>void respond(request.requesterId,"approve")} className="rounded-lg bg-primary px-3 py-2 text-xs font-bold text-primary-foreground disabled:opacity-50">Approve</button>
+      </div>)}</div> : <p className="rounded-xl border border-white/[.06] px-4 py-3 text-sm text-muted-foreground">No pending follow requests.</p>}
+    {error && <p role="alert" className="mt-3 text-sm text-destructive">{error}</p>}
   </section>;
 }
 

@@ -2,10 +2,12 @@ import {
   getGetBlockedProfilesQueryKey,
   getGetDiscoverProfilesQueryKey,
   getGetMatchesQueryKey,
+  getGetDirectChatsQueryKey,
   useBlockProfile,
   useDeleteChat,
   useGetMatches,
   useGetWhoViewedYou,
+  useGetDirectChats,
   useGetNotifications,
   useReportProfile,
   useUnblockProfile,
@@ -65,6 +67,7 @@ export default function ChatsScreen() {
   const colors = useColors();
   const queryClient = useQueryClient();
   const matches = useGetMatches({ query: { refetchInterval: 10_000, refetchOnMount: "always", staleTime: 0 } });
+  const direct = useGetDirectChats({ query: { queryKey: getGetDirectChatsQueryKey(), refetchInterval: 5000, refetchOnMount: "always" } });
   const blockProfile = useBlockProfile();
   const unblockProfile = useUnblockProfile();
   const reportProfile = useReportProfile();
@@ -76,12 +79,13 @@ export default function ChatsScreen() {
   const [filter, setFilter] = useState<"all" | "unread" | "new">("all");
   const allMatches = useMemo(() => (matches.data ?? []).filter((m) => !m.profile.isDemo && !m.blockedByMe && !m.blockedMe).sort((a, b) =>
     new Date(b.lastMessageAt ?? b.updatedAt).getTime() - new Date(a.lastMessageAt ?? a.updatedAt).getTime()), [matches.data]);
-  const unreadTotal = allMatches.reduce((total, match) => total + (match.unreadCount ?? 0), 0);
+  const unreadTotal = allMatches.reduce((total, match) => total + (match.unreadCount ?? 0), 0) + (direct.data ?? []).reduce((total,item)=>total+item.unreadCount,0);
   const query = search.trim().toLocaleLowerCase();
   const exactNameMatches = query ? allMatches.filter(match => match.profile.name.trim().toLocaleLowerCase() === query) : [];
   const searchedMatches = !query ? allMatches : exactNameMatches.length ? exactNameMatches : allMatches.filter(match => match.profile.name.toLocaleLowerCase().includes(query));
   const newMatches = filter === "unread" ? [] : searchedMatches.filter((match) => !match.lastMessage && (filter === "all" || filter === "new"));
   const chats = filter === "new" ? [] : searchedMatches.filter((match) => Boolean(match.lastMessage) && (filter !== "unread" || (match.unreadCount ?? 0) > 0));
+  const directList = (direct.data ?? []).filter(item => !item.profile.isDemo && (!query || item.profile.name.toLocaleLowerCase().includes(query))).filter(item => filter !== "unread" || item.unreadCount > 0).sort((a,b)=>new Date(b.lastMessageAt ?? 0).getTime()-new Date(a.lastMessageAt ?? 0).getTime());
 
   async function refreshSafetyAndLists() {
     await Promise.all([
@@ -195,13 +199,13 @@ export default function ChatsScreen() {
           </Pressable>;
         })}
       </ScrollView>
-      {matches.isLoading ? <ActivityIndicator color={colors.primary} style={styles.loading} /> : null}
-      {matches.isError ? (
+      {matches.isLoading && direct.isLoading ? <ActivityIndicator color={colors.primary} style={styles.loading} /> : null}
+      {matches.isError && direct.isError ? (
         <Pressable onPress={() => void matches.refetch()} style={styles.errorBox}>
           <Text style={[styles.errorText, { color: colors.destructive }]}>Couldn’t load conversations. Tap to retry.</Text>
         </Pressable>
       ) : null}
-      {!matches.isLoading && !matches.isError && !allMatches.length ? (
+      {!matches.isLoading && !direct.isLoading && !matches.isError && !direct.isError && !allMatches.length && !directList.length ? (
         <View style={styles.empty}>
           <Text style={[styles.emptyTitle, { color: colors.foreground }]}>No conversations yet</Text>
           <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>Match with someone to start chatting.</Text>
@@ -209,22 +213,23 @@ export default function ChatsScreen() {
       ) : null}
       <FlatList
         data={chats}
-        scrollEnabled={chats.length > 0 || newMatches.length > 0}
+        scrollEnabled={chats.length > 0 || newMatches.length > 0 || directList.length > 0}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
-        ListHeaderComponent={newMatches.length ? (
-          <View style={{ marginBottom: 18 }} testID="section-new-matches">
+        ListHeaderComponent={<View>
+          {directList.length ? <View style={{ marginBottom: 18 }} testID="section-direct-chats">
+            <Text style={[styles.sectionTitle, { color: colors.mutedForeground }]}>DIRECT MESSAGES</Text>
+            {directList.map(item=><Pressable key={item.id} testID={`direct-chat-${item.id}`} accessibilityRole="button" accessibilityLabel={`Open direct chat with ${item.profile.name}`} onPress={()=>router.push({pathname:"/direct-chat/[conversationId]",params:{conversationId:item.id}} as never)} style={styles.row}>
+              <ProfileAvatar profile={item.profile} size={56}/>
+              <View style={styles.copy}><Text numberOfLines={1} style={[styles.name,{color:colors.foreground}]}>{item.profile.name}</Text><Text numberOfLines={2} style={[styles.last,{color:item.unreadCount?colors.foreground:colors.mutedForeground,fontWeight:item.unreadCount?"600":"400"}]}>{item.lastMessage??"Start a conversation"}</Text></View>
+              <View style={styles.meta}><Text style={[styles.time,{color:colors.mutedForeground}]}>{timeAgo(item.lastMessageAt)}</Text>{item.unreadCount>0?<View style={[styles.badge,{backgroundColor:colors.primary}]}><Text style={[styles.badgeText,{color:colors.chatOnAccent}]}>{item.unreadCount>99?"99+":item.unreadCount}</Text></View>:null}</View>
+            </Pressable>)}
+          </View> : null}
+          {newMatches.length ? <View style={{ marginBottom: 18 }} testID="section-new-matches">
             <Text style={[styles.sectionTitle, { color: colors.primary }]}>NEW MATCHES</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.newMatchesRow}>
               {newMatches.map((match) => (
-                <Pressable
-                  key={match.id}
-                  testID={`new-match-${match.id}`}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Start a chat with ${match.profile.name}`}
-                  onPress={() => router.push({ pathname: "/chat/[matchId]", params: { matchId: match.id, returnTo: "messages" } } as never)}
-                  style={({ pressed }) => [styles.newMatchCard, { backgroundColor: colors.profileCard, opacity: pressed ? 0.84 : 1 }]}
-                >
+                <Pressable key={match.id} testID={`new-match-${match.id}`} accessibilityRole="button" accessibilityLabel={`Start a chat with ${match.profile.name}`} onPress={() => router.push({ pathname: "/chat/[matchId]", params: { matchId: match.id, returnTo: "messages" } } as never)} style={({ pressed }) => [styles.newMatchCard, { backgroundColor: colors.profileCard, opacity: pressed ? 0.84 : 1 }]}>
                   <ProfileAvatar profile={match.profile} size={58} />
                   <Text numberOfLines={1} style={[styles.newMatchName, { color: colors.foreground }]}>{match.profile.name}{match.profile.age !== null ? `, ${match.profile.age}` : ""}</Text>
                   <Text numberOfLines={2} style={[styles.newMatchSub, { color: colors.mutedForeground }]}>You both liked each other ❤️</Text>
@@ -232,9 +237,9 @@ export default function ChatsScreen() {
                 </Pressable>
               ))}
             </ScrollView>
-          </View>
-        ) : undefined}
-        ListEmptyComponent={search.trim() || filter !== "all"
+          </View> : null}
+        </View>}
+        ListEmptyComponent={directList.length ? undefined : search.trim() || filter !== "all"
           ? <Text testID="empty-chat-search" style={[styles.noChatsYet, { color: colors.mutedForeground }]}>{search.trim() ? "No chats found for that name." : filter === "unread" ? "No unread chats." : "No new matches."}</Text>
           : newMatches.length ? <Text style={[styles.noChatsYet, { color: colors.mutedForeground }]}>No chats yet. Start a conversation with a new match.</Text> : undefined}
         renderItem={({ item }) => {
@@ -280,8 +285,8 @@ export default function ChatsScreen() {
             </View>
           );
         }}
-        refreshing={matches.isRefetching}
-        onRefresh={() => void matches.refetch()}
+        refreshing={matches.isRefetching || direct.isRefetching}
+        onRefresh={() => { void matches.refetch(); void direct.refetch(); }}
       />
       <Modal
         visible={actionTarget !== null}

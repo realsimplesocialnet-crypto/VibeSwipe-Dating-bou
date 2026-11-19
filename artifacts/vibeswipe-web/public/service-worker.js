@@ -78,7 +78,6 @@ function safeOfflineReel(input) {
     id: input.id,
     creatorId: String(input.creatorId ?? ''),
     creatorName: input.creatorName,
-    creatorAge: Number.isInteger(input.creatorAge) ? input.creatorAge : null,
     creatorLocation: String(input.creatorLocation ?? ''),
     creatorVerified: Boolean(input.creatorVerified),
     creatorPhoto: typeof input.creatorPhoto === 'string' ? input.creatorPhoto : null,

@@ -238,32 +238,36 @@ export function InboundPeoplePage({ avatar, kind }: { avatar: AvatarFn; kind: 'l
   </div></div>;
 }
 
-function FollowActionButton({ profileId, viewerId, isFollowing, followsYou, checking = false, onChange }: {
-  profileId: string; viewerId?: string; isFollowing: boolean; followsYou: boolean; checking?: boolean; onChange?: (following: boolean) => void;
+function FollowActionButton({ profileId, viewerId, isFollowing, followsYou, requestPendingByMe = false, checking = false, onChange }: {
+  profileId: string; viewerId?: string; isFollowing: boolean; followsYou: boolean; requestPendingByMe?: boolean; checking?: boolean; onChange?: (following: boolean) => void;
 }) {
   const client = useQueryClient();
   const follow = useFollowProfile();
   const unfollow = useUnfollowProfile();
   const [override, setOverride] = useState<{ base: boolean; value: boolean } | null>(null);
+  const [requestOverride, setRequestOverride] = useState<{ base: boolean; value: boolean } | null>(null);
   const [error, setError] = useState('');
   const following = override?.base === isFollowing ? override.value : isFollowing;
+  const requested = requestOverride?.base === requestPendingByMe ? requestOverride.value : requestPendingByMe;
   const pending = follow.isPending || unfollow.isPending;
   async function toggle() {
     if (pending) return;
     setError('');
     const previous = following;
-    const next = !following;
+    const cancellingRequest = requested && !following;
+    const next = cancellingRequest ? false : !following;
     const summaryKey = getGetProfileFollowSummaryQueryKey(profileId);
     const viewerKey = viewerId ? getGetProfileFollowSummaryQueryKey(viewerId) : null;
     const previousSummary = client.getQueryData<{ followersCount: number; followingCount: number; isFollowing: boolean; followsYou: boolean }>(summaryKey);
     const previousViewerSummary = viewerKey ? client.getQueryData<{ followersCount: number; followingCount: number; isFollowing: boolean; followsYou: boolean }>(viewerKey) : undefined;
     setOverride({ base: isFollowing, value: next });
-    if (previousSummary) client.setQueryData(summaryKey, {
-      ...previousSummary,
-      followersCount: Math.max(0, previousSummary.followersCount + (next ? 1 : -1)),
-      isFollowing: next,
-    });
-    if (viewerKey && previousViewerSummary) client.setQueryData(viewerKey, {
+    if (cancellingRequest) setRequestOverride({ base: requestPendingByMe, value: false });
+    else if (previousSummary) client.setQueryData(summaryKey, {
+        ...previousSummary,
+        followersCount: Math.max(0, previousSummary.followersCount + (next ? 1 : -1)),
+        isFollowing: next,
+      });
+    if (!cancellingRequest && viewerKey && previousViewerSummary) client.setQueryData(viewerKey, {
       ...previousViewerSummary,
       followingCount: Math.max(0, previousViewerSummary.followingCount + (next ? 1 : -1)),
     });
@@ -271,8 +275,10 @@ function FollowActionButton({ profileId, viewerId, isFollowing, followsYou, chec
       if (next) {
         const result = await follow.mutateAsync({ profileId });
         client.setQueryData(summaryKey, result);
+        setRequestOverride({ base: requestPendingByMe, value: result.requestPendingByMe });
       } else {
         await unfollow.mutateAsync({ profileId });
+        if (cancellingRequest && previousSummary) client.setQueryData(summaryKey, { ...previousSummary, requestPendingByMe: false });
       }
       void Promise.all([
         client.invalidateQueries({ queryKey: summaryKey }),
@@ -286,13 +292,14 @@ function FollowActionButton({ profileId, viewerId, isFollowing, followsYou, chec
       setOverride({ base: isFollowing, value: previous });
       if (previousSummary) client.setQueryData(summaryKey, previousSummary);
       if (viewerKey && previousViewerSummary) client.setQueryData(viewerKey, previousViewerSummary);
-      setError(next ? 'Could not follow. Try again.' : 'Could not unfollow. Try again.');
+      setRequestOverride({ base: requestPendingByMe, value: requested });
+      setError(cancellingRequest ? 'Could not cancel the request. Try again.' : next ? 'Could not follow. Try again.' : 'Could not unfollow. Try again.');
     }
   }
   return <div className="sh-follow-action">
     <button type="button" onClick={() => void toggle()} disabled={pending || checking} aria-pressed={following}
       data-testid={`button-follow-${profileId}`} className={`sh-follow-button ${following ? 'sh-following' : ''}`}>
-      {checking ? 'Checking…' : <span className="inline-flex items-center justify-center gap-1.5">{pending&&<LoaderCircle size={13} className="animate-spin" aria-hidden="true"/>}{following ? 'Following' : followsYou ? 'Follow back' : 'Follow'}</span>}
+      {checking ? 'Checking…' : <span className="inline-flex items-center justify-center gap-1.5">{pending&&<LoaderCircle size={13} className="animate-spin" aria-hidden="true"/>}{following ? 'Following' : requested ? 'Requested · Cancel' : followsYou ? 'Follow back' : 'Follow'}</span>}
     </button>
     {error && <span role="alert" className="sh-follow-error">{error}</span>}
   </div>;
@@ -302,8 +309,9 @@ export function ProfileFollowNotificationAction({ profileId, viewerId, onFollow 
   const summary = useGetProfileFollowSummary(profileId, { query: { queryKey: getGetProfileFollowSummaryQueryKey(profileId), refetchOnMount: 'always' } });
   if (!summary.data) return <button type="button" disabled={summary.isLoading} onClick={() => void summary.refetch()} aria-label={summary.isError ? 'Retry follow status' : 'Checking follow status'}
     className="sh-follow-button sh-follow-notice-loading">{summary.isError ? 'Retry' : <LoaderCircle size={15} className="animate-spin"/>}</button>;
-  if (!summary.data.followsYou || summary.data.isFollowing) return null;
+  if ((!summary.data.followsYou && !summary.data.requestPendingByMe) || summary.data.isFollowing) return null;
   return <FollowActionButton profileId={profileId} viewerId={viewerId} isFollowing={summary.data.isFollowing} followsYou={summary.data.followsYou}
+    requestPendingByMe={summary.data.requestPendingByMe}
     onChange={following => { if (following) onFollow(); }} />;
 }
 
@@ -326,7 +334,7 @@ export function ProfileSocialActions({ profileId, viewerId, showAction = true, c
       </Link>
     </div>
     {showAction && viewerId && viewerId !== profileId && <div className="sh-profile-actions">
-      {summary.data ? <FollowActionButton profileId={profileId} viewerId={viewerId} isFollowing={summary.data.isFollowing} followsYou={summary.data.followsYou} />
+      {summary.data ? <FollowActionButton profileId={profileId} viewerId={viewerId} isFollowing={summary.data.isFollowing} followsYou={summary.data.followsYou} requestPendingByMe={summary.data.requestPendingByMe} />
         : <button type="button" disabled aria-label={summary.isError ? 'Follow status unavailable' : 'Loading follow status'} className="sh-follow-button">{summary.isError ? 'Unavailable' : <><LoaderCircle size={15} className="animate-spin"/><span>Follow</span></>}</button>}
       {datingAction}
     </div>}

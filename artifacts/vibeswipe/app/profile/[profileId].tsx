@@ -1,6 +1,7 @@
 import {
   getGetDailyLikeStatusQueryKey,
   getGetDiscoverProfilesQueryKey,
+  getGetDirectChatsQueryKey,
   getGetMatchesQueryKey,
   getGetNotificationsQueryKey,
   getGetProfileByIdQueryKey,
@@ -16,17 +17,18 @@ import {
   useRecordProfileView,
   useReportProfile,
   type ProfileDatingState,
+  useStartDirectChat,
 } from "@workspace/api-client-react";
 import { Feather } from "@expo/vector-icons";
 import { Image as ExpoImage } from "expo-image";
 import { MatchCelebration } from "@/components/MatchCelebration";
-import { ProfileReelsSection } from "@/components/ProfileReelsSection";
+import { ProfileLikedReelsSection, ProfileReelsSection } from "@/components/ProfileReelsSection";
 import { ProfileFollowStats } from "@/components/ProfileFollow";
 import { router, useLocalSearchParams } from "expo-router";
 import { useAuth } from "@clerk/expo";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
+import { ActivityIndicator, Alert, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import type { ComponentProps } from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { profileImagePreviewSource, profileImageSource } from "@/lib/media";
@@ -55,6 +57,7 @@ export default function PublicProfileScreen() {
   const [matchResult, setMatchResult] = useState<{ name: string; matchId: string | null } | null>(null);
   const block = useBlockProfile();
   const report = useReportProfile();
+  const startDirectChat = useStartDirectChat();
   const reaction = useCreateReaction();
   const unlike = useUnlikeProfile();
   const dailyLikeStatus = useGetDailyLikeStatus({ query: { queryKey: getGetDailyLikeStatusQueryKey() } });
@@ -74,6 +77,18 @@ export default function PublicProfileScreen() {
   function openMatchedChat() {
     if (!matchId || datingState.isError) return;
     router.push({ pathname: "/chat/[matchId]", params: { matchId } });
+  }
+  async function openDirectChat() {
+    const user = profile.data;
+    if (!user || startDirectChat.isPending) return;
+    setActionError("");
+    try {
+      const conversation = await startDirectChat.mutateAsync({ data: { recipientId: user.id } });
+      void queryClient.invalidateQueries({ queryKey: getGetDirectChatsQueryKey() });
+      router.push({ pathname: "/direct-chat/[conversationId]", params: { conversationId: conversation.id } });
+    } catch (error) {
+      Alert.alert("Could not start a chat", error instanceof Error ? error.message : "This person may not accept new messages.");
+    }
   }
 
   useEffect(() => {
@@ -287,6 +302,18 @@ export default function PublicProfileScreen() {
                     : fromLikes ? "Like Back" : "Like"}
         </Text>
       </Pressable>
+      {!matchId && me.data?.id !== user.id ? <Pressable
+        testID="public-profile-start-direct-chat"
+        accessibilityRole="button"
+        accessibilityLabel={`Message ${user.name}`}
+        accessibilityState={{ disabled: startDirectChat.isPending }}
+        disabled={startDirectChat.isPending}
+        onPress={() => void openDirectChat()}
+        style={({ pressed }) => [styles.profileActionButton, { marginTop: 7, backgroundColor: "transparent", borderColor: colors.profileEdit, opacity: startDirectChat.isPending ? 0.55 : pressed ? 0.82 : 1 }]}
+      >
+        {startDirectChat.isPending ? <ActivityIndicator size="small" color={colors.profileEdit}/> : <Feather name="message-circle" size={17} color={colors.profileEdit}/>}
+        <Text style={{ color: colors.profileEdit, fontWeight: "800", fontSize: 13 }}>Message</Text>
+      </Pressable> : null}
       {actionError ? <Text accessibilityRole="alert" style={{ color: colors.destructive, fontSize: 10, textAlign: "center", marginTop: 3 }}>{actionError}</Text>
         : likeOut && !alreadyLiked && !matchId ? <Text style={{ color: colors.profileMuted, fontSize: 10, textAlign: "center", marginTop: 3 }}>Today’s likes are used up.</Text> : null}
     </View>
@@ -387,6 +414,7 @@ export default function PublicProfileScreen() {
               ) : <Text style={[styles.value, { color: colors.profileMuted, marginTop: 8 }]}>No photos shared yet.</Text>}
             </View>
             <ProfileReelsSection profileId={id} returnTo={reelReturnTo} layout="grid" />
+            <ProfileLikedReelsSection profileId={id} returnTo={reelReturnTo} layout="grid" />
           </View>
         </View>
       </ScrollView>

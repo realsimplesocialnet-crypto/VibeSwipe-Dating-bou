@@ -6,6 +6,7 @@ import { publishableKeyFromHost } from '@clerk/react/internal';
 import { shadcn } from '@clerk/themes';
 import {
   getGetBlockedProfilesQueryKey, getGetChatReadReceiptQueryKey, getGetDailyLikeStatusQueryKey,
+  getGetDirectChatsQueryKey,
   getGetDiscoverProfilesQueryKey, getGetMatchesQueryKey, getGetMessagesQueryKey, getGetBoostStatusQueryKey,
   getStreamMatchMessagesQueryKey, getGetTypingStatusQueryKey,
   getGetMyProfileQueryKey, getGetNotificationsQueryKey, getGetOnboardingDraftQueryKey, getGetProfileMediaQueryKey,
@@ -16,9 +17,9 @@ import {
   useClearOnboardingDraft, useCreateReaction, useDeleteChat, useDeleteMessage,
   useGetBoostStatus, useGetChatReadReceipt, useGetDailyLikeStatus,
   useGetDiscoverProfiles, useGetIcebreakers, useGetMatches, useGetMessages, useGetMyProfile,
-  useGetNotifications, useGetOnboardingDraft, useGetProfileById, useGetProfileDatingState, useGetProfileFollowSummary, useGetProfileMedia, useGetMediaPreview, useGetStories, useGetSuperLikeStatus, useGetVibeSwipeSettings,
+  useGetNotifications, useGetOnboardingDraft, useGetProfileById, useGetProfileDatingState, useGetProfileFollowSummary, useGetProfileMedia, useGetMediaPreview, useGetStories, useGetSuperLikeStatus, useGetVibeSwipeSettings, useGetDirectChats,
   useGetTypingStatus, useGetMatchPresence, useMarkChatRead, useGetWhoViewedYou,
-  useMarkNotificationRead, useRecordProfileView, useReportProfile, useSaveMyProfile,
+  useMarkNotificationRead, useRecordProfileView, useReportProfile, useSaveMyProfile, useStartDirectChat,
   useSaveOnboardingDraft, useSendMessage, useTranscodeProfileVideo, useUnblockProfile,
   useUndoLastPass, useUnmatchMatch, useUnlikeProfile, useUpdateChatTheme, useUpdateTypingStatus, useHeartbeatPresence,
   useRequestChatMediaUpload, useRequestProfileMediaUpload,
@@ -44,7 +45,7 @@ import type { OnboardingCountry } from '@workspace/api-client-react';
 import { HobbyMultiSelect, OccupationSelect } from '@/components/profile-field-selectors';
 import { ConnectionNotice } from '@/components/connection-notice';
 import { ReelsNavigationVisibilityContext } from '@/components/reels/reels-navigation-context';
-import { ProfileReelsSection } from '@/components/profile-reels-section';
+import { ProfileLikedReelsSection, ProfileReelsSection } from '@/components/profile-reels-section';
 import { sharedReelId } from '@/lib/reels';
 import { ChatMessageBubble } from '@/components/chat-message-bubble';
 import { ChatVoiceNoteRecorder } from '@/components/chat-voice-note-recorder';
@@ -68,6 +69,7 @@ const MemberSearchPage = lazy(() => import('@/components/member-search-page').th
 const WebPushSettings = lazy(() => import('@/components/WebPushSettings').then(module => ({ default: module.WebPushSettings })));
 const ReelsFeedPage = lazy(() => import('@/pages/reels-feed').then(module => ({ default: module.ReelsFeedPage })));
 const ReelComposerPage = lazy(() => import('@/pages/reel-composer').then(module => ({ default: module.ReelComposerPage })));
+const DirectChatPage = lazy(() => import('@/pages/direct-chat'));
 const ReelsLibraryPage = lazy(() => import('@/pages/reels-library').then(module => ({ default: module.ReelsLibraryPage })));
 const ActivityOverview = lazy(() => import('@/components/social-hub').then(module => ({ default: module.ActivityOverview })));
 const FollowListPage = lazy(() => import('@/components/social-hub').then(module => ({ default: module.FollowListPage })));
@@ -612,6 +614,7 @@ function ChatsPage() {
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<'all' | 'unread' | 'new'>('all');
   const matches = useGetMatches({ query: { queryKey: getGetMatchesQueryKey(), refetchInterval: 10000, refetchOnMount: 'always', refetchOnWindowFocus: true, staleTime: 0 } });
+  const direct = useGetDirectChats({ query: { queryKey: getGetDirectChatsQueryKey(), refetchInterval: 5000, refetchOnMount: 'always', refetchOnWindowFocus: true } });
   const stories = useGetStories({ query: { queryKey: getGetStoriesQueryKey(), refetchInterval: 60000 } });
   const list = useMemo(() => (matches.data ?? []).filter(m=>!m.profile.isDemo&&!m.blockedByMe&&!m.blockedMe).sort((a, b) => {
     const at = new Date((a as MatchListExtras).lastMessageAt ?? a.updatedAt).getTime();
@@ -619,9 +622,11 @@ function ChatsPage() {
     return bt - at;
   }), [matches.data]);
   const searched = searchChatsByPersonName(list, search);
-  const unreadTotal = list.reduce((sum, m) => sum + ((m as MatchListExtras).unreadCount ?? 0), 0);
+  const unreadTotal = list.reduce((sum, m) => sum + ((m as MatchListExtras).unreadCount ?? 0), 0) + (direct.data ?? []).reduce((sum, item) => sum + item.unreadCount, 0);
   const newMatches = filter === 'unread' ? [] : searched.filter(m => !m.lastMessage && (filter === 'all' || filter === 'new'));
   const chats = filter === 'new' ? [] : searched.filter(m => Boolean(m.lastMessage) && (filter !== 'unread' || ((m as MatchListExtras).unreadCount ?? 0) > 0));
+  const directList = (direct.data ?? []).filter(item => !item.profile.isDemo && item.profile.id).filter(item => !search || item.profile.name.toLocaleLowerCase().includes(search.trim().toLocaleLowerCase())).sort((a,b)=>new Date(b.lastMessageAt ?? 0).getTime()-new Date(a.lastMessageAt ?? 0).getTime());
+  const visibleDirect = filter === 'new' ? [] : directList.filter(item => filter !== 'unread' || item.unreadCount > 0);
   return <div className="messages-page min-h-[calc(100dvh-48px)] lg:min-h-[100dvh]">
     <div className="page-in mx-auto max-w-[720px] px-4 pb-10 pt-6 md:px-8 md:pt-10" data-testid="messages-page-content">
       <div className="flex items-center justify-between" data-testid="chats-header">
@@ -646,10 +651,10 @@ function ChatsPage() {
         ] as const).map(([value, label]) => <button key={value} type="button" aria-pressed={filter === value} data-testid={`chat-filter-${value}`} onClick={() => setFilter(value)} className={`shrink-0 rounded-full border px-4 py-2 text-sm font-bold transition-colors ${filter === value ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-card text-muted-foreground hover:text-foreground'}`}>{label}</button>)}
       </div>
       <div className="mt-5">
-        {matches.isLoading ? <div aria-label="Loading conversations">{[0,1,2].map(i => <div key={i} className="flex items-center gap-4 py-4"><div className="h-[56px] w-[56px] animate-pulse rounded-full bg-muted"/><div className="flex-1 space-y-2"><div className="h-4 w-32 animate-pulse rounded bg-muted"/><div className="h-3 w-48 animate-pulse rounded bg-muted"/></div></div>)}</div>
-          : matches.isError && !matches.data ? <Retry error={matches.error} text="We couldn’t load your messages. Check your connection and try again." onRetry={() => void matches.refetch()} />
-          : !list.length ? <Empty title="No conversations yet" detail="When you and someone both say yes, your conversation opens here." action={<Link href="/discover" data-testid="link-messages-discover" className="inline-flex rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground">Go to Discover</Link>} />
-          : !newMatches.length && !chats.length ? <div className="rounded-2xl border border-border bg-card px-4 py-8 text-center text-sm font-medium text-muted-foreground" data-testid="empty-chat-search">{search.trim() ? 'No chats found for that name.' : filter === 'unread' ? 'No unread chats.' : 'No new matches.'}</div>
+        {matches.isLoading && direct.isLoading ? <div aria-label="Loading conversations">{[0,1,2].map(i => <div key={i} className="flex items-center gap-4 py-4"><div className="h-[56px] w-[56px] animate-pulse rounded-full bg-muted"/><div className="flex-1 space-y-2"><div className="h-4 w-32 animate-pulse rounded bg-muted"/><div className="h-3 w-48 animate-pulse rounded bg-muted"/></div></div>)}</div>
+          : matches.isError && !matches.data && direct.isError && !direct.data ? <Retry error={matches.error} text="We couldn’t load your messages. Check your connection and try again." onRetry={() => { void matches.refetch(); void direct.refetch(); }} />
+          : !list.length && !directList.length ? <Empty title="No conversations yet" detail="When you and someone both say yes, your conversation opens here." action={<Link href="/discover" data-testid="link-messages-discover" className="inline-flex rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground">Go to Discover</Link>} />
+          : !newMatches.length && !chats.length && !visibleDirect.length ? <div className="rounded-2xl border border-border bg-card px-4 py-8 text-center text-sm font-medium text-muted-foreground" data-testid="empty-chat-search">{search.trim() ? 'No chats found for that name.' : filter === 'unread' ? 'No unread chats.' : 'No new matches.'}</div>
           : <div className="space-y-7">
             {newMatches.length > 0 && <section aria-label="New matches" data-testid="section-new-matches">
               <h2 className="mb-3 text-xs font-extrabold uppercase tracking-[.18em] text-primary">New Matches</h2>
@@ -682,7 +687,17 @@ function ChatsPage() {
             </li>;
           })}</ul>
             </section>}
-            {!chats.length && newMatches.length > 0 && <p className="text-center text-sm text-muted-foreground">No chats yet. Start a conversation with a new match.</p>}
+            {visibleDirect.length > 0 && <section aria-label="Direct messages" data-testid="section-direct-chats">
+              <h2 className="mb-3 text-xs font-extrabold uppercase tracking-[.18em] text-muted-foreground">Direct Messages</h2>
+              <ul>{visibleDirect.map(item=><li key={item.id} className="flex items-center gap-3 py-3" data-testid={`card-direct-chat-${item.id}`}>
+                <Link href={`/direct-chat/${item.id}?returnTo=%2Fmessages`} aria-label={`Open direct chat with ${item.profile.name}`} className="flex min-w-0 flex-1 items-center gap-3">
+                  {item.profile.photos?.[0] ? <MediaImage reference={item.profile.photos[0]} alt="" className="h-12 w-12 shrink-0 rounded-full object-cover"/> : <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-accent font-bold text-primary">{item.profile.name.slice(0,1)}</span>}
+                  <span className="min-w-0 flex-1"><span className="block truncate text-[16px] font-bold">{item.profile.name}</span><span className={`mt-1 block truncate text-sm ${item.unreadCount?"font-semibold text-foreground":"text-muted-foreground"}`}>{item.lastMessage||"Start a conversation"}</span></span>
+                  <span className="flex shrink-0 flex-col items-end gap-2"><time className="text-xs text-muted-foreground">{timeAgo(item.lastMessageAt)}</time>{item.unreadCount>0&&<span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-primary px-1.5 text-xs font-bold text-white">{item.unreadCount>99?"99+":item.unreadCount}</span>}</span>
+                </Link>
+              </li>)}</ul>
+            </section>}
+            {!chats.length && !visibleDirect.length && newMatches.length > 0 && <p className="text-center text-sm text-muted-foreground">No chats yet. Start a conversation with a new match.</p>}
           </div>}
       </div>
     </div>
@@ -830,6 +845,7 @@ function OwnProfileOverview({profile,travelCity}:{profile:Profile;travelCity?:st
       {profile.photos.length?<div className="mt-2 grid grid-cols-6 gap-1.5">{profile.photos.slice(0,6).map((p,i)=><div key={`${p}-${i}`} className="op-thumb relative aspect-square overflow-hidden rounded-xl"><MediaImage reference={p} alt={`Profile photo ${i+1}${i===0?' (main)':''}`} className="h-full w-full object-cover"/>{i===0&&<span className="absolute inset-x-0 bottom-0 bg-[#F34E9A] text-center text-[9px] font-bold leading-[14px] text-[#24111b]">Main</span>}</div>)}</div>:<p className="op-muted mt-1.5 text-[13px]">Add photos in Edit profile.</p>}
     </section>
      <ProfileReelsSection profileId={profile.id} returnTo="/profile" own />
+     <ProfileLikedReelsSection profileId={profile.id} returnTo="/profile" own />
   </div>;
 }
 function Field({label,children}:{label:string;children:ReactNode}){return <label className="grid gap-2 text-xs font-semibold text-muted-foreground">{label}{children}</label>}
@@ -875,7 +891,7 @@ function PublicProfile({id,actionReturnTo='/discover'}:{id:string;actionReturnTo
   const fromLikes=actionReturnTo==='/likes';
   const me=useGetMyProfile();
   const q=useGetProfileById(id,{query:{queryKey:getGetProfileByIdQueryKey(id),staleTime:10*60_000,gcTime:30*60_000,refetchOnMount:'always'}});const datingState=useGetProfileDatingState(id,{query:{queryKey:getGetProfileDatingStateQueryKey(id),enabled:!!id,staleTime:10*60_000,gcTime:30*60_000,refetchOnMount:'always'}});const followSummary=useGetProfileFollowSummary(id,{query:{queryKey:getGetProfileFollowSummaryQueryKey(id),enabled:!!id,staleTime:10*60_000,gcTime:30*60_000,refetchOnMount:'always'}});const matchedId=datingState.isError?null:datingState.data?.matchId??null;const canViewProfileStories=Boolean(followSummary.data?.isFollowing&&followSummary.data?.followsYou);const storyFeed=useGetStories({query:{queryKey:getGetStoriesQueryKey(),enabled:canViewProfileStories,staleTime:0,refetchOnMount:'always'}});const view=useRecordProfileView();const seen=useRef('');const [photoError,setPhotoError]=useState(false);const [viewer,setViewer]=useState<number|null>(null);const openPhoto=useCallback((index:number)=>setViewer(index),[]);
-   const client=useQueryClient();const [,setLocation]=useLocation();const reaction=useCreateReaction();const unlike=useUnlikeProfile();const likes=useGetDailyLikeStatus({query:{queryKey:getGetDailyLikeStatusQueryKey()}});
+    const client=useQueryClient();const [,setLocation]=useLocation();const reaction=useCreateReaction();const unlike=useUnlikeProfile();const likes=useGetDailyLikeStatus({query:{queryKey:getGetDailyLikeStatusQueryKey()}});const startDirectChat=useStartDirectChat();
   const [confirmation,setConfirmation]=useState<{text:string;kind:'like'}|null>(null);const [actionError,setActionError]=useState('');const block=useBlockProfile();const report=useReportProfile();const [menu,setMenu]=useState(false);const [confirmSafety,setConfirmSafety]=useState<'block'|'report'|null>(null);const [safetyError,setSafetyError]=useState('');const [reported,setReported]=useState(false);const [matchResult,setMatchResult]=useState<{name:string;matchId:string|null}|null>(null);
   const confirmationTimer=useRef<number|null>(null);const busy=useRef(false);const mounted=useRef(true);const currentId=useRef(id);currentId.current=id;
   useEffect(()=>{mounted.current=true;return()=>{mounted.current=false;if(confirmationTimer.current!==null)window.clearTimeout(confirmationTimer.current)}},[]);
@@ -932,6 +948,7 @@ function PublicProfile({id,actionReturnTo='/discover'}:{id:string;actionReturnTo
     }
   }
   function openMatchedChat(){if(!matchedId||datingState.isError)return;const origin=`/profile/${encodeURIComponent(id)}?returnTo=${encodeURIComponent(actionReturnTo)}`;const query=new URLSearchParams({returnTo:origin,focusComposer:'1'});setLocation(`/chat/${encodeURIComponent(matchedId)}?${query.toString()}`)}
+  async function openDirectChat(){if(!profile||startDirectChat.isPending)return;setActionError('');try{const conversation=await startDirectChat.mutateAsync({data:{recipientId:profile.id}});void client.invalidateQueries({queryKey:getGetDirectChatsQueryKey()});setLocation(`/direct-chat/${encodeURIComponent(conversation.id)}?returnTo=${encodeURIComponent(`/profile/${encodeURIComponent(id)}?returnTo=${encodeURIComponent(actionReturnTo)}`)}`)}catch(error){setActionError(error instanceof Error&&error.message?error.message:'This person does not allow you to start a chat.')}}
   async function runSafety(kind:'block'|'report'){if(!q.data)return;setSafetyError('');try{if(kind==='block'){await block.mutateAsync({data:{targetUserId:q.data.id}});void client.invalidateQueries({queryKey:getGetMatchesQueryKey()});setConfirmSafety(null);setMenu(false);setLocation(actionReturnTo)}else{await report.mutateAsync({data:{targetUserId:q.data.id,reason:'other'}});setReported(true);setConfirmSafety(null)}}catch(error){setSafetyError(error instanceof Error&&error.message?error.message:kind==='block'?'Could not block this profile. Please try again.':'Could not send the report. Please try again.')}}
   useEffect(()=>{if(viewer===null)return;const len=q.data?.photos?.length??0;const onKey=(e:KeyboardEvent)=>{if(e.key==='Escape')setViewer(null);if(e.key==='ArrowRight')setViewer(v=>v===null?v:Math.min(len-1,v+1));if(e.key==='ArrowLeft')setViewer(v=>v===null?v:Math.max(0,v-1))};window.addEventListener('keydown',onKey);return()=>window.removeEventListener('keydown',onKey)},[viewer,q.data?.photos?.length]);
     if(q.isError&&!q.data)return <div className="public-profile min-h-[100dvh] px-5 pt-2"><Link href={actionReturnTo} replace aria-label="Back" data-testid="link-public-profile-back-top" className="pp-round"><ArrowLeft size={20}/></Link><div className="mx-auto mt-16 max-w-sm"><Retry onRetry={()=>void q.refetch()} text="Profile unavailable."/></div></div>;
@@ -942,14 +959,15 @@ function PublicProfile({id,actionReturnTo='/discover'}:{id:string;actionReturnTo
   const likeOut=likeRemaining===0;
    const actionStatusLoading=(!datingState.data&&datingState.isLoading)||(!alreadyLiked&&likes.isLoading&&!likes.data);
    const actionBusy=locked||actionStatusLoading;
-  const datingAction=<div className="sh-dating-slot">
+   const datingAction=<div className="sh-dating-slot">
     <button type="button" onClick={()=>{if(matchedId){openMatchedChat();return}if(datingState.isError){void datingState.refetch();return}void reactLike()}}
       disabled={matchedId?false:actionBusy||superLiked||(!alreadyLiked&&(likeOut||!datingState.data))}
       data-testid={matchedId?'button-viewed-profile-message':'button-viewed-profile-like'}
       aria-label={matchedId?`Message ${profile.name}`:alreadyLiked?`Unlike ${profile.name}`:superLiked?`Super liked ${profile.name}`:fromLikes?`Like ${profile.name} back`:`Like ${profile.name}`}
       className={`sh-dating-button${alreadyLiked&&!matchedId?' sh-dating-liked':''}`}
     >{matchedId?<><MessageCircle size={17}/>Message</>:actionStatusLoading?<><LoaderCircle size={15} className="animate-spin"/>{fromLikes?'Like Back':'Like'}</>:datingState.isError?'Retry':reaction.isPending||unlike.isPending?<><LoaderCircle size={16} className="animate-spin"/>{alreadyLiked?'Liked':'Like'}</>:superLiked?<><Star size={17} fill="currentColor"/>Super liked</>:alreadyLiked?<><Heart size={17} fill="currentColor"/>Liked</>:likeOut?'No likes left':<><Heart size={17}/>{fromLikes?'Like Back':'Like'}</>}</button>
-    {actionError&&<span role="alert" className="sh-dating-error">{actionError}</span>}
+     {!matchedId&&me.data?.id!==profile.id&&<button type="button" onClick={()=>void openDirectChat()} disabled={startDirectChat.isPending} data-testid="button-start-direct-chat" className="sh-dating-button sh-dating-message">{startDirectChat.isPending?<LoaderCircle size={15} className="animate-spin"/>:<MessageCircle size={17}/>}Message</button>}
+     {actionError&&<span role="alert" className="sh-dating-error">{actionError}</span>}
     {!actionError&&likeOut&&!alreadyLiked&&!matchedId&&<span className="sh-dating-error">Today’s likes are used up.</span>}
   </div>;
   return <div className="public-profile min-h-[100dvh]"><main className="page-in pp-main mx-auto w-full px-4 pb-[calc(6rem+env(safe-area-inset-bottom))] pt-2 md:px-6" data-testid="public-profile-page">
@@ -985,6 +1003,7 @@ function PublicProfile({id,actionReturnTo='/discover'}:{id:string;actionReturnTo
       <div className="pp-profile-media">
         <ProfilePhotoGallery photos={photos} name={profile.name} onOpen={openPhoto}/>
         <ProfileReelsSection profileId={profile.id} returnTo={`/profile/${encodeURIComponent(id)}?returnTo=${encodeURIComponent(actionReturnTo)}`} layout="grid" />
+        <ProfileLikedReelsSection profileId={profile.id} returnTo={`/profile/${encodeURIComponent(id)}?returnTo=${encodeURIComponent(actionReturnTo)}`} layout="grid" />
       </div>
     </div>
     </main>
@@ -1156,7 +1175,7 @@ function ClerkRoutes(){const [,setLocation]=useLocation();return <ClerkProvider 
   <Route path="/sign-up/*?" component={BrandedSignUp}/>
   {import.meta.env.DEV&&<Route path="/create-account-preview"><div className="border-b border-primary/20 bg-accent px-5 py-3 text-center text-xs leading-5 text-foreground" role="note">Form preview only. Email-code signup still needs the authentication setting changed.</div><ProfileFirstSignup previewOnly/></Route>}
   <Route path="/onboarding" component={OnboardingRoute}/><Route path="/discover" component={DiscoverRoute}/><Route path="/search" component={SearchRoute}/><Route path="/stories/camera" component={StoryCameraRoute}/><Route path="/stories/new" component={StoryComposerRoute}/><Route path="/reels" component={ReelsRoute}/><Route path="/reels/new" component={ReelComposerRoute}/><Route path="/reels/saved" component={ReelsLibraryRoute}/><Route path="/reels/:reelId" component={ReelRoute}/><Route path="/matches" component={MatchesRoute}/>
-  <Route path="/chat/:matchId" component={ChatRoute}/><Route path="/views" component={ViewsRoute}/><Route path="/likes" component={LikesRoute}/><Route path="/messages" component={ChatsRoute}/><Route path="/notifications" component={NotificationsRoute}/>
+   <Route path="/chat/:matchId" component={ChatRoute}/><Route path="/direct-chat/:conversationId" component={DirectChatPage}/><Route path="/views" component={ViewsRoute}/><Route path="/likes" component={LikesRoute}/><Route path="/messages" component={ChatsRoute}/><Route path="/notifications" component={NotificationsRoute}/>
    <Route path="/privacy-policy" component={PrivacyPolicyRoute}/><Route path="/terms" component={CommunityGuidelinesRoute}/><Route path="/community-guidelines" component={CommunityGuidelinesRoute}/>
    <Route path="/safety-center" component={SafetyCenterRoute}/><Route path="/report-safety" component={ReportSafetyRoute}/><Route path="/safety/location" component={PublicLocationShareRoute}/>
   <Route path="/profile" component={ProfileRoute}/><Route path="/profile/edit" component={ProfileEditRoute}/><Route path="/profile/:profileId/followers" component={FollowersRoute}/><Route path="/profile/:profileId/following" component={FollowingRoute}/><Route path="/profile/:profileId/from-notifications" component={ViewedNotificationProfileRoute}/><Route path="/profile/:profileId" component={PublicProfileRoute}/><Route path="/verify-profile" component={FaceVerificationRoute}/><Route path="/settings" component={SettingsRoute}/><Route path="/settings/:section" component={SettingsSectionRoute}/><Route component={NotFound}/>

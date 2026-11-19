@@ -1,7 +1,7 @@
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { Bookmark, Clapperboard, Eye, Heart, MessageCircle, Play, Send } from "lucide-react";
 import { Link } from "wouter";
-import { getGetProfileReelsQueryKey, getProfileReels, type Reel } from "@workspace/api-client-react";
+import { getGetProfileLikedReelsQueryKey, getGetProfileReelsQueryKey, getProfileLikedReels, getProfileReels, type Reel } from "@workspace/api-client-react";
 import { formatCount, reelMediaUrl } from "@/lib/reels";
 
 export function ProfileReelsSection({
@@ -93,12 +93,46 @@ export function ProfileReelsSection({
   );
 }
 
-function ProfileReelThumbnail({ reel, returnTo, layout }: { reel: Reel; returnTo: string; layout: "carousel" | "grid" }) {
+export function ProfileLikedReelsSection({ profileId, returnTo, own = false, layout = "carousel" }: {
+  profileId: string;
+  returnTo: string;
+  own?: boolean;
+  layout?: "carousel" | "grid";
+}) {
+  const isGrid = !own && layout === "grid";
+  const query = useInfiniteQuery({
+    queryKey: getGetProfileLikedReelsQueryKey({ profileId }),
+    initialPageParam: undefined as string | undefined,
+    queryFn: ({ pageParam, signal }) => getProfileLikedReels({ profileId, ...(pageParam ? { before: pageParam } : {}) }, { signal }),
+    getNextPageParam: page => page.nextCursor ?? undefined,
+    enabled: Boolean(profileId),
+    staleTime: 30_000,
+  });
+  const reels = query.data?.pages.flatMap(page => page.items) ?? [];
+  function loadNext(event: React.UIEvent<HTMLDivElement>) {
+    const element = event.currentTarget;
+    if (element.scrollWidth - element.scrollLeft - element.clientWidth < 180 && query.hasNextPage && !query.isFetchingNextPage) void query.fetchNextPage();
+  }
+  return <section className={own ? "op-section shrink-0" : isGrid ? "pp-reels-grid-section" : "mt-6"} data-testid={own ? "section-profile-liked-reels" : "section-public-profile-liked-reels"}>
+    <div className="flex items-center justify-between px-1"><h2 className={own ? "op-label flex items-center gap-2" : "pp-label flex items-center gap-2"}><span aria-hidden="true">♥</span>Liked videos</h2>{reels.length>0&&<span className="text-xs font-semibold text-[hsl(var(--pp-muted))]">{reels.length}</span>}</div>
+    {query.isLoading ? <div className={isGrid?"pp-reel-grid mt-3":"hide-scrollbar -mx-1 mt-3 flex gap-2 overflow-hidden px-1"} aria-label="Loading liked videos">{[0,1,2].map(i=><div key={i} className={isGrid?"aspect-[3/4] animate-pulse rounded-xl bg-white/10":"aspect-[9/16] w-[76px] animate-pulse rounded-xl bg-white/10"}/>)}</div>
+      : query.isError ? <p role="status" className="mt-2 px-1 text-sm text-[hsl(var(--pp-muted))]">Liked videos aren’t available to this viewer.</p>
+      : reels.length ? <>
+        <div className={isGrid?"pp-reel-grid mt-3":`hide-scrollbar mt-3 flex gap-2 overflow-x-auto pb-1 ${own?"-mx-1 px-1":"-mx-5 gap-3 px-5"}`} onScroll={isGrid?undefined:loadNext} data-testid="profile-liked-reels-list">
+          {reels.map(reel=><ProfileReelThumbnail key={reel.id} reel={reel} returnTo={returnTo} layout={isGrid?"grid":"carousel"} profileFeed={false}/>)}
+        </div>
+        {isGrid&&query.hasNextPage&&<button type="button" onClick={()=>void query.fetchNextPage()} disabled={query.isFetchingNextPage} className="mt-3 min-h-10 w-full rounded-xl border border-white/10 text-sm font-bold text-[hsl(var(--pp-pink))] disabled:opacity-60">{query.isFetchingNextPage?"Loading…":"Load more"}</button>}
+      </> : <p className="mt-2 px-1 text-sm text-[hsl(var(--pp-muted))]">No liked videos to show.</p>}
+  </section>;
+}
+
+function ProfileReelThumbnail({ reel, returnTo, layout, profileFeed = true }: { reel: Reel; returnTo: string; layout: "carousel" | "grid"; profileFeed?: boolean }) {
   const viewCount = Number(reel.viewCount ?? 0);
   const interactionCounts = `${formatCount(reel.likeCount)} likes, ${formatCount(reel.commentCount)} comments, ${formatCount(reel.saveCount)} saves, ${formatCount(reel.shareCount)} shares`;
+  const href = `/reels/${encodeURIComponent(reel.id)}?${profileFeed ? `profileId=${encodeURIComponent(reel.creatorId)}&` : ""}returnTo=${encodeURIComponent(returnTo)}`;
   return (
     <Link
-      href={`/reels/${encodeURIComponent(reel.id)}?profileId=${encodeURIComponent(reel.creatorId)}&returnTo=${encodeURIComponent(returnTo)}`}
+      href={href}
       aria-label={`Play Reel: ${reel.caption || `posted by ${reel.creatorName}`}, ${formatCount(viewCount)} ${viewCount === 1 ? "view" : "views"}, ${interactionCounts}`}
       data-testid={`link-profile-reel-${reel.id}`}
       className={`group relative overflow-hidden rounded-xl border border-white/10 bg-black/40 shadow-md ${layout === "grid" ? "aspect-[3/4] w-full min-w-0" : "aspect-[9/16] w-[76px] shrink-0 sm:w-[86px]"}`}

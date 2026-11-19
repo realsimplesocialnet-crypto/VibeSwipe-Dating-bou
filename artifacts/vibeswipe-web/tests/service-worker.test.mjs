@@ -239,7 +239,7 @@ test("an approved public Reel is saved only on Wi-Fi and can serve byte-range pl
       manual: false,
       mediaUrl: url,
       reel: {
-        id: reelId, creatorId: "member", creatorName: "Alex", creatorAge: null,
+        id: reelId, creatorId: "member", creatorName: "Alex",
         creatorLocation: "", creatorVerified: false, creatorPhoto: null,
         videoReference: `media:${mediaId}`, caption: "A Reel", durationSeconds: 6,
         likeCount: 0, commentCount: 0, createdAt: new Date().toISOString(),
@@ -267,7 +267,7 @@ test("automatic Reel caching never downloads over cellular or caches unapproved 
   const mediaId = "123e4567-e89b-42d3-a456-426614174000";
   const reel = {
     id: "123e4567-e89b-42d3-a456-426614174001", creatorId: "member",
-    creatorName: "Alex", creatorAge: null, creatorLocation: "",
+    creatorName: "Alex", creatorLocation: "",
     creatorVerified: false, creatorPhoto: null, videoReference: `media:${mediaId}`,
     caption: "", durationSeconds: 5, likeCount: 0, commentCount: 0,
     createdAt: new Date().toISOString(),
@@ -306,7 +306,7 @@ test("a user-confirmed Wi-Fi fallback works when the browser hides network type"
   const mediaId = "123e4567-e89b-42d3-a456-426614174000";
   const reel = {
     id: "123e4567-e89b-42d3-a456-426614174001", creatorId: "member",
-    creatorName: "Alex", creatorAge: null, creatorLocation: "",
+    creatorName: "Alex", creatorLocation: "",
     creatorVerified: false, creatorPhoto: null, videoReference: `media:${mediaId}`,
     caption: "", durationSeconds: 5, likeCount: 0, commentCount: 0,
     createdAt: new Date().toISOString(),

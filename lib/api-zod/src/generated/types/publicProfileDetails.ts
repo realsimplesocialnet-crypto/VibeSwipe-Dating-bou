@@ -26,4 +26,5 @@ export interface PublicProfileDetails {
   photos: string[];
   isDemo: boolean;
   isVerified: boolean;
+  privateAccount: boolean;
 }

@@ -15,7 +15,7 @@ import { router } from "expo-router";
 import { ActivityIndicator, Alert, Image, Modal, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ProfileAvatar } from "@/components/ProfileAvatar";
-import { ProfileReelsSection } from "@/components/ProfileReelsSection";
+import { ProfileLikedReelsSection, ProfileReelsSection } from "@/components/ProfileReelsSection";
 import { ProfileFollowStats } from "@/components/ProfileFollow";
 import { usePremiumColors } from "@/hooks/useColors";
 import { profileImageSource } from "@/lib/media";
@@ -162,6 +162,7 @@ export default function ProfileScreen() {
           ) : <Text style={[styles.body, { color: colors.profileMuted }]}>Add photos in Edit profile.</Text>}
         </View>
         <ProfileReelsSection profileId={user.id} returnTo="/(tabs)/profile" />
+        <ProfileLikedReelsSection profileId={user.id} returnTo="/(tabs)/profile" />
       </ScrollView>
       <Modal visible={blockedOpen} transparent animationType="slide" onRequestClose={() => setBlockedOpen(false)}>
         <Pressable style={styles.backdrop} onPress={() => setBlockedOpen(false)} />

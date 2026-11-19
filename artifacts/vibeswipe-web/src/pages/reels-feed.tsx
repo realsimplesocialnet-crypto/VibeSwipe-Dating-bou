@@ -3,11 +3,11 @@ import { Link, useLocation } from "wouter";
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import {
   getGetMyReelsQueryKey, getGetNotificationsQueryKey, getGetProfileReelsQueryKey, getGetReelQueryKey,
-  getGetReelsFeedQueryKey, getGetSavedReelsQueryKey, getProfileReels, getReelsFeed,
+  getGetReelsFeedQueryKey, getGetSavedReelsQueryKey, getProfileReels, getReelsFeed, downloadReel,
   useGetReel, useLikeReel, useRecordReelView, useSaveReel,
-  useUnlikeReel, useUnsaveReel, type Reel,
+  useUnlikeReel, useUnsaveReel, useMarkReelNotInterested, type Reel,
 } from "@workspace/api-client-react";
-import { ArrowLeft, Bookmark, Clapperboard, LoaderCircle, Plus, Search, Users, X } from "lucide-react";
+import { ArrowLeft, Bookmark, Clapperboard, Download, EyeOff, LoaderCircle, MoreHorizontal, Plus, Search, Users, X } from "lucide-react";
 import { ReelSlide } from "@/components/reels/reel-slide";
 import { ReelComments } from "@/components/reels/reel-comments";
 import { ReelShareSheet } from "@/components/reels/reel-share-sheet";
@@ -124,6 +124,7 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
   const [patches, setPatches] = useState<Record<string, Partial<Reel>>>({});
   const [removed, setRemoved] = useState<Set<string>>(() => new Set());
   const [notice, setNotice] = useState("");
+  const [reelMenuOpen, setReelMenuOpen] = useState(false);
   const [offlineReels, setOfflineReels] = useState<Reel[]>([]);
   const [offlineIds, setOfflineIds] = useState<Set<string>>(() => new Set());
   const [offlineSavingIds, setOfflineSavingIds] = useState<Set<string>>(() => new Set());
@@ -133,6 +134,7 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
     setAppNavigationVisible(navigationVisible);
   }, [navigationVisible, setAppNavigationVisible]);
   useEffect(() => () => setAppNavigationVisible(true), [setAppNavigationVisible]);
+  useEffect(() => setReelMenuOpen(false), [active]);
 
   const openComments = useCallback((reelId: string) => {
     const currentState = window.history.state;
@@ -230,6 +232,7 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
     refetchOnWindowFocus: false,
   });
   const like = useLikeReel(); const unlike = useUnlikeReel(); const save = useSaveReel(); const unsave = useUnsaveReel();
+  const markNotInterested = useMarkReelNotInterested();
   const recordView = useRecordReelView();
   const viewedReels = useRef(new Set<string>());
   const activeFeed = profileId ? profileFeed : feed;
@@ -415,6 +418,42 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
     }
   }
 
+  async function hideSimilarReels(reel: Reel) {
+    try {
+      await markNotInterested.mutateAsync({ reelId: reel.id });
+      const words = (reel.caption ?? "").toLowerCase().match(/[\p{L}\p{N}]{4,}/gu) ?? [];
+      const related = reels.filter((candidate) => candidate.id === reel.id
+        || candidate.creatorId === reel.creatorId
+        || words.some((word) => (candidate.caption ?? "").toLowerCase().includes(word)));
+      setRemoved((current) => new Set([...current, ...related.map((item) => item.id)]));
+      void client.invalidateQueries({ queryKey: getGetReelsFeedQueryKey() });
+      setNotice("We’ll show you fewer Reels like this.");
+    } catch {
+      setNotice("Couldn’t update your recommendations. Try again.");
+    } finally {
+      setReelMenuOpen(false);
+    }
+  }
+
+  async function downloadCurrentReel(reel: Reel) {
+    try {
+      const blob = await downloadReel(reel.id);
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = `myage-reel-${reel.id}.mp4`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+      setNotice("Download started.");
+    } catch {
+      setNotice("This Reel could not be downloaded.");
+    } finally {
+      setReelMenuOpen(false);
+    }
+  }
+
   const back = () => commentsFor ? closeComments() : setLocation(returnTo);
   function changeFeedMode(mode: "reels" | "friends") {
     setFeedMode(mode);
@@ -441,6 +480,7 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
     setLocation(destination);
   }
   const commentReel = commentsFor ? reels.find((reel) => reel.id === commentsFor) : undefined;
+  const activeReel = reels[active];
   const ownPath = `${location}${window.location.search}`;
   // Reopen the video being watched, not the first slide, when leaving the library.
   const resumeParams = new URLSearchParams({ returnTo });
@@ -484,9 +524,15 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
         <div className="ml-auto flex items-center gap-2">
           <button type="button" onClick={() => openSearch()} aria-label="Search Reels" data-testid="button-search-reels" className="reels-search-trigger"><Search size={23} /></button>
           <Link href={`/reels/saved?returnTo=${encodeURIComponent(resumePath)}`} aria-label="Saved Reels" data-testid="link-reels-saved" className="reels-search-trigger"><Bookmark size={22} /></Link>
+          <button type="button" onClick={() => setReelMenuOpen((open) => !open)} aria-label="More Reel options" aria-expanded={reelMenuOpen} data-testid="button-reel-more-options" className="reels-search-trigger"><MoreHorizontal size={23} /></button>
           <button type="button" onClick={() => setLocation(`/reels/new?returnTo=${encodeURIComponent(ownPath)}`)} aria-label="Post a Reel" title="Post a Reel" data-testid="button-post-reel" className="reels-search-trigger"><Plus size={25} strokeWidth={2.2} /></button>
         </div>
       </header>
+      {reelMenuOpen && activeReel && <div className="absolute right-3 top-[calc(env(safe-area-inset-top,0px)+54px)] z-30 min-w-48 overflow-hidden rounded-2xl border border-white/10 bg-[#151319]/95 p-1.5 shadow-2xl backdrop-blur-xl" role="menu" data-testid="menu-reel-options">
+        {activeReel.canDownload && activeReel.mediaType === "video" && <button type="button" role="menuitem" onClick={() => void downloadCurrentReel(activeReel)} className="flex min-h-11 w-full items-center gap-3 rounded-xl px-3 text-left text-sm font-semibold text-white hover:bg-white/10" data-testid={`button-download-reel-${activeReel.id}`}><Download size={17}/>Download Reel</button>}
+        {!activeReel.isOwner && <button type="button" role="menuitem" disabled={markNotInterested.isPending} onClick={() => void hideSimilarReels(activeReel)} className="flex min-h-11 w-full items-center gap-3 rounded-xl px-3 text-left text-sm font-semibold text-white hover:bg-white/10 disabled:opacity-50" data-testid={`button-not-interested-${activeReel.id}`}><EyeOff size={17}/>Not interested</button>}
+        {!activeReel.canDownload && activeReel.isOwner && <p className="px-3 py-2 text-xs text-white/65">You have disabled Reel downloads.</p>}
+      </div>}
       {searchOpen && <section className="reels-search-overlay" role="dialog" aria-modal="true" aria-label="Search Reels" data-testid="reels-search-overlay">
         <div className="reels-search-toolbar">
           <button type="button" onClick={closeSearch} aria-label="Close Reel search" className="reels-icon"><ArrowLeft size={22} /></button>
@@ -530,7 +576,7 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
       {notice && <p role="status" className="reels-notice" data-testid="status-reels">{notice}</p>}
       {initialReelId && single.isError && <p role="status" className="reels-notice" data-testid="status-reel-unavailable">That Reel is no longer available. Showing other Reels.</p>}
     </div>
-    {commentReel && <ReelComments key={commentReel.id} reelId={commentReel.id} creatorId={commentReel.creatorId} returnTo={returnTo} commentCount={commentReel.commentCount} focusCommentId={initialCommentId} onClose={closeComments} onCountChange={(delta) => {
+    {commentReel && <ReelComments key={commentReel.id} reelId={commentReel.id} creatorId={commentReel.creatorId} returnTo={returnTo} commentCount={commentReel.commentCount} canComment={commentReel.canComment} focusCommentId={initialCommentId} onClose={closeComments} onCountChange={(delta) => {
       patch(commentReel.id, { commentCount: Math.max(0, commentReel.commentCount + delta) });
       void client.invalidateQueries({ queryKey: getGetReelQueryKey(commentReel.id) });
       void client.invalidateQueries({ queryKey: getGetProfileReelsQueryKey({ profileId: commentReel.creatorId }) });

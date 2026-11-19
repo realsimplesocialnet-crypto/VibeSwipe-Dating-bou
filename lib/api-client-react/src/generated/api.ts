@@ -41,6 +41,11 @@ import type {
   CheckAdditionalProfilePhoto200,
   DailyLikeStatus,
   DeleteMessageInput,
+  DirectChatMessageInput,
+  DirectChatStartInput,
+  DirectConversation,
+  DirectMessage,
+  DirectMessagePage,
   DiscoveryLocationCoordinatesInput,
   DiscoveryLocationSelection,
   EmergencyContact,
@@ -51,14 +56,17 @@ import type {
   FaceVerificationResult,
   FaceVerificationSession,
   FaceVerificationStatus,
+  FollowRequest,
   GetAdminChatExportParams,
   GetAdminDashboardParams,
   GetAdminPostsParams,
   GetAdminVerificationRequestsParams,
+  GetDirectChatMessagesParams,
   GetDiscoverProfilesParams,
   GetMyReelsParams,
   GetProfileFollowersParams,
   GetProfileFollowingParams,
+  GetProfileLikedReelsParams,
   GetProfileReelsParams,
   GetPublicLocationShareParams,
   GetReelsFeedParams,
@@ -4089,6 +4097,465 @@ export function useGetMatches<TData = Awaited<ReturnType<typeof getMatches>>, TE
 
 
 
+export const getGetDirectChatsUrl = () => {
+
+
+
+
+  return `/api/vibeswipe/direct-chats`
+}
+
+/**
+ * @summary List non-match conversations for the signed-in user
+ */
+export const getDirectChats = async ( options?: Parameters<typeof customFetch>[1]): Promise<DirectConversation[]> => {
+
+  return customFetch<DirectConversation[]>(getGetDirectChatsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetDirectChatsQueryKey = () => {
+    return [
+    `/api/vibeswipe/direct-chats`
+    ] as const;
+    }
+
+
+export const getGetDirectChatsQueryOptions = <TData = Awaited<ReturnType<typeof getDirectChats>>, TError = ErrorType<unknown>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDirectChats>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetDirectChatsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getDirectChats>>> = ({ signal }) => getDirectChats({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getDirectChats>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetDirectChatsQueryResult = NonNullable<Awaited<ReturnType<typeof getDirectChats>>>
+export type GetDirectChatsQueryError = ErrorType<unknown>
+
+
+export function useGetDirectChats<TData = Awaited<ReturnType<typeof getDirectChats>>, TError = ErrorType<unknown>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDirectChats>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getDirectChats>>,
+          TError,
+          Awaited<ReturnType<typeof getDirectChats>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetDirectChats<TData = Awaited<ReturnType<typeof getDirectChats>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDirectChats>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getDirectChats>>,
+          TError,
+          Awaited<ReturnType<typeof getDirectChats>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetDirectChats<TData = Awaited<ReturnType<typeof getDirectChats>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDirectChats>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary List non-match conversations for the signed-in user
+ */
+
+export function useGetDirectChats<TData = Awaited<ReturnType<typeof getDirectChats>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDirectChats>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetDirectChatsQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getStartDirectChatUrl = () => {
+
+
+
+
+  return `/api/vibeswipe/direct-chats`
+}
+
+/**
+ * @summary Start a permitted conversation with the first message
+ */
+export const startDirectChat = async (directChatStartInput: DirectChatStartInput, options?: Parameters<typeof customFetch>[1]): Promise<DirectConversation> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<DirectConversation>(getStartDirectChatUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(directChatStartInput)
+  }
+);}
+
+
+
+
+
+export const getStartDirectChatMutationKey = () => ['startDirectChat'] as const;
+
+export const getStartDirectChatMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof startDirectChat>>, TError,StartDirectChatMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof startDirectChat>>, TError,StartDirectChatMutationVariables, TContext> => {
+
+const mutationKey = getStartDirectChatMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof startDirectChat>>, StartDirectChatMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  startDirectChat(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type StartDirectChatMutationResult = NonNullable<Awaited<ReturnType<typeof startDirectChat>>>
+    export type StartDirectChatMutationBody = BodyType<DirectChatStartInput>
+    export type StartDirectChatMutationError = ErrorType<void>
+    export type StartDirectChatMutationVariables = {data: BodyType<DirectChatStartInput>}
+
+    /**
+ * @summary Start a permitted conversation with the first message
+ */
+export const useStartDirectChat = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof startDirectChat>>, TError,StartDirectChatMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof startDirectChat>>,
+        TError,
+        StartDirectChatMutationVariables,
+        TContext
+      > => {
+      return useMutation(getStartDirectChatMutationOptions(options), queryClient);
+    }
+
+export const getGetDirectChatMessagesUrl = (params: GetDirectChatMessagesParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/vibeswipe/direct-chat-messages?${stringifiedParams}` : `/api/vibeswipe/direct-chat-messages`
+}
+
+/**
+ * @summary Get a page of direct-conversation messages
+ */
+export const getDirectChatMessages = async (params: GetDirectChatMessagesParams, options?: Parameters<typeof customFetch>[1]): Promise<DirectMessagePage> => {
+
+  return customFetch<DirectMessagePage>(getGetDirectChatMessagesUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetDirectChatMessagesQueryKey = (params?: GetDirectChatMessagesParams,) => {
+    return [
+    `/api/vibeswipe/direct-chat-messages`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetDirectChatMessagesQueryOptions = <TData = Awaited<ReturnType<typeof getDirectChatMessages>>, TError = ErrorType<void>>(params: GetDirectChatMessagesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDirectChatMessages>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetDirectChatMessagesQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getDirectChatMessages>>> = ({ signal }) => getDirectChatMessages(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getDirectChatMessages>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetDirectChatMessagesQueryResult = NonNullable<Awaited<ReturnType<typeof getDirectChatMessages>>>
+export type GetDirectChatMessagesQueryError = ErrorType<void>
+
+
+export function useGetDirectChatMessages<TData = Awaited<ReturnType<typeof getDirectChatMessages>>, TError = ErrorType<void>>(
+ params: GetDirectChatMessagesParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDirectChatMessages>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getDirectChatMessages>>,
+          TError,
+          Awaited<ReturnType<typeof getDirectChatMessages>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetDirectChatMessages<TData = Awaited<ReturnType<typeof getDirectChatMessages>>, TError = ErrorType<void>>(
+ params: GetDirectChatMessagesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDirectChatMessages>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getDirectChatMessages>>,
+          TError,
+          Awaited<ReturnType<typeof getDirectChatMessages>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetDirectChatMessages<TData = Awaited<ReturnType<typeof getDirectChatMessages>>, TError = ErrorType<void>>(
+ params: GetDirectChatMessagesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDirectChatMessages>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get a page of direct-conversation messages
+ */
+
+export function useGetDirectChatMessages<TData = Awaited<ReturnType<typeof getDirectChatMessages>>, TError = ErrorType<void>>(
+ params: GetDirectChatMessagesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getDirectChatMessages>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetDirectChatMessagesQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getSendDirectChatMessageUrl = () => {
+
+
+
+
+  return `/api/vibeswipe/direct-chat-messages`
+}
+
+/**
+ * @summary Send a message in an existing direct conversation
+ */
+export const sendDirectChatMessage = async (directChatMessageInput: DirectChatMessageInput, options?: Parameters<typeof customFetch>[1]): Promise<DirectMessage> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<DirectMessage>(getSendDirectChatMessageUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(directChatMessageInput)
+  }
+);}
+
+
+
+
+
+export const getSendDirectChatMessageMutationKey = () => ['sendDirectChatMessage'] as const;
+
+export const getSendDirectChatMessageMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof sendDirectChatMessage>>, TError,SendDirectChatMessageMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof sendDirectChatMessage>>, TError,SendDirectChatMessageMutationVariables, TContext> => {
+
+const mutationKey = getSendDirectChatMessageMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof sendDirectChatMessage>>, SendDirectChatMessageMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  sendDirectChatMessage(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SendDirectChatMessageMutationResult = NonNullable<Awaited<ReturnType<typeof sendDirectChatMessage>>>
+    export type SendDirectChatMessageMutationBody = BodyType<DirectChatMessageInput>
+    export type SendDirectChatMessageMutationError = ErrorType<void>
+    export type SendDirectChatMessageMutationVariables = {data: BodyType<DirectChatMessageInput>}
+
+    /**
+ * @summary Send a message in an existing direct conversation
+ */
+export const useSendDirectChatMessage = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof sendDirectChatMessage>>, TError,SendDirectChatMessageMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof sendDirectChatMessage>>,
+        TError,
+        SendDirectChatMessageMutationVariables,
+        TContext
+      > => {
+      return useMutation(getSendDirectChatMessageMutationOptions(options), queryClient);
+    }
+
+export const getMarkDirectChatReadUrl = (conversationId: string,) => {
+
+
+
+
+  return `/api/vibeswipe/direct-chats/${conversationId}/read`
+}
+
+/**
+ * @summary Mark incoming direct messages as read
+ */
+export const markDirectChatRead = async (conversationId: string, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getMarkDirectChatReadUrl(conversationId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getMarkDirectChatReadMutationKey = () => ['markDirectChatRead'] as const;
+
+export const getMarkDirectChatReadMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof markDirectChatRead>>, TError,MarkDirectChatReadMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof markDirectChatRead>>, TError,MarkDirectChatReadMutationVariables, TContext> => {
+
+const mutationKey = getMarkDirectChatReadMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof markDirectChatRead>>, MarkDirectChatReadMutationVariables> = (props) => {
+          const {conversationId} = props ?? {};
+
+          return  markDirectChatRead(conversationId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type MarkDirectChatReadMutationResult = NonNullable<Awaited<ReturnType<typeof markDirectChatRead>>>
+
+    export type MarkDirectChatReadMutationError = ErrorType<void>
+    export type MarkDirectChatReadMutationVariables = {conversationId: string}
+
+    /**
+ * @summary Mark incoming direct messages as read
+ */
+export const useMarkDirectChatRead = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof markDirectChatRead>>, TError,MarkDirectChatReadMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof markDirectChatRead>>,
+        TError,
+        MarkDirectChatReadMutationVariables,
+        TContext
+      > => {
+      return useMutation(getMarkDirectChatReadMutationOptions(options), queryClient);
+    }
+
 export const getSendMessageUrl = (matchId: string,) => {
 
 
@@ -5924,6 +6391,255 @@ export const useUnfollowProfile = <TError = ErrorType<unknown>,
       return useMutation(getUnfollowProfileMutationOptions(options), queryClient);
     }
 
+export const getGetFollowRequestsUrl = () => {
+
+
+
+
+  return `/api/vibeswipe/follow-requests`
+}
+
+/**
+ * @summary List incoming follow requests for the signed-in user
+ */
+export const getFollowRequests = async ( options?: Parameters<typeof customFetch>[1]): Promise<FollowRequest[]> => {
+
+  return customFetch<FollowRequest[]>(getGetFollowRequestsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetFollowRequestsQueryKey = () => {
+    return [
+    `/api/vibeswipe/follow-requests`
+    ] as const;
+    }
+
+
+export const getGetFollowRequestsQueryOptions = <TData = Awaited<ReturnType<typeof getFollowRequests>>, TError = ErrorType<unknown>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getFollowRequests>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetFollowRequestsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getFollowRequests>>> = ({ signal }) => getFollowRequests({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getFollowRequests>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetFollowRequestsQueryResult = NonNullable<Awaited<ReturnType<typeof getFollowRequests>>>
+export type GetFollowRequestsQueryError = ErrorType<unknown>
+
+
+export function useGetFollowRequests<TData = Awaited<ReturnType<typeof getFollowRequests>>, TError = ErrorType<unknown>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getFollowRequests>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getFollowRequests>>,
+          TError,
+          Awaited<ReturnType<typeof getFollowRequests>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetFollowRequests<TData = Awaited<ReturnType<typeof getFollowRequests>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getFollowRequests>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getFollowRequests>>,
+          TError,
+          Awaited<ReturnType<typeof getFollowRequests>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetFollowRequests<TData = Awaited<ReturnType<typeof getFollowRequests>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getFollowRequests>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary List incoming follow requests for the signed-in user
+ */
+
+export function useGetFollowRequests<TData = Awaited<ReturnType<typeof getFollowRequests>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getFollowRequests>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetFollowRequestsQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getApproveFollowRequestUrl = (requesterId: string,) => {
+
+
+
+
+  return `/api/vibeswipe/follow-requests/${requesterId}/approve`
+}
+
+/**
+ * @summary Approve a pending follow request
+ */
+export const approveFollowRequest = async (requesterId: string, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getApproveFollowRequestUrl(requesterId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getApproveFollowRequestMutationKey = () => ['approveFollowRequest'] as const;
+
+export const getApproveFollowRequestMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof approveFollowRequest>>, TError,ApproveFollowRequestMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof approveFollowRequest>>, TError,ApproveFollowRequestMutationVariables, TContext> => {
+
+const mutationKey = getApproveFollowRequestMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof approveFollowRequest>>, ApproveFollowRequestMutationVariables> = (props) => {
+          const {requesterId} = props ?? {};
+
+          return  approveFollowRequest(requesterId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ApproveFollowRequestMutationResult = NonNullable<Awaited<ReturnType<typeof approveFollowRequest>>>
+
+    export type ApproveFollowRequestMutationError = ErrorType<void>
+    export type ApproveFollowRequestMutationVariables = {requesterId: string}
+
+    /**
+ * @summary Approve a pending follow request
+ */
+export const useApproveFollowRequest = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof approveFollowRequest>>, TError,ApproveFollowRequestMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof approveFollowRequest>>,
+        TError,
+        ApproveFollowRequestMutationVariables,
+        TContext
+      > => {
+      return useMutation(getApproveFollowRequestMutationOptions(options), queryClient);
+    }
+
+export const getDeclineFollowRequestUrl = (requesterId: string,) => {
+
+
+
+
+  return `/api/vibeswipe/follow-requests/${requesterId}`
+}
+
+/**
+ * @summary Decline an incoming request or cancel an outgoing request
+ */
+export const declineFollowRequest = async (requesterId: string, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getDeclineFollowRequestUrl(requesterId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeclineFollowRequestMutationKey = () => ['declineFollowRequest'] as const;
+
+export const getDeclineFollowRequestMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof declineFollowRequest>>, TError,DeclineFollowRequestMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof declineFollowRequest>>, TError,DeclineFollowRequestMutationVariables, TContext> => {
+
+const mutationKey = getDeclineFollowRequestMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof declineFollowRequest>>, DeclineFollowRequestMutationVariables> = (props) => {
+          const {requesterId} = props ?? {};
+
+          return  declineFollowRequest(requesterId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeclineFollowRequestMutationResult = NonNullable<Awaited<ReturnType<typeof declineFollowRequest>>>
+
+    export type DeclineFollowRequestMutationError = ErrorType<unknown>
+    export type DeclineFollowRequestMutationVariables = {requesterId: string}
+
+    /**
+ * @summary Decline an incoming request or cancel an outgoing request
+ */
+export const useDeclineFollowRequest = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof declineFollowRequest>>, TError,DeclineFollowRequestMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof declineFollowRequest>>,
+        TError,
+        DeclineFollowRequestMutationVariables,
+        TContext
+      > => {
+      return useMutation(getDeclineFollowRequestMutationOptions(options), queryClient);
+    }
+
 export const getGetProfileFollowersUrl = (params: GetProfileFollowersParams,) => {
   const normalizedParams = new URLSearchParams();
 
@@ -7255,6 +7971,114 @@ export function useGetProfileReels<TData = Awaited<ReturnType<typeof getProfileR
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
   const queryOptions = getGetProfileReelsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetProfileLikedReelsUrl = (params: GetProfileLikedReelsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/vibeswipe/profile-liked-reels?${stringifiedParams}` : `/api/vibeswipe/profile-liked-reels`
+}
+
+/**
+ * @summary List liked Reels allowed by the profile owner's privacy settings
+ */
+export const getProfileLikedReels = async (params: GetProfileLikedReelsParams, options?: Parameters<typeof customFetch>[1]): Promise<ReelPage> => {
+
+  return customFetch<ReelPage>(getGetProfileLikedReelsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetProfileLikedReelsQueryKey = (params?: GetProfileLikedReelsParams,) => {
+    return [
+    `/api/vibeswipe/profile-liked-reels`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetProfileLikedReelsQueryOptions = <TData = Awaited<ReturnType<typeof getProfileLikedReels>>, TError = ErrorType<void>>(params: GetProfileLikedReelsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProfileLikedReels>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetProfileLikedReelsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getProfileLikedReels>>> = ({ signal }) => getProfileLikedReels(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getProfileLikedReels>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetProfileLikedReelsQueryResult = NonNullable<Awaited<ReturnType<typeof getProfileLikedReels>>>
+export type GetProfileLikedReelsQueryError = ErrorType<void>
+
+
+export function useGetProfileLikedReels<TData = Awaited<ReturnType<typeof getProfileLikedReels>>, TError = ErrorType<void>>(
+ params: GetProfileLikedReelsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProfileLikedReels>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getProfileLikedReels>>,
+          TError,
+          Awaited<ReturnType<typeof getProfileLikedReels>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetProfileLikedReels<TData = Awaited<ReturnType<typeof getProfileLikedReels>>, TError = ErrorType<void>>(
+ params: GetProfileLikedReelsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProfileLikedReels>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getProfileLikedReels>>,
+          TError,
+          Awaited<ReturnType<typeof getProfileLikedReels>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetProfileLikedReels<TData = Awaited<ReturnType<typeof getProfileLikedReels>>, TError = ErrorType<void>>(
+ params: GetProfileLikedReelsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProfileLikedReels>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary List liked Reels allowed by the profile owner's privacy settings
+ */
+
+export function useGetProfileLikedReels<TData = Awaited<ReturnType<typeof getProfileLikedReels>>, TError = ErrorType<void>>(
+ params: GetProfileLikedReelsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProfileLikedReels>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetProfileLikedReelsQueryOptions(params,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
@@ -9363,6 +10187,181 @@ export const useDeleteReel = <TError = ErrorType<void>,
       > => {
       return useMutation(getDeleteReelMutationOptions(options), queryClient);
     }
+
+export const getMarkReelNotInterestedUrl = (reelId: string,) => {
+
+
+
+
+  return `/api/vibeswipe/reels/${reelId}/not-interested`
+}
+
+/**
+ * @summary Hide a Reel and reduce similar recommendations for the signed-in user
+ */
+export const markReelNotInterested = async (reelId: string, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getMarkReelNotInterestedUrl(reelId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getMarkReelNotInterestedMutationKey = () => ['markReelNotInterested'] as const;
+
+export const getMarkReelNotInterestedMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof markReelNotInterested>>, TError,MarkReelNotInterestedMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof markReelNotInterested>>, TError,MarkReelNotInterestedMutationVariables, TContext> => {
+
+const mutationKey = getMarkReelNotInterestedMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof markReelNotInterested>>, MarkReelNotInterestedMutationVariables> = (props) => {
+          const {reelId} = props ?? {};
+
+          return  markReelNotInterested(reelId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type MarkReelNotInterestedMutationResult = NonNullable<Awaited<ReturnType<typeof markReelNotInterested>>>
+
+    export type MarkReelNotInterestedMutationError = ErrorType<void>
+    export type MarkReelNotInterestedMutationVariables = {reelId: string}
+
+    /**
+ * @summary Hide a Reel and reduce similar recommendations for the signed-in user
+ */
+export const useMarkReelNotInterested = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof markReelNotInterested>>, TError,MarkReelNotInterestedMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof markReelNotInterested>>,
+        TError,
+        MarkReelNotInterestedMutationVariables,
+        TContext
+      > => {
+      return useMutation(getMarkReelNotInterestedMutationOptions(options), queryClient);
+    }
+
+export const getDownloadReelUrl = (reelId: string,) => {
+
+
+
+
+  return `/api/vibeswipe/reels/${reelId}/download`
+}
+
+/**
+ * @summary Download a Reel when its creator allows downloads
+ */
+export const downloadReel = async (reelId: string, options?: Parameters<typeof customFetch>[1]): Promise<Blob> => {
+
+  return customFetch<Blob>(getDownloadReelUrl(reelId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getDownloadReelQueryKey = (reelId: string,) => {
+    return [
+    `/api/vibeswipe/reels/${reelId}/download`
+    ] as const;
+    }
+
+
+export const getDownloadReelQueryOptions = <TData = Awaited<ReturnType<typeof downloadReel>>, TError = ErrorType<void>>(reelId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof downloadReel>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getDownloadReelQueryKey(reelId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof downloadReel>>> = ({ signal }) => downloadReel(reelId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: reelId !== null && reelId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof downloadReel>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type DownloadReelQueryResult = NonNullable<Awaited<ReturnType<typeof downloadReel>>>
+export type DownloadReelQueryError = ErrorType<void>
+
+
+export function useDownloadReel<TData = Awaited<ReturnType<typeof downloadReel>>, TError = ErrorType<void>>(
+ reelId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof downloadReel>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof downloadReel>>,
+          TError,
+          Awaited<ReturnType<typeof downloadReel>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useDownloadReel<TData = Awaited<ReturnType<typeof downloadReel>>, TError = ErrorType<void>>(
+ reelId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof downloadReel>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof downloadReel>>,
+          TError,
+          Awaited<ReturnType<typeof downloadReel>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useDownloadReel<TData = Awaited<ReturnType<typeof downloadReel>>, TError = ErrorType<void>>(
+ reelId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof downloadReel>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Download a Reel when its creator allows downloads
+ */
+
+export function useDownloadReel<TData = Awaited<ReturnType<typeof downloadReel>>, TError = ErrorType<void>>(
+ reelId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof downloadReel>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getDownloadReelQueryOptions(reelId,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export const getRecordReelViewUrl = (reelId: string,) => {
 

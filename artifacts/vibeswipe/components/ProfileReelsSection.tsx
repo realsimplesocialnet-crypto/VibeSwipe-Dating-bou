@@ -6,7 +6,9 @@ import { router } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, FlatList, Image, Pressable, StyleSheet, Text, View } from "react-native";
 import {
+  getGetProfileLikedReelsQueryKey,
   getGetProfileReelsQueryKey,
+  getProfileLikedReels,
   getProfileReels,
   type Reel,
 } from "@workspace/api-client-react";
@@ -134,6 +136,41 @@ export function ProfileReelsSection({
       )}
     </View>
   );
+}
+
+export function ProfileLikedReelsSection({ profileId, returnTo, layout = "carousel" }: {
+  profileId: string;
+  returnTo: string;
+  layout?: "carousel" | "grid";
+}) {
+  const colors = usePremiumColors();
+  const { getToken } = useAuth();
+  const [token, setToken] = useState<string | null>(null);
+  const [sectionWidth, setSectionWidth] = useState(0);
+  const liked = useInfiniteQuery({
+    queryKey: getGetProfileLikedReelsQueryKey({ profileId }),
+    initialPageParam: undefined as string | undefined,
+    queryFn: ({ pageParam, signal }) => getProfileLikedReels({ profileId, ...(pageParam ? { before: pageParam } : {}) }, { signal }),
+    getNextPageParam: page => page.nextCursor ?? undefined,
+    enabled: Boolean(profileId),
+    staleTime: 30_000,
+  });
+  const reels = liked.data?.pages.flatMap(page => page.items) ?? [];
+  useEffect(() => {
+    let active = true;
+    void getToken().then(value => { if (active) setToken(value); });
+    return () => { active = false; };
+  }, [getToken]);
+  function openReel(reel: Reel) {
+    router.push({ pathname: "/reels/[reelId]", params: { reelId: reel.id, returnTo } });
+  }
+  return <View testID="profile-liked-reels-section" onLayout={event=>setSectionWidth(event.nativeEvent.layout.width)} style={[styles.section,{backgroundColor:colors.profileCard}]}>
+    <View style={styles.heading}><View style={[styles.icon,{backgroundColor:colors.profileChip}]}><Feather name="heart" size={13} color={colors.profileEdit}/></View><Text style={[styles.title,{color:colors.profileLabel}]}>LIKED VIDEOS</Text>{reels.length>0?<Text style={[styles.count,{color:colors.profileMuted}]}>{reels.length}</Text>:null}</View>
+    {liked.isLoading?<ActivityIndicator color={colors.primary} style={styles.loading}/>:liked.isError?<Text style={[styles.empty,{color:colors.profileMuted}]}>Liked videos aren’t available to this viewer.</Text>:reels.length?layout==="grid"?<>
+      <View style={styles.grid} testID="profile-liked-reels-grid">{reels.map(item=><ReelThumbnail key={item.id} reel={item} token={token} layout="grid" tileWidth={Math.max(72,Math.floor((sectionWidth-24-16)/3))} onPress={()=>openReel(item)}/>)}</View>
+      {liked.hasNextPage?<Pressable disabled={liked.isFetchingNextPage} onPress={()=>void liked.fetchNextPage()} style={[styles.loadMore,{borderColor:colors.border}]}>{liked.isFetchingNextPage?<ActivityIndicator size="small" color={colors.primary}/>:<Text style={{color:colors.profileEdit,fontWeight:"800",fontSize:13}}>Load more</Text>}</Pressable>:null}
+    </>:<FlatList horizontal data={reels} keyExtractor={item=>item.id} renderItem={({item})=><ReelThumbnail reel={item} token={token} layout="carousel" onPress={()=>openReel(item)}/>} showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row} onEndReached={()=>{if(liked.hasNextPage&&!liked.isFetchingNextPage)void liked.fetchNextPage()}} onEndReachedThreshold={0.5} initialNumToRender={4} maxToRenderPerBatch={4} windowSize={4} testID="profile-liked-reels-carousel"/>:<Text style={[styles.empty,{color:colors.profileMuted}]}>No liked videos to show.</Text>}
+  </View>;
 }
 
 function ReelThumbnail({

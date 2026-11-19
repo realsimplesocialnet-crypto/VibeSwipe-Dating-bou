@@ -25,6 +25,9 @@ export type ProfilePreferences = {
   };
 };
 
+export type ProfilePrivacyAudience = "everyone" | "followers" | "no_one";
+export type LikedVideoAudience = "everyone" | "followers" | "only_me";
+
 export const profilesTable = pgTable("vibeswipe_profiles", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
@@ -42,6 +45,11 @@ export const profilesTable = pgTable("vibeswipe_profiles", {
   videoUrl: text("video_url"),
   isDemo: boolean("is_demo").notNull().default(false),
   incognito: boolean("incognito").notNull().default(false),
+  privateAccount: boolean("private_account").notNull().default(false),
+  whoCanComment: text("who_can_comment").$type<ProfilePrivacyAudience>().notNull().default("everyone"),
+  whoCanMessage: text("who_can_message").$type<ProfilePrivacyAudience>().notNull().default("everyone"),
+  allowDownloads: boolean("allow_downloads").notNull().default(true),
+  likedVideoAudience: text("liked_video_audience").$type<LikedVideoAudience>().notNull().default("everyone"),
   showAge: boolean("show_age").notNull().default(true),
   showDistance: boolean("show_distance").notNull().default(true),
   notifyMatches: boolean("notify_matches").notNull().default(true),

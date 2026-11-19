@@ -1,13 +1,16 @@
 import { getAuth } from "@clerk/express";
+import { Readable } from "node:stream";
 import {
   CreateReelBody, CreateReelCommentBody, CreateReelCommentParams, CreateReelCommentResponse, CreateReelResponse,
   DeleteReelCommentParams, DeleteReelParams, GetMyReelsQueryParams, GetMyReelsResponse, GetReelCommentsParams,
   GetReelCommentsResponse, GetReelParams, GetReelResponse, GetReelsFeedQueryParams, GetReelsFeedResponse,
-  GetProfileReelsQueryParams, GetProfileReelsResponse, GetSavedReelsQueryParams, GetSavedReelsResponse, LikeReelParams, LikeReelResponse,
+  GetProfileLikedReelsQueryParams, GetProfileLikedReelsResponse, GetProfileReelsQueryParams, GetProfileReelsResponse,
+  GetSavedReelsQueryParams, GetSavedReelsResponse, LikeReelParams, LikeReelResponse,
+  MarkReelNotInterestedParams, DownloadReelParams,
   RecordReelShareResponse, RecordReelViewResponse, TranscodeReelVideoParams, TranscodeReelVideoResponse,
 } from "@workspace/api-zod";
 import {
-  blocksTable, db, mediaAssetsTable, profilesTable, reelCommentsTable, reelLikesTable, reelSavesTable, reelSharesTable, reelSlidesTable, reelViewsTable, reelsTable, storiesTable, vibeSwipeFollowsTable, vibeSwipeNotificationsTable,
+  blocksTable, db, mediaAssetsTable, profilesTable, reelCommentsTable, reelLikesTable, reelSavesTable, reelSharesTable, reelSlidesTable, reelViewsTable, reelNotInterestedTable, reelsTable, storiesTable, vibeSwipeFollowsTable, vibeSwipeNotificationsTable,
 } from "@workspace/db";
 import { and, asc, desc, eq, gte, inArray, isNull, lt, ne, or, sql, type SQL } from "drizzle-orm";
 import { Router, type IRouter, type Request } from "express";
@@ -22,6 +25,7 @@ import { ProfileVideoValidationError, transcodeReelVideo } from "../lib/profileV
 import { processSafeReel, processSafeReelImage, reelIsApproved } from "../lib/reel-safety";
 import { ReelSafetyError } from "../lib/reel-safety-policy";
 import { sendReelCommentReplyPush, sendReelLikePush } from "../lib/vibeswipePush";
+import { canCommentOnReel, canViewLikedVideos, canViewUserProfile } from "../lib/profile-privacy";
 
 const router: IRouter = Router();
 router.use("/vibeswipe/reels", requireAuth);
@@ -66,7 +70,8 @@ function uid(req: Request): string {
 
 function reelColumns(viewerId: string) {
   return {
-    id: reelsTable.id, userId: reelsTable.userId, mediaId: reelsTable.mediaId, mediaType: reelsTable.mediaType, caption: reelsTable.caption,
+    id: reelsTable.id, userId: reelsTable.userId, mediaId: reelsTable.mediaId, mediaType: reelsTable.mediaType,
+    audience: reelsTable.audience, caption: reelsTable.caption,
     durationSeconds: reelsTable.durationSeconds, createdAt: reelsTable.createdAt,
     slideMediaIds: sql<string[]>`COALESCE((
       SELECT array_agg(${reelSlidesTable.mediaId}::text ORDER BY ${reelSlidesTable.position})
@@ -74,8 +79,19 @@ function reelColumns(viewerId: string) {
     ), ARRAY[]::text[])`,
     viewCount: sql<number>`(SELECT count(*)::int FROM ${reelViewsTable} WHERE ${reelViewsTable.reelId} = ${reelsTable.id})`,
     shareCount: sql<number>`${reelsTable.shareCount} + (SELECT count(*)::int FROM ${reelSharesTable} WHERE ${reelSharesTable.reelId} = ${reelsTable.id})`,
-    name: profilesTable.name, age: profilesTable.age, showAge: profilesTable.showAge, city: profilesTable.city,
+    name: profilesTable.name, city: profilesTable.city,
     state: profilesTable.state, country: profilesTable.country, isVerified: profilesTable.isVerified, photos: profilesTable.photos,
+    allowsDownloads: profilesTable.allowDownloads,
+    canComment: sql<boolean>`CASE
+      WHEN ${profilesTable.whoCanComment} = 'no_one' THEN false
+      WHEN ${profilesTable.whoCanComment} = 'followers' THEN
+        ${reelsTable.userId} = ${viewerId} OR EXISTS (
+          SELECT 1 FROM ${vibeSwipeFollowsTable}
+          WHERE ${vibeSwipeFollowsTable.followerId} = ${viewerId}
+            AND ${vibeSwipeFollowsTable.followedId} = ${reelsTable.userId}
+        )
+      ELSE true
+    END`,
     creatorFollowedByMe: sql<boolean>`EXISTS (
       SELECT 1 FROM ${vibeSwipeFollowsTable}
       WHERE ${vibeSwipeFollowsTable.followerId} = ${viewerId}
@@ -100,10 +116,12 @@ function selectReels(viewerId: string, where: SQL | undefined, limit: number) {
 
 function project(row: ReelRow, viewerId: string) {
   return {
-    id: row.id, creatorId: row.userId, creatorName: row.name, creatorAge: row.showAge ? row.age : null,
+    id: row.id, creatorId: row.userId, creatorName: row.name,
     creatorLocation: reelLocation([row.city, row.state, row.country]), creatorVerified: row.isVerified,
     creatorPhoto: row.photos[0] ?? null, creatorFollowedByMe: Boolean(row.creatorFollowedByMe),
-    videoReference: `media:${row.mediaId}`, mediaType: row.mediaType as "video" | "slides",
+    canComment: Boolean(row.canComment),
+    canDownload: row.mediaType === "video" && Boolean(row.allowsDownloads),
+    videoReference: `media:${row.mediaId}`, mediaType: row.mediaType as "video" | "slides", audience: row.audience,
     slideReferences: row.slideMediaIds.map((id) => `media:${id}`), caption: row.caption,
     durationSeconds: row.durationSeconds, likeCount: Number(row.likeCount), commentCount: Number(row.commentCount),
     viewCount: Number(row.viewCount), shareCount: Number(row.shareCount), saveCount: Number(row.saveCount),
@@ -125,7 +143,7 @@ async function engagement(viewerId: string, reelId: string) {
   } : null;
 }
 
-function afterCursor(cursorText: string | undefined, column: typeof reelsTable.createdAt | typeof reelSavesTable.createdAt): SQL | undefined | false {
+function afterCursor(cursorText: string | undefined, column: typeof reelsTable.createdAt | typeof reelSavesTable.createdAt | typeof reelLikesTable.createdAt): SQL | undefined | false {
   if (!cursorText) return undefined;
   const cursor = decodeReelCursor(cursorText);
   if (!cursor) return false;
@@ -156,7 +174,19 @@ router.get("/vibeswipe/reels", async (req, res): Promise<void> => {
           AND ${vibeSwipeFollowsTable.followedId} = ${reelsTable.userId}
       )`
     : undefined;
-  const baseWhere = and(searchCondition, followingCondition);
+  const notInterestedCondition = sql`(
+    ${reelsTable.userId} = ${viewerId}
+    OR NOT EXISTS (
+      SELECT 1 FROM ${reelNotInterestedTable} ni
+      WHERE ni.user_id = ${viewerId}
+        AND (
+          ni.reel_id = ${reelsTable.id}
+          OR ni.creator_id = ${reelsTable.userId}
+          OR ni.caption_terms && regexp_split_to_array(lower(coalesce(${reelsTable.caption}, '')), '[^[:alnum:]]+')
+        )
+    )
+  )`;
+  const baseWhere = and(searchCondition, followingCondition, notInterestedCondition);
 
   if (query.data.q) {
     const cursorCondition = afterCursor(query.data.cursor, reelsTable.createdAt);
@@ -234,6 +264,10 @@ router.get("/vibeswipe/profile-reels", async (req, res): Promise<void> => {
       and(eq(blocksTable.blockerId, profileId), eq(blocksTable.blockedId, viewerId)),
     )).limit(1);
     if (block) { res.status(404).json({ error: "Profile not found." }); return; }
+    if (!(await canViewUserProfile(viewerId, profileId))) {
+      res.status(404).json({ error: "Profile not found." });
+      return;
+    }
   }
   const where = afterCursor(params.data.cursor, reelsTable.createdAt);
   if (where === false) { res.status(400).json({ error: "Invalid profile Reels page." }); return; }
@@ -243,6 +277,38 @@ router.get("/vibeswipe/profile-reels", async (req, res): Promise<void> => {
   res.json(GetProfileReelsResponse.parse({
     items: page.map((row) => project(row, viewerId)),
     nextCursor: rows.length > 24 && last ? encodeReelCursor(last.createdAt, last.id) : null,
+  }));
+});
+
+router.get("/vibeswipe/profile-liked-reels", async (req, res): Promise<void> => {
+  const query = GetProfileLikedReelsQueryParams.safeParse(req.query);
+  if (!query.success) { res.status(400).json({ error: "Invalid liked Reels page." }); return; }
+  const viewerId = uid(req);
+  const profileId = query.data.profileId;
+  if (!(await canViewLikedVideos(viewerId, profileId))) {
+    res.status(404).json({ error: "Liked videos are not available." });
+    return;
+  }
+  const where = afterCursor(query.data.cursor, reelLikesTable.createdAt);
+  if (where === false) { res.status(400).json({ error: "Invalid liked Reels page." }); return; }
+  const rows = await db.select({
+    ...reelColumns(viewerId),
+    likedAt: reelLikesTable.createdAt,
+  }).from(reelLikesTable)
+    .innerJoin(reelsTable, eq(reelsTable.id, reelLikesTable.reelId))
+    .innerJoin(profilesTable, eq(profilesTable.id, reelsTable.userId))
+    .where(and(
+      eq(reelLikesTable.userId, profileId),
+      visibleReelCondition(viewerId),
+      where,
+    ))
+    .orderBy(desc(reelLikesTable.createdAt), desc(reelsTable.id))
+    .limit(25);
+  const page = rows.slice(0, 24);
+  const last = page[page.length - 1];
+  res.json(GetProfileLikedReelsResponse.parse({
+    items: page.map((row) => project(row, viewerId)),
+    nextCursor: rows.length > 24 && last ? encodeReelCursor(last.likedAt, last.id) : null,
   }));
 });
 
@@ -307,7 +373,7 @@ router.post("/vibeswipe/reels", async (req, res): Promise<void> => {
     }
     const created = await db.transaction(async (tx) => {
       const [reel] = await tx.insert(reelsTable).values({
-        userId, mediaId: mediaIds[0], mediaType: "slides", caption: cleanReelCaption(body.data.caption),
+         userId, mediaId: mediaIds[0], mediaType: "slides", audience: body.data.audience ?? "public", caption: cleanReelCaption(body.data.caption),
         durationSeconds: null, createdAt: new Date(),
       }).onConflictDoNothing({ target: reelsTable.mediaId }).returning({ id: reelsTable.id });
       if (!reel) return null;
@@ -335,7 +401,7 @@ router.post("/vibeswipe/reels", async (req, res): Promise<void> => {
     .where(eq(storiesTable.mediaUrl, `media:${body.data.mediaId}`)).limit(1);
   if (story) { res.status(409).json({ error: "This video is already used by a story." }); return; }
   const [created] = await db.insert(reelsTable).values({
-    userId, mediaId: body.data.mediaId, caption: cleanReelCaption(body.data.caption),
+    userId, mediaId: body.data.mediaId, audience: body.data.audience ?? "public", caption: cleanReelCaption(body.data.caption),
     durationSeconds: asset!.durationSeconds, createdAt: new Date(),
   }).onConflictDoNothing({ target: reelsTable.mediaId }).returning({ id: reelsTable.id });
   if (!created) { res.status(409).json({ error: "This video has already been posted." }); return; }
@@ -350,6 +416,43 @@ router.get("/vibeswipe/reels/:reelId", async (req, res): Promise<void> => {
   const row = await findVisibleReel(viewerId, params.data.reelId);
   if (!row) { res.status(404).json({ error: "This Reel is no longer available." }); return; }
   res.json(GetReelResponse.parse(project(row, viewerId)));
+});
+
+router.get("/vibeswipe/reels/:reelId/download", async (req, res): Promise<void> => {
+  const params = DownloadReelParams.safeParse(req.params);
+  if (!params.success) { res.status(400).json({ error: "Invalid Reel." }); return; }
+  const viewerId = uid(req);
+  const reel = await findVisibleReel(viewerId, params.data.reelId);
+  if (!reel) { res.status(404).json({ error: "This Reel is no longer available." }); return; }
+  const [owner] = await db.select({ allowDownloads: profilesTable.allowDownloads })
+    .from(profilesTable).where(eq(profilesTable.id, reel.userId)).limit(1);
+  if (!owner?.allowDownloads) { res.status(403).json({ error: "The creator has disabled downloads." }); return; }
+  if (reel.mediaType !== "video") { res.status(415).json({ error: "Only video Reels can be downloaded." }); return; }
+  const [asset] = await db.select().from(mediaAssetsTable).where(eq(mediaAssetsTable.id, reel.mediaId)).limit(1);
+  if (!asset) { res.status(404).json({ error: "Reel media not found." }); return; }
+  try {
+    const file = await reelStorage.getObjectEntityFile(asset.objectPath);
+    const response = await reelStorage.downloadObject(file, 300);
+    res.status(response.status);
+    response.headers.forEach((value, key) => res.setHeader(key, value));
+    res.setHeader("Content-Disposition", 'attachment; filename="myage-reel.mp4"');
+    res.setHeader("Cache-Control", "private, no-store");
+    if (response.body) {
+      const stream = Readable.fromWeb(response.body as ReadableStream<Uint8Array>);
+      res.on("close", () => stream.destroy());
+      stream.on("error", (error) => {
+        req.log.error({ err: error, reelId: reel.id }, "Reel download interrupted");
+        res.destroy();
+      });
+      stream.pipe(res);
+    } else {
+      res.end();
+    }
+  } catch (error) {
+    if (error instanceof ObjectNotFoundError) { res.status(404).json({ error: "Reel media not found." }); return; }
+    req.log.error({ err: error, reelId: reel.id }, "Reel download failed");
+    res.status(500).json({ error: "Could not download this Reel." });
+  }
 });
 
 router.post("/vibeswipe/reels/:reelId/views", async (req, res): Promise<void> => {
@@ -369,6 +472,25 @@ router.post("/vibeswipe/reels/:reelId/views", async (req, res): Promise<void> =>
     viewCount: sql<number>`count(*)::int`,
   }).from(reelViewsTable).where(eq(reelViewsTable.reelId, params.data.reelId));
   res.json(RecordReelViewResponse.parse({ viewCount: Number(views?.viewCount ?? 0) }));
+});
+
+router.post("/vibeswipe/reels/:reelId/not-interested", async (req, res): Promise<void> => {
+  const params = MarkReelNotInterestedParams.safeParse(req.params);
+  if (!params.success) { res.status(400).json({ error: "Invalid Reel." }); return; }
+  const userId = uid(req);
+  const reel = await findVisibleReel(userId, params.data.reelId);
+  if (!reel || reel.userId === userId) { res.status(404).json({ error: "This Reel is no longer available." }); return; }
+  const captionTerms = reelSearchTerms(reel.caption);
+  await db.insert(reelNotInterestedTable).values({
+    userId,
+    reelId: reel.id,
+    creatorId: reel.userId,
+    captionTerms,
+  }).onConflictDoUpdate({
+    target: [reelNotInterestedTable.userId, reelNotInterestedTable.reelId],
+    set: { creatorId: reel.userId, captionTerms, createdAt: new Date() },
+  });
+  res.status(204).end();
 });
 
 router.post("/vibeswipe/reels/:reelId/shares", async (req, res): Promise<void> => {
@@ -491,6 +613,10 @@ router.post("/vibeswipe/reels/:reelId/comments", async (req, res): Promise<void>
       )).limit(1);
     if (!parent) { res.status(404).json({ error: "That comment is no longer available to reply to." }); return; }
     parentAuthorId = parent.authorId;
+  }
+  if (!(await canCommentOnReel(userId, reel.userId))) {
+    res.status(403).json({ error: "The creator does not allow you to comment on this Reel." });
+    return;
   }
   const [comment] = await db.transaction(async (tx) => {
     const [created] = await tx.insert(reelCommentsTable).values({

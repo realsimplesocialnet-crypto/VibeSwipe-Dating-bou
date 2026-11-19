@@ -6,6 +6,8 @@ import {
   getGetReelQueryKey,
   getGetReelCommentsQueryKey,
   getGetReelsFeedQueryKey,
+  getDownloadReelUrl,
+  useMarkReelNotInterested,
   useCreateReelComment,
   useGetMatches,
   useGetReel,
@@ -22,8 +24,9 @@ import {
 import { Feather } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import { VideoView, useVideoPlayer } from "expo-video";
+import { File, Paths } from "expo-file-system";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, Image, KeyboardAvoidingView, Linking, Modal, Platform, Pressable, ScrollView, Share, StyleSheet, Text, TextInput, View, useWindowDimensions } from "react-native";
+import { ActivityIndicator, Alert, Image, KeyboardAvoidingView, Linking, Modal, Platform, Pressable, ScrollView, Share, StyleSheet, Text, TextInput, View, useWindowDimensions } from "react-native";
 import { useQueryClient } from "@tanstack/react-query";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { usePremiumColors } from "@/hooks/useColors";
@@ -39,6 +42,8 @@ export default function ProfileReelScreen() {
   const { width: screenWidth } = useWindowDimensions();
   const [token, setToken] = useState<string | null>(null);
   const [shareVisible, setShareVisible] = useState(false);
+  const [moreVisible, setMoreVisible] = useState(false);
+  const [downloadPending, setDownloadPending] = useState(false);
   const [androidShareTargetsVisible, setAndroidShareTargetsVisible] = useState(false);
   const [commentsVisible, setCommentsVisible] = useState(false);
   const [commentVideoPaused, setCommentVideoPaused] = useState(false);
@@ -56,6 +61,7 @@ export default function ProfileReelScreen() {
   const unlikeReel = useUnlikeReel();
   const saveReel = useSaveReel();
   const unsaveReel = useUnsaveReel();
+  const markNotInterested = useMarkReelNotInterested();
   const createComment = useCreateReelComment();
   const matches = useGetMatches({
     query: { queryKey: getGetMatchesQueryKey(), enabled: shareVisible },
@@ -269,6 +275,37 @@ export default function ProfileReelScreen() {
     setCommentsVisible(true);
   }
 
+  async function markCurrentNotInterested() {
+    const reel = reelQuery.data;
+    if (!reel || markNotInterested.isPending) return;
+    try {
+      await markNotInterested.mutateAsync({ reelId: reel.id });
+      await queryClient.invalidateQueries({ queryKey: getGetReelsFeedQueryKey() });
+      setMoreVisible(false);
+      Alert.alert("Updated your recommendations", "We’ll show you fewer Reels like this.");
+      goBack();
+    } catch {
+      Alert.alert("Could not update your feed", "Please check your connection and try again.");
+    }
+  }
+
+  async function downloadCurrentReel() {
+    const reel = reelQuery.data;
+    const domain = process.env.EXPO_PUBLIC_DOMAIN;
+    if (!reel || !reel.canDownload || reel.mediaType !== "video" || !token || !domain || downloadPending) return;
+    setDownloadPending(true);
+    try {
+      const url = `https://${domain}${getDownloadReelUrl(reel.id)}`;
+      const file = await File.downloadFileAsync(url, new File(Paths.document, `myage-reel-${reel.id}.mp4`), { headers: { Authorization: `Bearer ${token}` }, idempotent: true });
+      setMoreVisible(false);
+      await File.preview(file);
+    } catch {
+      Alert.alert("Download failed", "This Reel could not be downloaded. Please try again.");
+    } finally {
+      setDownloadPending(false);
+    }
+  }
+
   function toggleVideoWhileCommenting() {
     if (commentVideoPaused) player.play();
     else player.pause();
@@ -283,7 +320,7 @@ export default function ProfileReelScreen() {
             <Feather name="arrow-left" size={22} color={colors.foreground} />
           </Pressable>
           <Text style={[styles.headerTitle, { color: colors.foreground }]}>Reels</Text>
-          <View style={styles.headerSpacer} />
+          <Pressable accessibilityRole="button" accessibilityLabel="More Reel options" onPress={()=>setMoreVisible(true)} style={styles.back} testID="button-reel-more-options"><Feather name="more-horizontal" size={22} color={colors.foreground}/></Pressable>
         </View>
         <View style={styles.videoStage}>
           {reelQuery.isLoading || !token ? (
@@ -377,7 +414,7 @@ export default function ProfileReelScreen() {
         {reelQuery.data ? (
           <View style={styles.caption}>
             <Text style={[styles.creator, { color: colors.foreground }]}>
-              {reelQuery.data.creatorName}{reelQuery.data.creatorAge ? `, ${reelQuery.data.creatorAge}` : ""}
+              {reelQuery.data.creatorName}
             </Text>
             {reelQuery.data.caption ? <Text style={[styles.captionText, { color: colors.mutedForeground }]}>{reelQuery.data.caption}</Text> : null}
             {actionError ? <Text accessibilityRole="alert" style={[styles.shareError, { color: colors.destructive }]}>{actionError}</Text> : null}
@@ -501,6 +538,17 @@ export default function ProfileReelScreen() {
           </View>
         </View>
       </Modal>
+      <Modal transparent visible={moreVisible} animationType="fade" onRequestClose={()=>setMoreVisible(false)}>
+        <View style={styles.moreBackdrop}>
+          <Pressable accessibilityRole="button" accessibilityLabel="Close Reel options" onPress={()=>setMoreVisible(false)} style={StyleSheet.absoluteFill}/>
+          <View style={[styles.moreSheet,{backgroundColor:colors.card,borderColor:colors.border}]}>
+            <View style={styles.shareHeading}><Text style={[styles.shareTitle,{color:colors.foreground}]}>Reel options</Text><Pressable accessibilityRole="button" accessibilityLabel="Close" onPress={()=>setMoreVisible(false)} style={styles.closeShare}><Feather name="x" size={20} color={colors.foreground}/></Pressable></View>
+            {reelQuery.data?.canDownload && reelQuery.data.mediaType==="video" ? <Pressable accessibilityRole="button" testID="button-download-reel" disabled={downloadPending} onPress={()=>void downloadCurrentReel()} style={[styles.moreAction,{borderColor:colors.border}]}><Feather name="download" size={18} color={colors.primary}/><Text style={[styles.moreActionText,{color:colors.foreground}]}>{downloadPending?"Downloading…":"Download Reel"}</Text></Pressable>:null}
+            {reelQuery.data && !reelQuery.data.isOwner ? <Pressable accessibilityRole="button" testID="button-not-interested-reel" disabled={markNotInterested.isPending} onPress={()=>void markCurrentNotInterested()} style={[styles.moreAction,{borderColor:colors.border}]}><Feather name="eye-off" size={18} color={colors.primary}/><Text style={[styles.moreActionText,{color:colors.foreground}]}>Not interested</Text></Pressable>:null}
+            {reelQuery.data?.isOwner && !reelQuery.data.canDownload ? <Text style={[styles.shareError,{color:colors.mutedForeground}]}>Downloads are turned off for your Reels.</Text>:null}
+          </View>
+        </View>
+      </Modal>
       <Modal transparent visible={commentsVisible} animationType="slide" onRequestClose={() => setCommentsVisible(false)}>
         <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={styles.commentBackdrop}>
           <Pressable accessibilityRole="button" accessibilityLabel="Close comments" onPress={() => setCommentsVisible(false)} style={StyleSheet.absoluteFill} />
@@ -538,7 +586,7 @@ export default function ProfileReelScreen() {
               </ScrollView>
             )}
             {actionError ? <Text accessibilityRole="alert" style={[styles.shareError, { color: colors.destructive }]}>{actionError}</Text> : null}
-            <View style={[styles.commentComposer, { borderColor: colors.border }]}>
+            {reelQuery.data?.canComment !== false ? <View style={[styles.commentComposer, { borderColor: colors.border }]}>
               <TextInput
                 accessibilityLabel="Add a comment"
                 testID="input-reel-comment"
@@ -554,7 +602,7 @@ export default function ProfileReelScreen() {
               <Pressable accessibilityRole="button" accessibilityLabel="Post comment" testID="button-post-reel-comment" disabled={!commentDraft.trim() || createComment.isPending} onPress={() => void postComment()} style={[styles.commentSend, { backgroundColor: colors.primary }, (!commentDraft.trim() || createComment.isPending) && styles.disabled]}>
                 {createComment.isPending ? <ActivityIndicator size="small" color={colors.primaryForeground} /> : <Feather name="arrow-up" size={19} color={colors.primaryForeground} />}
               </Pressable>
-            </View>
+            </View> : <Text style={[styles.commentUnavailable,{color:colors.mutedForeground}]}>The creator has turned off new comments.</Text>}
           </View>
         </KeyboardAvoidingView>
       </Modal>
@@ -580,6 +628,10 @@ const styles = StyleSheet.create({
   messageText: { fontSize: 15 },
   retry: { fontWeight: "700" },
   shareBackdrop: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.55)" },
+  moreBackdrop: { flex: 1, alignItems: "flex-end", paddingTop: 58, paddingHorizontal: 12, backgroundColor: "rgba(0,0,0,0.25)" },
+  moreSheet: { width: 250, borderWidth: 1, borderRadius: 18, padding: 10, shadowColor: "#000", shadowOpacity: 0.3, shadowRadius: 16, elevation: 10 },
+  moreAction: { minHeight: 46, flexDirection: "row", alignItems: "center", gap: 12, borderTopWidth: StyleSheet.hairlineWidth, paddingHorizontal: 8 },
+  moreActionText: { fontSize: 14, fontWeight: "700" },
   shareSheet: { maxHeight: "72%", borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 18, paddingTop: 12 },
   shareHeading: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 6 },
   shareTitle: { fontSize: 18, fontWeight: "800" },
@@ -610,6 +662,7 @@ const styles = StyleSheet.create({
   commentAuthor: { fontSize: 12, fontWeight: "800" },
   commentText: { fontSize: 13, lineHeight: 18 },
   commentComposer: { minHeight: 48, flexDirection: "row", alignItems: "center", gap: 8, borderWidth: 1, borderRadius: 26, paddingLeft: 14, paddingRight: 4 },
+  commentUnavailable: { textAlign: "center", paddingVertical: 14, fontSize: 12 },
   commentInput: { minWidth: 0, flex: 1, paddingVertical: 8, fontSize: 15 },
   commentSend: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center" },
   slideCount: { position: "absolute", top: 12, right: 12, borderRadius: 999, backgroundColor: "rgba(0,0,0,0.55)", paddingHorizontal: 10, paddingVertical: 5 },

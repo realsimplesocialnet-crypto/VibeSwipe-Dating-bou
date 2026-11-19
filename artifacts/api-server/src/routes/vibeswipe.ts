@@ -146,6 +146,7 @@ import {
 import { hasUnblockedMutualFollowBetween } from "../lib/vibeswipeStories";
 import { canViewStory } from "../lib/vibeswipeStoryRules";
 import { canViewReelMedia } from "../lib/reels-visibility";
+import { canStartChat, canViewUserProfile } from "../lib/profile-privacy";
 import { automaticDiscovery, countryValues, discoveryTier, minimumDiscoveryPool, regionalCountryValues, smartDiscoveryPool } from "../lib/discovery-pool";
 import { discoveryExcludedIds } from "../lib/discovery-exclusions";
 import { countryCodeFromCoordinates } from "../lib/countryFromCoordinates";
@@ -890,6 +891,11 @@ router.get("/vibeswipe/settings", async (req, res): Promise<void> => {
       deactivated: profilesTable.deactivated,
       travelMode: profilesTable.travelMode,
       travelCity: profilesTable.travelCity,
+      privateAccount: profilesTable.privateAccount,
+      whoCanComment: profilesTable.whoCanComment,
+      whoCanMessage: profilesTable.whoCanMessage,
+      allowDownloads: profilesTable.allowDownloads,
+      likedVideoAudience: profilesTable.likedVideoAudience,
     })
     .from(profilesTable)
     .where(eq(profilesTable.id, currentUserId(req)))
@@ -953,6 +959,11 @@ router.put("/vibeswipe/settings", async (req, res): Promise<void> => {
       deactivated: body.data.deactivated ?? current.deactivated,
       travelMode,
       travelCity: travelMode ? travelCity : null,
+      privateAccount: body.data.privateAccount ?? current.privateAccount,
+      whoCanComment: body.data.whoCanComment ?? current.whoCanComment,
+      whoCanMessage: body.data.whoCanMessage ?? current.whoCanMessage,
+      allowDownloads: body.data.allowDownloads ?? current.allowDownloads,
+      likedVideoAudience: body.data.likedVideoAudience ?? current.likedVideoAudience,
       updatedAt: new Date(),
     })
     .where(eq(profilesTable.id, userId))
@@ -969,6 +980,11 @@ router.put("/vibeswipe/settings", async (req, res): Promise<void> => {
       deactivated: profilesTable.deactivated,
       travelMode: profilesTable.travelMode,
       travelCity: profilesTable.travelCity,
+      privateAccount: profilesTable.privateAccount,
+      whoCanComment: profilesTable.whoCanComment,
+      whoCanMessage: profilesTable.whoCanMessage,
+      allowDownloads: profilesTable.allowDownloads,
+      likedVideoAudience: profilesTable.likedVideoAudience,
     });
   if (!profile) {
     res.status(404).json({ error: "Profile not found." });
@@ -1210,6 +1226,14 @@ router.get("/vibeswipe/discover", async (req, res): Promise<void> => {
     ...(searchTerm ? [] : [gte(profilesTable.age, ageMin), lte(profilesTable.age, ageMax)]),
     eq(profilesTable.deactivated, false),
     eq(profilesTable.adminSuspended, false),
+    sql`(
+      (${profilesTable.privateAccount} = false AND ${profilesTable.incognito} = false)
+      OR EXISTS (
+        SELECT 1 FROM vibeswipe_follows
+        WHERE vibeswipe_follows.follower_id = ${userId}
+          AND vibeswipe_follows.followed_id = ${profilesTable.id}
+      )
+    )`,
   ];
   if (searchTerm) {
     const escapedSearch = searchTerm.replace(/[\\%_]/g, "\\$&");
@@ -2052,6 +2076,13 @@ router.post(
       res.status(403).json({ error: "Chat is unavailable while blocked." });
       return;
     }
+    const recipientId = match.userAId === userId ? match.userBId : match.userAId;
+    const [hasPriorMessage] = await db.select({ id: messagesTable.id })
+      .from(messagesTable).where(eq(messagesTable.matchId, match.id)).limit(1);
+    if (!hasPriorMessage && !(await canStartChat(userId, recipientId))) {
+      res.status(403).json({ error: "This person does not allow you to start a chat." });
+      return;
+    }
     const content = body.data.content?.trim() ?? "";
     const mediaReference = body.data.mediaReference;
     const mediaType = body.data.mediaType;
@@ -2159,8 +2190,6 @@ router.post(
         matchId: match.id,
       })})`,
     );
-    const recipientId =
-      match.userAId === userId ? match.userBId : match.userAId;
     const [recipient] = await db
       .select({ isDemo: profilesTable.isDemo })
       .from(profilesTable)
@@ -2803,7 +2832,7 @@ async function authorizeMediaRead(
       const referenced =
         ownerProfile?.photos.includes(`media:${asset.id}`) ||
         ownerProfile?.videoUrl === `media:${asset.id}`;
-      if (!referenced || (await isBlockedBetween(userId, asset.ownerId))) {
+      if (!referenced || (await isBlockedBetween(userId, asset.ownerId)) || !(await canViewUserProfile(userId, asset.ownerId))) {
         return { ok: false, error: "Media is not visible to this account." };
       }
     }

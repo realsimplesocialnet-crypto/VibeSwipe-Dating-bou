@@ -6,6 +6,9 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { VibeSwipeSettingsUpdateInputLanguage } from './vibeSwipeSettingsUpdateInputLanguage';
+import type { VibeSwipeSettingsUpdateInputLikedVideoAudience } from './vibeSwipeSettingsUpdateInputLikedVideoAudience';
+import type { VibeSwipeSettingsUpdateInputWhoCanComment } from './vibeSwipeSettingsUpdateInputWhoCanComment';
+import type { VibeSwipeSettingsUpdateInputWhoCanMessage } from './vibeSwipeSettingsUpdateInputWhoCanMessage';
 
 export interface VibeSwipeSettingsUpdateInput {
   incognito?: boolean;
@@ -24,4 +27,9 @@ export interface VibeSwipeSettingsUpdateInput {
      * @nullable
      */
   travelCity?: string | null;
+  privateAccount?: boolean;
+  whoCanComment?: VibeSwipeSettingsUpdateInputWhoCanComment;
+  whoCanMessage?: VibeSwipeSettingsUpdateInputWhoCanMessage;
+  allowDownloads?: boolean;
+  likedVideoAudience?: VibeSwipeSettingsUpdateInputLikedVideoAudience;
 }

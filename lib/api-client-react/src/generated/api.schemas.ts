@@ -436,6 +436,7 @@ export interface PublicProfileDetails {
   photos: string[];
   isDemo: boolean;
   isVerified: boolean;
+  privateAccount: boolean;
 }
 
 export interface Profile {
@@ -623,6 +624,33 @@ export const VibeSwipeSettingsLanguage = {
   en: 'en',
 } as const;
 
+export type VibeSwipeSettingsWhoCanComment = typeof VibeSwipeSettingsWhoCanComment[keyof typeof VibeSwipeSettingsWhoCanComment];
+
+
+export const VibeSwipeSettingsWhoCanComment = {
+  everyone: 'everyone',
+  followers: 'followers',
+  no_one: 'no_one',
+} as const;
+
+export type VibeSwipeSettingsWhoCanMessage = typeof VibeSwipeSettingsWhoCanMessage[keyof typeof VibeSwipeSettingsWhoCanMessage];
+
+
+export const VibeSwipeSettingsWhoCanMessage = {
+  everyone: 'everyone',
+  followers: 'followers',
+  no_one: 'no_one',
+} as const;
+
+export type VibeSwipeSettingsLikedVideoAudience = typeof VibeSwipeSettingsLikedVideoAudience[keyof typeof VibeSwipeSettingsLikedVideoAudience];
+
+
+export const VibeSwipeSettingsLikedVideoAudience = {
+  everyone: 'everyone',
+  followers: 'followers',
+  only_me: 'only_me',
+} as const;
+
 export interface VibeSwipeSettings {
   incognito: boolean;
   showAge: boolean;
@@ -640,6 +668,11 @@ export interface VibeSwipeSettings {
      * @nullable
      */
   travelCity: string | null;
+  privateAccount: boolean;
+  whoCanComment: VibeSwipeSettingsWhoCanComment;
+  whoCanMessage: VibeSwipeSettingsWhoCanMessage;
+  allowDownloads: boolean;
+  likedVideoAudience: VibeSwipeSettingsLikedVideoAudience;
 }
 
 export type VibeSwipeSettingsUpdateInputLanguage = typeof VibeSwipeSettingsUpdateInputLanguage[keyof typeof VibeSwipeSettingsUpdateInputLanguage];
@@ -647,6 +680,33 @@ export type VibeSwipeSettingsUpdateInputLanguage = typeof VibeSwipeSettingsUpdat
 
 export const VibeSwipeSettingsUpdateInputLanguage = {
   en: 'en',
+} as const;
+
+export type VibeSwipeSettingsUpdateInputWhoCanComment = typeof VibeSwipeSettingsUpdateInputWhoCanComment[keyof typeof VibeSwipeSettingsUpdateInputWhoCanComment];
+
+
+export const VibeSwipeSettingsUpdateInputWhoCanComment = {
+  everyone: 'everyone',
+  followers: 'followers',
+  no_one: 'no_one',
+} as const;
+
+export type VibeSwipeSettingsUpdateInputWhoCanMessage = typeof VibeSwipeSettingsUpdateInputWhoCanMessage[keyof typeof VibeSwipeSettingsUpdateInputWhoCanMessage];
+
+
+export const VibeSwipeSettingsUpdateInputWhoCanMessage = {
+  everyone: 'everyone',
+  followers: 'followers',
+  no_one: 'no_one',
+} as const;
+
+export type VibeSwipeSettingsUpdateInputLikedVideoAudience = typeof VibeSwipeSettingsUpdateInputLikedVideoAudience[keyof typeof VibeSwipeSettingsUpdateInputLikedVideoAudience];
+
+
+export const VibeSwipeSettingsUpdateInputLikedVideoAudience = {
+  everyone: 'everyone',
+  followers: 'followers',
+  only_me: 'only_me',
 } as const;
 
 export interface VibeSwipeSettingsUpdateInput {
@@ -666,6 +726,11 @@ export interface VibeSwipeSettingsUpdateInput {
      * @nullable
      */
   travelCity?: string | null;
+  privateAccount?: boolean;
+  whoCanComment?: VibeSwipeSettingsUpdateInputWhoCanComment;
+  whoCanMessage?: VibeSwipeSettingsUpdateInputWhoCanMessage;
+  allowDownloads?: boolean;
+  likedVideoAudience?: VibeSwipeSettingsUpdateInputLikedVideoAudience;
 }
 
 export interface TravelCityOption {
@@ -801,6 +866,47 @@ export interface Match {
   blockedByMe: boolean;
   blockedMe: boolean;
   chatTheme: ChatTheme;
+}
+
+export interface DirectConversation {
+  id: string;
+  profile: Profile;
+  /** @nullable */
+  lastMessage: string | null;
+  /** @nullable */
+  lastMessageAt: string | null;
+  /** @minimum 0 */
+  unreadCount: number;
+}
+
+export interface DirectChatStartInput {
+  /** @minLength 1 */
+  recipientId: string;
+}
+
+export interface DirectChatMessageInput {
+  conversationId: string;
+  /**
+     * @minLength 1
+     * @maxLength 2000
+     */
+  content: string;
+}
+
+export interface DirectMessage {
+  id: string;
+  conversationId: string;
+  senderId: string;
+  content: string;
+  createdAt: string;
+  /** @nullable */
+  readAt: string | null;
+}
+
+export interface DirectMessagePage {
+  items: DirectMessage[];
+  /** @nullable */
+  nextBefore: string | null;
 }
 
 export interface BlockedProfile {
@@ -952,6 +1058,16 @@ export interface ProfileFollowSummary {
   followingCount: number;
   isFollowing: boolean;
   followsYou: boolean;
+  requestPendingByMe: boolean;
+  requestPendingForMe: boolean;
+}
+
+export interface FollowRequest {
+  requesterId: string;
+  displayName: string;
+  /** @nullable */
+  photo: string | null;
+  createdAt: string;
 }
 
 /**
@@ -1327,19 +1443,28 @@ export const ReelMediaType = {
   slides: 'slides',
 } as const;
 
+export type ReelAudience = typeof ReelAudience[keyof typeof ReelAudience];
+
+
+export const ReelAudience = {
+  public: 'public',
+  friends: 'friends',
+} as const;
+
 export interface Reel {
   id: string;
   creatorId: string;
   creatorName: string;
-  /** @nullable */
-  creatorAge: number | null;
   creatorLocation: string;
   creatorVerified: boolean;
   /** @nullable */
   creatorPhoto: string | null;
   creatorFollowedByMe: boolean;
+  canComment: boolean;
+  canDownload: boolean;
   videoReference: string;
   mediaType: ReelMediaType;
+  audience: ReelAudience;
   slideReferences: string[];
   caption: string;
   /** @nullable */
@@ -1374,6 +1499,14 @@ export interface ReelPage {
   nextCursor: string | null;
 }
 
+export type ReelInputAudience = typeof ReelInputAudience[keyof typeof ReelInputAudience];
+
+
+export const ReelInputAudience = {
+  public: 'public',
+  friends: 'friends',
+} as const;
+
 export type ReelInput = (unknown & {
   mediaId?: string;
   /**
@@ -1383,6 +1516,7 @@ export type ReelInput = (unknown & {
   slideMediaIds?: string[];
   /** @maxLength 300 */
   caption?: string;
+  audience?: ReelInputAudience;
 });
 
 export interface ReelEngagement {
@@ -1577,6 +1711,16 @@ export type GetPublicLocationShareParams = {
 token: string;
 };
 
+export type GetDirectChatMessagesParams = {
+conversationId: string;
+before?: string;
+/**
+ * @minimum 1
+ * @maximum 100
+ */
+limit?: number;
+};
+
 export type GetProfileFollowersParams = {
 /**
  * @minLength 1
@@ -1624,6 +1768,17 @@ export type GetProfileReelsParams = {
 profileId: string;
 /**
  * @maxLength 400
+ */
+cursor?: string;
+};
+
+export type GetProfileLikedReelsParams = {
+/**
+ * @minLength 1
+ */
+profileId: string;
+/**
+ * @maxLength 200
  */
 cursor?: string;
 };

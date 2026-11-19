@@ -15,11 +15,19 @@ import {
 } from "react-native";
 import {
   getGetDiscoverProfilesQueryKey,
+  getGetFollowRequestsQueryKey,
+  getGetProfileFollowSummaryQueryKey,
+  getGetReelsFeedQueryKey,
   getGetVibeSwipeSettingsQueryKey,
+  useGetFollowRequests,
+  useGetMyProfile,
+  useApproveFollowRequest,
+  useDeclineFollowRequest,
   useGetVibeSwipeSettings,
   getSearchTravelCitiesQueryKey,
   useSearchTravelCities,
   useUpdateVibeSwipeSettings,
+  type FollowRequest, type VibeSwipeSettings,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useColors } from "@/hooks/useColors";
@@ -121,6 +129,22 @@ export default function SettingsScreen() {
     }
   }
 
+  async function saveAccountSettings(patch: Partial<VibeSwipeSettings>) {
+    try {
+      const saved = await updateSettings.mutateAsync({ data: patch });
+      queryClient.setQueryData(getGetVibeSwipeSettingsQueryKey(), { ...settings.data, ...saved });
+      if ("privateAccount" in patch || "incognito" in patch) {
+        await queryClient.invalidateQueries({ queryKey: getGetDiscoverProfilesQueryKey() });
+        await queryClient.invalidateQueries({ queryKey: getGetReelsFeedQueryKey() });
+      }
+      if ("allowDownloads" in patch || "whoCanComment" in patch || "likedVideoAudience" in patch) {
+        await queryClient.invalidateQueries({ queryKey: getGetReelsFeedQueryKey() });
+      }
+    } catch {
+      Alert.alert("Could not save settings", "Please check your connection and try again.");
+    }
+  }
+
   function selectCity(value: string) {
     setSelectedTravelCity(value);
     setCitySearch(value);
@@ -159,6 +183,31 @@ export default function SettingsScreen() {
           </View>
           <Switch value={dark} disabled={updateSettings.isPending || !settings.data} onValueChange={(value) => void saveTheme(value)} trackColor={{ true: colors.primary }} />
         </View>
+      </View>
+      <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>PRIVACY</Text>
+      <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.border }]}>
+        <View style={[styles.row, styles.settingRow]}>
+          <View style={[styles.icon, { backgroundColor: colors.accent }]}><Feather name="lock" size={17} color={colors.primary} /></View>
+          <View style={styles.copy}><Text style={[styles.rowTitle, { color: colors.foreground }]}>Private account</Text><Text style={[styles.rowSub, { color: colors.mutedForeground }]}>Only approved followers can see your profile and videos.</Text></View>
+          <Switch value={settings.data?.privateAccount ?? false} disabled={updateSettings.isPending || settings.isLoading} onValueChange={value=>void saveAccountSettings({ privateAccount: value })} trackColor={{ true: colors.primary }} testID="toggle-private-account"/>
+        </View>
+      </View>
+      <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>INTERACTIONS</Text>
+      <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.border }]}>
+        <ChoiceSetting title="Who can comment" detail="Comments on your Reels" value={settings.data?.whoCanComment ?? "everyone"} disabled={updateSettings.isPending || settings.isLoading} colors={colors} options={[["everyone","Everyone"],["followers","Followers only"],["no_one","No one"]]} onChange={value=>void saveAccountSettings({ whoCanComment: value as VibeSwipeSettings["whoCanComment"] })}/>
+        <View style={[styles.divider, { backgroundColor: colors.border }]}/>
+        <ChoiceSetting title="Who can message" detail="Who can start a new chat" value={settings.data?.whoCanMessage ?? "everyone"} disabled={updateSettings.isPending || settings.isLoading} colors={colors} options={[["everyone","Everyone"],["followers","Followers only"],["no_one","No one"]]} onChange={value=>void saveAccountSettings({ whoCanMessage: value as VibeSwipeSettings["whoCanMessage"] })}/>
+      </View>
+      <FollowRequestsPanel colors={colors}/>
+      <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>CONTENT</Text>
+      <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.border }]}>
+        <View style={[styles.row, styles.settingRow]}>
+          <View style={[styles.icon, { backgroundColor: colors.accent }]}><Feather name="download" size={17} color={colors.primary} /></View>
+          <View style={styles.copy}><Text style={[styles.rowTitle, { color: colors.foreground }]}>Allow downloads</Text><Text style={[styles.rowSub, { color: colors.mutedForeground }]}>Let others download your video Reels.</Text></View>
+          <Switch value={settings.data?.allowDownloads ?? true} disabled={updateSettings.isPending || settings.isLoading} onValueChange={value=>void saveAccountSettings({ allowDownloads: value })} trackColor={{ true: colors.primary }} testID="toggle-allow-downloads"/>
+        </View>
+        <View style={[styles.divider, { backgroundColor: colors.border }]}/>
+        <ChoiceSetting title="Show liked videos" detail="Who can see Reels you liked" value={settings.data?.likedVideoAudience ?? "everyone"} disabled={updateSettings.isPending || settings.isLoading} colors={colors} options={[["everyone","Everyone"],["followers","Followers only"],["only_me","Only me"]]} onChange={value=>void saveAccountSettings({ likedVideoAudience: value as VibeSwipeSettings["likedVideoAudience"] })}/>
       </View>
       <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>DISCOVERY</Text>
       <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.border }]}>
@@ -341,6 +390,59 @@ export default function SettingsScreen() {
   );
 }
 
+function ChoiceSetting({ title, detail, value, options, disabled, colors, onChange }: {
+  title: string;
+  detail: string;
+  value: string;
+  options: [string, string][];
+  disabled: boolean;
+  colors: ReturnType<typeof useColors>;
+  onChange: (value: string) => void;
+}) {
+  return <View style={{ gap: 10 }}>
+    <View style={styles.row}>
+      <View style={styles.copy}><Text style={[styles.rowTitle, { color: colors.foreground }]}>{title}</Text><Text style={[styles.rowSub, { color: colors.mutedForeground }]}>{detail}</Text></View>
+    </View>
+    <View style={styles.choiceRow}>
+      {options.map(([option, label]) => <Pressable key={option} accessibilityRole="button" accessibilityState={{ selected: value === option, disabled }} disabled={disabled} onPress={() => onChange(option)} style={[styles.choice, { backgroundColor: value === option ? colors.accent : colors.background, borderColor: value === option ? colors.primary : colors.border, opacity: disabled ? 0.55 : 1 }]}>
+        <Text style={[styles.choiceText, { color: value === option ? colors.primary : colors.mutedForeground }]}>{label}</Text>
+      </Pressable>)}
+    </View>
+  </View>;
+}
+
+function FollowRequestsPanel({ colors }: { colors: ReturnType<typeof useColors> }) {
+  const requests = useGetFollowRequests({ query: { queryKey: getGetFollowRequestsQueryKey() } });
+  const me = useGetMyProfile();
+  const approve = useApproveFollowRequest();
+  const decline = useDeclineFollowRequest();
+  const queryClient = useQueryClient();
+  async function respond(requesterId: string, action: "approve" | "decline") {
+    try {
+      if (action === "approve") await approve.mutateAsync({ requesterId });
+      else await decline.mutateAsync({ requesterId });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: getGetFollowRequestsQueryKey() }),
+        queryClient.invalidateQueries({ queryKey: getGetDiscoverProfilesQueryKey() }),
+        me.data?.id ? queryClient.invalidateQueries({ queryKey: getGetProfileFollowSummaryQueryKey(me.data.id) }) : Promise.resolve(),
+      ]);
+    } catch {
+      Alert.alert("Could not update request", "Please check your connection and try again.");
+    }
+  }
+  return <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.border }]}>
+    <Text style={[styles.rowTitle, { color: colors.foreground, marginBottom: 5 }]}>Follow requests</Text>
+    <Text style={[styles.rowSub, { color: colors.mutedForeground, marginBottom: 12 }]}>Approve or decline people who want to follow your private account.</Text>
+    {requests.isLoading ? <Text style={[styles.rowSub, { color: colors.mutedForeground }]}>Loading requests…</Text>
+      : requests.isError ? <Pressable onPress={()=>void requests.refetch()}><Text style={[styles.rowSub, { color: colors.destructive }]}>Couldn’t load requests. Tap to retry.</Text></Pressable>
+      : requests.data?.length ? requests.data.map((request: FollowRequest)=> <View key={request.requesterId} style={styles.requestRow}>
+        <Text numberOfLines={1} style={[styles.requestName, { color: colors.foreground }]}>{request.displayName}</Text>
+        <Pressable disabled={approve.isPending||decline.isPending} onPress={()=>void respond(request.requesterId,"decline")} style={[styles.requestButton,{borderColor:colors.border}]}><Text style={{color:colors.mutedForeground,fontSize:12,fontWeight:"700"}}>Decline</Text></Pressable>
+        <Pressable disabled={approve.isPending||decline.isPending} onPress={()=>void respond(request.requesterId,"approve")} style={[styles.requestButton,{backgroundColor:colors.primary,borderColor:colors.primary}]}><Text style={{color:colors.primaryForeground,fontSize:12,fontWeight:"700"}}>Approve</Text></Pressable>
+      </View>) : <Text style={[styles.rowSub, { color: colors.mutedForeground }]}>No pending requests.</Text>}
+  </View>;
+}
+
 const styles = StyleSheet.create({
   scrollContent: { flexGrow: 1, padding: 20 },
   header: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 26 },
@@ -353,6 +455,12 @@ const styles = StyleSheet.create({
   rowTitle: { fontSize: 14, fontWeight: "700" },
   rowSub: { fontSize: 12, lineHeight: 17 },
   settingRow: { minHeight: 54 },
+  choiceRow: { flexDirection: "row", gap: 6 },
+  choice: { flex: 1, minHeight: 38, paddingHorizontal: 5, borderRadius: 11, borderWidth: 1, alignItems: "center", justifyContent: "center" },
+  choiceText: { fontSize: 11, fontWeight: "700", textAlign: "center" },
+  requestRow: { flexDirection: "row", alignItems: "center", gap: 7, paddingVertical: 8, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: "#444" },
+  requestName: { flex: 1, fontSize: 13, fontWeight: "600" },
+  requestButton: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 8 },
   divider: { height: StyleSheet.hairlineWidth, marginVertical: 13 },
   cityInput: { borderWidth: 1, borderRadius: 12, height: 46, paddingHorizontal: 12, marginTop: 16, marginBottom: 8, fontSize: 14 },
   suggestion: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 11, borderBottomWidth: StyleSheet.hairlineWidth },

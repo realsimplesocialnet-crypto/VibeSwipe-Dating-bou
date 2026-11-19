@@ -5,6 +5,7 @@
  * VibeSwipe dating profile, discovery, matching, messaging, and safety API
  * OpenAPI spec version: 0.1.0
  */
+import type { ReelInputAudience } from './reelInputAudience';
 
 export type ReelInput = (unknown & {
   mediaId?: string;
@@ -15,4 +16,5 @@ export type ReelInput = (unknown & {
   slideMediaIds?: string[];
   /** @maxLength 300 */
   caption?: string;
+  audience?: ReelInputAudience;
 });

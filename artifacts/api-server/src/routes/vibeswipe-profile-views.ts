@@ -18,6 +18,7 @@ import {
 import { and, desc, eq, inArray, isNull, or } from "drizzle-orm";
 import { Router, type IRouter, type Request } from "express";
 import { requireAuth } from "../middlewares/auth";
+import { canViewUserProfile } from "../lib/profile-privacy";
 import { createVibeSwipeNotification } from "../lib/vibeswipeNotifications";
 import { canShowIncomingLike, canShowIncomingProfile } from "../lib/incomingProfileVisibility";
 
@@ -251,6 +252,7 @@ router.get(
         photos: profilesTable.photos,
         isDemo: profilesTable.isDemo,
         isVerified: profilesTable.isVerified,
+        privateAccount: profilesTable.privateAccount,
         deactivated: profilesTable.deactivated,
       })
       .from(profilesTable)
@@ -262,6 +264,29 @@ router.get(
     }
     if (profileId !== userId && (await isBlockedBetween(userId, profileId))) {
       res.status(404).json({ error: "Profile not found." });
+      return;
+    }
+
+    if (profileId !== userId && !(await canViewUserProfile(userId, profileId))) {
+      res.json(GetProfileByIdResponse.parse({
+        id: profile.id,
+        name: "Private account",
+        age: null,
+        showAge: false,
+        gender: "",
+        lookingFor: "",
+        bio: "",
+        city: "",
+        country: null,
+        state: null,
+        interests: [],
+        occupation: "",
+        occupationOther: "",
+        photos: [],
+        isDemo: false,
+        isVerified: false,
+        privateAccount: true,
+      }));
       return;
     }
 
@@ -283,6 +308,7 @@ router.get(
         photos: profile.photos,
         isDemo: profile.isDemo,
         isVerified: profile.isVerified,
+        privateAccount: profile.privateAccount,
       }),
     );
   },

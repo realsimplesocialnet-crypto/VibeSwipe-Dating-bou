@@ -1,6 +1,9 @@
 import { getAuth } from "@clerk/express";
 import {
   FollowProfileParams,
+  ApproveFollowRequestParams,
+  DeclineFollowRequestParams,
+  GetFollowRequestsResponse,
   GetProfileDatingStateParams,
   GetProfileDatingStateResponse,
   GetProfileFollowSummaryParams,
@@ -18,6 +21,7 @@ import {
   profilesTable,
   reactionsTable,
   vibeSwipeFollowsTable,
+  vibeSwipeFollowRequestsTable,
   vibeSwipeNotificationsTable,
 } from "@workspace/db";
 import { and, count, desc, eq, ilike, inArray, notInArray, or, sql, type SQL } from "drizzle-orm";
@@ -25,6 +29,7 @@ import { Router, type IRouter, type Request } from "express";
 import { requireAuth } from "../middlewares/auth";
 import { planNewFollowNotification } from "../lib/vibeswipeFollowPolicy";
 import { sendFollowPush } from "../lib/vibeswipePush";
+import { canViewUserProfile } from "../lib/profile-privacy";
 
 const router: IRouter = Router();
 router.use(requireAuth);
@@ -42,6 +47,7 @@ async function profileIsAvailable(profileId: string): Promise<boolean> {
       isDemo: profilesTable.isDemo,
       deactivated: profilesTable.deactivated,
       adminSuspended: profilesTable.adminSuspended,
+      privateAccount: profilesTable.privateAccount,
     })
     .from(profilesTable)
     .where(eq(profilesTable.id, profileId))
@@ -67,8 +73,13 @@ async function followSummary(viewerId: string, profileId: string) {
     followingCount: sql<number>`(select count(*) from ${vibeSwipeFollowsTable} where ${vibeSwipeFollowsTable.followerId} = ${profileId})`.mapWith(Number),
     isFollowing: sql<boolean>`exists (select 1 from ${vibeSwipeFollowsTable} where ${vibeSwipeFollowsTable.followerId} = ${viewerId} and ${vibeSwipeFollowsTable.followedId} = ${profileId})`.mapWith(Boolean),
     followsYou: sql<boolean>`exists (select 1 from ${vibeSwipeFollowsTable} where ${vibeSwipeFollowsTable.followerId} = ${profileId} and ${vibeSwipeFollowsTable.followedId} = ${viewerId})`.mapWith(Boolean),
+    requestPendingByMe: sql<boolean>`exists (select 1 from ${vibeSwipeFollowRequestsTable} where ${vibeSwipeFollowRequestsTable.requesterId} = ${viewerId} and ${vibeSwipeFollowRequestsTable.targetId} = ${profileId})`.mapWith(Boolean),
+    requestPendingForMe: sql<boolean>`exists (select 1 from ${vibeSwipeFollowRequestsTable} where ${vibeSwipeFollowRequestsTable.requesterId} = ${profileId} and ${vibeSwipeFollowRequestsTable.targetId} = ${viewerId})`.mapWith(Boolean),
   }).from(profilesTable).where(eq(profilesTable.id, profileId)).limit(1);
-  return summary ?? { followersCount: 0, followingCount: 0, isFollowing: false, followsYou: false };
+  return summary ?? {
+    followersCount: 0, followingCount: 0, isFollowing: false, followsYou: false,
+    requestPendingByMe: false, requestPendingForMe: false,
+  };
 }
 
 router.get(
@@ -230,6 +241,9 @@ router.post(
       return;
     }
     const saved = await db.transaction(async (tx) => {
+      const [target] = await tx.select({ privateAccount: profilesTable.privateAccount })
+        .from(profilesTable).where(eq(profilesTable.id, profileId)).limit(1);
+      if (!target) return { blocked: false, inserted: false, pending: false };
       const [block] = await tx.select({ id: blocksTable.id }).from(blocksTable)
         .where(or(
           and(eq(blocksTable.blockerId, userId), eq(blocksTable.blockedId, profileId)),
@@ -237,6 +251,22 @@ router.post(
         )).limit(1);
       if (block) return { blocked: true, inserted: false };
 
+      if (target.privateAccount) {
+        const [existingFollow] = await tx.select({ followerId: vibeSwipeFollowsTable.followerId })
+          .from(vibeSwipeFollowsTable).where(and(
+            eq(vibeSwipeFollowsTable.followerId, userId),
+            eq(vibeSwipeFollowsTable.followedId, profileId),
+          )).limit(1);
+        if (existingFollow) return { blocked: false, inserted: false, pending: false };
+        await tx.insert(vibeSwipeFollowRequestsTable)
+          .values({ requesterId: userId, targetId: profileId })
+          .onConflictDoNothing();
+        return { blocked: false, inserted: false, pending: true };
+      }
+      await tx.delete(vibeSwipeFollowRequestsTable).where(and(
+        eq(vibeSwipeFollowRequestsTable.requesterId, userId),
+        eq(vibeSwipeFollowRequestsTable.targetId, profileId),
+      ));
       const [follow] = await tx.insert(vibeSwipeFollowsTable)
         .values({ followerId: userId, followedId: profileId })
         .onConflictDoNothing()
@@ -253,7 +283,7 @@ router.post(
           messageId: null,
         });
       }
-      return { blocked: false, inserted: Boolean(follow) };
+      return { blocked: false, inserted: Boolean(follow), pending: false };
     });
     if (saved.blocked) {
       res.status(409).json({ error: "You cannot follow this profile." });
@@ -278,14 +308,111 @@ router.delete(
     }
     const userId = currentUserId(req);
     if (userId !== params.data.profileId) {
-      await db.delete(vibeSwipeFollowsTable).where(and(
-        eq(vibeSwipeFollowsTable.followerId, userId),
-        eq(vibeSwipeFollowsTable.followedId, params.data.profileId),
-      ));
+      await db.transaction(async (tx) => {
+        await tx.delete(vibeSwipeFollowsTable).where(and(
+          eq(vibeSwipeFollowsTable.followerId, userId),
+          eq(vibeSwipeFollowsTable.followedId, params.data.profileId),
+        ));
+        await tx.delete(vibeSwipeFollowRequestsTable).where(and(
+          eq(vibeSwipeFollowRequestsTable.requesterId, userId),
+          eq(vibeSwipeFollowRequestsTable.targetId, params.data.profileId),
+        ));
+      });
     }
     res.status(204).end();
   },
 );
+
+router.get("/vibeswipe/follow-requests", async (req, res): Promise<void> => {
+  const userId = currentUserId(req);
+  const rows = await db.select({
+    requesterId: profilesTable.id,
+    displayName: profilesTable.name,
+    photos: profilesTable.photos,
+    privateAccount: profilesTable.privateAccount,
+    createdAt: vibeSwipeFollowRequestsTable.createdAt,
+  }).from(vibeSwipeFollowRequestsTable)
+    .innerJoin(profilesTable, eq(profilesTable.id, vibeSwipeFollowRequestsTable.requesterId))
+    .where(and(
+      eq(vibeSwipeFollowRequestsTable.targetId, userId),
+      eq(profilesTable.deactivated, false),
+      eq(profilesTable.adminSuspended, false),
+      eq(profilesTable.isDemo, false),
+      sql`NOT EXISTS (
+        SELECT 1 FROM ${blocksTable}
+        WHERE (${blocksTable.blockerId} = ${userId} AND ${blocksTable.blockedId} = ${vibeSwipeFollowRequestsTable.requesterId})
+          OR (${blocksTable.blockerId} = ${vibeSwipeFollowRequestsTable.requesterId} AND ${blocksTable.blockedId} = ${userId})
+      )`,
+    ))
+    .orderBy(desc(vibeSwipeFollowRequestsTable.createdAt))
+    .limit(100);
+  const response = await Promise.all(rows.map(async (row) => {
+    const mayViewProfile = await canViewUserProfile(userId, row.requesterId);
+    return {
+      requesterId: row.requesterId,
+      displayName: mayViewProfile ? row.displayName : "Private account",
+      photo: mayViewProfile ? row.photos[0] ?? null : null,
+      createdAt: row.createdAt,
+    };
+  }));
+  res.json(GetFollowRequestsResponse.parse(response));
+});
+
+router.post("/vibeswipe/follow-requests/:requesterId/approve", async (req, res): Promise<void> => {
+  const params = ApproveFollowRequestParams.safeParse(req.params);
+  if (!params.success) { res.status(400).json({ error: "Invalid follow request." }); return; }
+  const ownerId = currentUserId(req);
+  const requesterId = params.data.requesterId;
+  const result = await db.transaction(async (tx) => {
+    const [request] = await tx.select({ requesterId: vibeSwipeFollowRequestsTable.requesterId })
+      .from(vibeSwipeFollowRequestsTable).where(and(
+        eq(vibeSwipeFollowRequestsTable.requesterId, requesterId),
+        eq(vibeSwipeFollowRequestsTable.targetId, ownerId),
+      )).limit(1);
+    if (!request) return "missing" as const;
+    const [block] = await tx.select({ id: blocksTable.id }).from(blocksTable).where(or(
+      and(eq(blocksTable.blockerId, ownerId), eq(blocksTable.blockedId, requesterId)),
+      and(eq(blocksTable.blockerId, requesterId), eq(blocksTable.blockedId, ownerId)),
+    )).limit(1);
+    if (block) {
+      await tx.delete(vibeSwipeFollowRequestsTable).where(and(
+        eq(vibeSwipeFollowRequestsTable.requesterId, requesterId),
+        eq(vibeSwipeFollowRequestsTable.targetId, ownerId),
+      ));
+      return "blocked" as const;
+    }
+    const [follow] = await tx.insert(vibeSwipeFollowsTable).values({
+      followerId: requesterId,
+      followedId: ownerId,
+    }).onConflictDoNothing().returning({ followerId: vibeSwipeFollowsTable.followerId });
+    await tx.delete(vibeSwipeFollowRequestsTable).where(and(
+      eq(vibeSwipeFollowRequestsTable.requesterId, requesterId),
+      eq(vibeSwipeFollowRequestsTable.targetId, ownerId),
+    ));
+    return follow ? "approved" as const : "already-approved" as const;
+  });
+  if (result === "missing") { res.status(404).json({ error: "Follow request not found." }); return; }
+  if (result === "blocked") { res.status(204).end(); return; }
+  res.status(204).end();
+});
+
+router.delete("/vibeswipe/follow-requests/:requesterId", async (req, res): Promise<void> => {
+  const params = DeclineFollowRequestParams.safeParse(req.params);
+  if (!params.success) { res.status(400).json({ error: "Invalid follow request." }); return; }
+  const userId = currentUserId(req);
+  const otherId = params.data.requesterId;
+  await db.delete(vibeSwipeFollowRequestsTable).where(or(
+    and(
+      eq(vibeSwipeFollowRequestsTable.requesterId, otherId),
+      eq(vibeSwipeFollowRequestsTable.targetId, userId),
+    ),
+    and(
+      eq(vibeSwipeFollowRequestsTable.requesterId, userId),
+      eq(vibeSwipeFollowRequestsTable.targetId, otherId),
+    ),
+  ));
+  res.status(204).end();
+});
 
 async function listFollows(
   req: Request,
@@ -307,6 +434,10 @@ async function listFollows(
     return;
   }
   if (profileId !== viewerId && await blockedBetween(viewerId, profileId)) {
+    res.status(404).json({ error: "Profile not found." });
+    return;
+  }
+  if (profileId !== viewerId && !(await canViewUserProfile(viewerId, profileId))) {
     res.status(404).json({ error: "Profile not found." });
     return;
   }

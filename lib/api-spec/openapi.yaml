@@ -704,6 +704,84 @@ paths:
               schema:
                 type: array
                 items: { $ref: "#/components/schemas/Match" }
+  /vibeswipe/direct-chats:
+    get:
+      operationId: getDirectChats
+      tags: [vibeswipe]
+      summary: List non-match conversations for the signed-in user
+      responses:
+        "200":
+          description: Direct conversations
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/DirectConversation" }
+    post:
+      operationId: startDirectChat
+      tags: [vibeswipe]
+      summary: Start a permitted conversation with the first message
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DirectChatStartInput" }
+      responses:
+        "201":
+          description: Direct conversation opened
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DirectConversation" }
+        "403":
+          description: The recipient does not allow this user to start a chat
+        "404":
+          description: Recipient not found or unavailable
+  /vibeswipe/direct-chat-messages:
+    get:
+      operationId: getDirectChatMessages
+      tags: [vibeswipe]
+      summary: Get a page of direct-conversation messages
+      parameters:
+        - { in: query, name: conversationId, required: true, schema: { type: string, format: uuid } }
+        - { in: query, name: before, required: false, schema: { type: string, format: date-time } }
+        - { in: query, name: limit, required: false, schema: { type: integer, minimum: 1, maximum: 100, default: 50 } }
+      responses:
+        "200":
+          description: Messages in chronological order
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DirectMessagePage" }
+        "403":
+          description: Not a participant or conversation is blocked
+    post:
+      operationId: sendDirectChatMessage
+      tags: [vibeswipe]
+      summary: Send a message in an existing direct conversation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DirectChatMessageInput" }
+      responses:
+        "201":
+          description: Message sent
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DirectMessage" }
+        "403":
+          description: Not a participant or conversation is blocked
+  /vibeswipe/direct-chats/{conversationId}/read:
+    post:
+      operationId: markDirectChatRead
+      tags: [vibeswipe]
+      summary: Mark incoming direct messages as read
+      parameters:
+        - { in: path, name: conversationId, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "204":
+          description: Messages marked read
+        "403":
+          description: Not a participant
   /vibeswipe/matches/{matchId}/messages:
     post:
       operationId: sendMessage
@@ -1101,6 +1179,41 @@ paths:
       responses:
         "204":
           description: Follow relationship removed
+  /vibeswipe/follow-requests:
+    get:
+      operationId: getFollowRequests
+      tags: [vibeswipe]
+      summary: List incoming follow requests for the signed-in user
+      responses:
+        "200":
+          description: Pending incoming requests
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/FollowRequest" }
+  /vibeswipe/follow-requests/{requesterId}/approve:
+    post:
+      operationId: approveFollowRequest
+      tags: [vibeswipe]
+      summary: Approve a pending follow request
+      parameters:
+        - { in: path, name: requesterId, required: true, schema: { type: string, minLength: 1 } }
+      responses:
+        "204":
+          description: Request approved and follower relationship created
+        "404":
+          description: Follow request not found
+  /vibeswipe/follow-requests/{requesterId}:
+    delete:
+      operationId: declineFollowRequest
+      tags: [vibeswipe]
+      summary: Decline an incoming request or cancel an outgoing request
+      parameters:
+        - { in: path, name: requesterId, required: true, schema: { type: string, minLength: 1 } }
+      responses:
+        "204":
+          description: Request removed
   /vibeswipe/profile-followers:
     get:
       operationId: getProfileFollowers
@@ -1342,6 +1455,22 @@ paths:
               schema: { $ref: "#/components/schemas/ReelPage" }
         "400":
           description: Invalid Reels page
+        "404":
+          description: Profile not found or unavailable
+  /vibeswipe/profile-liked-reels:
+    get:
+      operationId: getProfileLikedReels
+      tags: [vibeswipe]
+      summary: List liked Reels allowed by the profile owner's privacy settings
+      parameters:
+        - { in: query, name: profileId, required: true, schema: { type: string, minLength: 1 } }
+        - { in: query, name: cursor, required: false, schema: { type: string, maxLength: 200 } }
+      responses:
+        "200":
+          description: Visible liked Reels page
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ReelPage" }
         "404":
           description: Profile not found or unavailable
   /vibeswipe/blocks:
@@ -1786,6 +1915,37 @@ paths:
           description: Reel deleted
         "404":
           description: Reel not found
+  /vibeswipe/reels/{reelId}/not-interested:
+    post:
+      operationId: markReelNotInterested
+      tags: [vibeswipe]
+      summary: Hide a Reel and reduce similar recommendations for the signed-in user
+      parameters:
+        - { in: path, name: reelId, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "204":
+          description: Reel excluded from the user's feed
+        "404":
+          description: Reel unavailable
+  /vibeswipe/reels/{reelId}/download:
+    get:
+      operationId: downloadReel
+      tags: [vibeswipe]
+      summary: Download a Reel when its creator allows downloads
+      parameters:
+        - { in: path, name: reelId, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200":
+          description: Reel media
+          content:
+            video/mp4:
+              schema: { type: string, format: binary }
+        "403":
+          description: Downloads are disabled by the creator
+        "404":
+          description: Reel unavailable
+        "415":
+          description: Only video Reels can be downloaded
   /vibeswipe/reels/{reelId}/views:
     post:
       operationId: recordReelView
@@ -2200,7 +2360,8 @@ components:
           items: { type: string }
         isDemo: { type: boolean }
         isVerified: { type: boolean }
-      required: [id, name, age, showAge, gender, lookingFor, bio, city, country, state, interests, occupation, occupationOther, photos, isDemo, isVerified]
+        privateAccount: { type: boolean }
+      required: [id, name, age, showAge, gender, lookingFor, bio, city, country, state, interests, occupation, occupationOther, photos, isDemo, isVerified, privateAccount]
     Profile:
       type: object
       properties:
@@ -2344,7 +2505,12 @@ components:
         deactivated: { type: boolean }
         travelMode: { type: boolean }
         travelCity: { type: [string, "null"], maxLength: 100 }
-      required: [incognito, showAge, showDistance, notifyMatches, notifyLikes, notifyMessages, notifyProfileViews, darkMode, language, deactivated, travelMode, travelCity]
+        privateAccount: { type: boolean }
+        whoCanComment: { type: string, enum: [everyone, followers, no_one] }
+        whoCanMessage: { type: string, enum: [everyone, followers, no_one] }
+        allowDownloads: { type: boolean }
+        likedVideoAudience: { type: string, enum: [everyone, followers, only_me] }
+      required: [incognito, showAge, showDistance, notifyMatches, notifyLikes, notifyMessages, notifyProfileViews, darkMode, language, deactivated, travelMode, travelCity, privateAccount, whoCanComment, whoCanMessage, allowDownloads, likedVideoAudience]
     VibeSwipeSettingsUpdateInput:
       type: object
       properties:
@@ -2360,6 +2526,11 @@ components:
         deactivated: { type: boolean }
         travelMode: { type: boolean }
         travelCity: { type: [string, "null"], maxLength: 100 }
+        privateAccount: { type: boolean }
+        whoCanComment: { type: string, enum: [everyone, followers, no_one] }
+        whoCanMessage: { type: string, enum: [everyone, followers, no_one] }
+        allowDownloads: { type: boolean }
+        likedVideoAudience: { type: string, enum: [everyone, followers, only_me] }
     TravelCityOption:
       type: object
       properties:
@@ -2438,6 +2609,44 @@ components:
         blockedMe: { type: boolean }
         chatTheme: { $ref: "#/components/schemas/ChatTheme" }
       required: [id, profile, updatedAt, blockedByMe, blockedMe, chatTheme]
+    DirectConversation:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        profile: { $ref: "#/components/schemas/Profile" }
+        lastMessage: { type: [string, "null"] }
+        lastMessageAt: { type: ["string", "null"], format: date-time }
+        unreadCount: { type: integer, minimum: 0 }
+      required: [id, profile, lastMessage, lastMessageAt, unreadCount]
+    DirectChatStartInput:
+      type: object
+      properties:
+        recipientId: { type: string, minLength: 1 }
+      required: [recipientId]
+    DirectChatMessageInput:
+      type: object
+      properties:
+        conversationId: { type: string, format: uuid }
+        content: { type: string, minLength: 1, maxLength: 2000 }
+      required: [conversationId, content]
+    DirectMessage:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        conversationId: { type: string, format: uuid }
+        senderId: { type: string }
+        content: { type: string }
+        createdAt: { type: string, format: date-time }
+        readAt: { type: ["string", "null"], format: date-time }
+      required: [id, conversationId, senderId, content, createdAt, readAt]
+    DirectMessagePage:
+      type: object
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/DirectMessage" }
+        nextBefore: { type: ["string", "null"], format: date-time }
+      required: [items, nextBefore]
     BlockedProfile:
       type: object
       properties:
@@ -2545,7 +2754,17 @@ components:
         followingCount: { type: integer, minimum: 0 }
         isFollowing: { type: boolean }
         followsYou: { type: boolean }
-      required: [followersCount, followingCount, isFollowing, followsYou]
+        requestPendingByMe: { type: boolean }
+        requestPendingForMe: { type: boolean }
+      required: [followersCount, followingCount, isFollowing, followsYou, requestPendingByMe, requestPendingForMe]
+    FollowRequest:
+      type: object
+      properties:
+        requesterId: { type: string }
+        displayName: { type: string }
+        photo: { type: [string, "null"] }
+        createdAt: { type: string, format: date-time }
+      required: [requesterId, displayName, photo, createdAt]
     ProfileDatingState:
       type: object
       properties:
@@ -2766,13 +2985,15 @@ components:
         id: { type: string, format: uuid }
         creatorId: { type: string }
         creatorName: { type: string }
-        creatorAge: { type: ["integer", "null"] }
         creatorLocation: { type: string }
         creatorVerified: { type: boolean }
         creatorPhoto: { type: ["string", "null"] }
         creatorFollowedByMe: { type: boolean }
+        canComment: { type: boolean }
+        canDownload: { type: boolean }
         videoReference: { type: string }
         mediaType: { type: string, enum: [video, slides] }
+        audience: { type: string, enum: [public, friends] }
         slideReferences:
           type: array
           items: { type: string }
@@ -2787,7 +3008,7 @@ components:
         savedByMe: { type: boolean }
         isOwner: { type: boolean }
         createdAt: { type: string, format: date-time }
-      required: [id, creatorId, creatorName, creatorAge, creatorLocation, creatorVerified, creatorPhoto, creatorFollowedByMe, videoReference, mediaType, slideReferences, caption, durationSeconds, likeCount, commentCount, viewCount, shareCount, saveCount, likedByMe, savedByMe, isOwner, createdAt]
+      required: [id, creatorId, creatorName, creatorLocation, creatorVerified, creatorPhoto, creatorFollowedByMe, canComment, canDownload, videoReference, mediaType, audience, slideReferences, caption, durationSeconds, likeCount, commentCount, viewCount, shareCount, saveCount, likedByMe, savedByMe, isOwner, createdAt]
     ReelViewCount:
       type: object
       properties:
@@ -2816,6 +3037,7 @@ components:
           maxItems: 10
           items: { type: string, format: uuid }
         caption: { type: string, maxLength: 300 }
+        audience: { type: string, enum: [public, friends], default: public }
       oneOf:
         - required: [mediaId]
         - required: [slideMediaIds]

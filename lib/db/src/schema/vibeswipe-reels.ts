@@ -15,12 +15,24 @@ export const reelsTable = pgTable("vibeswipe_reels", {
   userId: text("user_id").notNull().references(() => profilesTable.id, { onDelete: "cascade" }),
   mediaId: uuid("media_id").notNull().unique().references(() => mediaAssetsTable.id, { onDelete: "cascade" }),
   mediaType: text("media_type").notNull().default("video"),
+  audience: text("audience").$type<"public" | "friends">().notNull().default("public"),
   caption: text("caption").notNull().default(""),
   durationSeconds: doublePrecision("duration_seconds"),
   viewCount: integer("view_count").notNull().default(0),
   shareCount: integer("share_count").notNull().default(0),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => ({ feed: index("vibeswipe_reels_feed_idx").on(t.createdAt, t.id) }));
+
+export const reelNotInterestedTable = pgTable("vibeswipe_reel_not_interested", {
+  userId: text("user_id").notNull().references(() => profilesTable.id, { onDelete: "cascade" }),
+  reelId: uuid("reel_id").notNull().references(() => reelsTable.id, { onDelete: "cascade" }),
+  creatorId: text("creator_id").notNull().references(() => profilesTable.id, { onDelete: "cascade" }),
+  captionTerms: text("caption_terms").array().notNull().default([]),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  pk: primaryKey({ name: "vibeswipe_reel_not_interested_pk", columns: [t.userId, t.reelId] }),
+  byUser: index("vibeswipe_reel_not_interested_user_idx").on(t.userId, t.createdAt),
+}));
 
 export const reelSlidesTable = pgTable("vibeswipe_reel_slides", {
   reelId: uuid("reel_id").notNull().references(() => reelsTable.id, { onDelete: "cascade" }),

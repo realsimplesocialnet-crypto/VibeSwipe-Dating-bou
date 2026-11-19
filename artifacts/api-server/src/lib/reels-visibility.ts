@@ -1,8 +1,8 @@
-import { adminDeletedUsersTable, blocksTable, db, profilesTable, reelSlidesTable, reelsTable } from "@workspace/db";
+import { adminDeletedUsersTable, blocksTable, db, profilesTable, reelSlidesTable, reelsTable, vibeSwipeFollowsTable } from "@workspace/db";
 import { and, eq, or, sql, type SQL } from "drizzle-orm";
 import { REEL_SAFETY_VERSION } from "./reel-safety-policy";
 
-/** Reels visible to a viewer: own Reels, or active public members with no block either way. */
+/** Enforces account privacy, Reel audience, safety approval, account state, and blocks. */
 export function visibleReelCondition(viewerId: string): SQL {
   return and(sql`EXISTS (SELECT 1 FROM vibeswipe_reel_safety s
     JOIN vibeswipe_media_assets m ON m.id=s.media_id
@@ -21,9 +21,29 @@ export function visibleReelCondition(viewerId: string): SQL {
     and(
       eq(profilesTable.deactivated, false),
       eq(profilesTable.adminSuspended, false),
-      eq(profilesTable.incognito, false),
       sql`NOT EXISTS (SELECT 1 FROM ${blocksTable} WHERE (${blocksTable.blockerId} = ${viewerId} AND ${blocksTable.blockedId} = ${reelsTable.userId}) OR (${blocksTable.blockerId} = ${reelsTable.userId} AND ${blocksTable.blockedId} = ${viewerId}))`,
       sql`NOT EXISTS (SELECT 1 FROM ${adminDeletedUsersTable} WHERE ${adminDeletedUsersTable.userId} = ${reelsTable.userId})`,
+      sql`(
+        (${reelsTable.audience} = 'public'
+          AND ${profilesTable.privateAccount} = false
+          AND ${profilesTable.incognito} = false)
+        OR
+        (${reelsTable.audience} = 'public' AND EXISTS (
+          SELECT 1 FROM ${vibeSwipeFollowsTable}
+          WHERE ${vibeSwipeFollowsTable.followerId} = ${viewerId}
+            AND ${vibeSwipeFollowsTable.followedId} = ${reelsTable.userId}
+        ))
+        OR
+        (${reelsTable.audience} = 'friends'
+          AND EXISTS (
+            SELECT 1 FROM ${vibeSwipeFollowsTable} f1
+            WHERE f1.follower_id = ${viewerId} AND f1.followed_id = ${reelsTable.userId}
+          )
+          AND EXISTS (
+            SELECT 1 FROM ${vibeSwipeFollowsTable} f2
+            WHERE f2.follower_id = ${reelsTable.userId} AND f2.followed_id = ${viewerId}
+          ))
+      )`,
     ),
   ))!;
 }

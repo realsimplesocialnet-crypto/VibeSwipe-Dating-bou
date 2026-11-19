@@ -184,7 +184,7 @@ export function ReelSlide({ reel, index, active, near, muted, pageHidden, compac
         : <span className="reel-avatar" style={{ width: 54, height: 54 }} aria-hidden="true">{reel.creatorName.trim().charAt(0).toUpperCase() || "M"}</span>}
     </span>
     <span className="min-w-0">
-      <span className="reel-name" data-testid={`text-reel-creator-${reel.id}`}>{reel.creatorName}{reel.creatorAge !== null && <span className="reel-age">, {reel.creatorAge}</span>}<VerifiedBadge verified={reel.creatorVerified} /></span>
+      <span className="reel-name" data-testid={`text-reel-creator-${reel.id}`}>{reel.creatorName}<VerifiedBadge verified={reel.creatorVerified} /></span>
       {reel.creatorLocation && <span className="reel-location"><MapPin size={14} className="shrink-0 text-primary" /><span className="truncate">{reel.creatorLocation}</span></span>}
     </span>
   </span>;

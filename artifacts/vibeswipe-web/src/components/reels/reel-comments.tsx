@@ -39,7 +39,7 @@ function ExpandableCommentText({ commentId, content, prefix }: { commentId: stri
   </>;
 }
 
-export function ReelComments({ reelId, creatorId, returnTo, commentCount, onClose, onCountChange, focusCommentId }: { reelId: string; creatorId: string; returnTo: string; commentCount: number; onClose: () => void; onCountChange: (delta: number) => void; focusCommentId?: string | null }) {
+export function ReelComments({ reelId, creatorId, returnTo, commentCount, canComment = true, onClose, onCountChange, focusCommentId }: { reelId: string; creatorId: string; returnTo: string; commentCount: number; canComment?: boolean; onClose: () => void; onCountChange: (delta: number) => void; focusCommentId?: string | null }) {
   const client = useQueryClient();
   const key = getGetReelCommentsQueryKey(reelId);
   const comments = useGetReelComments(reelId, { query: { queryKey: key } });
@@ -149,7 +149,7 @@ export function ReelComments({ reelId, creatorId, returnTo, commentCount, onClos
               <p className="text-xs text-white/55"><Link href={profileHref(comment.authorId, comment.id)} className="font-semibold text-white/90 hover:text-primary">{comment.authorName}</Link>{comment.authorId === creatorId && <span className="ml-1.5 rounded-full bg-primary/15 px-1.5 py-0.5 text-[10px] font-bold text-primary">Creator</span>} <span>{ago(comment.createdAt)}</span></p>
               <ExpandableCommentText commentId={comment.id} content={comment.content} />
               <div className="mt-1 flex gap-3 text-xs">
-                <button type="button" onClick={() => { setReplyingTo(comment); setDraft(""); input.current?.focus(); }} className="font-semibold text-white/55 hover:text-primary" data-testid={`button-reply-comment-${comment.id}`}>Reply</button>
+                 {canComment&&<button type="button" onClick={() => { setReplyingTo(comment); setDraft(""); input.current?.focus(); }} className="font-semibold text-white/55 hover:text-primary" data-testid={`button-reply-comment-${comment.id}`}>Reply</button>}
                 {comment.canDelete && (confirming === comment.id
                   ? <><button type="button" onClick={() => void deleteComment(comment.id)} disabled={remove.isPending} className="font-semibold text-rose-300" data-testid={`button-confirm-delete-comment-${comment.id}`}>Delete comment</button><button type="button" onClick={() => setConfirming(null)} className="text-white/60">Keep</button></>
                   : <button type="button" onClick={() => setConfirming(comment.id)} className="text-white/45 hover:text-white/80" data-testid={`button-delete-comment-${comment.id}`}>Delete</button>)}
@@ -179,14 +179,14 @@ export function ReelComments({ reelId, creatorId, returnTo, commentCount, onClos
         </li>)}</ul>}
     </div>
     {error && <p role="alert" className="px-4 pb-1 text-xs text-rose-300" data-testid="error-reel-comment">{error}</p>}
-    {replyingTo && <div className="flex items-center justify-between px-4 pt-2 text-xs text-white/60" data-testid="status-replying-to">
+    {canComment&&replyingTo && <div className="flex items-center justify-between px-4 pt-2 text-xs text-white/60" data-testid="status-replying-to">
       <span>Replying to <strong className="text-white/85">{replyingTo.authorName}</strong></span>
       <button type="button" onClick={() => setReplyingTo(null)} className="font-semibold text-primary" aria-label="Cancel reply">Cancel</button>
     </div>}
-    <form onSubmit={(event) => void submit(event)} className="flex items-center gap-2 px-3 pb-[max(env(safe-area-inset-bottom),10px)] pt-2.5">
+    {canComment ? <form onSubmit={(event) => void submit(event)} className="flex items-center gap-2 px-3 pb-[max(env(safe-area-inset-bottom),10px)] pt-2.5">
       <div className="h-9 w-9 shrink-0"><ReelAvatar reference={me.data?.photos?.[0] ?? null} name={me.data?.name ?? "Your profile"} size={36} /></div>
       <input ref={input} value={draft} onChange={(event) => setDraft(event.target.value)} maxLength={500} placeholder={replyingTo ? `Reply to ${replyingTo.authorName}` : "Add a comment"} aria-label={replyingTo ? `Reply to ${replyingTo.authorName}` : "Add a comment"} enterKeyHint="send" data-testid="input-reel-comment" className="h-11 min-w-0 flex-1 rounded-full border border-white/10 bg-white/[.07] px-4 text-[16px] text-white placeholder:text-white/40 focus:border-primary/60 focus:outline-none" />
       <button type="submit" onPointerDown={(event) => event.preventDefault()} onTouchEnd={(event) => { event.preventDefault(); void postDraft(); }} disabled={!draft.trim() || create.isPending} aria-label="Post comment" data-testid="button-post-comment" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground disabled:opacity-35"><ArrowUp size={19} /></button>
-    </form>
+    </form> : <p className="px-4 pb-[max(env(safe-area-inset-bottom),14px)] pt-3 text-center text-xs text-white/55">The creator has turned off new comments.</p>}
   </section>;
 }

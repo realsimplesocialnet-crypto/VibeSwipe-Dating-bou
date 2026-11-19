@@ -13,4 +13,6 @@ export interface ProfileFollowSummary {
   followingCount: number;
   isFollowing: boolean;
   followsYou: boolean;
+  requestPendingByMe: boolean;
+  requestPendingForMe: boolean;
 }

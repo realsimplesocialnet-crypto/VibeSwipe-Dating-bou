@@ -13,6 +13,7 @@ import "@/components/reels/reels.css";
 
 type Stage = "idle" | "uploading" | "processing" | "publishing";
 type ReelMode = "video" | "slides";
+type ReelAudience = "public" | "friends";
 const STAGE_LABEL: Record<Stage, string> = { idle: "Post", uploading: "Uploading privately", processing: "Checking media safety", publishing: "Publishing" };
 
 export function ReelComposerPage() {
@@ -31,6 +32,7 @@ export function ReelComposerPage() {
   const [slidePreviews, setSlidePreviews] = useState<string[]>([]);
   const [slideIndex, setSlideIndex] = useState(0);
   const [caption, setCaption] = useState("");
+  const [audience, setAudience] = useState<ReelAudience | null>(null);
   const [error, setError] = useState("");
   const [checking, setChecking] = useState(false);
   const [stage, setStage] = useState<Stage>("idle");
@@ -120,7 +122,7 @@ export function ReelComposerPage() {
         }
         setStage("processing");
         const reel = await create.mutateAsync({
-          data: { slideMediaIds: mediaIds, ...(caption.trim() ? { caption: caption.trim() } : {}) },
+          data: { slideMediaIds: mediaIds, audience: audience!, ...(caption.trim() ? { caption: caption.trim() } : {}) },
         });
         void client.invalidateQueries({ queryKey: getGetReelsFeedQueryKey() });
         void client.invalidateQueries({ queryKey: getGetMyReelsQueryKey() });
@@ -135,7 +137,7 @@ export function ReelComposerPage() {
       setStage("processing");
       await transcode.mutateAsync({ mediaId: signed.mediaId });
       setStage("publishing");
-      const reel = await create.mutateAsync({ data: { mediaId: signed.mediaId, ...(caption.trim() ? { caption: caption.trim() } : {}) } });
+      const reel = await create.mutateAsync({ data: { mediaId: signed.mediaId, audience: audience!, ...(caption.trim() ? { caption: caption.trim() } : {}) } });
       void client.invalidateQueries({ queryKey: getGetReelsFeedQueryKey() });
       void client.invalidateQueries({ queryKey: getGetMyReelsQueryKey() });
       setLocation(`/reels/${reel.id}?returnTo=${encodeURIComponent(returnTo)}`, { replace: true });
@@ -180,10 +182,17 @@ export function ReelComposerPage() {
         <button type="button" onClick={() => libraryInput.current?.click()} disabled={busy || checking} data-testid="button-choose-reel" className="reel-sheet-action"><Film size={18} />{file ? "Choose another" : "Choose video"}</button>
       </div>}
       <label className="block text-xs font-semibold text-white/60">Caption<textarea value={caption} onChange={(event) => setCaption(event.target.value)} maxLength={300} rows={2} disabled={busy} placeholder="Say something about this moment" data-testid="input-reel-caption" className="mt-2 w-full resize-none rounded-2xl border border-white/10 bg-white/[.06] px-4 py-3 text-[16px] text-white placeholder:text-white/35 focus:border-primary/60 focus:outline-none" /><span className="mt-1 block text-right font-normal text-white/40">{caption.length}/300</span></label>
+      <fieldset className="space-y-2">
+        <legend className="text-xs font-semibold text-white/60">Who can see this Reel?</legend>
+        <div className="grid grid-cols-2 gap-2">
+          {([["public","Public","Anyone can view it"],["friends","Friends","Mutual followers only"]] as const).map(([value,label,detail])=><button key={value} type="button" role="radio" aria-checked={audience===value} disabled={busy} onClick={()=>setAudience(value)} className={`rounded-xl border px-3 py-2.5 text-left transition-colors ${audience===value?"border-primary bg-primary/15 text-white":"border-white/10 bg-white/[.04] text-white/70"}`} data-testid={`button-reel-audience-${value}`}><span className="block text-sm font-bold">{label}</span><span className="mt-0.5 block text-[11px]">{detail}</span></button>)}
+        </div>
+        <p className="text-[11px] leading-4 text-white/45">A private account is visible only to approved followers.</p>
+      </fieldset>
       {checking && <p role="status" className="text-sm text-white/70">Checking video</p>}
       {stage === "uploading" && uploadAttempt > 1 && <p role="status" className="text-sm text-white/70">Reconnecting to media storage · attempt {uploadAttempt} of 3</p>}
       {error && <p role="alert" className="rounded-2xl border border-rose-300/25 bg-rose-400/10 px-4 py-3 text-sm text-rose-100" data-testid="error-reel-composer">{error}</p>}
-      <button type="button" onClick={() => void post()} disabled={(mode === "video" ? !file : slideFiles.length < 2) || busy || checking} data-testid="button-post-reel" className="reels-primary mt-auto w-full disabled:opacity-40">
+      <button type="button" onClick={() => void post()} disabled={(mode === "video" ? !file : slideFiles.length < 2) || !audience || busy || checking} data-testid="button-post-reel" className="reels-primary mt-auto w-full disabled:opacity-40">
         {busy && <span className="reel-spinner" aria-hidden="true" />}{STAGE_LABEL[stage]}
       </button>
     </div>
