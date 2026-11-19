@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useGetDiscoverProfiles, type Profile } from "@workspace/api-client-react";
+import { useGetDiscoverProfiles, useGetMyProfile, type Profile } from "@workspace/api-client-react";
 import { ArrowLeft, ChevronRight, LoaderCircle } from "lucide-react";
 import { useLocation } from "wouter";
 import { VerifiedBadge } from "@/components/verified-badge";
@@ -18,6 +18,7 @@ export function MemberSearchPage() {
   const [location, setLocation] = useLocation();
   const [query, setQuery] = useState(() => new URLSearchParams(window.location.search).get("q") ?? "");
   const [debouncedQuery, setDebouncedQuery] = useState(query.trim().replace(/\s+/g, " "));
+  const myProfile = useGetMyProfile();
   const request = useMemo(() => ({ q: debouncedQuery }), [debouncedQuery]);
   const results = useGetDiscoverProfiles<Profile[]>(request, {
     query: {
@@ -46,6 +47,10 @@ export function MemberSearchPage() {
   }
 
   const profiles = results.data ?? [];
+  const isSearchingForSelf = Boolean(
+    myProfile.data?.name
+    && myProfile.data.name.toLocaleLowerCase().includes(debouncedQuery.toLocaleLowerCase()),
+  );
   return (
     <main className="page-in mx-auto min-h-[100dvh] w-full max-w-[760px] px-4 pb-10 pt-3 text-foreground sm:px-6">
       <header className="mb-2 flex items-center gap-3">
@@ -82,7 +87,9 @@ export function MemberSearchPage() {
         <p role="alert" className="py-8 text-center text-sm text-muted-foreground">Search unavailable</p>
       )}
       {debouncedQuery.length >= 2 && !results.isLoading && !results.isError && profiles.length === 0 && (
-        <p className="py-8 text-center text-sm text-muted-foreground">No members found</p>
+        <p className="py-8 text-center text-sm text-muted-foreground">
+          {isSearchingForSelf ? "Your own profile isn’t shown in member search." : "No members found"}
+        </p>
       )}
       {profiles.length > 0 && (
         <ul aria-label="Search results" className="mt-4 space-y-2">
