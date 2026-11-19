@@ -12,6 +12,8 @@ test("member search accepts a single character and a nonnegative result offset",
   assert.equal(uppercase.offset, 50);
   assert.equal(lowercase.q, "b");
   assert.equal(lowercase.offset, 100);
+  const route = readFileSync(new URL("../src/routes/vibeswipe.ts", import.meta.url), "utf8");
+  assert.match(route, /ilike\(profilesTable\.name, `%\$\{escapedSearch\}%`\)/);
 });
 
 test("exhaustion recycles only passes, never likes, Super Likes, self or either block direction", () => {
@@ -135,7 +137,7 @@ test("server fallback reuses all safety/location conditions and excludes existin
   assert.match(code, /if \(!searchTerm\) for \(const id of matchedIds\) excludedIds.add\(id\)/);
   assert.match(code, /includePreviouslyReacted: Boolean\(searchTerm\)/);
   assert.match(code, /const smartDefault = !searchTerm && automaticDiscovery/);
-  assert.match(code, /if \(searchTerm\) \{\s*candidates = await queryCandidates\(\[\], 50\)/);
+  assert.match(code, /if \(searchTerm\) \{\s*candidates = await queryCandidates\(\[\], 50, \[\], params\.data\.offset \?\? 0\)/);
   assert.match(code, /candidates = await loadCandidates\(\)/);
   for (const condition of ["profilesTable.deactivated, false", "profilesTable.adminSuspended, false",
     "profilesTable.incognito, false", "gte(profilesTable.age, ageMin)", "lte(profilesTable.age, ageMax)",
