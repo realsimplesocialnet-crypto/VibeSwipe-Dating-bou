@@ -70,7 +70,12 @@ import { mediaUri, profileImagePreviewSource, profileImageSource } from "@/lib/m
 import { ProfileAvatar } from "@/components/ProfileAvatar";
 
 export default function ProfileReelScreen() {
-  const { reelId, returnTo } = useLocalSearchParams<{ reelId: string; returnTo?: string }>();
+  const { reelId, returnTo, openComments: openCommentsParam, openShare } = useLocalSearchParams<{
+    reelId: string;
+    returnTo?: string;
+    openComments?: string;
+    openShare?: string;
+  }>();
   const colors = usePremiumColors();
   const { getToken, userId } = useAuth();
   const queryClient = useQueryClient();
@@ -115,6 +120,22 @@ export default function ProfileReelScreen() {
   const commentsQuery = useGetReelComments(reelId ?? "", {
     query: { enabled: commentsVisible && Boolean(reelId), refetchInterval: commentsVisible ? 5_000 : false },
   });
+  const routeActionOpened = useRef(false);
+
+  useEffect(() => {
+    routeActionOpened.current = false;
+  }, [reelId]);
+
+  useEffect(() => {
+    if (!reelId || reelQuery.data?.id !== reelId || routeActionOpened.current) return;
+    if (openCommentsParam === "1") {
+      routeActionOpened.current = true;
+      setCommentsVisible(true);
+    } else if (openShare === "1") {
+      routeActionOpened.current = true;
+      setShareVisible(true);
+    }
+  }, [openCommentsParam, openShare, reelId, reelQuery.data?.id]);
 
   useEffect(() => {
     let active = true;

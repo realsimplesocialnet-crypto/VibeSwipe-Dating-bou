@@ -19,9 +19,8 @@ function NativeTabLayout() {
   const colors = useColors();
   const notifications = useGetNotifications({ query: { refetchInterval: 5_000 } });
   const counts = notifications.data?.unreadCounts;
-  const matchBadge = counts?.matches ?? 0;
   const messageBadge = counts?.messages ?? 0;
-  const activityBadge = counts ? counts.views + counts.likes + counts.follows + (counts.reels ?? 0) : 0;
+  const activityBadge = counts ? counts.matches + counts.views + counts.likes + counts.follows + (counts.reels ?? 0) : 0;
   return (
     <>
     <ReferralToastHost data={notifications.data} />
@@ -32,16 +31,16 @@ function NativeTabLayout() {
         />
         <NativeTabs.Trigger.Label>Discover</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="matches">
-        <NativeTabs.Trigger.Icon sf={{ default: 'heart', selected: 'heart.fill' }} />
-        <NativeTabs.Trigger.Label>Matches</NativeTabs.Trigger.Label>
-        {matchBadge > 0 ? <NativeTabs.Trigger.Badge>{matchBadge > 99 ? '99+' : String(matchBadge)}</NativeTabs.Trigger.Badge> : null}
+      <NativeTabs.Trigger name="reels">
+        <NativeTabs.Trigger.Icon sf={{ default: 'play.rectangle', selected: 'play.rectangle.fill' }} drawable="video" />
+        <NativeTabs.Trigger.Label>Reels</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="views">
         <NativeTabs.Trigger.Icon sf={{ default: 'tray', selected: 'tray.fill' }} drawable="inbox" />
         <NativeTabs.Trigger.Label>Chats</NativeTabs.Trigger.Label>
         {messageBadge > 0 ? <NativeTabs.Trigger.Badge>{messageBadge > 99 ? '99+' : String(messageBadge)}</NativeTabs.Trigger.Badge> : null}
       </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="matches" hidden />
       <NativeTabs.Trigger name="activity">
         <NativeTabs.Trigger.Icon sf={{ default: 'bell', selected: 'bell.fill' }} />
         <NativeTabs.Trigger.Label>Activity</NativeTabs.Trigger.Label>
@@ -65,9 +64,8 @@ function ClassicTabLayout() {
   const isWeb = Platform.OS === 'web';
   const notifications = useGetNotifications({ query: { refetchInterval: 5_000 } });
   const counts = notifications.data?.unreadCounts;
-  const matchBadge = counts?.matches ?? 0;
   const messageBadge = counts?.messages ?? 0;
-  const activityBadge = counts ? counts.views + counts.likes + counts.follows + (counts.reels ?? 0) : 0;
+  const activityBadge = counts ? counts.matches + counts.views + counts.likes + counts.follows + (counts.reels ?? 0) : 0;
 
   return (
     <>
@@ -123,14 +121,14 @@ function ClassicTabLayout() {
         }}
       />
       <Tabs.Screen
-        name="matches"
+        name="reels"
         options={{
-          title: 'Matches',
+          title: 'Reels',
           headerShown: false,
-          tabBarBadge: matchBadge || undefined,
-          tabBarIcon: ({ color }) => <Feather name="heart" size={21} color={typeof color === 'string' ? color : colors.primary} />,
+          tabBarIcon: ({ color }) => <Feather name="film" size={21} color={typeof color === 'string' ? color : colors.primary} />,
         }}
       />
+      <Tabs.Screen name="matches" options={{ href: null }} />
       <Tabs.Screen
         name="views"
         options={{
