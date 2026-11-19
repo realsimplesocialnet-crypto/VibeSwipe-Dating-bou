@@ -1,0 +1,45 @@
+workflows:
+  myage-android-apk:
+    name: Myage Android APK
+    max_build_duration: 120
+    instance_type: linux_x2
+    environment:
+      node: v22.13.1
+      java: 17
+      groups:
+        - myage_build
+      vars:
+        PACKAGE_NAME: beauty.myage
+        EXPO_PUBLIC_DOMAIN: myage.beauty
+        EXPO_PUBLIC_WEB_URL: https://myage.beauty
+    scripts:
+      - name: Install workspace dependencies
+        script: |
+          corepack enable
+          corepack prepare pnpm@10.26.1 --activate
+          pnpm install --frozen-lockfile
+      - name: Check required app configuration
+        script: |
+          : "${EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY:?Add this variable to the myage_build group in Codemagic}"
+      - name: Generate the Android project
+        script: |
+          pnpm --filter @workspace/vibeswipe exec expo prebuild --platform android --non-interactive --no-install
+          echo "sdk.dir=$ANDROID_SDK_ROOT" > "$CM_BUILD_DIR/artifacts/vibeswipe/android/local.properties"
+      - name: Build a directly installable APK
+        script: |
+          cat >> "$CM_BUILD_DIR/artifacts/vibeswipe/android/app/build.gradle" <<'GRADLE'
+
+          // This sideload build uses the generated debug signing key.
+          // Use a persistent release keystore before distributing updates.
+          android {
+              buildTypes {
+                  release {
+                      signingConfig signingConfigs.debug
+                  }
+              }
+          }
+          GRADLE
+          cd "$CM_BUILD_DIR/artifacts/vibeswipe/android"
+          ./gradlew assembleRelease
+    artifacts:
+      - artifacts/vibeswipe/android/app/build/outputs/apk/release/*.apk

@@ -10,7 +10,9 @@
     "ios": {
       "supportsTablet": false
     },
-    "android": {},
+    "android": {
+      "package": "beauty.myage"
+    },
     "web": {
       "favicon": "./assets/images/icon.png",
       "output": "static"
