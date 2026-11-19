@@ -1,9 +1,10 @@
-import { useEffect, useRef, useState, type FormEvent, type TouchEvent as ReactTouchEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type FormEvent, type TouchEvent as ReactTouchEvent } from "react";
+import { createPortal } from "react-dom";
 import { Link } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
 import {
-  getGetMediaPreviewQueryKey, getGetReelCommentsQueryKey, useCreateReelComment, useDeleteReelComment,
-  useGetMediaPreview, useGetMyProfile, useGetReelComments, useRequestProfileMediaUpload, type ReelComment,
+  getGetMediaPreviewQueryKey, getGetProfileMediaQueryKey, getGetReelCommentsQueryKey, useCreateReelComment, useDeleteReelComment,
+  useGetMediaPreview, useGetMyProfile, useGetProfileMedia, useGetReelComments, useRequestProfileMediaUpload, type ReelComment,
 } from "@workspace/api-client-react";
 import { ArrowUp, AtSign, Image as ImageIcon, LoaderCircle, Smile, X } from "lucide-react";
 import { ReelAvatar } from "@/components/reels/reel-avatar";
@@ -33,8 +34,73 @@ function ReelCommentPhoto({ reference }: { reference: string }) {
     retryDelay: count => 1500 * (count + 1),
   } });
   const url = useObjectUrl(query.data instanceof Blob ? query.data : null);
-  if (!url) return <div role="img" aria-label="Photo comment" data-testid="photo-reel-comment-placeholder" className="mt-2 flex h-24 w-24 items-center justify-center rounded-xl bg-white/10 text-white/45">{query.isError ? <ImageIcon size={24} /> : <span className="h-5 w-5 animate-pulse rounded-full bg-white/20" />}</div>;
-  return <img src={url} alt="Photo comment" data-testid="img-reel-comment" className="mt-2 max-h-64 max-w-[min(260px,66vw)] rounded-xl object-cover" />;
+  const [open, setOpen] = useState(false);
+  const close = useCallback(() => setOpen(false), []);
+  return <>
+    <button
+      type="button"
+      aria-label="Open photo comment"
+      aria-haspopup="dialog"
+      data-testid="button-open-reel-comment-photo"
+      onClick={() => setOpen(true)}
+      className="reel-comment-photo-thumb mt-2"
+    >
+      {url
+        ? <img src={url} alt="" data-testid="img-reel-comment" />
+        : query.isError
+          ? <ImageIcon size={24} aria-hidden="true" />
+          : <span className="h-5 w-5 animate-pulse rounded-full bg-white/20" aria-hidden="true" />}
+    </button>
+    {open && id && <FullReelCommentPhoto mediaId={id} onClose={close} />}
+  </>;
+}
+
+function FullReelCommentPhoto({ mediaId, onClose }: { mediaId: string; onClose: () => void }) {
+  const photo = useGetProfileMedia(mediaId, { query: {
+    enabled: Boolean(mediaId),
+    queryKey: getGetProfileMediaQueryKey(mediaId),
+    retry: false,
+    gcTime: 0,
+  } });
+  const url = useObjectUrl(photo.data instanceof Blob ? photo.data : null);
+  const dialog = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    dialog.current?.focus();
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
+
+  return createPortal(
+    <div
+      ref={dialog}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Photo comment"
+      tabIndex={-1}
+      data-testid="dialog-reel-comment-photo"
+      className="reel-comment-photo-viewer"
+      onClick={(event) => { if (event.target === event.currentTarget) onClose(); }}
+    >
+      <button type="button" onClick={onClose} aria-label="Close photo" className="reel-comment-photo-viewer-close">
+        <X size={24} />
+      </button>
+      <div className="reel-comment-photo-viewer-content">
+        {url
+          ? <img src={url} alt="Full-size photo comment" data-testid="img-reel-comment-full" />
+          : photo.isError
+            ? <button type="button" onClick={() => void photo.refetch()} aria-label="Retry loading photo" className="text-white/75"><ImageIcon size={30} /></button>
+            : <QuietSpinner />}
+      </div>
+    </div>,
+    document.body,
+  );
 }
 
 function ago(iso: string): string {

@@ -248,6 +248,11 @@ test("Reel comments keep the TikTok-style composer and support photo-only commen
   assert.match(comments, /Mention someone/);
   assert.doesNotMatch(comments, /Record voice comment|<Mic\b/);
   assert.match(comments, /\(!content && !selectedPhoto\)/);
+  assert.match(comments, /button-open-reel-comment-photo/);
+  assert.match(comments, /useGetProfileMedia/);
+  assert.match(comments, /dialog-reel-comment-photo/);
+  assert.match(styles, /\.reel-comment-photo-thumb \{[^}]*height: 180px/);
+  assert.match(styles, /\.reel-comment-photo-viewer \{[^}]*position: fixed/);
   assert.match(styles, /\.reel-comment-input-wrap \{[^}]*border-radius: 22px/);
   assert.match(native, /commentReactions/);
   assert.match(native, /commentTools/);
@@ -257,4 +262,8 @@ test("Reel comments keep the TikTok-style composer and support photo-only commen
   assert.doesNotMatch(nativeCommentSheet, /Record voice comment|name="mic"/);
   assert.match(native, /mediaType: "image"/);
   assert.match(nativeCommentSheet, /keyboardVerticalOffset=\{0\}/);
+  assert.match(nativeCommentSheet, /button-open-reel-comment-photo/);
+  assert.match(nativeCommentSheet, /profileImageSource\(commentPhotoViewer, token\)/);
+  assert.match(nativeCommentSheet, /button-close-reel-comment-photo/);
+  assert.match(native, /commentPhotoButton: \{ width: 132, height: 180/);
 });

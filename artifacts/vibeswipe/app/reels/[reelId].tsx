@@ -35,7 +35,7 @@ import { File, Paths } from "expo-file-system";
 import { fetch as expoFetch } from "expo/fetch";
 import * as Clipboard from "expo-clipboard";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, Alert, Linking, Modal, Platform, Pressable, ScrollView, Share, StyleSheet, Text, TextInput, View, useWindowDimensions } from "react-native";
+import { ActivityIndicator, Alert, Keyboard, Linking, Modal, Platform, Pressable, ScrollView, Share, StyleSheet, Text, TextInput, View, useWindowDimensions } from "react-native";
 import { KeyboardAvoidingView, useKeyboardState } from "react-native-keyboard-controller";
 import Svg, { Circle, Path } from "react-native-svg";
 import { useQueryClient } from "@tanstack/react-query";
@@ -66,7 +66,7 @@ function ReelActionIcon({ name, filled = false, foreground, activeColor, cutoutC
     </Svg>
   );
 }
-import { mediaUri, profileImagePreviewSource } from "@/lib/media";
+import { mediaUri, profileImagePreviewSource, profileImageSource } from "@/lib/media";
 import { ProfileAvatar } from "@/components/ProfileAvatar";
 
 export default function ProfileReelScreen() {
@@ -83,6 +83,7 @@ export default function ProfileReelScreen() {
   const [downloadPending, setDownloadPending] = useState(false);
   const [androidShareTargetsVisible, setAndroidShareTargetsVisible] = useState(false);
   const [commentsVisible, setCommentsVisible] = useState(false);
+  const [commentPhotoViewer, setCommentPhotoViewer] = useState<string | null>(null);
   const [commentVideoPaused, setCommentVideoPaused] = useState(false);
   const [slideIndex, setSlideIndex] = useState(0);
   const [slideViewportWidth, setSlideViewportWidth] = useState(0);
@@ -742,13 +743,24 @@ export default function ProfileReelScreen() {
                     <View style={styles.commentCopy}>
                       <Text style={[styles.commentAuthor, { color: colors.foreground }]}>{comment.authorName}</Text>
                       {comment.content ? <Text style={[styles.commentText, { color: colors.mutedForeground }]}>{comment.content}</Text> : null}
-                      {comment.mediaReference && token ? <CachedImage
-                        source={profileImagePreviewSource(comment.mediaReference, token)}
-                        contentFit="cover"
-                        cachePolicy="memory-disk"
-                        accessibilityLabel="Photo comment"
-                        style={styles.commentPhoto}
-                      /> : null}
+                      {comment.mediaReference && token ? <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel="Open photo comment"
+                        testID="button-open-reel-comment-photo"
+                        onPress={() => {
+                          Keyboard.dismiss();
+                          setCommentPhotoViewer(comment.mediaReference);
+                        }}
+                        style={styles.commentPhotoButton}
+                      >
+                        <CachedImage
+                          source={profileImagePreviewSource(comment.mediaReference, token)}
+                          contentFit="cover"
+                          cachePolicy="memory-disk"
+                          accessibilityLabel="Photo comment"
+                          style={styles.commentPhoto}
+                        />
+                      </Pressable> : null}
                     </View>
                   </View>
                 ))}
@@ -800,6 +812,26 @@ export default function ProfileReelScreen() {
             </View> : <Text style={[styles.commentUnavailable,{color:colors.mutedForeground}]}>The creator has turned off new comments.</Text>}
           </View>
         </KeyboardAvoidingView>
+      </Modal>
+      <Modal transparent visible={Boolean(commentPhotoViewer)} animationType="fade" onRequestClose={() => setCommentPhotoViewer(null)} statusBarTranslucent>
+        <View style={[styles.commentPhotoViewer, { backgroundColor: colors.background }]}>
+          {commentPhotoViewer && token ? <CachedImage
+            source={profileImageSource(commentPhotoViewer, token)}
+            contentFit="contain"
+            cachePolicy="memory-disk"
+            accessibilityLabel="Full-size photo comment"
+            style={styles.commentPhotoViewerImage}
+          /> : null}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Close photo"
+            testID="button-close-reel-comment-photo"
+            onPress={() => setCommentPhotoViewer(null)}
+            style={[styles.commentPhotoViewerClose, { top: Math.max(insets.top, 12) }]}
+          >
+            <Feather name="x" size={25} color={colors.foreground} />
+          </Pressable>
+        </View>
       </Modal>
     </SafeAreaView>
   );
@@ -867,7 +899,11 @@ const styles = StyleSheet.create({
   commentCopy: { flex: 1, gap: 3 },
   commentAuthor: { fontSize: 12, fontWeight: "800" },
   commentText: { fontSize: 13, lineHeight: 18 },
-  commentPhoto: { width: 220, height: 220, maxWidth: "100%", borderRadius: 14, marginTop: 5, backgroundColor: "rgba(255,255,255,0.08)" },
+  commentPhotoButton: { width: 132, height: 180, maxWidth: "100%", marginTop: 5, overflow: "hidden", borderRadius: 12, backgroundColor: "rgba(255,255,255,0.08)" },
+  commentPhoto: { width: "100%", height: "100%" },
+  commentPhotoViewer: { flex: 1, alignItems: "center", justifyContent: "center" },
+  commentPhotoViewerImage: { width: "100%", height: "100%" },
+  commentPhotoViewerClose: { position: "absolute", right: 14, width: 44, height: 44, alignItems: "center", justifyContent: "center" },
   commentComposer: { paddingTop: 4, paddingBottom: 4 },
   commentReactions: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 6, paddingBottom: 6 },
   commentReaction: { width: 32, height: 32, alignItems: "center", justifyContent: "center" },
