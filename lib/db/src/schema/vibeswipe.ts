@@ -1,6 +1,10 @@
+import { sql } from "drizzle-orm";
 import {
   boolean,
+  check,
   doublePrecision,
+  foreignKey,
+  index,
   integer,
   jsonb,
   pgTable,
@@ -38,10 +42,10 @@ export const profilesTable = pgTable("vibeswipe_profiles", {
   city: text("city").notNull().default(""),
   country: text("country"),
   state: text("state"),
-  interests: text("interests").array().notNull().default([]),
+  interests: text("interests").array().notNull().default(sql`'{}'::text[]`),
   occupation: text("occupation").notNull().default(""),
   occupationOther: text("occupation_other").notNull().default(""),
-  photos: text("photos").array().notNull().default([]),
+  photos: text("photos").array().notNull().default(sql`'{}'::text[]`),
   videoUrl: text("video_url"),
   isDemo: boolean("is_demo").notNull().default(false),
   incognito: boolean("incognito").notNull().default(false),
@@ -71,14 +75,29 @@ export const profilesTable = pgTable("vibeswipe_profiles", {
   preferences: jsonb("preferences")
     .$type<ProfilePreferences>()
     .notNull()
-    .default({ ageMin: 22, ageMax: 35, gender: "Everyone", distanceKm: 50 }),
+    .default(sql`'{"ageMax": 35, "ageMin": 22, "gender": "Everyone", "distanceKm": 50}'::jsonb`),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
-});
+}, (table) => ({
+  nameSearch: index("vibeswipe_profiles_name_search_idx").using("gin", sql`to_tsvector('english', coalesce(${table.name}, ''))`),
+  citySearch: index("vibeswipe_profiles_city_search_idx").using("gin", sql`to_tsvector('english', coalesce(${table.city}, ''))`),
+  stateSearch: index("vibeswipe_profiles_state_search_idx").using("gin", sql`to_tsvector('english', coalesce(${table.state}, ''))`),
+  countrySearch: index("vibeswipe_profiles_country_search_idx").using("gin", sql`to_tsvector('english', coalesce(${table.country}, ''))`),
+}));
+
+/** This table is also initialized by the API server. Keeping it in Drizzle prevents push from treating it as a rename candidate. */
+export const apiRateLimitsTable = pgTable("vibeswipe_api_rate_limits", {
+  bucketKey: text("bucket_key").notNull(),
+  windowStartedAt: timestamp("window_started_at", { withTimezone: true }).notNull(),
+  attempts: integer("attempts").notNull().default(0),
+}, (table) => ({
+  pk: primaryKey({ name: "vibeswipe_api_rate_limits_pkey", columns: [table.bucketKey, table.windowStartedAt] }),
+  attemptsNonNegative: check("vibeswipe_api_rate_limits_attempts_check", sql`${table.attempts} >= 0`),
+}));
 
 export const profileSetupDraftsTable = pgTable("vibeswipe_profile_setup_drafts", {
   userId: text("user_id").primaryKey(),
@@ -211,12 +230,8 @@ export const messagesTable = pgTable("vibeswipe_messages", {
 export const messageHiddenByUserTable = pgTable(
   "vibeswipe_message_hidden_by_user",
   {
-    messageId: uuid("message_id")
-      .notNull()
-      .references(() => messagesTable.id, { onDelete: "cascade" }),
-    userId: text("user_id")
-      .notNull()
-      .references(() => profilesTable.id, { onDelete: "cascade" }),
+    messageId: uuid("message_id").notNull(),
+    userId: text("user_id").notNull(),
     hiddenAt: timestamp("hidden_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -226,6 +241,16 @@ export const messageHiddenByUserTable = pgTable(
       name: "vibeswipe_message_hidden_by_user_pk",
       columns: [table.messageId, table.userId],
     }),
+    messageFk: foreignKey({
+      name: "vibeswipe_message_hidden_by_user_message_id_vibeswipe_messages_",
+      columns: [table.messageId],
+      foreignColumns: [messagesTable.id],
+    }).onDelete("cascade"),
+    userFk: foreignKey({
+      name: "vibeswipe_message_hidden_by_user_user_id_vibeswipe_profiles_id_",
+      columns: [table.userId],
+      foreignColumns: [profilesTable.id],
+    }).onDelete("cascade"),
   }),
 );
 

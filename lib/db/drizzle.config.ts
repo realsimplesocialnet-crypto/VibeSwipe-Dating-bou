@@ -8,14 +8,6 @@ if (!process.env.DATABASE_URL) {
 export default defineConfig({
   schema: path.join(__dirname, "./src/schema/index.ts"),
   dialect: "postgresql",
-  tablesFilter: [
-    "vibeswipe_profiles",
-    "vibeswipe_reels",
-    "vibeswipe_follow_requests",
-    "vibeswipe_reel_not_interested",
-    "vibeswipe_direct_conversations",
-    "vibeswipe_direct_messages",
-  ],
   strict: true,
   verbose: true,
   dbCredentials: {

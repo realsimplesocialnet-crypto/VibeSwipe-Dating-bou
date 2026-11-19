@@ -1,6 +1,7 @@
 import {
   boolean,
   index,
+  uniqueIndex,
   pgTable,
   primaryKey,
   text,
@@ -8,6 +9,7 @@ import {
   uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { matchesTable, messagesTable, profilesTable } from "./vibeswipe";
 
 export const vibeSwipePresenceTable = pgTable("vibeswipe_presence", {
@@ -66,6 +68,9 @@ export const vibeSwipeNotificationsTable = pgTable(
   (table) => ({
     recipientCreatedIndex: index("vibeswipe_notifications_recipient_created_idx")
       .on(table.recipientId, table.createdAt),
+    reelLikeNotification: uniqueIndex("vibeswipe_reel_like_notification_idx")
+      .on(table.recipientId, table.actorId, table.reelId)
+      .where(sql`${table.type} = 'reel_like'`),
   }),
 );
 

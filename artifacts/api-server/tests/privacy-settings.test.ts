@@ -29,7 +29,7 @@ test("private follow requests, direct chat, Reel audiences and downloads have se
   const social = source("artifacts/api-server/src/routes/vibeswipe-social.ts");
   assert.match(social, /\/vibeswipe\/follow-requests/);
   assert.match(social, /\/vibeswipe\/follow-requests\/:requesterId\/approve/);
-  assert.match(social, /\/vibeswipe\/follow-requests\/:requesterId\/decline/);
+  assert.match(social, /router\.delete\("\/vibeswipe\/follow-requests\/:requesterId"/);
   const direct = source("artifacts/api-server/src/routes/vibeswipe-direct-chats.ts");
   assert.match(direct, /\/vibeswipe\/direct-chats/);
   assert.match(direct, /\/vibeswipe\/direct-chat-messages/);

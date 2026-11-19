@@ -2,6 +2,7 @@ import { sql } from "drizzle-orm";
 import {
   check,
   doublePrecision,
+  foreignKey,
   integer,
   pgTable,
   text,
@@ -48,9 +49,7 @@ export const liveLocationSharesTable = pgTable(
   "vibeswipe_live_location_shares",
   {
     id: uuid("id").defaultRandom().primaryKey(),
-    ownerId: text("owner_id")
-      .notNull()
-      .references(() => profilesTable.id, { onDelete: "cascade" }),
+    ownerId: text("owner_id").notNull(),
     tokenHash: text("token_hash").notNull().unique(),
     latitude: doublePrecision("latitude").notNull(),
     longitude: doublePrecision("longitude").notNull(),
@@ -64,6 +63,11 @@ export const liveLocationSharesTable = pgTable(
     stoppedAt: timestamp("stopped_at", { withTimezone: true }),
   },
   (table) => ({
+    ownerFk: foreignKey({
+      name: "vibeswipe_live_location_shares_owner_id_vibeswipe_profiles_id_f",
+      columns: [table.ownerId],
+      foreignColumns: [profilesTable.id],
+    }).onDelete("cascade"),
     latitudeRange: check(
       "vibeswipe_live_location_shares_latitude_check",
       sql`${table.latitude} >= -90 AND ${table.latitude} <= 90`,

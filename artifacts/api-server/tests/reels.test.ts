@@ -95,7 +95,7 @@ test("Reel search extracts useful terms from topics and place names", () => {
 });
 
 test("feed visibility excludes blocks, deactivated, suspended and deleted creators", () => {
-  for (const rule of ["deactivated, false", "adminSuspended, false", "incognito, false", "blocksTable", "adminDeletedUsersTable"]) {
+  for (const rule of ["profilesTable.deactivated", "profilesTable.adminSuspended", "profilesTable.incognito", "profilesTable.privateAccount", "blocksTable", "adminDeletedUsersTable"]) {
     assert.ok(visibility.includes(rule), rule);
   }
 });
