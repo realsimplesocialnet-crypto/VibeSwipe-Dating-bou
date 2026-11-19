@@ -37,7 +37,7 @@ Comments must open low down without covering the video, including while the mobi
 
 **Why:** The user asked to keep the video visible while commenting, make it easy to return to full video by tap or swipe, align their profile picture with the composer and remove comment-panel divider lines.
 
-**How to apply:** Reserve space below the visible video for the comment panel and input instead of placing an opaque sheet over the video. Keep the composer avatar adjacent to the input, omit panel/reply separator lines, and support both a video tap and a downward swipe to dismiss.
+**How to apply:** Reserve space below the visible video for the comment panel and input instead of placing an opaque sheet over the video. Keep the composer avatar adjacent to the input, omit panel/reply separator lines, and support both a video tap and a downward swipe to dismiss. On mobile, keep the comment input focused when the Send button is pressed so keyboard dismissal cannot resize the viewer before the submit tap lands.
 
 Long comment and reply text starts at three lines and expands with a “More” control only when it is clipped.
 

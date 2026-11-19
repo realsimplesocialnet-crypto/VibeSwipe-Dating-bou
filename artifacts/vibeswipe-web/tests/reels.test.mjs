@@ -303,6 +303,13 @@ test("Reels restore their full viewport and navigation after returning from an e
   assert.match(share, /await send\.mutateAsync[\s\S]*?onClose\(\)/);
 });
 
+test("Reel comment send keeps the mobile composer focused while submitting", () => {
+  const comments = read("../src/components/reels/reel-comments.tsx");
+  assert.match(comments, /<form onSubmit=\{\(event\) => void submit\(event\)\}/);
+  assert.match(comments, /type="submit" onPointerDown=\{\(event\) => event\.preventDefault\(\)\}[^>]*data-testid="button-post-comment"/);
+  assert.match(comments, /await create\.mutateAsync\([\s\S]*?setDraft\(""\)/);
+});
+
 test("Reels UI copy contains no emoji", () => {
   for (const file of ["../src/pages/reels-feed.tsx", "../src/pages/reel-composer.tsx", "../src/pages/reels-library.tsx", "../src/components/reels/reel-slide.tsx", "../src/components/reels/reel-comments.tsx", "../src/components/reels/reel-share-sheet.tsx"]) {
     assert.ok(!/\p{Extended_Pictographic}/u.test(read(file)), file);
