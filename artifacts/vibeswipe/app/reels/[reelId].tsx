@@ -10,6 +10,7 @@ import {
   useMarkReelNotInterested,
   useCreateReelComment,
   useGetMatches,
+  useGetMyProfile,
   useGetReel,
   useGetReelComments,
   useLikeReel,
@@ -97,6 +98,7 @@ export default function ProfileReelScreen() {
     query: { queryKey: getGetMatchesQueryKey(), enabled: shareVisible },
   });
   const sendMessage = useSendMessage();
+  const me = useGetMyProfile();
   const viewRecorded = useRef(false);
   const reelQuery = useGetReel(reelId ?? "", { query: { enabled: Boolean(reelId), refetchInterval: 5_000 } });
   const commentsQuery = useGetReelComments(reelId ?? "", {
@@ -256,6 +258,10 @@ export default function ProfileReelScreen() {
     } catch {
       setActionError("Your comment did not post. Try again.");
     }
+  }
+
+  function addToCommentDraft(value: string) {
+    setCommentDraft((current) => `${current}${current && !current.endsWith(" ") ? " " : ""}${value}`);
   }
 
   async function shareToApps() {
@@ -674,22 +680,40 @@ export default function ProfileReelScreen() {
               </ScrollView>
             )}
             {actionError ? <Text accessibilityRole="alert" style={[styles.shareError, { color: colors.destructive }]}>{actionError}</Text> : null}
-            {reelQuery.data?.canComment !== false ? <View style={[styles.commentComposer, { borderColor: colors.border }]}>
-              <TextInput
-                accessibilityLabel="Add a comment"
-                testID="input-reel-comment"
-                value={commentDraft}
-                onChangeText={setCommentDraft}
-                maxLength={500}
-                placeholder="Add a comment"
-                placeholderTextColor={colors.mutedForeground}
-                style={[styles.commentInput, { color: colors.foreground }]}
-                returnKeyType="send"
-                onSubmitEditing={() => void postComment()}
-              />
-              <Pressable accessibilityRole="button" accessibilityLabel="Post comment" testID="button-post-reel-comment" disabled={!commentDraft.trim() || createComment.isPending} onPress={() => void postComment()} style={[styles.commentSend, { backgroundColor: colors.primary }, (!commentDraft.trim() || createComment.isPending) && styles.disabled]}>
-                {createComment.isPending ? <ActivityIndicator size="small" color={colors.primaryForeground} /> : <Feather name="arrow-up" size={19} color={colors.primaryForeground} />}
-              </Pressable>
+            {reelQuery.data?.canComment !== false ? <View style={styles.commentComposer}>
+              <View style={styles.commentReactions} accessibilityLabel="Comment reactions">
+                {["😂", "🤣", "🥰", "😁", "😳", "😉"].map((emoji) => (
+                  <Pressable key={emoji} accessibilityRole="button" accessibilityLabel={`Add ${emoji}`} onPress={() => addToCommentDraft(emoji)} style={styles.commentReaction}>
+                    <Text style={styles.commentReactionText}>{emoji}</Text>
+                  </Pressable>
+                ))}
+              </View>
+              <View style={styles.commentComposeRow}>
+                <View style={styles.commentAvatar}><ProfileAvatar profile={{ name: me.data?.name ?? "Your profile", photos: me.data?.photos ?? [] } as never} size={36} /></View>
+                <View style={[styles.commentInputWrap, { borderColor: colors.border, backgroundColor: colors.background }]}>
+                  <TextInput
+                    accessibilityLabel="Add a comment"
+                    testID="input-reel-comment"
+                    value={commentDraft}
+                    onChangeText={setCommentDraft}
+                    maxLength={500}
+                    placeholder="Add a comment"
+                    placeholderTextColor={colors.mutedForeground}
+                    style={[styles.commentInput, { color: colors.foreground }]}
+                    returnKeyType="send"
+                    onSubmitEditing={() => void postComment()}
+                  />
+                  <View style={styles.commentTools}>
+                    <Pressable accessibilityRole="button" accessibilityLabel="Add photo" style={styles.commentTool}><Feather name="image" size={20} color={colors.foreground} /></Pressable>
+                    <Pressable accessibilityRole="button" accessibilityLabel="Add emoji" onPress={() => addToCommentDraft("😊")} style={styles.commentTool}><Feather name="smile" size={20} color={colors.foreground} /></Pressable>
+                    <Pressable accessibilityRole="button" accessibilityLabel="Mention someone" onPress={() => addToCommentDraft("@")} style={styles.commentTool}><Feather name="at-sign" size={20} color={colors.foreground} /></Pressable>
+                    <Pressable accessibilityRole="button" accessibilityLabel="Record voice comment" style={styles.commentTool}><Feather name="mic" size={20} color={colors.foreground} /></Pressable>
+                  </View>
+                </View>
+                <Pressable accessibilityRole="button" accessibilityLabel="Post comment" testID="button-post-reel-comment" disabled={!commentDraft.trim() || createComment.isPending} onPress={() => void postComment()} style={[styles.commentSend, { backgroundColor: colors.primary }, (!commentDraft.trim() || createComment.isPending) && styles.disabled]}>
+                  {createComment.isPending ? <ActivityIndicator size="small" color={colors.primaryForeground} /> : <Feather name="arrow-up" size={19} color={colors.primaryForeground} />}
+                </Pressable>
+              </View>
             </View> : <Text style={[styles.commentUnavailable,{color:colors.mutedForeground}]}>The creator has turned off new comments.</Text>}
           </View>
         </KeyboardAvoidingView>
@@ -760,9 +784,17 @@ const styles = StyleSheet.create({
   commentCopy: { flex: 1, gap: 3 },
   commentAuthor: { fontSize: 12, fontWeight: "800" },
   commentText: { fontSize: 13, lineHeight: 18 },
-  commentComposer: { minHeight: 48, flexDirection: "row", alignItems: "center", gap: 8, borderWidth: 1, borderRadius: 26, paddingLeft: 14, paddingRight: 4 },
+  commentComposer: { paddingTop: 4, paddingBottom: 4 },
+  commentReactions: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 6, paddingBottom: 6 },
+  commentReaction: { width: 32, height: 32, alignItems: "center", justifyContent: "center" },
+  commentReactionText: { fontSize: 23, lineHeight: 28 },
+  commentComposeRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  commentAvatar: { width: 36, height: 36 },
+  commentInputWrap: { minWidth: 0, flex: 1, borderWidth: 1, borderRadius: 22, paddingHorizontal: 12, paddingTop: 5, paddingBottom: 3 },
+  commentTools: { minHeight: 26, flexDirection: "row", alignItems: "center", gap: 9 },
+  commentTool: { width: 26, height: 26, alignItems: "center", justifyContent: "center" },
   commentUnavailable: { textAlign: "center", paddingVertical: 14, fontSize: 12 },
-  commentInput: { minWidth: 0, flex: 1, paddingVertical: 8, fontSize: 15 },
+  commentInput: { minWidth: 0, paddingVertical: 3, fontSize: 16, lineHeight: 22 },
   commentSend: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center" },
   slideCount: { position: "absolute", top: 12, right: 12, borderRadius: 999, backgroundColor: "rgba(0,0,0,0.55)", paddingHorizontal: 10, paddingVertical: 5 },
   slideCountText: { color: "#fff", fontSize: 12, fontWeight: "800" },

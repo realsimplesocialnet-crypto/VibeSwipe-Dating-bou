@@ -228,6 +228,7 @@ test("Reel comments stay open with playback controls and can be swiped down", ()
   const slide = source("artifacts/vibeswipe-web/src/components/reels/reel-slide.tsx");
   const comments = source("artifacts/vibeswipe-web/src/components/reels/reel-comments.tsx");
   const styles = source("artifacts/vibeswipe-web/src/components/reels/reels.css");
+  const native = source("artifacts/vibeswipe/app/reels/[reelId].tsx");
   assert.match(feed, /onComment=\{\(\) => openComments\(reel\.id\)\}/);
   assert.match(feed, /active=\{index === active && !searchOpen\}/);
   assert.match(slide, /function togglePlayback\(\)/);
@@ -239,4 +240,14 @@ test("Reel comments stay open with playback controls and can be swiped down", ()
   assert.doesNotMatch(comments, /border-l border-white\/10/);
   assert.match(styles, /\.reel-comments \{[^}]*border-radius: 20px 20px 0 0/);
   assert.doesNotMatch(styles, /\.reel-comments \{[^}]*border-top:/);
+  assert.match(comments, /reel-comment-reactions/);
+  assert.match(comments, /reel-comment-tools/);
+  assert.match(comments, /Add photo/);
+  assert.match(comments, /Mention someone/);
+  assert.match(comments, /Record voice comment/);
+  assert.match(styles, /\.reel-comment-input-wrap \{[^}]*border-radius: 22px/);
+  assert.match(native, /commentReactions/);
+  assert.match(native, /commentTools/);
+  assert.match(native, /Add photo/);
+  assert.match(native, /Mention someone/);
 });

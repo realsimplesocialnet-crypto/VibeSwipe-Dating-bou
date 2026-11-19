@@ -4,7 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import {
   getGetReelCommentsQueryKey, useCreateReelComment, useDeleteReelComment, useGetMyProfile, useGetReelComments, type ReelComment,
 } from "@workspace/api-client-react";
-import { ArrowUp, X } from "lucide-react";
+import { ArrowUp, AtSign, Image as ImageIcon, Mic, Smile, X } from "lucide-react";
 import { ReelAvatar } from "@/components/reels/reel-avatar";
 import { userErrorMessage } from "@/lib/user-errors";
 import { QuietSpinner } from "@/components/ui/quiet-spinner";
@@ -118,6 +118,11 @@ export function ReelComments({ reelId, creatorId, returnTo, commentCount, canCom
     void postDraft();
   }
 
+  function addToDraft(value: string) {
+    setDraft((current) => `${current}${current && !current.endsWith(" ") ? " " : ""}${value}`);
+    input.current?.focus({ preventScroll: true });
+  }
+
   async function deleteComment(id: string) {
     setError("");
     try {
@@ -183,10 +188,23 @@ export function ReelComments({ reelId, creatorId, returnTo, commentCount, canCom
       <span>Replying to <strong className="text-white/85">{replyingTo.authorName}</strong></span>
       <button type="button" onClick={() => setReplyingTo(null)} className="font-semibold text-primary" aria-label="Cancel reply">Cancel</button>
     </div>}
-    {canComment ? <form onSubmit={(event) => void submit(event)} className="flex items-center gap-2 px-3 pb-[max(env(safe-area-inset-bottom),10px)] pt-2.5">
-      <div className="h-9 w-9 shrink-0"><ReelAvatar reference={me.data?.photos?.[0] ?? null} name={me.data?.name ?? "Your profile"} size={36} /></div>
-      <input ref={input} value={draft} onChange={(event) => setDraft(event.target.value)} maxLength={500} placeholder={replyingTo ? `Reply to ${replyingTo.authorName}` : "Add a comment"} aria-label={replyingTo ? `Reply to ${replyingTo.authorName}` : "Add a comment"} enterKeyHint="send" data-testid="input-reel-comment" className="h-11 min-w-0 flex-1 rounded-full border border-white/10 bg-white/[.07] px-4 text-[16px] text-white placeholder:text-white/40 focus:border-primary/60 focus:outline-none" />
-      <button type="submit" onPointerDown={(event) => event.preventDefault()} onTouchEnd={(event) => { event.preventDefault(); void postDraft(); }} disabled={!draft.trim() || create.isPending} aria-label="Post comment" data-testid="button-post-comment" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground disabled:opacity-35"><ArrowUp size={19} /></button>
+    {canComment ? <form onSubmit={(event) => void submit(event)} className="reel-comment-composer">
+      <div className="reel-comment-reactions" aria-label="Comment reactions">
+        {["😂", "🤣", "🥰", "😁", "😳", "😉"].map((emoji) => <button key={emoji} type="button" onClick={() => addToDraft(emoji)} aria-label={`Add ${emoji}`} className="reel-comment-reaction">{emoji}</button>)}
+      </div>
+      <div className="reel-comment-compose-row">
+        <div className="h-9 w-9 shrink-0"><ReelAvatar reference={me.data?.photos?.[0] ?? null} name={me.data?.name ?? "Your profile"} size={36} /></div>
+        <div className="reel-comment-input-wrap">
+          <input ref={input} value={draft} onChange={(event) => setDraft(event.target.value)} maxLength={500} placeholder={replyingTo ? `Reply to ${replyingTo.authorName}` : "Add a comment"} aria-label={replyingTo ? `Reply to ${replyingTo.authorName}` : "Add a comment"} enterKeyHint="send" data-testid="input-reel-comment" className="reel-comment-input" />
+          <div className="reel-comment-tools" aria-label="Comment tools">
+            <button type="button" aria-label="Add photo" className="reel-comment-tool" title="Add photo"><ImageIcon size={21} /></button>
+            <button type="button" onClick={() => addToDraft("😊")} aria-label="Add emoji" className="reel-comment-tool" title="Add emoji"><Smile size={21} /></button>
+            <button type="button" onClick={() => addToDraft("@")} aria-label="Mention someone" className="reel-comment-tool" title="Mention someone"><AtSign size={21} /></button>
+            <button type="button" aria-label="Record voice comment" className="reel-comment-tool" title="Voice comments are not available yet"><Mic size={21} /></button>
+          </div>
+        </div>
+        <button type="submit" onPointerDown={(event) => event.preventDefault()} onTouchEnd={(event) => { event.preventDefault(); void postDraft(); }} disabled={!draft.trim() || create.isPending} aria-label="Post comment" data-testid="button-post-comment" className="reel-comment-send disabled:opacity-35"><ArrowUp size={19} /></button>
+      </div>
     </form> : <p className="px-4 pb-[max(env(safe-area-inset-bottom),14px)] pt-3 text-center text-xs text-white/55">The creator has turned off new comments.</p>}
   </section>;
 }

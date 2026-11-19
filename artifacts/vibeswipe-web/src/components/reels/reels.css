@@ -108,9 +108,22 @@
 .reel-comments { flex: 0 0 auto; height: var(--reels-comments-height, min(62%, 560px)); min-height: 0; display: flex; flex-direction: column; overflow: hidden; background: #16121a; border-radius: 20px 20px 0 0; animation: reel-rise .22s ease-out; }
 .reel-comment-clamp { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; }
 .reel-comments > header, .reel-comments > form { flex-shrink: 0; }
+.reel-comment-composer { padding: 0 12px max(env(safe-area-inset-bottom), 10px); }
+.reel-comment-reactions { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 8px 6px; }
+.reel-comment-reaction { display: grid; height: 32px; width: 32px; place-items: center; border: 0; background: transparent; font-size: 24px; line-height: 1; }
+.reel-comment-compose-row { display: flex; align-items: center; gap: 8px; }
+.reel-comment-input-wrap { min-width: 0; flex: 1; border: 1px solid rgb(255 255 255 / .12); border-radius: 22px; background: rgb(255 255 255 / .07); padding: 8px 10px 5px 14px; }
+.reel-comment-input { width: 100%; min-height: 28px; border: 0; outline: 0; background: transparent; color: #fff; font-size: 16px; line-height: 22px; }
+.reel-comment-input::placeholder { color: rgb(255 255 255 / .45); }
+.reel-comment-tools { display: flex; align-items: center; gap: 9px; min-height: 26px; color: rgb(255 255 255 / .82); }
+.reel-comment-tool { display: grid; height: 26px; width: 26px; place-items: center; border: 0; background: transparent; color: inherit; }
+.reel-comment-tool:hover { color: var(--reels-accent); }
+.reel-comment-send { display: grid; height: 44px; width: 44px; flex: none; place-items: center; border: 0; border-radius: 999px; background: var(--reels-accent); color: #fff; }
+.reel-comment-send:disabled { opacity: .35; }
 .reels-root[data-comments-open="true"] .reels-scroller { overflow-y: hidden; }
 .reels-root[data-keyboard-open="true"] .reel-comments > header { padding-top: 0; padding-bottom: 0; }
-.reels-root[data-keyboard-open="true"] .reel-comments > form { padding-top: 6px; padding-bottom: 4px; }
+.reels-root[data-keyboard-open="true"] .reel-comment-composer { padding-bottom: 4px; }
+.reels-root[data-keyboard-open="true"] .reel-comment-reactions { padding-top: 4px; }
 .reels-root[data-keyboard-open="true"] .reel-rail,
 .reels-root[data-keyboard-open="true"] .reel-meta { display: none; }
 .reels-root[data-navigation-visible="false"]:not([data-comments-open="true"]) .reel-progress { bottom: calc(env(safe-area-inset-bottom) + 12px); }
