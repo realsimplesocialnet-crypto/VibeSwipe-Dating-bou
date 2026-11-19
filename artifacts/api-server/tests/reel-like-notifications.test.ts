@@ -149,16 +149,18 @@ test("Reels action rail places Save above Share on web and mobile", () => {
     const share = rail.indexOf('ReelActionIcon name="share"');
     assert.ok(save >= 0 && share > save, "Save must appear before Share in the action rail");
   }
-  assert.match(web, /fill=\{active \? pink : "#fff"\} stroke=\{active \? "#fff" : pink\}/);
-  assert.match(web, /if \(name === "share"\) return <svg width="36" height="36"/);
-  assert.match(web, /<circle cx="8\.2" cy="11\.1" r="1\.05" fill=\{pink\}/);
+  assert.match(web, /fill=\{active \? pink : "#fff"\}/);
+  assert.match(web, /<path d="M15\.2 3\.6 22 10/);
+  assert.match(web, /<circle cx="8\.2" cy="11\.1" r="1\.05" fill="#17121a"/);
+  assert.doesNotMatch(web.slice(web.indexOf("function ReelActionIcon"), web.indexOf("export function ReelSlide")), /stroke=\{pink\}|fill=\{pink\}/);
   assert.match(web, /<ReelActionIcon name="like" active=\{reel\.likedByMe\}/);
   assert.match(web, /<ReelActionIcon name="save" active=\{reel\.savedByMe\}/);
   assert.match(styles, /\.reel-action-button \{[^}]*color: #fff/);
   assert.match(styles, /\.reel-action-button > span \{ color:#fff/);
-  assert.match(native, /fill=\{filled \? pink : "#fff"\} stroke=\{filled \? "#fff" : pink\}/);
-  assert.match(native, /<Circle cx=\{8\.2\} cy=\{11\.1\} r=\{1\.05\} fill=\{pink\}/);
-  assert.match(native, /<Path d="M15\.2 4\.1 21 9\.8/);
+  assert.match(native, /fill=\{filled \? pink : "#fff"\}/);
+  assert.match(native, /<Circle cx=\{8\.2\} cy=\{11\.1\} r=\{1\.05\} fill="#17121a"/);
+  assert.match(native, /<Path d="M15\.2 3\.6 22 10[^>]*fill="#fff"/);
+  assert.doesNotMatch(native.slice(native.indexOf("function ReelActionIcon"), native.indexOf("import { mediaUri")), /stroke=\{pink\}|fill=\{pink\}/);
   assert.match(styles, /\.reel-rail \{[^}]*bottom: 24px/);
   assert.match(styles, /\.reel-action-button > svg \{[^}]*width:36px; height:36px/);
   assert.match(styles, /\.reel-search-suggestion \{[^}]*right: 56px/);
@@ -201,6 +203,25 @@ test("Reel sharing opens with Send to contacts before copy-link and app actions"
   assert.ok(shareModal.indexOf("shareChats.map") < shareModal.indexOf('testID="button-copy-reel-link"'));
   assert.match(shareModal, />Copy link<\/Text>/);
   assert.doesNotMatch(shareModal, />Share Reel<\/Text>/);
+});
+
+test("music picker text follows the selected theme for clear contrast", () => {
+  const composer = source("artifacts/vibeswipe-web/src/pages/reel-composer.tsx");
+  const pickerStart = composer.indexOf('<section role="dialog" aria-modal="true" aria-labelledby="reel-music-title"');
+  const pickerEnd = composer.indexOf("</section>", pickerStart);
+  const picker = composer.slice(pickerStart, pickerEnd);
+  assert.match(picker, /bg-background text-foreground/);
+  assert.match(picker, /text-muted-foreground/);
+  assert.doesNotMatch(picker, /text-white/);
+});
+
+test("music preview stops and releases when the picker, composer, or page is left", () => {
+  const composer = source("artifacts/vibeswipe-web/src/pages/reel-composer.tsx");
+  assert.match(composer, /audio\.pause\(\);\s*audio\.currentTime = 0;\s*audio\.removeAttribute\("src"\);\s*audio\.load\(\)/);
+  assert.match(composer, /useEffect\(\(\) => \(\) => releasePreviewAudio\(\), \[releasePreviewAudio\]\)/);
+  assert.match(composer, /document\.addEventListener\("visibilitychange", stopWhenHidden\)/);
+  assert.match(composer, /previewAudio\.current !== audio \|\| generation !== previewGeneration\.current/);
+  assert.match(composer, /setMusicPickerOpen\(false\); stopTrackPreview\(\)/);
 });
 
 test("Reel comments stay open with playback controls and can be swiped down", () => {

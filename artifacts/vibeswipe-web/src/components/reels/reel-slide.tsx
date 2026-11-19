@@ -26,22 +26,19 @@ type ReelIconName = "like" | "comment" | "share" | "save";
 function ReelActionIcon({ name, active = false }: { name: ReelIconName; active?: boolean }) {
   const pink = "#f34e9a";
   if (name === "like") return <svg width="36" height="36" viewBox="0 0 24 24" className="drop-shadow-lg" aria-hidden="true">
-    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78Z" fill={active ? pink : "#fff"} stroke={active ? "#fff" : pink} strokeWidth="1.35" strokeLinejoin="round" />
+    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78Z" fill={active ? pink : "#fff"} />
   </svg>;
   if (name === "comment") return <svg width="36" height="36" viewBox="0 0 24 24" className="drop-shadow-lg" aria-hidden="true">
-    <path d="M12 2.8c-5.15 0-9.3 3.7-9.3 8.25 0 2.3 1.1 4.43 3.04 5.96L5 21l4.42-2.12c.82.23 1.68.35 2.58.35 5.15 0 9.3-3.7 9.3-8.25S17.15 2.8 12 2.8Z" fill="none" stroke="#fff" strokeWidth="1.8" strokeLinejoin="round" />
-    <path d="M5.15 17.12 5 21l4.42-2.12" fill="none" stroke={pink} strokeWidth="1.8" strokeLinejoin="round" />
-    <circle cx="8.2" cy="11.1" r="1.05" fill={pink} />
-    <circle cx="12" cy="11.1" r="1.05" fill={pink} />
-    <circle cx="15.8" cy="11.1" r="1.05" fill={pink} />
+    <path d="M12 2.8c-5.15 0-9.3 3.7-9.3 8.25 0 2.3 1.1 4.43 3.04 5.96L5 21l4.42-2.12c.82.23 1.68.35 2.58.35 5.15 0 9.3-3.7 9.3-8.25S17.15 2.8 12 2.8Z" fill="#fff" />
+    <circle cx="8.2" cy="11.1" r="1.05" fill="#17121a" />
+    <circle cx="12" cy="11.1" r="1.05" fill="#17121a" />
+    <circle cx="15.8" cy="11.1" r="1.05" fill="#17121a" />
   </svg>;
   if (name === "share") return <svg width="36" height="36" viewBox="0 0 24 24" className="drop-shadow-lg" aria-hidden="true">
-    <path d="M15.2 4.1 21 9.8l-5.8 5.8v-3.7c-5.8 0-9.3 1.7-11.5 6.4.4-7.2 4.5-11 11.5-11V4.1Z" fill="none" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-    <path d="M15.2 8.3v3.6" fill="none" stroke={pink} strokeWidth="1.8" strokeLinecap="round" />
+    <path d="M15.2 3.6 22 10l-6.8 6.4v-3.5c-5.5 0-9.1 1.8-11.1 6.6.4-7.3 4.3-11.3 11.1-11.3V3.6Z" fill="#fff" />
   </svg>;
   return <svg width="36" height="36" viewBox="0 0 24 24" className="drop-shadow-lg" aria-hidden="true">
-    <path d="M6 3.75h12v17l-6-4-6 4v-17Z" fill={active ? pink : "none"} stroke="#fff" strokeWidth="1.8" strokeLinejoin="round" />
-    <path d="M9 13.4h6" fill="none" stroke={active ? "#fff" : pink} strokeWidth="1.6" strokeLinecap="round" />
+    <path d="M6 3.5h12v17l-6-4-6 4v-17Z" fill={active ? pink : "#fff"} />
   </svg>;
 }
 

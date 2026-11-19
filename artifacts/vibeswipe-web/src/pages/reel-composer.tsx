@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type TouchEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type TouchEvent } from "react";
 import { useLocation } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -54,6 +54,23 @@ export function ReelComposerPage() {
   const filteredTracks = tracks.filter((track) =>
     `${track.title} ${track.artist} ${track.category}`.toLocaleLowerCase().includes(normalizedMusicSearch),
   );
+  const previewGeneration = useRef(0);
+
+  const releasePreviewAudio = useCallback(() => {
+    previewGeneration.current += 1;
+    const audio = previewAudio.current;
+    previewAudio.current = null;
+    if (!audio) return;
+    audio.pause();
+    audio.currentTime = 0;
+    audio.removeAttribute("src");
+    audio.load();
+  }, []);
+
+  const stopTrackPreview = useCallback(() => {
+    releasePreviewAudio();
+    setPreviewingTrackId(null);
+  }, [releasePreviewAudio]);
 
   useEffect(() => {
     if (!file) { setPreview(""); return; }
@@ -69,34 +86,45 @@ export function ReelComposerPage() {
     return () => urls.forEach((url) => URL.revokeObjectURL(url));
   }, [slideFiles]);
 
-  useEffect(() => () => {
-    previewAudio.current?.pause();
-    previewAudio.current = null;
-  }, []);
+  useEffect(() => () => releasePreviewAudio(), [releasePreviewAudio]);
 
-  function stopTrackPreview() {
-    previewAudio.current?.pause();
-    previewAudio.current = null;
-    setPreviewingTrackId(null);
-  }
+  useEffect(() => {
+    const stopWhenHidden = () => {
+      if (document.visibilityState !== "visible") stopTrackPreview();
+    };
+    document.addEventListener("visibilitychange", stopWhenHidden);
+    return () => document.removeEventListener("visibilitychange", stopWhenHidden);
+  }, [stopTrackPreview]);
 
   async function toggleTrackPreview(track: ReelMusicTrack) {
     if (previewingTrackId === track.id) {
       stopTrackPreview();
       return;
     }
-    previewAudio.current?.pause();
+    releasePreviewAudio();
     setPreviewingTrackId(null);
     const audio = new Audio(track.audioUrl);
     audio.preload = "none";
-    audio.onended = () => setPreviewingTrackId(null);
+    const generation = previewGeneration.current;
+    audio.onended = () => {
+      if (previewAudio.current !== audio || generation !== previewGeneration.current) return;
+      stopTrackPreview();
+    };
     previewAudio.current = audio;
     try {
       await audio.play();
+      if (previewAudio.current !== audio || generation !== previewGeneration.current) {
+        audio.pause();
+        audio.removeAttribute("src");
+        audio.load();
+        return;
+      }
       setPreviewingTrackId(track.id);
     } catch {
-      setError("This preview couldn’t start. Try again.");
-      previewAudio.current = null;
+      if (previewAudio.current === audio && generation === previewGeneration.current) {
+        setError("This preview couldn’t start. Try again.");
+        stopTrackPreview();
+      }
     }
   }
 

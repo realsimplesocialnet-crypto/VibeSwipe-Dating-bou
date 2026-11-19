@@ -27,6 +27,12 @@ Reels are videos. Posting must offer recording with the camera or selecting an e
 
 **How to apply:** Keep Reel DM sharing within the existing match and block rules. Do not substitute static pictures for Reels or a nonfunctional share/save icon for the requested actions. Do not imply publishing occurs before the video is ready.
 
+Track previews in the Reel composer are temporary: stop and release playback when the picker closes, a track is chosen, the composer exits, or the app is backgrounded. The picker must use the selected app theme for readable text and background contrast.
+
+**Why:** The user reported that preview music continued after leaving and that white text on the light-theme picker could not be read.
+
+**How to apply:** Stop the audio element and discard its source on every exit path, guard against late playback promises restarting it, and use theme-aware foreground, muted, border, and surface colors.
+
 Use record-and-post, not live broadcasting.
 
 **Why:** When asked to distinguish recording from broadcasting, the user selected “Record and post.”
@@ -87,7 +93,7 @@ Reels navigation, action icons, labels, and counts should use bold, high-contras
 
 **How to apply:** Give the Reels/Friends tabs, search and add controls, like/comment/share actions, navigation labels, and view/count badges clear weight and contrast without changing the brand palette.
 
-Keep the vertical action rail compact and ordered Like, Comment, Share, Save. Do not show Message, Follow/plus, Remix, download, or music controls on the rail. Put a direct Post Reel plus control in the top-right header and a separate Saved Reels bookmark link there; keep owner-only deletion in the Posted Reels library. Show the creator avatar with a colored ring beside the lower-left name, which remains the profile link. Keep the active Reels bottom tab and its indicator pink to match the app-wide navigation; keep the action rail visually compact.
+Keep the vertical action rail compact and ordered Like, Comment, Save, Share. Use simple solid-white icons with no pink decorations inside; show pink only for a liked or saved state. Do not put icons in circular backgrounds. Do not show Message, Follow/plus, Remix, download, or music controls on the rail. Put a direct Post Reel plus control in the top-right header and a separate Saved Reels bookmark link there; keep owner-only deletion in the Posted Reels library. Show the creator avatar with a colored ring beside the lower-left name, which remains the profile link. Keep the active Reels bottom tab and its indicator pink to match the app-wide navigation; keep the action rail visually compact.
 
 **Why:** The user asked for a visible save control instead of hiding Save in the three-dot menu, and asked that the top-right control lead directly to Reel posting instead of leaving a plus on the action rail.
 
