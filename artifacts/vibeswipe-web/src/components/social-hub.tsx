@@ -118,7 +118,6 @@ export function ActivityOverview({ avatar: _avatar }: { avatar: AvatarFn }) {
 
   return <div className="social-hub activity-screen min-h-[calc(100dvh-48px)] lg:min-h-[100dvh]"><div className="page-in mx-auto max-w-[720px] px-4 pb-12 pt-6 md:px-8 md:pt-10">
     <Head title="Activity" />
-    <h1 className="activity-title">Activity</h1>
     <section className="activity-metric-grid" aria-label="Activity summary" data-testid="activity-summary">
       {metricCards.map(card => {
         const Icon = card.icon;

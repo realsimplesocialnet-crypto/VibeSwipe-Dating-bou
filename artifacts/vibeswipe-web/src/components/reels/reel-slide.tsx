@@ -26,10 +26,10 @@ function ReelActionIcon({ name, filled = false }: { name: ReelIconName; filled?:
   const stroke = `url(#${gradientId})`;
   return <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
     <defs><linearGradient id={gradientId} x1="3" y1="2" x2="21" y2="22" gradientUnits="userSpaceOnUse"><stop stopColor="#ff63aa" /><stop offset="1" stopColor="#a875ff" /></linearGradient></defs>
-    {name === "like" && <path d="M20.8 4.7a5.4 5.4 0 0 0-7.7 0L12 5.8l-1.1-1.1a5.4 5.4 0 0 0-7.7 7.7l1.1 1.1L12 21l7.7-7.5 1.1-1.1a5.4 5.4 0 0 0 0-7.7Z" stroke={stroke} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" fill={filled ? stroke : "none"} />}
-    {name === "comment" && <><path d="M6 4.5h12a2 2 0 0 1 2 2V14a2 2 0 0 1-2 2h-1v3.5L13 16H6a2 2 0 0 1-2-2V6.5a2 2 0 0 1 2-2Z" stroke={stroke} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /><circle cx="8.5" cy="10.5" r="1" fill={stroke} /><circle cx="12" cy="10.5" r="1" fill={stroke} /><circle cx="15.5" cy="10.5" r="1" fill={stroke} /></>}
-    {name === "share" && <><path d="M4 18c2.8-6.9 7.9-10.7 15.5-11" stroke={stroke} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /><path d="m14 3.5 5.5 3.5-4.5 5" stroke={stroke} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></>}
-    {name === "save" && <path d="M6 4.5A1.5 1.5 0 0 1 7.5 3h9A1.5 1.5 0 0 1 18 4.5V21l-6-4-6 4V4.5Z" stroke={stroke} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" fill={filled ? stroke : "none"} />}
+    {name === "like" && <path d="M20.8 4.7a5.4 5.4 0 0 0-7.7 0L12 5.8l-1.1-1.1a5.4 5.4 0 0 0-7.7 7.7l1.1 1.1L12 21l7.7-7.5 1.1-1.1a5.4 5.4 0 0 0 0-7.7Z" stroke={filled ? stroke : "#fff"} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" fill={filled ? stroke : "#fff"} />}
+    {name === "comment" && <><path d="M6 4.5h12a2 2 0 0 1 2 2V14a2 2 0 0 1-2 2h-1v3.5L13 16H6a2 2 0 0 1-2-2V6.5a2 2 0 0 1 2-2Z" stroke="#fff" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" /><circle cx="8.5" cy="10.5" r="1" fill="#fff" /><circle cx="12" cy="10.5" r="1" fill="#fff" /><circle cx="15.5" cy="10.5" r="1" fill="#fff" /></>}
+    {name === "share" && <path d="M3.5 19.5c2.5-6.8 7.1-10.4 14.3-10.4h1.7V5l5 4.9-5 4.9V12h-1.7c-5.5 0-8.9 2.8-11.1 7.5H3.5Z" fill="#fff" />}
+    {name === "save" && <path d="M6 4.5A1.5 1.5 0 0 1 7.5 3h9A1.5 1.5 0 0 1 18 4.5V21l-6-4-6 4V4.5Z" stroke={filled ? stroke : "#fff"} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" fill={filled ? stroke : "#fff"} />}
   </svg>;
 }
 

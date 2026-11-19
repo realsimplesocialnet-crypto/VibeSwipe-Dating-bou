@@ -39,23 +39,20 @@ function ReelActionIcon({ name, filled = false }: { name: ReelIconName; filled?:
   const gradientId = `native-reel-${useId().replace(/:/g, "")}`;
   const stroke = `url(#${gradientId})`;
   return (
-    <Svg width={24} height={24} viewBox="0 0 24 24" fill="none">
+    <Svg width={28} height={28} viewBox="0 0 24 24" fill="none">
       <Defs>
         <SvgLinearGradient id={gradientId} x1="3" y1="2" x2="21" y2="22">
           <Stop offset="0" stopColor="#ff63aa" />
           <Stop offset="1" stopColor="#a875ff" />
         </SvgLinearGradient>
       </Defs>
-      {name === "like" ? <Path d="M20.8 4.7a5.4 5.4 0 0 0-7.7 0L12 5.8l-1.1-1.1a5.4 5.4 0 0 0-7.7 7.7l1.1 1.1L12 21l7.7-7.5 1.1-1.1a5.4 5.4 0 0 0 0-7.7Z" stroke={stroke} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" fill={filled ? stroke : "none"} /> : null}
+      {name === "like" ? <Path d="M20.8 4.7a5.4 5.4 0 0 0-7.7 0L12 5.8l-1.1-1.1a5.4 5.4 0 0 0-7.7 7.7l1.1 1.1L12 21l7.7-7.5 1.1-1.1a5.4 5.4 0 0 0 0-7.7Z" stroke={filled ? stroke : "#fff"} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" fill={filled ? stroke : "#fff"} /> : null}
       {name === "comment" ? <>
-        <Path d="M6 4.5h12a2 2 0 0 1 2 2V14a2 2 0 0 1-2 2h-1v3.5L13 16H6a2 2 0 0 1-2-2V6.5a2 2 0 0 1 2-2Z" stroke={stroke} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />
-        <Path d="M8.5 10.5h.01M12 10.5h.01M15.5 10.5h.01" stroke={stroke} strokeWidth={2.2} strokeLinecap="round" />
+        <Path d="M6 4.5h12a2 2 0 0 1 2 2V14a2 2 0 0 1-2 2h-1v3.5L13 16H6a2 2 0 0 1-2-2V6.5a2 2 0 0 1 2-2Z" stroke="#fff" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" />
+        <Path d="M8.5 10.5h.01M12 10.5h.01M15.5 10.5h.01" stroke="#fff" strokeWidth={2.2} strokeLinecap="round" />
       </> : null}
-      {name === "share" ? <>
-        <Path d="M4 18c2.8-6.9 7.9-10.7 15.5-11" stroke={stroke} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
-        <Path d="m14 3.5 5.5 3.5-4.5 5" stroke={stroke} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
-      </> : null}
-      {name === "save" ? <Path d="M6 4.5A1.5 1.5 0 0 1 7.5 3h9A1.5 1.5 0 0 1 18 4.5V21l-6-4-6 4V4.5Z" stroke={stroke} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" fill={filled ? stroke : "none"} /> : null}
+      {name === "share" ? <Path d="M3.5 19.5c2.5-6.8 7.1-10.4 14.3-10.4h1.7V5l5 4.9-5 4.9V12h-1.7c-5.5 0-8.9 2.8-11.1 7.5H3.5Z" fill="#fff" /> : null}
+      {name === "save" ? <Path d="M6 4.5A1.5 1.5 0 0 1 7.5 3h9A1.5 1.5 0 0 1 18 4.5V21l-6-4-6 4V4.5Z" stroke={filled ? stroke : "#fff"} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" fill={filled ? stroke : "#fff"} /> : null}
     </Svg>
   );
 }

@@ -479,7 +479,8 @@ function ChatPage({matchId,returnTo='/matches',autoFocusComposer=false}:{matchId
     url.searchParams.delete('focusComposer');
     window.history.replaceState(window.history.state,'',`${url.pathname}${url.search}${url.hash}`);
   },[autoFocusComposer,chatReadyForAutofocus]);
-  const [chatViewport,setChatViewport]=useState(()=>chatViewportFrame(window.visualViewport?.height??window.innerHeight,window.visualViewport?.offsetTop??0,window.innerHeight,false));
+  const chatSurfaceRef=useRef<HTMLDivElement>(null);
+  const initialChatViewport=useRef(chatViewportFrame(window.visualViewport?.height??window.innerHeight,window.visualViewport?.offsetTop??0,window.innerHeight,false)).current;
   const fullChatHeight=useRef(window.visualViewport?.height??window.innerHeight);
   useEffect(()=>{
     const viewport=window.visualViewport;
@@ -495,7 +496,14 @@ function ChatPage({matchId,returnTo='/matches',autoFocusComposer=false}:{matchId
       const height=viewport?.height??window.innerHeight;
       const frame=chatViewportFrame(height,viewport?.offsetTop??0,Math.max(fullChatHeight.current,window.innerHeight),editing);
       if(!editing)fullChatHeight.current=height;
-      setChatViewport(current=>current.height===frame.height&&current.top===frame.top&&current.keyboardOpen===frame.keyboardOpen?current:frame);
+       const surface=chatSurfaceRef.current;
+       if(surface){
+         surface.style.top=`calc(${frame.top}px + var(--install-banner-height, 0px))`;
+         surface.style.height=`calc(${frame.height}px - var(--install-banner-height, 0px))`;
+         surface.dataset.keyboardOpen=String(frame.keyboardOpen);
+         const composer=surface.querySelector<HTMLElement>('[data-testid="chat-composer"]');
+         if(composer)composer.style.paddingBottom=frame.keyboardOpen?'0px':'max(.375rem, env(safe-area-inset-bottom))';
+       }
       window.clearTimeout(settledScroll);
       if(frame.keyboardOpen){
         settledScroll=window.setTimeout(()=>{
@@ -566,7 +574,7 @@ function ChatPage({matchId,returnTo='/matches',autoFocusComposer=false}:{matchId
   const statusLine=typing.data?.isTyping?`${match.profile.name} is typing…`:presence.data?.isOnline?'Online now':presence.data?.lastSeenAt?`Last seen ${new Date(presence.data.lastSeenAt).toLocaleString()}`:'A conversation just for your mutual match';
   const suggestionIcons=[Coffee,CupSoda,Music];
   function applySuggestion(question:string){if(blocked||busy||send.isPending)return;setDraft(question);window.requestAnimationFrame(()=>{const el=inputRef.current;if(el){el.focus();el.setSelectionRange(question.length,question.length)}})}
-  return <div className={`chat-surface ${darkChat?'chat-dark':''} ${!messages.length?'chat-new-match':''} fixed inset-x-0 z-40 flex w-full flex-col overflow-hidden`} style={{['--chat-accent' as string]:accent,top:`calc(${chatViewport.top}px + var(--install-banner-height, 0px))`,height:`calc(${chatViewport.height}px - var(--install-banner-height, 0px))`}} data-testid="chat-page">
+   return <div ref={chatSurfaceRef} className={`chat-surface ${darkChat?'chat-dark':''} ${!messages.length?'chat-new-match':''} fixed inset-x-0 z-40 flex w-full flex-col overflow-hidden`} style={{['--chat-accent' as string]:accent,top:`calc(${initialChatViewport.top}px + var(--install-banner-height, 0px))`,height:`calc(${initialChatViewport.height}px - var(--install-banner-height, 0px))`}} data-testid="chat-page">
     <header className="flex shrink-0 items-center gap-1 border-b border-[hsl(var(--chat-border))] bg-[hsl(var(--chat-card))] px-1.5 py-1 md:px-4">
       <Link href={returnTo} aria-label="Back" data-testid="link-chat-back" className="flex h-10 w-9 shrink-0 items-center justify-center rounded-full text-[hsl(var(--chat-fg))] hover:bg-[hsl(var(--chat-soft))]"><ArrowLeft size={22}/></Link>
       <Link href={profileHref} aria-label={`View ${match.profile.name}’s profile`} data-testid="link-chat-profile" className="flex min-w-0 flex-1 items-center gap-2.5 rounded-xl py-1 pr-2 hover:bg-[hsl(var(--chat-soft))]">
@@ -596,7 +604,7 @@ function ChatPage({matchId,returnTo='/matches',autoFocusComposer=false}:{matchId
     </div>
     {receipt.data?.readAt&&<div className="chat-wallpaper px-4 pb-0.5 text-right text-[10px] text-[hsl(var(--chat-muted))]">Seen {new Date(receipt.data.readAt).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'})}</div>}
     {error&&<div role="alert" className="px-4 pb-1 text-xs font-medium text-rose-500">{error}</div>}{busy&&<div role="status" className="px-4 pb-1 text-xs text-[hsl(var(--chat-muted))]" data-testid="status-chat-uploading">Uploading attachment…</div>}
-    <div data-testid="chat-composer" className="shrink-0 px-1.5 pb-1.5 pt-1 md:px-4" style={{paddingBottom:chatViewport.keyboardOpen?0:'max(.375rem,env(safe-area-inset-bottom))'}}>
+     <div data-testid="chat-composer" className="shrink-0 px-1.5 pb-1.5 pt-1 md:px-4">
       <form onSubmit={e=>{e.preventDefault();submitChatDraft()}} className="relative flex items-end gap-1.5">
         {!voiceActive&&<div className="flex min-w-0 flex-1 items-end rounded-[22px] border border-[hsl(var(--chat-border))] bg-[hsl(var(--chat-card))] pl-1 pr-2 shadow-[0_1px_2px_hsl(330_25%_30%/.08)]">
           <label className="flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-full text-[hsl(var(--chat-muted))] hover:text-[var(--chat-accent)]" aria-label="Attach photo, video, or voice note" data-testid="button-chat-attach"><Paperclip size={21} strokeWidth={1.8}/><input data-testid="input-chat-media" type="file" accept="image/*,video/mp4,video/quicktime,audio/*" className="hidden" disabled={blocked||busy||send.isPending||voiceActive} onChange={e=>{void attach(e.currentTarget.files?.[0]);e.currentTarget.value=''}}/></label>

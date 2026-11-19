@@ -24,13 +24,14 @@ export default function DirectChatPage() {
   const [draft, setDraft] = useState("");
   const [error, setError] = useState("");
   const messageList = useRef<HTMLDivElement>(null);
+  const chatSurfaceRef = useRef<HTMLElement>(null);
   const stickToLatest = useRef(true);
-  const [chatViewport, setChatViewport] = useState(() => chatViewportFrame(
+  const initialChatViewport = useRef(chatViewportFrame(
     window.visualViewport?.height ?? window.innerHeight,
     window.visualViewport?.offsetTop ?? 0,
     window.innerHeight,
     false,
-  ));
+  )).current;
   const fullChatHeight = useRef(window.visualViewport?.height ?? window.innerHeight);
   const sending = send.isPending;
 
@@ -48,7 +49,14 @@ export default function DirectChatPage() {
       const height = viewport?.height ?? window.innerHeight;
       const frame = chatViewportFrame(height, viewport?.offsetTop ?? 0, Math.max(fullChatHeight.current, window.innerHeight), editing);
       if (!editing) fullChatHeight.current = height;
-      setChatViewport(current => current.height === frame.height && current.top === frame.top && current.keyboardOpen === frame.keyboardOpen ? current : frame);
+      const surface = chatSurfaceRef.current;
+      if (surface) {
+        surface.style.top = `calc(${frame.top}px + var(--install-banner-height, 0px))`;
+        surface.style.height = `calc(${frame.height}px - var(--install-banner-height, 0px))`;
+        surface.dataset.keyboardOpen = String(frame.keyboardOpen);
+        const composer = surface.querySelector<HTMLElement>('[data-testid="direct-chat-composer"]');
+        if (composer) composer.style.paddingBottom = frame.keyboardOpen ? "0px" : "max(env(safe-area-inset-bottom), 8px)";
+      }
     };
     const queueMeasure = () => {
       if (measureFrame) return;
@@ -108,7 +116,7 @@ export default function DirectChatPage() {
     }
   }
 
-  return <main className="fixed inset-x-0 z-40 flex min-h-0 w-full flex-col overflow-hidden bg-background text-foreground" style={{ top: `calc(${chatViewport.top}px + var(--install-banner-height, 0px))`, height: `calc(${chatViewport.height}px - var(--install-banner-height, 0px))` }} data-testid="page-direct-chat">
+  return <main ref={chatSurfaceRef} className="fixed inset-x-0 z-40 flex min-h-0 w-full flex-col overflow-hidden bg-background text-foreground" style={{ top: `calc(${initialChatViewport.top}px + var(--install-banner-height, 0px))`, height: `calc(${initialChatViewport.height}px - var(--install-banner-height, 0px))` }} data-testid="page-direct-chat">
     <header className="flex shrink-0 items-center gap-3 border-b border-border px-3 pt-[max(env(safe-area-inset-top),12px)] pb-3">
       <button type="button" onClick={() => setLocation("/messages")} aria-label="Back to chats" className="flex h-10 w-10 items-center justify-center rounded-full text-primary"><ArrowLeft size={21}/></button>
       <span className="flex h-10 w-10 items-center justify-center rounded-full bg-accent font-bold text-primary">{conversation?.profile.name?.slice(0,1) ?? "?"}</span>
@@ -125,7 +133,7 @@ export default function DirectChatPage() {
       })}
     </div>
     {error && <p role="alert" className="px-4 pb-1 text-xs text-destructive">{error}</p>}
-    <form onSubmit={(event)=>void submit(event)} className="flex shrink-0 items-end gap-2 border-t border-border bg-background px-3 py-2 pb-[max(env(safe-area-inset-bottom),8px)]" style={{ paddingBottom: chatViewport.keyboardOpen ? 0 : undefined }}>
+    <form data-testid="direct-chat-composer" onSubmit={(event)=>void submit(event)} className="flex shrink-0 items-end gap-2 border-t border-border bg-background px-3 py-2 pb-[max(env(safe-area-inset-bottom),8px)]">
       <textarea value={draft} onChange={(event)=>setDraft(event.target.value)} maxLength={2000} rows={1} placeholder="Message" aria-label="Message" data-testid="input-direct-message" className="max-h-28 min-h-11 flex-1 resize-none rounded-full border border-border bg-card px-4 py-3 text-[16px] leading-5 outline-none focus:border-primary"/>
       <button type="submit" disabled={!draft.trim()||sending} aria-label="Send message" data-testid="button-send-direct-message" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground disabled:opacity-50">{sending?<LoaderCircle size={18} className="animate-spin"/>:<SendHorizontal size={19}/>}</button>
     </form>
