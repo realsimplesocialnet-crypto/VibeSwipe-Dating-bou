@@ -33,7 +33,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { File } from "expo-file-system";
 import * as ImagePicker from "expo-image-picker";
 import { fetch as expoFetch } from "expo/fetch";
-import { KeyboardAvoidingView } from "react-native-keyboard-controller";
+import { KeyboardAvoidingView, useKeyboardState } from "react-native-keyboard-controller";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { type ComponentRef, useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -94,6 +94,7 @@ function mediaTheme(theme: ChatThemeType, fallback: string): string {
 export default function ChatScreen() {
   const appColors = useColors();
   const insets = useSafeAreaInsets();
+  const keyboardVisible = useKeyboardState((state) => state.isVisible);
   const queryClient = useQueryClient();
   const { getToken, userId } = useAuth();
   const { matchId: rawId, returnTo: rawReturn } = useLocalSearchParams<{ matchId: string; returnTo?: string }>();
@@ -538,7 +539,7 @@ export default function ChatScreen() {
     <KeyboardAvoidingView
       style={[styles.screen, { backgroundColor: themedBackground }]}
       behavior="padding"
-      keyboardVerticalOffset={Platform.OS === "ios" ? -insets.bottom : 0}
+      keyboardVerticalOffset={0}
     >
       <View style={[styles.header, { borderBottomColor: colors.border, paddingTop: Math.max(insets.top, Platform.OS === "web" ? 67 : 12) }]}>
         <Pressable accessibilityRole="button" accessibilityLabel="Back" onPress={() => router.canGoBack() ? router.back() : router.replace(returnPath as never)} style={styles.back}>
@@ -716,7 +717,7 @@ export default function ChatScreen() {
           </Text>
         </View>
       ) : (
-        <View testID="chat-composer" style={[styles.composer, { borderColor: colors.border, backgroundColor: colors.card, marginBottom: Math.max(insets.bottom, 8) }]}>
+        <View testID="chat-composer" style={[styles.composer, { borderColor: colors.border, backgroundColor: colors.card, marginBottom: keyboardVisible ? 0 : Math.max(insets.bottom, 8) }]}>
           <Pressable accessibilityRole="button" accessibilityLabel="Attach photo or video" testID="chat-attachment" onPress={() => void chooseAttachment()} disabled={busyMedia || sendMessage.isPending || voiceActive} style={styles.attachButton}>
             {busyMedia ? <ActivityIndicator color={chatAccent} size="small" /> : <Feather name="image" size={24} color={colors.mutedForeground} />}
           </Pressable>

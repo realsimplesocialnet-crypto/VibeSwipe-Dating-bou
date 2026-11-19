@@ -489,7 +489,6 @@ function ChatPage({matchId,returnTo='/matches',autoFocusComposer=false}:{matchId
     document.body.style.overflow='hidden';
     document.documentElement.style.overflow='hidden';
     let measureFrame=0;
-    let settledScroll=0;
     const measure=()=>{
       const focused=document.activeElement;
       const editing=focused instanceof HTMLElement&&(focused.tagName==='TEXTAREA'||focused.tagName==='INPUT'||focused.isContentEditable);
@@ -504,12 +503,6 @@ function ChatPage({matchId,returnTo='/matches',autoFocusComposer=false}:{matchId
          const composer=surface.querySelector<HTMLElement>('[data-testid="chat-composer"]');
          if(composer)composer.style.paddingBottom=frame.keyboardOpen?'0px':'max(.375rem, env(safe-area-inset-bottom))';
        }
-      window.clearTimeout(settledScroll);
-      if(frame.keyboardOpen){
-        settledScroll=window.setTimeout(()=>{
-          if(stickToLatest.current)window.requestAnimationFrame(scrollToLatest);
-        },120);
-      }
     };
     const resize=()=>{
       if(measureFrame)return;
@@ -521,7 +514,7 @@ function ChatPage({matchId,returnTo='/matches',autoFocusComposer=false}:{matchId
     window.addEventListener('resize',resize);
     document.addEventListener('focusin',resize);
     document.addEventListener('focusout',resize);
-    return()=>{if(measureFrame)window.cancelAnimationFrame(measureFrame);window.clearTimeout(settledScroll);viewport?.removeEventListener('resize',resize);viewport?.removeEventListener('scroll',resize);window.removeEventListener('resize',resize);document.removeEventListener('focusin',resize);document.removeEventListener('focusout',resize);document.body.style.overflow=previousBodyOverflow;document.documentElement.style.overflow=previousHtmlOverflow};
+    return()=>{if(measureFrame)window.cancelAnimationFrame(measureFrame);viewport?.removeEventListener('resize',resize);viewport?.removeEventListener('scroll',resize);window.removeEventListener('resize',resize);document.removeEventListener('focusin',resize);document.removeEventListener('focusout',resize);document.body.style.overflow=previousBodyOverflow;document.documentElement.style.overflow=previousHtmlOverflow};
   },[scrollToLatest]);
   useEffect(()=>{if(last&&last.senderId!==profile.data?.id&&!last.isRead)markRead.mutate({matchId},{onSuccess:()=>{void qc.invalidateQueries({queryKey:getGetMatchesQueryKey()});void qc.invalidateQueries({queryKey:getGetNotificationsQueryKey()})}});},[last?.id,profile.data?.id]);
   useEffect(()=>{heartbeat.mutate({data:{isActive:true}});const beat=window.setInterval(()=>heartbeat.mutate({data:{isActive:document.visibilityState==='visible'}}),30000);const visibility=()=>heartbeat.mutate({data:{isActive:document.visibilityState==='visible'}});document.addEventListener('visibilitychange',visibility);return()=>{clearInterval(beat);document.removeEventListener('visibilitychange',visibility)}},[]);
@@ -557,6 +550,8 @@ function ChatPage({matchId,returnTo='/matches',autoFocusComposer=false}:{matchId
     if(!content||typeof ResizeObserver==='undefined')return;
     const observer=new ResizeObserver(()=>{if(stickToLatest.current)scrollToLatest()});
     observer.observe(content);
+    const list=messageListRef.current;
+    if(list)observer.observe(list);
     return()=>observer.disconnect();
   },[matchId,matches.isLoading,msgs.isLoading,scrollToLatest]);
   if(matches.isLoading||msgs.isLoading)return <PageFrame><div className="h-16 animate-pulse rounded-2xl bg-white/[.04]"/><div className="mt-6"><Busy/></div></PageFrame>;

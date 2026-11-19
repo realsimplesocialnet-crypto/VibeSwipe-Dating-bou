@@ -7,7 +7,7 @@ import { Feather } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useMemo, useRef, useState, type ComponentRef } from "react";
 import { ActivityIndicator, Alert, FlatList, Platform, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
-import { KeyboardAvoidingView } from "react-native-keyboard-controller";
+import { KeyboardAvoidingView, useKeyboardState } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ProfileAvatar } from "@/components/ProfileAvatar";
 import { useColors } from "@/hooks/useColors";
@@ -17,6 +17,7 @@ export default function DirectChatScreen() {
   const { conversationId = "" } = useLocalSearchParams<{ conversationId: string }>();
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  const keyboardVisible = useKeyboardState((state) => state.isVisible);
   const me = useGetMyProfile();
   const conversations = useGetDirectChats({ query: { queryKey: getGetDirectChatsQueryKey(), refetchInterval: 5000 } });
   const conversation = conversations.data?.find(item => item.id === conversationId);
@@ -62,7 +63,7 @@ export default function DirectChatScreen() {
     </View>;
   }
 
-  return <KeyboardAvoidingView style={[styles.page, { backgroundColor: colors.background }]} behavior="padding" keyboardVerticalOffset={Platform.OS === "ios" ? -insets.bottom : 0}>
+  return <KeyboardAvoidingView style={[styles.page, { backgroundColor: colors.background }]} behavior="padding" keyboardVerticalOffset={0}>
     <View style={[styles.header, { paddingTop: insets.top + 6, borderBottomColor: colors.border }]}>
       <Pressable accessibilityRole="button" accessibilityLabel="Back to chats" onPress={() => router.replace("/messages")} style={styles.back}><Feather name="arrow-left" size={21} color={colors.primary}/></Pressable>
       {conversation?.profile ? <ProfileAvatar profile={conversation.profile} size={40}/> : <View style={[styles.avatarFallback,{backgroundColor:colors.accent}]}><Feather name="user" size={18} color={colors.primary}/></View>}
@@ -84,7 +85,7 @@ export default function DirectChatScreen() {
       ListEmptyComponent={<Text style={[styles.empty,{color:colors.mutedForeground}]}>Start the conversation with a message.</Text>}
       testID="direct-chat-messages"
     />}
-    <View style={[styles.composer, { paddingBottom: Math.max(insets.bottom, 8), borderTopColor: colors.border, backgroundColor: colors.background }]}>
+    <View style={[styles.composer, { paddingBottom: keyboardVisible ? 0 : Math.max(insets.bottom, 8), borderTopColor: colors.border, backgroundColor: colors.background }]}>
       <TextInput
         ref={input}
         value={draft}

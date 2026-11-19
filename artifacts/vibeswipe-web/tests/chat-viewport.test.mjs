@@ -18,11 +18,11 @@ test("chat viewport geometry ignores fractional pixel movement", () => {
   assert.deepEqual(frame, { height: 444, top: 0, keyboardOpen: true });
 });
 
-test("chat keyboard animation coalesces viewport events and defers bottom scrolling", () => {
+test("chat keyboard animation coalesces viewport events without a delayed scroll jump", () => {
   const handler = app.slice(app.indexOf("let measureFrame=0;"), app.indexOf("},[scrollToLatest]);"));
   assert.match(handler, /if\(measureFrame\)return/);
-  assert.match(handler, /setTimeout\(\(\)=>\{[\s\S]*?requestAnimationFrame\(scrollToLatest\)/);
-  assert.doesNotMatch(handler, /if\(editing\)requestAnimationFrame\(scrollToLatest\)/);
+  assert.doesNotMatch(handler, /setTimeout|settledScroll|scrollToLatest/);
+  assert.match(app, /observer\.observe\(content\);\s*const list=messageListRef\.current;\s*if\(list\)observer\.observe\(list\);/);
 });
 
 test("both web chat screens stay anchored while iOS pans its visual viewport", () => {
@@ -42,10 +42,9 @@ test("native chats avoid applying keyboard insets twice", () => {
   for (const source of [nativeChat, nativeDirectChat]) {
     assert.match(source, /automaticallyAdjustKeyboardInsets=\{false\}/);
     assert.match(source, /contentInsetAdjustmentBehavior="never"/);
-    assert.doesNotMatch(source, /useKeyboardState/);
+    assert.match(source, /useKeyboardState\(\(state\) => state\.isVisible\)/);
+    assert.match(source, /keyboardVerticalOffset=\{0\}/);
   }
-  assert.match(nativeChat, /keyboardVerticalOffset=\{Platform\.OS === "ios" \? -insets\.bottom : 0\}/);
-  assert.match(nativeDirectChat, /keyboardVerticalOffset=\{Platform\.OS === "ios" \? -insets\.bottom : 0\}/);
-  assert.match(nativeChat, /marginBottom: Math\.max\(insets\.bottom, 8\)/);
-  assert.match(nativeDirectChat, /paddingBottom: Math\.max\(insets\.bottom, 8\)/);
+  assert.match(nativeChat, /marginBottom: keyboardVisible \? 0 : Math\.max\(insets\.bottom, 8\)/);
+  assert.match(nativeDirectChat, /paddingBottom: keyboardVisible \? 0 : Math\.max\(insets\.bottom, 8\)/);
 });

@@ -9,7 +9,7 @@ const web = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8');
 const native = readFileSync(new URL('../../vibeswipe/app/chat/[matchId].tsx', import.meta.url), 'utf8');
 
 test('website question selection only updates and focuses the draft', () => {
-  const handler = web.slice(web.indexOf('function applySuggestion('), web.indexOf('return <div className={`chat-surface'));
+  const handler = web.slice(web.indexOf('function applySuggestion('), web.indexOf('return <div ref={chatSurfaceRef} className={`chat-surface'));
   assert.match(handler, /setDraft\(question\)/);
   assert.match(handler, /\.focus\(\)/);
   assert.doesNotMatch(handler, /sendMessage\(|mutate(?:Async)?\(/);
