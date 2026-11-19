@@ -23,22 +23,21 @@ type Props = {
 
 type ReelIconName = "like" | "comment" | "share" | "save";
 
-function ReelActionIcon({ name, active = false }: { name: ReelIconName; active?: boolean }) {
-  const pink = "#f34e9a";
+function ReelActionIcon({ name }: { name: ReelIconName }) {
   if (name === "like") return <svg width="36" height="36" viewBox="0 0 24 24" className="drop-shadow-lg" aria-hidden="true">
-    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78Z" fill={active ? pink : "#fff"} />
+    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78Z" fill="currentColor" />
   </svg>;
   if (name === "comment") return <svg width="36" height="36" viewBox="0 0 24 24" className="drop-shadow-lg" aria-hidden="true">
-    <path d="M12 2.8c-5.15 0-9.3 3.7-9.3 8.25 0 2.3 1.1 4.43 3.04 5.96L5 21l4.42-2.12c.82.23 1.68.35 2.58.35 5.15 0 9.3-3.7 9.3-8.25S17.15 2.8 12 2.8Z" fill="#fff" />
+    <path d="M12 2.8c-5.15 0-9.3 3.7-9.3 8.25 0 2.3 1.1 4.43 3.04 5.96L5 21l4.42-2.12c.82.23 1.68.35 2.58.35 5.15 0 9.3-3.7 9.3-8.25S17.15 2.8 12 2.8Z" fill="currentColor" />
     <circle cx="8.2" cy="11.1" r="1.05" fill="#17121a" />
     <circle cx="12" cy="11.1" r="1.05" fill="#17121a" />
     <circle cx="15.8" cy="11.1" r="1.05" fill="#17121a" />
   </svg>;
   if (name === "share") return <svg width="36" height="36" viewBox="0 0 24 24" className="drop-shadow-lg" aria-hidden="true">
-    <path d="M15.2 3.6 22 10l-6.8 6.4v-3.5c-5.5 0-9.1 1.8-11.1 6.6.4-7.3 4.3-11.3 11.1-11.3V3.6Z" fill="#fff" />
+    <path d="M15.2 3.6 22 10l-6.8 6.4v-3.5c-5.5 0-9.1 1.8-11.1 6.6.4-7.3 4.3-11.3 11.1-11.3V3.6Z" fill="currentColor" />
   </svg>;
   return <svg width="36" height="36" viewBox="0 0 24 24" className="drop-shadow-lg" aria-hidden="true">
-    <path d="M6 3.5h12v17l-6-4-6 4v-17Z" fill={active ? pink : "#fff"} />
+    <path d="M6 3.5h12v17l-6-4-6 4v-17Z" fill="currentColor" />
   </svg>;
 }
 
@@ -378,13 +377,13 @@ export function ReelSlide({ reel, index, active, near, muted, pageHidden, compac
 
     <div className={`reel-rail ${compact ? "is-compact" : ""} ${navigationVisible ? "is-nav-visible" : ""} ${searchSuggestion && !compact ? "has-search" : ""}`}>
       <button type="button" className={`reel-action-button ${reel.likedByMe ? "is-on" : ""}`} onClick={onLike} disabled={likePending} aria-pressed={reel.likedByMe} aria-label={reel.likedByMe ? "Unlike" : "Like"} data-testid={`button-like-reel-${reel.id}`}>
-        <ReelActionIcon name="like" active={reel.likedByMe} /><span data-testid={`text-like-count-${reel.id}`}>{formatCount(reel.likeCount)}</span>
+        <ReelActionIcon name="like" /><span data-testid={`text-like-count-${reel.id}`}>{formatCount(reel.likeCount)}</span>
       </button>
       <button type="button" className="reel-action-button" onClick={onComment} aria-label="Comments" data-testid={`button-comments-reel-${reel.id}`}>
         <ReelActionIcon name="comment" /><span data-testid={`text-comment-count-${reel.id}`}>{formatCount(reel.commentCount)}</span>
       </button>
       <button type="button" className={`reel-action-button ${reel.savedByMe ? "is-saved" : ""}`} onClick={onSave} disabled={savePending} aria-pressed={reel.savedByMe} aria-label={reel.savedByMe ? "Remove from Saved Reels" : "Save Reel"} data-testid={`button-save-reel-${reel.id}`}>
-        <ReelActionIcon name="save" active={reel.savedByMe} /><span data-testid={`text-save-count-${reel.id}`}>{formatCount(reel.saveCount)}</span>
+        <ReelActionIcon name="save" /><span data-testid={`text-save-count-${reel.id}`}>{formatCount(reel.saveCount)}</span>
       </button>
       <button type="button" className="reel-action-button" onClick={onShare} aria-label={`Share, ${formatCount(reel.shareCount)} shares`} data-testid={`button-share-reel-${reel.id}`}><ReelActionIcon name="share" /><span data-testid={`text-share-count-${reel.id}`}>{formatCount(reel.shareCount)}</span></button>
     </div>

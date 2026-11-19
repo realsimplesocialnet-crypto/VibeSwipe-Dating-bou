@@ -42,20 +42,20 @@ function formatReelCount(value: number) {
   return new Intl.NumberFormat("en", { notation: "compact", compactDisplay: "short", maximumFractionDigits: 1 }).format(value);
 }
 
-function ReelActionIcon({ name, filled = false }: { name: ReelIconName; filled?: boolean }) {
-  const pink = "#f34e9a";
+function ReelActionIcon({ name, filled = false, foreground, activeColor, cutoutColor }: { name: ReelIconName; filled?: boolean; foreground: string; activeColor: string; cutoutColor: string }) {
+  const color = filled ? activeColor : foreground;
   return (
     <Svg width={36} height={36} viewBox="0 0 24 24">
-      {name === "like" ? <Path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78Z" fill={filled ? pink : "#fff"} /> : null}
+      {name === "like" ? <Path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78Z" fill={color} /> : null}
       {name === "comment" ? <>
-        <Path d="M12 2.8c-5.15 0-9.3 3.7-9.3 8.25 0 2.3 1.1 4.43 3.04 5.96L5 21l4.42-2.12c.82.23 1.68.35 2.58.35 5.15 0 9.3-3.7 9.3-8.25S17.15 2.8 12 2.8Z" fill="#fff" />
-        <Circle cx={8.2} cy={11.1} r={1.05} fill="#17121a" />
-        <Circle cx={12} cy={11.1} r={1.05} fill="#17121a" />
-        <Circle cx={15.8} cy={11.1} r={1.05} fill="#17121a" />
+        <Path d="M12 2.8c-5.15 0-9.3 3.7-9.3 8.25 0 2.3 1.1 4.43 3.04 5.96L5 21l4.42-2.12c.82.23 1.68.35 2.58.35 5.15 0 9.3-3.7 9.3-8.25S17.15 2.8 12 2.8Z" fill={foreground} />
+        <Circle cx={8.2} cy={11.1} r={1.05} fill={cutoutColor} />
+        <Circle cx={12} cy={11.1} r={1.05} fill={cutoutColor} />
+        <Circle cx={15.8} cy={11.1} r={1.05} fill={cutoutColor} />
       </> : null}
-      {name === "share" ? <Path d="M15.2 3.6 22 10l-6.8 6.4v-3.5c-5.5 0-9.1 1.8-11.1 6.6.4-7.3 4.3-11.3 11.1-11.3V3.6Z" fill="#fff" /> : null}
+      {name === "share" ? <Path d="M15.2 3.6 22 10l-6.8 6.4v-3.5c-5.5 0-9.1 1.8-11.1 6.6.4-7.3 4.3-11.3 11.1-11.3V3.6Z" fill={foreground} /> : null}
       {name === "save" ? <>
-        <Path d="M6 3.5h12v17l-6-4-6 4v-17Z" fill={filled ? pink : "#fff"} />
+        <Path d="M6 3.5h12v17l-6-4-6 4v-17Z" fill={color} />
       </> : null}
     </Svg>
   );
@@ -456,7 +456,7 @@ export default function ProfileReelScreen() {
                 onPress={() => void toggleLike()}
                 style={styles.actionButton}
               >
-                <ReelActionIcon name="like" filled={reelQuery.data.likedByMe} />
+                <ReelActionIcon name="like" filled={reelQuery.data.likedByMe} foreground={colors.foreground} activeColor={colors.primary} cutoutColor={colors.background} />
                 <Text style={styles.actionCount}>{formatReelCount(reelQuery.data.likeCount)}</Text>
               </Pressable>
               <Pressable
@@ -466,7 +466,7 @@ export default function ProfileReelScreen() {
                 onPress={openComments}
                 style={styles.actionButton}
               >
-                <ReelActionIcon name="comment" />
+                <ReelActionIcon name="comment" foreground={colors.foreground} activeColor={colors.primary} cutoutColor={colors.background} />
                 <Text style={styles.actionCount}>{formatReelCount(reelQuery.data.commentCount)}</Text>
               </Pressable>
               <Pressable
@@ -478,7 +478,7 @@ export default function ProfileReelScreen() {
                 onPress={() => void toggleSave()}
                 style={styles.actionButton}
               >
-                <ReelActionIcon name="save" filled={reelQuery.data.savedByMe} />
+                <ReelActionIcon name="save" filled={reelQuery.data.savedByMe} foreground={colors.foreground} activeColor={colors.primary} cutoutColor={colors.background} />
                 <Text style={styles.actionCount}>{formatReelCount(reelQuery.data.saveCount)}</Text>
               </Pressable>
               <Pressable
@@ -492,7 +492,7 @@ export default function ProfileReelScreen() {
                 }}
                 style={styles.actionButton}
               >
-                <ReelActionIcon name="share" />
+                <ReelActionIcon name="share" foreground={colors.foreground} activeColor={colors.primary} cutoutColor={colors.background} />
                 <Text style={styles.actionCount}>{formatReelCount(reelQuery.data.shareCount)}</Text>
               </Pressable>
             </View>

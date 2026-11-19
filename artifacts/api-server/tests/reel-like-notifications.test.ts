@@ -149,18 +149,17 @@ test("Reels action rail places Save above Share on web and mobile", () => {
     const share = rail.indexOf('ReelActionIcon name="share"');
     assert.ok(save >= 0 && share > save, "Save must appear before Share in the action rail");
   }
-  assert.match(web, /fill=\{active \? pink : "#fff"\}/);
+  assert.match(web, /fill="currentColor"/);
   assert.match(web, /<path d="M15\.2 3\.6 22 10/);
   assert.match(web, /<circle cx="8\.2" cy="11\.1" r="1\.05" fill="#17121a"/);
-  assert.doesNotMatch(web.slice(web.indexOf("function ReelActionIcon"), web.indexOf("export function ReelSlide")), /stroke=\{pink\}|fill=\{pink\}/);
-  assert.match(web, /<ReelActionIcon name="like" active=\{reel\.likedByMe\}/);
-  assert.match(web, /<ReelActionIcon name="save" active=\{reel\.savedByMe\}/);
+  assert.doesNotMatch(web.slice(web.indexOf("function ReelActionIcon"), web.indexOf("export function ReelSlide")), /#f34e9a|stroke=/);
   assert.match(styles, /\.reel-action-button \{[^}]*color: #fff/);
+  assert.match(styles, /\.reel-action-button\.is-on, \.reel-action-button\.is-saved \{ color: var\(--reels-accent\)/);
   assert.match(styles, /\.reel-action-button > span \{ color:#fff/);
-  assert.match(native, /fill=\{filled \? pink : "#fff"\}/);
-  assert.match(native, /<Circle cx=\{8\.2\} cy=\{11\.1\} r=\{1\.05\} fill="#17121a"/);
-  assert.match(native, /<Path d="M15\.2 3\.6 22 10[^>]*fill="#fff"/);
-  assert.doesNotMatch(native.slice(native.indexOf("function ReelActionIcon"), native.indexOf("import { mediaUri")), /stroke=\{pink\}|fill=\{pink\}/);
+  assert.match(native, /const color = filled \? activeColor : foreground/);
+  assert.match(native, /<Circle cx=\{8\.2\} cy=\{11\.1\} r=\{1\.05\} fill=\{cutoutColor\}/);
+  assert.match(native, /<Path d="M15\.2 3\.6 22 10[^>]*fill=\{foreground\}/);
+  assert.doesNotMatch(native.slice(native.indexOf("function ReelActionIcon"), native.indexOf("import { mediaUri")), /#f34e9a|#fff|stroke=/);
   assert.match(styles, /\.reel-rail \{[^}]*bottom: 24px/);
   assert.match(styles, /\.reel-action-button > svg \{[^}]*width:36px; height:36px/);
   assert.match(styles, /\.reel-search-suggestion \{[^}]*right: 56px/);
