@@ -18,6 +18,7 @@ export type SetupData = {
   ageMin: string;
   ageMax: string;
   distanceKm: number;
+  referralCode: string;
 };
 
 export const EMPTY_SETUP: SetupData = {
@@ -40,6 +41,7 @@ export const EMPTY_SETUP: SetupData = {
   ageMin: "22",
   ageMax: "35",
   distanceKm: 50,
+  referralCode: "",
 };
 
 export function asSetupData(value: Record<string, unknown>): SetupData {
@@ -76,6 +78,10 @@ export function asSetupData(value: Record<string, unknown>): SetupData {
     ageMax: typeof value.ageMax === "string" ? value.ageMax : "35",
     distanceKm:
       typeof value.distanceKm === "number" ? value.distanceKm : 50,
+    referralCode:
+      typeof value.referralCode === "string"
+        ? value.referralCode.replace(/[^a-z0-9]/gi, "").toUpperCase().slice(0, 8)
+        : "",
   };
 }
 
@@ -144,6 +150,7 @@ export function buildProfileInput(values: SetupData) {
       gender: values.lookingFor,
       distanceKm: values.distanceKm,
     },
+    referralCode: values.referralCode || undefined,
   };
 }
 

@@ -63,4 +63,9 @@ export interface ProfileInput {
      */
   videoUrl?: string | null;
   preferences: ProfilePreferences;
+  /**
+     * Optional referral code used only when the profile is first created.
+     * @pattern ^[A-Za-z0-9]{6,8}$
+     */
+  referralCode?: string;
 }

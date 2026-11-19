@@ -17,6 +17,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ProfileAvatar } from "@/components/ProfileAvatar";
 import { ProfileLikedReelsSection, ProfileReelsSection } from "@/components/ProfileReelsSection";
 import { ProfileFollowStats } from "@/components/ProfileFollow";
+import { ReferralProfileCard } from "@/components/ReferralProfileCard";
 import { usePremiumColors } from "@/hooks/useColors";
 import { profileImageSource } from "@/lib/media";
 import { useEffect, useState } from "react";
@@ -117,6 +118,7 @@ export default function ProfileScreen() {
             </View>
           ) : null}
           <ProfileFollowStats profileId={user.id} viewerId={user.id} showAction={false} />
+          <ReferralProfileCard />
           <Pressable testID="edit-profile" onPress={() => router.push("/edit-profile")} style={({ pressed }) => [styles.editButton, { height: tight ? 42 : 48, marginTop: tight ? 8 : 12, backgroundColor: colors.profileEdit, transform: [{ scale: pressed ? 0.98 : 1 }] }]}>
             <Feather name="edit-2" size={15} color={colors.profileEditForeground} />
             <Text style={[styles.editText, { color: colors.profileEditForeground }]}>Edit profile</Text>

@@ -1,7 +1,7 @@
 import { useSignUp } from "@clerk/expo";
 import { OnboardingVideoBackground } from "@/components/OnboardingVideoBackground";
 import { Feather } from "@expo/vector-icons";
-import { Link, router } from "expo-router";
+import { Link, router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import {
   ActivityIndicator,
@@ -17,8 +17,14 @@ import { useColors } from "@/hooks/useColors";
 export default function SignUpScreen() {
   const colors = useColors();
   const { signUp, errors, fetchStatus } = useSignUp();
+  const { ref } = useLocalSearchParams<{ ref?: string | string[] }>();
+  const referralFromUrl = (Array.isArray(ref) ? ref[0] : ref ?? "")
+    .replace(/[^a-z0-9]/gi, "")
+    .toUpperCase()
+    .slice(0, 8);
   const [step, setStep] = useState<"email" | "password">("email");
   const [emailAddress, setEmailAddress] = useState("");
+  const [referralCode, setReferralCode] = useState(referralFromUrl);
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(true);
   const [code, setCode] = useState("");
@@ -72,7 +78,10 @@ export default function SignUpScreen() {
       await signUp.finalize({
         navigate: ({ session, decorateUrl }) => {
           if (session?.currentTask) return;
-          router.replace(decorateUrl("/") as never);
+          const next = referralCode
+            ? `/onboarding?ref=${encodeURIComponent(referralCode.trim().toUpperCase())}`
+            : "/onboarding";
+          router.replace(decorateUrl(next) as never);
         },
       });
     }
@@ -159,6 +168,19 @@ export default function SignUpScreen() {
           {emailAddress.length > 0 && !emailIsValid ? (
             <Text style={[styles.fieldError, { color: colors.destructive }]}>Enter a valid email address.</Text>
           ) : null}
+          <Text style={[styles.label, { color: colors.foreground }]}>Referral code (optional)</Text>
+          <TextInput
+            testID="sign-up-referral-code"
+            value={referralCode}
+            onChangeText={(value) => setReferralCode(value.replace(/[^a-z0-9]/gi, "").toUpperCase().slice(0, 8))}
+            autoCapitalize="characters"
+            autoCorrect={false}
+            maxLength={8}
+            placeholder="8 characters"
+            placeholderTextColor={colors.mutedForeground}
+            style={[styles.input, { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.card }]}
+          />
+          <Text style={[styles.passwordHint, { color: colors.mutedForeground }]}>Your friend earns 100 points when you join.</Text>
         </>
       ) : (
         <>

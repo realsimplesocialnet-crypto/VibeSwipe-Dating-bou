@@ -65,6 +65,8 @@ export const profilesTable = pgTable("vibeswipe_profiles", {
   deactivated: boolean("deactivated").notNull().default(false),
   adminSuspended: boolean("admin_suspended").notNull().default(false),
   isVerified: boolean("is_verified").notNull().default(false),
+  referralCode: text("referral_code"),
+  points: integer("points").notNull().default(0),
   travelMode: boolean("travel_mode").notNull().default(false),
   travelCity: text("travel_city"),
   boostStartTime: timestamp("boost_start_time", { withTimezone: true }),
@@ -87,6 +89,7 @@ export const profilesTable = pgTable("vibeswipe_profiles", {
   citySearch: index("vibeswipe_profiles_city_search_idx").using("gin", sql`to_tsvector('english', coalesce(${table.city}, ''))`),
   stateSearch: index("vibeswipe_profiles_state_search_idx").using("gin", sql`to_tsvector('english', coalesce(${table.state}, ''))`),
   countrySearch: index("vibeswipe_profiles_country_search_idx").using("gin", sql`to_tsvector('english', coalesce(${table.country}, ''))`),
+  referralCodeUnique: uniqueIndex("vibeswipe_profiles_referral_code_idx").on(table.referralCode),
 }));
 
 /** This table is also initialized by the API server. Keeping it in Drizzle prevents push from treating it as a rename candidate. */

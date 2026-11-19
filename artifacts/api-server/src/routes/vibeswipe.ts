@@ -28,6 +28,7 @@ import {
   GetMessagesParams,
   GetMessagesResponse,
   GetMyProfileResponse,
+  GetMyReferralSummaryResponse,
   GetProfileMediaParams,
   GetMediaPreviewParams,
   CheckAdditionalProfilePhotoParams,
@@ -82,6 +83,7 @@ import {
   profileSetupDraftsTable,
   pool,
   profilesTable,
+  referralsTable,
   reactionsTable,
   reportsTable,
   storiesTable,
@@ -91,6 +93,7 @@ import {
 import {
   and,
   asc,
+  count,
   desc,
   eq,
   gt,
@@ -134,6 +137,7 @@ import {
 } from "../lib/chatEventStream";
 import { sendMessagePush } from "../lib/vibeswipePush";
 import { buildProfileValues } from "../lib/profileSetup";
+import { findAvailableReferralCode } from "../lib/referrals";
 import { checkAdditionalPhoto } from "../lib/additional-photo-check";
 import { FaceVerificationError } from "../lib/luxand";
 import {
@@ -718,6 +722,55 @@ router.get("/vibeswipe/me", async (req, res): Promise<void> => {
   res.json(GetMyProfileResponse.parse(profile));
 });
 
+router.get("/vibeswipe/referrals/me", async (req, res): Promise<void> => {
+  const userId = currentUserId(req);
+  const summary = await db.transaction(async (tx) => {
+    const [profile] = await tx
+      .select({
+        id: profilesTable.id,
+        referralCode: profilesTable.referralCode,
+        points: profilesTable.points,
+      })
+      .from(profilesTable)
+      .where(eq(profilesTable.id, userId))
+      .for("update")
+      .limit(1);
+    if (!profile) return null;
+    const referralCode = profile.referralCode ?? await findAvailableReferralCode(
+      userId,
+      async (candidate) => {
+        await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${candidate}))`);
+        const [taken] = await tx
+          .select({ id: profilesTable.id })
+          .from(profilesTable)
+          .where(eq(profilesTable.referralCode, candidate))
+          .limit(1);
+        return Boolean(taken);
+      },
+    );
+    if (!profile.referralCode) {
+      await tx
+        .update(profilesTable)
+        .set({ referralCode })
+        .where(eq(profilesTable.id, userId));
+    }
+    const [counts] = await tx
+      .select({ referralCount: count() })
+      .from(referralsTable)
+      .where(eq(referralsTable.referrerId, userId));
+    return {
+      referralCode,
+      points: profile.points,
+      referralCount: counts?.referralCount ?? 0,
+    };
+  });
+  if (!summary) {
+    res.status(404).json({ error: "Profile not found" });
+    return;
+  }
+  res.json(GetMyReferralSummaryResponse.parse(summary));
+});
+
 router.put("/vibeswipe/me", async (req, res): Promise<void> => {
   const parsed = SaveMyProfileBody.safeParse(req.body);
   if (!parsed.success) {
@@ -786,9 +839,14 @@ router.put("/vibeswipe/me", async (req, res): Promise<void> => {
   const mediaIds = [...body.photos, ...(body.videoUrl ? [body.videoUrl] : [])]
     .map(value => value.slice("media:".length));
   const values = buildProfileValues(userId, body);
+  const requestedReferralCode = body.referralCode?.trim().toUpperCase() ?? "";
   const result = await db.transaction(async (tx) => {
     const [existingProfile] = await tx
-      .select({ photos: profilesTable.photos, isVerified: profilesTable.isVerified })
+      .select({
+        photos: profilesTable.photos,
+        isVerified: profilesTable.isVerified,
+        referralCode: profilesTable.referralCode,
+      })
       .from(profilesTable)
       .where(eq(profilesTable.id, userId))
       .for("update")
@@ -798,6 +856,35 @@ router.put("/vibeswipe/me", async (req, res): Promise<void> => {
     if (existingProfile?.isVerified !== photoSnapshot?.isVerified || existingProfile?.photos[0] !== photoSnapshot?.photos[0]) {
       return { invalidMedia: true as const, stalePhotos: true as const };
     }
+    let referrerId: string | null = null;
+    if (!existingProfile && requestedReferralCode) {
+      const [referrer] = await tx
+        .select({ id: profilesTable.id })
+        .from(profilesTable)
+        .where(and(
+          eq(profilesTable.referralCode, requestedReferralCode),
+          eq(profilesTable.deactivated, false),
+          eq(profilesTable.adminSuspended, false),
+          eq(profilesTable.isDemo, false),
+        ))
+        .limit(1);
+      if (!referrer || referrer.id === userId) {
+        return { invalidMedia: false as const, invalidReferral: true as const };
+      }
+      referrerId = referrer.id;
+    }
+    const assignedReferralCode = existingProfile?.referralCode ?? await findAvailableReferralCode(
+      userId,
+      async (candidate) => {
+        await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${candidate}))`);
+        const [taken] = await tx
+          .select({ id: profilesTable.id })
+          .from(profilesTable)
+          .where(eq(profilesTable.referralCode, candidate))
+          .limit(1);
+        return Boolean(taken);
+      },
+    );
     const removedMediaIds = removedProfilePhotoMediaIds(existingProfile?.photos ?? [], body.photos);
     const uniqueMediaIds = [...new Set(mediaIds)];
     if (uniqueMediaIds.length > 0) {
@@ -822,17 +909,42 @@ router.put("/vibeswipe/me", async (req, res): Promise<void> => {
     }
     const [profile] = await tx
       .insert(profilesTable)
-      .values(values)
+      .values({ ...values, referralCode: assignedReferralCode })
       .onConflictDoUpdate({
         target: profilesTable.id,
         set: {
           ...values,
+          ...(existingProfile && !existingProfile.referralCode
+            ? { referralCode: assignedReferralCode }
+            : {}),
           // A badge confirms ownership of the main photo, not arbitrary future photos.
           ...(existingProfile?.photos[0] !== body.photos[0] ? { isVerified: false } : {}),
         },
       })
       .returning();
     if (!profile) return { invalidMedia: false as const, profile: null };
+    if (!existingProfile && referrerId) {
+      const [newReferral] = await tx
+        .insert(referralsTable)
+        .values({
+          referrerId,
+          referredUserId: userId,
+          pointsAwarded: 100,
+        })
+        .onConflictDoNothing({ target: referralsTable.referredUserId })
+        .returning({ id: referralsTable.id });
+      if (newReferral) {
+        await tx
+          .update(profilesTable)
+          .set({ points: sql`${profilesTable.points} + 100` })
+          .where(eq(profilesTable.id, referrerId));
+        await tx.insert(vibeSwipeNotificationsTable).values({
+          recipientId: referrerId,
+          actorId: userId,
+          type: "referral_joined",
+        });
+      }
+    }
     const mainPhotoChanged = existingProfile?.photos[0] !== body.photos[0];
     const removedPhotos = existingProfile?.photos.filter(photo => !body.photos.includes(photo)) ?? [];
     if (mainPhotoChanged || removedPhotos.length) {
@@ -851,6 +963,10 @@ router.put("/vibeswipe/me", async (req, res): Promise<void> => {
   });
   if ("stalePhotos" in result && result.stalePhotos) {
     res.status(409).json({ error: "Your main photo or verification changed. Refresh your profile and try again." });
+    return;
+  }
+  if ("invalidReferral" in result && result.invalidReferral) {
+    res.status(400).json({ error: "That referral code is not valid." });
     return;
   }
   if ("invalidPhoto" in result && result.invalidPhoto) {

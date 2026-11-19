@@ -9,6 +9,7 @@ import { Tabs } from 'expo-router';
 import { NativeTabs } from 'expo-router/unstable-native-tabs';
 import { SymbolView } from 'expo-symbols';
 import { useGetNotifications } from '@workspace/api-client-react';
+import { ReferralToastHost } from '@/components/ReferralToastHost';
 
 // IMPORTANT: iOS 26 uses NativeTabs for native tabs with liquid glass support.
 // NativeTabs intentionally does NOT use custom design tokens — liquid glass
@@ -22,6 +23,8 @@ function NativeTabLayout() {
   const messageBadge = counts?.messages ?? 0;
   const activityBadge = counts ? counts.views + counts.likes + counts.follows + (counts.reels ?? 0) : 0;
   return (
+    <>
+    <ReferralToastHost data={notifications.data} />
     <NativeTabs tintColor={colors.premiumAccent}>
       <NativeTabs.Trigger name="index">
         <NativeTabs.Trigger.Icon
@@ -50,6 +53,7 @@ function NativeTabLayout() {
         <NativeTabs.Trigger.Label>Profile</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>
     </NativeTabs>
+    </>
   );
 }
 
@@ -66,6 +70,8 @@ function ClassicTabLayout() {
   const activityBadge = counts ? counts.views + counts.likes + counts.follows + (counts.reels ?? 0) : 0;
 
   return (
+    <>
+    <ReferralToastHost data={notifications.data} />
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: colors.premiumAccent,
@@ -152,6 +158,7 @@ function ClassicTabLayout() {
         }}
       />
     </Tabs>
+    </>
   );
 }
 

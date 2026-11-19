@@ -43,7 +43,7 @@ function validatePhoto(file: File): string | null {
 
 const emptyAnswers: SignupAnswers = {
   firstName: '', lastName: '', countryCode: '', countryName: '', stateCode: '', stateName: '', city: '',
-  age: '', gender: '', lookingFor: '', bio: '', interests: [], ageMin: 22, ageMax: 38, distanceKm: 50, email: '',
+  age: '', gender: '', lookingFor: '', bio: '', interests: [], ageMin: 22, ageMax: 38, distanceKm: 50, email: '', referralCode: '',
 };
 
 type ClerkErr = { message?: string; longMessage?: string; code?: string; errors?: { code?: string; longMessage?: string; message?: string }[] } | null | undefined;
@@ -60,11 +60,14 @@ export function ProfileFirstSignup({ previewOnly = false }: { previewOnly?: bool
   const { isLoaded, isSignedIn, user } = useUser();
   const qc = useQueryClient();
   const [, setLocation] = useLocation();
+  const referralFromUrl = typeof window === 'undefined'
+    ? ''
+    : (new URLSearchParams(window.location.search).get('ref') ?? '').trim().toUpperCase().slice(0, 8);
 
   const [ready, setReady] = useState(false);
   const [storageIssue, setStorageIssue] = useState('');
   const [step, setStep] = useState(0);
-  const [a, setA] = useState<SignupAnswers>(emptyAnswers);
+  const [a, setA] = useState<SignupAnswers>(() => ({ ...emptyAnswers, referralCode: referralFromUrl }));
   const [photo, setPhoto] = useState<File | null>(null);
   const [createdUserId, setCreatedUserId] = useState<string | null>(null);
   const [mediaReference, setMediaReference] = useState<string | null>(null);
@@ -82,7 +85,11 @@ export function ProfileFirstSignup({ previewOnly = false }: { previewOnly?: bool
     let alive = true;
     loadDraft().then(d => {
       if (!alive || !d) return;
-      setA({ ...emptyAnswers, ...d.answers });
+      setA({
+        ...emptyAnswers,
+        ...d.answers,
+        referralCode: referralFromUrl || d.answers.referralCode || '',
+      });
       setStep(Math.min(d.step, 12));
       setPhoto(d.photo);
       setCreatedUserId(d.createdUserId);
@@ -128,6 +135,7 @@ export function ProfileFirstSignup({ previewOnly = false }: { previewOnly?: bool
         bio: a.bio.trim().slice(0, 500), city: a.city.slice(0, 100), country: a.countryName || null, state: a.stateName || null,
         interests: a.interests.slice(0, 12), photos: [ref], videoUrl: null,
         preferences: { ageMin: a.ageMin, ageMax: a.ageMax, gender: a.lookingFor, distanceKm: a.distanceKm },
+        referralCode: a.referralCode.trim().toUpperCase() || undefined,
       };
       const profile = await saveMyProfile(input);
       qc.setQueryData(getGetMyProfileQueryKey(), profile);
@@ -309,6 +317,11 @@ export function ProfileFirstSignup({ previewOnly = false }: { previewOnly?: bool
         {step === 12 && <Q title="Last thing: your email" hint="We'll send a code to confirm it's you. No password needed.">
           <input autoFocus data-testid="input-signup-email" type="email" inputMode="email" autoComplete="email" value={a.email} onChange={e => { set('email', e.target.value); setConfigError(''); }} className="field signup-input" placeholder="you@example.com" />
           {a.email && !emailValid && <p className="mt-3 text-sm text-rose-300" data-testid="error-signup-email">Enter a valid email address.</p>}
+          <label className="mt-5 block text-sm font-semibold text-[#e7dce3]">
+            Referral code <span className="font-normal text-muted-foreground">optional</span>
+            <input data-testid="input-signup-referral-code" autoCapitalize="characters" autoCorrect="off" maxLength={8} value={a.referralCode} onChange={e => set('referralCode', e.target.value.replace(/[^a-z0-9]/gi, '').toUpperCase())} className="field signup-input mt-2 uppercase tracking-[.12em]" placeholder="8 characters" />
+            <span className="mt-1.5 block text-xs font-normal leading-5 text-muted-foreground">Enter a friend’s code so they earn 100 points when you join.</span>
+          </label>
           <div id="clerk-captcha" className="mt-4" data-testid="clerk-captcha" />
         </Q>}
         {step === LAST && <Q title="Check your email" hint={codeSent ? `We sent a code to ${a.email.trim()}.` : 'Go back to send a code to your email.'}>

@@ -5,6 +5,7 @@ import {
   getGetProfileReelsQueryKey,
   getGetReelQueryKey,
   getGetReelCommentsQueryKey,
+  getGetProfileFollowSummaryQueryKey,
   getGetReelsFeedQueryKey,
   getDownloadReelUrl,
   useMarkReelNotInterested,
@@ -19,17 +20,48 @@ import {
   useSendMessage,
   useUnlikeReel,
   useUnsaveReel,
+  useFollowProfile,
+  useUnfollowProfile,
   type Reel,
 } from "@workspace/api-client-react";
 import { Feather } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
+import { LinearGradient } from "expo-linear-gradient";
 import { VideoView, useVideoPlayer } from "expo-video";
 import { File, Paths } from "expo-file-system";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, Alert, Image, KeyboardAvoidingView, Linking, Modal, Platform, Pressable, ScrollView, Share, StyleSheet, Text, TextInput, View, useWindowDimensions } from "react-native";
 import { useQueryClient } from "@tanstack/react-query";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { usePremiumColors } from "@/hooks/useColors";
+import Svg, { Defs, LinearGradient as SvgLinearGradient, Path, Stop } from "react-native-svg";
+
+type ReelIconName = "like" | "comment" | "share" | "save";
+
+function GradientReelIcon({ name, filled = false }: { name: ReelIconName; filled?: boolean }) {
+  const gradientId = `native-reel-${useId().replace(/:/g, "")}`;
+  const stroke = `url(#${gradientId})`;
+  return (
+    <Svg width={24} height={24} viewBox="0 0 24 24" fill="none">
+      <Defs>
+        <SvgLinearGradient id={gradientId} x1="3" y1="2" x2="21" y2="22">
+          <Stop offset="0" stopColor="#ff63aa" />
+          <Stop offset="1" stopColor="#a875ff" />
+        </SvgLinearGradient>
+      </Defs>
+      {name === "like" ? <Path d="M20.8 4.7a5.4 5.4 0 0 0-7.7 0L12 5.8l-1.1-1.1a5.4 5.4 0 0 0-7.7 7.7l1.1 1.1L12 21l7.7-7.5 1.1-1.1a5.4 5.4 0 0 0 0-7.7Z" stroke={stroke} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" fill={filled ? stroke : "none"} /> : null}
+      {name === "comment" ? <>
+        <Path d="M6 4.5h12a2 2 0 0 1 2 2V14a2 2 0 0 1-2 2h-1v3.5L13 16H6a2 2 0 0 1-2-2V6.5a2 2 0 0 1 2-2Z" stroke={stroke} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />
+        <Path d="M8.5 10.5h.01M12 10.5h.01M15.5 10.5h.01" stroke={stroke} strokeWidth={2.2} strokeLinecap="round" />
+      </> : null}
+      {name === "share" ? <>
+        <Path d="m22 2-7 20-4-9-9-4 20-7Z" stroke={stroke} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />
+        <Path d="M22 2 11 13" stroke={stroke} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />
+      </> : null}
+      {name === "save" ? <Path d="M6 4.5A1.5 1.5 0 0 1 7.5 3h9A1.5 1.5 0 0 1 18 4.5V21l-6-4-6 4V4.5Z" stroke={stroke} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" fill={filled ? stroke : "none"} /> : null}
+    </Svg>
+  );
+}
 import { mediaUri } from "@/lib/media";
 import { ProfileAvatar } from "@/components/ProfileAvatar";
 
@@ -50,6 +82,7 @@ export default function ProfileReelScreen() {
   const [slideIndex, setSlideIndex] = useState(0);
   const [slideViewportWidth, setSlideViewportWidth] = useState(0);
   const [commentDraft, setCommentDraft] = useState("");
+  const [followRequested, setFollowRequested] = useState(false);
   const [pendingMatchId, setPendingMatchId] = useState<string | null>(null);
   const [sentTo, setSentTo] = useState<Record<string, boolean>>({});
   const [shareError, setShareError] = useState("");
@@ -61,6 +94,8 @@ export default function ProfileReelScreen() {
   const unlikeReel = useUnlikeReel();
   const saveReel = useSaveReel();
   const unsaveReel = useUnsaveReel();
+  const followProfile = useFollowProfile();
+  const unfollowProfile = useUnfollowProfile();
   const markNotInterested = useMarkReelNotInterested();
   const createComment = useCreateReelComment();
   const matches = useGetMatches({
@@ -86,7 +121,7 @@ export default function ProfileReelScreen() {
   const slideshow = reelQuery.data?.mediaType === "slides" && reelQuery.data.slideReferences.length > 1;
   const slideReferences = reelQuery.data?.slideReferences ?? [];
   const uri = reelQuery.data && !slideshow ? mediaUri(reelQuery.data.videoReference) : null;
-  useEffect(() => { setSlideIndex(0); }, [reelId]);
+  useEffect(() => { setSlideIndex(0); setFollowRequested(false); }, [reelId]);
   const source = useMemo(
     () => uri && token ? { uri, headers: { Authorization: `Bearer ${token}` } } : null,
     [token, uri],
@@ -169,6 +204,31 @@ export default function ProfileReelScreen() {
       refreshReelLists(reel.creatorId);
     } catch {
       setActionError("Saving did not work. Try again.");
+    }
+  }
+
+  async function toggleCreatorFollow() {
+    const reel = reelQuery.data;
+    if (!reel || reel.isOwner || followProfile.isPending || unfollowProfile.isPending || followRequested) return;
+    setActionError("");
+    try {
+      if (reel.creatorFollowedByMe) {
+        await unfollowProfile.mutateAsync({ profileId: reel.creatorId });
+        queryClient.setQueryData<Reel>(getGetReelQueryKey(reel.id), (current) =>
+          current ? { ...current, creatorFollowedByMe: false } : current,
+        );
+        setFollowRequested(false);
+      } else {
+        const result = await followProfile.mutateAsync({ profileId: reel.creatorId });
+        queryClient.setQueryData<Reel>(getGetReelQueryKey(reel.id), (current) =>
+          current ? { ...current, creatorFollowedByMe: result.isFollowing } : current,
+        );
+        setFollowRequested(result.requestPendingByMe);
+      }
+      void queryClient.invalidateQueries({ queryKey: getGetProfileFollowSummaryQueryKey(reel.creatorId) });
+      refreshReelLists(reel.creatorId);
+    } catch {
+      setActionError("Could not update follow. Try again.");
     }
   }
 
@@ -351,7 +411,7 @@ export default function ProfileReelScreen() {
               <View pointerEvents="none" style={styles.slideDots}>{slideReferences.map((_, position) => <View key={position} style={[styles.slideDot, position === slideIndex && styles.slideDotActive]} />)}</View>
             </View>
           ) : source ? (
-            <VideoView player={player} style={StyleSheet.absoluteFill} contentFit="contain" nativeControls />
+            <VideoView player={player} style={StyleSheet.absoluteFill} contentFit="cover" nativeControls />
           ) : reelQuery.isError ? (
             <View style={styles.message}>
               <Text style={[styles.messageText, { color: colors.foreground }]}>This Reel is unavailable.</Text>
@@ -360,6 +420,31 @@ export default function ProfileReelScreen() {
           ) : null}
           {reelQuery.data ? (
             <View style={styles.actionRail}>
+              <View style={styles.actionAvatar}>
+                <LinearGradient colors={["#ff63aa", "#a875ff"]} style={styles.actionAvatarRing}>
+                  <ProfileAvatar
+                    profile={{
+                      name: reelQuery.data.creatorName,
+                      photos: reelQuery.data.creatorPhoto ? [reelQuery.data.creatorPhoto] : [],
+                      isVerified: reelQuery.data.creatorVerified,
+                    }}
+                    size={40}
+                  />
+                </LinearGradient>
+                {!reelQuery.data.isOwner ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={followRequested ? "Follow request sent" : reelQuery.data.creatorFollowedByMe ? `Unfollow ${reelQuery.data.creatorName}` : `Follow ${reelQuery.data.creatorName}`}
+                    accessibilityState={{ selected: reelQuery.data.creatorFollowedByMe, disabled: followProfile.isPending || unfollowProfile.isPending || followRequested }}
+                    disabled={followProfile.isPending || unfollowProfile.isPending || followRequested}
+                    onPress={() => void toggleCreatorFollow()}
+                    style={styles.followBadge}
+                    testID="button-follow-reel-creator"
+                  >
+                    <Feather name={followRequested || reelQuery.data.creatorFollowedByMe ? "check" : "plus"} size={13} color="#fff" />
+                  </Pressable>
+                ) : null}
+              </View>
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel={`${reelQuery.data.likedByMe ? "Unlike" : "Like"}, ${reelQuery.data.likeCount}`}
@@ -369,7 +454,9 @@ export default function ProfileReelScreen() {
                 onPress={() => void toggleLike()}
                 style={styles.actionButton}
               >
-                <Feather name="heart" size={25} color={reelQuery.data.likedByMe ? colors.primary : "#fff"} />
+                <LinearGradient colors={["rgba(255,99,170,0.27)", "rgba(168,117,255,0.24)"]} style={styles.actionIconShell}>
+                  <GradientReelIcon name="like" filled={reelQuery.data.likedByMe} />
+                </LinearGradient>
                 <Text style={styles.actionCount}>{reelQuery.data.likeCount}</Text>
               </Pressable>
               <Pressable
@@ -379,8 +466,24 @@ export default function ProfileReelScreen() {
                 onPress={openComments}
                 style={styles.actionButton}
               >
-                <Feather name="message-circle" size={25} color="#fff" />
+                <LinearGradient colors={["rgba(255,99,170,0.27)", "rgba(168,117,255,0.24)"]} style={styles.actionIconShell}>
+                  <GradientReelIcon name="comment" />
+                </LinearGradient>
                 <Text style={styles.actionCount}>{reelQuery.data.commentCount}</Text>
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`${reelQuery.data.savedByMe ? "Remove from saved" : "Save"}, ${reelQuery.data.saveCount}`}
+                accessibilityState={{ selected: reelQuery.data.savedByMe, disabled: saveReel.isPending || unsaveReel.isPending }}
+                testID="button-save-reel"
+                disabled={saveReel.isPending || unsaveReel.isPending}
+                onPress={() => void toggleSave()}
+                style={styles.actionButton}
+              >
+                <LinearGradient colors={["rgba(255,99,170,0.27)", "rgba(168,117,255,0.24)"]} style={styles.actionIconShell}>
+                  <GradientReelIcon name="save" filled={reelQuery.data.savedByMe} />
+                </LinearGradient>
+                <Text style={styles.actionCount}>{reelQuery.data.saveCount}</Text>
               </Pressable>
               <Pressable
                 accessibilityRole="button"
@@ -393,20 +496,10 @@ export default function ProfileReelScreen() {
                 }}
                 style={styles.actionButton}
               >
-                <Feather name="send" size={24} color="#fff" />
+                <LinearGradient colors={["rgba(255,99,170,0.27)", "rgba(168,117,255,0.24)"]} style={styles.actionIconShell}>
+                  <GradientReelIcon name="share" />
+                </LinearGradient>
                 <Text style={styles.actionCount}>{reelQuery.data.shareCount}</Text>
-              </Pressable>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={`${reelQuery.data.savedByMe ? "Remove from saved" : "Save"}, ${reelQuery.data.saveCount}`}
-                accessibilityState={{ selected: reelQuery.data.savedByMe, disabled: saveReel.isPending || unsaveReel.isPending }}
-                testID="button-save-reel"
-                disabled={saveReel.isPending || unsaveReel.isPending}
-                onPress={() => void toggleSave()}
-                style={styles.actionButton}
-              >
-                <Feather name="bookmark" size={25} color={reelQuery.data.savedByMe ? colors.primary : "#fff"} />
-                <Text style={styles.actionCount}>{reelQuery.data.saveCount}</Text>
               </Pressable>
             </View>
           ) : null}
@@ -612,16 +705,20 @@ export default function ProfileReelScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1 },
-  page: { flex: 1, paddingHorizontal: 12 },
-  header: { height: 54, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  page: { flex: 1 },
+  header: { height: 54, flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 12 },
   headerSpacer: { width: 42 },
   back: { width: 42, height: 42, alignItems: "center", justifyContent: "center" },
   headerTitle: { fontSize: 19, fontWeight: "800" },
-  videoStage: { flex: 1, minHeight: 200, borderRadius: 18, overflow: "hidden", backgroundColor: "#000", alignItems: "center", justifyContent: "center" },
-  actionRail: { position: "absolute", right: 8, bottom: 16, alignItems: "center", gap: 16 },
-  actionButton: { minWidth: 42, minHeight: 48, alignItems: "center", justifyContent: "center", gap: 2 },
-  actionCount: { color: "#fff", fontSize: 11, fontWeight: "800", textShadowColor: "#000", textShadowRadius: 4 },
-  caption: { paddingHorizontal: 4, paddingVertical: 14, gap: 5 },
+  videoStage: { flex: 1, minHeight: 200, overflow: "hidden", backgroundColor: "#000", alignItems: "center", justifyContent: "center" },
+  actionRail: { position: "absolute", right: 10, bottom: 16, alignItems: "center", gap: 6 },
+  actionAvatar: { width: 48, height: 48, alignItems: "center", justifyContent: "center", marginBottom: 2 },
+  actionAvatarRing: { width: 46, height: 46, alignItems: "center", justifyContent: "center", borderRadius: 23, padding: 2, borderWidth: 1, borderColor: "rgba(255,255,255,0.32)" },
+  followBadge: { position: "absolute", right: -1, bottom: -1, width: 20, height: 20, alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: "#151019", borderRadius: 10, backgroundColor: "#f34e9a", elevation: 5 },
+  actionButton: { width: 52, minWidth: 52, minHeight: 56, alignItems: "center", justifyContent: "flex-start", gap: 3 },
+  actionIconShell: { width: 42, height: 42, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "rgba(255,255,255,0.18)", borderRadius: 15, overflow: "hidden", shadowColor: "#bd4bd3", shadowOpacity: 0.2, shadowRadius: 8, elevation: 4 },
+  actionCount: { color: "#fff", fontSize: 10, fontWeight: "800", textShadowColor: "#000", textShadowRadius: 4 },
+  caption: { paddingHorizontal: 16, paddingVertical: 14, gap: 5 },
   creator: { fontSize: 15, fontWeight: "700" },
   captionText: { fontSize: 14, lineHeight: 20 },
   message: { alignItems: "center", gap: 10 },

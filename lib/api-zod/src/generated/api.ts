@@ -416,6 +416,7 @@ export const saveMyProfileBodyPreferencesDiscoveryLocationCityMax = 100;
 
 export const saveMyProfileBodyPreferencesDiscoveryLocationRadiusKmMax = 500;
 
+export const saveMyProfileBodyReferralCodeRegExp = new RegExp('^[A-Za-z0-9]{6,8}$');
 
 
 export const SaveMyProfileBody = zod.object({
@@ -444,7 +445,8 @@ export const SaveMyProfileBody = zod.object({
   "city": zod.string().max(saveMyProfileBodyPreferencesDiscoveryLocationCityMax).nullable(),
   "radiusKm": zod.int().min(1).max(saveMyProfileBodyPreferencesDiscoveryLocationRadiusKmMax).nullable()
 }).optional()
-})
+}),
+  "referralCode": zod.string().regex(saveMyProfileBodyReferralCodeRegExp).optional().describe('Optional referral code used only when the profile is first created.')
 })
 
 export const saveMyProfileResponsePreferencesAgeMinMin = 18;
@@ -499,6 +501,23 @@ export const SaveMyProfileResponse = zod.object({
   "radiusKm": zod.int().min(1).max(saveMyProfileResponsePreferencesDiscoveryLocationRadiusKmMax).nullable()
 }).optional()
 })
+})
+
+
+/**
+ * @summary Get the signed-in user's referral code and points balance
+ */
+export const getMyReferralSummaryResponseReferralCodeRegExp = new RegExp('^[A-Z0-9]{6,8}$');
+export const getMyReferralSummaryResponsePointsMin = 0;
+
+export const getMyReferralSummaryResponseReferralCountMin = 0;
+
+
+
+export const GetMyReferralSummaryResponse = zod.object({
+  "referralCode": zod.string().regex(getMyReferralSummaryResponseReferralCodeRegExp),
+  "points": zod.int().min(getMyReferralSummaryResponsePointsMin),
+  "referralCount": zod.int().min(getMyReferralSummaryResponseReferralCountMin)
 })
 
 
@@ -2113,7 +2132,7 @@ export const getNotificationsResponseUnreadCountsFollowsMin = 0;
 export const GetNotificationsResponse = zod.object({
   "notifications": zod.array(zod.object({
   "id": zod.uuid(),
-  "type": zod.enum(['new_match', 'new_message', 'new_like', 'new_super_like', 'new_follow', 'profile_view', 'reel_like', 'reel_comment_reply']),
+  "type": zod.enum(['new_match', 'new_message', 'new_like', 'new_super_like', 'new_follow', 'profile_view', 'reel_like', 'reel_comment_reply', 'referral_joined']),
   "actor": zod.object({
   "id": zod.string(),
   "name": zod.string(),

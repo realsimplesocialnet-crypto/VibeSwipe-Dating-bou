@@ -140,6 +140,7 @@ export * from './reelPage';
 export * from './reelShareCount';
 export * from './reelVideoTranscodeResult';
 export * from './reelViewCount';
+export * from './referralSummary';
 export * from './reportInput';
 export * from './reportInputReason';
 export * from './searchTravelCitiesParams';

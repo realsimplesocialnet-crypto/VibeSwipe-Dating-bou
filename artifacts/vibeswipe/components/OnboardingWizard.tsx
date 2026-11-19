@@ -10,7 +10,7 @@ import { HobbyMultiSelect, OccupationSelect } from "@/components/ProfileChoiceFi
 import { Country } from "country-state-city";
 import { Feather } from "@expo/vector-icons";
 import { useQueryClient } from "@tanstack/react-query";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -57,6 +57,11 @@ const COUNTRIES = Country.getAllCountries().sort((a, b) =>
 
 export function OnboardingWizard() {
   const colors = useColors();
+  const { ref } = useLocalSearchParams<{ ref?: string | string[] }>();
+  const referralFromUrl = (Array.isArray(ref) ? ref[0] : ref ?? "")
+    .replace(/[^a-z0-9]/gi, "")
+    .toUpperCase()
+    .slice(0, 8);
   const insets = useSafeAreaInsets();
   const viewport = useWindowDimensions();
   const queryClient = useQueryClient();
@@ -78,6 +83,7 @@ export function OnboardingWizard() {
   useEffect(() => {
     if (!savedDraft.isSuccess || hydrated) return;
     const data = asSetupData(savedDraft.data.data);
+    if (referralFromUrl && !data.referralCode) data.referralCode = referralFromUrl;
     if (!data.countrySource) {
       data.country = "";
       data.countryCode = "";
@@ -92,7 +98,7 @@ export function OnboardingWizard() {
     setStep(restoredStep);
     lastSavedKey.current = `${restoredStep + 1}:${JSON.stringify(data)}`;
     setHydrated(true);
-  }, [savedDraft.data, savedDraft.isSuccess, hydrated]);
+  }, [savedDraft.data, savedDraft.isSuccess, hydrated, referralFromUrl]);
 
   useEffect(() => {
     setSearch("");
@@ -426,6 +432,19 @@ export function OnboardingWizard() {
             selected={`${values.distanceKm} km`}
             onSelect={(value) => update("distanceKm", Number(value.replace(/\D/g, "")))}
           />
+          <Text style={[styles.fieldLabel, { color: colors.foreground, marginTop: 24 }]}>Referral code (optional)</Text>
+          <TextInput
+            testID="onboarding-referral-code"
+            value={values.referralCode}
+            onChangeText={(value) => update("referralCode", value.replace(/[^a-z0-9]/gi, "").toUpperCase().slice(0, 8))}
+            autoCapitalize="characters"
+            autoCorrect={false}
+            maxLength={8}
+            placeholder="8 characters"
+            placeholderTextColor={colors.mutedForeground}
+            style={[styles.input, { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.card }]}
+          />
+          <Text style={[styles.helper, { color: colors.mutedForeground }]}>Your friend earns 100 points when you join.</Text>
         </StepFrame>
       ) : null}
 

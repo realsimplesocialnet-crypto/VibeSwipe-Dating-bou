@@ -224,6 +224,20 @@ paths:
                 $ref: "#/components/schemas/Profile"
         "400":
           description: Invalid profile
+  /vibeswipe/referrals/me:
+    get:
+      operationId: getMyReferralSummary
+      tags: [vibeswipe]
+      summary: Get the signed-in user's referral code and points balance
+      responses:
+        "200":
+          description: Referral code and lifetime referral points
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReferralSummary"
+        "404":
+          description: Profile has not been created
   /vibeswipe/verification:
     get:
       operationId: getFaceVerificationStatus
@@ -2424,7 +2438,18 @@ components:
           maxLength: 2048
         preferences:
           $ref: "#/components/schemas/ProfilePreferences"
+        referralCode:
+          type: string
+          pattern: '^[A-Za-z0-9]{6,8}$'
+          description: Optional referral code used only when the profile is first created.
       required: [name, age, gender, lookingFor, bio, city, country, state, interests, photos, preferences]
+    ReferralSummary:
+      type: object
+      properties:
+        referralCode: { type: string, pattern: '^[A-Z0-9]{6,8}$' }
+        points: { type: integer, minimum: 0 }
+        referralCount: { type: integer, minimum: 0 }
+      required: [referralCode, points, referralCount]
     OnboardingDraft:
       type: object
       properties:
@@ -2805,7 +2830,7 @@ components:
           items: { type: string, format: uuid }
     NotificationType:
       type: string
-      enum: [new_match, new_message, new_like, new_super_like, new_follow, profile_view, reel_like, reel_comment_reply]
+      enum: [new_match, new_message, new_like, new_super_like, new_follow, profile_view, reel_like, reel_comment_reply, referral_joined]
     Notification:
       type: object
       properties:

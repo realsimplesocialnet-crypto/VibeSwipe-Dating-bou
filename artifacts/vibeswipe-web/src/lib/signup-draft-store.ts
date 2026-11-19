@@ -8,7 +8,7 @@ export type SignupAnswers = {
   city: string; age: string; gender: string; lookingFor: string;
   bio: string; interests: string[];
   ageMin: number; ageMax: number; distanceKm: number;
-  email: string;
+  email: string; referralCode: string;
 };
 
 export type SignupDraft = {

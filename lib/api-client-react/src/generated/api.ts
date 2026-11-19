@@ -112,6 +112,7 @@ import type {
   ReelShareCount,
   ReelVideoTranscodeResult,
   ReelViewCount,
+  ReferralSummary,
   ReportInput,
   SearchTravelCitiesParams,
   StoriesFeed,
@@ -1487,6 +1488,107 @@ export const useSaveMyProfile = <TError = ErrorType<void>,
       > => {
       return useMutation(getSaveMyProfileMutationOptions(options), queryClient);
     }
+
+export const getGetMyReferralSummaryUrl = () => {
+
+
+
+
+  return `/api/vibeswipe/referrals/me`
+}
+
+/**
+ * @summary Get the signed-in user's referral code and points balance
+ */
+export const getMyReferralSummary = async ( options?: Parameters<typeof customFetch>[1]): Promise<ReferralSummary> => {
+
+  return customFetch<ReferralSummary>(getGetMyReferralSummaryUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetMyReferralSummaryQueryKey = () => {
+    return [
+    `/api/vibeswipe/referrals/me`
+    ] as const;
+    }
+
+
+export const getGetMyReferralSummaryQueryOptions = <TData = Awaited<ReturnType<typeof getMyReferralSummary>>, TError = ErrorType<void>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyReferralSummary>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetMyReferralSummaryQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMyReferralSummary>>> = ({ signal }) => getMyReferralSummary({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMyReferralSummary>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetMyReferralSummaryQueryResult = NonNullable<Awaited<ReturnType<typeof getMyReferralSummary>>>
+export type GetMyReferralSummaryQueryError = ErrorType<void>
+
+
+export function useGetMyReferralSummary<TData = Awaited<ReturnType<typeof getMyReferralSummary>>, TError = ErrorType<void>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyReferralSummary>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getMyReferralSummary>>,
+          TError,
+          Awaited<ReturnType<typeof getMyReferralSummary>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetMyReferralSummary<TData = Awaited<ReturnType<typeof getMyReferralSummary>>, TError = ErrorType<void>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyReferralSummary>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getMyReferralSummary>>,
+          TError,
+          Awaited<ReturnType<typeof getMyReferralSummary>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetMyReferralSummary<TData = Awaited<ReturnType<typeof getMyReferralSummary>>, TError = ErrorType<void>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyReferralSummary>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get the signed-in user's referral code and points balance
+ */
+
+export function useGetMyReferralSummary<TData = Awaited<ReturnType<typeof getMyReferralSummary>>, TError = ErrorType<void>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getMyReferralSummary>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetMyReferralSummaryQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export const getGetFaceVerificationStatusUrl = () => {
 

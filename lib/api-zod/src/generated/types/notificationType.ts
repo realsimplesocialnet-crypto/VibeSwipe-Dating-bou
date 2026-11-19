@@ -18,4 +18,5 @@ export const NotificationType = {
   profile_view: 'profile_view',
   reel_like: 'reel_like',
   reel_comment_reply: 'reel_comment_reply',
+  referral_joined: 'referral_joined',
 } as const;

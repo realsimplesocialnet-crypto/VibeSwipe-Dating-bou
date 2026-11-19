@@ -40,6 +40,8 @@ import { MatchStoryAvatar, ProfileStoryAvatar, StoryCameraTrigger, StoryComposer
 import { StoryCameraPage } from '@/components/stories/story-camera-page';
 import { SignupPasswordField } from '@/components/signup-password-field';
 import { ProfileFirstSignup } from '@/components/profile-first-signup';
+import { ReferralProfileCard } from '@/components/referrals/referral-profile-card';
+import { ReferralToastHost } from '@/components/referrals/referral-toast-host';
 import { OnboardingCountryStep } from '@/components/onboarding-country-step';
 import type { OnboardingCountry } from '@workspace/api-client-react';
 import { HobbyMultiSelect, OccupationSelect } from '@/components/profile-field-selectors';
@@ -836,6 +838,7 @@ function OwnProfileOverview({profile,travelCity}:{profile:Profile;travelCity?:st
       <ProfileSocialActions profileId={profile.id} viewerId={profile.id} showAction={false} compact />
       <Link href="/profile/edit?returnTo=%2Fprofile" data-testid="button-edit-profile" className="op-edit mt-[clamp(8px,1.6dvh,16px)] flex h-[clamp(40px,6dvh,50px)] w-full max-w-[280px] items-center justify-center gap-2 rounded-full text-[16px] font-bold transition-transform active:scale-[.98]"><Pencil size={16}/>Edit profile</Link>
     </section>
+    <ReferralProfileCard/>
     <div className="grid shrink-0 grid-cols-2 gap-[clamp(6px,1.2dvh,12px)]">
       <section className="op-section min-w-0"><h3 className="op-label"><span className="op-ico"><UserRound size={13}/></span>About</h3><p data-testid="text-profile-bio" title={bio} className="mt-1.5 line-clamp-2 text-[13.5px] leading-5">{bio}</p></section>
       <section className="op-section min-w-0"><h3 className="op-label"><span className="op-ico"><Briefcase size={13}/></span>Work</h3><p data-testid="text-profile-occupation" title={work} className="mt-1.5 line-clamp-2 text-[13.5px] leading-5">{work}</p></section>
@@ -1167,7 +1170,7 @@ function ProfileNavigationPrefetcher(){
   },[user?.id,client]);
   return null;
 }
-function ClerkRoutes(){const [,setLocation]=useLocation();return <ClerkProvider publishableKey={clerkPubKey} proxyUrl={clerkProxyUrl} appearance={appearance} signInUrl={pathFor('/sign-in')} signUpUrl={pathFor('/sign-up')} localization={{signIn:{start:{title:'Welcome back',subtitle:'Your next good conversation is waiting.'}},signUp:{start:{title:'Make room for a spark',subtitle:'Create your adults-only Myage account.'}}}} routerPush={to=>setLocation(to.startsWith(basePath)?to.slice(basePath.length)||'/':to)} routerReplace={to=>setLocation(to.startsWith(basePath)?to.slice(basePath.length)||'/':to,{replace:true})}><ClerkCacheSync/><ProfileNavigationPrefetcher/><SettingsThemeSync/><Suspense fallback={<div className="flex min-h-[45dvh] items-center justify-center text-primary" aria-label="Loading"><LoaderCircle className="animate-spin" size={22}/></div>}><Switch>
+function ClerkRoutes(){const [,setLocation]=useLocation();return <ClerkProvider publishableKey={clerkPubKey} proxyUrl={clerkProxyUrl} appearance={appearance} signInUrl={pathFor('/sign-in')} signUpUrl={pathFor('/sign-up')} localization={{signIn:{start:{title:'Welcome back',subtitle:'Your next good conversation is waiting.'}},signUp:{start:{title:'Make room for a spark',subtitle:'Create your adults-only Myage account.'}}}} routerPush={to=>setLocation(to.startsWith(basePath)?to.slice(basePath.length)||'/':to)} routerReplace={to=>setLocation(to.startsWith(basePath)?to.slice(basePath.length)||'/':to,{replace:true})}><ClerkCacheSync/><ProfileNavigationPrefetcher/><SettingsThemeSync/><ReferralToastHost/><Suspense fallback={<div className="flex min-h-[45dvh] items-center justify-center text-primary" aria-label="Loading"><LoaderCircle className="animate-spin" size={22}/></div>}><Switch>
   <Route path="/" component={HomeRedirect}/>
   <Route path="/welcome" component={WelcomeRoute}/>
   <Route path="/admin" component={AdminPage}/><Route path="/admin/:section" component={AdminPage}/>

@@ -525,6 +525,20 @@ export interface ProfileInput {
      */
   videoUrl?: string | null;
   preferences: ProfilePreferences;
+  /**
+     * Optional referral code used only when the profile is first created.
+     * @pattern ^[A-Za-z0-9]{6,8}$
+     */
+  referralCode?: string;
+}
+
+export interface ReferralSummary {
+  /** @pattern ^[A-Z0-9]{6,8}$ */
+  referralCode: string;
+  /** @minimum 0 */
+  points: number;
+  /** @minimum 0 */
+  referralCount: number;
 }
 
 export type OnboardingDraftData = { [key: string]: unknown };
@@ -1130,6 +1144,7 @@ export const NotificationType = {
   profile_view: 'profile_view',
   reel_like: 'reel_like',
   reel_comment_reply: 'reel_comment_reply',
+  referral_joined: 'referral_joined',
 } as const;
 
 export interface Notification {
