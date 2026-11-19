@@ -39,6 +39,7 @@ import { ArrowLeft, Heart, MapPin, MoreHorizontal, Search, SlidersHorizontal, St
 import { isDiscoverSetupRequired, shouldRetryDiscover } from "@/lib/profile-query-state";
 import { StoriesRow } from "@/components/stories/stories-ui";
 import { MatchCelebration } from "@/components/match-celebration";
+import { QuietSpinner } from "@/components/ui/quiet-spinner";
 
 const mediaUrl = (ref?: string | null) => ref
   ? ref.startsWith("http")
@@ -262,14 +263,13 @@ export function DiscoverSwipePage() {
     <StoriesRow mode={profile ? "all" : "matches"}/>
   </div>;
   if (discover.isLoading) {
-    return <div className="mx-auto max-w-xl px-4 py-12 text-center text-sm text-muted-foreground">Finding people nearby…</div>;
+    return <div role="status" aria-label="Loading" className="mx-auto flex max-w-xl justify-center px-4 py-12"><QuietSpinner /></div>;
   }
   if (discover.isError && isDiscoverSetupRequired(discover.error)) return <Redirect to="/onboarding" />;
   if (discover.isError && (!discover.data || [401, 403, 409].includes(discover.error.status))) {
     return (
-      <div className="mx-auto max-w-xl px-4 py-12 text-center">
-        <p className="text-sm text-muted-foreground">Discovery could not load right now.</p>
-        <button onClick={() => void discover.refetch().then(result => { if (!result.isError) refill(result.data); })} className="mt-4 rounded-xl bg-secondary px-4 py-2.5 text-sm font-semibold">Try again</button>
+      <div role="status" aria-label="Loading" className="mx-auto flex max-w-xl justify-center px-4 py-12">
+        <QuietSpinner onRetry={() => void discover.refetch().then(result => { if (!result.isError) refill(result.data); })} />
       </div>
     );
   }
@@ -277,11 +277,15 @@ export function DiscoverSwipePage() {
     return (
       <div className="mx-auto max-w-[680px] px-4 pb-5 text-center sm:px-6 sm:pb-7">
         {stickyHeader}
-        <div className="mx-auto max-w-xl pt-10 pb-8"><h1 className="brand text-2xl font-bold">{discover.isFetching || reaction.isPending ? "Finding more people…" : "No matching profiles right now"}</h1>
-        <p className="mt-2 text-sm text-muted-foreground">{discover.isFetching || reaction.isPending ? "Checking for more matching profiles." : "Skipped profiles return automatically. Try another location or age range to meet more people."}</p>
-        <button onClick={() => setFiltersOpen(true)} data-testid="button-open-filters-empty" className="mt-5 rounded-xl bg-primary px-4 py-3 font-bold text-[#27101d]">Adjust filters</button>
-        <button disabled={discover.isFetching} onClick={() => void discover.refetch().then(result => { if (!result.isError) refill(result.data); })}
-          data-testid="button-refresh-discovery" className="ml-3 mt-5 rounded-xl bg-secondary px-4 py-3 font-bold disabled:opacity-50">Try again</button></div>
+        <div className="mx-auto max-w-xl pt-10 pb-8">
+          {discover.isFetching || reaction.isPending ? <div className="flex justify-center py-6"><QuietSpinner /></div> : <>
+            <h1 className="brand text-2xl font-bold">No matching profiles right now</h1>
+            <p className="mt-2 text-sm text-muted-foreground">Skipped profiles return automatically. Try another location or age range to meet more people.</p>
+            <button onClick={() => setFiltersOpen(true)} data-testid="button-open-filters-empty" className="mt-5 rounded-xl bg-primary px-4 py-3 font-bold text-[#27101d]">Adjust filters</button>
+            <button disabled={discover.isFetching} onClick={() => void discover.refetch().then(result => { if (!result.isError) refill(result.data); })}
+              data-testid="button-refresh-discovery" className="ml-3 mt-5 rounded-xl bg-secondary px-4 py-3 font-bold disabled:opacity-50">Refresh</button>
+          </>}
+        </div>
         {matchOverlay}
         <FilterDialog open={filtersOpen} onClose={() => setFiltersOpen(false)} value={filterValues} travelMode={Boolean(settings.data?.travelMode)} onApply={applyFilters} />
       </div>

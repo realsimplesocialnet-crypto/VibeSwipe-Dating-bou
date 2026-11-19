@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation } from 'wouter';
 import { useQueryClient } from '@tanstack/react-query';
+import { QuietSpinner } from "@/components/ui/quiet-spinner";
 import { ArrowLeft, ChevronRight, Eye, Heart, LoaderCircle, MessageCircle, RefreshCw, Search, Star, ThumbsUp, UserRound, Users, UserPlus } from 'lucide-react';
 import {
   getGetMatchesQueryKey, getGetNotificationsQueryKey, getGetProfileFollowSummaryQueryKey, getGetProfileFollowersQueryKey,
@@ -54,10 +55,10 @@ function SeenError({ seen }: { seen: ReturnType<typeof useMarkActivitySeen> }) {
   return seen.error ? <div role="alert" className="mb-3 rounded-xl bg-primary/10 p-3 text-sm">Couldn’t clear the new count. <button disabled={seen.pending} onClick={() => void seen.retry()} className="font-bold text-primary">Retry</button></div> : null;
 }
 function Skel() {
-  return <div className="space-y-3" aria-label="Loading">{[0, 1, 2].map(i => <div key={i} className="sh-card flex items-center gap-4 rounded-[22px] p-4"><div className="h-14 w-14 animate-pulse rounded-full bg-muted" /><div className="flex-1 space-y-2"><div className="h-4 w-32 animate-pulse rounded bg-muted" /><div className="h-3 w-24 animate-pulse rounded bg-muted" /></div></div>)}</div>;
+  return <div className="flex justify-center py-10" role="status" aria-label="Loading"><QuietSpinner /></div>;
 }
-function Err({ onRetry, text }: { onRetry: () => void; text: string }) {
-  return <div className="sh-card rounded-[22px] p-6 text-center" role="alert"><p className="sh-muted text-sm">{text}</p><button onClick={onRetry} data-testid="button-retry" className="mt-4 inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground"><RefreshCw size={15} aria-hidden="true" />Try again</button></div>;
+function Err({ onRetry }: { onRetry: () => void; text: string }) {
+  return <div className="flex justify-center py-10" role="status" aria-label="Loading"><QuietSpinner onRetry={onRetry} /></div>;
 }
 function Empty({ icon, title, detail }: { icon: ReactNode; title: string; detail: string }) {
   return <div className="sh-card flex flex-col items-center rounded-[26px] px-6 py-12 text-center" data-testid="status-empty"><div className="sh-icon mb-4 flex h-14 w-14 items-center justify-center rounded-full">{icon}</div><h2 className="text-lg font-bold">{title}</h2><p className="sh-muted mt-1 max-w-xs text-sm">{detail}</p><Link href="/discover" data-testid="link-empty-discover" className="mt-5 rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground">Go to Discover</Link></div>;
@@ -290,8 +291,8 @@ function FollowActionButton({ profileId, viewerId, isFollowing, followsYou, requ
 
 export function ProfileFollowNotificationAction({ profileId, viewerId, onFollow }: { profileId: string; viewerId?: string; onFollow: () => void }) {
   const summary = useGetProfileFollowSummary(profileId, { query: { queryKey: getGetProfileFollowSummaryQueryKey(profileId), refetchOnMount: 'always' } });
-  if (!summary.data) return <button type="button" disabled={summary.isLoading} onClick={() => void summary.refetch()} aria-label={summary.isError ? 'Retry follow status' : 'Checking follow status'}
-    className="sh-follow-button sh-follow-notice-loading">{summary.isError ? 'Retry' : <LoaderCircle size={15} className="animate-spin"/>}</button>;
+  if (!summary.data) return <button type="button" disabled aria-label="Loading follow status"
+    className="sh-follow-button sh-follow-notice-loading"><QuietSpinner size={16} onRetry={() => void summary.refetch()} /></button>;
   if ((!summary.data.followsYou && !summary.data.requestPendingByMe) || summary.data.isFollowing) return null;
   return <FollowActionButton profileId={profileId} viewerId={viewerId} isFollowing={summary.data.isFollowing} followsYou={summary.data.followsYou}
     requestPendingByMe={summary.data.requestPendingByMe}
@@ -310,15 +311,15 @@ export function ProfileSocialActions({ profileId, viewerId, showAction = true, c
   return <section className={`sh-profile-social${compact ? ' sh-profile-social-compact' : ''}`} data-testid="profile-follow-stats">
     <div className="sh-profile-stats">
       <Link href={`/profile/${profileId}/followers`} data-testid="link-profile-followers" className="sh-profile-stat">
-        <strong>{summary.data?.followersCount ?? (summary.isError ? '—' : <span className="inline-block h-5 w-8 animate-pulse rounded bg-current/10 align-middle" aria-label="Loading followers"/>)}</strong><span>Followers</span>
+        <strong>{summary.data?.followersCount ?? <QuietSpinner size={14} onRetry={() => void summary.refetch()} />}</strong><span>Followers</span>
       </Link>
       <Link href={`/profile/${profileId}/following`} data-testid="link-profile-following" className="sh-profile-stat">
-        <strong>{summary.data?.followingCount ?? (summary.isError ? '—' : <span className="inline-block h-5 w-8 animate-pulse rounded bg-current/10 align-middle" aria-label="Loading following"/>)}</strong><span>Following</span>
+        <strong>{summary.data?.followingCount ?? <QuietSpinner size={14} onRetry={() => void summary.refetch()} />}</strong><span>Following</span>
       </Link>
     </div>
     {showAction && viewerId && viewerId !== profileId && <div className="sh-profile-actions">
       {summary.data ? <FollowActionButton profileId={profileId} viewerId={viewerId} isFollowing={summary.data.isFollowing} followsYou={summary.data.followsYou} requestPendingByMe={summary.data.requestPendingByMe} checking={summary.isFetching} />
-        : <button type="button" disabled aria-label={summary.isError ? 'Follow status unavailable' : 'Loading follow status'} className="sh-follow-button">{summary.isError ? 'Unavailable' : <><LoaderCircle size={15} className="animate-spin"/><span>Checking…</span></>}</button>}
+        : <button type="button" disabled aria-label="Loading follow status" className="sh-follow-button"><QuietSpinner size={16} onRetry={() => void summary.refetch()} /></button>}
       {datingAction}
     </div>}
   </section>;
@@ -376,7 +377,7 @@ export function FollowListPage({ profileId, kind, avatar }: { profileId: string;
       : !entries.length ? <Empty icon={<Users size={24} />} title={search ? 'No people found' : kind === 'followers' ? 'No followers yet' : 'Not following anyone yet'} detail={search ? 'Try a different name.' : kind === 'followers' ? 'Followers will appear here.' : 'The profiles followed will appear here.'} />
       : <ul className="space-y-3">{entries.map(entry => <FollowListRow key={entry.profile.id} entry={entry} profileId={profileId} viewerId={me.data?.id} returnTo={returnTo} avatar={avatar} />)}</ul>}
     {data?.nextOffset !== null && data?.nextOffset !== undefined && <button type="button" data-testid="button-load-more-follows" disabled={q.isFetching}
-      onClick={() => setOffset(data.nextOffset!)} className="sh-follow-more mt-5 w-full rounded-xl px-4 py-3 text-sm font-bold disabled:opacity-50">{q.isFetching ? 'Loading…' : 'Load more'}</button>}
+      onClick={() => setOffset(data.nextOffset!)} className="sh-follow-more mt-5 w-full rounded-xl px-4 py-3 text-sm font-bold disabled:opacity-50">{q.isFetching ? <QuietSpinner size={18} /> : 'Load more'}</button>}
   </div></div>;
 }
 

@@ -186,7 +186,7 @@ export function ProfileFollowStats({ profileId, viewerId, showAction = true, dat
         <View style={styles.actionsRow}>
           {query.data
              ? <ProfileFollowButton profileId={profileId} viewerId={viewerId} isFollowing={query.data.isFollowing} followsYou={query.data.followsYou} requestPendingByMe={query.data.requestPendingByMe} checking={checkingRelationship} />
-            : <View accessibilityLabel={query.isError ? "Follow status unavailable" : "Loading follow status"} style={[styles.actionPlaceholder, { backgroundColor: colors.profileCard, borderColor: colors.border }]}>{query.isError ? <Text style={{ color: colors.profileMuted, fontWeight: "700", fontSize: 12 }}>Unavailable</Text> : <><ActivityIndicator size="small" color={colors.primary}/><Text style={{ color: colors.profileMuted, fontWeight: "700", fontSize: 12 }}>Checking…</Text></>}</View>}
+            : <View accessibilityLabel="Loading follow status" style={[styles.actionPlaceholder, { backgroundColor: colors.profileCard, borderColor: colors.border }]}><ActivityIndicator size="small" color={colors.primary}/></View>}
           {datingAction}
         </View>
       ) : null}
@@ -287,12 +287,7 @@ export function ProfileFollowListScreen({ kind }: { kind: "followers" | "followi
         {typedSearch ? <Pressable accessibilityRole="button" accessibilityLabel="Clear search" onPress={() => setTypedSearch("")}><Feather name="x" size={17} color={colors.profileMuted} /></Pressable> : null}
       </View>
       {query.isLoading && !data ? <ActivityIndicator color={colors.primary} style={{ marginTop: 28 }} />
-        : query.isError && !data ? (
-          <View style={styles.empty}>
-            <Text style={{ color: colors.profileMuted, textAlign: "center" }}>Couldn’t load this list.</Text>
-            <Pressable onPress={() => void query.refetch()} style={[styles.retry, { backgroundColor: colors.profileEdit }]}><Text style={{ color: colors.profileEditForeground, fontWeight: "800" }}>Try again</Text></Pressable>
-          </View>
-        ) : !entries.length ? (
+        : query.isError && !data ? <ActivityIndicator color={colors.primary} accessibilityLabel="Loading" style={{ marginTop: 28 }} /> : !entries.length ? (
           <View style={styles.empty}><Feather name="users" size={26} color={colors.profileEdit} /><Text style={[styles.emptyText, { color: colors.profileMuted }]}>{noRowsText}</Text></View>
         ) : (
           <FlatList

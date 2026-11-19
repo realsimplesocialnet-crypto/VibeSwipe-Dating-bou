@@ -33,6 +33,7 @@ import {
 } from "@workspace/api-client-react";
 import { ArrowLeft, Camera, Check, Heart, ImagePlus, LoaderCircle, Plus, Send, Share2, ShieldCheck, Video, X } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { QuietSpinner } from "@/components/ui/quiet-spinner";
 
 const STORY_PREFIX = "Replied to your story: ";
 const TEXT_BACKGROUNDS = ["#5c3b78", "#814e72", "#4e557f", "#8e5c69", "#594f70"];
@@ -154,11 +155,9 @@ export function StoriesRow({mode="all"}:{mode?:"all"|"own"|"matches"}) {
   if(mode==="matches"&&!feed.isLoading&&!feed.isError&&!mutualFollows.length)return null;
   return <section className="mb-4 -mx-4 w-[calc(100%+2rem)]" aria-label="Stories" data-testid="section-stories">
     {feed.isLoading
-      ? <div className="hide-scrollbar flex min-h-[100px] gap-3 overflow-x-auto px-5 pb-1" aria-label="Loading stories">
-          {[0, 1, 2, 3].map((item) => <div key={item} className="flex w-[72px] shrink-0 flex-col items-center gap-2"><div className="h-[68px] w-[68px] animate-pulse rounded-full bg-white/[.08]" /><div className="h-2.5 w-12 animate-pulse rounded-full bg-white/[.07]" /></div>)}
-        </div>
+      ? <div className="flex min-h-[84px] items-center justify-center" role="status" aria-label="Loading stories"><QuietSpinner /></div>
       : feed.isError
-        ? <div role="alert" className="flex min-h-[84px] items-center px-5"><button type="button" onClick={() => void feed.refetch()} data-testid="button-retry-stories" aria-label="Retry loading stories" className="rounded-full border border-white/15 px-4 py-2 text-xs font-semibold text-foreground">Retry stories</button></div>
+        ? <div className="flex min-h-[84px] items-center justify-center" role="status" aria-label="Loading stories"><QuietSpinner onRetry={() => void feed.refetch()} /></div>
         : <div className="hide-scrollbar flex min-h-[100px] gap-3 overflow-x-auto px-5 pb-1" data-testid="list-story-circles">
           {mode!=="matches"&&<div className="flex w-[72px] shrink-0 flex-col items-center gap-1.5 text-center">
             <span className="relative block h-[68px] w-[68px]">
@@ -468,7 +467,7 @@ function StoryViewer({ active, onClose }: { active: ActiveStory | null; onClose:
         onTouchStart={(event) => { touchStart.current = { x: event.touches[0].clientX, y: event.touches[0].clientY }; }}
          onTouchEnd={(event) => { const start = touchStart.current; if (!start) return; const dy = event.changedTouches[0].clientY - start.y; if (dy > 75) closeViewer(); touchStart.current = null; }}>
         <div className="pointer-events-none absolute inset-0" style={{ background: textOnly ? `linear-gradient(150deg, ${current.backgroundColor || "#614777"}, #211b2b 82%)` : "#211b2b" }}>
-          {media.url && current.mediaType === "video" ? <video key={current.id} src={media.url} autoPlay playsInline onTimeUpdate={(event) => { const video = event.currentTarget; if (video.duration) setElapsed((video.currentTime / video.duration) * 5000); }} onEnded={() => setIndex((value) => value + 1)} className="h-full w-full object-cover" aria-label="Story video" /> : media.url ? <img src={media.url} alt="" className="h-full w-full object-cover"/> : textOnly ? <div className="flex h-full items-center justify-center px-10 text-center"><p className="brand max-w-sm whitespace-pre-wrap text-3xl font-bold leading-[1.2] text-white sm:text-4xl">{current.caption || "A moment, shared."}</p></div> : <div className="flex h-full items-center justify-center text-sm text-white/75">{media.isLoading ? "Loading private story…" : media.isError ? "This story couldn’t load." : "Story media unavailable."}</div>}
+          {media.url && current.mediaType === "video" ? <video key={current.id} src={media.url} autoPlay playsInline onTimeUpdate={(event) => { const video = event.currentTarget; if (video.duration) setElapsed((video.currentTime / video.duration) * 5000); }} onEnded={() => setIndex((value) => value + 1)} className="h-full w-full object-cover" aria-label="Story video" /> : media.url ? <img src={media.url} alt="" className="h-full w-full object-cover"/> : textOnly ? <div className="flex h-full items-center justify-center px-10 text-center"><p className="brand max-w-sm whitespace-pre-wrap text-3xl font-bold leading-[1.2] text-white sm:text-4xl">{current.caption || "A moment, shared."}</p></div> : <div className="flex h-full items-center justify-center"><QuietSpinner /></div>}
           {!textOnly && current.caption && <div className="absolute inset-x-0 bottom-24 bg-gradient-to-t from-black/75 via-black/25 to-transparent px-7 pb-6 pt-20 text-center text-[15px] leading-6 text-white">{current.caption}</div>}
         </div>
         <div className="relative z-10 px-3 pt-[max(env(safe-area-inset-top),14px)] sm:px-4">
@@ -636,7 +635,7 @@ export function StoryComposerPage({ returnTo, initialMode = "text" }: { returnTo
         </>}
         {error && <p role="alert" data-testid="error-story-composer" className="mt-4 rounded-xl border border-rose-300/20 bg-rose-300/[.06] px-3 py-2.5 text-xs leading-5 text-rose-200">{error}</p>}
         {success && <p role="status" data-testid="status-story-posted" className="mt-4 flex items-center gap-2 rounded-xl border border-emerald-300/15 bg-emerald-300/[.06] px-3 py-2.5 text-xs text-emerald-200"><Check size={15}/>Your story is up. Heading back…</p>}
-        <button type="button" onClick={() => void post()} disabled={busy || success} data-testid="button-post-story" className="mt-4 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary px-5 text-sm font-bold text-[#25121e] transition-colors hover:bg-[#ff78b8] disabled:cursor-wait disabled:opacity-60 sm:mt-5">{busy ? <><LoaderCircle size={17} className="animate-spin"/>{busyLabel}</> : success ? "Posted" : "Post story"}</button>
+        <button type="button" onClick={() => void post()} disabled={busy || success} aria-label={busy ? "Posting story" : success ? "Posted" : "Post story"} data-testid="button-post-story" className="mt-4 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary px-5 text-sm font-bold text-[#25121e] transition-colors hover:bg-[#ff78b8] disabled:cursor-wait disabled:opacity-60 sm:mt-5">{busy ? <QuietSpinner size={18} /> : success ? "Posted" : "Post story"}</button>
       </section>
       <aside className="hidden md:block">
         <div className="sticky top-8">

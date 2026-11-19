@@ -69,8 +69,7 @@ export default function DirectChatScreen() {
       {conversation?.profile ? <ProfileAvatar profile={conversation.profile} size={40}/> : <View style={[styles.avatarFallback,{backgroundColor:colors.accent}]}><Feather name="user" size={18} color={colors.primary}/></View>}
       <View style={{ flex: 1, minWidth: 0 }}><Text numberOfLines={1} style={{ color: colors.foreground, fontSize: 15, fontWeight: "800" }}>{conversation?.profile.name ?? "Conversation"}</Text><Text style={{ color: colors.mutedForeground, fontSize: 11 }}>Direct message</Text></View>
     </View>
-    {messages.isError && <Pressable onPress={()=>void messages.refetch()} style={styles.error}><Text style={{color:colors.destructive,fontSize:13}}>Messages could not load. Tap to retry.</Text></Pressable>}
-    {messages.isLoading ? <ActivityIndicator color={colors.primary} style={{flex:1}}/> : <FlatList
+    {messages.isLoading || (messages.isError && !messages.data) ? <ActivityIndicator color={colors.primary} accessibilityLabel="Loading" style={{flex:1}}/> : <FlatList
       data={data}
       inverted
       renderItem={renderMessage}
@@ -82,7 +81,7 @@ export default function DirectChatScreen() {
       keyboardShouldPersistTaps="handled"
       keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
       scrollEnabled={data.length > 0}
-      ListEmptyComponent={<Text style={[styles.empty,{color:colors.mutedForeground}]}>Start the conversation with a message.</Text>}
+      ListEmptyComponent={messages.isError ? <ActivityIndicator color={colors.primary} accessibilityLabel="Loading" /> : <Text style={[styles.empty,{color:colors.mutedForeground}]}>Start the conversation with a message.</Text>}
       testID="direct-chat-messages"
     />}
     <View style={[styles.composer, { paddingBottom: keyboardVisible ? 0 : Math.max(insets.bottom, 8), borderTopColor: colors.border, backgroundColor: colors.background }]}>

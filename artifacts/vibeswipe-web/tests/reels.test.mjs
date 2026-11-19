@@ -76,7 +76,7 @@ test("five bottom tabs keep Reels while Matches is reached through Activity", ()
   assert.match(app, /data-testid="mobile-nav-profile"/);
   assert.ok(!navigation.includes("href: '/matches'"));
   const activity = read("../src/components/social-hub.tsx");
-  assert.match(activity, /key: 'matches', href: '\/matches', label: 'Matches'/);
+  assert.match(activity, /key: 'matches', label: 'Matches', href: '\/matches'/);
   assert.match(activity, /<Head title="Matches" back \/>/);
 });
 
@@ -185,14 +185,14 @@ test("Reel creator details stay aligned with a prominent profile block", () => {
   const slide = read("../src/components/reels/reel-slide.tsx");
   const css = read("../src/components/reels/reels.css");
   const creatorIdentity = slide.slice(slide.indexOf("const creatorIdentity"), slide.indexOf("return <section"));
-  assert.match(slide, /className="reel-identity flex min-w-0 items-center gap-2/);
+  assert.match(slide, /className="reel-identity min-w-0"/);
   assert.match(creatorIdentity, /reel-creator-avatar-ring/);
   assert.match(creatorIdentity, /ReelAvatar reference=\{reel\.creatorPhoto\}/);
-  assert.match(css, /\.reel-identity \{ position: relative; top: 0; gap: 10px/);
+  assert.match(css, /\.reel-identity \{ position: relative; top: 0; display: flex; min-width: 0; flex-direction: column; gap: 3px/);
   assert.match(css, /\.reel-name \{ font-size: 18px/);
   assert.match(css, /\.reel-age \{ font-size: 15px/);
   assert.match(css, /\.reel-location \{ font-size: 12px/);
-  assert.match(css, /\.reel-meta \{ position: absolute; left: 20px; right: 84px; bottom: calc\(env\(safe-area-inset-bottom\) \+ 22px\)/);
+  assert.match(css, /\.reel-meta \{ position: absolute; left: 18px; right: 100px; bottom: calc\(env\(safe-area-inset-bottom\) \+ 22px\)/);
   assert.match(slide, /className=\{`reel-meta \$\{searchSuggestion && !compact \? "has-search" : ""\} \$\{compact \? "is-compact" : ""\} \$\{navigationVisible \? "is-nav-visible" : ""\}`\}/);
 });
 
@@ -261,30 +261,33 @@ test("Reel action rail shows engagement counts while profile previews show views
     assert.ok(nativeReel.includes(id), `native Reel action is missing ${id}`);
   }
   const rail = slide.slice(slide.indexOf("className={`reel-rail"), slide.indexOf("className={`reel-meta"));
-  const actionOrder = ["button-like-reel-", "button-comments-reel-", "button-save-reel-", "button-share-reel-"]
+  const actionOrder = ["button-like-reel-", "button-comments-reel-", "button-share-reel-", "button-save-reel-"]
     .map((id) => rail.indexOf(id));
   assert.ok(actionOrder.every((position, index) => position >= 0 && (index === 0 || position > actionOrder[index - 1])));
   assert.equal((rail.match(/data-testid=\{`button-/g) ?? []).length, 4);
   assert.match(rail, /button-save-reel-\$\{reel\.id\}/);
   assert.match(rail, /onSave/);
   assert.match(slide, /searchSuggestion && !compact \? "has-search"/);
-  assert.match(slide, /const pink = "var\(--reels-accent/);
   assert.match(read("../src/components/reels/reels.css"), /\.reel-rail\.has-search\.is-nav-visible \{ bottom: 72px; \}/);
   assert.match(read("../src/pages/reels-feed.tsx"), /button-post-reel/);
   assert.match(read("../src/pages/reels-feed.tsx"), /link-reels-saved/);
   assert.doesNotMatch(rail, /button-create-reel-|button-message-creator|Follow|Remix|Download|Music|button-delete-reel/);
   assert.doesNotMatch(slide, /Search\s*["“]/);
-  assert.match(read("../public/service-worker.js"), /CACHE_NAME = 'myage-shell-v13'/);
+  assert.match(read("../public/service-worker.js"), /CACHE_NAME = 'myage-shell-v14'/);
   assert.match(slide, /type=\"range\"[\s\S]*?onChange=\{\(event\) => seekVideo\(event\.currentTarget\.value\)\}/);
   assert.match(slide, /onTimeUpdate=\{\(event\) => \{[\s\S]*?setProgress\(\(element\.currentTime \/ element\.duration\) \* 100\)/);
   assert.match(slide, /element\.currentTime = \(nextProgress \/ 100\) \* element\.duration/);
   const css = read("../src/components/reels/reels.css");
   assert.match(css, /--reels-accent: hsl\(var\(--primary\)\)/);
-  assert.match(slide, /stroke=\{filled \? stroke : pink\}/);
+  assert.match(slide, /stroke=\{filled \? stroke : "#fff"\}/);
   assert.doesNotMatch(css, /#3678d4|--reels-blue/);
-  assert.match(css, /\.reel-action-button > svg \{ display:block; width:28px; height:28px/);
-  assert.match(css, /\.reel-rail \.reel-action-button \{ width: 52px; min-width: 52px; height: 70px/);
-  assert.match(css, /\.reel-rail \{ gap: 9px; \}/);
+  assert.match(css, /\.reel-action-button > svg \{ display:block; width:34px; height:34px/);
+  assert.match(css, /\.reel-rail \.reel-action-button \{ width: 60px; min-width: 60px; height: 78px/);
+  assert.match(css, /\.reel-rail \{ gap: 13px; \}/);
+  assert.match(css, /right: 100px/);
+  assert.match(slide, /M22 2 11 13M22 2 15 22/);
+  assert.match(slide, /formatCount\(reel\.likeCount\)/);
+  assert.match(slide, /formatCount\(reel\.shareCount\)/);
   assert.match(css, /\.reels-feed-tabs button\.is-active::after[^}]*background: hsl\(var\(--primary\)\)/);
   assert.doesNotMatch(css, /\.reels-mobile-nav \.mobile-nav-indicator::before/);
   assert.match(css, /\.reels-mobile-nav \.mnav-item\.is-active \{ color: #f34e9a !important/);
@@ -310,7 +313,7 @@ test("Reels put the creator photo beside the name and keep Follow off the rail",
   assert.match(slide, /reel-search-suggestion/);
   assert.match(slide, /reelSearchSuggestion\(\{ caption: reel\.caption, creatorLocation: reel\.creatorLocation \}\)/);
   assert.match(feed, /onSearchSuggestion=\{openSearch\}/);
-  assert.match(read("../public/service-worker.js"), /CACHE_NAME = 'myage-shell-v13'/);
+  assert.match(read("../public/service-worker.js"), /CACHE_NAME = 'myage-shell-v14'/);
   assert.match(feed, /data-testid="button-search-reels"/);
   assert.doesNotMatch(feed, /useGetMatches|messageCreator|button-message-creator/);
   assert.doesNotMatch(slide, /button-message-creator|MessageSquare|button-follow-creator|reel-follow-button/);

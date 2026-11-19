@@ -61,12 +61,7 @@ export default function ProfileScreen() {
     return <View style={[styles.center, { backgroundColor: colors.profileGradientMiddle }]}><ActivityIndicator color={colors.primary} /></View>;
   }
   if (!profile.data) {
-    return (
-      <View style={[styles.center, { backgroundColor: colors.profileGradientMiddle }]}>
-        <Text style={{ color: colors.profileLabel }}>Profile unavailable.</Text>
-        <Pressable onPress={() => void profile.refetch()} style={[styles.retry, { backgroundColor: colors.profileEdit }]}><Text style={{ color: colors.profileEditForeground, fontWeight: "700" }}>Try again</Text></Pressable>
-      </View>
-    );
+    return <View style={[styles.center, { backgroundColor: colors.profileGradientMiddle }]}><ActivityIndicator color={colors.primary} accessibilityLabel="Loading" /></View>;
   }
   const user = profile.data;
   const place = [[user.city, user.state].filter(Boolean).join(", "), user.country].filter(Boolean).join(" · ");
@@ -174,7 +169,7 @@ export default function ProfileScreen() {
             <Pressable accessibilityLabel="Close" onPress={() => setBlockedOpen(false)}><Feather name="x" size={20} color={colors.mutedForeground} /></Pressable>
           </View>
           {blockedProfiles.isLoading ? <ActivityIndicator color={colors.primary} style={styles.blockedLoading} /> : null}
-          {blockedProfiles.isError ? <Pressable onPress={() => void blockedProfiles.refetch()}><Text style={[styles.blockedHint, { color: colors.destructive }]}>Couldn’t load blocked profiles. Tap to retry.</Text></Pressable> : null}
+          {blockedProfiles.isError ? <ActivityIndicator color={colors.primary} accessibilityLabel="Loading" style={styles.blockedLoading} /> : null}
           {!blockedProfiles.isLoading && !blockedProfiles.isError && !blockedCount ? <Text style={[styles.blockedHint, { color: colors.mutedForeground }]}>Profiles you block will appear here.</Text> : null}
           <ScrollView>
             {blockedProfiles.data?.map(({ profile: blocked }) => (

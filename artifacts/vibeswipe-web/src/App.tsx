@@ -45,9 +45,9 @@ import { ReferralToastHost } from '@/components/referrals/referral-toast-host';
 import { OnboardingCountryStep } from '@/components/onboarding-country-step';
 import type { OnboardingCountry } from '@workspace/api-client-react';
 import { HobbyMultiSelect, OccupationSelect } from '@/components/profile-field-selectors';
-import { ConnectionNotice } from '@/components/connection-notice';
 import { ReelsNavigationVisibilityContext } from '@/components/reels/reels-navigation-context';
 import { ProfileLikedReelsSection, ProfileReelsSection } from '@/components/profile-reels-section';
+import { QuietSpinner } from '@/components/ui/quiet-spinner';
 import { sharedReelId } from '@/lib/reels';
 import { ChatMessageBubble } from '@/components/chat-message-bubble';
 import { ChatVoiceNoteRecorder } from '@/components/chat-voice-note-recorder';
@@ -250,15 +250,8 @@ function Gate({ children }: { children: ReactNode }) {
   return <>{children}</>;
 }
 function AppOpening() {
-  const [slow, setSlow] = useState(false);
-  useEffect(() => {
-    const timer = window.setTimeout(() => setSlow(true), 10_000);
-    return () => window.clearTimeout(timer);
-  }, []);
-  return <main role="status" aria-live="polite" data-testid="status-app-startup" className="flex min-h-[100dvh] flex-col items-center justify-center gap-4 bg-[#0f0f12] px-6 text-center text-[#fbf5f7]">
-    <span aria-hidden="true" className="h-9 w-9 animate-spin rounded-full border-[3px] border-white/20 border-t-[#f34e9a]" />
-    <h1 className="text-xl font-bold">Opening Myage…</h1>
-    {slow && <><p className="max-w-sm text-sm leading-6 text-[#b6a8af]">Still loading. Check your connection and try again.</p><button type="button" onClick={() => window.location.reload()} data-testid="button-app-startup-retry" className="rounded-xl bg-[#f34e9a] px-5 py-3 text-sm font-bold text-[#24111b]">Try again</button></>}
+  return <main role="status" aria-label="Loading" data-testid="status-app-startup" className="flex min-h-[100dvh] items-center justify-center bg-[#0f0f12] text-[#fbf5f7]">
+    <QuietSpinner size={28} />
   </main>;
 }
 function RequiredProfile({ children }: { children: ReactNode }) {
@@ -351,8 +344,16 @@ function PageHeading({ eyebrow, title, description, action }: { eyebrow: string;
   return <div className="mb-7 flex flex-wrap items-end justify-between gap-4"><div><div className="text-[10px] font-bold uppercase tracking-[.2em] text-primary">{eyebrow}</div><h1 className="brand mt-2 text-3xl font-bold tracking-[-.05em] md:text-[2.6rem]">{title}</h1>{description && <p className="mt-2 max-w-2xl text-sm text-muted-foreground">{description}</p>}</div>{action}</div>;
 }
 function PageFrame({ children }: { children: ReactNode }) { return <div className="page-in mx-auto max-w-[1200px] px-4 py-7 md:px-8 md:py-10">{children}</div>; }
-function Busy({ label = 'Loading' }: { label?: string }) { return <div className="space-y-4" aria-label={label}>{[0,1,2].map(i=><div key={i} className="h-24 animate-pulse rounded-2xl border border-white/[.05] bg-white/[.035]"/>)}</div>; }
-function Retry({ onRetry, text = 'We couldn’t load this screen. Check your connection and try again.', error }: { onRetry: () => void; text?: string; error?: unknown }) { return <div role="alert" className="rounded-2xl border border-white/10 bg-card p-7 text-center"><p className="text-sm text-muted-foreground">{userErrorMessage(error,text)}</p><button type="button" onClick={onRetry} data-testid="button-retry" className="mt-4 rounded-lg bg-secondary px-4 py-2 text-sm font-semibold">Try again</button></div>; }
+function Busy({ label: _label = 'Loading' }: { label?: string }) {
+  return <div role="status" aria-label="Loading" className="flex justify-center py-8">
+    <QuietSpinner />
+  </div>;
+}
+function Retry({ onRetry, text: _text, error: _error }: { onRetry: () => void; text?: string; error?: unknown }) {
+  return <div role="status" aria-label="Loading" className="flex justify-center py-10">
+    <QuietSpinner onRetry={onRetry} />
+  </div>;
+}
 function Avatar({ profile, size = 'md' }: { profile: Profile; size?: 'sm'|'md'|'lg' }) {
   const [broken,setBroken]=useState(false); const src=mediaUrl(profile.photos?.[0]); const classes=size==='lg'?'h-24 w-24 text-2xl':size==='sm'?'h-11 w-11 text-sm':'h-14 w-14 text-lg';
   useEffect(()=>setBroken(false),[profile.photos?.[0]]);
@@ -554,7 +555,7 @@ function ChatPage({matchId,returnTo='/matches',autoFocusComposer=false}:{matchId
     if(list)observer.observe(list);
     return()=>observer.disconnect();
   },[matchId,matches.isLoading,msgs.isLoading,scrollToLatest]);
-  if(matches.isLoading||msgs.isLoading)return <PageFrame><div className="h-16 animate-pulse rounded-2xl bg-white/[.04]"/><div className="mt-6"><Busy/></div></PageFrame>;
+  if(matches.isLoading||msgs.isLoading)return <PageFrame><Busy/></PageFrame>;
   if(matches.isError&&!matches.data)return <PageFrame><Retry error={matches.error} text="We couldn’t load your conversations. Check your connection and try again." onRetry={()=>void matches.refetch()}/></PageFrame>;
   if(!match)return <PageFrame><Empty title="Conversation unavailable" detail="This chat may have ended or the match is no longer available." action={<Link href={returnTo} data-testid="link-back-matches" className="rounded-xl bg-secondary px-4 py-2.5 font-bold">{returnTo==='/views'?'Back to messages':returnTo==='/notifications'?'Back to activity':'Back to matches'}</Link>}/></PageFrame>;
   async function sendMessage(content:string, media?:{mediaReference:string;mediaType:'image'|'video'|'audio'}){if(blocked||(!content.trim()&&!media)||send.isPending)return;const old=draft;if(!media)setDraft('');try{const message=await send.mutateAsync({matchId,data:{...(content.trim()?{content:content.trim()}:{}),...media}});qc.setQueryData<Message[]>(getGetMessagesQueryKey(matchId),previous=>previous?.some(item=>item.id===message.id)?previous:[...(previous??[]),message]);updateTyping.mutate({matchId,data:{isTyping:false}});void qc.invalidateQueries({queryKey:getGetMessagesQueryKey(matchId)});void qc.invalidateQueries({queryKey:getGetMatchesQueryKey()});setError('')}catch(error){if(!media)setDraft(current=>current&&current!==old?[old,current].filter(Boolean).join('\n'):old);setError(userErrorMessage(error,'Your message wasn’t sent. Your text is still in the input—try sending again.'))}}
@@ -579,7 +580,6 @@ function ChatPage({matchId,returnTo='/matches',autoFocusComposer=false}:{matchId
       <button type="button" onClick={()=>setActions(true)} aria-label="Chat actions" data-testid="button-chat-actions" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[hsl(var(--chat-fg))] hover:bg-[hsl(var(--chat-soft))]"><MoreHorizontal size={21}/></button>
     </header>
     {blocked&&<div className="mx-4 mt-3 rounded-xl border border-rose-300/30 bg-rose-400/10 px-4 py-3 text-sm text-rose-500">Messaging is unavailable while this profile is blocked.</div>}
-    {msgs.isError&&<button onClick={()=>void msgs.refetch()} data-testid="button-retry-messages" className="mx-4 mt-3 rounded-xl bg-rose-400/10 p-2.5 text-xs font-semibold text-rose-500">Messages failed to load. Tap to retry.</button>}
     <div ref={messageListRef} onScroll={handleMessageListScroll} className="chat-wallpaper hide-scrollbar min-h-0 flex-1 overflow-y-auto px-2.5 pb-2 pt-1 md:px-6" data-testid="chat-message-list">
       <div ref={messageContentRef} className="min-h-full">
       {!messages.length&&!msgs.isError&&!blocked&&<div className="chat-empty-intro mx-auto max-w-xl pb-2 pt-2 text-center" data-testid="chat-empty-state">
@@ -589,16 +589,16 @@ function ChatPage({matchId,returnTo='/matches',autoFocusComposer=false}:{matchId
         <div className="mt-5 text-left">
           <h3 className="flex items-center gap-2 text-sm font-medium text-[hsl(var(--chat-muted))]"><Sparkles size={20} className="text-[var(--chat-accent)]"/>Suggested questions</h3>
           {ice.isLoading&&<div className="mt-3 space-y-2.5">{[0,1,2].map(n=><div key={n} className="h-[60px] animate-pulse rounded-2xl bg-[hsl(var(--chat-soft))]"/>)}</div>}
-          {ice.isError&&<button type="button" onClick={()=>void ice.refetch()} data-testid="button-retry-icebreakers" className="mt-3 w-full rounded-2xl border border-[hsl(var(--chat-border))] p-3 text-sm text-[hsl(var(--chat-muted))]">Suggestions couldn’t load. Tap to retry.</button>}
           <div className="mt-3 space-y-2.5">{ice.data?.slice(0,3).map((i,n)=>{const Icon=suggestionIcons[n]??Coffee;return <button key={i.id} type="button" disabled={blocked||busy||send.isPending} onClick={()=>applySuggestion(i.question)} data-testid={`button-chat-icebreaker-${i.id}`} className="flex w-full items-center gap-4 rounded-2xl border border-[hsl(var(--chat-border))] bg-[hsl(var(--chat-card))] px-4 py-4 text-left text-[15px] text-[hsl(var(--chat-fg))] shadow-[0_2px_8px_hsl(330_30%_40%/.06)] transition-colors hover:border-[var(--chat-accent)] disabled:opacity-50"><Icon size={26} strokeWidth={1.6} className="shrink-0 text-[var(--chat-accent)]"/>{i.question}</button>})}</div>
         </div>
       </div>}
+      {!messages.length&&msgs.isError&&!blocked&&<div className="flex justify-center py-6"><QuietSpinner onRetry={() => void msgs.refetch()} /></div>}
       {messages.map((m,index)=>{const mine=m.senderId===profile.data?.id;const prev=messages[index-1];const grouped=!!prev&&prev.senderId===m.senderId&&new Date(m.createdAt).getTime()-new Date(prev.createdAt).getTime()<5*60_000;const voiceAvatar=mine?(profile.data?<Avatar profile={profile.data} size="sm"/>:null):<Avatar profile={match.profile} size="sm"/>;return <ChatMessageBubble key={m.id} message={m} mine={mine} myId={profile.data?.id} partnerName={match.profile.name} groupedWithPrevious={grouped} avatar={voiceAvatar?<span className="block h-full w-full [&>div]:h-full [&>div]:w-full">{voiceAvatar}</span>:null} mediaUrl={reference=>mediaUrl(reference)} renderText={text=><SharedReelContent content={text} returnTo={`/chat/${matchId}`}/>} onActions={()=>setDeleteTarget(m)}/>})}
       {typing.data?.isTyping&&<div className="mt-2 inline-block rounded-[12px] rounded-tl-[4px] bg-[hsl(var(--chat-card))] px-3 py-1.5 text-xs italic text-[hsl(var(--chat-muted))]">{match.profile.name} is typing…</div>}
       </div>
     </div>
     {receipt.data?.readAt&&<div className="chat-wallpaper px-4 pb-0.5 text-right text-[10px] text-[hsl(var(--chat-muted))]">Seen {new Date(receipt.data.readAt).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'})}</div>}
-    {error&&<div role="alert" className="px-4 pb-1 text-xs font-medium text-rose-500">{error}</div>}{busy&&<div role="status" className="px-4 pb-1 text-xs text-[hsl(var(--chat-muted))]" data-testid="status-chat-uploading">Uploading attachment…</div>}
+    {error&&<div role="alert" className="px-4 pb-1 text-xs font-medium text-rose-500">{error}</div>}{busy&&<div role="status" aria-label="Sending attachment" className="flex justify-center px-4 pb-1" data-testid="status-chat-uploading"><QuietSpinner size={18}/></div>}
      <div data-testid="chat-composer" className="shrink-0 px-1.5 pb-1.5 pt-1 md:px-4">
       <form onSubmit={e=>{e.preventDefault();submitChatDraft()}} className="relative flex items-end gap-1.5">
         {!voiceActive&&<div className="flex min-w-0 flex-1 items-end rounded-[22px] border border-[hsl(var(--chat-border))] bg-[hsl(var(--chat-card))] pl-1 pr-2 shadow-[0_1px_2px_hsl(330_25%_30%/.08)]">
@@ -667,7 +667,7 @@ function ChatsPage() {
         ] as const).map(([value, label]) => <button key={value} type="button" aria-pressed={filter === value} data-testid={`chat-filter-${value}`} onClick={() => setFilter(value)} className={`shrink-0 rounded-full border px-4 py-2 text-sm font-bold transition-colors ${filter === value ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-card text-muted-foreground hover:text-foreground'}`}>{label}</button>)}
       </div>
       <div className="mt-5">
-        {matches.isLoading && direct.isLoading ? <div aria-label="Loading conversations">{[0,1,2].map(i => <div key={i} className="flex items-center gap-4 py-4"><div className="h-[56px] w-[56px] animate-pulse rounded-full bg-muted"/><div className="flex-1 space-y-2"><div className="h-4 w-32 animate-pulse rounded bg-muted"/><div className="h-3 w-48 animate-pulse rounded bg-muted"/></div></div>)}</div>
+        {matches.isLoading && direct.isLoading ? <Busy label="Loading conversations"/>
           : matches.isError && !matches.data && direct.isError && !direct.data ? <Retry error={matches.error} text="We couldn’t load your messages. Check your connection and try again." onRetry={() => { void matches.refetch(); void direct.refetch(); }} />
           : !list.length && !directList.length ? <Empty title="No conversations yet" detail="When you and someone both say yes, your conversation opens here." action={<Link href="/discover" data-testid="link-messages-discover" className="inline-flex rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground">Go to Discover</Link>} />
           : !newMatches.length && !chats.length && !visibleDirect.length ? <div className="rounded-2xl border border-border bg-card px-4 py-8 text-center text-sm font-medium text-muted-foreground" data-testid="empty-chat-search">{search.trim() ? 'No chats found for that name.' : filter === 'unread' ? 'No unread chats.' : 'No new matches.'}</div>
@@ -814,14 +814,14 @@ function NotificationsPage() {
 }
 
 const emptyProfile:ProfileInput={name:'',age:18,gender:'',lookingFor:'Everyone',bio:'',city:'',country:null,state:null,interests:[],occupation:'Prefer not to say',occupationOther:'',photos:[],videoUrl:null,preferences:{ageMin:22,ageMax:35,gender:'Everyone',distanceKm:50}};
-function ProfileLoading(){return <div role="status" aria-label="Loading your profile" className="flex items-center justify-center gap-3 rounded-2xl border border-white/10 bg-card px-6 py-12 text-sm text-muted-foreground"><span aria-hidden="true" className="h-5 w-5 animate-spin rounded-full border-2 border-white/15 border-t-primary"/>Loading your profile…</div>}
+function ProfileLoading(){return <div role="status" aria-label="Loading" className="flex items-center justify-center py-10"><QuietSpinner/></div>}
  function ProfilePage({mode='view',returnTo='/profile'}:{mode?:'view'|'edit';returnTo?:string}){const q=useGetMyProfile<Profile>({query:{refetchOnMount:'always',refetchOnWindowFocus:true,staleTime:0,retry:shouldRetryProfile}});const settings=useGetVibeSwipeSettings();const edit=mode==='edit';const [,setLocation]=useLocation();const [saveError,setSaveError]=useState('');const save=useSaveMyProfile();const requestUpload=useRequestProfileMediaUpload();const transcode=useTranscodeProfileVideo();const [uploading,setUploading]=useState(false);const qc=useQueryClient();const [form,setForm]=useState<ProfileInput>(emptyProfile);const [formReady,setFormReady]=useState(false);const mediaInput=useRef<HTMLInputElement>(null);const [photoPreviews,setPhotoPreviews]=useState<Record<string,string>>({});const photoPreviewUrls=useRef(new Map<string,string>());useEffect(()=>()=>{for(const url of photoPreviewUrls.current.values())URL.revokeObjectURL(url);photoPreviewUrls.current.clear()},[]);useEffect(()=>{if(q.data&&!formReady){setForm({...emptyProfile,...q.data,age:q.data.age??18,preferences:{...emptyProfile.preferences,...q.data.preferences},interests:q.data.interests??[],photos:q.data.photos??[]});setFormReady(true)}},[q.data,formReady]);const change=(key:keyof ProfileInput,value:any)=>setForm(v=>({...v,[key]:value}));function removeProfilePhoto(index:number){const reference=form.photos[index];const preview=photoPreviewUrls.current.get(reference);if(preview){URL.revokeObjectURL(preview);photoPreviewUrls.current.delete(reference);setPhotoPreviews(current=>{const next={...current};delete next[reference];return next})}change('photos',form.photos.filter((_,photoIndex)=>photoIndex!==index))}
  async function uploadProfileMedia(file?:File){if(!file||uploading)return;const video=file.type.startsWith('video/');setUploading(true);setSaveError('');try{if(!video)validatePhotoFile(file);const prepared=video?file:await prepareProfilePhoto(file);const contentType:MediaUploadInputContentType=video?(file.type==='video/quicktime'?'video/quicktime':'video/mp4'):'image/jpeg';const result=await requestUpload.mutateAsync({data:{name:prepared.name,size:prepared.size,contentType,mediaType:video?'video':'image'}});if(video){const uploaded=await fetch(result.uploadURL,{method:'PUT',headers:{'Content-Type':contentType},body:prepared});if(!uploaded.ok)throw {status:uploaded.status};const done=await transcode.mutateAsync({mediaId:result.mediaId});change('videoUrl',done.mediaReference)}else{await uploadProfilePhotoBytes(result.uploadURL,prepared);const checked=await checkAdditionalProfilePhoto(result.mediaId);const preview=URL.createObjectURL(prepared);photoPreviewUrls.current.set(checked.mediaReference,preview);setPhotoPreviews(current=>({...current,[checked.mediaReference]:preview}));setForm(current=>({...current,photos:[...current.photos,checked.mediaReference].slice(0,6)}))}}catch(error){setSaveError(userErrorMessage(error,'Your picture could not be uploaded. Choose the photo again to retry.'))}finally{setUploading(false)}}
  async function submit(e:React.FormEvent){e.preventDefault();setSaveError('');if(!form.photos.length){setSaveError('Keep at least one profile photo. Add a photo before saving.');return}try{const updated=await save.mutateAsync({data:form});qc.setQueryData(getGetMyProfileQueryKey(),updated);void qc.invalidateQueries({queryKey:getGetMyProfileQueryKey()});setLocation(returnTo)}catch(error){setSaveError(userErrorMessage(error,'Your changes haven’t saved yet. Check your details and try again.'))}}
 if(q.isError&&isProfileMissing(q.error))return <Redirect to="/onboarding"/>;
  const heading=edit?<div className="pe-head"><Link href={returnTo} data-testid="link-edit-profile-back" aria-label={returnTo.startsWith('/settings')?'Back to Settings':'Back to Profile'} className="pe-round"><ArrowLeft size={19}/></Link><h1 className="pe-title">Edit Profile</h1><span className="w-10" aria-hidden="true"/></div>:null;
    const Frame=edit?ProfileEditFrame:OwnProfileFrame;
-   return <Frame>{heading}{q.isLoading||edit&&!formReady?<ProfileLoading/>:q.isError&&!q.data?<Retry text={q.error?.status===401?'Your session has expired. Please sign in again.':'We couldn’t load your profile. Check your connection and try again.'} onRetry={()=>void q.refetch()}/>:!q.data?<Empty title="Your profile is waiting" detail="Finish a few details to begin discovering people." action={<Link href="/onboarding" data-testid="link-profile-onboarding" className="rounded-xl bg-primary px-4 py-3 font-bold text-[#26111b]">Set up profile</Link>}/>:<>{q.isRefetchError&&!edit&&<div role="alert" className="mb-4 rounded-xl border border-white/10 bg-card p-4 text-sm text-muted-foreground">Your saved profile is shown below. We couldn’t refresh it. <button className="font-semibold text-primary" onClick={()=>void q.refetch()}>Try again</button></div>}{!edit&&<OwnProfileOverview profile={q.data} travelCity={settings.data?.travelMode?settings.data.travelCity:null}/>}
+   return <Frame>{heading}{q.isLoading||edit&&!formReady?<ProfileLoading/>:q.isError&&!q.data?<Retry text={q.error?.status===401?'Your session has expired. Please sign in again.':'We couldn’t load your profile. Check your connection and try again.'} onRetry={()=>void q.refetch()}/>:!q.data?<Empty title="Your profile is waiting" detail="Finish a few details to begin discovering people." action={<Link href="/onboarding" data-testid="link-profile-onboarding" className="rounded-xl bg-primary px-4 py-3 font-bold text-[#26111b]">Set up profile</Link>}/>:<>{!edit&&<OwnProfileOverview profile={q.data} travelCity={settings.data?.travelMode?settings.data.travelCity:null}/>}
   {edit&&<form onSubmit={e=>void submit(e)} className="pb-[calc(7rem+env(safe-area-inset-bottom))]" data-testid="form-edit-profile">
    <section className="pe-card" data-testid="section-edit-photos"><div className="flex items-baseline justify-between"><h2 className="pe-label">Photos</h2><span className="text-sm font-bold text-[hsl(var(--pe-pink))]" data-testid="text-photo-count">{form.photos.length}/6</span></div>
      <div className="mt-4 grid grid-cols-3 gap-3">{Array.from({length:6},(_,index)=>{const photo=form.photos[index];return photo?<div key={`${photo}-${index}`} className="pe-slot relative overflow-hidden"><MediaImage reference={photo} fallbackSrc={photoPreviews[photo]} alt={`Profile photo ${index+1}`} className="h-full w-full object-cover"/>{index===0&&<span className="pe-main">Main photo</span>}<button type="button" onClick={()=>removeProfilePhoto(index)} aria-label={`Remove profile photo ${index+1}`} data-testid={`button-remove-profile-photo-${index}`} className="pe-x"><X size={14} strokeWidth={2.6}/></button></div>:<button key={`empty-${index}`} type="button" disabled={uploading||form.photos.length>=6} onClick={()=>mediaInput.current?.click()} aria-label="Add a photo" data-testid={`button-add-profile-photo-slot-${index}`} className="pe-slot pe-empty">{uploading&&index===form.photos.length?<span className="text-[11px] font-semibold text-[hsl(var(--pe-muted))]">Uploading…</span>:<span className="pe-plus"><span className="sr-only">Add</span>+</span>}</button>})}</div>
@@ -1196,5 +1196,5 @@ function ClerkRoutes(){const [,setLocation]=useLocation();return <ClerkProvider 
   <Route path="/profile" component={ProfileRoute}/><Route path="/profile/edit" component={ProfileEditRoute}/><Route path="/profile/:profileId/followers" component={FollowersRoute}/><Route path="/profile/:profileId/following" component={FollowingRoute}/><Route path="/profile/:profileId/from-notifications" component={ViewedNotificationProfileRoute}/><Route path="/profile/:profileId" component={PublicProfileRoute}/><Route path="/verify-profile" component={FaceVerificationRoute}/><Route path="/settings" component={SettingsRoute}/><Route path="/settings/:section" component={SettingsSectionRoute}/><Route component={NotFound}/>
  </Switch></Suspense></ClerkProvider>}
 function ConsumerInstallBanner(){const [location]=useLocation();return location.startsWith('/admin')||location.startsWith('/reels')?null:<MobileInstallBanner/>}
-function App(){if(!clerkPubKey)throw new Error('Missing VITE_CLERK_PUBLISHABLE_KEY');return <QueryClientProvider client={queryClient}><ConnectionNotice/><WouterRouter base={basePath}><ConsumerInstallBanner/><ClerkRoutes/></WouterRouter></QueryClientProvider>}
+function App(){if(!clerkPubKey)throw new Error('Missing VITE_CLERK_PUBLISHABLE_KEY');return <QueryClientProvider client={queryClient}><WouterRouter base={basePath}><ConsumerInstallBanner/><ClerkRoutes/></WouterRouter></QueryClientProvider>}
 export default App;

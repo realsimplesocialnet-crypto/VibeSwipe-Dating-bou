@@ -590,11 +590,6 @@ export default function ChatScreen() {
         </View>
       ) : null}
 
-      {messages.isError ? (
-        <Pressable accessibilityRole="button" onPress={() => void messages.refetch()} style={styles.errorBanner}>
-          <Text accessibilityRole="alert" style={[styles.error, { color: colors.destructive }]}>Messages couldn’t load. Tap to try again.</Text>
-        </Pressable>
-      ) : null}
       {error ? <Text accessibilityRole="alert" style={[styles.error, { color: colors.destructive }]}>{error}</Text> : null}
       <FlatList
         key={matchId}
@@ -609,14 +604,13 @@ export default function ChatScreen() {
         keyboardShouldPersistTaps="handled"
         scrollEnabled
         ListHeaderComponent={otherIsTyping ? <Text style={[styles.typing, { color: colors.mutedForeground }]}>{match.profile.name} is typing…</Text> : undefined}
-        ListEmptyComponent={!messages.isError && !blocked ? (
+        ListEmptyComponent={messages.isError ? <ActivityIndicator color={colors.primary} accessibilityLabel="Loading" /> : !blocked ? (
           <View style={styles.icebreakerWrap} testID="chat-empty-conversation">
             <Ionicons name="heart" size={56} color={colors.primary} style={[styles.emptyIcon, { opacity: 0.5 }]} />
             <Text style={[styles.emptyTitle, { color: colors.primary, fontFamily: Platform.OS === "ios" ? "Georgia" : "serif" }]}>A good conversation starts here</Text>
             <Text style={[styles.emptySubtitle, { color: colors.mutedForeground }]}>Break the ice with a question</Text>
             <View style={styles.suggestionsHeading}><Ionicons name="sparkles-outline" size={22} color={colors.primary} /><Text style={[styles.suggestionsLabel, { color: colors.mutedForeground }]}>Suggested questions</Text></View>
-            {icebreakers.isLoading ? <ActivityIndicator color={colors.primary} accessibilityLabel="Loading suggested questions" /> : null}
-            {icebreakers.isError ? <Pressable onPress={() => void icebreakers.refetch()} testID="retry-chat-suggestions"><Text style={[styles.error, { color: colors.destructive }]}>Couldn’t load suggestions. Tap to retry.</Text></Pressable> : null}
+            {icebreakers.isLoading || icebreakers.isError ? <ActivityIndicator color={colors.primary} accessibilityLabel="Loading" /> : null}
             {icebreakers.data?.slice(0, 3).map((prompt, index) => (
               <Pressable
                 key={prompt.id}

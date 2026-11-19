@@ -71,9 +71,7 @@ export function ProfileReelsSection({
       {reelsQuery.isLoading ? (
         <ActivityIndicator color={colors.primary} style={styles.loading} />
       ) : reelsQuery.isError && !reels.length ? (
-        <Pressable accessibilityRole="button" onPress={() => void reelsQuery.refetch()}>
-          <Text accessibilityRole="alert" style={[styles.empty, { color: colors.profileMuted }]}>Reels couldn’t load. Tap to retry.</Text>
-        </Pressable>
+        <ActivityIndicator color={colors.primary} accessibilityLabel="Loading" style={styles.loading} />
       ) : reels.length ? (
         layout === "grid" ? (
           <>

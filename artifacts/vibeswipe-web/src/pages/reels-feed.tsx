@@ -16,6 +16,7 @@ import { reelMediaUrl, safeReelReturnPath } from "@/lib/reels";
 import { readOfflineReels, saveReelForOffline } from "@/lib/offline-reels";
 import { reelSlideIndex, reelsViewportFrame } from "@/lib/reels-viewport";
 import { mixReelsByCreator } from "@/lib/reels-feed-order";
+import { QuietSpinner } from "@/components/ui/quiet-spinner";
 import "@/components/reels/reels.css";
 
 const REEL_COMMENTS_HISTORY_KEY = "__myageReelComments";
@@ -492,8 +493,8 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
   return <div className="reels-root" style={{ top: viewport.top, bottom: "auto", ["--reels-viewport-height" as string]: `${viewport.height}px`, ["--reels-comments-height" as string]: `${viewport.commentsHeight}px` }} data-keyboard-open={viewport.keyboardOpen} data-comments-open={Boolean(commentReel)} data-navigation-visible={navigationVisible} data-testid="page-reels">
     <div className="reels-stage">
       <div ref={scroller} className={`reels-scroller ${commentsFor ? "is-locked" : ""}`} data-testid="reels-scroller">
-        {loading ? <div className="reel-slide"><div className="reel-loading" aria-label="Loading Reels" /></div>
-          : activeFeed.isError && !reels.length ? <div className="reels-empty" role="alert"><p className="text-lg font-bold">{offline ? "No Reels saved offline yet." : "Reels could not load."}</p><p className="mt-1 text-sm text-white/60">{offline ? "Connect to Wi-Fi and watch a Reel or tap Save offline first." : "Check your connection and try again."}</p>{!offline&&<button type="button" onClick={() => void activeFeed.refetch()} className="reel-pill mt-5" data-testid="button-retry-reels">Try again</button>}</div>
+        {loading ? <div className="reel-slide"><QuietSpinner size={28} /></div>
+          : activeFeed.isError && !reels.length ? offline ? <div className="reels-empty"><span className="reels-empty-mark"><Clapperboard size={30} /></span><p className="mt-5 text-xl font-bold">No Reels yet</p></div> : <div className="reel-slide"><QuietSpinner size={28} onRetry={() => void activeFeed.refetch()} /></div>
           : !reels.length && feedMode === "friends" && !profileId ? <div className="reels-empty"><span className="reels-empty-mark"><Users size={30} /></span><p className="mt-5 text-xl font-bold">No Friends Reels yet</p><p className="mt-1 max-w-[260px] text-sm leading-6 text-white/60">Reels from people you follow will appear here.</p><button type="button" onClick={() => changeFeedMode("reels")} className="reels-primary mt-6" data-testid="button-open-all-reels">Watch all Reels</button></div>
           : !reels.length ? <div className="reels-empty"><span className="reels-empty-mark"><Clapperboard size={30} /></span><p className="mt-5 text-xl font-bold">No Reels yet</p><p className="mt-1 max-w-[260px] text-sm leading-6 text-white/60">Be the first to share a video with the community.</p><Link href="/reels/new" className="reels-primary mt-6" data-testid="link-post-first-reel">Post a Reel</Link></div>
           : reels.map((reel, index) => <ReelSlide
@@ -512,7 +513,7 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
             onView={() => void recordPlayback(reel)}
               onComment={() => openComments(reel.id)} onShare={() => setShareFor(reel)}
           />)}
-        {activeFeed.isFetchingNextPage && <div className="reels-more" aria-live="polite">Loading more Reels</div>}
+        {activeFeed.isFetchingNextPage && <div className="reels-more" role="status" aria-label="Loading"><QuietSpinner size={18} /></div>}
         {!offline && !activeFeed.hasNextPage && reels.length > 1 && !activeFeed.isLoading && <div className="reels-end">{profileId ? "You’ve seen all of this person’s Reels." : "You are all caught up."}</div>}
       </div>
       <header className="reels-top">
@@ -546,9 +547,9 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
           {debouncedSearchText.trim().length < 2
             ? null
             : searchFeed.isLoading
-              ? <div className="reels-search-status"><LoaderCircle size={20} className="animate-spin" />Searching Reels…</div>
+              ? <div className="reels-search-status"><QuietSpinner size={20} /></div>
               : searchFeed.isError
-                ? <div className="reels-search-status">Search is unavailable. Check your connection and try again.</div>
+                ? <div className="reels-search-status"><QuietSpinner onRetry={() => void searchFeed.refetch()} /></div>
                 : !searchResults.length
                   ? <div className="reels-search-status">No Reels match “{debouncedSearchText}” yet.</div>
                   : <>
@@ -568,13 +569,11 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
                         </button>
                       </li>)}
                     </ul>
-                    {searchFeed.hasNextPage && <button type="button" onClick={() => void searchFeed.fetchNextPage()} disabled={searchFeed.isFetchingNextPage} className="reels-search-more">{searchFeed.isFetchingNextPage ? "Loading…" : "Load more Reels"}</button>}
+                    {searchFeed.hasNextPage && <button type="button" onClick={() => void searchFeed.fetchNextPage()} disabled={searchFeed.isFetchingNextPage} className="reels-search-more">{searchFeed.isFetchingNextPage ? <QuietSpinner size={18} /> : "Load more Reels"}</button>}
                   </>}
         </div>
       </section>}
-      {offline && <p role="status" className="reels-notice" data-testid="notice-reels-offline">{reels.length ? "Offline. Showing videos saved on this device." : "Offline. No videos are saved on this device yet."}</p>}
       {notice && <p role="status" className="reels-notice" data-testid="status-reels">{notice}</p>}
-      {initialReelId && single.isError && <p role="status" className="reels-notice" data-testid="status-reel-unavailable">That Reel is no longer available. Showing other Reels.</p>}
     </div>
     {commentReel && <ReelComments key={commentReel.id} reelId={commentReel.id} creatorId={commentReel.creatorId} returnTo={returnTo} commentCount={commentReel.commentCount} canComment={commentReel.canComment} focusCommentId={initialCommentId} onClose={closeComments} onCountChange={(delta) => {
       patch(commentReel.id, { commentCount: Math.max(0, commentReel.commentCount + delta) });

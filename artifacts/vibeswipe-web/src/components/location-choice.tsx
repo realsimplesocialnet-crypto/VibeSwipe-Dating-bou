@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { listCities, listCountries, listStates, type GeoOption } from '@/lib/geo-data';
+import { QuietSpinner } from '@/components/ui/quiet-spinner';
 
 type Level = 'country' | 'state' | 'city';
 
@@ -48,7 +49,7 @@ export function LocationChoice({
     {value && <p className="text-sm font-semibold text-[#ffd3e6]" role="status">Selected: {value}</p>}
     <label className="sr-only" htmlFor={`location-search-${level}`}>{title}</label>
     <input id={`location-search-${level}`} data-testid={`input-onboarding-${level}-search`} value={filter} onChange={event => setFilter(event.target.value)} placeholder={title} autoComplete="off" className="field"/>
-    {loading ? <p role="status" className="text-xs text-muted-foreground">Loading real {level} names…</p>
+    {loading ? <div role="status" aria-label="Loading" className="flex justify-center py-2"><QuietSpinner size={18}/></div>
       : loadFailed ? <div role="alert" className="space-y-3"><p className="text-sm text-rose-300">Location names could not be loaded. Check your connection and try again.</p><button type="button" onClick={() => {setLoadFailed(false);setLoading(true);void loadOptions(level,countryCode,stateCode).then(setOptions).catch(()=>setLoadFailed(true)).finally(()=>setLoading(false))}} className="rounded-lg bg-secondary px-4 py-2 text-xs font-semibold">Try again</button></div>
       : visible.length ? <div role="listbox" aria-label={title} className="max-h-60 overflow-y-auto rounded-xl border border-white/10 bg-[#18151d] p-1">
         {visible.map(option => <button type="button" role="option" aria-selected={option.name === value} key={`${option.code}:${option.name}`} onClick={() => onSelect(option)} data-testid={`option-onboarding-${level}-${option.name.toLowerCase().replaceAll(/[^a-z0-9]+/g,'-')}`} className={`block w-full rounded-lg px-3 py-2.5 text-left text-sm hover:bg-white/[.06] ${option.name===value?'bg-accent text-primary':'text-foreground'}`}>{option.name}</button>)}

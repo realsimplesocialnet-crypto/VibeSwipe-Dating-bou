@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import {
+  ActivityIndicator,
   Modal,
   Platform,
   Pressable,
@@ -67,33 +68,14 @@ export function ErrorFallback({ error, resetError }: ErrorFallbackProps) {
         </Pressable>
       ) : null}
 
-      <View style={styles.content}>
-        <Text style={[styles.title, { color: colors.foreground }]}>
-          Something went wrong
-        </Text>
-
-        <Text style={[styles.message, { color: colors.mutedForeground }]}>
-          Please reload the app to continue.
-        </Text>
-
-        <Pressable
-          onPress={handleRestart}
-          style={({ pressed }) => [
-            styles.button,
-            {
-              backgroundColor: colors.primary,
-              opacity: pressed ? 0.9 : 1,
-              transform: [{ scale: pressed ? 0.98 : 1 }],
-            },
-          ]}
-        >
-          <Text
-            style={[styles.buttonText, { color: colors.primaryForeground }]}
-          >
-            Try Again
-          </Text>
-        </Pressable>
-      </View>
+      <Pressable
+        onPress={handleRestart}
+        accessibilityRole="button"
+        accessibilityLabel="Reload app"
+        style={styles.content}
+      >
+        <ActivityIndicator size="large" color={colors.primary} />
+      </Pressable>
 
       {__DEV__ ? (
         <Modal

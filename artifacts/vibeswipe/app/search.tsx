@@ -103,8 +103,8 @@ export default function MemberSearchScreen() {
           )}
         </View>
 
-        {isError ? (
-          <Text accessibilityRole="alert" style={[styles.empty, { color: colors.mutedForeground }]}>Search unavailable</Text>
+        {isError && !profiles.length ? (
+          <ActivityIndicator color={colors.primary} accessibilityLabel="Loading" style={styles.empty} />
         ) : (
           <FlatList
             data={profiles}

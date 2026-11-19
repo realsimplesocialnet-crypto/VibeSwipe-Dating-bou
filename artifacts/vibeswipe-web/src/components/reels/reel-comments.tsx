@@ -7,6 +7,7 @@ import {
 import { ArrowUp, X } from "lucide-react";
 import { ReelAvatar } from "@/components/reels/reel-avatar";
 import { userErrorMessage } from "@/lib/user-errors";
+import { QuietSpinner } from "@/components/ui/quiet-spinner";
 
 function ago(iso: string): string {
   const minutes = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
@@ -137,8 +138,7 @@ export function ReelComments({ reelId, creatorId, returnTo, commentCount, canCom
       <button type="button" onClick={onClose} aria-label="Close comments" data-testid="button-close-comments" className="flex h-9 w-9 items-center justify-center rounded-full text-white/70 hover:bg-white/10"><X size={18} /></button>
     </header>
     <div ref={list} className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4">
-      {comments.isLoading ? <div className="space-y-3 py-2" aria-label="Loading comments">{[0, 1, 2].map((i) => <div key={i} className="flex gap-3"><span className="h-8 w-8 rounded-full bg-white/10" /><span className="h-8 flex-1 rounded-xl bg-white/[.06]" /></div>)}</div>
-        : comments.isError ? <div className="py-6 text-center text-sm text-white/60">Comments could not load.<button type="button" onClick={() => void comments.refetch()} className="ml-2 font-semibold text-primary" data-testid="button-retry-comments">Retry</button></div>
+      {comments.isLoading || (comments.isError && !comments.data) ? <div className="flex justify-center py-8"><QuietSpinner onRetry={() => void comments.refetch()} /></div>
         : !visibleCount ? <p className="py-6 text-center text-sm text-white/55" data-testid="text-no-comments">{count ? "Comments aren’t available right now." : "No comments yet. Say something kind."}</p>
         : <ul className="space-y-4 pb-2">{comments.data!.filter((comment) => !comment.parentCommentId).map((comment) => <li key={comment.id} data-testid={`comment-${comment.id}`}>
           <div className="flex gap-3" data-comment-id={comment.id}>

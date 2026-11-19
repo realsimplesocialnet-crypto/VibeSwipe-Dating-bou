@@ -36,24 +36,28 @@ import Svg, { Defs, LinearGradient as SvgLinearGradient, Path, Stop } from "reac
 
 type ReelIconName = "like" | "comment" | "share" | "save";
 
+function formatReelCount(value: number) {
+  return new Intl.NumberFormat("en", { notation: "compact", compactDisplay: "short", maximumFractionDigits: 1 }).format(value);
+}
+
 function ReelActionIcon({ name, filled = false }: { name: ReelIconName; filled?: boolean }) {
   const gradientId = `native-reel-${useId().replace(/:/g, "")}`;
   const stroke = `url(#${gradientId})`;
   return (
-    <Svg width={28} height={28} viewBox="0 0 24 24" fill="none">
+      <Svg width={34} height={34} viewBox="0 0 24 24" fill="none">
       <Defs>
         <SvgLinearGradient id={gradientId} x1="3" y1="2" x2="21" y2="22">
           <Stop offset="0" stopColor="#ff63aa" />
           <Stop offset="1" stopColor="#a875ff" />
         </SvgLinearGradient>
       </Defs>
-      {name === "like" ? <Path d="M20.8 4.7a5.4 5.4 0 0 0-7.7 0L12 5.8l-1.1-1.1a5.4 5.4 0 0 0-7.7 7.7l1.1 1.1L12 21l7.7-7.5 1.1-1.1a5.4 5.4 0 0 0 0-7.7Z" stroke={filled ? stroke : "#fff"} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" fill={filled ? stroke : "#fff"} /> : null}
+      {name === "like" ? <Path d="M20.8 4.7a5.4 5.4 0 0 0-7.7 0L12 5.8l-1.1-1.1a5.4 5.4 0 0 0-7.7 7.7l1.1 1.1L12 21l7.7-7.5 1.1-1.1a5.4 5.4 0 0 0 0-7.7Z" stroke={filled ? stroke : "#fff"} strokeWidth={2.1} strokeLinecap="round" strokeLinejoin="round" fill={filled ? stroke : "#fff"} /> : null}
       {name === "comment" ? <>
-        <Path d="M6 4.5h12a2 2 0 0 1 2 2V14a2 2 0 0 1-2 2h-1v3.5L13 16H6a2 2 0 0 1-2-2V6.5a2 2 0 0 1 2-2Z" stroke="#fff" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" />
-        <Path d="M8.5 10.5h.01M12 10.5h.01M15.5 10.5h.01" stroke="#fff" strokeWidth={2.2} strokeLinecap="round" />
+        <Path d="M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.4 8.4 0 0 1 3.8-.9h.5a8.5 8.5 0 0 1 8 8v.5Z" stroke="#fff" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+        <Path d="M8.5 11.5h.01M12.5 11.5h.01M16.5 11.5h.01" stroke="#fff" strokeWidth={2.4} strokeLinecap="round" />
       </> : null}
-      {name === "share" ? <Path d="M3.5 19.5c2.5-6.8 7.1-10.4 14.3-10.4h1.7V5l5 4.9-5 4.9V12h-1.7c-5.5 0-8.9 2.8-11.1 7.5H3.5Z" fill="#fff" /> : null}
-      {name === "save" ? <Path d="M6 4.5A1.5 1.5 0 0 1 7.5 3h9A1.5 1.5 0 0 1 18 4.5V21l-6-4-6 4V4.5Z" stroke={filled ? stroke : "#fff"} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" fill={filled ? stroke : "#fff"} /> : null}
+      {name === "share" ? <Path d="M22 2 11 13M22 2 15 22l-4-9-9-4 20-7Z" stroke="#fff" strokeWidth={2.1} strokeLinecap="round" strokeLinejoin="round" /> : null}
+      {name === "save" ? <Path d="M6 4.5A1.5 1.5 0 0 1 7.5 3h9A1.5 1.5 0 0 1 18 4.5V21l-6-4-6 4V4.5Z" stroke={filled ? stroke : "#fff"} strokeWidth={2.1} strokeLinecap="round" strokeLinejoin="round" fill={filled ? stroke : "none"} /> : null}
     </Svg>
   );
 }
@@ -395,10 +399,7 @@ export default function ProfileReelScreen() {
           ) : source ? (
             <VideoView player={player} style={StyleSheet.absoluteFill} contentFit="cover" nativeControls />
           ) : reelQuery.isError ? (
-            <View style={styles.message}>
-              <Text style={[styles.messageText, { color: colors.foreground }]}>This Reel is unavailable.</Text>
-              <Pressable accessibilityRole="button" onPress={() => void reelQuery.refetch()}><Text style={[styles.retry, { color: colors.primary }]}>Try again</Text></Pressable>
-            </View>
+            <View style={styles.message}><ActivityIndicator size="large" color={colors.primary} /></View>
           ) : null}
           {reelQuery.data ? (
             <View style={styles.actionRail}>
@@ -412,7 +413,7 @@ export default function ProfileReelScreen() {
                 style={styles.actionButton}
               >
                 <ReelActionIcon name="like" filled={reelQuery.data.likedByMe} />
-                <Text style={styles.actionCount}>{reelQuery.data.likeCount}</Text>
+                <Text style={styles.actionCount}>{formatReelCount(reelQuery.data.likeCount)}</Text>
               </Pressable>
               <Pressable
                 accessibilityRole="button"
@@ -422,19 +423,7 @@ export default function ProfileReelScreen() {
                 style={styles.actionButton}
               >
                 <ReelActionIcon name="comment" />
-                <Text style={styles.actionCount}>{reelQuery.data.commentCount}</Text>
-              </Pressable>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={`${reelQuery.data.savedByMe ? "Remove from saved" : "Save"}, ${reelQuery.data.saveCount}`}
-                accessibilityState={{ selected: reelQuery.data.savedByMe, disabled: saveReel.isPending || unsaveReel.isPending }}
-                testID="button-save-reel"
-                disabled={saveReel.isPending || unsaveReel.isPending}
-                onPress={() => void toggleSave()}
-                style={styles.actionButton}
-              >
-                <ReelActionIcon name="save" filled={reelQuery.data.savedByMe} />
-                <Text style={styles.actionCount}>{reelQuery.data.saveCount}</Text>
+                <Text style={styles.actionCount}>{formatReelCount(reelQuery.data.commentCount)}</Text>
               </Pressable>
               <Pressable
                 accessibilityRole="button"
@@ -448,7 +437,19 @@ export default function ProfileReelScreen() {
                 style={styles.actionButton}
               >
                 <ReelActionIcon name="share" />
-                <Text style={styles.actionCount}>{reelQuery.data.shareCount}</Text>
+                <Text style={styles.actionCount}>{formatReelCount(reelQuery.data.shareCount)}</Text>
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`${reelQuery.data.savedByMe ? "Remove from saved" : "Save"}, ${reelQuery.data.saveCount}`}
+                accessibilityState={{ selected: reelQuery.data.savedByMe, disabled: saveReel.isPending || unsaveReel.isPending }}
+                testID="button-save-reel"
+                disabled={saveReel.isPending || unsaveReel.isPending}
+                onPress={() => void toggleSave()}
+                style={styles.actionButton}
+              >
+                <ReelActionIcon name="save" filled={reelQuery.data.savedByMe} />
+                <Text style={styles.actionCount}>{formatReelCount(reelQuery.data.saveCount)}</Text>
               </Pressable>
             </View>
           ) : null}
@@ -675,9 +676,9 @@ const styles = StyleSheet.create({
   back: { width: 42, height: 42, alignItems: "center", justifyContent: "center" },
   headerTitle: { fontSize: 19, fontWeight: "800" },
   videoStage: { flex: 1, minHeight: 200, overflow: "hidden", backgroundColor: "#000", alignItems: "center", justifyContent: "center" },
-  actionRail: { position: "absolute", right: 10, bottom: 16, alignItems: "center", gap: 9 },
-  actionButton: { width: 52, minWidth: 52, minHeight: 70, alignItems: "center", justifyContent: "flex-start", gap: 8 },
-  actionCount: { color: "#fff", fontSize: 10, fontWeight: "800", textShadowColor: "#000", textShadowRadius: 4 },
+  actionRail: { position: "absolute", right: 10, bottom: 16, alignItems: "center", gap: 13 },
+  actionButton: { width: 60, minWidth: 60, minHeight: 78, alignItems: "center", justifyContent: "flex-start", gap: 7 },
+  actionCount: { color: "#fff", fontSize: 12, fontWeight: "900", letterSpacing: 0.2, textShadowColor: "#000", textShadowRadius: 5 },
   caption: { paddingHorizontal: 16, paddingVertical: 14, gap: 8 },
   creatorRow: { flexDirection: "row", alignItems: "center", gap: 10 },
   creatorAvatarRing: { width: 42, height: 42, alignItems: "center", justifyContent: "center", borderRadius: 21, padding: 2 },

@@ -4,6 +4,7 @@ import {
   type ErrorInfo,
   type ReactNode,
 } from 'react';
+import { QuietSpinner } from '@/components/ui/quiet-spinner';
 
 export interface ErrorFallbackProps {
   error: Error;
@@ -37,28 +38,16 @@ function toError(value: unknown): Error {
 
 function DefaultFallback({ error }: ErrorFallbackProps) {
   return (
-    <div role="alert" className="min-h-[100dvh] w-full flex items-center justify-center bg-[#121015] p-6 text-[#fff2f7]">
-      <div className="max-w-lg w-full rounded-3xl border border-white/10 bg-[#211d25] p-7 text-center">
-        <h1 className="text-xl font-semibold">
-          We couldn’t open this screen
-        </h1>
-        <p className="mt-3 text-sm leading-6 text-[#b9adb6]">
-          Try again. If this keeps happening, reopen Myage.
-          Your saved account and profile have not been deleted.
-        </p>
+    <div role="status" aria-label="Loading" className="min-h-[100dvh] w-full flex items-center justify-center bg-[#121015] p-6 text-[#fff2f7]">
+      <div className="flex w-full max-w-lg flex-col items-center">
         {/* Dev only: messages can carry API responses and other internals. */}
         {import.meta.env.DEV ? (
           <pre className="mt-4 overflow-x-auto rounded bg-black/20 p-3 text-left text-xs text-[#b9adb6]">
             {error.message || String(error)}
           </pre>
         ) : null}
-        <button
-          type="button"
-          onClick={() => window.location.reload()}
-          data-testid="button-reload-after-screen-error"
-          className="mt-5 rounded-xl bg-[#f34e9a] px-5 py-3 text-sm font-bold text-[#24111b]"
-        >
-          Try again
+        <button type="button" onClick={() => window.location.reload()} data-testid="button-reload-after-screen-error" aria-label="Reload screen" className="grid h-12 w-12 place-items-center rounded-full">
+          <QuietSpinner />
         </button>
       </div>
     </div>

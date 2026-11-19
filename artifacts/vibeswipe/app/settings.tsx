@@ -3,6 +3,7 @@ import { Feather } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
   Platform,
   Pressable,
@@ -275,8 +276,7 @@ export default function SettingsScreen() {
               testID="input-travel-city"
             />
             {selectedTravelCity ? <Text style={[styles.selectedCity, { color: colors.primary }]}>Selected city: {selectedTravelCity}</Text> : null}
-            {debouncedCitySearch.length >= 2 && citySuggestions.isFetching ? <Text style={[styles.cityStatus, { color: colors.mutedForeground }]}>Searching real cities…</Text> : null}
-            {citySuggestions.isError ? <Text style={[styles.cityStatus, { color: colors.destructive }]}>City search is unavailable. Try again.</Text> : null}
+            {debouncedCitySearch.length >= 2 && (citySuggestions.isFetching || (citySuggestions.isError && !citySuggestions.data?.length)) ? <ActivityIndicator color={colors.primary} accessibilityLabel="Loading" style={styles.cityStatus} /> : null}
             {citySuggestions.data?.map((city) => (
               <Pressable key={city.name} onPress={() => selectCity(city.name)} style={[styles.suggestion, { borderColor: colors.border }]}>
                 <Feather name="map-pin" size={15} color={selectedTravelCity === city.name ? colors.primary : colors.mutedForeground} />
@@ -433,8 +433,7 @@ function FollowRequestsPanel({ colors }: { colors: ReturnType<typeof useColors> 
   return <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.border }]}>
     <Text style={[styles.rowTitle, { color: colors.foreground, marginBottom: 5 }]}>Follow requests</Text>
     <Text style={[styles.rowSub, { color: colors.mutedForeground, marginBottom: 12 }]}>Approve or decline people who want to follow your private account.</Text>
-    {requests.isLoading ? <Text style={[styles.rowSub, { color: colors.mutedForeground }]}>Loading requests…</Text>
-      : requests.isError ? <Pressable onPress={()=>void requests.refetch()}><Text style={[styles.rowSub, { color: colors.destructive }]}>Couldn’t load requests. Tap to retry.</Text></Pressable>
+    {(requests.isLoading || requests.isError) && !requests.data ? <ActivityIndicator color={colors.primary} accessibilityLabel="Loading" style={{ alignSelf: "flex-start", marginVertical: 6 }} />
       : requests.data?.length ? requests.data.map((request: FollowRequest)=> <View key={request.requesterId} style={styles.requestRow}>
         <Text numberOfLines={1} style={[styles.requestName, { color: colors.foreground }]}>{request.displayName}</Text>
         <Pressable disabled={approve.isPending||decline.isPending} onPress={()=>void respond(request.requesterId,"decline")} style={[styles.requestButton,{borderColor:colors.border}]}><Text style={{color:colors.mutedForeground,fontSize:12,fontWeight:"700"}}>Decline</Text></Pressable>

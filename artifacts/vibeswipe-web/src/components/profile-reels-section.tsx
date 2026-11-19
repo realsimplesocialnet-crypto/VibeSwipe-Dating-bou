@@ -1,6 +1,7 @@
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { Clapperboard, Eye, Play } from "lucide-react";
 import { Link } from "wouter";
+import { QuietSpinner } from "@/components/ui/quiet-spinner";
 import { getGetProfileLikedReelsQueryKey, getGetProfileReelsQueryKey, getProfileLikedReels, getProfileReels, type Reel } from "@workspace/api-client-react";
 import { formatCount, reelMediaUrl } from "@/lib/reels";
 
@@ -58,16 +59,9 @@ export function ProfileReelsSection({
       </div>
 
       {reelsQuery.isLoading ? (
-        <div className={isGrid ? "pp-reel-grid mt-3" : "hide-scrollbar -mx-1 mt-3 flex gap-2 overflow-hidden px-1"} role="status" aria-label="Loading Reels">
-          {Array.from({ length: 6 }, (_, index) => (
-            <div key={index} className={isGrid ? "aspect-[3/4] animate-pulse rounded-xl bg-white/10" : "aspect-[9/16] w-[76px] shrink-0 animate-pulse rounded-xl bg-white/10"} />
-          ))}
-        </div>
+        <div className="flex justify-center py-8" role="status" aria-label="Loading Reels"><QuietSpinner /></div>
       ) : reelsQuery.isError && !reels.length ? (
-        <div className="mt-2 flex items-center gap-3 px-1 text-sm text-[hsl(var(--pp-muted))]" role="alert">
-          <span>Reels couldn’t load.</span>
-          <button type="button" className="font-semibold text-primary" onClick={() => void reelsQuery.refetch()} data-testid="button-retry-profile-reels">Try again</button>
-        </div>
+        <div className="flex justify-center py-8" role="status" aria-label="Loading Reels"><QuietSpinner onRetry={() => void reelsQuery.refetch()} /></div>
       ) : reels.length ? (
         <>
           <div
@@ -78,11 +72,11 @@ export function ProfileReelsSection({
             {reels.map((reel) => (
               <ProfileReelThumbnail key={reel.id} reel={reel} returnTo={returnTo} layout={isGrid ? "grid" : "carousel"} />
             ))}
-            {reelsQuery.isFetchingNextPage && !isGrid && <div className="aspect-[9/16] w-[76px] shrink-0 animate-pulse rounded-xl bg-white/10" aria-label="Loading more Reels" />}
+            {reelsQuery.isFetchingNextPage && !isGrid && <div className="flex aspect-[9/16] w-[76px] shrink-0 items-center justify-center rounded-xl bg-white/[.04]" role="status" aria-label="Loading"><QuietSpinner size={18} /></div>}
           </div>
           {isGrid && reelsQuery.hasNextPage && (
             <button type="button" onClick={() => void reelsQuery.fetchNextPage()} disabled={reelsQuery.isFetchingNextPage} className="mt-3 min-h-10 w-full rounded-xl border border-white/10 text-sm font-bold text-[hsl(var(--pp-pink))] disabled:opacity-60" data-testid="button-load-more-profile-reels">
-              {reelsQuery.isFetchingNextPage ? "Loading…" : "Load more"}
+              {reelsQuery.isFetchingNextPage ? <QuietSpinner size={18} /> : "Load more"}
             </button>
           )}
         </>
@@ -115,13 +109,13 @@ export function ProfileLikedReelsSection({ profileId, returnTo, own = false, lay
   }
   return <section className={own ? "op-section shrink-0" : isGrid ? "pp-reels-grid-section" : "mt-6"} data-testid={own ? "section-profile-liked-reels" : "section-public-profile-liked-reels"}>
     <div className="flex items-center justify-between px-1"><h2 className={own ? "op-label flex items-center gap-2" : "pp-label flex items-center gap-2"}><span aria-hidden="true">♥</span>Liked videos</h2>{reels.length>0&&<span className="text-xs font-semibold text-[hsl(var(--pp-muted))]">{reels.length}</span>}</div>
-    {query.isLoading ? <div className={isGrid?"pp-reel-grid mt-3":"hide-scrollbar -mx-1 mt-3 flex gap-2 overflow-hidden px-1"} aria-label="Loading liked videos">{[0,1,2].map(i=><div key={i} className={isGrid?"aspect-[3/4] animate-pulse rounded-xl bg-white/10":"aspect-[9/16] w-[76px] animate-pulse rounded-xl bg-white/10"}/>)}</div>
+    {query.isLoading ? <div className="flex justify-center py-8" role="status" aria-label="Loading liked videos"><QuietSpinner /></div>
       : query.isError ? <p role="status" className="mt-2 px-1 text-sm text-[hsl(var(--pp-muted))]">Liked videos aren’t available to this viewer.</p>
       : reels.length ? <>
         <div className={isGrid?"pp-reel-grid mt-3":`hide-scrollbar mt-3 flex gap-2 overflow-x-auto pb-1 ${own?"-mx-1 px-1":"-mx-5 gap-3 px-5"}`} onScroll={isGrid?undefined:loadNext} data-testid="profile-liked-reels-list">
           {reels.map(reel=><ProfileReelThumbnail key={reel.id} reel={reel} returnTo={returnTo} layout={isGrid?"grid":"carousel"} profileFeed={false}/>)}
         </div>
-        {isGrid&&query.hasNextPage&&<button type="button" onClick={()=>void query.fetchNextPage()} disabled={query.isFetchingNextPage} className="mt-3 min-h-10 w-full rounded-xl border border-white/10 text-sm font-bold text-[hsl(var(--pp-pink))] disabled:opacity-60">{query.isFetchingNextPage?"Loading…":"Load more"}</button>}
+        {isGrid&&query.hasNextPage&&<button type="button" onClick={()=>void query.fetchNextPage()} disabled={query.isFetchingNextPage} className="mt-3 min-h-10 w-full rounded-xl border border-white/10 text-sm font-bold text-[hsl(var(--pp-pink))] disabled:opacity-60">{query.isFetchingNextPage?<QuietSpinner size={18}/>: "Load more"}</button>}
       </> : <p className="mt-2 px-1 text-sm text-[hsl(var(--pp-muted))]">No liked videos to show.</p>}
   </section>;
 }

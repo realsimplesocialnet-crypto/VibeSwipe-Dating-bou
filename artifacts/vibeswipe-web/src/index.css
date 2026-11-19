@@ -298,6 +298,12 @@ html[data-theme="light"] .public-profile .sh-profile-stat span { color:#62565d; 
   background:linear-gradient(0deg,rgba(15,15,18,.98) 72%,rgba(15,15,18,0));
 }
 .profile-setup-shell .page-in { padding-bottom:110px; }
+.quiet-spinner { position: relative; display: inline-block; flex: 0 0 auto; animation: myage-quiet-spin .9s linear infinite; }
+.quiet-spinner-dot { position: absolute; top: 50%; left: 50%; width: 7px; height: 7px; border-radius: 999px; }
+.quiet-spinner-dot-first { background: hsl(var(--primary)); transform: translate(-9px, -50%); }
+.quiet-spinner-dot-second { background: #d28bc3; transform: translate(2px, -50%); }
+@keyframes myage-quiet-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .quiet-spinner { animation-duration: 2.4s; } }
 .chat-surface { --chat-bg: 340 33% 99%; --chat-card: 0 0% 100%; --chat-fg: 230 35% 14%; --chat-muted: 230 8% 46%; --chat-border: 330 14% 91%; --chat-soft: 335 45% 96%; --chat-pink: 334 87% 63%; color-scheme: light; background: hsl(var(--chat-bg)); color: hsl(var(--chat-fg)); }
 .chat-surface.chat-dark { --chat-bg: 240 9% 6%; --chat-card: 240 7% 11%; --chat-fg: 330 17% 94%; --chat-muted: 264 9% 66%; --chat-border: 258 12% 22%; --chat-soft: 333 34% 20%; --chat-pink: 334 87% 63%; color-scheme: dark; }
 .notifications-shell { background:#0F0F12; }

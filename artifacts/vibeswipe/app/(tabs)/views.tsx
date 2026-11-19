@@ -201,9 +201,7 @@ export default function ChatsScreen() {
       </ScrollView>
       {matches.isLoading && direct.isLoading ? <ActivityIndicator color={colors.primary} style={styles.loading} /> : null}
       {matches.isError && direct.isError ? (
-        <Pressable onPress={() => void matches.refetch()} style={styles.errorBox}>
-          <Text style={[styles.errorText, { color: colors.destructive }]}>Couldn’t load conversations. Tap to retry.</Text>
-        </Pressable>
+        <ActivityIndicator color={colors.primary} accessibilityLabel="Loading" style={styles.loading} />
       ) : null}
       {!matches.isLoading && !direct.isLoading && !matches.isError && !direct.isError && !allMatches.length && !directList.length ? (
         <View style={styles.empty}>
@@ -409,7 +407,7 @@ export function VisitorsScreen() {
       contentContainerStyle={visitorStyles.list}
       refreshing={visitors.isRefetching}
       onRefresh={() => void visitors.refetch()}
-      ListEmptyComponent={visitors.isLoading ? <ActivityIndicator color={colors.primary} /> : visitors.isError ? <Pressable onPress={() => void visitors.refetch()} style={visitorStyles.empty}><Text style={{ color: colors.destructive, textAlign: "center" }}>Couldn’t load profile visitors. Tap to retry.</Text></Pressable> : <Text style={[visitorStyles.empty, { color: colors.mutedForeground }]}>No profile views yet.</Text>}
+      ListEmptyComponent={visitors.isLoading || visitors.isError ? <ActivityIndicator color={colors.primary} accessibilityLabel="Loading" /> : <Text style={[visitorStyles.empty, { color: colors.mutedForeground }]}>No profile views yet.</Text>}
       renderItem={({ item: { profile } }) => <Pressable
         accessibilityRole="button"
         accessibilityLabel={`Open ${profile.name}'s profile`}

@@ -17,6 +17,7 @@ import { TravelModeSettings } from "@/components/travel-mode-settings";
 import { DiscoveryLocationSettings } from "@/components/settings/discovery-location-settings";
 import { WebPushSettings } from "@/components/WebPushSettings";
 import { QuickmavoShopMenuItem } from "@/components/settings/quickmavo-shop";
+import { QuietSpinner } from "@/components/ui/quiet-spinner";
 import { settingsBackTarget } from "@/lib/settings-navigation";
 
 type FullSettings = VibeSwipeSettings & {
@@ -109,8 +110,7 @@ export function SettingsSectionPage() {
         <span/>
       </div>
       <p className="mb-6 text-center text-sm text-muted-foreground">Choose what you want to be notified about.</p>
-      {query.isLoading ? <div aria-label="Loading settings" className="space-y-0 overflow-hidden rounded-[26px] border border-border bg-card p-2">{[0,1,2,3].map(i=><div key={i} className="m-2 h-[64px] animate-pulse rounded-2xl bg-muted"/>)}</div>
-        : query.isError ? <div role="alert" className="rounded-2xl border border-destructive/30 bg-card p-5 text-sm text-destructive">Settings couldn’t load. <button data-testid="button-retry-settings" onClick={()=>void query.refetch()} className="ml-1 font-bold underline underline-offset-4">Try again</button></div>
+      {(query.isLoading || query.isError) && !query.data ? <div className="flex justify-center py-8"><QuietSpinner onRetry={() => void query.refetch()} /></div>
         : <SectionContent section={section} settings={saved} editReturnTo={editReturnTo}/>}
     </div>
   </SettingsFrame></div>;
@@ -120,8 +120,7 @@ export function SettingsSectionPage() {
       <p className="text-[10px] font-bold uppercase tracking-[.2em] text-primary">Settings</p>
       <h1 className="brand mt-2 text-3xl font-bold tracking-[-.05em] md:text-[2.6rem]">{selected.label}</h1>
     </header>
-    {query.isLoading ? <div aria-label="Loading settings" className="max-w-2xl space-y-3">{[0,1,2].map(i=><div key={i} className="h-[76px] animate-pulse rounded-2xl border border-white/[.06] bg-white/[.03]"/>)}</div>
-      : query.isError ? <div role="alert" className="max-w-2xl rounded-2xl border border-rose-300/20 bg-rose-300/[.06] p-5 text-sm text-rose-200">Settings couldn’t load. <button data-testid="button-retry-settings" onClick={()=>void query.refetch()} className="ml-1 font-bold underline underline-offset-4">Try again</button></div>
+    {(query.isLoading || query.isError) && !query.data ? <div className="flex justify-center py-8"><QuietSpinner onRetry={() => void query.refetch()} /></div>
       : <SectionContent section={section} settings={saved} editReturnTo={editReturnTo}/>}
   </SettingsFrame>;
 }
@@ -397,8 +396,8 @@ function DeactivateRow({ settings, pending, onSave }: { settings: FullSettings; 
 }
 
 function SettingsSkeleton() {
-  return <div aria-label="Loading" className="space-y-2">{[0,1].map(i=><div key={i} className="h-12 animate-pulse rounded-xl bg-white/[.035]"/>)}</div>;
+  return <div className="flex justify-center py-8" role="status" aria-label="Loading"><QuietSpinner /></div>;
 }
-function InlineError({ text, onRetry }: { text: string; onRetry: ()=>void }) {
-  return <p role="alert" className="text-sm text-rose-200">{text} <button type="button" onClick={onRetry} className="font-bold underline underline-offset-4">Try again</button></p>;
+function InlineError({ onRetry }: { text: string; onRetry: ()=>void }) {
+  return <div className="flex justify-center py-8" role="status" aria-label="Loading"><QuietSpinner onRetry={onRetry} /></div>;
 }

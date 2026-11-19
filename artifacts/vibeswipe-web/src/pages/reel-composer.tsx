@@ -9,12 +9,12 @@ import { prepareProfilePhoto, uploadProfilePhotoBytes } from "@/lib/profile-phot
 import { readVideoDuration, reelFileProblem, reelVideoContentType, safeReelReturnPath } from "@/lib/reels";
 import { reelPostUnauthorizedMessage, uploadReelVideoBytes } from "@/lib/reel-upload";
 import { userErrorMessage } from "@/lib/user-errors";
+import { QuietSpinner } from "@/components/ui/quiet-spinner";
 import "@/components/reels/reels.css";
 
 type Stage = "idle" | "uploading" | "processing" | "publishing";
 type ReelMode = "video" | "slides";
 type ReelAudience = "public" | "friends";
-const STAGE_LABEL: Record<Stage, string> = { idle: "Post", uploading: "Uploading privately", processing: "Checking media safety", publishing: "Publishing" };
 
 export function ReelComposerPage() {
   const [, setLocation] = useLocation();
@@ -189,11 +189,10 @@ export function ReelComposerPage() {
         </div>
         <p className="text-[11px] leading-4 text-white/45">A private account is visible only to approved followers.</p>
       </fieldset>
-      {checking && <p role="status" className="text-sm text-white/70">Checking video</p>}
-      {stage === "uploading" && uploadAttempt > 1 && <p role="status" className="text-sm text-white/70">Reconnecting to media storage · attempt {uploadAttempt} of 3</p>}
+      {(checking || stage === "uploading" && uploadAttempt > 1) && <div role="status" aria-label="Loading" className="flex justify-center"><QuietSpinner /></div>}
       {error && <p role="alert" className="rounded-2xl border border-rose-300/25 bg-rose-400/10 px-4 py-3 text-sm text-rose-100" data-testid="error-reel-composer">{error}</p>}
-      <button type="button" onClick={() => void post()} disabled={(mode === "video" ? !file : slideFiles.length < 2) || !audience || busy || checking} data-testid="button-post-reel" className="reels-primary mt-auto w-full disabled:opacity-40">
-        {busy && <span className="reel-spinner" aria-hidden="true" />}{STAGE_LABEL[stage]}
+      <button type="button" onClick={() => void post()} disabled={(mode === "video" ? !file : slideFiles.length < 2) || !audience || busy || checking} aria-label={busy ? "Posting Reel" : "Post Reel"} data-testid="button-post-reel" className="reels-primary mt-auto w-full disabled:opacity-40">
+        {busy ? <QuietSpinner size={20} /> : "Post"}
       </button>
     </div>
   </div>;

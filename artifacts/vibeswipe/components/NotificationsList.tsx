@@ -109,13 +109,8 @@ export function NotificationsList({ tabMode = false }: { tabMode?: boolean }) {
         <View accessibilityLabel={unread ? "Unread notifications" : "Notifications"}><Feather name="bell" size={25} color={colors.foreground} />{unread > 0 ? <View style={[styles.bellDot, { backgroundColor: colors.primary }]} /> : null}</View>
       </View>
       <View style={styles.heading}><Text style={[styles.title, { color: colors.foreground }]}>Notifications</Text>{notifications.data ? <Text style={[styles.unreadCount, { color: colors.primary }]}>{unread} unread updates</Text> : null}</View>
-      {notifications.isLoading ? (
-        <View style={styles.center}><ActivityIndicator color={colors.primary} /></View>
-      ) : notifications.isError ? (
-        <View style={styles.center}>
-          <Text style={{ color: colors.foreground }}>Couldn’t load your activity.</Text>
-          <Pressable testID="notifications-retry" onPress={() => void notifications.refetch()}><Text style={{ color: colors.primary, fontWeight: "700" }}>Try again</Text></Pressable>
-        </View>
+      {(notifications.isLoading || notifications.isError) && !notifications.data ? (
+        <View style={styles.center}><ActivityIndicator color={colors.primary} accessibilityLabel="Loading" /></View>
       ) : notifications.data?.notifications.length ? (
         <ScrollView contentContainerStyle={styles.list}>
           {notifications.data.notifications.map((item) => (
@@ -148,7 +143,7 @@ export function NotificationsList({ tabMode = false }: { tabMode?: boolean }) {
                 </View></View>
               </View>
               {notice?.id === item.id ? (
-                <Text accessibilityRole="alert" style={[styles.notice, { backgroundColor: colors.accent, color: colors.foreground }]}>{notice.text}</Text>
+                notice.text === "Checking your match…" ? <ActivityIndicator color={colors.primary} accessibilityLabel="Loading" style={styles.notice} /> : <Text accessibilityRole="alert" style={[styles.notice, { backgroundColor: colors.accent, color: colors.foreground }]}>{notice.text}</Text>
               ) : null}
             </View>
           ))}

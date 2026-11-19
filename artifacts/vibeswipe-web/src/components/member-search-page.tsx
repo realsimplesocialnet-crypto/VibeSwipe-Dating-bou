@@ -4,6 +4,7 @@ import { getDiscoverProfiles, useGetDiscoverProfiles, useGetMyProfile, type Prof
 import { ArrowLeft, ChevronRight, LoaderCircle } from "lucide-react";
 import { useLocation } from "wouter";
 import { VerifiedBadge } from "@/components/verified-badge";
+import { QuietSpinner } from "@/components/ui/quiet-spinner";
 
 const profileMediaUrl = (ref?: string | null) => ref
   ? ref.startsWith("http")
@@ -97,13 +98,8 @@ export function MemberSearchPage() {
         />
       </label>
 
-      {isLoading && profiles.length === 0 && (
-        <div className="flex justify-center py-8" role="status" aria-label={isSearching ? "Searching" : "Finding people"}>
-          <LoaderCircle size={22} className="animate-spin text-primary" />
-        </div>
-      )}
-      {isError && (
-        <p role="alert" className="py-8 text-center text-sm text-muted-foreground">Search unavailable</p>
+      {((isLoading || isError) && profiles.length === 0) && (
+        <div className="flex justify-center py-8"><QuietSpinner onRetry={() => void (isSearching ? searchResults.refetch() : suggestions.refetch())} /></div>
       )}
       {!isLoading && !isError && profiles.length === 0 && (
         <p className="py-8 text-center text-sm text-muted-foreground">
@@ -152,8 +148,7 @@ export function MemberSearchPage() {
           className="mt-4 flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-card px-4 text-sm font-semibold text-primary disabled:opacity-60"
           data-testid="button-load-more-members"
         >
-          {searchResults.isFetchingNextPage && <LoaderCircle size={16} className="animate-spin" />}
-          {searchResults.isFetchingNextPage ? "Loading more people" : "Load more people"}
+          {searchResults.isFetchingNextPage ? <QuietSpinner size={18} /> : "Load more people"}
         </button>
       )}
     </main>

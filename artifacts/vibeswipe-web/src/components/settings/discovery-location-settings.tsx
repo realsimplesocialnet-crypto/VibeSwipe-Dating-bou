@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { MapPin } from "lucide-react";
+import { QuietSpinner } from "@/components/ui/quiet-spinner";
 import type { Profile } from "@workspace/api-client-react";
 import { listCities, listCountries, listStates, type GeoOption } from "@/lib/geo-data";
 
@@ -193,7 +194,7 @@ export function DiscoveryLocationSettings({
           </select>
         </label>
 
-        {loadingCountries ? <p role="status" className="text-xs text-muted-foreground">Loading real country names…</p> : (
+        {loadingCountries || (locationError && !countries.length) ? <div role="status" aria-label="Loading" className="flex justify-center py-2"><QuietSpinner /></div> : (
           <label className="grid gap-2 text-xs font-semibold text-muted-foreground">
             Country
             <select aria-label="Discovery country" data-testid="select-discovery-country" value={country} onChange={(event) => chooseCountry(event.target.value)} className="field">
@@ -213,11 +214,12 @@ export function DiscoveryLocationSettings({
           </label>
         )}
 
+        {loadingLocations && <div role="status" aria-label="Loading" className="flex justify-center py-1"><QuietSpinner size={18} /></div>}
         {(scope === "city" || scope === "radius") && (
           <label className="grid gap-2 text-xs font-semibold text-muted-foreground">
             City
             <select aria-label="Discovery city" data-testid="select-discovery-city" value={city} onChange={(event) => setCity(event.target.value)} disabled={!stateCode || loadingLocations} className="field disabled:opacity-50">
-              <option value="">{loadingLocations ? "Loading cities…" : "Choose a city"}</option>
+              <option value="">Choose a city</option>
               {cities.map((option) => <option key={option.code} value={option.name}>{option.name}</option>)}
             </select>
           </label>
@@ -232,14 +234,14 @@ export function DiscoveryLocationSettings({
 
         <div className="flex flex-wrap items-center gap-3 pt-1">
           <button type="button" disabled={!canSave || !dirty || saving} onClick={() => void onSave({ discoveryLocation: currentLocation, ...(scope === "radius" ? { distanceKm: radiusKm } : {}) })} data-testid="button-save-discovery-location" className="rounded-xl bg-secondary px-4 py-2.5 text-sm font-bold disabled:opacity-45">
-            {saving ? "Saving…" : "Save location"}
+            {saving ? <QuietSpinner size={17} /> : "Save location"}
           </button>
           <button type="button" onClick={useHomeLocation} data-testid="button-use-home-location" className="rounded-xl border border-white/10 px-4 py-2.5 text-sm font-semibold text-muted-foreground transition-colors hover:text-foreground">
             Use my registered location
           </button>
         </div>
 
-        {locationError && <p role="alert" className="text-xs text-rose-300">{locationError}</p>}
+        {locationError && <div role="status" aria-label="Loading" className="flex justify-center py-1"><QuietSpinner size={18} /></div>}
         {scope === "radius" && <p className="text-xs leading-5 text-muted-foreground">Radius uses approximate city-center locations. Nearby people may be in another state if they fall within the radius you selected.</p>}
         <p className="text-xs text-muted-foreground">Travel Mode temporarily overrides this saved discovery area.</p>
       </div>

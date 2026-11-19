@@ -7,6 +7,7 @@ import {
   useMarkDirectChatRead, useSendDirectChatMessage,
 } from "@workspace/api-client-react";
 import { ArrowLeft, LoaderCircle, SendHorizontal } from "lucide-react";
+import { QuietSpinner } from "@/components/ui/quiet-spinner";
 import { chatViewportFrame } from "@/lib/chat-viewport";
 
 export default function DirectChatPage() {
@@ -122,9 +123,8 @@ export default function DirectChatPage() {
       <span className="flex h-10 w-10 items-center justify-center rounded-full bg-accent font-bold text-primary">{conversation?.profile.name?.slice(0,1) ?? "?"}</span>
       <div className="min-w-0 flex-1"><h1 className="truncate text-[15px] font-bold">{conversation?.profile.name ?? "Conversation"}</h1><p className="text-xs text-muted-foreground">Direct message</p></div>
     </header>
-    {messages.isError ? <div className="m-4 rounded-xl border border-destructive/30 p-4 text-sm text-destructive">Messages could not load. <button type="button" onClick={()=>void messages.refetch()} className="font-bold underline">Try again</button></div> : null}
     <div ref={messageList} onScroll={handleMessagesScroll} className="flex min-h-0 flex-1 flex-col overflow-y-auto px-3 py-4" data-testid="direct-chat-messages">
-      {messages.isLoading ? <LoaderCircle className="mx-auto mt-8 animate-spin text-primary"/> : !messages.data?.items.length ? <p className="m-auto text-center text-sm text-muted-foreground">Start the conversation with a message.</p> : messages.data.items.map((message) => {
+      {messages.isLoading || (messages.isError && !messages.data?.items.length) ? <div className="m-auto"><QuietSpinner onRetry={() => void messages.refetch()} /></div> : !messages.data?.items.length ? <p className="m-auto text-center text-sm text-muted-foreground">Start the conversation with a message.</p> : messages.data.items.map((message) => {
         const own = message.senderId === me.data?.id;
         return <div key={message.id} className={`mb-2 max-w-[82%] rounded-2xl px-3.5 py-2.5 text-sm leading-5 ${own ? "ml-auto rounded-br-md bg-primary text-primary-foreground" : "mr-auto rounded-bl-md bg-card"}`}>
           <p className="whitespace-pre-wrap break-words">{message.content}</p>
@@ -137,6 +137,5 @@ export default function DirectChatPage() {
       <textarea value={draft} onChange={(event)=>setDraft(event.target.value)} maxLength={2000} rows={1} placeholder="Message" aria-label="Message" data-testid="input-direct-message" className="max-h-28 min-h-11 flex-1 resize-none rounded-full border border-border bg-card px-4 py-3 text-[16px] leading-5 outline-none focus:border-primary"/>
       <button type="submit" disabled={!draft.trim()||sending} aria-label="Send message" data-testid="button-send-direct-message" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground disabled:opacity-50">{sending?<LoaderCircle size={18} className="animate-spin"/>:<SendHorizontal size={19}/>}</button>
     </form>
-    {!conversation && conversations.isError && <p className="sr-only">Could not load conversation details.</p>}
   </main>;
 }

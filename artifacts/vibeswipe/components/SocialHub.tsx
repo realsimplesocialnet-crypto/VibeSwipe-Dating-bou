@@ -80,15 +80,10 @@ function Screen({ title, sub, back, children }: { title: string; sub?: string; b
   );
 }
 
-function State({ loading, error, empty, onRetry, icon, emptyTitle, emptyText }: { loading: boolean; error: boolean; empty: boolean; onRetry: () => void; icon: keyof typeof Feather.glyphMap; emptyTitle: string; emptyText: string }) {
+function State({ loading, error, empty, onRetry: _onRetry, icon, emptyTitle, emptyText }: { loading: boolean; error: boolean; empty: boolean; onRetry: () => void; icon: keyof typeof Feather.glyphMap; emptyTitle: string; emptyText: string }) {
   const c = usePremiumColors();
   if (loading) return <View style={s.center}><ActivityIndicator color={c.primary} /></View>;
-  if (error) return (
-    <View style={[s.card, s.stateCard, { backgroundColor: c.profileCard, borderColor: c.border }]}>
-      <Text style={{ color: c.mutedForeground, textAlign: "center" }}>Something went wrong loading this.</Text>
-      <Pressable onPress={onRetry} testID="button-retry" style={[s.btn, { backgroundColor: c.primary }]}><Text style={{ color: c.primaryForeground, fontWeight: "700" }}>Try again</Text></Pressable>
-    </View>
-  );
+  if (error) return <View style={s.center}><ActivityIndicator color={c.primary} accessibilityLabel="Loading" /></View>;
   if (empty) return (
     <View style={[s.card, s.stateCard, { backgroundColor: c.profileCard, borderColor: c.border }]} testID="status-empty">
       <View style={[s.iconBox, { backgroundColor: c.profileChip }]}><Feather name={icon} size={22} color={c.primary} /></View>
@@ -155,7 +150,7 @@ export function ActivityOverview() {
             <Pressable key={card.key} onPress={() => card.to && router.push(card.to as never)} testID={`link-summary-${card.key}`} accessibilityRole="button" accessibilityLabel={`${card.title}, ${card.count} unread`} disabled={!card.to} style={({ pressed }) => [s.activityMetric, { backgroundColor: c.profileCard, borderColor: c.border, opacity: !card.to ? 0.65 : pressed ? 0.86 : 1 }]}>
               <View style={[s.activityMetricIcon, { backgroundColor: card.color }]}><Feather name={card.icon} size={23} color="#fff" /></View>
               <View style={s.activityMetricCopy}>
-                <Text style={[s.activityMetricCount, { color: c.foreground }]} testID={`text-count-${card.key}`}>{notes.isLoading ? "—" : card.count}</Text>
+                <Text style={[s.activityMetricCount, { color: c.foreground }]} testID={`text-count-${card.key}`}>{notes.isLoading && !notes.data ? <ActivityIndicator size="small" color={c.primary} /> : card.count}</Text>
                 <Text style={[s.activityMetricLabel, { color: c.mutedForeground }]}>{card.title}</Text>
               </View>
             </Pressable>

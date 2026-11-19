@@ -585,31 +585,25 @@ export default function DiscoverScreen() {
   if (discover.isLoading) {
     return (
       <View style={[styles.center, { backgroundColor: colors.background }]}>
-        <ActivityIndicator color={colors.primary} />
-        <Text style={[styles.loadingText, { color: colors.mutedForeground }]}>Finding people nearby</Text>
+        <ActivityIndicator color={colors.primary} accessibilityLabel="Loading" />
       </View>
     );
   }
   if (discover.isError && (!discover.data || [401, 403, 409].includes(discover.error.status))) {
     return (
       <View style={[styles.center, { backgroundColor: colors.background }]}>
-        <Feather name="wifi-off" size={26} color={colors.mutedForeground} />
-        <Text style={[styles.emptyTitle, { color: colors.foreground }]}>Can’t load discovery</Text>
-        <Pressable onPress={() => void discover.refetch()} style={[styles.primarySmall, { backgroundColor: colors.primary }]}>
-          <Text style={styles.buttonWhite}>Try again</Text>
-        </Pressable>
+        <ActivityIndicator color={colors.primary} accessibilityLabel="Loading" />
       </View>
     );
   }
   const emptyState = !profile ? (
       <View style={[styles.center, { backgroundColor: colors.background, paddingHorizontal: 30 }]}>
+        {discover.isFetching || busy ? <ActivityIndicator color={colors.primary} accessibilityLabel="Loading" /> : <>
         <View style={[styles.emptyIcon, { backgroundColor: colors.accent }]}>
           <Feather name="compass" size={26} color={colors.primary} />
         </View>
-        <Text style={[styles.emptyTitle, { color: colors.foreground }]}>{discover.isFetching || busy ? "Finding more people…" : "No matching profiles right now"}</Text>
-        <Text style={[styles.emptyCopy, { color: colors.mutedForeground }]}>
-          {discover.isFetching || busy ? "Checking for more matching profiles." : "Skipped profiles return automatically. Try another location or age range to meet more people."}
-        </Text>
+        <Text style={[styles.emptyTitle, { color: colors.foreground }]}>No matching profiles right now</Text>
+        <Text style={[styles.emptyCopy, { color: colors.mutedForeground }]}>Skipped profiles return automatically. Try another location or age range to meet more people.</Text>
         <Pressable onPress={() => setFilterOpen(true)} style={[styles.primarySmall, { backgroundColor: colors.primary }]}>
           <Text style={styles.buttonWhite}>Adjust filters</Text>
         </Pressable>
@@ -625,6 +619,7 @@ export default function DiscoverScreen() {
         >
           <Text style={[styles.buttonWhite, { color: colors.foreground }]}>Refresh profiles</Text>
         </Pressable>
+        </>}
       </View>
     ) : null;
 
