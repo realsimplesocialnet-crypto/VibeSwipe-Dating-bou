@@ -274,7 +274,7 @@ test("Reel action rail shows engagement counts while profile previews show views
   assert.match(read("../src/pages/reels-feed.tsx"), /link-reels-saved/);
   assert.doesNotMatch(rail, /button-create-reel-|button-message-creator|Follow|Remix|Download|Music|button-delete-reel/);
   assert.doesNotMatch(slide, /Search\s*["“]/);
-  assert.match(read("../public/service-worker.js"), /CACHE_NAME = 'myage-shell-v12'/);
+  assert.match(read("../public/service-worker.js"), /CACHE_NAME = 'myage-shell-v13'/);
   assert.match(slide, /type=\"range\"[\s\S]*?onChange=\{\(event\) => seekVideo\(event\.currentTarget\.value\)\}/);
   assert.match(slide, /onTimeUpdate=\{\(event\) => \{[\s\S]*?setProgress\(\(element\.currentTime \/ element\.duration\) \* 100\)/);
   assert.match(slide, /element\.currentTime = \(nextProgress \/ 100\) \* element\.duration/);
@@ -310,7 +310,7 @@ test("Reels put the creator photo beside the name and keep Follow off the rail",
   assert.match(slide, /reel-search-suggestion/);
   assert.match(slide, /reelSearchSuggestion\(\{ caption: reel\.caption, creatorLocation: reel\.creatorLocation \}\)/);
   assert.match(feed, /onSearchSuggestion=\{openSearch\}/);
-  assert.match(read("../public/service-worker.js"), /CACHE_NAME = 'myage-shell-v12'/);
+  assert.match(read("../public/service-worker.js"), /CACHE_NAME = 'myage-shell-v13'/);
   assert.match(feed, /data-testid="button-search-reels"/);
   assert.doesNotMatch(feed, /useGetMatches|messageCreator|button-message-creator/);
   assert.doesNotMatch(slide, /button-message-creator|MessageSquare|button-follow-creator|reel-follow-button/);
