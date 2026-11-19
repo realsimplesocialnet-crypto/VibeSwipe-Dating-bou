@@ -236,14 +236,15 @@ test("Reel action rail and profile grid show persisted like, comment, save and s
     assert.ok(nativeReel.includes(id), `native Reel action is missing ${id}`);
   }
   const rail = slide.slice(slide.indexOf("className={`reel-rail"), slide.indexOf("className={`reel-meta"));
-  const actionOrder = ["button-like-reel-", "button-comments-reel-", "button-share-reel-", "button-create-reel-"]
+  const actionOrder = ["button-like-reel-", "button-comments-reel-", "button-share-reel-", "button-save-reel-"]
     .map((id) => rail.indexOf(id));
   assert.ok(actionOrder.every((position, index) => position >= 0 && (index === 0 || position > actionOrder[index - 1])));
   assert.equal((rail.match(/data-testid=\{`button-/g) ?? []).length, 4);
-  assert.doesNotMatch(rail, /button-save-reel-|>Save</);
-  assert.match(read("../src/pages/reels-feed.tsx"), /button-save-reel-\$\{activeReel\.id\}/);
-  assert.match(read("../src/pages/reels-feed.tsx"), /onCreateReel=\{\(\) => setLocation\(`\/reels\/new\?returnTo=/);
-  assert.doesNotMatch(rail, /button-message-creator|Follow|Remix|Download|Music|button-delete-reel/);
+  assert.match(rail, /button-save-reel-\$\{reel\.id\}/);
+  assert.match(rail, /onSave/);
+  assert.match(read("../src/pages/reels-feed.tsx"), /button-post-reel/);
+  assert.match(read("../src/pages/reels-feed.tsx"), /link-reels-saved/);
+  assert.doesNotMatch(rail, /button-create-reel-|button-message-creator|Follow|Remix|Download|Music|button-delete-reel/);
   assert.doesNotMatch(slide, /Search\s*["“]/);
   assert.match(read("../public/service-worker.js"), /CACHE_NAME = 'myage-shell-v12'/);
   assert.match(slide, /type=\"range\"[\s\S]*?onChange=\{\(event\) => seekVideo\(event\.currentTarget\.value\)\}/);
@@ -273,11 +274,11 @@ test("Reels put the creator photo beside the name and keep Follow off the rail",
   assert.doesNotMatch(slide, /button-follow-creator|reel-follow-button|reel-follow-badge|onFollow/);
   assert.doesNotMatch(feed, /toggleCreatorFollow|useFollowProfile|pendingCreatorFollows/);
   assert.match(slide, /data-testid=\{`link-reel-profile-\$\{reel\.id\}`\}/);
-  assert.match(feed, /data-testid=\"button-reels-more\"/);
   assert.match(feed, /data-testid=\"link-reels-saved\"/);
-  assert.match(slide, /data-testid=\{`button-create-reel-\$\{reel\.id\}`\}/);
-  assert.doesNotMatch(feed, /data-testid=\"link-create-reel\"/);
-  assert.match(feed, /data-testid=\{`button-delete-reel-\$\{activeReel\.id\}`\}/);
+  assert.match(feed, /data-testid=\"button-post-reel\"/);
+  assert.doesNotMatch(feed, /button-reels-more|menu-reels-more/);
+  assert.doesNotMatch(slide, /button-create-reel-/);
+  assert.match(read("../src/pages/reels-library.tsx"), /button-delete-tile-\$\{reel\.id\}/);
   assert.match(slide, /reel-search-suggestion/);
   assert.match(slide, /reelSearchSuggestion\(\{ caption: reel\.caption, creatorLocation: reel\.creatorLocation \}\)/);
   assert.match(feed, /onSearchSuggestion=\{openSearch\}/);

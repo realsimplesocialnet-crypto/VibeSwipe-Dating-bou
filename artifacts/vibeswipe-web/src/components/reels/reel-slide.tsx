@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "wouter";
 import type { Reel } from "@workspace/api-client-react";
-import { ChevronRight, Heart, MapPin, MessageCircle, Pause, Play, Plus, Search, Send, Volume2, VolumeX } from "lucide-react";
+import { Bookmark, ChevronRight, Heart, MapPin, MessageCircle, Pause, Play, Search, Send, Volume2, VolumeX } from "lucide-react";
 import { VerifiedBadge } from "@/components/verified-badge";
 import { ReelAvatar } from "@/components/reels/reel-avatar";
 import { formatCount, reelMediaUrl } from "@/lib/reels";
@@ -11,15 +11,15 @@ import { isOfflineReelWifi } from "@/lib/offline-reels";
 type Props = {
   reel: Reel; index: number; active: boolean; near: boolean; muted: boolean; pageHidden: boolean;
   compact: boolean; navigationVisible: boolean; returnTo: string;
-  likePending: boolean;
+  likePending: boolean; savePending: boolean;
   onAutoplayMuted: () => void; onToggleSound: () => void;
-  onLike: () => void; onComment: () => void; onShare: () => void; onCreateReel: () => void;
+  onLike: () => void; onComment: () => void; onShare: () => void; onSave: () => void;
   onSearchSuggestion: (query: string) => void;
   onView: () => void;
   offlineSaved: boolean; onAutoCache: () => void;
 };
 
-export function ReelSlide({ reel, index, active, near, muted, pageHidden, compact, navigationVisible, returnTo, likePending, onAutoplayMuted, onToggleSound, onLike, onComment, onShare, onCreateReel, onSearchSuggestion, onView, offlineSaved, onAutoCache }: Props) {
+export function ReelSlide({ reel, index, active, near, muted, pageHidden, compact, navigationVisible, returnTo, likePending, savePending, onAutoplayMuted, onToggleSound, onLike, onComment, onShare, onSave, onSearchSuggestion, onView, offlineSaved, onAutoCache }: Props) {
   const video = useRef<HTMLVideoElement>(null);
   const autoCacheRequested = useRef(false);
   const viewRecorded = useRef(false);
@@ -200,8 +200,8 @@ export function ReelSlide({ reel, index, active, near, muted, pageHidden, compac
         <MessageCircle size={28} strokeWidth={1.8} /><span data-testid={`text-comment-count-${reel.id}`}>{formatCount(reel.commentCount)}</span>
       </button>
       <button type="button" onClick={onShare} aria-label={`Share, ${formatCount(reel.shareCount)} shares`} data-testid={`button-share-reel-${reel.id}`}><Send size={28} strokeWidth={1.8} /><span data-testid={`text-share-count-${reel.id}`}>{formatCount(reel.shareCount)}</span></button>
-      <button type="button" onClick={onCreateReel} aria-label="Create a Reel" data-testid={`button-create-reel-${reel.id}`} className="reel-create-action">
-        <Plus size={27} strokeWidth={2} />
+      <button type="button" onClick={onSave} disabled={savePending} aria-pressed={reel.savedByMe} aria-label={reel.savedByMe ? "Remove from Saved Reels" : "Save Reel"} data-testid={`button-save-reel-${reel.id}`} className={reel.savedByMe ? "is-saved" : ""}>
+        <Bookmark size={24} strokeWidth={1.9} fill={reel.savedByMe ? "currentColor" : "none"} /><span>{reel.savedByMe ? "Saved" : "Save"}</span>
       </button>
     </div>
 

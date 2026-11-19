@@ -69,9 +69,9 @@ Reels navigation, action icons, labels, and counts should use bold, high-contras
 
 **How to apply:** Give the Reels/Friends tabs, search and add controls, like/comment/share actions, navigation labels, and view/count badges clear weight and contrast without changing the brand palette.
 
-Keep the vertical action rail compact and ordered Like, Comment, Share, Save. Do not show Message, Follow/plus, Remix, download, or music controls on the rail. Keep Saved Reels, posting, and owner-only deletion inside the top More menu. Show the creator avatar with a colored ring beside the lower-left name, which remains the profile link. Keep the active Reels bottom tab and its indicator pink to match the app-wide navigation; keep the action rail visually compact.
+Keep the vertical action rail compact and ordered Like, Comment, Share, Save. Do not show Message, Follow/plus, Remix, download, or music controls on the rail. Put a direct Post Reel plus control in the top-right header and a separate Saved Reels bookmark link there; keep owner-only deletion in the Posted Reels library. Show the creator avatar with a colored ring beside the lower-left name, which remains the profile link. Keep the active Reels bottom tab and its indicator pink to match the app-wide navigation; keep the action rail visually compact.
 
-**Why:** The user initially requested a blue Reels accent, then clarified that the navigation should match Myage’s pink accent and asked for smaller, more tightly spaced actions.
+**Why:** The user asked for a visible save control instead of hiding Save in the three-dot menu, and asked that the top-right control lead directly to Reel posting instead of leaving a plus on the action rail.
 
 **How to apply:** Keep the profile link on the creator identity, keep Wi-Fi auto-caching separate from the visible action rail, and retain the four requested buttons in this order. Use the app’s pink selected-state treatment for Reels navigation. Do not add a direct-message control or music selection/playback to the Reels rail.
 

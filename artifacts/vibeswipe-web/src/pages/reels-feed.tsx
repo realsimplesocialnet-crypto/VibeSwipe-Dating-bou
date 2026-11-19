@@ -4,10 +4,10 @@ import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import {
   getGetMyReelsQueryKey, getGetNotificationsQueryKey, getGetProfileReelsQueryKey, getGetReelQueryKey,
   getGetReelsFeedQueryKey, getGetSavedReelsQueryKey, getProfileReels, getReelsFeed,
-  useDeleteReel, useGetReel, useLikeReel, useRecordReelView, useSaveReel,
+  useGetReel, useLikeReel, useRecordReelView, useSaveReel,
   useUnlikeReel, useUnsaveReel, type Reel,
 } from "@workspace/api-client-react";
-import { ArrowLeft, Bookmark, Clapperboard, Ellipsis, LoaderCircle, Plus, Search, Trash2, Users, X } from "lucide-react";
+import { ArrowLeft, Bookmark, Clapperboard, LoaderCircle, Plus, Search, Users, X } from "lucide-react";
 import { ReelSlide } from "@/components/reels/reel-slide";
 import { ReelComments } from "@/components/reels/reel-comments";
 import { ReelShareSheet } from "@/components/reels/reel-share-sheet";
@@ -115,14 +115,12 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
   const [searchOpen, setSearchOpen] = useState(Boolean(initialSearch));
   const [searchText, setSearchText] = useState(initialSearch);
   const [debouncedSearchText, setDebouncedSearchText] = useState(initialSearch.trim());
-  const [moreOpen, setMoreOpen] = useState(false);
   const initialCommentId = new URLSearchParams(window.location.search).get("commentId");
   const [commentsFor, setCommentsFor] = useState<string | null>(() => (
     initialReelId && initialCommentId ? initialReelId : initialHistoryMarker?.reelId ?? null
   ));
   const commentsHistoryOpen = useRef(Boolean(initialHistoryMarker));
   const [shareFor, setShareFor] = useState<Reel | null>(null);
-  const [deleteFor, setDeleteFor] = useState<Reel | null>(null);
   const [patches, setPatches] = useState<Record<string, Partial<Reel>>>({});
   const [removed, setRemoved] = useState<Set<string>>(() => new Set());
   const [notice, setNotice] = useState("");
@@ -231,7 +229,7 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
     staleTime: 30_000,
     refetchOnWindowFocus: false,
   });
-  const like = useLikeReel(); const unlike = useUnlikeReel(); const save = useSaveReel(); const unsave = useUnsaveReel(); const del = useDeleteReel();
+  const like = useLikeReel(); const unlike = useUnlikeReel(); const save = useSaveReel(); const unsave = useUnsaveReel();
   const recordView = useRecordReelView();
   const viewedReels = useRef(new Set<string>());
   const activeFeed = profileId ? profileFeed : feed;
@@ -358,11 +356,10 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
       if (event.key === "ArrowDown") { event.preventDefault(); go(1); }
       if (event.key === "ArrowUp") { event.preventDefault(); go(-1); }
       if (event.key === "Escape" && commentsFor) closeComments();
-      if (event.key === "Escape" && moreOpen) setMoreOpen(false);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [go, closeComments, commentsFor, searchOpen, moreOpen]);
+  }, [go, closeComments, commentsFor, searchOpen]);
 
   function patch(id: string, value: Partial<Reel>) { setPatches((all) => ({ ...all, [id]: { ...all[id], ...value } })); }
   function patchShareCount(id: string, shareCount: number) {
@@ -418,21 +415,6 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
     }
   }
 
-  async function confirmDelete() {
-    if (!deleteFor) return;
-    try {
-      await del.mutateAsync({ reelId: deleteFor.id });
-      setRemoved((set) => new Set(set).add(deleteFor.id));
-      if (commentsFor === deleteFor.id) closeComments();
-      void client.invalidateQueries({ queryKey: getGetMyReelsQueryKey() });
-      void client.invalidateQueries({ queryKey: getGetSavedReelsQueryKey() });
-      setDeleteFor(null);
-      setNotice("Your Reel was deleted.");
-    } catch {
-      setNotice("Your Reel could not be deleted. Try again.");
-    }
-  }
-
   const back = () => commentsFor ? closeComments() : setLocation(returnTo);
   function changeFeedMode(mode: "reels" | "friends") {
     setFeedMode(mode);
@@ -452,7 +434,6 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
     setSearchText(nextQuery);
     setDebouncedSearchText(nextQuery);
     setSearchOpen(true);
-    setMoreOpen(false);
   }
   function openSearchResult(reel: Reel) {
     const query = searchText.trim();
@@ -467,7 +448,6 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
   const resumePath = reels[active]
     ? `/reels/${reels[active].id}?${resumeParams.toString()}`
     : ownPath;
-  const activeReel = reels[active];
 
   return <div className="reels-root" style={{ top: viewport.top, bottom: "auto", ["--reels-viewport-height" as string]: `${viewport.height}px`, ["--reels-comments-height" as string]: `${viewport.commentsHeight}px` }} data-keyboard-open={viewport.keyboardOpen} data-comments-open={Boolean(commentReel)} data-navigation-visible={navigationVisible} data-testid="page-reels">
     <div className="reels-stage">
@@ -480,13 +460,14 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
              key={reel.id} reel={reel} index={index} active={index === active && !searchOpen} near={Math.abs(index - active) <= 1}
               muted={muted} pageHidden={pageHidden} compact={commentsFor === reel.id} navigationVisible={navigationVisible}
               likePending={like.isPending || unlike.isPending}
+              savePending={save.isPending || unsave.isPending}
             returnTo={ownPath}
              onAutoplayMuted={() => setMuted(true)}
               onToggleSound={() => setMuted((value) => !value)}
               offlineSaved={offlineIds.has(reel.id)}
               onAutoCache={() => void cacheOffline(reel, false)}
                onLike={() => void toggle("like", reel)}
-               onCreateReel={() => setLocation(`/reels/new?returnTo=${encodeURIComponent(ownPath)}`)}
+                onSave={() => void toggle("save", reel)}
                 onSearchSuggestion={openSearch}
             onView={() => void recordPlayback(reel)}
               onComment={() => openComments(reel.id)} onShare={() => setShareFor(reel)}
@@ -502,26 +483,10 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
         </nav> : <h1 className="reels-title">Reels</h1>}
         <div className="ml-auto flex items-center gap-2">
           <button type="button" onClick={() => openSearch()} aria-label="Search Reels" data-testid="button-search-reels" className="reels-search-trigger"><Search size={23} /></button>
-          <button type="button" onClick={() => setMoreOpen((open) => !open)} aria-label="More Reel options" aria-expanded={moreOpen} aria-haspopup="menu" data-testid="button-reels-more" className="reels-search-trigger"><Ellipsis size={25} /></button>
+          <Link href={`/reels/saved?returnTo=${encodeURIComponent(resumePath)}`} aria-label="Saved Reels" data-testid="link-reels-saved" className="reels-search-trigger"><Bookmark size={22} /></Link>
+          <button type="button" onClick={() => setLocation(`/reels/new?returnTo=${encodeURIComponent(ownPath)}`)} aria-label="Post a Reel" title="Post a Reel" data-testid="button-post-reel" className="reels-search-trigger"><Plus size={25} strokeWidth={2.2} /></button>
         </div>
       </header>
-      {moreOpen && <div className="reels-more-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setMoreOpen(false); }}>
-        <div className="reels-more-menu" role="menu" aria-label="More Reel options" data-testid="menu-reels-more">
-          <Link href={`/reels/saved?returnTo=${encodeURIComponent(resumePath)}`} role="menuitem" onClick={() => setMoreOpen(false)} data-testid="link-reels-saved"><Bookmark size={18} />Saved Reels</Link>
-          {activeReel && <button
-            type="button"
-            role="menuitem"
-            disabled={save.isPending || unsave.isPending}
-            aria-pressed={activeReel.savedByMe}
-            onClick={() => { setMoreOpen(false); void toggle("save", activeReel); }}
-            data-testid={`button-save-reel-${activeReel.id}`}
-          >
-            <Bookmark size={18} fill={activeReel.savedByMe ? "currentColor" : "none"} />
-            {activeReel.savedByMe ? "Remove from Saved Reels" : "Save this Reel"}
-          </button>}
-          {activeReel?.isOwner && <button type="button" role="menuitem" onClick={() => { setMoreOpen(false); setDeleteFor(activeReel); }} data-testid={`button-delete-reel-${activeReel.id}`}><Trash2 size={18} />Delete this Reel</button>}
-        </div>
-      </div>}
       {searchOpen && <section className="reels-search-overlay" role="dialog" aria-modal="true" aria-label="Search Reels" data-testid="reels-search-overlay">
         <div className="reels-search-toolbar">
           <button type="button" onClick={closeSearch} aria-label="Close Reel search" className="reels-icon"><ArrowLeft size={22} /></button>
@@ -570,12 +535,5 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
       void client.invalidateQueries({ queryKey: getGetMyReelsQueryKey() });
     }} />}
     {shareFor && <ReelShareSheet reel={shareFor} onClose={() => setShareFor(null)} onCountChange={(count) => patchShareCount(shareFor.id, count)} onCountError={setNotice} />}
-    {deleteFor && <div className="reel-sheet-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setDeleteFor(null); }}>
-      <section className="reel-sheet" role="alertdialog" aria-modal="true" aria-label="Delete Reel">
-        <h2 className="text-base font-bold">Delete this Reel?</h2>
-        <p className="mt-1 text-sm text-white/60">It will be removed from Reels, saved lists and shared links. This cannot be undone.</p>
-        <div className="mt-5 grid grid-cols-2 gap-2"><button type="button" onClick={() => setDeleteFor(null)} className="reel-sheet-action" data-testid="button-cancel-delete-reel">Keep</button><button type="button" onClick={() => void confirmDelete()} disabled={del.isPending} className="reel-sheet-action !border-rose-400/30 !text-rose-300" data-testid="button-confirm-delete-reel">{del.isPending ? "Deleting" : "Delete"}</button></div>
-      </section>
-    </div>}
   </div>;
 }
