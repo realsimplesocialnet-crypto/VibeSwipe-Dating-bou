@@ -603,6 +603,8 @@ export default function ChatScreen() {
         data={sortedMessages}
         keyExtractor={(item) => item.id}
         contentContainerStyle={[styles.messageList, !sortedMessages.length && styles.emptyMessageList]}
+        automaticallyAdjustKeyboardInsets={false}
+        contentInsetAdjustmentBehavior="never"
         keyboardDismissMode="interactive"
         keyboardShouldPersistTaps="handled"
         scrollEnabled

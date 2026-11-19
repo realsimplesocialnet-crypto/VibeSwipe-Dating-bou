@@ -15,15 +15,18 @@ test('Activity excludes chat-message notices and places its four summary cards f
   assert.match(activity, /new_follow/);
   assert.match(activity, /new_super_like/);
   for (const path of ['/matches', '/likes', '/views']) assert.ok(activity.includes(`'${path}'`));
-  assert.ok(activity.indexOf('aria-label="Summary"') < activity.indexOf('aria-label="New followers"'));
-  assert.doesNotMatch(activity, /lastMessage|\/chat\//);
+  assert.ok(activity.indexOf('aria-label="Activity summary"') < activity.indexOf('aria-label="Activity feed"'));
+  assert.match(activity, /className="activity-feed"/);
+  assert.doesNotMatch(activity, /aria-label="New followers"|aria-label="Super Likes"|aria-label="Reel likes"/);
+  assert.match(activity, /n\.type === 'new_match' && n\.matchId/);
 });
 
 test('native Activity excludes chat-message notices and places its four summary cards first', () => {
   assert.doesNotMatch(native, /new_message|sent you a message|button-message-notice/);
   assert.match(native, /new_follow/);
   assert.match(native, /new_super_like/);
-  assert.ok(native.indexOf('testID="activity-summary"') < native.indexOf('testID={`follow-notice-'));
+  assert.ok(native.indexOf('testID="activity-summary"') < native.indexOf('testID="activity-feed"'));
+  assert.match(native, /patchActivityReads\(data, \[n\.id\], stamp\)/);
   const tabs = source('../../vibeswipe/app/(tabs)/_layout.tsx');
   assert.match(tabs, /messageBadge = counts\?\.messages/);
   assert.match(tabs, /NativeTabs\.Trigger\.Label>Chats/);

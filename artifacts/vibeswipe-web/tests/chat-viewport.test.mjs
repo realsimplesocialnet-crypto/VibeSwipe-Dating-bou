@@ -4,15 +4,18 @@ import { readFileSync } from "node:fs";
 import { chatViewportFrame } from "../src/lib/chat-viewport.ts";
 
 const app = readFileSync(new URL("../src/App.tsx", import.meta.url), "utf8");
+const directChat = readFileSync(new URL("../src/pages/direct-chat.tsx", import.meta.url), "utf8");
+const nativeChat = readFileSync(new URL("../../vibeswipe/app/chat/[matchId].tsx", import.meta.url), "utf8");
+const nativeDirectChat = readFileSync(new URL("../../vibeswipe/app/direct-chat/[conversationId].tsx", import.meta.url), "utf8");
 
 test("chat frame tracks iPhone's visible viewport and keyboard pan", () => {
   const frame = chatViewportFrame(420, 24, 844, true);
-  assert.deepEqual(frame, { height: 420, top: 24, keyboardOpen: true });
+  assert.deepEqual(frame, { height: 444, top: 0, keyboardOpen: true });
 });
 
 test("chat viewport geometry ignores fractional pixel movement", () => {
   const frame = chatViewportFrame(419.6, 23.7, 844, true);
-  assert.deepEqual(frame, { height: 420, top: 24, keyboardOpen: true });
+  assert.deepEqual(frame, { height: 444, top: 0, keyboardOpen: true });
 });
 
 test("chat keyboard animation coalesces viewport events and defers bottom scrolling", () => {
@@ -20,4 +23,21 @@ test("chat keyboard animation coalesces viewport events and defers bottom scroll
   assert.match(handler, /if\(measureFrame\)return/);
   assert.match(handler, /setTimeout\(\(\)=>\{[\s\S]*?requestAnimationFrame\(scrollToLatest\)/);
   assert.doesNotMatch(handler, /if\(editing\)requestAnimationFrame\(scrollToLatest\)/);
+});
+
+test("both web chat screens stay anchored while iOS pans its visual viewport", () => {
+  assert.match(app, /top:`calc\(\$\{chatViewport\.top\}px/);
+  assert.match(app, /height:`calc\(\$\{chatViewport\.height\}px/);
+  assert.match(directChat, /chatViewportFrame\(height, viewport\?\.offsetTop/);
+  assert.match(directChat, /fixed inset-x-0/);
+  assert.match(directChat, /paddingBottom: chatViewport\.keyboardOpen \? 0/);
+  assert.doesNotMatch(directChat, /scrollIntoView/);
+});
+
+test("native chats avoid applying keyboard insets twice", () => {
+  for (const source of [nativeChat, nativeDirectChat]) {
+    assert.match(source, /automaticallyAdjustKeyboardInsets=\{false\}/);
+    assert.match(source, /contentInsetAdjustmentBehavior="never"/);
+  }
+  assert.match(nativeDirectChat, /paddingBottom: keyboardVisible \? 0/);
 });

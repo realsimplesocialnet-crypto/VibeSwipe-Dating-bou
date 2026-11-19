@@ -52,8 +52,8 @@ function ReelActionIcon({ name, filled = false }: { name: ReelIconName; filled?:
         <Path d="M8.5 10.5h.01M12 10.5h.01M15.5 10.5h.01" stroke={stroke} strokeWidth={2.2} strokeLinecap="round" />
       </> : null}
       {name === "share" ? <>
-        <Path d="m22 2-7 20-4-9-9-4 20-7Z" stroke={stroke} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />
-        <Path d="M22 2 11 13" stroke={stroke} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />
+        <Path d="M4 18c2.8-6.9 7.9-10.7 15.5-11" stroke={stroke} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+        <Path d="m14 3.5 5.5 3.5-4.5 5" stroke={stroke} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
       </> : null}
       {name === "save" ? <Path d="M6 4.5A1.5 1.5 0 0 1 7.5 3h9A1.5 1.5 0 0 1 18 4.5V21l-6-4-6 4V4.5Z" stroke={stroke} strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" fill={filled ? stroke : "none"} /> : null}
     </Svg>
@@ -398,9 +398,7 @@ export default function ProfileReelScreen() {
                 onPress={() => void toggleLike()}
                 style={styles.actionButton}
               >
-                <LinearGradient colors={["rgba(255,99,170,0.27)", "rgba(168,117,255,0.24)"]} style={styles.actionIconShell}>
-                  <ReelActionIcon name="like" filled={reelQuery.data.likedByMe} />
-                </LinearGradient>
+                <ReelActionIcon name="like" filled={reelQuery.data.likedByMe} />
                 <Text style={styles.actionCount}>{reelQuery.data.likeCount}</Text>
               </Pressable>
               <Pressable
@@ -410,9 +408,7 @@ export default function ProfileReelScreen() {
                 onPress={openComments}
                 style={styles.actionButton}
               >
-                <LinearGradient colors={["rgba(255,99,170,0.27)", "rgba(168,117,255,0.24)"]} style={styles.actionIconShell}>
-                  <ReelActionIcon name="comment" />
-                </LinearGradient>
+                <ReelActionIcon name="comment" />
                 <Text style={styles.actionCount}>{reelQuery.data.commentCount}</Text>
               </Pressable>
               <Pressable
@@ -424,9 +420,7 @@ export default function ProfileReelScreen() {
                 onPress={() => void toggleSave()}
                 style={styles.actionButton}
               >
-                <LinearGradient colors={["rgba(255,99,170,0.27)", "rgba(168,117,255,0.24)"]} style={styles.actionIconShell}>
-                  <ReelActionIcon name="save" filled={reelQuery.data.savedByMe} />
-                </LinearGradient>
+                <ReelActionIcon name="save" filled={reelQuery.data.savedByMe} />
                 <Text style={styles.actionCount}>{reelQuery.data.saveCount}</Text>
               </Pressable>
               <Pressable
@@ -440,9 +434,7 @@ export default function ProfileReelScreen() {
                 }}
                 style={styles.actionButton}
               >
-                <LinearGradient colors={["rgba(255,99,170,0.27)", "rgba(168,117,255,0.24)"]} style={styles.actionIconShell}>
-                  <ReelActionIcon name="share" />
-                </LinearGradient>
+                <ReelActionIcon name="share" />
                 <Text style={styles.actionCount}>{reelQuery.data.shareCount}</Text>
               </Pressable>
             </View>
@@ -670,9 +662,8 @@ const styles = StyleSheet.create({
   back: { width: 42, height: 42, alignItems: "center", justifyContent: "center" },
   headerTitle: { fontSize: 19, fontWeight: "800" },
   videoStage: { flex: 1, minHeight: 200, overflow: "hidden", backgroundColor: "#000", alignItems: "center", justifyContent: "center" },
-  actionRail: { position: "absolute", right: 10, bottom: 16, alignItems: "center", gap: 7 },
-  actionButton: { width: 52, minWidth: 52, minHeight: 62, alignItems: "center", justifyContent: "flex-start", gap: 6 },
-  actionIconShell: { width: 42, height: 42, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "rgba(255,255,255,0.18)", borderRadius: 15, overflow: "hidden", shadowColor: "#bd4bd3", shadowOpacity: 0.2, shadowRadius: 8, elevation: 4 },
+  actionRail: { position: "absolute", right: 10, bottom: 16, alignItems: "center", gap: 9 },
+  actionButton: { width: 52, minWidth: 52, minHeight: 70, alignItems: "center", justifyContent: "flex-start", gap: 8 },
   actionCount: { color: "#fff", fontSize: 10, fontWeight: "800", textShadowColor: "#000", textShadowRadius: 4 },
   caption: { paddingHorizontal: 16, paddingVertical: 14, gap: 8 },
   creatorRow: { flexDirection: "row", alignItems: "center", gap: 10 },

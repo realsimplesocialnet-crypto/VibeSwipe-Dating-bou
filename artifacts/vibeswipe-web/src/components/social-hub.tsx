@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation } from 'wouter';
 import { useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, ChevronRight, Eye, Heart, LoaderCircle, MessageCircle, RefreshCw, Search, Star, Users, UserPlus } from 'lucide-react';
+import { ArrowLeft, ChevronRight, Eye, Heart, LoaderCircle, MessageCircle, RefreshCw, Search, Star, ThumbsUp, UserRound, Users, UserPlus } from 'lucide-react';
 import {
   getGetMatchesQueryKey, getGetNotificationsQueryKey, getGetProfileFollowSummaryQueryKey, getGetProfileFollowersQueryKey,
   getGetProfileFollowingQueryKey, getGetStoriesQueryKey, getGetWhoLikedYouQueryKey, getGetWhoViewedYouQueryKey,
@@ -11,7 +11,8 @@ import {
   useMarkNotificationRead, useUnfollowProfile,
   createUseMarkActivitySeen,
 } from '@workspace/api-client-react';
-import type { Match, Profile, ProfileFollowList } from '@workspace/api-client-react';
+import type { Match, NotificationsResponse, Profile, ProfileFollowList } from '@workspace/api-client-react';
+import { patchActivityReads } from '@workspace/api-client-react';
 import { MatchStoryAvatar } from '@/components/stories/stories-ui';
 import { MatchCelebration } from '@/components/match-celebration';
 import './social-hub.css';
@@ -61,109 +62,92 @@ function Err({ onRetry, text }: { onRetry: () => void; text: string }) {
 function Empty({ icon, title, detail }: { icon: ReactNode; title: string; detail: string }) {
   return <div className="sh-card flex flex-col items-center rounded-[26px] px-6 py-12 text-center" data-testid="status-empty"><div className="sh-icon mb-4 flex h-14 w-14 items-center justify-center rounded-full">{icon}</div><h2 className="text-lg font-bold">{title}</h2><p className="sh-muted mt-1 max-w-xs text-sm">{detail}</p><Link href="/discover" data-testid="link-empty-discover" className="mt-5 rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground">Go to Discover</Link></div>;
 }
-function Stack({ profiles, avatar }: { profiles: Profile[]; avatar: AvatarFn }) {
-  return <div className="flex -space-x-3">{profiles.slice(0, 3).map(p => <div key={p.id} className="sh-stack h-10 w-10 overflow-hidden rounded-full">{avatar(p)}</div>)}</div>;
-}
-
-export function ActivityOverview({ avatar }: { avatar: AvatarFn }) {
-  const readNotice = useNoticeReader();
+export function ActivityOverview({ avatar: _avatar }: { avatar: AvatarFn }) {
   const qc = useQueryClient();
   const [, go] = useLocation();
   const notes = useGetNotifications({ query: { queryKey: getGetNotificationsQueryKey(), ...live } });
   const me = useGetMyProfile();
-  const followSummary = useGetProfileFollowSummary(me.data?.id ?? '', { query: { enabled: !!me.data?.id, refetchInterval: 15000 } });
-  const matches = useGetMatches({ query: { queryKey: getGetMatchesQueryKey(), ...live } });
-  const likes = useGetWhoLikedYou({ query: { queryKey: getGetWhoLikedYouQueryKey(), ...live } });
-  const views = useGetWhoViewedYou({ query: { queryKey: getGetWhoViewedYouQueryKey(), ...live } });
   const mark = useMarkNotificationRead();
-  const am = useMemo(() => activeMatches(matches.data), [matches.data]);
-  const reelNotices = (notes.data?.notifications ?? []).filter(n => n.type === 'reel_like' || n.type === 'reel_comment_reply');
-  const followNotices = (notes.data?.notifications ?? []).filter(n => n.type === 'new_follow').slice(0, 8);
-  const superNotices = useMemo(() => (notes.data?.notifications ?? []).filter(n => n.type === 'new_super_like').slice(0, 8), [notes.data]);
-  const cards = [
-    { key: 'matches', href: '/matches', label: 'Matches', sub: 'People you both liked — open to chat', icon: <Users size={20} />, q: matches, n: am.length, ps: am.map(m => m.profile), badge: notes.data?.unreadCounts.matches ?? 0 },
-    { key: 'likes', href: '/likes', label: 'Likes', sub: 'People who liked you', icon: <Heart size={20} fill="currentColor" />, q: likes, n: likes.data?.length ?? 0, ps: (likes.data ?? []).map(l => l.profile), badge: notes.data?.unreadCounts.likes ?? 0 },
-    { key: 'views', href: '/views', label: 'Views', sub: 'People who viewed your profile', icon: <Eye size={20} />, q: views, n: views.data?.length ?? 0, ps: (views.data ?? []).map(v => v.profile), badge: notes.data?.unreadCounts.views ?? 0 },
+  const [readError, setReadError] = useState('');
+  const unreadCounts = notes.data?.unreadCounts;
+  const metricCards = [
+    { key: 'matches', label: 'Matches', href: '/matches', count: unreadCounts?.matches ?? 0, icon: Heart, color: '#ed4b89' },
+    { key: 'likes', label: 'Likes', href: '/likes', count: unreadCounts?.likes ?? 0, icon: ThumbsUp, color: '#3b82f6' },
+    { key: 'views', label: 'Views', href: '/views', count: unreadCounts?.views ?? 0, icon: Eye, color: '#16a394' },
+    { key: 'followers', label: 'Followers', href: me.data?.id ? `/profile/${me.data.id}/followers` : '', count: unreadCounts?.follows ?? 0, icon: UserRound, color: '#8b5cf6' },
   ];
-  return <div className="social-hub min-h-[calc(100dvh-48px)] lg:min-h-[100dvh]"><div className="page-in mx-auto max-w-[720px] px-4 pb-12 pt-6 md:px-8 md:pt-10">
+  const items = useMemo(() => (notes.data?.notifications ?? [])
+    .filter(n => n.type === 'new_match' || n.type === 'new_like' || n.type === 'new_super_like' || n.type === 'profile_view' || n.type === 'new_follow')
+    .slice()
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()), [notes.data?.notifications]);
+
+  async function openActivityItem(n: NotificationsResponse['notifications'][number]) {
+    const key = getGetNotificationsQueryKey();
+    const stamp = new Date().toISOString();
+    if (!n.readAt) {
+      await qc.cancelQueries({ queryKey: key });
+      const current = qc.getQueryData<NotificationsResponse>(key);
+      const canOptimisticallyMark = !!current?.notifications.some(item => item.id === n.id && !item.readAt);
+      if (canOptimisticallyMark) {
+        qc.setQueryData<NotificationsResponse>(key, data => data ? patchActivityReads(data, [n.id], stamp) : data);
+      }
+      try {
+        await mark.mutateAsync({ notificationId: n.id });
+      } catch {
+        if (canOptimisticallyMark) {
+          qc.setQueryData<NotificationsResponse>(key, data => data ? patchActivityReads(data, [n.id], stamp, true) : data);
+        }
+        setReadError('This activity could not be marked as read. Please try again.');
+      } finally {
+        void qc.invalidateQueries({ queryKey: key });
+      }
+    }
+    if (n.type === 'new_match' && n.matchId) {
+      go(`/chat/${encodeURIComponent(n.matchId)}?returnTo=%2Fnotifications`);
+      return;
+    }
+    go(`/profile/${encodeURIComponent(n.actor.id)}?returnTo=%2Fnotifications`);
+  }
+
+  const eventStyle = (type: NotificationsResponse['notifications'][number]['type']) => {
+    if (type === 'new_match') return { label: 'matched with you', icon: Heart, color: '#ed4b89' };
+    if (type === 'new_like' || type === 'new_super_like') return { label: type === 'new_super_like' ? 'super liked you' : 'liked you', icon: ThumbsUp, color: '#3b82f6' };
+    if (type === 'profile_view') return { label: 'viewed your profile', icon: Eye, color: '#16a394' };
+    return { label: 'followed you', icon: UserRound, color: '#8b5cf6' };
+  };
+
+  return <div className="social-hub activity-screen min-h-[calc(100dvh-48px)] lg:min-h-[100dvh]"><div className="page-in mx-auto max-w-[720px] px-4 pb-12 pt-6 md:px-8 md:pt-10">
     <Head title="Activity" />
-    <section className="mb-6 space-y-3" aria-label="Summary" data-testid="activity-summary">
-      {cards.map(c => <Link key={c.key} href={c.href} data-testid={`link-summary-${c.key}`} aria-label={`${c.label}, ${c.badge} new`} className="sh-card flex items-center gap-4 rounded-[24px] p-4 transition-transform hover:-translate-y-px md:p-5">
-        <div className="sh-icon relative flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl">{c.icon}{c.badge > 0 && <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 text-[11px] font-bold text-primary-foreground">{c.badge > 99 ? '99+' : c.badge}</span>}</div>
-        <div className="min-w-0 flex-1"><div className="text-[17px] font-bold">{c.label}</div><div className="sh-muted truncate text-sm">{c.q.isLoading ? 'Loading' : c.q.isError ? 'Unavailable right now' : c.sub}</div></div>
-        {c.ps.length > 0 && <div className="hidden sm:block"><Stack profiles={c.ps} avatar={avatar} /></div>}
-        <span className="text-xl font-extrabold tabular-nums" data-testid={`text-count-${c.key}`}>{c.q.isLoading ? '-' : c.badge}</span>
-        <ChevronRight size={18} className="sh-muted" aria-hidden="true" />
-      </Link>)}
-      {me.data?.id && <Link href={`/profile/${me.data.id}/followers`} data-testid="link-summary-followers" aria-label={`${followSummary.data?.followersCount ?? 0} followers`}
-        className="sh-card flex items-center gap-4 rounded-[24px] p-4 transition-transform hover:-translate-y-px md:p-5">
-        <div className="sh-icon relative flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl">
-          <UserPlus size={20} aria-hidden="true" />
-          {(notes.data?.unreadCounts.follows ?? 0) > 0 && <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 text-[11px] font-bold text-primary-foreground">{(notes.data?.unreadCounts.follows ?? 0) > 99 ? '99+' : notes.data?.unreadCounts.follows}</span>}
-        </div>
-        <div className="min-w-0 flex-1"><div className="text-[17px] font-bold">Followers</div><div className="sh-muted truncate text-sm">People following you</div></div>
-        <span className="text-xl font-extrabold tabular-nums">{followSummary.data?.followersCount ?? (followSummary.isLoading ? '-' : 0)}</span>
-        <ChevronRight size={18} className="sh-muted" aria-hidden="true" />
-      </Link>}
-    </section>
-    {notes.isLoading ? <Skel /> : notes.isError && !notes.data ? <Err text="We couldn't load your activity." onRetry={() => void notes.refetch()} /> : null}
-    {followNotices.length > 0 && <section className="mb-5" aria-label="New followers">
-      <h2 className="mb-2 px-1 text-base font-bold">New followers</h2>
-      <div className="space-y-1">
-      {followNotices.map(n => <div key={n.id} data-testid={`follow-notice-${n.id}`}
-        className="sh-follow-notice-row flex w-full items-center gap-3 py-2.5 text-left">
-        <button type="button" onClick={async () => {
-          if (!n.readAt) {
-            try { await mark.mutateAsync({ notificationId: n.id }); } catch { /* Keep the profile reachable. */ }
-            void qc.invalidateQueries({ queryKey: getGetNotificationsQueryKey() });
-          }
-          go(`/profile/${n.actor.id}?returnTo=%2Fnotifications`);
-        }} className="flex min-w-0 flex-1 items-center gap-3 text-left" aria-label={`${n.actor.name} started following you. Open profile`}>
-          {!n.readAt && <span className="h-2 w-2 shrink-0 rounded-full bg-[#55cbe5]" aria-label="Unread" />}
-          <div className="h-[52px] w-[52px] shrink-0 overflow-hidden rounded-full">
-            {avatar(n.actor)}
-          </div>
-          <span className="min-w-0 flex-1 text-sm">
-            <strong className="block truncate text-foreground">{n.actor.name}</strong>
-            <span className="sh-muted block truncate">started following you. <time dateTime={n.createdAt}>{ago(n.createdAt)}</time></span>
+    <h1 className="activity-title">Activity</h1>
+    <section className="activity-metric-grid" aria-label="Activity summary" data-testid="activity-summary">
+      {metricCards.map(card => {
+        const Icon = card.icon;
+        const content = <>
+          <span className="activity-metric-icon" style={{ backgroundColor: card.color }}><Icon size={23} strokeWidth={2.6} fill={card.key === 'matches' ? 'currentColor' : 'none'} aria-hidden="true" /></span>
+          <span className="activity-metric-copy">
+            <strong data-testid={`text-count-${card.key}`}>{notes.isLoading ? '—' : card.count}</strong>
+            <span>{card.label}</span>
           </span>
-        </button>
-        <div className="sh-follow-notice-actions">
-          <ProfileFollowNotificationAction profileId={n.actor.id} viewerId={me.data?.id} onFollow={() => {
-            if (!n.readAt) void mark.mutateAsync({ notificationId: n.id }).catch(() => undefined).finally(() => qc.invalidateQueries({ queryKey: getGetNotificationsQueryKey() }));
-          }} />
-        </div>
-      </div>)}
-      </div>
-    </section>}
-    {reelNotices.length > 0 && <section className="mb-4 space-y-2" aria-label="Reel likes">
-      {reelNotices.map(n => <button key={n.id} type="button" data-testid={`reel-like-notice-${n.id}`}
-        onClick={async () => {
-          if (!n.readAt) {
-            try { await mark.mutateAsync({ notificationId: n.id }); } catch { /* Keep the Reel reachable. */ }
-            void qc.invalidateQueries({ queryKey: getGetNotificationsQueryKey() });
-          }
-          if (n.reelId) {
-            const params = new URLSearchParams({ returnTo: '/notifications' });
-            if (n.type === 'reel_comment_reply' && n.commentId) params.set('commentId', n.commentId);
-            go(`/reels/${n.reelId}?${params.toString()}`);
-          } else go(`/profile/${n.actor.id}?returnTo=%2Fnotifications`);
-        }}
-        className="sh-card flex w-full items-center gap-3 rounded-[18px] px-4 py-3 text-left">
-        {avatar(n.actor)}<span className="min-w-0 flex-1 text-sm"><strong className="text-primary">{n.actor.name}</strong> {n.type === 'reel_comment_reply' ? 'replied to your comment' : 'liked your video'}</span>
-        <time className="sh-muted text-xs" dateTime={n.createdAt}>{ago(n.createdAt)}</time>
-        {!n.readAt && <span className="h-2 w-2 shrink-0 rounded-full bg-primary" aria-label="Unread" />}
-      </button>)}
-    </section>}
-    {superNotices.length > 0 && <section className="mt-3 space-y-3" aria-label="Super Likes">
-      {superNotices.map(n => <Link key={n.id} href={`/profile/${n.actor.id}?returnTo=%2Fnotifications`} onClick={() => readNotice(n.actor.id, 'new_like')} data-testid={`super-like-notice-${n.id}`} className="sh-card flex items-center gap-3 rounded-[22px] border-primary/30 p-4">
-        <span className="sh-icon flex h-11 w-11 shrink-0 items-center justify-center rounded-full"><Star size={22} fill="currentColor" aria-hidden="true" /></span>
-        <span className="min-w-0 flex-1"><span className="block truncate font-bold">{n.actor.name}</span><span className="text-sm font-semibold text-primary">Super Liked you</span></span>
-        <time className="sh-muted shrink-0 text-xs" dateTime={n.createdAt}>{ago(n.createdAt)}</time>
-        {!n.readAt && <span className="h-2 w-2 shrink-0 rounded-full bg-primary" aria-label="Unread" />}
-        <ChevronRight size={17} className="text-primary" aria-hidden="true" />
-      </Link>)}
-    </section>}
+        </>;
+        return card.href
+          ? <Link key={card.key} href={card.href} data-testid={`link-summary-${card.key}`} aria-label={`${card.label}, ${card.count} unread`} className="activity-metric-card">{content}</Link>
+          : <div key={card.key} aria-label={`${card.label}, ${card.count} unread`} className="activity-metric-card is-loading">{content}</div>;
+      })}
+    </section>
+    {readError && <p role="alert" className="activity-read-error">{readError}</p>}
+    {notes.isLoading ? <Skel /> : notes.isError && !notes.data ? <Err text="We couldn't load your activity." onRetry={() => void notes.refetch()} /> : items.length === 0
+      ? <div className="activity-empty" data-testid="status-empty-activity"><span className="activity-empty-icon"><Heart size={22}/></span><strong>You’re all caught up</strong></div>
+      : <section className="activity-feed" aria-label="Activity feed" data-testid="activity-feed">
+        {items.map(n => {
+          const event = eventStyle(n.type);
+          const Icon = event.icon;
+          return <button key={n.id} type="button" onClick={() => void openActivityItem(n)} data-testid={`activity-item-${n.id}`} data-read={n.readAt ? 'true' : 'false'} aria-label={`${n.actor.name} ${event.label}, ${ago(n.createdAt)}${n.readAt ? ', read' : ', unread'}`} className={`activity-feed-row${n.readAt ? ' is-read' : ''}`}>
+            <span className="activity-feed-icon" style={{ backgroundColor: event.color }}><Icon size={20} strokeWidth={2.5} fill={n.type === 'new_match' ? 'currentColor' : 'none'} aria-hidden="true"/></span>
+            <span className="activity-feed-copy"><span><strong>{n.actor.name}</strong> {event.label}</span><time dateTime={n.createdAt}>{ago(n.createdAt)}</time></span>
+            {!n.readAt && <span className="activity-unread-dot" aria-label="Unread"/>}
+          </button>;
+        })}
+      </section>}
   </div></div>;
 }
 

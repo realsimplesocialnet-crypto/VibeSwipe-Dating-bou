@@ -28,7 +28,7 @@ function ReelActionIcon({ name, filled = false }: { name: ReelIconName; filled?:
     <defs><linearGradient id={gradientId} x1="3" y1="2" x2="21" y2="22" gradientUnits="userSpaceOnUse"><stop stopColor="#ff63aa" /><stop offset="1" stopColor="#a875ff" /></linearGradient></defs>
     {name === "like" && <path d="M20.8 4.7a5.4 5.4 0 0 0-7.7 0L12 5.8l-1.1-1.1a5.4 5.4 0 0 0-7.7 7.7l1.1 1.1L12 21l7.7-7.5 1.1-1.1a5.4 5.4 0 0 0 0-7.7Z" stroke={stroke} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" fill={filled ? stroke : "none"} />}
     {name === "comment" && <><path d="M6 4.5h12a2 2 0 0 1 2 2V14a2 2 0 0 1-2 2h-1v3.5L13 16H6a2 2 0 0 1-2-2V6.5a2 2 0 0 1 2-2Z" stroke={stroke} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /><circle cx="8.5" cy="10.5" r="1" fill={stroke} /><circle cx="12" cy="10.5" r="1" fill={stroke} /><circle cx="15.5" cy="10.5" r="1" fill={stroke} /></>}
-    {name === "share" && <><path d="m22 2-7 20-4-9-9-4 20-7Z" stroke={stroke} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /><path d="M22 2 11 13" stroke={stroke} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></>}
+    {name === "share" && <><path d="M4 18c2.8-6.9 7.9-10.7 15.5-11" stroke={stroke} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /><path d="m14 3.5 5.5 3.5-4.5 5" stroke={stroke} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></>}
     {name === "save" && <path d="M6 4.5A1.5 1.5 0 0 1 7.5 3h9A1.5 1.5 0 0 1 18 4.5V21l-6-4-6 4V4.5Z" stroke={stroke} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" fill={filled ? stroke : "none"} />}
   </svg>;
 }
@@ -242,15 +242,15 @@ export function ReelSlide({ reel, index, active, near, muted, pageHidden, compac
 
     <div className={`reel-rail ${compact ? "is-compact" : ""} ${navigationVisible ? "is-nav-visible" : ""}`}>
       <button type="button" className={`reel-action-button ${reel.likedByMe ? "is-on" : ""}`} onClick={onLike} disabled={likePending} aria-pressed={reel.likedByMe} aria-label={reel.likedByMe ? "Unlike" : "Like"} data-testid={`button-like-reel-${reel.id}`}>
-        <span className="reel-action-glyph"><ReelActionIcon name="like" filled={reel.likedByMe} /></span><span data-testid={`text-like-count-${reel.id}`}>{formatCount(reel.likeCount)}</span>
+        <ReelActionIcon name="like" filled={reel.likedByMe} /><span data-testid={`text-like-count-${reel.id}`}>{formatCount(reel.likeCount)}</span>
       </button>
       <button type="button" className="reel-action-button" onClick={onComment} aria-label="Comments" data-testid={`button-comments-reel-${reel.id}`}>
-        <span className="reel-action-glyph"><ReelActionIcon name="comment" /></span><span data-testid={`text-comment-count-${reel.id}`}>{formatCount(reel.commentCount)}</span>
+        <ReelActionIcon name="comment" /><span data-testid={`text-comment-count-${reel.id}`}>{formatCount(reel.commentCount)}</span>
       </button>
       <button type="button" className={`reel-action-button ${reel.savedByMe ? "is-saved" : ""}`} onClick={onSave} disabled={savePending} aria-pressed={reel.savedByMe} aria-label={reel.savedByMe ? "Remove from Saved Reels" : "Save Reel"} data-testid={`button-save-reel-${reel.id}`}>
-        <span className="reel-action-glyph"><ReelActionIcon name="save" filled={reel.savedByMe} /></span><span data-testid={`text-save-count-${reel.id}`}>{formatCount(reel.saveCount)}</span>
+        <ReelActionIcon name="save" filled={reel.savedByMe} /><span data-testid={`text-save-count-${reel.id}`}>{formatCount(reel.saveCount)}</span>
       </button>
-      <button type="button" className="reel-action-button" onClick={onShare} aria-label={`Share, ${formatCount(reel.shareCount)} shares`} data-testid={`button-share-reel-${reel.id}`}><span className="reel-action-glyph"><ReelActionIcon name="share" /></span><span data-testid={`text-share-count-${reel.id}`}>{formatCount(reel.shareCount)}</span></button>
+      <button type="button" className="reel-action-button" onClick={onShare} aria-label={`Share, ${formatCount(reel.shareCount)} shares`} data-testid={`button-share-reel-${reel.id}`}><ReelActionIcon name="share" /><span data-testid={`text-share-count-${reel.id}`}>{formatCount(reel.shareCount)}</span></button>
     </div>
 
     <div className={`reel-meta ${searchSuggestion && !compact ? "has-search" : ""} ${compact ? "is-compact" : ""} ${navigationVisible ? "is-nav-visible" : ""}`}>

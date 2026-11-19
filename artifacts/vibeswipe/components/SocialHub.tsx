@@ -5,15 +5,14 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import { ActivityIndicator, AppState, FlatList, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
-  getGetMatchesQueryKey, getGetNotificationsQueryKey, getGetProfileFollowSummaryQueryKey, getGetWhoLikedYouQueryKey, getGetWhoViewedYouQueryKey,
-  useCreateReaction, useGetMatches, useGetMyProfile, useGetNotifications, useGetProfileFollowSummary, useGetWhoLikedYou, useGetWhoViewedYou, useMarkNotificationRead,
+  getGetMatchesQueryKey, getGetNotificationsQueryKey, getGetWhoLikedYouQueryKey, getGetWhoViewedYouQueryKey,
+  useCreateReaction, useGetMatches, useGetMyProfile, useGetNotifications, useGetWhoLikedYou, useGetWhoViewedYou, useMarkNotificationRead,
   useGetDailyLikeStatus,
-  createUseMarkActivitySeen, type ActivityCategory,
+  createUseMarkActivitySeen, patchActivityReads, type ActivityCategory, type NotificationsResponse,
   type Match, type Profile,
 } from "@workspace/api-client-react";
 import { ProfileAvatar } from "@/components/ProfileAvatar";
 import { MatchCelebration } from "@/components/MatchCelebration";
-import { ProfileFollowNotificationAction } from "@/components/ProfileFollow";
 import { usePremiumColors } from "@/hooks/useColors";
 
 const live = { refetchInterval: 15000, refetchOnMount: "always" as const, refetchOnWindowFocus: true, staleTime: 0 };
@@ -101,119 +100,90 @@ function State({ loading, error, empty, onRetry, icon, emptyTitle, emptyText }: 
 }
 
 export function ActivityOverview() {
-  const readNotice = useNoticeReader();
   const c = usePremiumColors();
   const qc = useQueryClient();
   const insets = useSafeAreaInsets();
   const notes = useGetNotifications({ query: { queryKey: getGetNotificationsQueryKey(), ...live } });
   const me = useGetMyProfile();
-  const followSummary = useGetProfileFollowSummary(me.data?.id ?? "", { query: { enabled: !!me.data?.id, refetchInterval: 15000 } });
-  const matches = useGetMatches({ query: { queryKey: getGetMatchesQueryKey(), ...live } });
-  const likes = useGetWhoLikedYou({ query: { queryKey: getGetWhoLikedYouQueryKey(), ...live } });
-  const views = useGetWhoViewedYou({ query: { queryKey: getGetWhoViewedYouQueryKey(), ...live } });
-  useRefetchOnFocus([notes.refetch, matches.refetch, likes.refetch, views.refetch]);
   const mark = useMarkNotificationRead();
-  const am = useMemo(() => active(matches.data), [matches.data]);
-  const reelNotices = (notes.data?.notifications ?? []).filter(n => n.type === "reel_like");
-  const followNotices = (notes.data?.notifications ?? []).filter(n => n.type === "new_follow").slice(0, 8);
-  const superNotices = useMemo(() => (notes.data?.notifications ?? []).filter(n => n.type === "new_super_like").slice(0, 8), [notes.data]);
+  const [readError, setReadError] = useState("");
   const counts = notes.data?.unreadCounts;
   const cards = [
-    { key: "matches", to: "/(tabs)/matches", title: "Mutual Matches", sub: "People you both said yes to", icon: "users" as const, n: am.length, ps: am.map((m) => m.profile), loading: matches.isLoading, badge: counts?.matches ?? 0 },
-    { key: "likes", to: "/(tabs)/activity/likes", title: "Dating Likes", sub: "People who liked your profile", icon: "heart" as const, n: likes.data?.length ?? 0, ps: (likes.data ?? []).map((l) => l.profile), loading: likes.isLoading, badge: counts?.likes ?? 0 },
-    { key: "views", to: "/(tabs)/activity/views", title: "Views", sub: "People who viewed your profile", icon: "eye" as const, n: views.data?.length ?? 0, ps: (views.data ?? []).map((v) => v.profile), loading: views.isLoading, badge: counts?.views ?? 0 },
+    { key: "matches", title: "Matches", to: "/(tabs)/matches", count: counts?.matches ?? 0, icon: "heart" as const, color: "#ed4b89" },
+    { key: "likes", title: "Likes", to: "/(tabs)/activity/likes", count: counts?.likes ?? 0, icon: "thumbs-up" as const, color: "#3b82f6" },
+    { key: "views", title: "Views", to: "/(tabs)/activity/views", count: counts?.views ?? 0, icon: "eye" as const, color: "#16a394" },
+    { key: "followers", title: "Followers", to: me.data?.id ? `/followers/${me.data.id}` : "", count: counts?.follows ?? 0, icon: "user" as const, color: "#8b5cf6" },
   ];
+  const items = useMemo(() => (notes.data?.notifications ?? [])
+    .filter(n => n.type === "new_match" || n.type === "new_like" || n.type === "new_super_like" || n.type === "profile_view" || n.type === "new_follow")
+    .slice()
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()), [notes.data?.notifications]);
+
+  async function openActivityItem(n: NotificationsResponse["notifications"][number]) {
+    const key = getGetNotificationsQueryKey();
+    const stamp = new Date().toISOString();
+    if (!n.readAt) {
+      await qc.cancelQueries({ queryKey: key });
+      const current = qc.getQueryData<NotificationsResponse>(key);
+      const canOptimisticallyMark = !!current?.notifications.some(item => item.id === n.id && !item.readAt);
+      if (canOptimisticallyMark) {
+        qc.setQueryData<NotificationsResponse>(key, data => data ? patchActivityReads(data, [n.id], stamp) : data);
+      }
+      try {
+        await mark.mutateAsync({ notificationId: n.id });
+      } catch {
+        if (canOptimisticallyMark) {
+          qc.setQueryData<NotificationsResponse>(key, data => data ? patchActivityReads(data, [n.id], stamp, true) : data);
+        }
+        setReadError("This activity could not be marked as read. Please try again.");
+      } finally {
+        void qc.invalidateQueries({ queryKey: key });
+      }
+    }
+    if (n.type === "new_match" && n.matchId) {
+      router.push({ pathname: "/chat/[matchId]", params: { matchId: n.matchId, returnTo: "activity" } });
+      return;
+    }
+    router.push({ pathname: "/profile/[profileId]", params: { profileId: n.actor.id, returnTo: "activity" } });
+  }
+
   return (
     <Screen title="Activity">
-      <ScrollView contentContainerStyle={[s.list, { paddingBottom: insets.bottom + 110 }]}>
-        <View testID="activity-summary" accessibilityLabel="Activity summary">
-          {cards.map((k) => (
-            <Pressable key={k.key} onPress={() => router.push(k.to as never)} testID={`link-summary-${k.key}`} accessibilityRole="button" accessibilityLabel={`${k.title}, ${k.badge} new`} style={({ pressed }) => [s.card, s.row, { backgroundColor: c.profileCard, borderColor: c.border, opacity: pressed ? 0.85 : 1 }]}>
-              <View style={[s.iconBox, { backgroundColor: c.profileChip }]}>
-                <Feather name={k.icon} size={20} color={c.primary} />
-                {k.badge > 0 && <View style={[s.badge, { backgroundColor: c.primary }]}><Text style={[s.badgeText, { color: c.primaryForeground }]}>{k.badge > 99 ? "99+" : k.badge}</Text></View>}
+      <ScrollView contentContainerStyle={[s.activityContent, { paddingBottom: insets.bottom + 110 }]}>
+        <View testID="activity-summary" accessibilityLabel="Activity summary" style={s.activityGrid}>
+          {cards.map((card) => (
+            <Pressable key={card.key} onPress={() => card.to && router.push(card.to as never)} testID={`link-summary-${card.key}`} accessibilityRole="button" accessibilityLabel={`${card.title}, ${card.count} unread`} disabled={!card.to} style={({ pressed }) => [s.activityMetric, { backgroundColor: c.profileCard, borderColor: c.border, opacity: !card.to ? 0.65 : pressed ? 0.86 : 1 }]}>
+              <View style={[s.activityMetricIcon, { backgroundColor: card.color }]}><Feather name={card.icon} size={23} color="#fff" /></View>
+              <View style={s.activityMetricCopy}>
+                <Text style={[s.activityMetricCount, { color: c.foreground }]} testID={`text-count-${card.key}`}>{notes.isLoading ? "—" : card.count}</Text>
+                <Text style={[s.activityMetricLabel, { color: c.mutedForeground }]}>{card.title}</Text>
               </View>
-              <View style={s.flex}>
-                <Text style={[s.name, { color: c.foreground }]}>{k.title}</Text>
-                <Text numberOfLines={1} style={{ color: c.mutedForeground, fontSize: 13 }}>{k.sub}</Text>
-              </View>
-              <View style={s.stack}>{k.ps.slice(0, 3).map((p, i) => <View key={p.id} style={[s.stackItem, { marginLeft: i ? -12 : 0, borderColor: c.profileCard }]}><ProfileAvatar profile={p} size={32} /></View>)}</View>
-              <Text style={[s.count, { color: c.foreground }]} testID={`text-count-${k.key}`}>{k.loading ? "-" : k.badge}</Text>
-              <Feather name="chevron-right" size={18} color={c.mutedForeground} />
             </Pressable>
           ))}
-          {me.data?.id ? (
-            <Pressable
-              testID="link-summary-followers"
-              accessibilityRole="button"
-              accessibilityLabel={`${followSummary.data?.followersCount ?? 0} followers`}
-              onPress={() => router.push({ pathname: "/followers/[profileId]", params: { profileId: me.data!.id } })}
-              style={({ pressed }) => [s.card, s.row, { backgroundColor: c.profileCard, borderColor: c.border, opacity: pressed ? 0.85 : 1 }]}
-            >
-              <View style={[s.iconBox, { backgroundColor: c.profileChip }]}>
-                <Feather name="user-plus" size={20} color={c.primary} />
-                {(counts?.follows ?? 0) > 0 && <View style={[s.badge, { backgroundColor: c.primary }]}><Text style={[s.badgeText, { color: c.primaryForeground }]}>{counts!.follows > 99 ? "99+" : counts!.follows}</Text></View>}
-              </View>
-              <View style={s.flex}><Text style={[s.name, { color: c.foreground }]}>Followers</Text><Text style={{ color: c.mutedForeground, fontSize: 13 }}>People following you</Text></View>
-              <Text style={[s.count, { color: c.foreground }]}>{followSummary.data?.followersCount ?? (followSummary.isLoading ? "-" : "0")}</Text>
-              <Feather name="chevron-right" size={18} color={c.mutedForeground} />
-            </Pressable>
-          ) : null}
         </View>
+        {readError ? <Text accessibilityRole="alert" style={[s.activityReadError, { color: c.destructive }]}>{readError}</Text> : null}
         {notes.isLoading || (notes.isError && !notes.data) ? (
           <State loading={notes.isLoading} error={notes.isError} empty={false} onRetry={() => void notes.refetch()} icon="bell" emptyTitle="" emptyText="" />
         ) : null}
-        {followNotices.map(n => <View key={n.id} testID={`follow-notice-${n.id}`} style={[s.notice, { backgroundColor: c.profileCard, borderColor: c.border }]}>
-          <Pressable accessibilityRole="button" accessibilityLabel={`${n.actor.name} started following you. Open profile`}
-            onPress={async () => {
-              if (!n.readAt) {
-                try { await mark.mutateAsync({ notificationId: n.id }); } catch { /* Still open the follower's profile. */ }
-                void qc.invalidateQueries({ queryKey: getGetNotificationsQueryKey() });
-              }
-              router.push({ pathname: "/profile/[profileId]", params: { profileId: n.actor.id } });
-            }}
-            style={[s.row, s.flex]}>
-            <View style={{ position: "relative" }}>
-              <ProfileAvatar profile={n.actor} size={40} />
-              <View style={{ position: "absolute", right: -3, bottom: -3, width: 19, height: 19, borderRadius: 10, alignItems: "center", justifyContent: "center", backgroundColor: c.primary, borderWidth: 2, borderColor: c.profileCard }}>
-                <Feather name="user-plus" size={10} color={c.primaryForeground} />
-              </View>
-            </View>
-            <View style={s.flex}><Text style={[s.name, { color: c.primary }]}>{n.actor.name}</Text><Text style={{ color: c.foreground }}>started following you</Text></View>
-            {!n.readAt && <View style={[s.dot, { backgroundColor: c.primary }]} />}
-          </Pressable>
-          <View style={{ alignItems: "flex-end", gap: 6 }}>
-            <Text style={[s.time, { color: c.mutedForeground }]}>{ago(n.createdAt)}</Text>
-            <ProfileFollowNotificationAction profileId={n.actor.id} viewerId={me.data?.id} onFollow={() => {
-              if (!n.readAt) void mark.mutateAsync({ notificationId: n.id }).catch(() => undefined).finally(() => qc.invalidateQueries({ queryKey: getGetNotificationsQueryKey() }));
-            }} />
-          </View>
-        </View>)}
-        {reelNotices.map(n => <Pressable key={n.id} accessibilityRole="button"
-          testID={`reel-like-notice-${n.id}`}
-          onPress={async () => {
-            if (!n.readAt) {
-              try { await mark.mutateAsync({ notificationId: n.id }); } catch { /* Still open the profile. */ }
-              void qc.invalidateQueries({ queryKey: getGetNotificationsQueryKey() });
-            }
-            router.push({ pathname: "/profile/[profileId]", params: { profileId: n.actor.id } });
-          }}
-          style={[s.notice, { backgroundColor: c.profileCard, borderColor: c.border }]}>
-          <ProfileAvatar profile={n.actor} size={40} />
-          <View style={s.flex}><Text style={[s.name, { color: c.primary }]}>{n.actor.name}</Text>
-            <Text style={{ color: c.foreground }}>liked your video</Text></View>
-          <Text style={[s.time, { color: c.mutedForeground }]}>{ago(n.createdAt)}</Text>
-          {!n.readAt && <View style={[s.dot, { backgroundColor: c.primary }]} />}
-        </Pressable>)}
-        {superNotices.map(n => (
-          <Pressable key={n.id} onPress={() => { readNotice(n.actor.id, "new_like"); router.push({ pathname: "/profile/[profileId]", params: { profileId: n.actor.id } }); }} testID={`super-like-notice-${n.id}`} accessibilityRole="button" accessibilityLabel={`${n.actor.name} Super Liked you. Open profile`} style={[s.notice, { backgroundColor: c.profileCard, borderColor: c.primary }]}>
-            <View style={[s.iconBox, { backgroundColor: c.profileChip }]}><Feather name="star" size={22} color={c.primary} /></View>
-            <View style={s.flex}><Text numberOfLines={1} style={[s.name, { color: c.foreground }]}>{n.actor.name}</Text><Text style={{ color: c.primary, fontWeight: "700" }}>Super Liked you</Text></View>
-            <Text style={[s.time, { color: c.mutedForeground }]}>{ago(n.createdAt)}</Text>
-            {!n.readAt && <View style={[s.dot, { backgroundColor: c.primary }]} />}
-            <Feather name="chevron-right" size={17} color={c.primary} />
-          </Pressable>
-        ))}
+        {!notes.isLoading && !notes.isError && items.length === 0 ? (
+          <View style={[s.activityEmpty, { borderColor: c.border }]} testID="status-empty-activity"><Feather name="heart" size={22} color={c.primary}/><Text style={{ color: c.mutedForeground, fontWeight: "700" }}>You’re all caught up</Text></View>
+        ) : null}
+        {items.length > 0 ? <View testID="activity-feed" accessibilityLabel="Activity feed">
+          {items.map(n => {
+            const event = n.type === "new_match"
+              ? { label: "matched with you", icon: "heart" as const, color: "#ed4b89" }
+              : n.type === "new_like" || n.type === "new_super_like"
+                ? { label: n.type === "new_super_like" ? "super liked you" : "liked you", icon: "thumbs-up" as const, color: "#3b82f6" }
+                : n.type === "profile_view"
+                  ? { label: "viewed your profile", icon: "eye" as const, color: "#16a394" }
+                  : { label: "followed you", icon: "user" as const, color: "#8b5cf6" };
+            return <Pressable key={n.id} onPress={() => void openActivityItem(n)} testID={`activity-item-${n.id}`} accessibilityRole="button" accessibilityLabel={`${n.actor.name} ${event.label}, ${ago(n.createdAt)}${n.readAt ? ", read" : ", unread"}`} accessibilityState={{ disabled: false }} style={({ pressed }) => [s.activityRow, { borderBottomColor: c.border, opacity: n.readAt ? 0.56 : pressed ? 0.84 : 1 }]}>
+              <View style={[s.activityFeedIcon, { backgroundColor: event.color }]}><Feather name={event.icon} size={19} color="#fff"/></View>
+              <View style={s.activityFeedCopy}><Text numberOfLines={1} style={[s.activityFeedText, { color: c.foreground }]}><Text style={{ fontWeight: "800" }}>{n.actor.name}</Text> {event.label}</Text><Text style={[s.time, { color: c.mutedForeground }]}>{ago(n.createdAt)}</Text></View>
+              {!n.readAt ? <View style={[s.dot, { backgroundColor: c.primary }]} accessibilityLabel="Unread"/> : null}
+            </Pressable>;
+          })}
+        </View> : null}
       </ScrollView>
     </Screen>
   );
@@ -355,6 +325,19 @@ export function MutualMatchesPage() {
 
 const s = StyleSheet.create({
   flex: { flex: 1 },
+  activityContent: { paddingHorizontal: 16, paddingTop: 8, gap: 10 },
+  activityGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10, marginBottom: 12 },
+  activityMetric: { width: "48.5%", minHeight: 92, flexGrow: 1, flexBasis: "45%", flexDirection: "row", alignItems: "center", gap: 12, borderWidth: 1, borderRadius: 17, padding: 12 },
+  activityMetricIcon: { width: 46, height: 46, borderRadius: 15, alignItems: "center", justifyContent: "center" },
+  activityMetricCopy: { minWidth: 0, gap: 2 },
+  activityMetricCount: { fontSize: 25, fontWeight: "800", lineHeight: 29, fontVariant: ["tabular-nums"] },
+  activityMetricLabel: { fontSize: 13, fontWeight: "600" },
+  activityRow: { minHeight: 72, flexDirection: "row", alignItems: "center", gap: 12, borderBottomWidth: StyleSheet.hairlineWidth, paddingHorizontal: 4, paddingVertical: 10 },
+  activityFeedIcon: { width: 42, height: 42, borderRadius: 21, alignItems: "center", justifyContent: "center" },
+  activityFeedCopy: { flex: 1, minWidth: 0, gap: 4 },
+  activityFeedText: { fontSize: 14 },
+  activityReadError: { borderWidth: 1, borderRadius: 12, padding: 10, fontSize: 13 },
+  activityEmpty: { minHeight: 120, alignItems: "center", justifyContent: "center", gap: 10, borderTopWidth: StyleSheet.hairlineWidth },
   brandBar: { flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 18, paddingBottom: 6 },
   logo: { width: 30, height: 30, borderRadius: 9, alignItems: "center", justifyContent: "center" },
   logoM: { fontSize: 18, fontWeight: "800" },

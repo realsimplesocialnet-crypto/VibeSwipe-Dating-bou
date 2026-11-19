@@ -1,27 +1,10 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { getGetNotificationsQueryKey, useGetNotifications, useMarkNotificationsRead } from "./generated/api";
-import type { NotificationsResponse, NotificationType } from "./generated/api.schemas";
+import { patchActivityReads, unreadActivityIds, type ActivityCategory } from "./activity-state";
+import type { NotificationsResponse } from "./generated/api.schemas";
 
-export type ActivityCategory = "views" | "likes" | "matches";
-const categoryFor = (type: NotificationType): ActivityCategory | "messages" =>
-  type === "profile_view" ? "views" : type === "new_like" || type === "new_super_like" ? "likes" : type === "new_match" ? "matches" : "messages";
-
-export function unreadActivityIds(data: NotificationsResponse, category: ActivityCategory) {
-  return data.notifications.filter(n => !n.readAt && categoryFor(n.type) === category).map(n => n.id);
-}
-
-// Update only the captured IDs: concurrent new activity and other categories survive.
-export function patchActivityReads(data: NotificationsResponse, ids: string[], stamp: string, undo = false): NotificationsResponse {
-  const selected = new Set(ids);
-  const counts = { ...data.unreadCounts };
-  const notifications = data.notifications.map(n => {
-    if (!selected.has(n.id) || (undo ? n.readAt !== stamp : !!n.readAt)) return n;
-    const category = categoryFor(n.type);
-    counts[category] = Math.max(0, counts[category] + (undo ? 1 : -1));
-    return { ...n, readAt: undo ? null : stamp };
-  });
-  return { ...data, notifications, unreadCounts: counts };
-}
+export { patchActivityReads, unreadActivityIds } from "./activity-state";
+export type { ActivityCategory } from "./activity-state";
 
 type ActivityReactHooks = {
   useCallback<T extends (...args: never[]) => unknown>(callback: T, deps: readonly unknown[]): T;
