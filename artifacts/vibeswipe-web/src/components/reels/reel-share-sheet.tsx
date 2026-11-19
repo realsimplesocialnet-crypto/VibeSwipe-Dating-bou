@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   getGetMatchesQueryKey, getGetMyReelsQueryKey, getGetProfileReelsQueryKey, getGetReelQueryKey,
-  getGetReelsFeedQueryKey, getGetSavedReelsQueryKey, useGetMatches, useRecordReelShare, useSendMessage, type Reel,
+  getGetReelsFeedQueryKey, getGetSavedReelsQueryKey, useGetMatches, useGetMyProfile, useRecordReelShare, useSendMessage, type Reel,
 } from "@workspace/api-client-react";
 import { Copy, Share2, X } from "lucide-react";
 import { ReelAvatar } from "@/components/reels/reel-avatar";
@@ -13,12 +13,13 @@ import { QuietSpinner } from "@/components/ui/quiet-spinner";
 export function ReelShareSheet({ reel, onClose, onCountChange, onCountError }: { reel: Reel; onClose: () => void; onCountChange: (count: number) => void; onCountError?: (message: string) => void }) {
   const client = useQueryClient();
   const matches = useGetMatches({ query: { queryKey: getGetMatchesQueryKey() } });
+  const me = useGetMyProfile();
   const send = useSendMessage();
   const recordShare = useRecordReelShare();
   const [pending, setPending] = useState<string | null>(null);
   const [status, setStatus] = useState("");
   const url = reelShareUrl(window.location.origin, import.meta.env.BASE_URL, reel.id);
-  const chats = (matches.data ?? []).filter((match) => !match.blockedByMe && !match.blockedMe);
+  const chats = (matches.data ?? []).filter((match) => !match.blockedByMe && !match.blockedMe && match.profile.id !== me.data?.id);
   const canNativeShare = typeof navigator.share === "function";
 
   async function trackShare() {
@@ -67,23 +68,37 @@ export function ReelShareSheet({ reel, onClose, onCountChange, onCountError }: {
 
   return <div className="reel-sheet-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
     <section className="reel-sheet" role="dialog" aria-modal="true" aria-label="Share Reel" data-testid="sheet-share-reel">
-      <div className="mb-4 flex items-center justify-between"><h2 className="text-base font-bold">Share Reel</h2><button type="button" onClick={onClose} aria-label="Close" data-testid="button-close-share" className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-white/10"><X size={18} /></button></div>
-      <div className="grid grid-cols-2 gap-2">
-        <button type="button" onClick={() => void nativeShare()} disabled={!canNativeShare} data-testid="button-native-share" className="reel-sheet-action"><Share2 size={18} />Share to apps</button>
-        <button type="button" onClick={() => void copy()} data-testid="button-copy-reel-link" className="reel-sheet-action"><Copy size={18} />Copy link</button>
+      <header className="reel-share-heading">
+        <h2 className="text-base font-bold">Send to</h2>
+        <button type="button" onClick={onClose} aria-label="Close" data-testid="button-close-share" className="reel-share-close"><X size={20} /></button>
+      </header>
+      <div className="reel-share-people" aria-label="Send to a match">
+        {(matches.isLoading || (matches.isError && !matches.data)) ? <div className="flex min-h-[96px] w-full items-center justify-center"><QuietSpinner onRetry={() => void matches.refetch()} /></div>
+          : !chats.length ? <p className="reel-share-empty" data-testid="text-no-share-chats">Your matches will appear here.</p>
+          : chats.map((match) => <button
+            key={match.id}
+            type="button"
+            onClick={() => void sendTo(match.id)}
+            disabled={pending === match.id}
+            aria-label={`Send Reel to ${match.profile.name}`}
+            data-testid={`button-share-to-${match.id}`}
+            className="reel-share-person"
+          >
+            <span className="reel-share-person-avatar">
+              <ReelAvatar reference={match.profile.photos?.[0] ?? null} name={match.profile.name} size={54} />
+              <span className="reel-share-send-mark">{pending === match.id ? <QuietSpinner size={14} /> : <Share2 size={14} />}</span>
+            </span>
+            <span className="reel-share-person-name">{match.profile.name}</span>
+          </button>)}
       </div>
-      {status && <p role="status" className="mt-3 text-xs text-white/70" data-testid="status-share-reel">{status}</p>}
-      <h3 className="mb-2 mt-5 text-[11px] font-bold uppercase tracking-[.16em] text-white/45">Send in a chat</h3>
-      <div className="max-h-[38dvh] overflow-y-auto">
-        {(matches.isLoading || (matches.isError && !matches.data)) ? <div className="flex justify-center py-6"><QuietSpinner onRetry={() => void matches.refetch()} /></div>
-          : !chats.length ? <p className="py-4 text-sm text-white/55" data-testid="text-no-share-chats">Only mutual matches can message. Match with someone to share Reels in chat.</p>
-          : <ul className="space-y-1">{chats.map((match) => <li key={match.id} className="flex items-center gap-3 rounded-2xl px-2 py-2 hover:bg-white/[.05]">
-            <ReelAvatar reference={match.profile.photos?.[0] ?? null} name={match.profile.name} size={40} />
-            <span className="min-w-0 flex-1 truncate text-sm font-semibold">{match.profile.name}</span>
-            <button type="button" onClick={() => void sendTo(match.id)} disabled={pending === match.id} data-testid={`button-share-to-${match.id}`} className="inline-flex min-w-[72px] items-center justify-center gap-1 rounded-full bg-primary px-4 py-2 text-xs font-bold text-primary-foreground disabled:cursor-default disabled:opacity-60">
-              {pending === match.id ? <QuietSpinner size={16} /> : "Send"}
-            </button>
-          </li>)}</ul>}
+      {status && <p role="status" className="mt-2 text-xs text-white/70" data-testid="status-share-reel">{status}</p>}
+      <div className="reel-share-destinations" aria-label="Other sharing options">
+        <button type="button" onClick={() => void copy()} data-testid="button-copy-reel-link" className="reel-share-destination">
+          <span className="reel-share-destination-icon is-copy"><Copy size={22} /></span><span>Copy link</span>
+        </button>
+        <button type="button" onClick={() => void nativeShare()} disabled={!canNativeShare} data-testid="button-native-share" className="reel-share-destination" aria-label="Share to apps">
+          <span className="reel-share-destination-icon"><Share2 size={22} /></span><span>More apps</span>
+        </button>
       </div>
     </section>
   </div>;

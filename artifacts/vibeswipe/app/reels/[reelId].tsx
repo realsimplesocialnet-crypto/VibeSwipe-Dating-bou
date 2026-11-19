@@ -28,6 +28,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { VideoView, useVideoPlayer } from "expo-video";
 import { setAudioModeAsync, useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
 import { File, Paths } from "expo-file-system";
+import * as Clipboard from "expo-clipboard";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, Alert, KeyboardAvoidingView, Linking, Modal, Platform, Pressable, ScrollView, Share, StyleSheet, Text, TextInput, View, useWindowDimensions } from "react-native";
 import Svg, { Circle, Path } from "react-native-svg";
@@ -63,7 +64,7 @@ import { ProfileAvatar } from "@/components/ProfileAvatar";
 export default function ProfileReelScreen() {
   const { reelId, returnTo } = useLocalSearchParams<{ reelId: string; returnTo?: string }>();
   const colors = usePremiumColors();
-  const { getToken } = useAuth();
+  const { getToken, userId } = useAuth();
   const queryClient = useQueryClient();
   const insets = useSafeAreaInsets();
   const { width: screenWidth } = useWindowDimensions();
@@ -271,7 +272,7 @@ export default function ProfileReelScreen() {
       const message = `${reel.caption || `${reel.creatorName} on Myage Reels`}\n\n${url}`;
       const result = await Share.share(
         { title: `${reel.creatorName} on Reels`, message, url },
-        { dialogTitle: "Share Reel" },
+        { dialogTitle: "Send to" },
       );
       if (result.action !== Share.sharedAction) return;
       recordCompletedShare(reel, "apps");
@@ -279,6 +280,21 @@ export default function ProfileReelScreen() {
       setActionError("Could not open the share menu. Try again.");
     } finally {
       externalSharePending.current = false;
+    }
+  }
+
+  async function copyReelLink() {
+    const reel = reelQuery.data;
+    if (!reel) return;
+    setShareError("");
+    const origin = (process.env.EXPO_PUBLIC_WEB_URL
+      || (process.env.EXPO_PUBLIC_DOMAIN ? `https://${process.env.EXPO_PUBLIC_DOMAIN}` : "https://myage.beauty")
+    ).replace(/\/+$/, "");
+    try {
+      await Clipboard.setStringAsync(`${origin}/reels/${reel.id}`);
+      setShareVisible(false);
+    } catch {
+      setShareError("Could not copy the Reel link.");
     }
   }
 
@@ -335,7 +351,7 @@ export default function ProfileReelScreen() {
     }
   }
 
-  const shareChats = (matches.data ?? []).filter((match) => !match.blockedByMe && !match.blockedMe);
+  const shareChats = (matches.data ?? []).filter((match) => !match.blockedByMe && !match.blockedMe && match.profile.id !== userId);
 
   function openComments() {
     setCommentVideoPaused(false);
@@ -523,75 +539,13 @@ export default function ProfileReelScreen() {
             style={StyleSheet.absoluteFill}
           />
           <View style={[styles.shareSheet, { backgroundColor: colors.card, paddingBottom: Math.max(insets.bottom, 18) }]}>
-            <View style={styles.shareHeading}>
-              <Text style={[styles.shareTitle, { color: colors.foreground }]}>Share Reel</Text>
-              <Pressable accessibilityRole="button" accessibilityLabel="Close" onPress={() => setShareVisible(false)} style={styles.closeShare}>
+            <View style={[styles.shareHeading, styles.sendToHeading]}>
+              <Text style={[styles.shareTitle, styles.sendToTitle, { color: colors.foreground }]}>Send to</Text>
+              <Pressable accessibilityRole="button" accessibilityLabel="Close" onPress={() => setShareVisible(false)} style={[styles.closeShare, styles.sendToClose]}>
                 <Feather name="x" size={20} color={colors.foreground} />
               </Pressable>
             </View>
             {shareError ? <Text accessibilityRole="alert" style={[styles.shareError, { color: colors.destructive }]}>{shareError}</Text> : null}
-            {Platform.OS === "android" ? (
-              <>
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={androidShareTargetsVisible ? "Hide share apps" : "Choose an app to share this Reel"}
-                  testID="button-share-to-apps"
-                  onPress={() => setAndroidShareTargetsVisible((visible) => !visible)}
-                  style={[styles.shareAppsButton, { backgroundColor: colors.background, borderColor: colors.primary }]}
-                >
-                  <View style={[styles.shareAppsIcon, { backgroundColor: colors.primary }]}>
-                    <Feather name="share-2" size={18} color={colors.primaryForeground} />
-                  </View>
-                  <View style={styles.shareAppsCopy}>
-                    <Text style={[styles.shareAppsTitle, { color: colors.foreground }]}>Share to apps</Text>
-                    <Text style={[styles.shareAppsSubtitle, { color: colors.mutedForeground }]}>WhatsApp, Telegram, Messages, Email</Text>
-                  </View>
-                  <Feather name="chevron-right" size={18} color={colors.mutedForeground} />
-                </Pressable>
-                {androidShareTargetsVisible ? (
-                  <View style={styles.shareAppTargets}>
-                    {([
-                      ["whatsapp", "WhatsApp", "message-circle"],
-                      ["telegram", "Telegram", "send"],
-                      ["messages", "Messages", "message-square"],
-                      ["email", "Email", "mail"],
-                    ] as const).map(([target, label, icon]) => (
-                      <Pressable
-                        key={target}
-                        accessibilityRole="button"
-                        accessibilityLabel={`Share Reel with ${label}`}
-                        testID={`button-share-reel-${target}`}
-                        onPress={() => void shareToExternalApp(target)}
-                        style={[styles.shareAppTarget, { backgroundColor: colors.background }]}
-                      >
-                        <View style={[styles.shareAppTargetIcon, { backgroundColor: colors.primary }]}>
-                          <Feather name={icon} size={18} color={colors.primaryForeground} />
-                        </View>
-                        <Text style={[styles.shareAppTargetLabel, { color: colors.foreground }]}>{label}</Text>
-                      </Pressable>
-                    ))}
-                  </View>
-                ) : null}
-              </>
-            ) : (
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Share Reel to another app"
-                testID="button-share-to-apps"
-                onPress={() => void shareToApps()}
-                style={[styles.shareAppsButton, { backgroundColor: colors.background, borderColor: colors.primary }]}
-              >
-                <View style={[styles.shareAppsIcon, { backgroundColor: colors.primary }]}>
-                  <Feather name="share-2" size={18} color={colors.primaryForeground} />
-                </View>
-                <View style={styles.shareAppsCopy}>
-                  <Text style={[styles.shareAppsTitle, { color: colors.foreground }]}>Share to apps</Text>
-                  <Text style={[styles.shareAppsSubtitle, { color: colors.mutedForeground }]}>Messages, WhatsApp, and more</Text>
-                </View>
-                <Feather name="chevron-right" size={18} color={colors.mutedForeground} />
-              </Pressable>
-            )}
-            <Text style={[styles.shareSectionTitle, { color: colors.mutedForeground }]}>SEND IN A CHAT</Text>
             {matches.isLoading ? (
               <ActivityIndicator color={colors.primary} style={styles.shareLoading} />
             ) : matches.isError ? (
@@ -599,9 +553,9 @@ export default function ProfileReelScreen() {
                 <Text style={[styles.shareEmptyText, { color: colors.mutedForeground }]}>Chats could not load. Tap to retry.</Text>
               </Pressable>
             ) : !shareChats.length ? (
-              <Text style={[styles.shareEmptyText, { color: colors.mutedForeground }]}>Only mutual matches can receive a Reel in chat.</Text>
+              <Text testID="text-no-share-chats" style={[styles.shareEmptyText, { color: colors.mutedForeground }]}>Your matches will appear here.</Text>
             ) : (
-              <ScrollView style={styles.shareList} keyboardShouldPersistTaps="handled">
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.shareList} contentContainerStyle={styles.shareRecipientRow} keyboardShouldPersistTaps="handled" accessibilityLabel="Send to a match">
                 {shareChats.map((match) => {
                   const sent = sentTo[match.id];
                   const pending = pendingMatchId === match.id;
@@ -613,21 +567,60 @@ export default function ProfileReelScreen() {
                       testID={`button-share-to-${match.id}`}
                       disabled={Boolean(pendingMatchId) || sent}
                       onPress={() => void shareToMatch(match.id)}
-                      style={[styles.shareRecipient, { backgroundColor: colors.background }, sent && styles.shareRecipientSent]}
+                      style={[styles.shareRecipient, sent && styles.shareRecipientSent]}
                     >
-                      <ProfileAvatar profile={match.profile} size={42} />
-                      <Text numberOfLines={1} style={[styles.shareRecipientName, { color: colors.foreground }]}>{match.profile.name}</Text>
-                      <View style={[styles.sendPill, { backgroundColor: sent ? colors.secondary : colors.primary }]}>
-                        {sent ? <Feather name="check" size={14} color={colors.secondaryForeground} /> : null}
-                        <Text style={[styles.sendPillText, { color: sent ? colors.secondaryForeground : colors.primaryForeground }]}>
-                          {sent ? "Sent" : pending ? "Sending" : "Send"}
-                        </Text>
+                      <View style={styles.shareRecipientAvatarWrap}>
+                        <ProfileAvatar profile={match.profile} size={56} />
+                        <View style={[styles.shareRecipientSendMark, { backgroundColor: colors.primary }]}>
+                          {pending ? <ActivityIndicator size="small" color={colors.primaryForeground} /> : sent ? <Feather name="check" size={12} color={colors.primaryForeground} /> : <Feather name="send" size={11} color={colors.primaryForeground} />}
+                        </View>
                       </View>
+                      <Text numberOfLines={1} style={[styles.shareRecipientName, { color: colors.foreground }]}>{match.profile.name}</Text>
                     </Pressable>
                   );
                 })}
               </ScrollView>
             )}
+            <View style={styles.shareDestinationRow}>
+              <Pressable accessibilityRole="button" accessibilityLabel="Copy Reel link" testID="button-copy-reel-link" onPress={() => void copyReelLink()} style={styles.shareDestination}>
+                <View style={[styles.shareDestinationIcon, { backgroundColor: colors.primary }]}><Feather name="link" size={21} color={colors.primaryForeground} /></View>
+                <Text style={[styles.shareDestinationLabel, { color: colors.foreground }]}>Copy link</Text>
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={Platform.OS === "android" && androidShareTargetsVisible ? "Hide share apps" : "Share to apps"}
+                testID="button-share-to-apps"
+                onPress={() => Platform.OS === "android" ? setAndroidShareTargetsVisible((visible) => !visible) : void shareToApps()}
+                style={styles.shareDestination}
+              >
+                <View style={[styles.shareDestinationIcon, { backgroundColor: "#2388e9" }]}><Feather name="share-2" size={21} color="#fff" /></View>
+                <Text style={[styles.shareDestinationLabel, { color: colors.foreground }]}>More apps</Text>
+              </Pressable>
+            </View>
+            {Platform.OS === "android" && androidShareTargetsVisible ? (
+              <View style={styles.shareAppTargets}>
+                {([
+                  ["whatsapp", "WhatsApp", "message-circle"],
+                  ["telegram", "Telegram", "send"],
+                  ["messages", "Messages", "message-square"],
+                  ["email", "Email", "mail"],
+                ] as const).map(([target, label, icon]) => (
+                  <Pressable
+                    key={target}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Share Reel with ${label}`}
+                    testID={`button-share-reel-${target}`}
+                    onPress={() => void shareToExternalApp(target)}
+                    style={[styles.shareAppTarget, { backgroundColor: colors.background }]}
+                  >
+                    <View style={[styles.shareAppTargetIcon, { backgroundColor: colors.primary }]}>
+                      <Feather name={icon} size={18} color={colors.primaryForeground} />
+                    </View>
+                    <Text style={[styles.shareAppTargetLabel, { color: colors.foreground }]}>{label}</Text>
+                  </Pressable>
+                ))}
+              </View>
+            ) : null}
           </View>
         </View>
       </Modal>
@@ -735,6 +728,9 @@ const styles = StyleSheet.create({
   moreActionText: { fontSize: 14, fontWeight: "700" },
   shareSheet: { maxHeight: "72%", borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 18, paddingTop: 12 },
   shareHeading: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 6 },
+  sendToHeading: { position: "relative", justifyContent: "center", minHeight: 40 },
+  sendToTitle: { textAlign: "center" },
+  sendToClose: { position: "absolute", right: 0 },
   shareTitle: { fontSize: 18, fontWeight: "800" },
   closeShare: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
   shareError: { marginTop: 3, fontSize: 12, fontWeight: "600" },
@@ -751,7 +747,7 @@ const styles = StyleSheet.create({
   shareLoading: { paddingVertical: 28 },
   shareEmpty: { minHeight: 76, justifyContent: "center" },
   shareEmptyText: { paddingVertical: 15, fontSize: 13, lineHeight: 19 },
-  shareList: { marginBottom: 4 },
+  shareList: { minHeight: 100, maxHeight: 104, marginBottom: 4 },
   commentBackdrop: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.55)" },
   commentSheet: { maxHeight: "68%", minHeight: "46%", borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 16, paddingTop: 12, paddingBottom: 12 },
   commentHeadingActions: { flexDirection: "row", alignItems: "center", gap: 8 },
@@ -772,9 +768,14 @@ const styles = StyleSheet.create({
   slideDot: { width: 5, height: 5, borderRadius: 3, backgroundColor: "rgba(255,255,255,0.48)" },
   slideDotActive: { width: 7, height: 7, borderRadius: 4, backgroundColor: "#fff" },
   disabled: { opacity: 0.45 },
-  shareRecipient: { minHeight: 62, flexDirection: "row", alignItems: "center", gap: 11, borderRadius: 16, paddingHorizontal: 10, marginVertical: 3 },
+  shareRecipientRow: { alignItems: "flex-start", gap: 14, paddingHorizontal: 2 },
+  shareRecipient: { width: 64, minHeight: 88, alignItems: "center", gap: 5, paddingHorizontal: 0 },
   shareRecipientSent: { opacity: 0.76 },
-  shareRecipientName: { flex: 1, fontSize: 14, fontWeight: "700" },
-  sendPill: { minWidth: 68, minHeight: 34, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 4, borderRadius: 18, paddingHorizontal: 11 },
-  sendPillText: { fontSize: 12, fontWeight: "800" },
+  shareRecipientAvatarWrap: { position: "relative", width: 56, height: 56 },
+  shareRecipientSendMark: { position: "absolute", right: -2, bottom: -2, width: 21, height: 21, alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: "#1b161f", borderRadius: 11 },
+  shareRecipientName: { maxWidth: 64, fontSize: 11, fontWeight: "700", textAlign: "center" },
+  shareDestinationRow: { flexDirection: "row", gap: 22, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: "rgba(255,255,255,0.12)", marginHorizontal: -18, marginTop: 8, paddingHorizontal: 18, paddingTop: 14 },
+  shareDestination: { minWidth: 66, alignItems: "center", gap: 6 },
+  shareDestinationIcon: { width: 48, height: 48, alignItems: "center", justifyContent: "center", borderRadius: 24 },
+  shareDestinationLabel: { fontSize: 11, fontWeight: "700" },
 });

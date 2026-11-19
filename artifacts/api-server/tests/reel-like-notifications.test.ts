@@ -175,6 +175,19 @@ test("photo Reels track the finger across slides and keep horizontal gestures ou
   assert.match(native, /bounces=\{false\}/);
 });
 
+test("Reel sharing opens with Send to contacts before copy-link and app actions", () => {
+  const web = source("artifacts/vibeswipe-web/src/components/reels/reel-share-sheet.tsx");
+  const native = source("artifacts/vibeswipe/app/reels/[reelId].tsx");
+  assert.match(web, /<h2 className="text-base font-bold">Send to<\/h2>/);
+  assert.ok(web.indexOf("className=\"reel-share-people\"") < web.indexOf("className=\"reel-share-destinations\""));
+  assert.match(web, /data-testid="button-copy-reel-link" className="reel-share-destination"/);
+  const shareModal = native.slice(native.indexOf('<Modal transparent visible={shareVisible'), native.indexOf('<Modal transparent visible={moreVisible'));
+  assert.match(shareModal, />Send to<\/Text>/);
+  assert.ok(shareModal.indexOf("shareChats.map") < shareModal.indexOf('testID="button-copy-reel-link"'));
+  assert.match(shareModal, />Copy link<\/Text>/);
+  assert.doesNotMatch(shareModal, />Share Reel<\/Text>/);
+});
+
 test("Reel comments stay open with playback controls and can be swiped down", () => {
   const feed = source("artifacts/vibeswipe-web/src/pages/reels-feed.tsx");
   const slide = source("artifacts/vibeswipe-web/src/components/reels/reel-slide.tsx");
