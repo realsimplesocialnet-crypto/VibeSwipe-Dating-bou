@@ -27,3 +27,11 @@ test("Reel posts accept a selected catalog track ID", () => {
   assert.match(route, /getReelSoundtrack\(body\.data\.soundtrackId\)/);
   assert.match(route, /soundtrack,\s+durationSeconds:/);
 });
+
+test("Reel posting keeps controls while removing instructional paragraphs", () => {
+  const composer = readFileSync(new URL("../../vibeswipe-web/src/pages/reel-composer.tsx", import.meta.url), "utf8");
+  assert.match(composer, /Record or choose a video/);
+  assert.match(composer, /Who can see this Reel\?/);
+  assert.match(composer, /data-testid="select-reel-audience"/);
+  assert.doesNotMatch(composer, /There is no Reel duration limit|Music replaces the video’s original sound|Creator and license credit will appear|Anyone can view it|Mutual followers only|A private account is visible only|Choose a free track for your Reel/);
+});

@@ -113,7 +113,7 @@ test("read endpoint is recipient scoped; keyboard scrolling stays inside chat wi
   assert.match(bulk, /eq\(vibeSwipeNotificationsTable.recipientId,\s*currentUserId\(req\)\)/);
   assert.match(bulk, /inArray\(vibeSwipeNotificationsTable.id,\s*body.data.notificationIds\)/);
   assert.match(web, /viewport\?\.addEventListener\('scroll',resize\)/);
-  assert.match(web, /chatViewport.keyboardOpen\?0:/);
+  assert.match(web, /composer\.style\.paddingBottom=frame\.keyboardOpen\?'0px':/);
   assert.doesNotMatch(web, /bottom.current\?\.scrollIntoView/);
   assert.match(native, /marginBottom: keyboardVisible \? 0/);
   assert.match(social, /active: focused && foreground/);

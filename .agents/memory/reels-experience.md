@@ -129,6 +129,12 @@ Reels have no app-imposed duration cap; Story videos are limited to 60 seconds. 
 
 **How to apply:** Do not add duration checks or trim Reels in selection, upload, transcoding, moderation or publishing. Preserve the full clip, retain resource safeguards such as upload-size limits, and enforce the separate 60-second Story limit on client and server.
 
+Keep the Reel posting screen concise: show action labels, field labels, choices, errors, and necessary status only; omit explanatory paragraphs about duration, music, and privacy.
+
+**Why:** The user said they do not like explanatory text on this screen.
+
+**How to apply:** Prefer a short label or control over explanatory copy on the Reel composer.
+
 Safety approval must refer to the exact checked video, not a client-writable upload destination. Unknown, failed, outdated or rejected checks must never make a Reel public.
 
 **Why:** A still-valid upload URL can overwrite bytes after a successful check. Automatic moderation also cannot promise to catch every explicit scene.

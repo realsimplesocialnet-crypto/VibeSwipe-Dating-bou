@@ -243,7 +243,6 @@ export function ReelComposerPage() {
           : <div className="flex h-full flex-col items-center justify-center px-8 text-center">
             <span className="reels-empty-mark">{mode === "slides" ? <Images size={28} /> : <Film size={28} />}</span>
             <p className="mt-5 text-lg font-bold">{mode === "slides" ? "Choose 2–10 photos" : "Record or choose a video"}</p>
-            <p className="mt-1 text-sm leading-6 text-white/60">{mode === "slides" ? "Your photos become a swipeable Reel." : "There is no Reel duration limit. MP4 or MOV videos up to 500 MB are supported; longer videos may take more time to upload and process."}</p>
           </div>}
       </div>
       {mode === "slides" ? <div className="flex items-center gap-2">
@@ -258,22 +257,22 @@ export function ReelComposerPage() {
           <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-primary"><Music2 size={19}/></span>
           <div className="min-w-0 flex-1">
             <p className="text-sm font-bold text-white">{selectedTrack?.title ?? "Add music"}</p>
-            <p className="truncate text-xs text-white/55">{selectedTrack ? selectedTrack.artist : "Choose a free track for your Reel"}</p>
+            {selectedTrack ? <p className="truncate text-xs text-white/55">{selectedTrack.artist}</p> : null}
           </div>
           {selectedTrack ? <button type="button" onClick={() => setMusicPickerOpen(true)} disabled={busy} className="rounded-full px-3 py-2 text-xs font-bold text-primary" data-testid="button-change-reel-music">Change</button> : null}
           {selectedTrack ? <button type="button" onClick={() => { setSoundtrackId(null); stopTrackPreview(); }} disabled={busy} aria-label="Remove music" className="flex h-9 w-9 items-center justify-center rounded-full text-white/65" data-testid="button-remove-reel-music"><X size={18}/></button> : null}
           {!selectedTrack ? <button type="button" onClick={() => setMusicPickerOpen(true)} disabled={busy} className="rounded-full bg-primary px-4 py-2 text-xs font-extrabold text-primary-foreground" data-testid="button-add-reel-music">Choose</button> : null}
         </div>
-        {selectedTrack ? <p className="mt-2 pl-[52px] text-[11px] leading-4 text-white/45">{mode === "video" ? "Music replaces the video’s original sound." : "Music plays with your photo slides."} Creator and license credit will appear with your Reel.</p> : null}
       </section>
       <label className="block text-xs font-semibold text-white/60">Caption<textarea value={caption} onChange={(event) => setCaption(event.target.value)} maxLength={300} rows={2} disabled={busy} placeholder="Say something about this moment" data-testid="input-reel-caption" className="mt-2 w-full resize-none rounded-2xl border border-white/10 bg-white/[.06] px-4 py-3 text-[16px] text-white placeholder:text-white/35 focus:border-primary/60 focus:outline-none" /><span className="mt-1 block text-right font-normal text-white/40">{caption.length}/300</span></label>
-      <fieldset className="space-y-2">
-        <legend className="text-xs font-semibold text-white/60">Who can see this Reel?</legend>
-        <div className="grid grid-cols-2 gap-2">
-          {([["public","Public","Anyone can view it"],["friends","Friends","Mutual followers only"]] as const).map(([value,label,detail])=><button key={value} type="button" role="radio" aria-checked={audience===value} disabled={busy} onClick={()=>setAudience(value)} className={`rounded-xl border px-3 py-2.5 text-left transition-colors ${audience===value?"border-primary bg-primary/15 text-white":"border-white/10 bg-white/[.04] text-white/70"}`} data-testid={`button-reel-audience-${value}`}><span className="block text-sm font-bold">{label}</span><span className="mt-0.5 block text-[11px]">{detail}</span></button>)}
-        </div>
-        <p className="text-[11px] leading-4 text-white/45">A private account is visible only to approved followers.</p>
-      </fieldset>
+      <label className="block text-xs font-semibold text-white/60">
+        Who can see this Reel?
+        <select value={audience ?? ""} onChange={(event) => setAudience(event.target.value as ReelAudience || null)} disabled={busy} aria-label="Who can see this Reel?" data-testid="select-reel-audience" className="mt-2 h-12 w-full rounded-xl border border-white/10 bg-white/[.04] px-4 text-sm font-semibold text-white focus:border-primary/60 focus:outline-none">
+          <option value="" disabled className="bg-[#151319]">Choose audience</option>
+          <option value="public" className="bg-[#151319]">Public</option>
+          <option value="friends" className="bg-[#151319]">Friends</option>
+        </select>
+      </label>
       {(checking || stage === "uploading" && uploadAttempt > 1) && <div role="status" aria-label="Loading" className="flex justify-center"><QuietSpinner /></div>}
       {error && <p role="alert" className="rounded-2xl border border-rose-300/25 bg-rose-400/10 px-4 py-3 text-sm text-rose-100" data-testid="error-reel-composer">{error}</p>}
       <button type="button" onClick={() => void post()} disabled={(mode === "video" ? !file : slideFiles.length < 2) || !audience || busy || checking} aria-label={busy ? "Posting Reel" : "Post Reel"} data-testid="button-post-reel" className="reels-primary mt-auto w-full disabled:opacity-40">
