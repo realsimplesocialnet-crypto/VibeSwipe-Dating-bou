@@ -223,7 +223,7 @@ test("music preview stops and releases when the picker, composer, or page is lef
   assert.match(composer, /setMusicPickerOpen\(false\); stopTrackPreview\(\)/);
 });
 
-test("Reel comments stay open with playback controls and can be swiped down", () => {
+test("Reel comments keep the TikTok-style composer and support photo-only comments", () => {
   const feed = source("artifacts/vibeswipe-web/src/pages/reels-feed.tsx");
   const slide = source("artifacts/vibeswipe-web/src/components/reels/reel-slide.tsx");
   const comments = source("artifacts/vibeswipe-web/src/components/reels/reel-comments.tsx");
@@ -242,12 +242,19 @@ test("Reel comments stay open with playback controls and can be swiped down", ()
   assert.doesNotMatch(styles, /\.reel-comments \{[^}]*border-top:/);
   assert.match(comments, /reel-comment-reactions/);
   assert.match(comments, /reel-comment-tools/);
+  assert.match(comments, /type="file" accept=\{PROFILE_PHOTO_ACCEPT\}/);
+  assert.match(comments, /uploadProfilePhotoBytes/);
   assert.match(comments, /Add photo/);
   assert.match(comments, /Mention someone/);
-  assert.match(comments, /Record voice comment/);
+  assert.doesNotMatch(comments, /Record voice comment|<Mic\b/);
+  assert.match(comments, /\(!content && !selectedPhoto\)/);
   assert.match(styles, /\.reel-comment-input-wrap \{[^}]*border-radius: 22px/);
   assert.match(native, /commentReactions/);
   assert.match(native, /commentTools/);
   assert.match(native, /Add photo/);
   assert.match(native, /Mention someone/);
+  const nativeCommentSheet = native.slice(native.indexOf('<Modal transparent visible={commentsVisible'));
+  assert.doesNotMatch(nativeCommentSheet, /Record voice comment|name="mic"/);
+  assert.match(native, /mediaType: "image"/);
+  assert.match(nativeCommentSheet, /keyboardVerticalOffset=\{0\}/);
 });

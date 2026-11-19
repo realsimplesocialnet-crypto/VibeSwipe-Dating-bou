@@ -149,7 +149,7 @@ import {
 } from "../lib/travelCities";
 import { hasUnblockedMutualFollowBetween } from "../lib/vibeswipeStories";
 import { canViewStory } from "../lib/vibeswipeStoryRules";
-import { canViewReelMedia } from "../lib/reels-visibility";
+import { canViewReelCommentMedia, canViewReelMedia } from "../lib/reels-visibility";
 import { canStartChat, canViewUserProfile } from "../lib/profile-privacy";
 import { automaticDiscovery, countryValues, discoveryTier, minimumDiscoveryPool, regionalCountryValues, smartDiscoveryPool } from "../lib/discovery-pool";
 import { discoveryExcludedIds } from "../lib/discovery-exclusions";
@@ -2919,6 +2919,10 @@ async function authorizeMediaRead(
           hasMutualFollow: !!storyFollow,
         })
       : false;
+    const commentMediaVisible =
+      !asset.matchId && asset.mediaType === "image"
+        ? await canViewReelCommentMedia(userId, asset.id)
+        : false;
     if (asset.matchId) {
       const match = await getMatchForUser(asset.matchId, userId);
       if (!match || (await isBlockedBetween(match.userAId, match.userBId))) {
@@ -2940,7 +2944,7 @@ async function authorizeMediaRead(
           return { ok: false, error: "Chat media is not attached to a message." };
         }
       }
-    } else if (asset.ownerId !== userId && !storyVisible && !(await canViewReelMedia(userId, asset.id))) {
+    } else if (asset.ownerId !== userId && !storyVisible && !commentMediaVisible && !(await canViewReelMedia(userId, asset.id))) {
       const [ownerProfile] = await db
         .select()
         .from(profilesTable)
@@ -2953,7 +2957,7 @@ async function authorizeMediaRead(
         return { ok: false, error: "Media is not visible to this account." };
       }
     }
-  return { ok: true, privateMedia: Boolean(activeStory || asset.matchId) };
+  return { ok: true, privateMedia: Boolean(activeStory || asset.matchId || commentMediaVisible) };
 }
 
 router.get(

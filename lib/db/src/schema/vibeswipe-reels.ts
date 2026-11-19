@@ -94,10 +94,12 @@ export const reelCommentsTable = pgTable("vibeswipe_reel_comments", {
   parentCommentId: uuid("parent_comment_id"),
   userId: text("user_id").notNull().references(() => profilesTable.id, { onDelete: "cascade" }),
   content: text("content").notNull(),
+  mediaId: uuid("media_id").references(() => mediaAssetsTable.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => ({
   byReel: index("vibeswipe_reel_comments_reel_idx").on(t.reelId, t.createdAt),
   byParent: index("vibeswipe_reel_comments_parent_idx").on(t.parentCommentId, t.createdAt),
+  byMedia: index("vibeswipe_reel_comments_media_idx").on(t.mediaId),
 }));
 
 export type Reel = typeof reelsTable.$inferSelect;

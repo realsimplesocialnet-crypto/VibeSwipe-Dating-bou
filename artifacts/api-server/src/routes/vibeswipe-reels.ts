@@ -583,6 +583,7 @@ router.get("/vibeswipe/reels/:reelId/comments", async (req, res): Promise<void> 
   const rows = await db.select({
     id: reelCommentsTable.id, reelId: reelCommentsTable.reelId, authorId: reelCommentsTable.userId,
     parentCommentId: reelCommentsTable.parentCommentId, content: reelCommentsTable.content,
+    mediaId: reelCommentsTable.mediaId,
     createdAt: reelCommentsTable.createdAt, name: profilesTable.name, photos: profilesTable.photos,
   }).from(reelCommentsTable)
     .innerJoin(profilesTable, eq(profilesTable.id, reelCommentsTable.userId))
@@ -595,7 +596,8 @@ router.get("/vibeswipe/reels/:reelId/comments", async (req, res): Promise<void> 
     .orderBy(desc(reelCommentsTable.createdAt)).limit(100);
   res.json(GetReelCommentsResponse.parse(rows.reverse().map((row) => ({
     id: row.id, reelId: row.reelId, parentCommentId: row.parentCommentId, authorId: row.authorId, authorName: row.name, authorPhoto: row.photos[0] ?? null,
-    content: row.content, canDelete: row.authorId === viewerId || reel.userId === viewerId, createdAt: row.createdAt,
+    content: row.content, mediaReference: row.mediaId ? `media:${row.mediaId}` : null,
+    canDelete: row.authorId === viewerId || reel.userId === viewerId, createdAt: row.createdAt,
   }))));
 });
 
@@ -603,11 +605,21 @@ router.post("/vibeswipe/reels/:reelId/comments", async (req, res): Promise<void>
   const params = CreateReelCommentParams.safeParse(req.params);
   const body = CreateReelCommentBody.safeParse(req.body);
   if (!params.success || !body.success) { res.status(400).json({ error: "Write a comment up to 500 characters." }); return; }
-  const content = body.data.content.trim();
-  if (!content) { res.status(400).json({ error: "Write a comment up to 500 characters." }); return; }
+  const content = body.data.content?.trim() ?? "";
+  const mediaId = body.data.mediaId;
+  if (!content && !mediaId) { res.status(400).json({ error: "Add text or a photo to your comment." }); return; }
   const userId = uid(req);
   const reel = await findVisibleReel(userId, params.data.reelId);
   if (!reel) { res.status(404).json({ error: "This Reel is no longer available." }); return; }
+  if (mediaId) {
+    const [asset] = await db.select({ id: mediaAssetsTable.id }).from(mediaAssetsTable).where(and(
+      eq(mediaAssetsTable.id, mediaId),
+      eq(mediaAssetsTable.ownerId, userId),
+      eq(mediaAssetsTable.mediaType, "image"),
+      isNull(mediaAssetsTable.matchId),
+    )).limit(1);
+    if (!asset) { res.status(403).json({ error: "Choose a photo uploaded from this account." }); return; }
+  }
   const parentCommentId = body.data.parentCommentId;
   let parentAuthorId: string | null = null;
   if (parentCommentId) {
@@ -632,7 +644,7 @@ router.post("/vibeswipe/reels/:reelId/comments", async (req, res): Promise<void>
   }
   const [comment] = await db.transaction(async (tx) => {
     const [created] = await tx.insert(reelCommentsTable).values({
-      reelId: reel.id, parentCommentId: parentCommentId ?? null, userId, content, createdAt: new Date(),
+      reelId: reel.id, parentCommentId: parentCommentId ?? null, userId, content, mediaId: mediaId ?? null, createdAt: new Date(),
     }).returning();
     if (created && parentAuthorId && parentAuthorId !== userId) {
       const [recipient] = await tx.select({
@@ -654,7 +666,7 @@ router.post("/vibeswipe/reels/:reelId/comments", async (req, res): Promise<void>
   }
   res.status(201).json(CreateReelCommentResponse.parse({
     id: comment!.id, reelId: reel.id, parentCommentId: comment!.parentCommentId, authorId: userId, authorName: me?.name ?? "You", authorPhoto: me?.photos[0] ?? null,
-    content, canDelete: true, createdAt: comment!.createdAt,
+    content, mediaReference: mediaId ? `media:${mediaId}` : null, canDelete: true, createdAt: comment!.createdAt,
   }));
 });
 

@@ -6,6 +6,7 @@ import {
   profileSetupDraftsTable,
   profilesTable,
   faceVerificationSessionsTable,
+  reelCommentsTable,
   reelSlidesTable,
   reelsTable,
 } from "@workspace/db";
@@ -90,6 +91,12 @@ async function deleteIfUnreferenced(
     .where(eq(reelSlidesTable.mediaId, asset.id))
     .limit(1);
   if (slideReference) return false;
+  const [commentReference] = await tx
+    .select({ id: reelCommentsTable.id })
+    .from(reelCommentsTable)
+    .where(eq(reelCommentsTable.mediaId, asset.id))
+    .limit(1);
+  if (commentReference) return false;
 
   await objectStorage.deleteObjectEntity(asset.objectPath);
   evictMediaPreview(asset.id);

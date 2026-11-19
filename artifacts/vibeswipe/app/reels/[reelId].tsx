@@ -18,20 +18,25 @@ import {
   useRecordReelView,
   useSaveReel,
   useSendMessage,
+  useRequestProfileMediaUpload,
   useUnlikeReel,
   useUnsaveReel,
+  type MediaUploadInputContentType,
   type Reel,
 } from "@workspace/api-client-react";
 import { Feather } from "@expo/vector-icons";
 import { Image as CachedImage } from "expo-image";
+import * as ImagePicker from "expo-image-picker";
 import { router, useLocalSearchParams } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { VideoView, useVideoPlayer } from "expo-video";
 import { setAudioModeAsync, useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
 import { File, Paths } from "expo-file-system";
+import { fetch as expoFetch } from "expo/fetch";
 import * as Clipboard from "expo-clipboard";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, Alert, KeyboardAvoidingView, Linking, Modal, Platform, Pressable, ScrollView, Share, StyleSheet, Text, TextInput, View, useWindowDimensions } from "react-native";
+import { ActivityIndicator, Alert, Linking, Modal, Platform, Pressable, ScrollView, Share, StyleSheet, Text, TextInput, View, useWindowDimensions } from "react-native";
+import { KeyboardAvoidingView, useKeyboardState } from "react-native-keyboard-controller";
 import Svg, { Circle, Path } from "react-native-svg";
 import { useQueryClient } from "@tanstack/react-query";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
@@ -61,7 +66,7 @@ function ReelActionIcon({ name, filled = false, foreground, activeColor, cutoutC
     </Svg>
   );
 }
-import { mediaUri } from "@/lib/media";
+import { mediaUri, profileImagePreviewSource } from "@/lib/media";
 import { ProfileAvatar } from "@/components/ProfileAvatar";
 
 export default function ProfileReelScreen() {
@@ -70,6 +75,7 @@ export default function ProfileReelScreen() {
   const { getToken, userId } = useAuth();
   const queryClient = useQueryClient();
   const insets = useSafeAreaInsets();
+  const keyboardVisible = useKeyboardState((state) => state.isVisible);
   const { width: screenWidth } = useWindowDimensions();
   const [token, setToken] = useState<string | null>(null);
   const [shareVisible, setShareVisible] = useState(false);
@@ -81,11 +87,14 @@ export default function ProfileReelScreen() {
   const [slideIndex, setSlideIndex] = useState(0);
   const [slideViewportWidth, setSlideViewportWidth] = useState(0);
   const [commentDraft, setCommentDraft] = useState("");
+  const [commentPhoto, setCommentPhoto] = useState<ImagePicker.ImagePickerAsset | null>(null);
+  const [commentPhotoBusy, setCommentPhotoBusy] = useState(false);
   const [pendingMatchId, setPendingMatchId] = useState<string | null>(null);
   const [sentTo, setSentTo] = useState<Record<string, boolean>>({});
   const [shareError, setShareError] = useState("");
   const [actionError, setActionError] = useState("");
   const externalSharePending = useRef(false);
+  const uploadedCommentPhoto = useRef<{ uri: string; mediaId: string } | null>(null);
   const recordView = useRecordReelView();
   const recordShare = useRecordReelShare();
   const likeReel = useLikeReel();
@@ -94,6 +103,7 @@ export default function ProfileReelScreen() {
   const unsaveReel = useUnsaveReel();
   const markNotInterested = useMarkReelNotInterested();
   const createComment = useCreateReelComment();
+  const requestCommentPhotoUpload = useRequestProfileMediaUpload();
   const matches = useGetMatches({
     query: { queryKey: getGetMatchesQueryKey(), enabled: shareVisible },
   });
@@ -247,17 +257,76 @@ export default function ProfileReelScreen() {
   async function postComment() {
     const reel = reelQuery.data;
     const content = commentDraft.trim();
-    if (!reel || !content || createComment.isPending) return;
+    const selectedPhoto = commentPhoto;
+    if (!reel || (!content && !selectedPhoto) || createComment.isPending || commentPhotoBusy) return;
     setActionError("");
     try {
-      const comment = await createComment.mutateAsync({ reelId: reel.id, data: { content } });
+      let mediaId: string | undefined;
+      if (selectedPhoto) {
+        setCommentPhotoBusy(true);
+        const cached = uploadedCommentPhoto.current?.uri === selectedPhoto.uri ? uploadedCommentPhoto.current : null;
+        if (cached) {
+          mediaId = cached.mediaId;
+        } else {
+          const file = new File(selectedPhoto.uri);
+          const size = selectedPhoto.fileSize ?? file.size;
+          if (size <= 0 || size > 15 * 1024 * 1024) throw new Error("Choose a photo smaller than 15 MB.");
+          const allowedTypes: MediaUploadInputContentType[] = ["image/jpeg", "image/png", "image/webp", "image/heic"];
+          const contentType = allowedTypes.includes(selectedPhoto.mimeType as MediaUploadInputContentType)
+            ? selectedPhoto.mimeType as MediaUploadInputContentType
+            : "image/jpeg";
+          const upload = await requestCommentPhotoUpload.mutateAsync({ data: {
+            name: selectedPhoto.fileName ?? "reel-comment",
+            size,
+            contentType,
+            mediaType: "image",
+          } });
+          const response = await expoFetch(upload.uploadURL, {
+            method: "PUT",
+            headers: { "Content-Type": contentType },
+            body: file as unknown as BodyInit,
+          });
+          if (!response.ok) throw new Error("The photo could not be uploaded. Try again.");
+          mediaId = upload.mediaId;
+          uploadedCommentPhoto.current = { uri: selectedPhoto.uri, mediaId };
+        }
+        setCommentPhotoBusy(false);
+      }
+      const comment = await createComment.mutateAsync({
+        reelId: reel.id,
+        data: { ...(content ? { content } : {}), ...(mediaId ? { mediaId } : {}) },
+      });
       queryClient.setQueryData(getGetReelCommentsQueryKey(reel.id), (current: typeof commentsQuery.data) => [...(current ?? []), comment]);
       queryClient.setQueryData<Reel>(getGetReelQueryKey(reel.id), (current) => current ? { ...current, commentCount: current.commentCount + 1 } : current);
       setCommentDraft("");
+      setCommentPhoto(null);
+      uploadedCommentPhoto.current = null;
       refreshReelLists(reel.creatorId);
-    } catch {
-      setActionError("Your comment did not post. Try again.");
+    } catch (reason) {
+      setActionError(reason instanceof Error ? reason.message : "Your comment did not post. Try again.");
+    } finally {
+      setCommentPhotoBusy(false);
     }
+  }
+
+  async function pickCommentPhoto() {
+    if (commentPhotoBusy || createComment.isPending) return;
+    setActionError("");
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      setActionError("Allow photo access to attach a photo.");
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], quality: 0.85 });
+    if (result.canceled || !result.assets[0]) return;
+    const asset = result.assets[0];
+    const size = asset.fileSize ?? new File(asset.uri).size;
+    if (size <= 0 || size > 15 * 1024 * 1024) {
+      setActionError("Choose a photo smaller than 15 MB.");
+      return;
+    }
+    setCommentPhoto(asset);
+    uploadedCommentPhoto.current = null;
   }
 
   function addToCommentDraft(value: string) {
@@ -644,9 +713,9 @@ export default function ProfileReelScreen() {
         </View>
       </Modal>
       <Modal transparent visible={commentsVisible} animationType="slide" onRequestClose={() => setCommentsVisible(false)}>
-        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={styles.commentBackdrop}>
+        <KeyboardAvoidingView behavior="padding" keyboardVerticalOffset={0} style={styles.commentBackdrop}>
           <Pressable accessibilityRole="button" accessibilityLabel="Close comments" onPress={() => setCommentsVisible(false)} style={StyleSheet.absoluteFill} />
-          <View style={[styles.commentSheet, { backgroundColor: colors.card }]}>
+          <View style={[styles.commentSheet, { backgroundColor: colors.card, paddingBottom: keyboardVisible ? 4 : Math.max(insets.bottom, 12) }]}>
             <View style={styles.shareHeading}>
               <Text style={[styles.shareTitle, { color: colors.foreground }]}>Comments <Text style={{ color: colors.mutedForeground }}>{reelQuery.data?.commentCount ?? 0}</Text></Text>
               <View style={styles.commentHeadingActions}>
@@ -672,7 +741,14 @@ export default function ProfileReelScreen() {
                     <ProfileAvatar profile={{ name: comment.authorName, photos: comment.authorPhoto ? [comment.authorPhoto] : [] } as never} size={34} />
                     <View style={styles.commentCopy}>
                       <Text style={[styles.commentAuthor, { color: colors.foreground }]}>{comment.authorName}</Text>
-                      <Text style={[styles.commentText, { color: colors.mutedForeground }]}>{comment.content}</Text>
+                      {comment.content ? <Text style={[styles.commentText, { color: colors.mutedForeground }]}>{comment.content}</Text> : null}
+                      {comment.mediaReference && token ? <CachedImage
+                        source={profileImagePreviewSource(comment.mediaReference, token)}
+                        contentFit="cover"
+                        cachePolicy="memory-disk"
+                        accessibilityLabel="Photo comment"
+                        style={styles.commentPhoto}
+                      /> : null}
                     </View>
                   </View>
                 ))}
@@ -688,6 +764,12 @@ export default function ProfileReelScreen() {
                   </Pressable>
                 ))}
               </View>
+                {commentPhoto ? <View style={styles.commentPhotoPreview}>
+                  <CachedImage source={{ uri: commentPhoto.uri }} contentFit="cover" style={StyleSheet.absoluteFill} accessibilityLabel="Selected comment photo" />
+                  <Pressable accessibilityRole="button" accessibilityLabel="Remove photo" disabled={commentPhotoBusy || createComment.isPending} onPress={() => { setCommentPhoto(null); uploadedCommentPhoto.current = null; }} style={styles.commentPhotoRemove}>
+                    <Feather name="x" size={14} color="#fff" />
+                  </Pressable>
+                </View> : null}
               <View style={styles.commentComposeRow}>
                 <View style={styles.commentAvatar}><ProfileAvatar profile={{ name: me.data?.name ?? "Your profile", photos: me.data?.photos ?? [] } as never} size={36} /></View>
                 <View style={[styles.commentInputWrap, { borderColor: colors.border, backgroundColor: colors.background }]}>
@@ -704,14 +786,15 @@ export default function ProfileReelScreen() {
                     onSubmitEditing={() => void postComment()}
                   />
                   <View style={styles.commentTools}>
-                    <Pressable accessibilityRole="button" accessibilityLabel="Add photo" style={styles.commentTool}><Feather name="image" size={20} color={colors.foreground} /></Pressable>
+                    <Pressable accessibilityRole="button" accessibilityLabel="Add photo" testID="button-add-reel-comment-photo" disabled={commentPhotoBusy || createComment.isPending} onPress={() => void pickCommentPhoto()} style={styles.commentTool}>
+                      {commentPhotoBusy && !commentPhoto ? <ActivityIndicator size="small" color={colors.primary} /> : <Feather name="image" size={20} color={colors.foreground} />}
+                    </Pressable>
                     <Pressable accessibilityRole="button" accessibilityLabel="Add emoji" onPress={() => addToCommentDraft("😊")} style={styles.commentTool}><Feather name="smile" size={20} color={colors.foreground} /></Pressable>
                     <Pressable accessibilityRole="button" accessibilityLabel="Mention someone" onPress={() => addToCommentDraft("@")} style={styles.commentTool}><Feather name="at-sign" size={20} color={colors.foreground} /></Pressable>
-                    <Pressable accessibilityRole="button" accessibilityLabel="Record voice comment" style={styles.commentTool}><Feather name="mic" size={20} color={colors.foreground} /></Pressable>
                   </View>
                 </View>
-                <Pressable accessibilityRole="button" accessibilityLabel="Post comment" testID="button-post-reel-comment" disabled={!commentDraft.trim() || createComment.isPending} onPress={() => void postComment()} style={[styles.commentSend, { backgroundColor: colors.primary }, (!commentDraft.trim() || createComment.isPending) && styles.disabled]}>
-                  {createComment.isPending ? <ActivityIndicator size="small" color={colors.primaryForeground} /> : <Feather name="arrow-up" size={19} color={colors.primaryForeground} />}
+                <Pressable accessibilityRole="button" accessibilityLabel="Post comment" testID="button-post-reel-comment" disabled={(!commentDraft.trim() && !commentPhoto) || createComment.isPending || commentPhotoBusy} onPress={() => void postComment()} style={[styles.commentSend, { backgroundColor: colors.primary }, ((!commentDraft.trim() && !commentPhoto) || createComment.isPending || commentPhotoBusy) && styles.disabled]}>
+                  {createComment.isPending || commentPhotoBusy ? <ActivityIndicator size="small" color={colors.primaryForeground} /> : <Feather name="arrow-up" size={19} color={colors.primaryForeground} />}
                 </Pressable>
               </View>
             </View> : <Text style={[styles.commentUnavailable,{color:colors.mutedForeground}]}>The creator has turned off new comments.</Text>}
@@ -784,10 +867,13 @@ const styles = StyleSheet.create({
   commentCopy: { flex: 1, gap: 3 },
   commentAuthor: { fontSize: 12, fontWeight: "800" },
   commentText: { fontSize: 13, lineHeight: 18 },
+  commentPhoto: { width: 220, height: 220, maxWidth: "100%", borderRadius: 14, marginTop: 5, backgroundColor: "rgba(255,255,255,0.08)" },
   commentComposer: { paddingTop: 4, paddingBottom: 4 },
   commentReactions: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 6, paddingBottom: 6 },
   commentReaction: { width: 32, height: 32, alignItems: "center", justifyContent: "center" },
   commentReactionText: { fontSize: 23, lineHeight: 28 },
+  commentPhotoPreview: { width: 72, height: 72, marginLeft: 44, marginBottom: 7, overflow: "hidden", borderRadius: 12, backgroundColor: "rgba(255,255,255,0.08)" },
+  commentPhotoRemove: { position: "absolute", top: 4, right: 4, width: 23, height: 23, alignItems: "center", justifyContent: "center", borderRadius: 12, backgroundColor: "rgba(16,12,18,0.82)" },
   commentComposeRow: { flexDirection: "row", alignItems: "center", gap: 8 },
   commentAvatar: { width: 36, height: 36 },
   commentInputWrap: { minWidth: 0, flex: 1, borderWidth: 1, borderRadius: 22, paddingHorizontal: 12, paddingTop: 5, paddingBottom: 3 },

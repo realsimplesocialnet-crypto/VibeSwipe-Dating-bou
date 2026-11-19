@@ -17,6 +17,7 @@ const shareSheet = read("../../vibeswipe-web/src/components/reels/reel-share-she
 const reelSlide = read("../../vibeswipe-web/src/components/reels/reel-slide.tsx");
 const nativeChat = read("../../vibeswipe/app/chat/[matchId].tsx");
 const nativeReel = read("../../vibeswipe/app/reels/[reelId].tsx");
+const webComments = read("../../vibeswipe-web/src/components/reels/reel-comments.tsx");
 
 test("feed cursors round-trip and reject tampering", () => {
   const at = new Date("2025-03-04T05:06:07.089Z");
@@ -154,6 +155,27 @@ test("comments remain repeatable per account and Reel counts include the full co
   assert.doesNotMatch(reelTable.match(/export const reelCommentsTable = pgTable\([\s\S]*?\n\}\);/)?.[0] ?? "", /unique|primaryKey\(\{[^}]*userId/);
   assert.match(reels, /commentCount: sql<number>`\(SELECT count\(\*\)::int FROM \$\{reelCommentsTable\}/);
   assert.match(reels, /tx\.insert\(reelCommentsTable\)\.values/);
+});
+
+test("photo comments upload privately and follow Reel visibility", () => {
+  assert.match(apiSpec, /mediaReference: \{ type: \["string", "null"\] \}/);
+  assert.match(apiSpec, /mediaId: \{ type: string, format: uuid \}/);
+  assert.match(reelTable, /mediaId: uuid\("media_id"\)\.references\(\(\) => mediaAssetsTable\.id, \{ onDelete: "set null" \}\)/);
+  assert.match(schema, /ADD COLUMN IF NOT EXISTS media_id uuid REFERENCES vibeswipe_media_assets\(id\) ON DELETE SET NULL/);
+  assert.match(reels, /eq\(mediaAssetsTable\.ownerId, userId\)/);
+  assert.match(reels, /mediaReference: row\.mediaId \? `media:\$\{row\.mediaId\}` : null/);
+  assert.match(reels, /mediaReference: mediaId \? `media:\$\{mediaId\}` : null/);
+  assert.match(visibility, /export async function canViewReelCommentMedia/);
+  assert.match(visibility, /eq\(mediaAssetsTable\.ownerId, reelCommentsTable\.userId\)/);
+  assert.match(media, /canViewReelCommentMedia\(userId, asset\.id\)/);
+  assert.match(media, /privateMedia: Boolean\(activeStory \|\| asset\.matchId \|\| commentMediaVisible\)/);
+  assert.match(cleanup, /eq\(reelCommentsTable\.mediaId, asset\.id\)/);
+  assert.match(webComments, /useRequestProfileMediaUpload/);
+  assert.match(webComments, /uploadProfilePhotoBytes/);
+  assert.match(webComments, /mediaId \? \{ mediaId \} : \{\}/);
+  assert.match(nativeReel, /useRequestProfileMediaUpload/);
+  assert.match(nativeReel, /profileImagePreviewSource\(comment\.mediaReference, token\)/);
+  assert.match(nativeReel, /KeyboardAvoidingView behavior="padding" keyboardVerticalOffset=\{0\}/);
 });
 
 test("photo-slide Reels preserve ordered media and protect every image", () => {

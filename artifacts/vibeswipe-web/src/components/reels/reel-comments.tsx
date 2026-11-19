@@ -2,12 +2,40 @@ import { useEffect, useRef, useState, type FormEvent, type TouchEvent as ReactTo
 import { Link } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
 import {
-  getGetReelCommentsQueryKey, useCreateReelComment, useDeleteReelComment, useGetMyProfile, useGetReelComments, type ReelComment,
+  getGetMediaPreviewQueryKey, getGetReelCommentsQueryKey, useCreateReelComment, useDeleteReelComment,
+  useGetMediaPreview, useGetMyProfile, useGetReelComments, useRequestProfileMediaUpload, type ReelComment,
 } from "@workspace/api-client-react";
-import { ArrowUp, AtSign, Image as ImageIcon, Mic, Smile, X } from "lucide-react";
+import { ArrowUp, AtSign, Image as ImageIcon, LoaderCircle, Smile, X } from "lucide-react";
 import { ReelAvatar } from "@/components/reels/reel-avatar";
 import { userErrorMessage } from "@/lib/user-errors";
 import { QuietSpinner } from "@/components/ui/quiet-spinner";
+import { PROFILE_PHOTO_ACCEPT, prepareProfilePhoto, uploadProfilePhotoBytes } from "@/lib/profile-photo-upload";
+
+function useObjectUrl(blob: Blob | null | undefined) {
+  const [url, setUrl] = useState("");
+  useEffect(() => {
+    if (!blob) { setUrl(""); return; }
+    const next = URL.createObjectURL(blob);
+    setUrl(next);
+    return () => URL.revokeObjectURL(next);
+  }, [blob]);
+  return url;
+}
+
+function ReelCommentPhoto({ reference }: { reference: string }) {
+  const id = reference.startsWith("media:") ? reference.slice(6) : "";
+  const query = useGetMediaPreview(id, { query: {
+    enabled: Boolean(id),
+    queryKey: getGetMediaPreviewQueryKey(id),
+    staleTime: Infinity,
+    gcTime: 10 * 60_000,
+    retry: (count, error) => count < 3 && [500, 502, 503, 504].includes((error as { status?: number })?.status ?? 0),
+    retryDelay: count => 1500 * (count + 1),
+  } });
+  const url = useObjectUrl(query.data instanceof Blob ? query.data : null);
+  if (!url) return <div role="img" aria-label="Photo comment" data-testid="photo-reel-comment-placeholder" className="mt-2 flex h-24 w-24 items-center justify-center rounded-xl bg-white/10 text-white/45">{query.isError ? <ImageIcon size={24} /> : <span className="h-5 w-5 animate-pulse rounded-full bg-white/20" />}</div>;
+  return <img src={url} alt="Photo comment" data-testid="img-reel-comment" className="mt-2 max-h-64 max-w-[min(260px,66vw)] rounded-xl object-cover" />;
+}
 
 function ago(iso: string): string {
   const minutes = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
@@ -46,13 +74,20 @@ export function ReelComments({ reelId, creatorId, returnTo, commentCount, canCom
   const comments = useGetReelComments(reelId, { query: { queryKey: key } });
   const me = useGetMyProfile();
   const create = useCreateReelComment();
+  const requestPhotoUpload = useRequestProfileMediaUpload();
   const remove = useDeleteReelComment();
   const [draft, setDraft] = useState("");
+  const [photo, setPhoto] = useState<File | null>(null);
+  const [preparingPhoto, setPreparingPhoto] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [error, setError] = useState("");
   const [confirming, setConfirming] = useState<string | null>(null);
   const list = useRef<HTMLDivElement>(null);
   const input = useRef<HTMLInputElement>(null);
+  const photoInput = useRef<HTMLInputElement>(null);
   const submitting = useRef(false);
+  const uploadedPhoto = useRef<{ file: File; mediaId: string } | null>(null);
+  const photoPreview = useObjectUrl(photo);
   const touchStart = useRef<{ x: number; y: number } | null>(null);
   const [replyingTo, setReplyingTo] = useState<ReelComment | null>(null);
   const count = commentCount;
@@ -94,23 +129,72 @@ export function ReelComments({ reelId, creatorId, returnTo, commentCount, canCom
 
   async function postDraft() {
     const content = draft.trim();
-    if (!content || create.isPending || submitting.current) return;
+    const selectedPhoto = photo;
+    if ((!content && !selectedPhoto) || create.isPending || preparingPhoto || uploadingPhoto || submitting.current) return;
     submitting.current = true;
     setError("");
     try {
+      let mediaId: string | undefined;
+      if (selectedPhoto) {
+        setUploadingPhoto(true);
+        const cachedUpload = uploadedPhoto.current?.file === selectedPhoto ? uploadedPhoto.current : null;
+        if (cachedUpload) {
+          mediaId = cachedUpload.mediaId;
+        } else {
+          const upload = await requestPhotoUpload.mutateAsync({ data: {
+            name: selectedPhoto.name || "reel-comment.jpg",
+            size: selectedPhoto.size,
+            contentType: "image/jpeg",
+            mediaType: "image",
+          } });
+          await uploadProfilePhotoBytes(upload.uploadURL, selectedPhoto);
+          mediaId = upload.mediaId;
+          uploadedPhoto.current = { file: selectedPhoto, mediaId };
+        }
+        setUploadingPhoto(false);
+      }
       const comment = await create.mutateAsync({
         reelId,
-        data: { content, ...(replyingTo ? { parentCommentId: replyingTo.id } : {}) },
+        data: {
+          ...(content ? { content } : {}),
+          ...(mediaId ? { mediaId } : {}),
+          ...(replyingTo ? { parentCommentId: replyingTo.id } : {}),
+        },
       });
       client.setQueryData<ReelComment[]>(key, (old) => [...(old ?? []), comment]);
       setDraft("");
+      setPhoto(null);
+      uploadedPhoto.current = null;
+      if (photoInput.current) photoInput.current.value = "";
       setReplyingTo(null);
       onCountChange(1);
     } catch (reason) {
       setError(userErrorMessage(reason, "Your comment did not post. Try again."));
     } finally {
+      setUploadingPhoto(false);
       submitting.current = false;
     }
+  }
+
+  async function choosePhoto(file?: File) {
+    if (!file || preparingPhoto || uploadingPhoto) return;
+    setError("");
+    setPreparingPhoto(true);
+    try {
+      setPhoto(await prepareProfilePhoto(file));
+    } catch (reason) {
+      setError(userErrorMessage(reason, "Choose a readable photo."));
+    } finally {
+      setPreparingPhoto(false);
+      if (photoInput.current) photoInput.current.value = "";
+    }
+  }
+
+  function removeSelectedPhoto() {
+    if (uploadingPhoto || create.isPending) return;
+    setPhoto(null);
+    uploadedPhoto.current = null;
+    if (photoInput.current) photoInput.current.value = "";
   }
 
   function submit(event: FormEvent) {
@@ -152,7 +236,8 @@ export function ReelComments({ reelId, creatorId, returnTo, commentCount, canCom
             </Link>
             <div className="min-w-0 flex-1">
               <p className="text-xs text-white/55"><Link href={profileHref(comment.authorId, comment.id)} className="font-semibold text-white/90 hover:text-primary">{comment.authorName}</Link>{comment.authorId === creatorId && <span className="ml-1.5 rounded-full bg-primary/15 px-1.5 py-0.5 text-[10px] font-bold text-primary">Creator</span>} <span>{ago(comment.createdAt)}</span></p>
-              <ExpandableCommentText commentId={comment.id} content={comment.content} />
+               {comment.content && <ExpandableCommentText commentId={comment.id} content={comment.content} />}
+               {comment.mediaReference && <ReelCommentPhoto reference={comment.mediaReference} />}
               <div className="mt-1 flex gap-3 text-xs">
                  {canComment&&<button type="button" onClick={() => { setReplyingTo(comment); setDraft(""); input.current?.focus(); }} className="font-semibold text-white/55 hover:text-primary" data-testid={`button-reply-comment-${comment.id}`}>Reply</button>}
                 {comment.canDelete && (confirming === comment.id
@@ -168,13 +253,14 @@ export function ReelComments({ reelId, creatorId, returnTo, commentCount, canCom
               </Link>
               <div className="min-w-0 flex-1">
                 <p className="text-xs text-white/55"><Link href={profileHref(reply.authorId, reply.id)} className="font-semibold text-white/90 hover:text-primary">{reply.authorName}</Link>{reply.authorId === creatorId && <span className="ml-1.5 rounded-full bg-primary/15 px-1.5 py-0.5 text-[10px] font-bold text-primary">Creator</span>} <span>{ago(reply.createdAt)}</span></p>
-                <ExpandableCommentText
-                  commentId={reply.id}
-                  content={reply.content}
-                  prefix={reply.parentCommentId && commentsById.has(reply.parentCommentId)
-                    ? { label: `@${commentsById.get(reply.parentCommentId)!.authorName}`, href: profileHref(commentsById.get(reply.parentCommentId)!.authorId, reply.parentCommentId) }
-                    : undefined}
-                />
+                 {reply.content && <ExpandableCommentText
+                   commentId={reply.id}
+                   content={reply.content}
+                   prefix={reply.parentCommentId && commentsById.has(reply.parentCommentId)
+                     ? { label: `@${commentsById.get(reply.parentCommentId)!.authorName}`, href: profileHref(commentsById.get(reply.parentCommentId)!.authorId, reply.parentCommentId) }
+                     : undefined}
+                 />}
+                 {reply.mediaReference && <ReelCommentPhoto reference={reply.mediaReference} />}
                 {reply.canDelete && (confirming === reply.id
                   ? <p className="mt-1 text-xs"><button type="button" onClick={() => void deleteComment(reply.id)} disabled={remove.isPending} className="font-semibold text-rose-300" data-testid={`button-confirm-delete-comment-${reply.id}`}>Delete reply</button><button type="button" onClick={() => setConfirming(null)} className="ml-3 text-white/60">Keep</button></p>
                   : <button type="button" onClick={() => setConfirming(reply.id)} className="mt-1 text-xs text-white/45 hover:text-white/80" data-testid={`button-delete-comment-${reply.id}`}>Delete</button>)}
@@ -192,18 +278,22 @@ export function ReelComments({ reelId, creatorId, returnTo, commentCount, canCom
       <div className="reel-comment-reactions" aria-label="Comment reactions">
         {["😂", "🤣", "🥰", "😁", "😳", "😉"].map((emoji) => <button key={emoji} type="button" onClick={() => addToDraft(emoji)} aria-label={`Add ${emoji}`} className="reel-comment-reaction">{emoji}</button>)}
       </div>
+      {photo && <div className="reel-comment-photo-preview">
+        <img src={photoPreview} alt="Selected comment photo" data-testid="img-reel-comment-selected" />
+        <button type="button" onClick={removeSelectedPhoto} disabled={uploadingPhoto || create.isPending} aria-label="Remove photo" className="reel-comment-photo-remove"><X size={16} /></button>
+      </div>}
+      <input ref={photoInput} type="file" accept={PROFILE_PHOTO_ACCEPT} className="sr-only" aria-label="Choose a photo to comment" data-testid="input-reel-comment-photo" onChange={(event) => void choosePhoto(event.currentTarget.files?.[0])} />
       <div className="reel-comment-compose-row">
         <div className="h-9 w-9 shrink-0"><ReelAvatar reference={me.data?.photos?.[0] ?? null} name={me.data?.name ?? "Your profile"} size={36} /></div>
         <div className="reel-comment-input-wrap">
           <input ref={input} value={draft} onChange={(event) => setDraft(event.target.value)} maxLength={500} placeholder={replyingTo ? `Reply to ${replyingTo.authorName}` : "Add a comment"} aria-label={replyingTo ? `Reply to ${replyingTo.authorName}` : "Add a comment"} enterKeyHint="send" data-testid="input-reel-comment" className="reel-comment-input" />
           <div className="reel-comment-tools" aria-label="Comment tools">
-            <button type="button" aria-label="Add photo" className="reel-comment-tool" title="Add photo"><ImageIcon size={21} /></button>
+            <button type="button" onClick={() => photoInput.current?.click()} disabled={preparingPhoto || uploadingPhoto || create.isPending} aria-label="Add photo" className="reel-comment-tool" title="Add photo" data-testid="button-add-reel-comment-photo">{preparingPhoto ? <LoaderCircle size={20} className="animate-spin" /> : <ImageIcon size={21} />}</button>
             <button type="button" onClick={() => addToDraft("😊")} aria-label="Add emoji" className="reel-comment-tool" title="Add emoji"><Smile size={21} /></button>
             <button type="button" onClick={() => addToDraft("@")} aria-label="Mention someone" className="reel-comment-tool" title="Mention someone"><AtSign size={21} /></button>
-            <button type="button" aria-label="Record voice comment" className="reel-comment-tool" title="Voice comments are not available yet"><Mic size={21} /></button>
           </div>
         </div>
-        <button type="submit" onPointerDown={(event) => event.preventDefault()} onTouchEnd={(event) => { event.preventDefault(); void postDraft(); }} disabled={!draft.trim() || create.isPending} aria-label="Post comment" data-testid="button-post-comment" className="reel-comment-send disabled:opacity-35"><ArrowUp size={19} /></button>
+        <button type="submit" onPointerDown={(event) => event.preventDefault()} onTouchEnd={(event) => { event.preventDefault(); void postDraft(); }} disabled={(!draft.trim() && !photo) || create.isPending || preparingPhoto || uploadingPhoto} aria-label="Post comment" data-testid="button-post-comment" className="reel-comment-send disabled:opacity-35">{uploadingPhoto ? <LoaderCircle size={19} className="animate-spin" /> : <ArrowUp size={19} />}</button>
       </div>
     </form> : <p className="px-4 pb-[max(env(safe-area-inset-bottom),14px)] pt-3 text-center text-xs text-white/55">The creator has turned off new comments.</p>}
   </section>;

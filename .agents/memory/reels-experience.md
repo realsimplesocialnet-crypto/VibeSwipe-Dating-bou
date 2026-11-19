@@ -63,6 +63,12 @@ Comment authors' names and photos open their public profiles. Members can reply 
 
 **How to apply:** Keep the original comment visible with its replies, preserve the Reel as the return destination from a commenter profile, link reply alerts directly to the replied-to comment, prefix replies with a clickable mention of the original commenter, and label the Reel author's comments and replies “Creator.”
 
+Reel comments support photos with or without text; do not offer voice comments. Comment-photo reads follow the Reel's audience and are denied when the comment author is blocked or unavailable.
+
+**Why:** The user selected photo-only support and expects comment attachments to remain as private as the Reel itself.
+
+**How to apply:** Reuse protected media uploads, validate that the photo belongs to the commenter, and enforce Reel visibility again on each photo read.
+
 The public Reels feed remains full-screen and edge-to-edge, with Reels/Friends feed tabs at the top and the main app tabs at the bottom, Reels highlighted. A single video tap toggles playback and briefly shows a center play/pause icon; this does not hide navigation. Double-tapping toggles sound and briefly shows a center speaker icon.
 
 **Why:** The user clarified that tapping the video should play or pause it, and asked to remove the permanent top volume and play controls.

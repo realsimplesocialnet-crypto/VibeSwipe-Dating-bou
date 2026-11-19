@@ -3123,12 +3123,16 @@ components:
         authorName: { type: string }
         authorPhoto: { type: ["string", "null"] }
         content: { type: string }
+        mediaReference: { type: ["string", "null"] }
         canDelete: { type: boolean }
         createdAt: { type: string, format: date-time }
-      required: [id, reelId, parentCommentId, authorId, authorName, authorPhoto, content, canDelete, createdAt]
+      required: [id, reelId, parentCommentId, authorId, authorName, authorPhoto, content, mediaReference, canDelete, createdAt]
     ReelCommentInput:
       type: object
       properties:
-        content: { type: string, minLength: 1, maxLength: 500 }
+        content: { type: string, maxLength: 500 }
+        mediaId: { type: string, format: uuid }
         parentCommentId: { type: string, format: uuid }
-      required: [content]
+      anyOf:
+        - required: [content]
+        - required: [mediaId]

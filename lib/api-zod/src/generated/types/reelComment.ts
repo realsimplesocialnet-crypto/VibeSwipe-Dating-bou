@@ -16,6 +16,8 @@ export interface ReelComment {
   /** @nullable */
   authorPhoto: string | null;
   content: string;
+  /** @nullable */
+  mediaReference: string | null;
   canDelete: boolean;
   createdAt: Date;
 }

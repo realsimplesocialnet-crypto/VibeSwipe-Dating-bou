@@ -62,8 +62,10 @@ export async function ensureReelsSchema(): Promise<void> {
       content text NOT NULL,
       created_at timestamptz NOT NULL DEFAULT now())`);
     await client.query("ALTER TABLE vibeswipe_reel_comments ADD COLUMN IF NOT EXISTS parent_comment_id uuid REFERENCES vibeswipe_reel_comments(id) ON DELETE CASCADE");
+    await client.query("ALTER TABLE vibeswipe_reel_comments ADD COLUMN IF NOT EXISTS media_id uuid REFERENCES vibeswipe_media_assets(id) ON DELETE SET NULL");
     await client.query("CREATE INDEX IF NOT EXISTS vibeswipe_reel_comments_reel_idx ON vibeswipe_reel_comments(reel_id, created_at)");
     await client.query("CREATE INDEX IF NOT EXISTS vibeswipe_reel_comments_parent_idx ON vibeswipe_reel_comments(parent_comment_id, created_at)");
+    await client.query("CREATE INDEX IF NOT EXISTS vibeswipe_reel_comments_media_idx ON vibeswipe_reel_comments(media_id)");
     await client.query("ALTER TABLE vibeswipe_notifications ADD COLUMN IF NOT EXISTS reel_id uuid REFERENCES vibeswipe_reels(id) ON DELETE CASCADE");
     await client.query("ALTER TABLE vibeswipe_notifications ADD COLUMN IF NOT EXISTS comment_id uuid REFERENCES vibeswipe_reel_comments(id) ON DELETE CASCADE");
     await client.query("CREATE UNIQUE INDEX IF NOT EXISTS vibeswipe_reel_like_notification_idx ON vibeswipe_notifications(recipient_id, actor_id, reel_id) WHERE type = 'reel_like'");

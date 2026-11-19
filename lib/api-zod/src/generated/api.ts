@@ -3360,6 +3360,7 @@ export const GetReelCommentsResponseItem = zod.object({
   "authorName": zod.string(),
   "authorPhoto": zod.string().nullable(),
   "content": zod.string(),
+  "mediaReference": zod.string().nullable(),
   "canDelete": zod.boolean(),
   "createdAt": zod.coerce.date()
 })
@@ -3370,14 +3371,27 @@ export const CreateReelCommentParams = zod.object({
   "reelId": zod.uuid()
 })
 
-export const createReelCommentBodyContentMax = 500;
+export const createReelCommentBodyOneContentMax = 500;
+
+export const createReelCommentBodyTwoContentMax = 500;
+
+export const createReelCommentBodyThreeContentMax = 500;
 
 
 
-export const CreateReelCommentBody = zod.object({
-  "content": zod.string().min(1).max(createReelCommentBodyContentMax),
+export const CreateReelCommentBody = zod.union([zod.object({
+  "content": zod.string().max(createReelCommentBodyOneContentMax),
+  "mediaId": zod.uuid().optional(),
   "parentCommentId": zod.uuid().optional()
-})
+}),zod.object({
+  "content": zod.string().max(createReelCommentBodyTwoContentMax).optional(),
+  "mediaId": zod.uuid(),
+  "parentCommentId": zod.uuid().optional()
+})]).and(zod.object({
+  "content": zod.string().max(createReelCommentBodyThreeContentMax).optional(),
+  "mediaId": zod.uuid().optional(),
+  "parentCommentId": zod.uuid().optional()
+}))
 
 export const CreateReelCommentResponse = zod.object({
   "id": zod.uuid(),
@@ -3387,6 +3401,7 @@ export const CreateReelCommentResponse = zod.object({
   "authorName": zod.string(),
   "authorPhoto": zod.string().nullable(),
   "content": zod.string(),
+  "mediaReference": zod.string().nullable(),
   "canDelete": zod.boolean(),
   "createdAt": zod.coerce.date()
 })

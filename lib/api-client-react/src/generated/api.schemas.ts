@@ -1577,18 +1577,18 @@ export interface ReelComment {
   /** @nullable */
   authorPhoto: string | null;
   content: string;
+  /** @nullable */
+  mediaReference: string | null;
   canDelete: boolean;
   createdAt: string;
 }
 
-export interface ReelCommentInput {
-  /**
-     * @minLength 1
-     * @maxLength 500
-     */
-  content: string;
+export type ReelCommentInput = (unknown & {
+  /** @maxLength 500 */
+  content?: string;
+  mediaId?: string;
   parentCommentId?: string;
-}
+});
 
 export type GetAdminDashboardParams = {
 section?: GetAdminDashboardSection;

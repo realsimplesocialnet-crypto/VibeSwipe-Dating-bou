@@ -6,11 +6,9 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface ReelCommentInput {
-  /**
-     * @minLength 1
-     * @maxLength 500
-     */
-  content: string;
+export type ReelCommentInput = (unknown & {
+  /** @maxLength 500 */
+  content?: string;
+  mediaId?: string;
   parentCommentId?: string;
-}
+});

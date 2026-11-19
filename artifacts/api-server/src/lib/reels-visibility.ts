@@ -1,5 +1,5 @@
-import { adminDeletedUsersTable, blocksTable, db, profilesTable, reelSlidesTable, reelsTable, vibeSwipeFollowsTable } from "@workspace/db";
-import { and, eq, or, sql, type SQL } from "drizzle-orm";
+import { adminDeletedUsersTable, blocksTable, db, mediaAssetsTable, profilesTable, reelCommentsTable, reelSlidesTable, reelsTable, vibeSwipeFollowsTable } from "@workspace/db";
+import { and, eq, isNull, or, sql, type SQL } from "drizzle-orm";
 import { REEL_SAFETY_VERSION } from "./reel-safety-policy";
 
 /** Enforces account privacy, Reel audience, safety approval, account state, and blocks. */
@@ -57,6 +57,31 @@ export async function canViewReelMedia(viewerId: string, mediaId: string): Promi
       eq(reelsTable.mediaId, mediaId),
       sql`EXISTS (SELECT 1 FROM ${reelSlidesTable} WHERE ${reelSlidesTable.reelId}=${reelsTable.id} AND ${reelSlidesTable.mediaId}=${mediaId})`,
     ), visibleReelCondition(viewerId)))
+    .limit(1);
+  return Boolean(row);
+}
+
+/** Comment photos follow the audience of their Reel and the comment author's block/deletion state. */
+export async function canViewReelCommentMedia(viewerId: string, mediaId: string): Promise<boolean> {
+  const [row] = await db
+    .select({ id: reelCommentsTable.id })
+    .from(reelCommentsTable)
+    .innerJoin(mediaAssetsTable, eq(mediaAssetsTable.id, reelCommentsTable.mediaId))
+    .innerJoin(reelsTable, eq(reelsTable.id, reelCommentsTable.reelId))
+    .innerJoin(profilesTable, eq(profilesTable.id, reelsTable.userId))
+    .where(and(
+      eq(reelCommentsTable.mediaId, mediaId),
+      eq(mediaAssetsTable.ownerId, reelCommentsTable.userId),
+      eq(mediaAssetsTable.mediaType, "image"),
+      isNull(mediaAssetsTable.matchId),
+      visibleReelCondition(viewerId),
+      sql`EXISTS (SELECT 1 FROM vibeswipe_profiles author
+        WHERE author.id=${reelCommentsTable.userId}
+          AND author.deactivated=false AND author.admin_suspended=false)`,
+      sql`NOT EXISTS (SELECT 1 FROM ${blocksTable}
+        WHERE (${blocksTable.blockerId}=${viewerId} AND ${blocksTable.blockedId}=${reelCommentsTable.userId})
+          OR (${blocksTable.blockerId}=${reelCommentsTable.userId} AND ${blocksTable.blockedId}=${viewerId}))`,
+    ))
     .limit(1);
   return Boolean(row);
 }
