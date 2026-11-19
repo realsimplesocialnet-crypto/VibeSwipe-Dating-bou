@@ -3,9 +3,9 @@ import { Link, useLocation } from "wouter";
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import {
   getGetMyReelsQueryKey, getGetNotificationsQueryKey, getGetProfileReelsQueryKey, getGetReelQueryKey,
-  getGetProfileFollowSummaryQueryKey, getGetReelsFeedQueryKey, getGetSavedReelsQueryKey, getProfileReels, getReelsFeed, downloadReel,
+  getGetReelsFeedQueryKey, getGetSavedReelsQueryKey, getProfileReels, getReelsFeed, downloadReel,
   useGetReel, useLikeReel, useRecordReelView, useSaveReel,
-  useUnlikeReel, useUnsaveReel, useMarkReelNotInterested, useFollowProfile, useUnfollowProfile, type Reel,
+  useUnlikeReel, useUnsaveReel, useMarkReelNotInterested, type Reel,
 } from "@workspace/api-client-react";
 import { ArrowLeft, Bookmark, Clapperboard, Download, EyeOff, LoaderCircle, MoreHorizontal, Plus, Search, Users, X } from "lucide-react";
 import { ReelSlide } from "@/components/reels/reel-slide";
@@ -122,7 +122,6 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
   const commentsHistoryOpen = useRef(Boolean(initialHistoryMarker));
   const [shareFor, setShareFor] = useState<Reel | null>(null);
   const [patches, setPatches] = useState<Record<string, Partial<Reel>>>({});
-  const [followRequestedIds, setFollowRequestedIds] = useState<Set<string>>(() => new Set());
   const [removed, setRemoved] = useState<Set<string>>(() => new Set());
   const [notice, setNotice] = useState("");
   const [reelMenuOpen, setReelMenuOpen] = useState(false);
@@ -233,7 +232,6 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
     refetchOnWindowFocus: false,
   });
   const like = useLikeReel(); const unlike = useUnlikeReel(); const save = useSaveReel(); const unsave = useUnsaveReel();
-  const follow = useFollowProfile(); const unfollow = useUnfollowProfile();
   const markNotInterested = useMarkReelNotInterested();
   const recordView = useRecordReelView();
   const viewedReels = useRef(new Set<string>());
@@ -408,34 +406,6 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
     }
   }
 
-  async function toggleCreatorFollow(reel: Reel) {
-    if (reel.isOwner || follow.isPending || unfollow.isPending || followRequestedIds.has(reel.creatorId)) return;
-    try {
-      if (reel.creatorFollowedByMe) {
-        await unfollow.mutateAsync({ profileId: reel.creatorId });
-        patch(reel.id, { creatorFollowedByMe: false });
-        setFollowRequestedIds((current) => {
-          if (!current.has(reel.creatorId)) return current;
-          const next = new Set(current);
-          next.delete(reel.creatorId);
-          return next;
-        });
-      } else {
-        const result = await follow.mutateAsync({ profileId: reel.creatorId });
-        patch(reel.id, { creatorFollowedByMe: result.isFollowing });
-        if (result.requestPendingByMe) {
-          setFollowRequestedIds((current) => new Set(current).add(reel.creatorId));
-          setNotice("Follow request sent.");
-        }
-      }
-      void client.invalidateQueries({ queryKey: getGetReelsFeedQueryKey() });
-      void client.invalidateQueries({ queryKey: getGetProfileFollowSummaryQueryKey(reel.creatorId) });
-      void client.invalidateQueries({ queryKey: getGetProfileReelsQueryKey({ profileId: reel.creatorId }) });
-    } catch {
-      setNotice("Could not update follow. Try again.");
-    }
-  }
-
   async function recordPlayback(reel: Reel) {
     if (reel.isOwner || viewedReels.current.has(reel.id)) return;
     viewedReels.current.add(reel.id);
@@ -531,8 +501,6 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
               muted={muted} pageHidden={pageHidden} compact={commentsFor === reel.id} navigationVisible={navigationVisible}
               likePending={like.isPending || unlike.isPending}
               savePending={save.isPending || unsave.isPending}
-              followPending={follow.isPending || unfollow.isPending}
-              followRequested={followRequestedIds.has(reel.creatorId)}
             returnTo={ownPath}
              onAutoplayMuted={() => setMuted(true)}
               onToggleSound={() => setMuted((value) => !value)}
@@ -540,7 +508,6 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
               onAutoCache={() => void cacheOffline(reel, false)}
                onLike={() => void toggle("like", reel)}
                 onSave={() => void toggle("save", reel)}
-                 onFollow={() => void toggleCreatorFollow(reel)}
                 onSearchSuggestion={openSearch}
             onView={() => void recordPlayback(reel)}
               onComment={() => openComments(reel.id)} onShare={() => setShareFor(reel)}

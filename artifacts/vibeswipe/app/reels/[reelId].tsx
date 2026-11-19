@@ -5,7 +5,6 @@ import {
   getGetProfileReelsQueryKey,
   getGetReelQueryKey,
   getGetReelCommentsQueryKey,
-  getGetProfileFollowSummaryQueryKey,
   getGetReelsFeedQueryKey,
   getDownloadReelUrl,
   useMarkReelNotInterested,
@@ -20,8 +19,6 @@ import {
   useSendMessage,
   useUnlikeReel,
   useUnsaveReel,
-  useFollowProfile,
-  useUnfollowProfile,
   type Reel,
 } from "@workspace/api-client-react";
 import { Feather } from "@expo/vector-icons";
@@ -38,7 +35,7 @@ import Svg, { Defs, LinearGradient as SvgLinearGradient, Path, Stop } from "reac
 
 type ReelIconName = "like" | "comment" | "share" | "save";
 
-function GradientReelIcon({ name, filled = false }: { name: ReelIconName; filled?: boolean }) {
+function ReelActionIcon({ name, filled = false }: { name: ReelIconName; filled?: boolean }) {
   const gradientId = `native-reel-${useId().replace(/:/g, "")}`;
   const stroke = `url(#${gradientId})`;
   return (
@@ -82,7 +79,6 @@ export default function ProfileReelScreen() {
   const [slideIndex, setSlideIndex] = useState(0);
   const [slideViewportWidth, setSlideViewportWidth] = useState(0);
   const [commentDraft, setCommentDraft] = useState("");
-  const [followRequested, setFollowRequested] = useState(false);
   const [pendingMatchId, setPendingMatchId] = useState<string | null>(null);
   const [sentTo, setSentTo] = useState<Record<string, boolean>>({});
   const [shareError, setShareError] = useState("");
@@ -94,8 +90,6 @@ export default function ProfileReelScreen() {
   const unlikeReel = useUnlikeReel();
   const saveReel = useSaveReel();
   const unsaveReel = useUnsaveReel();
-  const followProfile = useFollowProfile();
-  const unfollowProfile = useUnfollowProfile();
   const markNotInterested = useMarkReelNotInterested();
   const createComment = useCreateReelComment();
   const matches = useGetMatches({
@@ -121,7 +115,7 @@ export default function ProfileReelScreen() {
   const slideshow = reelQuery.data?.mediaType === "slides" && reelQuery.data.slideReferences.length > 1;
   const slideReferences = reelQuery.data?.slideReferences ?? [];
   const uri = reelQuery.data && !slideshow ? mediaUri(reelQuery.data.videoReference) : null;
-  useEffect(() => { setSlideIndex(0); setFollowRequested(false); }, [reelId]);
+  useEffect(() => { setSlideIndex(0); }, [reelId]);
   const source = useMemo(
     () => uri && token ? { uri, headers: { Authorization: `Bearer ${token}` } } : null,
     [token, uri],
@@ -204,31 +198,6 @@ export default function ProfileReelScreen() {
       refreshReelLists(reel.creatorId);
     } catch {
       setActionError("Saving did not work. Try again.");
-    }
-  }
-
-  async function toggleCreatorFollow() {
-    const reel = reelQuery.data;
-    if (!reel || reel.isOwner || followProfile.isPending || unfollowProfile.isPending || followRequested) return;
-    setActionError("");
-    try {
-      if (reel.creatorFollowedByMe) {
-        await unfollowProfile.mutateAsync({ profileId: reel.creatorId });
-        queryClient.setQueryData<Reel>(getGetReelQueryKey(reel.id), (current) =>
-          current ? { ...current, creatorFollowedByMe: false } : current,
-        );
-        setFollowRequested(false);
-      } else {
-        const result = await followProfile.mutateAsync({ profileId: reel.creatorId });
-        queryClient.setQueryData<Reel>(getGetReelQueryKey(reel.id), (current) =>
-          current ? { ...current, creatorFollowedByMe: result.isFollowing } : current,
-        );
-        setFollowRequested(result.requestPendingByMe);
-      }
-      void queryClient.invalidateQueries({ queryKey: getGetProfileFollowSummaryQueryKey(reel.creatorId) });
-      refreshReelLists(reel.creatorId);
-    } catch {
-      setActionError("Could not update follow. Try again.");
     }
   }
 
@@ -420,31 +389,6 @@ export default function ProfileReelScreen() {
           ) : null}
           {reelQuery.data ? (
             <View style={styles.actionRail}>
-              <View style={styles.actionAvatar}>
-                <LinearGradient colors={["#ff63aa", "#a875ff"]} style={styles.actionAvatarRing}>
-                  <ProfileAvatar
-                    profile={{
-                      name: reelQuery.data.creatorName,
-                      photos: reelQuery.data.creatorPhoto ? [reelQuery.data.creatorPhoto] : [],
-                      isVerified: reelQuery.data.creatorVerified,
-                    }}
-                    size={40}
-                  />
-                </LinearGradient>
-                {!reelQuery.data.isOwner ? (
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel={followRequested ? "Follow request sent" : reelQuery.data.creatorFollowedByMe ? `Unfollow ${reelQuery.data.creatorName}` : `Follow ${reelQuery.data.creatorName}`}
-                    accessibilityState={{ selected: reelQuery.data.creatorFollowedByMe, disabled: followProfile.isPending || unfollowProfile.isPending || followRequested }}
-                    disabled={followProfile.isPending || unfollowProfile.isPending || followRequested}
-                    onPress={() => void toggleCreatorFollow()}
-                    style={styles.followBadge}
-                    testID="button-follow-reel-creator"
-                  >
-                    <Feather name={followRequested || reelQuery.data.creatorFollowedByMe ? "check" : "plus"} size={13} color="#fff" />
-                  </Pressable>
-                ) : null}
-              </View>
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel={`${reelQuery.data.likedByMe ? "Unlike" : "Like"}, ${reelQuery.data.likeCount}`}
@@ -455,7 +399,7 @@ export default function ProfileReelScreen() {
                 style={styles.actionButton}
               >
                 <LinearGradient colors={["rgba(255,99,170,0.27)", "rgba(168,117,255,0.24)"]} style={styles.actionIconShell}>
-                  <GradientReelIcon name="like" filled={reelQuery.data.likedByMe} />
+                  <ReelActionIcon name="like" filled={reelQuery.data.likedByMe} />
                 </LinearGradient>
                 <Text style={styles.actionCount}>{reelQuery.data.likeCount}</Text>
               </Pressable>
@@ -467,7 +411,7 @@ export default function ProfileReelScreen() {
                 style={styles.actionButton}
               >
                 <LinearGradient colors={["rgba(255,99,170,0.27)", "rgba(168,117,255,0.24)"]} style={styles.actionIconShell}>
-                  <GradientReelIcon name="comment" />
+                  <ReelActionIcon name="comment" />
                 </LinearGradient>
                 <Text style={styles.actionCount}>{reelQuery.data.commentCount}</Text>
               </Pressable>
@@ -481,7 +425,7 @@ export default function ProfileReelScreen() {
                 style={styles.actionButton}
               >
                 <LinearGradient colors={["rgba(255,99,170,0.27)", "rgba(168,117,255,0.24)"]} style={styles.actionIconShell}>
-                  <GradientReelIcon name="save" filled={reelQuery.data.savedByMe} />
+                  <ReelActionIcon name="save" filled={reelQuery.data.savedByMe} />
                 </LinearGradient>
                 <Text style={styles.actionCount}>{reelQuery.data.saveCount}</Text>
               </Pressable>
@@ -497,7 +441,7 @@ export default function ProfileReelScreen() {
                 style={styles.actionButton}
               >
                 <LinearGradient colors={["rgba(255,99,170,0.27)", "rgba(168,117,255,0.24)"]} style={styles.actionIconShell}>
-                  <GradientReelIcon name="share" />
+                  <ReelActionIcon name="share" />
                 </LinearGradient>
                 <Text style={styles.actionCount}>{reelQuery.data.shareCount}</Text>
               </Pressable>
@@ -506,9 +450,24 @@ export default function ProfileReelScreen() {
         </View>
         {reelQuery.data ? (
           <View style={styles.caption}>
-            <Text style={[styles.creator, { color: colors.foreground }]}>
-              {reelQuery.data.creatorName}
-            </Text>
+            <View style={styles.creatorRow}>
+              <LinearGradient colors={["#ff63aa", "#a875ff"]} style={styles.creatorAvatarRing}>
+                <ProfileAvatar
+                  profile={{
+                    name: reelQuery.data.creatorName,
+                    photos: reelQuery.data.creatorPhoto ? [reelQuery.data.creatorPhoto] : [],
+                    isVerified: reelQuery.data.creatorVerified,
+                  }}
+                  size={42}
+                />
+              </LinearGradient>
+              <View style={styles.creatorDetails}>
+                <Text style={[styles.creator, { color: colors.foreground }]}>{reelQuery.data.creatorName}</Text>
+                {reelQuery.data.creatorLocation ? (
+                  <Text style={[styles.creatorLocation, { color: colors.mutedForeground }]}>{reelQuery.data.creatorLocation}</Text>
+                ) : null}
+              </View>
+            </View>
             {reelQuery.data.caption ? <Text style={[styles.captionText, { color: colors.mutedForeground }]}>{reelQuery.data.caption}</Text> : null}
             {actionError ? <Text accessibilityRole="alert" style={[styles.shareError, { color: colors.destructive }]}>{actionError}</Text> : null}
           </View>
@@ -712,14 +671,15 @@ const styles = StyleSheet.create({
   headerTitle: { fontSize: 19, fontWeight: "800" },
   videoStage: { flex: 1, minHeight: 200, overflow: "hidden", backgroundColor: "#000", alignItems: "center", justifyContent: "center" },
   actionRail: { position: "absolute", right: 10, bottom: 16, alignItems: "center", gap: 6 },
-  actionAvatar: { width: 48, height: 48, alignItems: "center", justifyContent: "center", marginBottom: 2 },
-  actionAvatarRing: { width: 46, height: 46, alignItems: "center", justifyContent: "center", borderRadius: 23, padding: 2, borderWidth: 1, borderColor: "rgba(255,255,255,0.32)" },
-  followBadge: { position: "absolute", right: -1, bottom: -1, width: 20, height: 20, alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: "#151019", borderRadius: 10, backgroundColor: "#f34e9a", elevation: 5 },
   actionButton: { width: 52, minWidth: 52, minHeight: 56, alignItems: "center", justifyContent: "flex-start", gap: 3 },
   actionIconShell: { width: 42, height: 42, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "rgba(255,255,255,0.18)", borderRadius: 15, overflow: "hidden", shadowColor: "#bd4bd3", shadowOpacity: 0.2, shadowRadius: 8, elevation: 4 },
   actionCount: { color: "#fff", fontSize: 10, fontWeight: "800", textShadowColor: "#000", textShadowRadius: 4 },
-  caption: { paddingHorizontal: 16, paddingVertical: 14, gap: 5 },
+  caption: { paddingHorizontal: 16, paddingVertical: 14, gap: 8 },
+  creatorRow: { flexDirection: "row", alignItems: "center", gap: 10 },
+  creatorAvatarRing: { width: 46, height: 46, alignItems: "center", justifyContent: "center", borderRadius: 23, padding: 2 },
+  creatorDetails: { flex: 1, minWidth: 0, gap: 3 },
   creator: { fontSize: 15, fontWeight: "700" },
+  creatorLocation: { fontSize: 12 },
   captionText: { fontSize: 14, lineHeight: 20 },
   message: { alignItems: "center", gap: 10 },
   messageText: { fontSize: 15 },

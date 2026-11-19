@@ -1,7 +1,7 @@
 import { useEffect, useId, useRef, useState, type TouchEvent as ReactTouchEvent } from "react";
 import { Link } from "wouter";
 import type { Reel } from "@workspace/api-client-react";
-import { Check, ChevronRight, MapPin, Pause, Play, Plus, Search, Volume2, VolumeX } from "lucide-react";
+import { ChevronRight, MapPin, Pause, Play, Search, Volume2, VolumeX } from "lucide-react";
 import { VerifiedBadge } from "@/components/verified-badge";
 import { ReelAvatar } from "@/components/reels/reel-avatar";
 import { formatCount, reelMediaUrl } from "@/lib/reels";
@@ -11,9 +11,9 @@ import { isOfflineReelWifi } from "@/lib/offline-reels";
 type Props = {
   reel: Reel; index: number; active: boolean; near: boolean; muted: boolean; pageHidden: boolean;
   compact: boolean; navigationVisible: boolean; returnTo: string;
-  likePending: boolean; savePending: boolean; followPending: boolean; followRequested: boolean;
+  likePending: boolean; savePending: boolean;
   onAutoplayMuted: () => void; onToggleSound: () => void;
-  onLike: () => void; onComment: () => void; onShare: () => void; onSave: () => void; onFollow: () => void;
+  onLike: () => void; onComment: () => void; onShare: () => void; onSave: () => void;
   onSearchSuggestion: (query: string) => void;
   onView: () => void;
   offlineSaved: boolean; onAutoCache: () => void;
@@ -21,7 +21,7 @@ type Props = {
 
 type ReelIconName = "like" | "comment" | "share" | "save";
 
-function GradientReelIcon({ name, filled = false }: { name: ReelIconName; filled?: boolean }) {
+function ReelActionIcon({ name, filled = false }: { name: ReelIconName; filled?: boolean }) {
   const gradientId = `reel-icon-${useId().replace(/:/g, "")}`;
   const stroke = `url(#${gradientId})`;
   return <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -33,7 +33,7 @@ function GradientReelIcon({ name, filled = false }: { name: ReelIconName; filled
   </svg>;
 }
 
-export function ReelSlide({ reel, index, active, near, muted, pageHidden, compact, navigationVisible, returnTo, likePending, savePending, followPending, followRequested, onAutoplayMuted, onToggleSound, onLike, onComment, onShare, onSave, onFollow, onSearchSuggestion, onView, offlineSaved, onAutoCache }: Props) {
+export function ReelSlide({ reel, index, active, near, muted, pageHidden, compact, navigationVisible, returnTo, likePending, savePending, onAutoplayMuted, onToggleSound, onLike, onComment, onShare, onSave, onSearchSuggestion, onView, offlineSaved, onAutoCache }: Props) {
   const video = useRef<HTMLVideoElement>(null);
   const autoCacheRequested = useRef(false);
   const viewRecorded = useRef(false);
@@ -192,9 +192,14 @@ export function ReelSlide({ reel, index, active, near, muted, pageHidden, compac
   const creatorProfileReturn = `/reels/${encodeURIComponent(reel.id)}?${reelReturnParams.toString()}`;
   const creatorProfileHref = `/profile/${encodeURIComponent(reel.creatorId)}?returnTo=${encodeURIComponent(creatorProfileReturn)}`;
   const searchSuggestion = reelSearchSuggestion({ caption: reel.caption, creatorLocation: reel.creatorLocation });
-  const creatorIdentity = <span className="reel-identity min-w-0">
-    <span className="reel-name" data-testid={`text-reel-creator-${reel.id}`}>{reel.creatorName}<VerifiedBadge verified={reel.creatorVerified} /></span>
-    {reel.creatorLocation && <span className="reel-location"><MapPin size={13} className="shrink-0 text-primary" /><span className="truncate">{reel.creatorLocation}</span></span>}
+  const creatorIdentity = <span className="reel-creator-identity">
+    <span className="reel-creator-avatar-ring">
+      <ReelAvatar reference={reel.creatorPhoto} name={reel.creatorName} size={40} />
+    </span>
+    <span className="reel-identity min-w-0">
+      <span className="reel-name" data-testid={`text-reel-creator-${reel.id}`}>{reel.creatorName}<VerifiedBadge verified={reel.creatorVerified} /></span>
+      {reel.creatorLocation && <span className="reel-location"><MapPin size={13} className="shrink-0 text-white" /><span className="truncate">{reel.creatorLocation}</span></span>}
+    </span>
   </span>;
   return <section className="reel-slide" data-index={index} data-testid={`reel-slide-${reel.id}`} aria-roledescription="Reel" aria-label={`Reel by ${reel.creatorName}`}>
     {slideshow
@@ -236,31 +241,16 @@ export function ReelSlide({ reel, index, active, near, muted, pageHidden, compac
     <div className="reel-shade" aria-hidden="true" />
 
     <div className={`reel-rail ${compact ? "is-compact" : ""} ${navigationVisible ? "is-nav-visible" : ""}`}>
-      <div className="reel-follow-avatar">
-        <Link href={creatorProfileHref} aria-label={`Open ${reel.creatorName}'s profile`} data-testid={`link-reel-profile-avatar-${reel.id}`} className="reel-follow-profile">
-          {near
-            ? <ReelAvatar reference={reel.creatorPhoto} name={reel.creatorName} size={42} />
-            : <span className="reel-avatar" style={{ width: 42, height: 42 }} aria-hidden="true">{reel.creatorName.trim().charAt(0).toUpperCase() || "M"}</span>}
-        </Link>
-        {!reel.isOwner && <button
-          type="button"
-          className={`reel-follow-badge ${reel.creatorFollowedByMe || followRequested ? "is-following" : ""}`}
-          onClick={onFollow}
-          disabled={followPending || followRequested}
-          aria-label={followRequested ? `Follow request sent to ${reel.creatorName}` : reel.creatorFollowedByMe ? `Unfollow ${reel.creatorName}` : `Follow ${reel.creatorName}`}
-          data-testid={`button-follow-reel-creator-${reel.id}`}
-        >{followRequested ? <Check size={13} strokeWidth={3} /> : reel.creatorFollowedByMe ? <Check size={13} strokeWidth={3} /> : <Plus size={14} strokeWidth={2.8} />}</button>}
-      </div>
       <button type="button" className={`reel-action-button ${reel.likedByMe ? "is-on" : ""}`} onClick={onLike} disabled={likePending} aria-pressed={reel.likedByMe} aria-label={reel.likedByMe ? "Unlike" : "Like"} data-testid={`button-like-reel-${reel.id}`}>
-        <span className="reel-action-glyph"><GradientReelIcon name="like" filled={reel.likedByMe} /></span><span data-testid={`text-like-count-${reel.id}`}>{formatCount(reel.likeCount)}</span>
+        <span className="reel-action-glyph"><ReelActionIcon name="like" filled={reel.likedByMe} /></span><span data-testid={`text-like-count-${reel.id}`}>{formatCount(reel.likeCount)}</span>
       </button>
       <button type="button" className="reel-action-button" onClick={onComment} aria-label="Comments" data-testid={`button-comments-reel-${reel.id}`}>
-        <span className="reel-action-glyph"><GradientReelIcon name="comment" /></span><span data-testid={`text-comment-count-${reel.id}`}>{formatCount(reel.commentCount)}</span>
+        <span className="reel-action-glyph"><ReelActionIcon name="comment" /></span><span data-testid={`text-comment-count-${reel.id}`}>{formatCount(reel.commentCount)}</span>
       </button>
       <button type="button" className={`reel-action-button ${reel.savedByMe ? "is-saved" : ""}`} onClick={onSave} disabled={savePending} aria-pressed={reel.savedByMe} aria-label={reel.savedByMe ? "Remove from Saved Reels" : "Save Reel"} data-testid={`button-save-reel-${reel.id}`}>
-        <span className="reel-action-glyph"><GradientReelIcon name="save" filled={reel.savedByMe} /></span><span data-testid={`text-save-count-${reel.id}`}>{formatCount(reel.saveCount)}</span>
+        <span className="reel-action-glyph"><ReelActionIcon name="save" filled={reel.savedByMe} /></span><span data-testid={`text-save-count-${reel.id}`}>{formatCount(reel.saveCount)}</span>
       </button>
-      <button type="button" className="reel-action-button" onClick={onShare} aria-label={`Share, ${formatCount(reel.shareCount)} shares`} data-testid={`button-share-reel-${reel.id}`}><span className="reel-action-glyph"><GradientReelIcon name="share" /></span><span data-testid={`text-share-count-${reel.id}`}>{formatCount(reel.shareCount)}</span></button>
+      <button type="button" className="reel-action-button" onClick={onShare} aria-label={`Share, ${formatCount(reel.shareCount)} shares`} data-testid={`button-share-reel-${reel.id}`}><span className="reel-action-glyph"><ReelActionIcon name="share" /></span><span data-testid={`text-share-count-${reel.id}`}>{formatCount(reel.shareCount)}</span></button>
     </div>
 
     <div className={`reel-meta ${searchSuggestion && !compact ? "has-search" : ""} ${compact ? "is-compact" : ""} ${navigationVisible ? "is-nav-visible" : ""}`}>
