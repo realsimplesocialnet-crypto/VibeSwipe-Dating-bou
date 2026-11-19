@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
+import { CreateReelCommentBody } from "../../../lib/api-zod/src/generated/api.ts";
 import { cleanReelCaption, decodeReelCursor, encodeReelCursor, reelAssetProblem, reelLocation } from "../src/lib/reel-cursor.ts";
 import { decodeReelFeedMixCursor, encodeReelFeedMixCursor, mixReelFeedLanes } from "../src/lib/reel-feed-mix.ts";
 import { reelSearchTerms } from "../src/lib/reel-search.ts";
@@ -176,6 +177,16 @@ test("photo comments upload privately and follow Reel visibility", () => {
   assert.match(nativeReel, /useRequestProfileMediaUpload/);
   assert.match(nativeReel, /profileImagePreviewSource\(comment\.mediaReference, token\)/);
   assert.match(nativeReel, /KeyboardAvoidingView behavior="padding" keyboardVerticalOffset=\{0\}/);
+});
+
+test("Reel comment requests accept text, photo, or both but never an empty comment", () => {
+  const mediaId = "123e4567-e89b-42d3-a456-426614174000";
+  assert.equal(CreateReelCommentBody.safeParse({ content: "Hello" }).success, true);
+  assert.equal(CreateReelCommentBody.safeParse({ mediaId }).success, true);
+  assert.equal(CreateReelCommentBody.safeParse({ content: "Hello", mediaId }).success, true);
+  assert.equal(CreateReelCommentBody.safeParse({}).success, false);
+  assert.match(reels, /const content = body\.data\.content\?\.trim\(\) \?\? ""/);
+  assert.match(reels, /if \(!content && !mediaId\)/);
 });
 
 test("photo-slide Reels preserve ordered media and protect every image", () => {
