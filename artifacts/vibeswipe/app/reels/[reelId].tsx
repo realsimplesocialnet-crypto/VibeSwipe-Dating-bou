@@ -22,12 +22,13 @@ import {
   type Reel,
 } from "@workspace/api-client-react";
 import { Feather } from "@expo/vector-icons";
+import { Image as CachedImage } from "expo-image";
 import { router, useLocalSearchParams } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { VideoView, useVideoPlayer } from "expo-video";
 import { File, Paths } from "expo-file-system";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, Alert, Image, KeyboardAvoidingView, Linking, Modal, Platform, Pressable, ScrollView, Share, StyleSheet, Text, TextInput, View, useWindowDimensions } from "react-native";
+import { ActivityIndicator, Alert, KeyboardAvoidingView, Linking, Modal, Platform, Pressable, ScrollView, Share, StyleSheet, Text, TextInput, View, useWindowDimensions } from "react-native";
 import { useQueryClient } from "@tanstack/react-query";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { usePremiumColors } from "@/hooks/useColors";
@@ -113,6 +114,18 @@ export default function ProfileReelScreen() {
   const slideReferences = reelQuery.data?.slideReferences ?? [];
   const uri = reelQuery.data && !slideshow ? mediaUri(reelQuery.data.videoReference) : null;
   useEffect(() => { setSlideIndex(0); }, [reelId]);
+  useEffect(() => {
+    if (!slideshow || !token) return;
+    const neighbors = [slideIndex - 1, slideIndex + 1, slideIndex + 2]
+      .filter(position => position >= 0 && position < slideReferences.length)
+      .map(position => mediaUri(slideReferences[position]))
+      .filter((value): value is string => Boolean(value));
+    if (!neighbors.length) return;
+    void CachedImage.prefetch(neighbors, {
+      cachePolicy: "memory-disk",
+      headers: { Authorization: `Bearer ${token}` },
+    }).catch(() => undefined);
+  }, [slideIndex, slideReferences, slideshow, token]);
   const source = useMemo(
     () => uri && token ? { uri, headers: { Authorization: `Bearer ${token}` } } : null,
     [token, uri],
@@ -364,11 +377,14 @@ export default function ProfileReelScreen() {
               >
                 {slideReferences.map((reference, position) => {
                   const slideUri = mediaUri(reference);
-                  return <Image
+                  return <CachedImage
                     key={`${reference}-${position}`}
                     source={token && slideUri ? { uri: slideUri, headers: { Authorization: `Bearer ${token}` } } : undefined}
                     style={{ width: slideViewportWidth || screenWidth, height: "100%" }}
-                    resizeMode="cover"
+                    contentFit="cover"
+                    cachePolicy="memory-disk"
+                    transition={0}
+                    priority={position === slideIndex ? "high" : "normal"}
                     accessibilityLabel={`Photo slide ${position + 1} of ${slideReferences.length}`}
                   />;
                 })}

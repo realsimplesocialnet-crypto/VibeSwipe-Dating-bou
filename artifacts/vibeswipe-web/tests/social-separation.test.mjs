@@ -17,6 +17,7 @@ test('Activity excludes chat-message notices and places its four summary cards f
   for (const path of ['/matches', '/likes', '/views']) assert.ok(activity.includes(`'${path}'`));
   assert.ok(activity.indexOf('aria-label="Activity summary"') < activity.indexOf('aria-label="Activity feed"'));
   assert.match(activity, /className="activity-feed"/);
+  assert.doesNotMatch(activity, /<h1 className="activity-title">Activity<\/h1>/);
   assert.doesNotMatch(activity, /aria-label="New followers"|aria-label="Super Likes"|aria-label="Reel likes"/);
   assert.match(activity, /n\.type === 'new_match' && n\.matchId/);
 });

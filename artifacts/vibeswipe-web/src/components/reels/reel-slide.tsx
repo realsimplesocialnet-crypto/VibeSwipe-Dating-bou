@@ -52,6 +52,24 @@ export function ReelSlide({ reel, index, active, near, muted, pageHidden, compac
   const [progress, setProgress] = useState(0);
   const [flash, setFlash] = useState<"play" | "pause" | "sound-on" | "sound-off" | null>(null);
 
+  useEffect(() => {
+    if (!slideshow) return;
+    const neighborIndexes = [slideIndex - 1, slideIndex + 1, slideIndex + 2]
+      .filter((slide) => slide >= 0 && slide < slideCount);
+    const preloaded = neighborIndexes.map((slide) => {
+      const image = new window.Image();
+      image.decoding = "async";
+      image.src = reelMediaUrl(reel.slideReferences[slide]);
+      return image;
+    });
+    return () => {
+      for (const image of preloaded) {
+        image.onload = null;
+        image.onerror = null;
+      }
+    };
+  }, [reel.id, reel.slideReferences, slideCount, slideIndex, slideshow]);
+
   useEffect(() => { if (!active) setUserPaused(false); }, [active]);
   useEffect(() => { setProgress(0); setSlideIndex(0); setReady(false); setCaptionExpanded(false); }, [reel.id]);
   useEffect(() => () => { if (flashTimer.current !== null) window.clearTimeout(flashTimer.current); }, []);
@@ -204,7 +222,7 @@ export function ReelSlide({ reel, index, active, near, muted, pageHidden, compac
   return <section className="reel-slide" data-index={index} data-testid={`reel-slide-${reel.id}`} aria-roledescription="Reel" aria-label={`Reel by ${reel.creatorName}`}>
     {slideshow
       ? <div className="reel-photo-slides" data-testid={`reel-photo-slides-${reel.id}`} aria-label={`Photo slide ${slideIndex + 1} of ${slideCount}`}>
-        <img src={reelMediaUrl(reel.slideReferences[slideIndex])} alt="" className="reel-photo-slide" draggable={false} />
+        <img src={reelMediaUrl(reel.slideReferences[slideIndex])} alt="" className="reel-photo-slide" loading="eager" decoding="async" fetchPriority={active ? "high" : "auto"} draggable={false} />
       </div>
       : <video
       ref={video}

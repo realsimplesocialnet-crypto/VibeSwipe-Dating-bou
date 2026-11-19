@@ -26,11 +26,15 @@ test("chat keyboard animation coalesces viewport events and defers bottom scroll
 });
 
 test("both web chat screens stay anchored while iOS pans its visual viewport", () => {
-  assert.match(app, /top:`calc\(\$\{chatViewport\.top\}px/);
-  assert.match(app, /height:`calc\(\$\{chatViewport\.height\}px/);
+  assert.match(app, /chatSurfaceRef=useRef<HTMLDivElement>/);
+  assert.match(app, /surface\.style\.height=`calc\(\$\{frame\.height\}px/);
+  assert.match(app, /composer\.style\.paddingBottom=frame\.keyboardOpen/);
+  assert.doesNotMatch(app, /setChatViewport/);
   assert.match(directChat, /chatViewportFrame\(height, viewport\?\.offsetTop/);
+  assert.match(directChat, /surface\.style\.height = `calc\(\$\{frame\.height\}px/);
   assert.match(directChat, /fixed inset-x-0/);
-  assert.match(directChat, /paddingBottom: chatViewport\.keyboardOpen \? 0/);
+  assert.match(directChat, /composer\.style\.paddingBottom = frame\.keyboardOpen/);
+  assert.doesNotMatch(directChat, /setChatViewport/);
   assert.doesNotMatch(directChat, /scrollIntoView/);
 });
 
@@ -38,6 +42,10 @@ test("native chats avoid applying keyboard insets twice", () => {
   for (const source of [nativeChat, nativeDirectChat]) {
     assert.match(source, /automaticallyAdjustKeyboardInsets=\{false\}/);
     assert.match(source, /contentInsetAdjustmentBehavior="never"/);
+    assert.doesNotMatch(source, /useKeyboardState/);
   }
-  assert.match(nativeDirectChat, /paddingBottom: keyboardVisible \? 0/);
+  assert.match(nativeChat, /keyboardVerticalOffset=\{Platform\.OS === "ios" \? -insets\.bottom : 0\}/);
+  assert.match(nativeDirectChat, /keyboardVerticalOffset=\{Platform\.OS === "ios" \? -insets\.bottom : 0\}/);
+  assert.match(nativeChat, /marginBottom: Math\.max\(insets\.bottom, 8\)/);
+  assert.match(nativeDirectChat, /paddingBottom: Math\.max\(insets\.bottom, 8\)/);
 });
