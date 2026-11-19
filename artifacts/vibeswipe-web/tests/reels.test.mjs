@@ -243,29 +243,33 @@ test("Reels comments open below a still-interactive video", () => {
   assert.match(css, /height: var\(--reels-comments-height, min\(62%, 560px\)\)/);
 });
 
-test("Reel action rail and profile grid show persisted like, comment, save and share counts", () => {
+test("Reel action rail shows engagement counts while profile previews show views only", () => {
   const slide = read("../src/components/reels/reel-slide.tsx");
   const profile = read("../src/components/profile-reels-section.tsx");
   const mobileProfile = read("../../vibeswipe/components/ProfileReelsSection.tsx");
-  for (const file of [slide, profile, mobileProfile]) {
+  for (const file of [slide]) {
     assert.match(file, /likeCount/);
     assert.match(file, /commentCount/);
     assert.match(file, /shareCount/);
   }
-  for (const file of [profile, mobileProfile]) assert.match(file, /saveCount/);
-  assert.match(profile, /text-profile-reel-interactions-\$\{reel\.id\}/);
-  assert.match(mobileProfile, /text-profile-reel-interactions-\$\{reel\.id\}/);
+  for (const file of [profile, mobileProfile]) {
+    assert.match(file, /text-profile-reel-views-/);
+    assert.doesNotMatch(file, /text-profile-reel-interactions|engagementCounts|reel\.(?:likeCount|commentCount|saveCount|shareCount)/);
+  }
   const nativeReel = read("../../vibeswipe/app/reels/[reelId].tsx");
   for (const id of ["button-like-reel", "button-comments-reel", "button-save-reel", "button-share-reel", "button-post-reel-comment"]) {
     assert.ok(nativeReel.includes(id), `native Reel action is missing ${id}`);
   }
   const rail = slide.slice(slide.indexOf("className={`reel-rail"), slide.indexOf("className={`reel-meta"));
-  const actionOrder = ["button-like-reel-", "button-comments-reel-", "button-share-reel-", "button-save-reel-"]
+  const actionOrder = ["button-like-reel-", "button-comments-reel-", "button-save-reel-", "button-share-reel-"]
     .map((id) => rail.indexOf(id));
   assert.ok(actionOrder.every((position, index) => position >= 0 && (index === 0 || position > actionOrder[index - 1])));
   assert.equal((rail.match(/data-testid=\{`button-/g) ?? []).length, 4);
   assert.match(rail, /button-save-reel-\$\{reel\.id\}/);
   assert.match(rail, /onSave/);
+  assert.match(slide, /searchSuggestion && !compact \? "has-search"/);
+  assert.match(slide, /const pink = "var\(--reels-accent/);
+  assert.match(read("../src/components/reels/reels.css"), /\.reel-rail\.has-search\.is-nav-visible \{ bottom: 72px; \}/);
   assert.match(read("../src/pages/reels-feed.tsx"), /button-post-reel/);
   assert.match(read("../src/pages/reels-feed.tsx"), /link-reels-saved/);
   assert.doesNotMatch(rail, /button-create-reel-|button-message-creator|Follow|Remix|Download|Music|button-delete-reel/);
@@ -276,11 +280,11 @@ test("Reel action rail and profile grid show persisted like, comment, save and s
   assert.match(slide, /element\.currentTime = \(nextProgress \/ 100\) \* element\.duration/);
   const css = read("../src/components/reels/reels.css");
   assert.match(css, /--reels-accent: hsl\(var\(--primary\)\)/);
-  assert.match(css, /\.reel-rail button\.is-on[^}]*var\(--reels-accent\)/);
+  assert.match(slide, /stroke=\{filled \? stroke : pink\}/);
   assert.doesNotMatch(css, /#3678d4|--reels-blue/);
-  assert.match(css, /\.reel-rail button svg \{ height: 24px; width: 24px/);
-  assert.match(css, /\.reel-rail button \{[^}]*height: 56px;[^}]*font-size: 12px/);
-  assert.match(css, /\.reel-rail \{ gap: 4px; \}/);
+  assert.match(css, /\.reel-action-button > svg \{ display:block; width:28px; height:28px/);
+  assert.match(css, /\.reel-rail \.reel-action-button \{ width: 52px; min-width: 52px; height: 70px/);
+  assert.match(css, /\.reel-rail \{ gap: 9px; \}/);
   assert.match(css, /\.reels-feed-tabs button\.is-active::after[^}]*background: hsl\(var\(--primary\)\)/);
   assert.doesNotMatch(css, /\.reels-mobile-nav \.mobile-nav-indicator::before/);
   assert.match(css, /\.reels-mobile-nav \.mnav-item\.is-active \{ color: #f34e9a !important/);

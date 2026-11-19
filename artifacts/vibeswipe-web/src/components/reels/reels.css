@@ -31,6 +31,8 @@
 .reel-rail { position: absolute; right: 12px; bottom: calc(env(safe-area-inset-bottom) + 14px); z-index: 2; display: flex; flex-direction: column; align-items: center; gap: 9px; }
 .reel-rail.is-nav-visible { bottom: 14px; }
 .reel-rail.is-compact { bottom: 14px; }
+.reel-rail.has-search { bottom: calc(env(safe-area-inset-bottom) + 72px); }
+.reel-rail.has-search.is-nav-visible { bottom: 72px; }
 .reel-action-button { display: flex; width: 52px; min-width: 52px; height: 70px; flex: none; flex-direction: column; align-items: center; justify-content: flex-start; gap: 8px; color: #fff; font-size: 11px; font-weight: 750; line-height: 1; white-space: nowrap; text-shadow: 0 1px 5px rgb(0 0 0 / .85); -webkit-tap-highlight-color: transparent; transition: transform .18s cubic-bezier(.2,.8,.2,1),color .18s ease,opacity .18s ease; }
 .reel-action-button:active { transform: scale(.92); }
 .reel-action-button:disabled { opacity: .68; }

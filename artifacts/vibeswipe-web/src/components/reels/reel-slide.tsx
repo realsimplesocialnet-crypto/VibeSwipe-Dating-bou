@@ -24,12 +24,13 @@ type ReelIconName = "like" | "comment" | "share" | "save";
 function ReelActionIcon({ name, filled = false }: { name: ReelIconName; filled?: boolean }) {
   const gradientId = `reel-icon-${useId().replace(/:/g, "")}`;
   const stroke = `url(#${gradientId})`;
+  const pink = "var(--reels-accent, #f34e9a)";
   return <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
     <defs><linearGradient id={gradientId} x1="3" y1="2" x2="21" y2="22" gradientUnits="userSpaceOnUse"><stop stopColor="#ff63aa" /><stop offset="1" stopColor="#a875ff" /></linearGradient></defs>
-    {name === "like" && <path d="M20.8 4.7a5.4 5.4 0 0 0-7.7 0L12 5.8l-1.1-1.1a5.4 5.4 0 0 0-7.7 7.7l1.1 1.1L12 21l7.7-7.5 1.1-1.1a5.4 5.4 0 0 0 0-7.7Z" stroke={filled ? stroke : "#fff"} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" fill={filled ? stroke : "#fff"} />}
-    {name === "comment" && <><path d="M6 4.5h12a2 2 0 0 1 2 2V14a2 2 0 0 1-2 2h-1v3.5L13 16H6a2 2 0 0 1-2-2V6.5a2 2 0 0 1 2-2Z" stroke="#fff" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" /><circle cx="8.5" cy="10.5" r="1" fill="#fff" /><circle cx="12" cy="10.5" r="1" fill="#fff" /><circle cx="15.5" cy="10.5" r="1" fill="#fff" /></>}
-    {name === "share" && <path d="M3.5 19.5c2.5-6.8 7.1-10.4 14.3-10.4h1.7V5l5 4.9-5 4.9V12h-1.7c-5.5 0-8.9 2.8-11.1 7.5H3.5Z" fill="#fff" />}
-    {name === "save" && <path d="M6 4.5A1.5 1.5 0 0 1 7.5 3h9A1.5 1.5 0 0 1 18 4.5V21l-6-4-6 4V4.5Z" stroke={filled ? stroke : "#fff"} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" fill={filled ? stroke : "#fff"} />}
+    {name === "like" && <path d="M20.8 4.7a5.4 5.4 0 0 0-7.7 0L12 5.8l-1.1-1.1a5.4 5.4 0 0 0-7.7 7.7l1.1 1.1L12 21l7.7-7.5 1.1-1.1a5.4 5.4 0 0 0 0-7.7Z" stroke={filled ? stroke : pink} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" fill={filled ? stroke : "none"} />}
+    {name === "comment" && <><path d="M6 4.5h12a2 2 0 0 1 2 2V14a2 2 0 0 1-2 2h-1v3.5L13 16H6a2 2 0 0 1-2-2V6.5a2 2 0 0 1 2-2Z" stroke={pink} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" /><circle cx="8.5" cy="10.5" r="1" fill={pink} /><circle cx="12" cy="10.5" r="1" fill={pink} /><circle cx="15.5" cy="10.5" r="1" fill={pink} /></>}
+    {name === "share" && <path d="M3.5 19.5c2.5-6.8 7.1-10.4 14.3-10.4h1.7V5l5 4.9-5 4.9V12h-1.7c-5.5 0-8.9 2.8-11.1 7.5H3.5Z" fill={pink} />}
+    {name === "save" && <path d="M6 4.5A1.5 1.5 0 0 1 7.5 3h9A1.5 1.5 0 0 1 18 4.5V21l-6-4-6 4V4.5Z" stroke={filled ? stroke : pink} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" fill={filled ? stroke : "none"} />}
   </svg>;
 }
 
@@ -258,7 +259,7 @@ export function ReelSlide({ reel, index, active, near, muted, pageHidden, compac
     {failed && <div className="reel-blocked" role="alert"><span>This video could not load.</span><button type="button" onClick={retry} className="reel-pill" data-testid={`button-retry-reel-${reel.id}`}>Try again</button></div>}
     <div className="reel-shade" aria-hidden="true" />
 
-    <div className={`reel-rail ${compact ? "is-compact" : ""} ${navigationVisible ? "is-nav-visible" : ""}`}>
+    <div className={`reel-rail ${compact ? "is-compact" : ""} ${navigationVisible ? "is-nav-visible" : ""} ${searchSuggestion && !compact ? "has-search" : ""}`}>
       <button type="button" className={`reel-action-button ${reel.likedByMe ? "is-on" : ""}`} onClick={onLike} disabled={likePending} aria-pressed={reel.likedByMe} aria-label={reel.likedByMe ? "Unlike" : "Like"} data-testid={`button-like-reel-${reel.id}`}>
         <ReelActionIcon name="like" filled={reel.likedByMe} /><span data-testid={`text-like-count-${reel.id}`}>{formatCount(reel.likeCount)}</span>
       </button>
