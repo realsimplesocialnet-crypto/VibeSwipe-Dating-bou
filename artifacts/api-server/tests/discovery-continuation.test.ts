@@ -3,6 +3,16 @@ import test from "node:test";
 import { readFileSync } from "node:fs";
 import { discoveryExcludedIds } from "../src/lib/discovery-exclusions.ts";
 import { continueDiscoveryDeck, createUseDiscoveryDeck } from "../../../lib/api-client-react/src/discovery-deck.ts";
+import { GetDiscoverProfilesQueryParams } from "../../../lib/api-zod/src/generated/api.ts";
+
+test("member search accepts a single character and a nonnegative result offset", () => {
+  const uppercase = GetDiscoverProfilesQueryParams.parse({ q: "B", offset: "50" });
+  const lowercase = GetDiscoverProfilesQueryParams.parse({ q: "b", offset: "100" });
+  assert.equal(uppercase.q, "B");
+  assert.equal(uppercase.offset, 50);
+  assert.equal(lowercase.q, "b");
+  assert.equal(lowercase.offset, 100);
+});
 
 test("exhaustion recycles only passes, never likes, Super Likes, self or either block direction", () => {
   const input = {

@@ -35,4 +35,9 @@ includePassed?: GetDiscoverProfilesIncludePassed;
  * @maxLength 100
  */
 q?: string;
+/**
+ * Number of matching member profiles to skip when loading more search results.
+ * @minimum 0
+ */
+offset?: number;
 };

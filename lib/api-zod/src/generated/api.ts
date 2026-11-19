@@ -644,6 +644,9 @@ export const getDiscoverProfilesQueryAgeMaxMax = 120;
 
 export const getDiscoverProfilesQueryQMax = 100;
 
+export const getDiscoverProfilesQueryOffsetDefault = 0;
+export const getDiscoverProfilesQueryOffsetMin = 0;
+
 
 
 export const GetDiscoverProfilesQueryParams = zod.object({
@@ -654,7 +657,8 @@ export const GetDiscoverProfilesQueryParams = zod.object({
   "country": zod.coerce.string().optional(),
   "state": zod.coerce.string().optional().describe('Exact state or region within the selected country.'),
   "includePassed": zod.enum(['true', 'false']).optional().describe('Include previously passed profiles in an explicit location search; likes, blocks, and privacy rules still apply.'),
-  "q": zod.coerce.string().min(1).max(getDiscoverProfilesQueryQMax).optional().describe('Search member names as the user types; a single character is enough to start.')
+  "q": zod.coerce.string().min(1).max(getDiscoverProfilesQueryQMax).optional().describe('Search member names as the user types; a single character is enough to start.'),
+  "offset": zod.coerce.number().int().min(getDiscoverProfilesQueryOffsetMin).default(getDiscoverProfilesQueryOffsetDefault).describe('Number of matching member profiles to skip when loading more search results.')
 })
 
 export const getDiscoverProfilesResponsePreferencesAgeMinMin = 18;

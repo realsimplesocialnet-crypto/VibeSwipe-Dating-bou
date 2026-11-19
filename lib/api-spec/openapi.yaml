@@ -402,6 +402,10 @@ paths:
           name: q
           description: Search member names as the user types; a single character is enough to start.
           schema: { type: string, minLength: 1, maxLength: 100 }
+        - in: query
+          name: offset
+          description: Number of matching member profiles to skip when loading more search results.
+          schema: { type: integer, minimum: 0, default: 0 }
       responses:
         "200":
           description: Profiles for discovery

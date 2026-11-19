@@ -1433,6 +1433,7 @@ router.get("/vibeswipe/discover", async (req, res): Promise<void> => {
     locationConditions: SQL[],
     limit?: number,
     additionallyExcluded: string[] = [],
+    offset = 0,
   ) => {
     const conditions: SQL[] = [...baseConditions, ...locationConditions];
     if (excludedIds.size || additionallyExcluded.length) {
@@ -1466,7 +1467,7 @@ router.get("/vibeswipe/discover", async (req, res): Promise<void> => {
           : []),
         ...(recyclingPasses ? [sql`COALESCE((SELECT r.created_at FROM vibeswipe_reactions r WHERE r.from_user_id = ${userId} AND r.to_user_id = ${profilesTable.id}), '-infinity'::timestamptz) ASC`] : []),
         desc(sql`CASE WHEN ${profilesTable.boostEndTime} > NOW() THEN 1 ELSE 0 END`), profilesTable.id);
-    return limit === undefined ? query : query.limit(limit);
+    return limit === undefined ? query : query.limit(limit).offset(offset);
   };
 
   const smartDefault = !searchTerm && automaticDiscovery({
@@ -1477,7 +1478,7 @@ router.get("/vibeswipe/discover", async (req, res): Promise<void> => {
   const loadCandidates = async () => {
   let candidates: Awaited<ReturnType<typeof queryCandidates>> = [];
   if (searchTerm) {
-    candidates = await queryCandidates([], 50);
+    candidates = await queryCandidates([], 50, [], params.data.offset ?? 0);
   } else if (smartDefault) {
     const regionalValues = ownProfile.country ? regionalCountryValues(ownProfile.country) : [];
     candidates = await smartDiscoveryPool(minimumDiscoveryPool(process.env.VIBESWIPE_DISCOVERY_MIN_POOL_SIZE),

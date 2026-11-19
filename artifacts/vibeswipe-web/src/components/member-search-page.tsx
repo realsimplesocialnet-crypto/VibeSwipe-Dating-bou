@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
-import { useGetDiscoverProfiles, useGetMyProfile, type Profile } from "@workspace/api-client-react";
+import { useEffect, useState } from "react";
+import { useInfiniteQuery } from "@tanstack/react-query";
+import { getDiscoverProfiles, useGetDiscoverProfiles, useGetMyProfile, type Profile } from "@workspace/api-client-react";
 import { ArrowLeft, ChevronRight, LoaderCircle } from "lucide-react";
 import { useLocation } from "wouter";
 import { VerifiedBadge } from "@/components/verified-badge";
@@ -14,18 +15,30 @@ const profileMediaUrl = (ref?: string | null) => ref
         : `/api/storage${ref.startsWith("/") ? ref : `/${ref}`}`
   : "";
 
+const SEARCH_PAGE_SIZE = 50;
+
 export function MemberSearchPage() {
   const [location, setLocation] = useLocation();
   const [query, setQuery] = useState(() => new URLSearchParams(window.location.search).get("q") ?? "");
   const [debouncedQuery, setDebouncedQuery] = useState(query.trim().replace(/\s+/g, " "));
   const myProfile = useGetMyProfile();
   const isSearching = debouncedQuery.length >= 1;
-  const request = useMemo(() => isSearching ? { q: debouncedQuery } : {}, [isSearching, debouncedQuery]);
-  const results = useGetDiscoverProfiles<Profile[]>(request, {
+  const suggestions = useGetDiscoverProfiles<Profile[]>({}, {
     query: {
+      enabled: !isSearching,
       refetchOnWindowFocus: false,
       staleTime: 30_000,
     },
+  });
+  const searchResults = useInfiniteQuery({
+    queryKey: ["/api/vibeswipe/discover", "member-search", debouncedQuery],
+    queryFn: ({ pageParam, signal }) =>
+      getDiscoverProfiles({ q: debouncedQuery, offset: pageParam }, { signal }),
+    initialPageParam: 0,
+    getNextPageParam: (lastPage, pages) =>
+      lastPage.length === SEARCH_PAGE_SIZE ? pages.length * SEARCH_PAGE_SIZE : undefined,
+    enabled: isSearching,
+    staleTime: 30_000,
   });
 
   useEffect(() => {
@@ -46,7 +59,11 @@ export function MemberSearchPage() {
     setLocation(`/profile/${encodeURIComponent(profile.id)}?returnTo=${encodeURIComponent(returnTo)}`);
   }
 
-  const profiles = results.data ?? [];
+  const profiles = isSearching
+    ? searchResults.data?.pages.flat() ?? []
+    : suggestions.data ?? [];
+  const isLoading = isSearching ? searchResults.isLoading : suggestions.isLoading;
+  const isError = isSearching ? searchResults.isError : suggestions.isError;
   const isSearchingForSelf = Boolean(
     isSearching
     &&
@@ -80,15 +97,15 @@ export function MemberSearchPage() {
         />
       </label>
 
-      {results.isLoading && (
+      {isLoading && profiles.length === 0 && (
         <div className="flex justify-center py-8" role="status" aria-label={isSearching ? "Searching" : "Finding people"}>
           <LoaderCircle size={22} className="animate-spin text-primary" />
         </div>
       )}
-      {results.isError && (
+      {isError && (
         <p role="alert" className="py-8 text-center text-sm text-muted-foreground">Search unavailable</p>
       )}
-      {!results.isLoading && !results.isError && profiles.length === 0 && (
+      {!isLoading && !isError && profiles.length === 0 && (
         <p className="py-8 text-center text-sm text-muted-foreground">
           {isSearchingForSelf
             ? "Your own profile isn’t shown in member search."
@@ -126,6 +143,18 @@ export function MemberSearchPage() {
             );
           })}
         </ul>
+      )}
+      {isSearching && searchResults.hasNextPage && (
+        <button
+          type="button"
+          onClick={() => void searchResults.fetchNextPage()}
+          disabled={searchResults.isFetchingNextPage}
+          className="mt-4 flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-card px-4 text-sm font-semibold text-primary disabled:opacity-60"
+          data-testid="button-load-more-members"
+        >
+          {searchResults.isFetchingNextPage && <LoaderCircle size={16} className="animate-spin" />}
+          {searchResults.isFetchingNextPage ? "Loading more people" : "Load more people"}
+        </button>
       )}
     </main>
   );

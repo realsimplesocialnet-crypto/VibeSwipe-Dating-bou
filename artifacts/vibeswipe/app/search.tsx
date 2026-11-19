@@ -1,10 +1,11 @@
-import { useGetDiscoverProfiles, type Profile } from "@workspace/api-client-react";
+import { getDiscoverProfiles, useGetDiscoverProfiles, type Profile } from "@workspace/api-client-react";
 import { Feather } from "@expo/vector-icons";
 import { ProfileAvatar } from "@/components/ProfileAvatar";
 import { useColors } from "@/hooks/useColors";
 import { router, useLocalSearchParams } from "expo-router";
 import { KeyboardAvoidingView } from "react-native-keyboard-controller";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import {
   ActivityIndicator,
   FlatList,
@@ -17,19 +18,31 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+const SEARCH_PAGE_SIZE = 50;
+
 export default function MemberSearchScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{ q?: string }>();
   const [query, setQuery] = useState(typeof params.q === "string" ? params.q : "");
   const [debouncedQuery, setDebouncedQuery] = useState(query.trim().replace(/\s+/g, " "));
-  const request = useMemo(() => ({ q: debouncedQuery }), [debouncedQuery]);
-  const results = useGetDiscoverProfiles<Profile[]>(request, {
+  const isSearching = debouncedQuery.length >= 1;
+  const suggestions = useGetDiscoverProfiles<Profile[]>({}, {
     query: {
-      enabled: debouncedQuery.length >= 2,
+      enabled: !isSearching,
       refetchOnWindowFocus: false,
       staleTime: 30_000,
     },
+  });
+  const searchResults = useInfiniteQuery({
+    queryKey: ["/api/vibeswipe/discover", "member-search", debouncedQuery],
+    queryFn: ({ pageParam, signal }) =>
+      getDiscoverProfiles({ q: debouncedQuery, offset: pageParam }, { signal }),
+    initialPageParam: 0,
+    getNextPageParam: (lastPage, pages) =>
+      lastPage.length === SEARCH_PAGE_SIZE ? pages.length * SEARCH_PAGE_SIZE : undefined,
+    enabled: isSearching,
+    staleTime: 30_000,
   });
 
   useEffect(() => {
@@ -39,7 +52,11 @@ export default function MemberSearchScreen() {
     return () => clearTimeout(timer);
   }, [query]);
 
-  const profiles = results.data ?? [];
+  const profiles = isSearching
+    ? searchResults.data?.pages.flat() ?? []
+    : suggestions.data ?? [];
+  const isLoading = isSearching ? searchResults.isLoading : suggestions.isLoading;
+  const isError = isSearching ? searchResults.isError : suggestions.isError;
   const updateQuery = (value: string) => setQuery(value);
 
   const openProfile = (profile: Profile) => {
@@ -86,10 +103,8 @@ export default function MemberSearchScreen() {
           )}
         </View>
 
-        {results.isError && debouncedQuery.length >= 2 ? (
+        {isError ? (
           <Text accessibilityRole="alert" style={[styles.empty, { color: colors.mutedForeground }]}>Search unavailable</Text>
-        ) : debouncedQuery.length >= 2 && !results.isLoading && profiles.length === 0 ? (
-          <Text style={[styles.empty, { color: colors.mutedForeground }]}>No members found</Text>
         ) : (
           <FlatList
             data={profiles}
@@ -97,6 +112,12 @@ export default function MemberSearchScreen() {
             keyboardShouldPersistTaps="handled"
             scrollEnabled={profiles.length > 0}
             contentContainerStyle={styles.results}
+            onEndReached={() => {
+              if (isSearching && searchResults.hasNextPage && !searchResults.isFetchingNextPage) {
+                void searchResults.fetchNextPage();
+              }
+            }}
+            onEndReachedThreshold={0.45}
             renderItem={({ item }) => {
               const place = locationLabel(item);
               return (
@@ -118,9 +139,26 @@ export default function MemberSearchScreen() {
               );
             }}
             ListEmptyComponent={
-              results.isLoading && debouncedQuery.length >= 2
+              isLoading
                 ? <ActivityIndicator color={colors.primary} style={styles.loader} />
-                : undefined
+                : <Text style={[styles.empty, { color: colors.mutedForeground }]}>
+                    {isSearching ? "No members found" : "No people to show right now"}
+                  </Text>
+            }
+            ListFooterComponent={
+              isSearching && searchResults.hasNextPage ? (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Load more people"
+                  onPress={() => void searchResults.fetchNextPage()}
+                  disabled={searchResults.isFetchingNextPage}
+                  style={styles.loadMore}
+                >
+                  {searchResults.isFetchingNextPage
+                    ? <ActivityIndicator color={colors.primary} />
+                    : <Text style={{ color: colors.primary, fontWeight: "700" }}>Load more people</Text>}
+                </Pressable>
+              ) : undefined
             }
           />
         )}
@@ -138,6 +176,7 @@ const styles = StyleSheet.create({
   searchBox: { minHeight: 50, flexDirection: "row", alignItems: "center", gap: 10, marginHorizontal: 16, marginTop: 0, paddingHorizontal: 14, borderWidth: 1, borderRadius: 16 },
   input: { flex: 1, minWidth: 0, paddingHorizontal: 8, paddingVertical: Platform.OS === "ios" ? 13 : 10, fontSize: 15 },
   results: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 24, gap: 8 },
+  loadMore: { minHeight: 46, alignItems: "center", justifyContent: "center", paddingVertical: 12 },
   resultRow: { minHeight: 76, flexDirection: "row", alignItems: "center", gap: 12, borderRadius: 18, paddingHorizontal: 12, paddingVertical: 10 },
   resultCopy: { flex: 1, minWidth: 0 },
   name: { fontSize: 15, fontWeight: "700" },
