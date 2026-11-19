@@ -42,18 +42,18 @@ function formatReelCount(value: number) {
 }
 
 function ReelActionIcon({ name, filled = false }: { name: ReelIconName; filled?: boolean }) {
-  const selectedColor = filled ? "#ff79b7" : "#f34e9a";
+  const selectedColor = filled ? "#f34e9a" : "#fff";
   return (
     <Svg width={36} height={36} viewBox="0 0 24 24">
-      {name === "like" ? <Path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78Z" fill={selectedColor} /> : null}
+      {name === "like" ? <Path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78Z" fill="none" stroke={selectedColor} strokeWidth={1.8} strokeLinejoin="round" /> : null}
       {name === "comment" ? <>
-        <Path d="M12 2.8c-5.15 0-9.3 3.7-9.3 8.25 0 2.3 1.1 4.43 3.04 5.96L5 21l4.42-2.12c.82.23 1.68.35 2.58.35 5.15 0 9.3-3.7 9.3-8.25S17.15 2.8 12 2.8Z" fill={selectedColor} />
-        <Circle cx={8.2} cy={11.1} r={1.15} fill="#101014" />
-        <Circle cx={12} cy={11.1} r={1.15} fill="#101014" />
-        <Circle cx={15.8} cy={11.1} r={1.15} fill="#101014" />
+        <Path d="M12 2.8c-5.15 0-9.3 3.7-9.3 8.25 0 2.3 1.1 4.43 3.04 5.96L5 21l4.42-2.12c.82.23 1.68.35 2.58.35 5.15 0 9.3-3.7 9.3-8.25S17.15 2.8 12 2.8Z" fill="none" stroke="#fff" strokeWidth={1.8} strokeLinejoin="round" />
+        <Circle cx={8.2} cy={11.1} r={1.05} fill="#f34e9a" />
+        <Circle cx={12} cy={11.1} r={1.05} fill="#f34e9a" />
+        <Circle cx={15.8} cy={11.1} r={1.05} fill="#f34e9a" />
       </> : null}
-      {name === "share" ? <Path d="M15.2 3.4a1.05 1.05 0 0 1 1.78-.74l5.2 5.2a1.05 1.05 0 0 1 0 1.48l-5.2 5.2a1.05 1.05 0 0 1-1.78-.74v-2.1c-4.45.08-7.8 1.93-10.3 5.73.3-6.9 3.76-10.52 10.3-11.16V3.4Z" fill={selectedColor} /> : null}
-      {name === "save" ? <Path d="M6 4.5A1.5 1.5 0 0 1 7.5 3h9A1.5 1.5 0 0 1 18 4.5V21l-6-4-6 4V4.5Z" fill={selectedColor} /> : null}
+      {name === "share" ? <Path d="M15 17h6v-6M4 18v-2a4 4 0 0 1 4-4h13M15 7l5-5 5 5" fill="none" stroke="#fff" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" /> : null}
+      {name === "save" ? <Path d="M6 3.75h12v17l-6-4-6 4v-17Z" fill="none" stroke={selectedColor} strokeWidth={1.8} strokeLinejoin="round" /> : null}
     </Svg>
   );
 }
@@ -397,6 +397,8 @@ export default function ProfileReelScreen() {
               <ScrollView
                 horizontal
                 pagingEnabled
+                directionalLockEnabled
+                bounces={false}
                 showsHorizontalScrollIndicator={false}
                 style={StyleSheet.absoluteFill}
                 contentContainerStyle={{ width: (slideViewportWidth || screenWidth) * slideReferences.length }}

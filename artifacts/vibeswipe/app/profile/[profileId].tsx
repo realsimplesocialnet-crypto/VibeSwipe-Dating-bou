@@ -58,8 +58,8 @@ export default function PublicProfileScreen() {
   const reaction = useCreateReaction();
   const unlike = useUnlikeProfile();
   const dailyLikeStatus = useGetDailyLikeStatus({ query: { queryKey: getGetDailyLikeStatusQueryKey() } });
-  const profile = useGetProfileById(id, { query: { queryKey: getGetProfileByIdQueryKey(id), enabled: !!id, staleTime: 10 * 60_000, gcTime: 30 * 60_000, refetchOnMount: "always" } });
-  const datingState = useGetProfileDatingState(id, { query: { queryKey: getGetProfileDatingStateQueryKey(id), enabled: !!id, staleTime: 10 * 60_000, gcTime: 30 * 60_000, refetchOnMount: "always" } });
+  const profile = useGetProfileById(id, { query: { queryKey: getGetProfileByIdQueryKey(id), enabled: !!id, staleTime: 10 * 60_000, gcTime: 30 * 60_000 } });
+  const datingState = useGetProfileDatingState(id, { query: { queryKey: getGetProfileDatingStateQueryKey(id), enabled: !!id, staleTime: 10 * 60_000, gcTime: 30 * 60_000 } });
   const matchId = datingState.isError ? null : datingState.data?.matchId ?? null;
   const recordView = useRecordProfileView();
   const confirmationTimer = useRef<ReturnType<typeof setTimeout> | null>(null);

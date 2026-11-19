@@ -149,15 +149,30 @@ test("Reels action rail places Save above Share on web and mobile", () => {
     const share = rail.indexOf('ReelActionIcon name="share"');
     assert.ok(save >= 0 && share > save, "Save must appear before Share in the action rail");
   }
-  assert.match(web, /if \(name === "share"\) return <svg width="36" height="36"/);
-  assert.match(web, /<Icon size=\{36\} className="drop-shadow-lg" strokeWidth=\{2\} fill="currentColor"/);
-  assert.match(styles, /\.reel-action-button \{[^}]*color: #f34e9a/);
-  assert.match(styles, /\.reel-action-button\.is-on, \.reel-action-button\.is-saved \{ color: #ff79b7/);
-  assert.match(native, /const selectedColor = filled \? "#ff79b7" : "#f34e9a"/);
+  assert.match(web, /if \(name === "share"\) return <Forward size=\{36\}/);
+  assert.match(web, /<Icon size=\{36\} className="drop-shadow-lg" strokeWidth=\{2\} fill="none"/);
+  assert.match(web, /<circle cx="8\.2" cy="11\.1" r="1\.05" fill="#f34e9a"/);
+  assert.match(styles, /\.reel-action-button \{[^}]*color: #fff/);
+  assert.match(styles, /\.reel-action-button\.is-on, \.reel-action-button\.is-saved \{ color: var\(--reels-accent\)/);
+  assert.match(native, /const selectedColor = filled \? "#f34e9a" : "#fff"/);
+  assert.match(native, /<Circle cx=\{8\.2\} cy=\{11\.1\} r=\{1\.05\} fill="#f34e9a"/);
   assert.match(styles, /\.reel-rail \{[^}]*bottom: 24px/);
   assert.match(styles, /\.reel-action-button > svg \{[^}]*width:36px; height:36px/);
   assert.match(styles, /\.reel-search-suggestion \{[^}]*right: 56px/);
   assert.match(native, /actionRail: \{[^}]*bottom: 24/);
+});
+
+test("photo Reels track the finger across slides and keep horizontal gestures out of the feed", () => {
+  const web = source("artifacts/vibeswipe-web/src/components/reels/reel-slide.tsx");
+  const styles = source("artifacts/vibeswipe-web/src/components/reels/reels.css");
+  const native = source("artifacts/vibeswipe/app/reels/[reelId].tsx");
+  assert.match(web, /onTouchMove=\{moveMediaTouch\}/);
+  assert.match(web, /setSlideDragOffset\(dx\)/);
+  assert.match(web, /const threshold = Math\.max\(28/);
+  assert.match(web, /translate3d\(calc\(-\$\{slideIndex \* 100 \/ slideCount\}% \+ \$\{slideDragOffset\}px\)/);
+  assert.match(styles, /\.reel-photo-track \{[^}]*will-change:transform/);
+  assert.match(native, /directionalLockEnabled/);
+  assert.match(native, /bounces=\{false\}/);
 });
 
 test("Reel comments stay open with playback controls and can be swiped down", () => {

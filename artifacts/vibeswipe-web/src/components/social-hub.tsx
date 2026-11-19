@@ -222,8 +222,8 @@ export function InboundPeoplePage({ avatar, kind }: { avatar: AvatarFn; kind: 'l
   </div></div>;
 }
 
-function FollowActionButton({ profileId, viewerId, isFollowing, followsYou, requestPendingByMe = false, checking = false, onChange }: {
-  profileId: string; viewerId?: string; isFollowing: boolean; followsYou: boolean; requestPendingByMe?: boolean; checking?: boolean; onChange?: (following: boolean) => void;
+function FollowActionButton({ profileId, viewerId, isFollowing, followsYou, requestPendingByMe = false, onChange }: {
+  profileId: string; viewerId?: string; isFollowing: boolean; followsYou: boolean; requestPendingByMe?: boolean; onChange?: (following: boolean) => void;
 }) {
   const client = useQueryClient();
   const follow = useFollowProfile();
@@ -281,9 +281,9 @@ function FollowActionButton({ profileId, viewerId, isFollowing, followsYou, requ
     }
   }
   return <div className="sh-follow-action">
-    <button type="button" onClick={() => void toggle()} disabled={pending || checking} aria-pressed={following}
+    <button type="button" onClick={() => void toggle()} disabled={pending} aria-pressed={following}
       data-testid={`button-follow-${profileId}`} className={`sh-follow-button ${following ? 'sh-following' : ''}`}>
-      {checking ? 'Checking…' : <span className="inline-flex items-center justify-center gap-1.5">{pending&&<LoaderCircle size={13} className="animate-spin" aria-hidden="true"/>}{following ? 'Following' : requested ? 'Requested · Cancel' : followsYou ? 'Follow back' : 'Follow'}</span>}
+      <span className="inline-flex items-center justify-center gap-1.5">{pending&&<LoaderCircle size={13} className="animate-spin" aria-hidden="true"/>}{following ? 'Following' : requested ? 'Requested · Cancel' : followsYou ? 'Follow back' : 'Follow'}</span>
     </button>
     {error && <span role="alert" className="sh-follow-error">{error}</span>}
   </div>;
@@ -306,20 +306,24 @@ export function ProfileSocialActions({ profileId, viewerId, showAction = true, c
     refetchOnReconnect: true,
     staleTime: 10 * 60_000,
     gcTime: 30 * 60_000,
-    refetchOnMount: 'always',
   } });
   return <section className={`sh-profile-social${compact ? ' sh-profile-social-compact' : ''}`} data-testid="profile-follow-stats">
     <div className="sh-profile-stats">
       <Link href={`/profile/${profileId}/followers`} data-testid="link-profile-followers" className="sh-profile-stat">
-        <strong>{summary.data?.followersCount ?? <QuietSpinner size={14} onRetry={() => void summary.refetch()} />}</strong><span>Followers</span>
+        <strong>{summary.data?.followersCount ?? 0}</strong><span>Followers</span>
       </Link>
       <Link href={`/profile/${profileId}/following`} data-testid="link-profile-following" className="sh-profile-stat">
-        <strong>{summary.data?.followingCount ?? <QuietSpinner size={14} onRetry={() => void summary.refetch()} />}</strong><span>Following</span>
+        <strong>{summary.data?.followingCount ?? 0}</strong><span>Following</span>
       </Link>
     </div>
     {showAction && viewerId && viewerId !== profileId && <div className="sh-profile-actions">
-      {summary.data ? <FollowActionButton profileId={profileId} viewerId={viewerId} isFollowing={summary.data.isFollowing} followsYou={summary.data.followsYou} requestPendingByMe={summary.data.requestPendingByMe} checking={summary.isFetching} />
-        : <button type="button" disabled aria-label="Loading follow status" className="sh-follow-button"><QuietSpinner size={16} onRetry={() => void summary.refetch()} /></button>}
+      <FollowActionButton
+        profileId={profileId}
+        viewerId={viewerId}
+        isFollowing={summary.data?.isFollowing ?? false}
+        followsYou={summary.data?.followsYou ?? false}
+        requestPendingByMe={summary.data?.requestPendingByMe ?? false}
+      />
       {datingAction}
     </div>}
   </section>;

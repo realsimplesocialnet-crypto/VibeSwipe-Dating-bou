@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type TouchEvent as ReactTouchEvent } from "react";
 import { Link } from "wouter";
 import type { Reel } from "@workspace/api-client-react";
-import { Bookmark, ChevronRight, Heart, MapPin, Music2, Pause, Play, Search, Volume2, VolumeX } from "lucide-react";
+import { Bookmark, ChevronRight, Forward, Heart, MapPin, Music2, Pause, Play, Search, Volume2, VolumeX } from "lucide-react";
 import { VerifiedBadge } from "@/components/verified-badge";
 import { ReelAvatar } from "@/components/reels/reel-avatar";
 import { formatCount, reelMediaUrl } from "@/lib/reels";
@@ -24,16 +24,14 @@ type ReelIconName = "like" | "comment" | "share" | "save";
 
 function ReelActionIcon({ name }: { name: ReelIconName }) {
   if (name === "comment") return <svg width="36" height="36" viewBox="0 0 24 24" className="drop-shadow-lg" aria-hidden="true">
-    <path d="M12 2.8c-5.15 0-9.3 3.7-9.3 8.25 0 2.3 1.1 4.43 3.04 5.96L5 21l4.42-2.12c.82.23 1.68.35 2.58.35 5.15 0 9.3-3.7 9.3-8.25S17.15 2.8 12 2.8Z" fill="currentColor" />
-    <circle cx="8.2" cy="11.1" r="1.15" fill="#101014" />
-    <circle cx="12" cy="11.1" r="1.15" fill="#101014" />
-    <circle cx="15.8" cy="11.1" r="1.15" fill="#101014" />
+    <path d="M12 2.8c-5.15 0-9.3 3.7-9.3 8.25 0 2.3 1.1 4.43 3.04 5.96L5 21l4.42-2.12c.82.23 1.68.35 2.58.35 5.15 0 9.3-3.7 9.3-8.25S17.15 2.8 12 2.8Z" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+    <circle cx="8.2" cy="11.1" r="1.05" fill="#f34e9a" />
+    <circle cx="12" cy="11.1" r="1.05" fill="#f34e9a" />
+    <circle cx="15.8" cy="11.1" r="1.05" fill="#f34e9a" />
   </svg>;
-  if (name === "share") return <svg width="36" height="36" viewBox="0 0 24 24" className="drop-shadow-lg" aria-hidden="true">
-    <path d="M15.2 3.4a1.05 1.05 0 0 1 1.78-.74l5.2 5.2a1.05 1.05 0 0 1 0 1.48l-5.2 5.2a1.05 1.05 0 0 1-1.78-.74v-2.1c-4.45.08-7.8 1.93-10.3 5.73.3-6.9 3.76-10.52 10.3-11.16V3.4Z" fill="currentColor" />
-  </svg>;
+  if (name === "share") return <Forward size={36} className="drop-shadow-lg" strokeWidth={2} aria-hidden="true" />;
   const Icon = name === "like" ? Heart : Bookmark;
-  return <Icon size={36} className="drop-shadow-lg" strokeWidth={2} fill="currentColor" aria-hidden="true" />;
+  return <Icon size={36} className="drop-shadow-lg" strokeWidth={2} fill="none" aria-hidden="true" />;
 }
 
 export function ReelSlide({ reel, index, active, near, muted, pageHidden, compact, navigationVisible, returnTo, likePending, savePending, onAutoplayMuted, onToggleSound, onLike, onComment, onShare, onSave, onSearchSuggestion, onView, offlineSaved, onAutoCache }: Props) {
@@ -43,9 +41,11 @@ export function ReelSlide({ reel, index, active, near, muted, pageHidden, compac
   const viewRecorded = useRef(false);
   const flashTimer = useRef<number | null>(null);
   const lastVideoTap = useRef<{ at: number; wasPlaying: boolean } | null>(null);
-  const mediaTouch = useRef<{ x: number; y: number } | null>(null);
+  const mediaTouch = useRef<{ x: number; y: number; axis: "undecided" | "horizontal" | "vertical" } | null>(null);
   const skipNextTap = useRef(false);
   const [slideIndex, setSlideIndex] = useState(0);
+  const [slideDragOffset, setSlideDragOffset] = useState(0);
+  const [draggingSlide, setDraggingSlide] = useState(false);
   const [captionExpanded, setCaptionExpanded] = useState(false);
   const slideshow = reel.mediaType === "slides" && reel.slideReferences.length > 1;
   const slideCount = reel.slideReferences.length;
@@ -75,7 +75,7 @@ export function ReelSlide({ reel, index, active, near, muted, pageHidden, compac
   }, [reel.id, reel.slideReferences, slideCount, slideIndex, slideshow]);
 
   useEffect(() => { if (!active) setUserPaused(false); }, [active]);
-  useEffect(() => { setProgress(0); setSlideIndex(0); setReady(false); setCaptionExpanded(false); }, [reel.id]);
+  useEffect(() => { setProgress(0); setSlideIndex(0); setSlideDragOffset(0); setDraggingSlide(false); setReady(false); setCaptionExpanded(false); }, [reel.id]);
   useEffect(() => () => { if (flashTimer.current !== null) window.clearTimeout(flashTimer.current); }, []);
   useEffect(() => { if (video.current) video.current.muted = Boolean(reel.soundtrack) || muted; }, [muted, reel.soundtrack]);
   useEffect(() => {
@@ -200,7 +200,27 @@ export function ReelSlide({ reel, index, active, near, muted, pageHidden, compac
 
   function startMediaTouch(event: ReactTouchEvent<HTMLButtonElement>) {
     const touch = event.changedTouches[0];
-    mediaTouch.current = touch ? { x: touch.clientX, y: touch.clientY } : null;
+    mediaTouch.current = touch ? { x: touch.clientX, y: touch.clientY, axis: "undecided" } : null;
+    setSlideDragOffset(0);
+    setDraggingSlide(false);
+  }
+
+  function moveMediaTouch(event: ReactTouchEvent<HTMLButtonElement>) {
+    const start = mediaTouch.current;
+    const touch = event.touches[0];
+    if (!slideshow || !start || !touch) return;
+    const dx = touch.clientX - start.x;
+    const dy = touch.clientY - start.y;
+    if (start.axis === "undecided" && Math.max(Math.abs(dx), Math.abs(dy)) > 8) {
+      start.axis = Math.abs(dx) > Math.abs(dy) ? "horizontal" : "vertical";
+      if (start.axis === "horizontal") {
+        setDraggingSlide(true);
+        skipNextTap.current = true;
+      }
+    }
+    if (start.axis !== "horizontal") return;
+    event.preventDefault();
+    setSlideDragOffset(dx);
   }
 
   function finishMediaTouch(event: ReactTouchEvent<HTMLButtonElement>) {
@@ -210,11 +230,26 @@ export function ReelSlide({ reel, index, active, near, muted, pageHidden, compac
     if (!slideshow || !start || !touch) return;
     const dx = touch.clientX - start.x;
     const dy = touch.clientY - start.y;
-    if (Math.abs(dx) < 42 || Math.abs(dx) <= Math.abs(dy)) return;
+    const horizontalSwipe = start.axis === "horizontal" || (Math.abs(dx) > 24 && Math.abs(dx) > Math.abs(dy));
+    if (!horizontalSwipe) {
+      setSlideDragOffset(0);
+      setDraggingSlide(false);
+      return;
+    }
     event.preventDefault();
+    const threshold = Math.max(28, Math.min(72, window.innerWidth * 0.14));
+    const direction = Math.abs(dx) >= threshold ? (dx < 0 ? 1 : -1) : 0;
     skipNextTap.current = true;
-    setSlideIndex((current) => Math.max(0, Math.min(slideCount - 1, current + (dx < 0 ? 1 : -1))));
+    if (direction) setSlideIndex((current) => Math.max(0, Math.min(slideCount - 1, current + direction)));
+    setSlideDragOffset(0);
+    setDraggingSlide(false);
     window.setTimeout(() => { skipNextTap.current = false; }, 350);
+  }
+
+  function cancelMediaTouch() {
+    mediaTouch.current = null;
+    setSlideDragOffset(0);
+    setDraggingSlide(false);
   }
 
   function moveSlideTo(next: number) {
@@ -253,7 +288,23 @@ export function ReelSlide({ reel, index, active, near, muted, pageHidden, compac
   return <section className="reel-slide" data-index={index} data-testid={`reel-slide-${reel.id}`} aria-roledescription="Reel" aria-label={`Reel by ${reel.creatorName}`}>
     {slideshow
       ? <div className="reel-photo-slides" data-testid={`reel-photo-slides-${reel.id}`} aria-label={`Photo slide ${slideIndex + 1} of ${slideCount}`}>
-        <img src={reelMediaUrl(reel.slideReferences[slideIndex])} alt="" className="reel-photo-slide" loading="eager" decoding="async" fetchPriority={active ? "high" : "auto"} draggable={false} />
+        <div className="reel-photo-track" style={{
+          width: `${slideCount * 100}%`,
+          transform: `translate3d(calc(-${slideIndex * 100 / slideCount}% + ${slideDragOffset}px),0,0)`,
+          transition: draggingSlide ? "none" : undefined,
+        }}>
+          {reel.slideReferences.map((reference, slide) => <img
+            key={`${reference}-${slide}`}
+            src={reelMediaUrl(reference)}
+            alt=""
+            className="reel-photo-slide"
+            style={{ width: `${100 / slideCount}%` }}
+            loading={Math.abs(slide - slideIndex) <= 1 ? "eager" : "lazy"}
+            decoding="async"
+            fetchPriority={slide === slideIndex && active ? "high" : "auto"}
+            draggable={false}
+          />)}
+        </div>
       </div>
       : <video
       ref={video}
@@ -290,7 +341,7 @@ export function ReelSlide({ reel, index, active, near, muted, pageHidden, compac
       data-testid={`audio-reel-soundtrack-${reel.id}`}
     /> : null}
     {!slideshow && !ready && !failed && <div className="reel-loading" aria-hidden="true" />}
-    <button type="button" className={`reel-tap ${slideshow ? "is-slideshow" : ""}`} onTouchStart={startMediaTouch} onTouchEnd={finishMediaTouch} onClick={() => { if (skipNextTap.current) { skipNextTap.current = false; return; } handleVideoTap(); }} aria-label={slideshow ? `Photo slideshow, ${slideIndex + 1} of ${slideCount}. Swipe left or right to browse.${reel.soundtrack ? ` Tap to ${muted ? "play" : "mute"} the soundtrack.` : ""}` : `${userPaused || blocked ? "Play" : "Pause"} Reel. Double-tap to ${muted ? "turn sound on" : "mute"}.`} aria-pressed={!slideshow && !userPaused && !blocked} data-testid={`button-toggle-reel-playback-${reel.id}`} />
+    <button type="button" className={`reel-tap ${slideshow ? "is-slideshow" : ""}`} onTouchStart={startMediaTouch} onTouchMove={moveMediaTouch} onTouchEnd={finishMediaTouch} onTouchCancel={cancelMediaTouch} onClick={() => { if (skipNextTap.current) { skipNextTap.current = false; return; } handleVideoTap(); }} aria-label={slideshow ? `Photo slideshow, ${slideIndex + 1} of ${slideCount}. Swipe left or right to browse.${reel.soundtrack ? ` Tap to ${muted ? "play" : "mute"} the soundtrack.` : ""}`} aria-pressed={!slideshow && !userPaused && !blocked} data-testid={`button-toggle-reel-playback-${reel.id}`} />
     {slideshow && <div className="reel-slide-counter" aria-live="polite" data-testid={`text-reel-slide-count-${reel.id}`}>{slideIndex + 1}/{slideCount}</div>}
     {slideshow && <div className="reel-slide-dots" role="group" aria-label="Choose photo slide">{reel.slideReferences.map((_, slide) => <button key={slide} type="button" onClick={() => moveSlideTo(slide)} aria-label={`Show photo ${slide + 1}`} aria-current={slide === slideIndex ? "step" : undefined} data-testid={`button-reel-slide-${reel.id}-${slide + 1}`} />)}</div>}
     {active && (!slideshow || reel.soundtrack) && <button type="button" className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-10 focus:rounded-full focus:bg-black/80 focus:p-3 focus:text-white" onClick={toggleSound} aria-label={muted ? "Turn Reel sound on" : "Mute Reel"} data-testid={`button-toggle-reel-sound-accessible-${reel.id}`} />}

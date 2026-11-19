@@ -65,6 +65,17 @@ test("failed acknowledgement restores only this request, not a later confirmed r
   assert.equal(restored.notifications.find(n => n.id === "view-2").readAt, null);
 });
 
+test("Activity follows the selected light theme while retaining activity-type colors", async () => {
+  const css = await readFile(new URL("../../../artifacts/vibeswipe-web/src/components/social-hub.css", import.meta.url), "utf8");
+  assert.doesNotMatch(css, /html\[data-theme="light"\] \.social-hub\.activity-screen\s*\{\s*background:#090c12/);
+  assert.match(css, /html\[data-theme="light"\] \.social-hub\.activity-screen \.activity-metric-card \{[^}]*background:#fffdfe/);
+  assert.match(css, /html\[data-theme="light"\] \.social-hub\.activity-screen \.activity-feed-row \{[^}]*color:#2a2328/);
+  const web = await readFile(new URL("../../../artifacts/vibeswipe-web/src/components/social-hub.tsx", import.meta.url), "utf8");
+  assert.match(web, /color: '#3b82f6'/);
+  assert.match(web, /color: '#16a394'/);
+  assert.match(web, /color: '#8b5cf6'/);
+});
+
 test("Likes and New matches settings operate independently, preserving legacy opt-outs", () => {
   const base = { notifyMatches: false, notifyLikes: true, notifyMessages: true, notifyProfileViews: true };
   assert.equal(notificationPreferenceEnabled("new_like", base), true);

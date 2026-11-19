@@ -40,8 +40,6 @@
 .sh-follow-notice-actions > .sh-follow-button { width:96px; }
 .social-hub .sh-search { border:1px solid #4a3642; background:#1A1A1E; color:#FBF5F7; }
 .social-hub .sh-search svg { color:hsl(var(--primary)); flex-shrink:0; }
-.social-hub.activity-screen,
-html[data-theme="light"] .social-hub.activity-screen { background:#090c12; color:#f4f6fa; }
 .activity-metric-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; margin:0 0 20px; }
 .activity-metric-card { display:flex; min-width:0; min-height:92px; align-items:center; gap:12px; border:1px solid #2b303a; border-radius:17px; background:#191d26; padding:12px; color:#f4f6fa; text-decoration:none; transition:transform .16s ease,border-color .16s ease,background .16s ease; }
 .activity-metric-card:hover { transform:translateY(-1px); border-color:#414754; background:#1d222c; }
@@ -74,3 +72,13 @@ html[data-theme="light"] .sh-profile-stat span { color:#62565d; }
 html[data-theme="light"] .social-hub .sh-profile-stat span,
 html[data-theme="light"] .social-hub .sh-muted { color:#62565d; }
 html[data-theme="light"] .social-hub .sh-search { background:#fffafd; border-color:#ebcbd8; color:#2a2328; }
+html[data-theme="light"] .social-hub.activity-screen .activity-metric-card { border-color:#f3dce5; background:#fffdfe; color:#2a2328; box-shadow:0 5px 14px rgba(131,70,94,.09); }
+html[data-theme="light"] .social-hub.activity-screen .activity-metric-card:hover { border-color:#e9bfd0; background:#fffafd; }
+html[data-theme="light"] .social-hub.activity-screen .activity-metric-copy > span { color:#62565d; }
+html[data-theme="light"] .social-hub.activity-screen .activity-feed { border-color:rgba(131,70,94,.16); }
+html[data-theme="light"] .social-hub.activity-screen .activity-feed-row { border-bottom-color:rgba(131,70,94,.16); color:#2a2328; }
+html[data-theme="light"] .social-hub.activity-screen .activity-feed-row:active { background:rgba(232,70,106,.07); }
+html[data-theme="light"] .social-hub.activity-screen .activity-feed-copy time { color:#756871; }
+html[data-theme="light"] .social-hub.activity-screen .activity-read-error { border-color:rgba(196,55,74,.22); background:rgba(196,55,74,.06); color:#a83248; }
+html[data-theme="light"] .social-hub.activity-screen .activity-empty { color:#62565d; }
+html[data-theme="light"] .social-hub.activity-screen .activity-empty-icon { background:#fde4ea; color:#e8466a; }

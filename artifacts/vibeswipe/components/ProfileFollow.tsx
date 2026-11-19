@@ -24,13 +24,12 @@ import { usePremiumColors } from "@/hooks/useColors";
 
 type FollowEntry = ProfileFollowList["entries"][number];
 
-export function ProfileFollowButton({ profileId, viewerId, isFollowing: initialIsFollowing, followsYou, requestPendingByMe = false, checking = false, onChange }: {
+export function ProfileFollowButton({ profileId, viewerId, isFollowing: initialIsFollowing, followsYou, requestPendingByMe = false, onChange }: {
   profileId: string;
   viewerId?: string;
   isFollowing: boolean;
   followsYou: boolean;
   requestPendingByMe?: boolean;
-  checking?: boolean;
   onChange?: (following: boolean) => void;
 }) {
   const colors = usePremiumColors();
@@ -98,22 +97,18 @@ export function ProfileFollowButton({ profileId, viewerId, isFollowing: initialI
         accessibilityRole="button"
         accessibilityState={{ disabled: pending, selected: isFollowing }}
         accessibilityLabel={isFollowing ? `Unfollow ${profileId}` : requested ? `Cancel follow request to ${profileId}` : followsYou ? `Follow ${profileId} back` : `Follow ${profileId}`}
-        disabled={pending || checking}
+        disabled={pending}
         onPress={() => void toggle()}
         style={({ pressed }) => [
           styles.followButton,
           { borderColor: colors.profileEdit, backgroundColor: isFollowing ? "transparent" : colors.profileEdit, opacity: pending ? 0.55 : pressed ? 0.8 : 1 },
         ]}
       >
-        {checking ? <ActivityIndicator size="small" color={colors.profileEdit} /> : (
-          <>
-            {pending && <ActivityIndicator size="small" color={isFollowing ? colors.profileEdit : colors.profileEditForeground} />}
-            {!isFollowing && !pending && <Feather name="user-plus" size={14} color={colors.profileEditForeground} />}
-            <Text style={{ color: isFollowing ? colors.profileEdit : colors.profileEditForeground, fontWeight: "800", fontSize: 12 }}>
-              {isFollowing ? "Following" : requested ? "Requested · Cancel" : followsYou ? "Follow back" : "Follow"}
-            </Text>
-          </>
-        )}
+        {pending && <ActivityIndicator size="small" color={isFollowing ? colors.profileEdit : colors.profileEditForeground} />}
+        {!isFollowing && !pending && <Feather name="user-plus" size={14} color={colors.profileEditForeground} />}
+        <Text style={{ color: isFollowing ? colors.profileEdit : colors.profileEditForeground, fontWeight: "800", fontSize: 12 }}>
+          {isFollowing ? "Following" : requested ? "Requested · Cancel" : followsYou ? "Follow back" : "Follow"}
+        </Text>
       </Pressable>
       {error ? <Text accessibilityRole="alert" style={[styles.error, { color: colors.destructive }]}>{error}</Text> : null}
     </View>
@@ -153,10 +148,8 @@ export function ProfileFollowStats({ profileId, viewerId, showAction = true, dat
       refetchOnReconnect: true,
       staleTime: 10 * 60_000,
       gcTime: 30 * 60_000,
-      refetchOnMount: "always",
     },
   });
-  const checkingRelationship = query.isFetching;
   return (
     <View style={styles.statsWrap} testID="profile-follow-stats">
       <View style={[styles.stats, { backgroundColor: colors.profileCard, borderColor: colors.border }]}>
@@ -184,9 +177,13 @@ export function ProfileFollowStats({ profileId, viewerId, showAction = true, dat
       </View>
       {showAction && viewerId && viewerId !== profileId ? (
         <View style={styles.actionsRow}>
-          {query.data
-             ? <ProfileFollowButton profileId={profileId} viewerId={viewerId} isFollowing={query.data.isFollowing} followsYou={query.data.followsYou} requestPendingByMe={query.data.requestPendingByMe} checking={checkingRelationship} />
-            : <View accessibilityLabel="Loading follow status" style={[styles.actionPlaceholder, { backgroundColor: colors.profileCard, borderColor: colors.border }]}><ActivityIndicator size="small" color={colors.primary}/></View>}
+          <ProfileFollowButton
+            profileId={profileId}
+            viewerId={viewerId}
+            isFollowing={query.data?.isFollowing ?? false}
+            followsYou={query.data?.followsYou ?? false}
+            requestPendingByMe={query.data?.requestPendingByMe ?? false}
+          />
           {datingAction}
         </View>
       ) : null}
