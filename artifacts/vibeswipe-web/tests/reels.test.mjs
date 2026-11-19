@@ -305,9 +305,13 @@ test("Reels restore their full viewport and navigation after returning from an e
 
 test("Reel comment send keeps the mobile composer focused while submitting", () => {
   const comments = read("../src/components/reels/reel-comments.tsx");
+  const styles = read("../src/components/reels/reels.css");
   assert.match(comments, /<form onSubmit=\{\(event\) => void submit\(event\)\}/);
-  assert.match(comments, /type="submit" onPointerDown=\{\(event\) => event\.preventDefault\(\)\}[^>]*data-testid="button-post-comment"/);
+  assert.match(comments, /onTouchEnd=\{\(event\) => \{\s*event\.preventDefault\(\);\s*void postDraft\(\);/);
+  assert.match(comments, /const submitting = useRef\(false\)/);
+  assert.match(comments, /type="submit" onPointerDown=\{\(event\) => event\.preventDefault\(\)\}[\s\S]*?data-testid="button-post-comment"/);
   assert.match(comments, /await create\.mutateAsync\([\s\S]*?setDraft\(""\)/);
+  assert.doesNotMatch(styles.match(/\.reels-root \{[^}]+\}/)?.[0] ?? "", /transition:\s*height/);
 });
 
 test("Reels UI copy contains no emoji", () => {

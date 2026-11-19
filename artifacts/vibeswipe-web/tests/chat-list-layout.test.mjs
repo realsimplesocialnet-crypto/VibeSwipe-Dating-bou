@@ -21,7 +21,9 @@ test("web chat opens at the latest message without a visible scroll animation", 
 
 test("sending a chat message does not blur the input before the tap submits", () => {
   assert.match(source, /<textarea ref=\{inputRef\}[^>]*data-testid="input-chat-message"/);
-  assert.match(source, /<button type="submit" onMouseDown=\{event=>\{if\(document\.activeElement===inputRef\.current\)event\.preventDefault\(\)\}\}[^>]*data-testid="button-send-message"/);
+  assert.match(source, /function submitChatDraft\(\)\{[^}]*textSendInProgress\.current=true;void sendMessage\(draft\)/);
+  assert.match(source, /<button type="submit" onMouseDown=\{event=>\{if\(document\.activeElement===inputRef\.current\)event\.preventDefault\(\)\}\} onTouchStart=\{event=>event\.preventDefault\(\)\} onTouchEnd=\{event=>\{event\.preventDefault\(\);submitChatDraft\(\)\}\}[^>]*data-testid="button-send-message"/);
+  assert.match(source, /<form onSubmit=\{e=>\{e\.preventDefault\(\);submitChatDraft\(\)\}\}/);
 });
 
 test("explicit message actions focus the composer once without changing read-only chat entry", () => {

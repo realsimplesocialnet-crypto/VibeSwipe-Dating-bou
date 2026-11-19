@@ -1,5 +1,5 @@
 /* Reels: edge-to-edge video, compact overlays, and the shared pink brand accent. */
-.reels-root { --reels-navigation-space: 0px; --reels-accent: hsl(var(--primary)); position: fixed; inset: 0; z-index: 70; height: calc(var(--reels-viewport-height, 100dvh) - var(--reels-navigation-space)); display: flex; flex-direction: column; background: #0c0a0f; color: #fff; overflow: hidden; max-width: none; margin: 0; transition: height .22s ease; }
+.reels-root { --reels-navigation-space: 0px; --reels-accent: hsl(var(--primary)); position: fixed; inset: 0; z-index: 70; height: calc(var(--reels-viewport-height, 100dvh) - var(--reels-navigation-space)); display: flex; flex-direction: column; background: #0c0a0f; color: #fff; overflow: hidden; max-width: none; margin: 0; }
 .reels-root[data-navigation-visible="true"] { --reels-navigation-space: calc(72px + env(safe-area-inset-bottom, 0px)); }
 .reels-mobile-nav { left: 50% !important; right: auto !important; width: 100%; border-top: 0; background: rgb(12 10 15 / .94) !important; transform: translateX(-50%); transition: transform .24s ease, opacity .2s ease; }
 .reels-mobile-nav.is-hidden { pointer-events: none; opacity: 0; transform: translate(-50%, calc(100% + env(safe-area-inset-bottom, 0px))); }

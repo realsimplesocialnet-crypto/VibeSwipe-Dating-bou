@@ -51,6 +51,7 @@ export function ReelComments({ reelId, creatorId, returnTo, commentCount, onClos
   const [confirming, setConfirming] = useState<string | null>(null);
   const list = useRef<HTMLDivElement>(null);
   const input = useRef<HTMLInputElement>(null);
+  const submitting = useRef(false);
   const touchStart = useRef<{ x: number; y: number } | null>(null);
   const [replyingTo, setReplyingTo] = useState<ReelComment | null>(null);
   const count = commentCount;
@@ -90,10 +91,10 @@ export function ReelComments({ reelId, creatorId, returnTo, commentCount, onClos
     return `/profile/${encodeURIComponent(authorId)}?returnTo=${encodeURIComponent(reelPath)}`;
   };
 
-  async function submit(event: FormEvent) {
-    event.preventDefault();
+  async function postDraft() {
     const content = draft.trim();
-    if (!content || create.isPending) return;
+    if (!content || create.isPending || submitting.current) return;
+    submitting.current = true;
     setError("");
     try {
       const comment = await create.mutateAsync({
@@ -106,7 +107,14 @@ export function ReelComments({ reelId, creatorId, returnTo, commentCount, onClos
       onCountChange(1);
     } catch (reason) {
       setError(userErrorMessage(reason, "Your comment did not post. Try again."));
+    } finally {
+      submitting.current = false;
     }
+  }
+
+  function submit(event: FormEvent) {
+    event.preventDefault();
+    void postDraft();
   }
 
   async function deleteComment(id: string) {
@@ -178,7 +186,7 @@ export function ReelComments({ reelId, creatorId, returnTo, commentCount, onClos
     <form onSubmit={(event) => void submit(event)} className="flex items-center gap-2 px-3 pb-[max(env(safe-area-inset-bottom),10px)] pt-2.5">
       <div className="h-9 w-9 shrink-0"><ReelAvatar reference={me.data?.photos?.[0] ?? null} name={me.data?.name ?? "Your profile"} size={36} /></div>
       <input ref={input} value={draft} onChange={(event) => setDraft(event.target.value)} maxLength={500} placeholder={replyingTo ? `Reply to ${replyingTo.authorName}` : "Add a comment"} aria-label={replyingTo ? `Reply to ${replyingTo.authorName}` : "Add a comment"} enterKeyHint="send" data-testid="input-reel-comment" className="h-11 min-w-0 flex-1 rounded-full border border-white/10 bg-white/[.07] px-4 text-[16px] text-white placeholder:text-white/40 focus:border-primary/60 focus:outline-none" />
-      <button type="submit" onPointerDown={(event) => event.preventDefault()} disabled={!draft.trim() || create.isPending} aria-label="Post comment" data-testid="button-post-comment" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground disabled:opacity-35"><ArrowUp size={19} /></button>
+      <button type="submit" onPointerDown={(event) => event.preventDefault()} onTouchEnd={(event) => { event.preventDefault(); void postDraft(); }} disabled={!draft.trim() || create.isPending} aria-label="Post comment" data-testid="button-post-comment" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground disabled:opacity-35"><ArrowUp size={19} /></button>
     </form>
   </section>;
 }
