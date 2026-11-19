@@ -253,32 +253,32 @@ export function ReelComposerPage() {
       </button>
     </div>
     {musicPickerOpen && <div className="fixed inset-0 z-[120] flex items-end justify-center bg-black/65 p-0 sm:items-center sm:p-4" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) { setMusicPickerOpen(false); stopTrackPreview(); } }}>
-      <section role="dialog" aria-modal="true" aria-labelledby="reel-music-title" className="flex max-h-[88dvh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl border border-white/10 bg-[#15131a] shadow-2xl sm:rounded-3xl" data-testid="dialog-reel-music">
-        <header className="flex items-center gap-3 border-b border-white/10 px-5 py-4">
-          <div className="min-w-0 flex-1"><h2 id="reel-music-title" className="text-lg font-extrabold text-white">Choose music</h2><p className="mt-0.5 text-xs text-white/55">Free tracks with creator credit included</p></div>
-          <button type="button" onClick={() => { setMusicPickerOpen(false); stopTrackPreview(); }} aria-label="Close music picker" className="flex h-10 w-10 items-center justify-center rounded-full bg-white/[.07] text-white" data-testid="button-close-reel-music"><X size={19}/></button>
+      <section role="dialog" aria-modal="true" aria-labelledby="reel-music-title" className="flex max-h-[88dvh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl border border-border bg-background text-foreground shadow-2xl sm:rounded-3xl" data-testid="dialog-reel-music">
+        <header className="flex items-center gap-3 border-b border-border px-5 py-4">
+          <div className="min-w-0 flex-1"><h2 id="reel-music-title" className="text-lg font-extrabold text-foreground">Choose music</h2><p className="mt-0.5 text-xs text-muted-foreground">Free tracks with creator credit included</p></div>
+          <button type="button" onClick={() => { setMusicPickerOpen(false); stopTrackPreview(); }} aria-label="Close music picker" className="flex h-10 w-10 items-center justify-center rounded-full bg-muted/40 text-foreground" data-testid="button-close-reel-music"><X size={19}/></button>
         </header>
-        <label className="mx-4 mt-4 flex min-h-11 items-center gap-2 rounded-xl border border-white/10 bg-white/[.05] px-3 text-white/55">
-          <Search size={17}/><input type="search" value={musicSearch} onChange={(event) => setMusicSearch(event.target.value)} placeholder="Search tracks" aria-label="Search free music" className="min-w-0 flex-1 bg-transparent text-sm text-white outline-none placeholder:text-white/40" data-testid="input-reel-music-search"/>
+        <label className="mx-4 mt-4 flex min-h-11 items-center gap-2 rounded-xl border border-border bg-muted/35 px-3 text-muted-foreground">
+          <Search size={17}/><input type="search" value={musicSearch} onChange={(event) => setMusicSearch(event.target.value)} placeholder="Search tracks" aria-label="Search free music" className="min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground" data-testid="input-reel-music-search"/>
         </label>
         <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4 pt-2">
           {musicQuery.isLoading ? <div className="flex justify-center py-8" aria-label="Loading music"><QuietSpinner/></div> : null}
-          {musicQuery.isError ? <div className="py-8 text-center text-sm text-white/70"><p>Music is unavailable right now.</p><button type="button" onClick={() => void musicQuery.refetch()} className="mt-3 font-bold text-primary">Try again</button></div> : null}
+          {musicQuery.isError ? <div className="py-8 text-center text-sm text-muted-foreground"><p>Music is unavailable right now.</p><button type="button" onClick={() => void musicQuery.refetch()} className="mt-3 font-bold text-primary">Try again</button></div> : null}
           {!musicQuery.isLoading && !musicQuery.isError && filteredTracks.map((track) => {
             const isSelected = soundtrackId === track.id;
             const isPreviewing = previewingTrackId === track.id;
-            return <article key={track.id} className="flex items-center gap-3 border-b border-white/[.07] py-3" data-testid={`reel-music-track-${track.id}`}>
+            return <article key={track.id} className="flex items-center gap-3 border-b border-border py-3" data-testid={`reel-music-track-${track.id}`}>
               <button type="button" onClick={() => void toggleTrackPreview(track)} aria-label={`${isPreviewing ? "Pause" : "Preview"} ${track.title}`} aria-pressed={isPreviewing} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary" data-testid={`button-preview-music-${track.id}`}>{isPreviewing ? <Pause size={18} fill="currentColor"/> : <Play size={18} fill="currentColor"/>}</button>
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-bold text-white">{track.title}</p>
-                <p className="truncate text-xs text-white/55">{track.artist} · {track.category}</p>
-                <a href={track.sourceUrl} target="_blank" rel="noreferrer" className="mt-1 inline-flex items-center gap-1 text-[10px] font-semibold text-white/45 underline underline-offset-2" data-testid={`link-music-license-${track.id}`}>{track.license} · details <ExternalLink size={10}/></a>
+                <p className="truncate text-sm font-bold text-foreground">{track.title}</p>
+                <p className="truncate text-xs text-muted-foreground">{track.artist} · {track.category}</p>
+                <a href={track.sourceUrl} target="_blank" rel="noreferrer" className="mt-1 inline-flex items-center gap-1 text-[10px] font-semibold text-muted-foreground underline underline-offset-2" data-testid={`link-music-license-${track.id}`}>{track.license} · details <ExternalLink size={10}/></a>
               </div>
               <button type="button" onClick={() => { setSoundtrackId(track.id); setMusicPickerOpen(false); stopTrackPreview(); setError(""); }} className={`flex min-h-9 min-w-[70px] items-center justify-center gap-1 rounded-full px-3 text-xs font-extrabold ${isSelected ? "bg-primary/20 text-primary" : "bg-primary text-primary-foreground"}`} aria-label={isSelected ? `${track.title} selected` : `Use ${track.title}`} data-testid={`button-use-music-${track.id}`}>{isSelected ? <><Check size={14}/>Added</> : "Use"}</button>
             </article>;
           })}
-          {!musicQuery.isLoading && !musicQuery.isError && !filteredTracks.length ? <p className="py-8 text-center text-sm text-white/55">No tracks match that search.</p> : null}
-          <p className="pt-4 text-center text-[11px] leading-4 text-white/40">Tracks are licensed for reuse. The creator, source, and license stay attached to the Reel.</p>
+          {!musicQuery.isLoading && !musicQuery.isError && !filteredTracks.length ? <p className="py-8 text-center text-sm text-muted-foreground">No tracks match that search.</p> : null}
+          <p className="pt-4 text-center text-[11px] leading-4 text-muted-foreground">Tracks are licensed for reuse. The creator, source, and license stay attached to the Reel.</p>
         </div>
       </section>
     </div>}
