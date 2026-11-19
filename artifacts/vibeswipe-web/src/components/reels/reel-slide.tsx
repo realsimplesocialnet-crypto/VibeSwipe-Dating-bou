@@ -194,7 +194,7 @@ export function ReelSlide({ reel, index, active, near, muted, pageHidden, compac
   const searchSuggestion = reelSearchSuggestion({ caption: reel.caption, creatorLocation: reel.creatorLocation });
   const creatorIdentity = <span className="reel-creator-identity">
     <span className="reel-creator-avatar-ring">
-      <ReelAvatar reference={reel.creatorPhoto} name={reel.creatorName} size={40} />
+      <ReelAvatar reference={reel.creatorPhoto} name={reel.creatorName} size={34} />
     </span>
     <span className="reel-identity min-w-0">
       <span className="reel-name" data-testid={`text-reel-creator-${reel.id}`}>{reel.creatorName}<VerifiedBadge verified={reel.creatorVerified} /></span>

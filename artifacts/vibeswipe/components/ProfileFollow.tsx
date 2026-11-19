@@ -156,7 +156,7 @@ export function ProfileFollowStats({ profileId, viewerId, showAction = true, dat
       refetchOnMount: "always",
     },
   });
-  const checkingRelationship = false;
+  const checkingRelationship = query.isFetching;
   return (
     <View style={styles.statsWrap} testID="profile-follow-stats">
       <View style={[styles.stats, { backgroundColor: colors.profileCard, borderColor: colors.border }]}>
@@ -186,7 +186,7 @@ export function ProfileFollowStats({ profileId, viewerId, showAction = true, dat
         <View style={styles.actionsRow}>
           {query.data
              ? <ProfileFollowButton profileId={profileId} viewerId={viewerId} isFollowing={query.data.isFollowing} followsYou={query.data.followsYou} requestPendingByMe={query.data.requestPendingByMe} checking={checkingRelationship} />
-            : <View accessibilityLabel={query.isError ? "Follow status unavailable" : "Loading follow status"} style={[styles.actionPlaceholder, { backgroundColor: colors.profileCard, borderColor: colors.border }]}>{query.isError ? <Text style={{ color: colors.profileMuted, fontWeight: "700", fontSize: 12 }}>Unavailable</Text> : <><ActivityIndicator size="small" color={colors.primary}/><Text style={{ color: colors.profileMuted, fontWeight: "700", fontSize: 12 }}>Follow</Text></>}</View>}
+            : <View accessibilityLabel={query.isError ? "Follow status unavailable" : "Loading follow status"} style={[styles.actionPlaceholder, { backgroundColor: colors.profileCard, borderColor: colors.border }]}>{query.isError ? <Text style={{ color: colors.profileMuted, fontWeight: "700", fontSize: 12 }}>Unavailable</Text> : <><ActivityIndicator size="small" color={colors.primary}/><Text style={{ color: colors.profileMuted, fontWeight: "700", fontSize: 12 }}>Checking…</Text></>}</View>}
           {datingAction}
         </View>
       ) : null}

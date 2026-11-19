@@ -19,7 +19,7 @@ import {
   useGetDiscoverProfiles, useGetIcebreakers, useGetMatches, useGetMessages, useGetMyProfile,
   useGetNotifications, useGetOnboardingDraft, useGetProfileById, useGetProfileDatingState, useGetProfileFollowSummary, useGetProfileMedia, useGetMediaPreview, useGetStories, useGetSuperLikeStatus, useGetVibeSwipeSettings, useGetDirectChats,
   useGetTypingStatus, useGetMatchPresence, useMarkChatRead, useGetWhoViewedYou,
-  useMarkNotificationRead, useRecordProfileView, useReportProfile, useSaveMyProfile, useStartDirectChat,
+  useMarkNotificationRead, useRecordProfileView, useReportProfile, useSaveMyProfile,
   useSaveOnboardingDraft, useSendMessage, useTranscodeProfileVideo, useUnblockProfile,
   useUndoLastPass, useUnmatchMatch, useUnlikeProfile, useUpdateChatTheme, useUpdateTypingStatus, useHeartbeatPresence,
   useRequestChatMediaUpload, useRequestProfileMediaUpload,
@@ -487,14 +487,25 @@ function ChatPage({matchId,returnTo='/matches',autoFocusComposer=false}:{matchId
     const previousHtmlOverflow=document.documentElement.style.overflow;
     document.body.style.overflow='hidden';
     document.documentElement.style.overflow='hidden';
-    const resize=()=>{
+    let measureFrame=0;
+    let settledScroll=0;
+    const measure=()=>{
       const focused=document.activeElement;
       const editing=focused instanceof HTMLElement&&(focused.tagName==='TEXTAREA'||focused.tagName==='INPUT'||focused.isContentEditable);
       const height=viewport?.height??window.innerHeight;
       const frame=chatViewportFrame(height,viewport?.offsetTop??0,Math.max(fullChatHeight.current,window.innerHeight),editing);
       if(!editing)fullChatHeight.current=height;
-      setChatViewport(frame);
-      if(editing)requestAnimationFrame(scrollToLatest);
+      setChatViewport(current=>current.height===frame.height&&current.top===frame.top&&current.keyboardOpen===frame.keyboardOpen?current:frame);
+      window.clearTimeout(settledScroll);
+      if(frame.keyboardOpen){
+        settledScroll=window.setTimeout(()=>{
+          if(stickToLatest.current)window.requestAnimationFrame(scrollToLatest);
+        },120);
+      }
+    };
+    const resize=()=>{
+      if(measureFrame)return;
+      measureFrame=window.requestAnimationFrame(()=>{measureFrame=0;measure()});
     };
     resize();
     viewport?.addEventListener('resize',resize);
@@ -502,7 +513,7 @@ function ChatPage({matchId,returnTo='/matches',autoFocusComposer=false}:{matchId
     window.addEventListener('resize',resize);
     document.addEventListener('focusin',resize);
     document.addEventListener('focusout',resize);
-    return()=>{viewport?.removeEventListener('resize',resize);viewport?.removeEventListener('scroll',resize);window.removeEventListener('resize',resize);document.removeEventListener('focusin',resize);document.removeEventListener('focusout',resize);document.body.style.overflow=previousBodyOverflow;document.documentElement.style.overflow=previousHtmlOverflow};
+    return()=>{if(measureFrame)window.cancelAnimationFrame(measureFrame);window.clearTimeout(settledScroll);viewport?.removeEventListener('resize',resize);viewport?.removeEventListener('scroll',resize);window.removeEventListener('resize',resize);document.removeEventListener('focusin',resize);document.removeEventListener('focusout',resize);document.body.style.overflow=previousBodyOverflow;document.documentElement.style.overflow=previousHtmlOverflow};
   },[scrollToLatest]);
   useEffect(()=>{if(last&&last.senderId!==profile.data?.id&&!last.isRead)markRead.mutate({matchId},{onSuccess:()=>{void qc.invalidateQueries({queryKey:getGetMatchesQueryKey()});void qc.invalidateQueries({queryKey:getGetNotificationsQueryKey()})}});},[last?.id,profile.data?.id]);
   useEffect(()=>{heartbeat.mutate({data:{isActive:true}});const beat=window.setInterval(()=>heartbeat.mutate({data:{isActive:document.visibilityState==='visible'}}),30000);const visibility=()=>heartbeat.mutate({data:{isActive:document.visibilityState==='visible'}});document.addEventListener('visibilitychange',visibility);return()=>{clearInterval(beat);document.removeEventListener('visibilitychange',visibility)}},[]);
@@ -894,7 +905,7 @@ function PublicProfile({id,actionReturnTo='/discover'}:{id:string;actionReturnTo
   const fromLikes=actionReturnTo==='/likes';
   const me=useGetMyProfile();
   const q=useGetProfileById(id,{query:{queryKey:getGetProfileByIdQueryKey(id),staleTime:10*60_000,gcTime:30*60_000,refetchOnMount:'always'}});const datingState=useGetProfileDatingState(id,{query:{queryKey:getGetProfileDatingStateQueryKey(id),enabled:!!id,staleTime:10*60_000,gcTime:30*60_000,refetchOnMount:'always'}});const followSummary=useGetProfileFollowSummary(id,{query:{queryKey:getGetProfileFollowSummaryQueryKey(id),enabled:!!id,staleTime:10*60_000,gcTime:30*60_000,refetchOnMount:'always'}});const matchedId=datingState.isError?null:datingState.data?.matchId??null;const canViewProfileStories=Boolean(followSummary.data?.isFollowing&&followSummary.data?.followsYou);const storyFeed=useGetStories({query:{queryKey:getGetStoriesQueryKey(),enabled:canViewProfileStories,staleTime:0,refetchOnMount:'always'}});const view=useRecordProfileView();const seen=useRef('');const [photoError,setPhotoError]=useState(false);const [viewer,setViewer]=useState<number|null>(null);const openPhoto=useCallback((index:number)=>setViewer(index),[]);
-    const client=useQueryClient();const [,setLocation]=useLocation();const reaction=useCreateReaction();const unlike=useUnlikeProfile();const likes=useGetDailyLikeStatus({query:{queryKey:getGetDailyLikeStatusQueryKey()}});const startDirectChat=useStartDirectChat();
+    const client=useQueryClient();const [,setLocation]=useLocation();const reaction=useCreateReaction();const unlike=useUnlikeProfile();const likes=useGetDailyLikeStatus({query:{queryKey:getGetDailyLikeStatusQueryKey()}});
   const [confirmation,setConfirmation]=useState<{text:string;kind:'like'}|null>(null);const [actionError,setActionError]=useState('');const block=useBlockProfile();const report=useReportProfile();const [menu,setMenu]=useState(false);const [confirmSafety,setConfirmSafety]=useState<'block'|'report'|null>(null);const [safetyError,setSafetyError]=useState('');const [reported,setReported]=useState(false);const [matchResult,setMatchResult]=useState<{name:string;matchId:string|null}|null>(null);
   const confirmationTimer=useRef<number|null>(null);const busy=useRef(false);const mounted=useRef(true);const currentId=useRef(id);currentId.current=id;
   useEffect(()=>{mounted.current=true;return()=>{mounted.current=false;if(confirmationTimer.current!==null)window.clearTimeout(confirmationTimer.current)}},[]);
@@ -951,7 +962,6 @@ function PublicProfile({id,actionReturnTo='/discover'}:{id:string;actionReturnTo
     }
   }
   function openMatchedChat(){if(!matchedId||datingState.isError)return;const origin=`/profile/${encodeURIComponent(id)}?returnTo=${encodeURIComponent(actionReturnTo)}`;const query=new URLSearchParams({returnTo:origin,focusComposer:'1'});setLocation(`/chat/${encodeURIComponent(matchedId)}?${query.toString()}`)}
-  async function openDirectChat(){if(!profile||startDirectChat.isPending)return;setActionError('');try{const conversation=await startDirectChat.mutateAsync({data:{recipientId:profile.id}});void client.invalidateQueries({queryKey:getGetDirectChatsQueryKey()});setLocation(`/direct-chat/${encodeURIComponent(conversation.id)}?returnTo=${encodeURIComponent(`/profile/${encodeURIComponent(id)}?returnTo=${encodeURIComponent(actionReturnTo)}`)}`)}catch(error){setActionError(error instanceof Error&&error.message?error.message:'This person does not allow you to start a chat.')}}
   async function runSafety(kind:'block'|'report'){if(!q.data)return;setSafetyError('');try{if(kind==='block'){await block.mutateAsync({data:{targetUserId:q.data.id}});void client.invalidateQueries({queryKey:getGetMatchesQueryKey()});setConfirmSafety(null);setMenu(false);setLocation(actionReturnTo)}else{await report.mutateAsync({data:{targetUserId:q.data.id,reason:'other'}});setReported(true);setConfirmSafety(null)}}catch(error){setSafetyError(error instanceof Error&&error.message?error.message:kind==='block'?'Could not block this profile. Please try again.':'Could not send the report. Please try again.')}}
   useEffect(()=>{if(viewer===null)return;const len=q.data?.photos?.length??0;const onKey=(e:KeyboardEvent)=>{if(e.key==='Escape')setViewer(null);if(e.key==='ArrowRight')setViewer(v=>v===null?v:Math.min(len-1,v+1));if(e.key==='ArrowLeft')setViewer(v=>v===null?v:Math.max(0,v-1))};window.addEventListener('keydown',onKey);return()=>window.removeEventListener('keydown',onKey)},[viewer,q.data?.photos?.length]);
     if(q.isError&&!q.data)return <div className="public-profile min-h-[100dvh] px-5 pt-2"><Link href={actionReturnTo} replace aria-label="Back" data-testid="link-public-profile-back-top" className="pp-round"><ArrowLeft size={20}/></Link><div className="mx-auto mt-16 max-w-sm"><Retry onRetry={()=>void q.refetch()} text="Profile unavailable."/></div></div>;
@@ -969,7 +979,6 @@ function PublicProfile({id,actionReturnTo='/discover'}:{id:string;actionReturnTo
       aria-label={matchedId?`Message ${profile.name}`:alreadyLiked?`Unlike ${profile.name}`:superLiked?`Super liked ${profile.name}`:fromLikes?`Like ${profile.name} back`:`Like ${profile.name}`}
       className={`sh-dating-button${alreadyLiked&&!matchedId?' sh-dating-liked':''}`}
     >{matchedId?<><MessageCircle size={17}/>Message</>:actionStatusLoading?<><LoaderCircle size={15} className="animate-spin"/>{fromLikes?'Like Back':'Like'}</>:datingState.isError?'Retry':reaction.isPending||unlike.isPending?<><LoaderCircle size={16} className="animate-spin"/>{alreadyLiked?'Liked':'Like'}</>:superLiked?<><Star size={17} fill="currentColor"/>Super liked</>:alreadyLiked?<><Heart size={17} fill="currentColor"/>Liked</>:likeOut?'No likes left':<><Heart size={17}/>{fromLikes?'Like Back':'Like'}</>}</button>
-     {!matchedId&&me.data?.id!==profile.id&&<button type="button" onClick={()=>void openDirectChat()} disabled={startDirectChat.isPending} data-testid="button-start-direct-chat" className="sh-dating-button sh-dating-message">{startDirectChat.isPending?<LoaderCircle size={15} className="animate-spin"/>:<MessageCircle size={17}/>}Message</button>}
      {actionError&&<span role="alert" className="sh-dating-error">{actionError}</span>}
     {!actionError&&likeOut&&!alreadyLiked&&!matchedId&&<span className="sh-dating-error">Today’s likes are used up.</span>}
   </div>;

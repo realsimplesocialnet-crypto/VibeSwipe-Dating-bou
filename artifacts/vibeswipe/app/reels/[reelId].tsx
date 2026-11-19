@@ -458,7 +458,7 @@ export default function ProfileReelScreen() {
                     photos: reelQuery.data.creatorPhoto ? [reelQuery.data.creatorPhoto] : [],
                     isVerified: reelQuery.data.creatorVerified,
                   }}
-                  size={42}
+                  size={34}
                 />
               </LinearGradient>
               <View style={styles.creatorDetails}>
@@ -670,13 +670,13 @@ const styles = StyleSheet.create({
   back: { width: 42, height: 42, alignItems: "center", justifyContent: "center" },
   headerTitle: { fontSize: 19, fontWeight: "800" },
   videoStage: { flex: 1, minHeight: 200, overflow: "hidden", backgroundColor: "#000", alignItems: "center", justifyContent: "center" },
-  actionRail: { position: "absolute", right: 10, bottom: 16, alignItems: "center", gap: 6 },
-  actionButton: { width: 52, minWidth: 52, minHeight: 56, alignItems: "center", justifyContent: "flex-start", gap: 3 },
+  actionRail: { position: "absolute", right: 10, bottom: 16, alignItems: "center", gap: 7 },
+  actionButton: { width: 52, minWidth: 52, minHeight: 62, alignItems: "center", justifyContent: "flex-start", gap: 6 },
   actionIconShell: { width: 42, height: 42, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "rgba(255,255,255,0.18)", borderRadius: 15, overflow: "hidden", shadowColor: "#bd4bd3", shadowOpacity: 0.2, shadowRadius: 8, elevation: 4 },
   actionCount: { color: "#fff", fontSize: 10, fontWeight: "800", textShadowColor: "#000", textShadowRadius: 4 },
   caption: { paddingHorizontal: 16, paddingVertical: 14, gap: 8 },
   creatorRow: { flexDirection: "row", alignItems: "center", gap: 10 },
-  creatorAvatarRing: { width: 46, height: 46, alignItems: "center", justifyContent: "center", borderRadius: 23, padding: 2 },
+  creatorAvatarRing: { width: 42, height: 42, alignItems: "center", justifyContent: "center", borderRadius: 21, padding: 2 },
   creatorDetails: { flex: 1, minWidth: 0, gap: 3 },
   creator: { fontSize: 15, fontWeight: "700" },
   creatorLocation: { fontSize: 12 },

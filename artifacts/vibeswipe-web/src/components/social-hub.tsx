@@ -334,8 +334,8 @@ export function ProfileSocialActions({ profileId, viewerId, showAction = true, c
       </Link>
     </div>
     {showAction && viewerId && viewerId !== profileId && <div className="sh-profile-actions">
-      {summary.data ? <FollowActionButton profileId={profileId} viewerId={viewerId} isFollowing={summary.data.isFollowing} followsYou={summary.data.followsYou} requestPendingByMe={summary.data.requestPendingByMe} />
-        : <button type="button" disabled aria-label={summary.isError ? 'Follow status unavailable' : 'Loading follow status'} className="sh-follow-button">{summary.isError ? 'Unavailable' : <><LoaderCircle size={15} className="animate-spin"/><span>Follow</span></>}</button>}
+      {summary.data ? <FollowActionButton profileId={profileId} viewerId={viewerId} isFollowing={summary.data.isFollowing} followsYou={summary.data.followsYou} requestPendingByMe={summary.data.requestPendingByMe} checking={summary.isFetching} />
+        : <button type="button" disabled aria-label={summary.isError ? 'Follow status unavailable' : 'Loading follow status'} className="sh-follow-button">{summary.isError ? 'Unavailable' : <><LoaderCircle size={15} className="animate-spin"/><span>Checking…</span></>}</button>}
       {datingAction}
     </div>}
   </section>;
