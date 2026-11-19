@@ -3,31 +3,38 @@ import test from "node:test";
 import { readFileSync } from "node:fs";
 import { reelSlideIndex, reelsViewportFrame } from "../src/lib/reels-viewport.ts";
 
-test("iPhone keyboard pan keeps both Reel and comment input within the visible viewport", () => {
+test("iPhone keyboard pan keeps the expanded comments and composer in the visible viewport", () => {
   const frame = reelsViewportFrame(360, 210, 844, true);
   assert.equal(frame.top, 210);
   assert.equal(frame.height, 360);
   assert.equal(frame.keyboardOpen, true);
-  assert.equal(frame.commentsHeight, 144);
-  assert.equal(frame.height - frame.commentsHeight, 216);
+  assert.equal(frame.commentsHeight, 223);
+  assert.equal(frame.height - frame.commentsHeight, 137);
   assert.equal(frame.top + frame.height, 570);
 });
 
-test("comments never take most of the video area, even on a small keyboard viewport", () => {
+test("the wide comment panel leaves a visible, tappable portion of the video on phones", () => {
   for (const height of [240, 320, 390, 560, 844, 1024]) {
     const frame = reelsViewportFrame(height, 0, 844, true);
-    assert.ok(frame.commentsHeight <= height * 0.4 + 0.5);
-    assert.ok(frame.height - frame.commentsHeight >= height * 0.6 - 0.5);
-    assert.ok(frame.commentsHeight <= 300);
+    assert.ok(frame.commentsHeight <= height * 0.62 + 0.5);
+    assert.ok(frame.height - frame.commentsHeight >= height * 0.38 - 0.5);
+    assert.ok(frame.commentsHeight <= 560);
   }
 });
 
-test("closing the keyboard restores the full viewer and bounded comment pane", () => {
+test("closing the keyboard restores the full viewer and expanded comment pane", () => {
   const frame = reelsViewportFrame(844, 0, 844, false);
   assert.equal(frame.keyboardOpen, false);
   assert.equal(frame.top, 0);
-  assert.equal(frame.commentsHeight, 300);
-  assert.equal(frame.height - frame.commentsHeight, 544);
+  assert.equal(frame.commentsHeight, 523);
+  assert.equal(frame.height - frame.commentsHeight, 321);
+});
+
+test("expanded comments retain a usable video area at common phone sizes", () => {
+  for (const height of [667, 740, 780, 844, 896]) {
+    const frame = reelsViewportFrame(height, 0, height, false);
+    assert.ok(frame.height - frame.commentsHeight >= 253, `video area too small at ${height}px`);
+  }
 });
 
 test("loading placeholders and invalid slide indexes cannot remove the active video's source", () => {

@@ -7,7 +7,7 @@ export function reelsViewportFrame(height: number, top: number, fullHeight: numb
   };
   return {
     ...frame,
-    commentsHeight: Math.min(300, Math.round(frame.height * 0.4)),
+    commentsHeight: Math.min(560, Math.round(frame.height * 0.62)),
   };
 }
 

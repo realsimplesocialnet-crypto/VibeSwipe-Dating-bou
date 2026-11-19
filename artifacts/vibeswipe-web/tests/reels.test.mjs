@@ -209,14 +209,18 @@ test("watched Reels can be saved on Wi-Fi and reopened from the bounded offline 
   assert.match(worker, /x-myage-offline-eligible/);
 });
 
-test("Reels routes sit outside the main navigation shell and comments sit below the video", () => {
+test("Reels comments open below a still-interactive video", () => {
   const app = read("../src/App.tsx");
   assert.match(app, /<Route path="\/reels" component=\{ReelsRoute\}\/>/);
   assert.ok(!/'\/reels'/.test(app.split("const showMainNavigation")[1].split("\n")[0]));
   const feed = read("../src/pages/reels-feed.tsx");
   assert.ok(feed.indexOf("<ReelComments") > feed.indexOf('className="reels-stage"'));
+  assert.match(feed, /active=\{index === active && !searchOpen\}/);
+  assert.doesNotMatch(feed, /active=\{index === active && !searchOpen && !commentsFor\}/);
+  assert.match(read("../src/components/reels/reel-slide.tsx"), /className="reel-tap" onClick=\{handleVideoTap\}/);
   const css = read("../src/components/reels/reels.css");
   assert.match(css, /\.reel-comments \{ flex: 0 0 auto/);
+  assert.match(css, /height: var\(--reels-comments-height, min\(62%, 560px\)\)/);
 });
 
 test("Reel action rail and profile grid show persisted like, comment, save and share counts", () => {

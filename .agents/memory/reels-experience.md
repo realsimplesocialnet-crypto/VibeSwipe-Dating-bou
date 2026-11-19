@@ -39,6 +39,12 @@ Comments must open low down without covering the video, including while the mobi
 
 **How to apply:** Reserve space below the visible video for the comment panel and input instead of placing an opaque sheet over the video. Keep the composer avatar adjacent to the input, omit panel/reply separator lines, and support both a video tap and a downward swipe to dismiss. On iPhone, submit directly from the Send touch before Safari's keyboard-driven viewport resize can move the control; guard against duplicate touch and click submissions.
 
+The comment panel should open wide enough for a comfortable conversation while leaving the video visible and playable; tapping the visible video can still pause or resume it.
+
+**Why:** The user approved a TikTok-style wide comment view where the video continues playing behind the open comments and can still be paused.
+
+**How to apply:** Size the panel to roughly three-fifths of the currently visible phone viewport, keep the remaining video area tappable, and keep the composer above the keyboard.
+
 Long comment and reply text starts at three lines and expands with a “More” control only when it is clipped.
 
 **Why:** The user wants comment text to stay compact in the feed, with the rest revealed when a viewer asks to see more.
