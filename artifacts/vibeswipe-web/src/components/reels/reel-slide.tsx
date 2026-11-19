@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type TouchEvent as ReactTouchEvent } from "react";
 import { Link } from "wouter";
 import type { Reel } from "@workspace/api-client-react";
 import { Bookmark, ChevronRight, Heart, MapPin, MessageCircle, Pause, Play, Search, Send, Volume2, VolumeX } from "lucide-react";
@@ -25,6 +25,11 @@ export function ReelSlide({ reel, index, active, near, muted, pageHidden, compac
   const viewRecorded = useRef(false);
   const flashTimer = useRef<number | null>(null);
   const lastVideoTap = useRef<{ at: number; wasPlaying: boolean } | null>(null);
+  const mediaTouch = useRef<{ x: number; y: number } | null>(null);
+  const skipNextTap = useRef(false);
+  const [slideIndex, setSlideIndex] = useState(0);
+  const slideshow = reel.mediaType === "slides" && reel.slideReferences.length > 1;
+  const slideCount = reel.slideReferences.length;
   const [userPaused, setUserPaused] = useState(false);
   const [blocked, setBlocked] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -33,7 +38,7 @@ export function ReelSlide({ reel, index, active, near, muted, pageHidden, compac
   const [flash, setFlash] = useState<"play" | "pause" | "sound-on" | "sound-off" | null>(null);
 
   useEffect(() => { if (!active) setUserPaused(false); }, [active]);
-  useEffect(() => { setProgress(0); }, [reel.id]);
+  useEffect(() => { setProgress(0); setSlideIndex(0); setReady(false); }, [reel.id]);
   useEffect(() => () => { if (flashTimer.current !== null) window.clearTimeout(flashTimer.current); }, []);
   useEffect(() => { if (video.current) video.current.muted = muted; }, [muted]);
   useEffect(() => {
@@ -102,6 +107,7 @@ export function ReelSlide({ reel, index, active, near, muted, pageHidden, compac
   }
 
   function handleVideoTap() {
+    if (slideshow) return;
     const now = performance.now();
     const previousTap = lastVideoTap.current;
     if (previousTap && now - previousTap.at < 300) {
@@ -126,6 +132,29 @@ export function ReelSlide({ reel, index, active, near, muted, pageHidden, compac
       wasPlaying: Boolean(element && !element.paused && !blocked && !userPaused),
     };
     togglePlayback();
+  }
+
+  function startMediaTouch(event: ReactTouchEvent<HTMLButtonElement>) {
+    const touch = event.changedTouches[0];
+    mediaTouch.current = touch ? { x: touch.clientX, y: touch.clientY } : null;
+  }
+
+  function finishMediaTouch(event: ReactTouchEvent<HTMLButtonElement>) {
+    const start = mediaTouch.current;
+    mediaTouch.current = null;
+    const touch = event.changedTouches[0];
+    if (!slideshow || !start || !touch) return;
+    const dx = touch.clientX - start.x;
+    const dy = touch.clientY - start.y;
+    if (Math.abs(dx) < 42 || Math.abs(dx) <= Math.abs(dy)) return;
+    event.preventDefault();
+    skipNextTap.current = true;
+    setSlideIndex((current) => Math.max(0, Math.min(slideCount - 1, current + (dx < 0 ? 1 : -1))));
+    window.setTimeout(() => { skipNextTap.current = false; }, 350);
+  }
+
+  function moveSlideTo(next: number) {
+    setSlideIndex(Math.max(0, Math.min(slideCount - 1, next)));
   }
 
   function retry() {
@@ -160,9 +189,13 @@ export function ReelSlide({ reel, index, active, near, muted, pageHidden, compac
     </span>
   </span>;
   return <section className="reel-slide" data-index={index} data-testid={`reel-slide-${reel.id}`} aria-roledescription="Reel" aria-label={`Reel by ${reel.creatorName}`}>
-    <video
+    {slideshow
+      ? <div className="reel-photo-slides" data-testid={`reel-photo-slides-${reel.id}`} aria-label={`Photo slide ${slideIndex + 1} of ${slideCount}`}>
+        <img src={reelMediaUrl(reel.slideReferences[slideIndex])} alt="" className="reel-photo-slide" draggable={false} />
+      </div>
+      : <video
       ref={video}
-      src={active || near ? src : undefined}
+      src={reel.mediaType === "video" && (active || near) ? src : undefined}
       className="reel-video"
       playsInline muted={muted} loop
       preload={active ? "auto" : "metadata"}
@@ -184,10 +217,12 @@ export function ReelSlide({ reel, index, active, near, muted, pageHidden, compac
         }
       }}
       data-testid={`video-reel-${reel.id}`}
-    />
-    {!ready && !failed && <div className="reel-loading" aria-hidden="true" />}
-    <button type="button" className="reel-tap" onClick={handleVideoTap} aria-label={`${userPaused || blocked ? "Play" : "Pause"} Reel. Double-tap to ${muted ? "turn sound on" : "mute"}.`} aria-pressed={!userPaused && !blocked} data-testid={`button-toggle-reel-playback-${reel.id}`} />
-    {active && <button type="button" className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-10 focus:rounded-full focus:bg-black/80 focus:p-3 focus:text-white" onClick={toggleSound} aria-label={muted ? "Turn Reel sound on" : "Mute Reel"} data-testid={`button-toggle-reel-sound-accessible-${reel.id}`} />}
+    />}
+    {!slideshow && !ready && !failed && <div className="reel-loading" aria-hidden="true" />}
+    <button type="button" className={`reel-tap ${slideshow ? "is-slideshow" : ""}`} onTouchStart={startMediaTouch} onTouchEnd={finishMediaTouch} onClick={() => { if (skipNextTap.current) { skipNextTap.current = false; return; } handleVideoTap(); }} aria-label={slideshow ? `Photo slideshow, ${slideIndex + 1} of ${slideCount}. Swipe left or right to browse.` : `${userPaused || blocked ? "Play" : "Pause"} Reel. Double-tap to ${muted ? "turn sound on" : "mute"}.`} aria-pressed={!slideshow && !userPaused && !blocked} data-testid={`button-toggle-reel-playback-${reel.id}`} />
+    {slideshow && <div className="reel-slide-counter" aria-live="polite" data-testid={`text-reel-slide-count-${reel.id}`}>{slideIndex + 1}/{slideCount}</div>}
+    {slideshow && <div className="reel-slide-dots" role="group" aria-label="Choose photo slide">{reel.slideReferences.map((_, slide) => <button key={slide} type="button" onClick={() => moveSlideTo(slide)} aria-label={`Show photo ${slide + 1}`} aria-current={slide === slideIndex ? "step" : undefined} data-testid={`button-reel-slide-${reel.id}-${slide + 1}`} />)}</div>}
+    {active && !slideshow && <button type="button" className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-10 focus:rounded-full focus:bg-black/80 focus:p-3 focus:text-white" onClick={toggleSound} aria-label={muted ? "Turn Reel sound on" : "Mute Reel"} data-testid={`button-toggle-reel-sound-accessible-${reel.id}`} />}
     {flash && <span className="reel-flash" aria-hidden="true">{flash === "play" ? <Play size={34} fill="currentColor" /> : flash === "pause" ? <Pause size={34} fill="currentColor" /> : flash === "sound-on" ? <Volume2 size={34} /> : <VolumeX size={34} />}</span>}
     {failed && <div className="reel-blocked" role="alert"><span>This video could not load.</span><button type="button" onClick={retry} className="reel-pill" data-testid={`button-retry-reel-${reel.id}`}>Try again</button></div>}
     <div className="reel-shade" aria-hidden="true" />
@@ -220,7 +255,7 @@ export function ReelSlide({ reel, index, active, near, muted, pageHidden, compac
       <span>Search · {searchSuggestion}</span>
       <ChevronRight size={17} aria-hidden="true" />
     </button>}
-    <input
+    {!slideshow && <input
       className="reel-progress"
       type="range"
       min="0"
@@ -232,6 +267,6 @@ export function ReelSlide({ reel, index, active, near, muted, pageHidden, compac
       aria-label={`Video progress for ${reel.creatorName}'s Reel`}
       aria-valuetext={`${Math.round(progress)}%`}
       data-testid={`input-reel-progress-${reel.id}`}
-    />
+    />}
   </section>;
 }

@@ -19,7 +19,7 @@ export function MemberSearchPage() {
   const [query, setQuery] = useState(() => new URLSearchParams(window.location.search).get("q") ?? "");
   const [debouncedQuery, setDebouncedQuery] = useState(query.trim().replace(/\s+/g, " "));
   const myProfile = useGetMyProfile();
-  const isSearching = debouncedQuery.length >= 2;
+  const isSearching = debouncedQuery.length >= 1;
   const request = useMemo(() => isSearching ? { q: debouncedQuery } : {}, [isSearching, debouncedQuery]);
   const results = useGetDiscoverProfiles<Profile[]>(request, {
     query: {
@@ -31,7 +31,7 @@ export function MemberSearchPage() {
   useEffect(() => {
     const timer = window.setTimeout(() => {
       setDebouncedQuery(query.trim().replace(/\s+/g, " "));
-    }, 250);
+    }, 150);
     return () => window.clearTimeout(timer);
   }, [query]);
 

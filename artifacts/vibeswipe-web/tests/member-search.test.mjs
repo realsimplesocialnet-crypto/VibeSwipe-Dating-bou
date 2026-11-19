@@ -12,8 +12,16 @@ test("member search explains when the empty result is caused by searching for yo
 });
 
 test("member search shows eligible people immediately before a query is entered", () => {
-  assert.match(source, /const isSearching = debouncedQuery\.length >= 2/);
+  assert.match(source, /const isSearching = debouncedQuery\.length >= 1/);
   assert.match(source, /isSearching \? \{ q: debouncedQuery \} : \{\}/);
-  assert.doesNotMatch(source, /enabled:\s*debouncedQuery\.length\s*>=\s*2/);
+  assert.doesNotMatch(source, /enabled:\s*debouncedQuery\.length\s*>=\s*1/);
   assert.match(source, /aria-label=\{isSearching \? "Search results" : "People"\}/);
+});
+
+test("member-name search starts at one character and returns matches while typing", () => {
+  const openapi = readFileSync(new URL("../../../lib/api-spec/openapi.yaml", import.meta.url), "utf8");
+  const route = readFileSync(new URL("../../../artifacts/api-server/src/routes/vibeswipe.ts", import.meta.url), "utf8");
+  assert.match(openapi, /name: q[\s\S]*?minLength: 1/);
+  assert.match(route, /if \(searchTerm\)[\s\S]*?ilike\(profilesTable\.name, `%\$\{escapedSearch\}%`\)/);
+  assert.match(route, /normalizedName\.startsWith\(normalizedSearch\)/);
 });

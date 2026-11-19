@@ -23,3 +23,11 @@ export function rejectExplicitFrame(scores: SafetyScore[]): number {
   }
   return score;
 }
+
+export function rejectExplicitImage(scores: SafetyScore[]): number {
+  const score = explicitScore(scores);
+  if (score >= REEL_NSFW_THRESHOLD) {
+    throw new ReelSafetyError("This photo cannot be posted because it contains nudity or sexually explicit content. Please choose a different photo.", 422);
+  }
+  return score;
+}

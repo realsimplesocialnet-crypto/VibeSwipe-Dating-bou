@@ -104,6 +104,26 @@ test("Reels composer states there is no duration cap and uses full-length proces
   assert.match(composer, /500 MB/);
 });
 
+test("photo-slide Reels can be selected, reviewed, retried, and swiped on web and native", () => {
+  const composer = read("../src/pages/reel-composer.tsx");
+  const slide = read("../src/components/reels/reel-slide.tsx");
+  const native = read("../../vibeswipe/app/reels/[reelId].tsx");
+  assert.match(composer, /type ReelMode = "video" \| "slides"/);
+  assert.match(composer, /multiple className="hidden"[\s\S]*?data-testid="input-reel-slides"/);
+  assert.match(composer, /between 2 and 10 photos/);
+  assert.match(composer, /slideMediaIds: mediaIds/);
+  assert.match(composer, /uploadedSlides\.current\.get\(photo\)/);
+  assert.match(slide, /reel\.mediaType === "slides"/);
+  assert.match(slide, /Swipe left or right to browse/);
+  assert.match(slide, /setSlideIndex\(\(current\) => Math\.max\(0, Math\.min\(slideCount - 1/);
+  assert.match(slide, /text-reel-slide-count-/);
+  assert.match(native, /reelQuery\.data\?\.mediaType === "slides"/);
+  assert.match(native, /pagingEnabled/);
+  assert.match(native, /\{slideIndex \+ 1\}\/\{slideReferences\.length\}/);
+  assert.match(native, /Photo slide \$\{position \+ 1\} of \$\{slideReferences\.length\}/);
+  assert.match(native, /accessibilityLabel=\{commentVideoPaused \? "Play video" : "Pause video"\}/);
+});
+
 test("media urls stay on the protected endpoint and return paths stay in-app", () => {
   assert.equal(reelMediaUrl(`media:${id}`), `/api/vibeswipe/media/${id}`);
   assert.equal(reelMediaUrl("https://elsewhere.example/v.mp4"), "");
@@ -132,7 +152,7 @@ test("tapping anywhere on a Reel toggles playback without hiding navigation", ()
   const slide = read("../src/components/reels/reel-slide.tsx");
   const feed = read("../src/pages/reels-feed.tsx");
   const css = read("../src/components/reels/reels.css");
-  assert.match(slide, /className="reel-tap" onClick=\{handleVideoTap\}/);
+  assert.match(slide, /className=\{`reel-tap \$\{slideshow \? "is-slideshow" : ""\}`\}[^>]*onClick=\{\(\) =>/);
   assert.match(slide, /function handleVideoTap\(\)/);
   assert.match(slide, /now - previousTap\.at < 300/);
   const playbackHandler = slide.match(/function togglePlayback\(\) \{([\s\S]*?)\n  \}/)?.[1] ?? "";
@@ -217,7 +237,7 @@ test("Reels comments open below a still-interactive video", () => {
   assert.ok(feed.indexOf("<ReelComments") > feed.indexOf('className="reels-stage"'));
   assert.match(feed, /active=\{index === active && !searchOpen\}/);
   assert.doesNotMatch(feed, /active=\{index === active && !searchOpen && !commentsFor\}/);
-  assert.match(read("../src/components/reels/reel-slide.tsx"), /className="reel-tap" onClick=\{handleVideoTap\}/);
+  assert.match(read("../src/components/reels/reel-slide.tsx"), /className=\{`reel-tap \$\{slideshow \? "is-slideshow" : ""\}`\}[^>]*onClick=\{\(\) =>/);
   const css = read("../src/components/reels/reels.css");
   assert.match(css, /\.reel-comments \{ flex: 0 0 auto/);
   assert.match(css, /height: var\(--reels-comments-height, min\(62%, 560px\)\)/);

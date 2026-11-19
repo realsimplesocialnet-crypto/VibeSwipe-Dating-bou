@@ -4,7 +4,7 @@ import { mkdtemp, readdir, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { getReelClassifier } from "./reel-safety-model";
-import { ReelSafetyError, rejectExplicitFrame } from "./reel-safety-policy";
+import { ReelSafetyError, rejectExplicitFrame, rejectExplicitImage } from "./reel-safety-policy";
 import { reelSafetyExtractionTimeoutMs, reelSafetySamplingPlan } from "./reel-safety-sampling";
 
 /** Sample the full timeline at up to one frame per second, with a bounded sample count for long videos. */
@@ -47,4 +47,10 @@ export async function checkReelVideo(path: string, duration: number) {
     }
     return { sampledFrames: frames.length, uniqueFrames: hashes.size, maximumScore };
   } finally { await rm(directory, { recursive: true, force: true }); }
+}
+
+export async function checkReelImage(path: string) {
+  const classify = await getReelClassifier();
+  const maximumScore = rejectExplicitImage(await classify(path, { top_k: 2 }));
+  return { sampledFrames: 1, uniqueFrames: 1, maximumScore };
 }

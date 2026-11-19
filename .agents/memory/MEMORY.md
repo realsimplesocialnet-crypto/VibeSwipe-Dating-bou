@@ -22,3 +22,4 @@
 - [Server validation environment](server-validation-environment.md) — Standalone checks must respect pnpm's isolation of workspace-package dependencies.
 - [Admin oversight](admin-oversight.md) — Owner wants a single web overview; keep private-chat inspection explicit, restricted and audited.
 - [Top-edge spacing](top-edge-spacing.md) — Keep VibeSwipe screens close to the top safe area; avoid unnecessary blank space above content.
+- [Development schema prompts](drizzle-push-noninteractive.md) — If Drizzle push stops for an interactive legacy-schema conflict, inspect the diff; never bypass it with force.

@@ -23,7 +23,7 @@ import { Feather } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import { VideoView, useVideoPlayer } from "expo-video";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, KeyboardAvoidingView, Linking, Modal, Platform, Pressable, ScrollView, Share, StyleSheet, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, Image, KeyboardAvoidingView, Linking, Modal, Platform, Pressable, ScrollView, Share, StyleSheet, Text, TextInput, View, useWindowDimensions } from "react-native";
 import { useQueryClient } from "@tanstack/react-query";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { usePremiumColors } from "@/hooks/useColors";
@@ -36,10 +36,14 @@ export default function ProfileReelScreen() {
   const { getToken } = useAuth();
   const queryClient = useQueryClient();
   const insets = useSafeAreaInsets();
+  const { width: screenWidth } = useWindowDimensions();
   const [token, setToken] = useState<string | null>(null);
   const [shareVisible, setShareVisible] = useState(false);
   const [androidShareTargetsVisible, setAndroidShareTargetsVisible] = useState(false);
   const [commentsVisible, setCommentsVisible] = useState(false);
+  const [commentVideoPaused, setCommentVideoPaused] = useState(false);
+  const [slideIndex, setSlideIndex] = useState(0);
+  const [slideViewportWidth, setSlideViewportWidth] = useState(0);
   const [commentDraft, setCommentDraft] = useState("");
   const [pendingMatchId, setPendingMatchId] = useState<string | null>(null);
   const [sentTo, setSentTo] = useState<Record<string, boolean>>({});
@@ -73,7 +77,10 @@ export default function ProfileReelScreen() {
     };
   }, [getToken]);
 
-  const uri = reelQuery.data ? mediaUri(reelQuery.data.videoReference) : null;
+  const slideshow = reelQuery.data?.mediaType === "slides" && reelQuery.data.slideReferences.length > 1;
+  const slideReferences = reelQuery.data?.slideReferences ?? [];
+  const uri = reelQuery.data && !slideshow ? mediaUri(reelQuery.data.videoReference) : null;
+  useEffect(() => { setSlideIndex(0); }, [reelId]);
   const source = useMemo(
     () => uri && token ? { uri, headers: { Authorization: `Bearer ${token}` } } : null,
     [token, uri],
@@ -257,6 +264,17 @@ export default function ProfileReelScreen() {
 
   const shareChats = (matches.data ?? []).filter((match) => !match.blockedByMe && !match.blockedMe);
 
+  function openComments() {
+    setCommentVideoPaused(false);
+    setCommentsVisible(true);
+  }
+
+  function toggleVideoWhileCommenting() {
+    if (commentVideoPaused) player.play();
+    else player.pause();
+    setCommentVideoPaused((paused) => !paused);
+  }
+
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: colors.background }]}>
       <View style={styles.page}>
@@ -268,10 +286,35 @@ export default function ProfileReelScreen() {
           <View style={styles.headerSpacer} />
         </View>
         <View style={styles.videoStage}>
-          {source ? (
-            <VideoView player={player} style={StyleSheet.absoluteFill} contentFit="contain" nativeControls />
-          ) : reelQuery.isLoading || !token ? (
+          {reelQuery.isLoading || !token ? (
             <ActivityIndicator color={colors.primary} />
+          ) : slideshow ? (
+            <View style={StyleSheet.absoluteFill} onLayout={(event) => setSlideViewportWidth(event.nativeEvent.layout.width)}>
+              <ScrollView
+                horizontal
+                pagingEnabled
+                showsHorizontalScrollIndicator={false}
+                style={StyleSheet.absoluteFill}
+                contentContainerStyle={{ width: (slideViewportWidth || screenWidth) * slideReferences.length }}
+                onMomentumScrollEnd={(event) => setSlideIndex(Math.min(slideReferences.length - 1, Math.round(event.nativeEvent.contentOffset.x / Math.max(1, slideViewportWidth || screenWidth))))}
+                testID="reel-photo-slides"
+              >
+                {slideReferences.map((reference, position) => {
+                  const slideUri = mediaUri(reference);
+                  return <Image
+                    key={`${reference}-${position}`}
+                    source={token && slideUri ? { uri: slideUri, headers: { Authorization: `Bearer ${token}` } } : undefined}
+                    style={{ width: slideViewportWidth || screenWidth, height: "100%" }}
+                    resizeMode="cover"
+                    accessibilityLabel={`Photo slide ${position + 1} of ${slideReferences.length}`}
+                  />;
+                })}
+              </ScrollView>
+              <View pointerEvents="none" style={styles.slideCount}><Text style={styles.slideCountText}>{slideIndex + 1}/{slideReferences.length}</Text></View>
+              <View pointerEvents="none" style={styles.slideDots}>{slideReferences.map((_, position) => <View key={position} style={[styles.slideDot, position === slideIndex && styles.slideDotActive]} />)}</View>
+            </View>
+          ) : source ? (
+            <VideoView player={player} style={StyleSheet.absoluteFill} contentFit="contain" nativeControls />
           ) : reelQuery.isError ? (
             <View style={styles.message}>
               <Text style={[styles.messageText, { color: colors.foreground }]}>This Reel is unavailable.</Text>
@@ -296,7 +339,7 @@ export default function ProfileReelScreen() {
                 accessibilityRole="button"
                 accessibilityLabel={`Comments, ${reelQuery.data.commentCount}`}
                 testID="button-comments-reel"
-                onPress={() => setCommentsVisible(true)}
+                onPress={openComments}
                 style={styles.actionButton}
               >
                 <Feather name="message-circle" size={25} color="#fff" />
@@ -464,9 +507,15 @@ export default function ProfileReelScreen() {
           <View style={[styles.commentSheet, { backgroundColor: colors.card }]}>
             <View style={styles.shareHeading}>
               <Text style={[styles.shareTitle, { color: colors.foreground }]}>Comments <Text style={{ color: colors.mutedForeground }}>{reelQuery.data?.commentCount ?? 0}</Text></Text>
-              <Pressable accessibilityRole="button" accessibilityLabel="Close comments" onPress={() => setCommentsVisible(false)} style={styles.closeShare}>
-                <Feather name="x" size={20} color={colors.foreground} />
-              </Pressable>
+              <View style={styles.commentHeadingActions}>
+                {reelQuery.data?.mediaType === "video" && <Pressable accessibilityRole="button" accessibilityLabel={commentVideoPaused ? "Play video" : "Pause video"} onPress={toggleVideoWhileCommenting} style={styles.commentPlayback}>
+                  <Feather name={commentVideoPaused ? "play" : "pause"} size={16} color={colors.foreground} />
+                  <Text style={[styles.commentPlaybackText, { color: colors.foreground }]}>{commentVideoPaused ? "Play" : "Pause"}</Text>
+                </Pressable>}
+                <Pressable accessibilityRole="button" accessibilityLabel="Close comments" onPress={() => setCommentsVisible(false)} style={styles.closeShare}>
+                  <Feather name="x" size={20} color={colors.foreground} />
+                </Pressable>
+              </View>
             </View>
             {commentsQuery.isLoading ? (
               <ActivityIndicator color={colors.primary} style={styles.shareLoading} />
@@ -552,6 +601,9 @@ const styles = StyleSheet.create({
   shareList: { marginBottom: 4 },
   commentBackdrop: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.55)" },
   commentSheet: { maxHeight: "68%", minHeight: "46%", borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 16, paddingTop: 12, paddingBottom: 12 },
+  commentHeadingActions: { flexDirection: "row", alignItems: "center", gap: 8 },
+  commentPlayback: { minHeight: 34, flexDirection: "row", alignItems: "center", gap: 5, borderRadius: 17, backgroundColor: "rgba(255,255,255,0.08)", paddingHorizontal: 10 },
+  commentPlaybackText: { fontSize: 11, fontWeight: "700" },
   commentList: { flexGrow: 1, marginVertical: 8 },
   commentRow: { flexDirection: "row", gap: 10, paddingVertical: 9 },
   commentCopy: { flex: 1, gap: 3 },
@@ -560,6 +612,11 @@ const styles = StyleSheet.create({
   commentComposer: { minHeight: 48, flexDirection: "row", alignItems: "center", gap: 8, borderWidth: 1, borderRadius: 26, paddingLeft: 14, paddingRight: 4 },
   commentInput: { minWidth: 0, flex: 1, paddingVertical: 8, fontSize: 15 },
   commentSend: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center" },
+  slideCount: { position: "absolute", top: 12, right: 12, borderRadius: 999, backgroundColor: "rgba(0,0,0,0.55)", paddingHorizontal: 10, paddingVertical: 5 },
+  slideCountText: { color: "#fff", fontSize: 12, fontWeight: "800" },
+  slideDots: { position: "absolute", left: 0, right: 0, bottom: 10, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 5 },
+  slideDot: { width: 5, height: 5, borderRadius: 3, backgroundColor: "rgba(255,255,255,0.48)" },
+  slideDotActive: { width: 7, height: 7, borderRadius: 4, backgroundColor: "#fff" },
   disabled: { opacity: 0.45 },
   shareRecipient: { minHeight: 62, flexDirection: "row", alignItems: "center", gap: 11, borderRadius: 16, paddingHorizontal: 10, marginVertical: 3 },
   shareRecipientSent: { opacity: 0.76 },

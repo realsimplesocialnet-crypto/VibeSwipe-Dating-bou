@@ -54,7 +54,9 @@ export function ReelsLibraryPage() {
         </div>
         : <ul className="grid grid-cols-3 gap-1.5 pb-10">{items.map((reel: Reel) => <li key={reel.id} className="relative">
           <Link href={`/reels/${reel.id}?returnTo=${encodeURIComponent(here)}`} className="reel-tile block" data-testid={`link-reel-tile-${reel.id}`} aria-label={`Open Reel by ${reel.creatorName}`}>
-            <video src={`${reelMediaUrl(reel.videoReference)}#t=0.1`} preload="metadata" muted playsInline className="h-full w-full object-cover" />
+            {reel.mediaType === "slides"
+              ? <img src={reelMediaUrl(reel.slideReferences[0])} alt="" className="h-full w-full object-cover" />
+              : <video src={`${reelMediaUrl(reel.videoReference)}#t=0.1`} preload="metadata" muted playsInline className="h-full w-full object-cover" />}
             <span className="reel-tile-meta"><Heart size={12} fill="currentColor" />{formatCount(reel.likeCount)}<span className="ml-auto truncate">{tab === "saved" ? reel.creatorName : ""}</span></span>
           </Link>
           {tab === "posted" && (confirm === reel.id

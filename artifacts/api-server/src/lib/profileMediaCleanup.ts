@@ -6,6 +6,7 @@ import {
   profileSetupDraftsTable,
   profilesTable,
   faceVerificationSessionsTable,
+  reelSlidesTable,
   reelsTable,
 } from "@workspace/db";
 import { and, asc, eq, gt, inArray, isNull, lt, or, sql } from "drizzle-orm";
@@ -83,6 +84,12 @@ async function deleteIfUnreferenced(
     .where(eq(reelsTable.mediaId, asset.id))
     .limit(1);
   if (reelReference) return false;
+  const [slideReference] = await tx
+    .select({ reelId: reelSlidesTable.reelId })
+    .from(reelSlidesTable)
+    .where(eq(reelSlidesTable.mediaId, asset.id))
+    .limit(1);
+  if (slideReference) return false;
 
   await objectStorage.deleteObjectEntity(asset.objectPath);
   evictMediaPreview(asset.id);

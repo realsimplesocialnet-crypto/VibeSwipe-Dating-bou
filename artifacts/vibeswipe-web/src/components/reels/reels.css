@@ -14,9 +14,16 @@
 .reels-scroller.is-locked { overflow: hidden; }
 .reel-slide { position: relative; height: 100%; scroll-snap-align: start; scroll-snap-stop: always; overflow: hidden; background: radial-gradient(ellipse at 50% 30%, #2c1d2a, #0c0a0f 70%); }
 .reel-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.reel-photo-slides { position: absolute; inset: 0; z-index: 0; overflow: hidden; background: #08070a; }
+.reel-photo-slide { display: block; width: 100%; height: 100%; object-fit: cover; }
+.reel-slide-counter { position: absolute; top: calc(max(env(safe-area-inset-top), 14px) + 54px); right: 18px; z-index: 3; border-radius: 999px; background: rgb(0 0 0 / .54); padding: 5px 10px; color: #fff; font-size: 12px; font-weight: 750; text-shadow: 0 1px 3px rgb(0 0 0 / .55); }
+.reel-slide-dots { position: absolute; left: 50%; bottom: calc(env(safe-area-inset-bottom) + 34px); z-index: 3; display: flex; max-width: 55%; align-items: center; justify-content: center; gap: 5px; overflow: hidden; transform: translateX(-50%); pointer-events: auto; }
+.reel-slide-dots button { width: 5px; height: 5px; flex: none; border-radius: 999px; background: rgb(255 255 255 / .5); box-shadow: 0 1px 4px rgb(0 0 0 / .6); }
+.reel-slide-dots button[aria-current="step"] { width: 7px; height: 7px; background: #fff; }
 .reel-loading { position: absolute; inset: 0; background: linear-gradient(110deg, #15111a 30%, #241b26 50%, #15111a 70%); background-size: 220% 100%; animation: reel-shimmer 1.4s linear infinite; }
 @keyframes reel-shimmer { to { background-position: -220% 0; } }
 .reel-tap { position: absolute; inset: 0; z-index: 1; background: transparent; cursor: pointer; touch-action: manipulation; }
+.reel-tap.is-slideshow { touch-action: pan-y; }
 .reel-shade { pointer-events: none; position: absolute; inset: 0; z-index: 1; background: linear-gradient(to bottom, rgb(8 6 10 / .55), transparent 18%, transparent 52%, rgb(8 6 10 / .82)); }
 .reel-flash { position: absolute; left: 50%; top: 50%; z-index: 3; display: flex; height: 76px; width: 76px; align-items: center; justify-content: center; border-radius: 999px; background: rgb(0 0 0 / .45); transform: translate(-50%, -50%); animation: reel-flash .52s ease-out forwards; pointer-events: none; }
 @keyframes reel-flash { from { opacity: 1; transform: translate(-50%, -50%) scale(.8); } to { opacity: 0; transform: translate(-50%, -50%) scale(1.15); } }
@@ -68,7 +75,7 @@
 .reels-search-label { margin: 0 4px 10px; color: rgb(255 255 255 / .62); font-size: 13px; }
 .reels-search-list { display: flex; flex-direction: column; gap: 8px; }
 .reels-search-result { display: flex; width: 100%; min-height: 96px; align-items: center; gap: 12px; border: 1px solid rgb(255 255 255 / .08); border-radius: 16px; background: #19151d; padding: 9px; text-align: left; }
-.reels-search-result > video { width: 52px; height: 76px; flex: none; border-radius: 9px; background: #08070a; object-fit: cover; }
+.reels-search-result > video, .reels-search-result > img { width: 52px; height: 76px; flex: none; border-radius: 9px; background: #08070a; object-fit: cover; }
 .reels-search-copy { display: flex; min-width: 0; flex: 1; flex-direction: column; gap: 3px; }
 .reels-search-creator { overflow: hidden; color: #fff; font-size: 13px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
 .reels-search-caption { display: -webkit-box; overflow: hidden; color: rgb(255 255 255 / .78); font-size: 12px; line-height: 1.4; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }

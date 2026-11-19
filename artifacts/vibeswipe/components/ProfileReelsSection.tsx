@@ -4,7 +4,7 @@ import { Feather } from "@expo/vector-icons";
 import { VideoView, useVideoPlayer } from "expo-video";
 import { router } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, FlatList, Image, Pressable, StyleSheet, Text, View } from "react-native";
 import {
   getGetProfileReelsQueryKey,
   getProfileReels,
@@ -151,11 +151,13 @@ function ReelThumbnail({
 }) {
   const viewCount = Number(reel.viewCount ?? 0);
   const viewLabel = `${formatViewCount(viewCount)} ${viewCount === 1 ? "view" : "views"}`;
-  const uri = mediaUri(reel.videoReference);
+  const slideshow = reel.mediaType === "slides" && reel.slideReferences.length > 1;
+  const uri = mediaUri(slideshow ? reel.slideReferences[0] : reel.videoReference);
   const source = useMemo(
-    () => uri && token ? { uri, headers: { Authorization: `Bearer ${token}` } } : null,
-    [token, uri],
+    () => uri && token && !slideshow ? { uri, headers: { Authorization: `Bearer ${token}` } } : null,
+    [token, uri, slideshow],
   );
+  const imageSource = slideshow && uri && token ? { uri, headers: { Authorization: `Bearer ${token}` } } : null;
   const player = useVideoPlayer(source, (instance) => {
     instance.muted = true;
     instance.loop = false;
@@ -170,7 +172,9 @@ function ReelThumbnail({
       style={({ pressed }) => [styles.thumbnail, { width: layout === "grid" ? tileWidth : 74, aspectRatio: layout === "grid" ? 3 / 4 : 9 / 16, opacity: pressed ? 0.82 : 1 }]}
     >
       <View style={styles.videoFrame}>
-        {source ? (
+        {imageSource ? (
+          <Image source={imageSource} style={StyleSheet.absoluteFill} resizeMode="cover" />
+        ) : source ? (
           <VideoView player={player} style={StyleSheet.absoluteFill} contentFit="cover" nativeControls={false} pointerEvents="none" />
         ) : (
           <View style={styles.videoFallback}><Feather name="film" size={21} color="#ffffff80" /></View>

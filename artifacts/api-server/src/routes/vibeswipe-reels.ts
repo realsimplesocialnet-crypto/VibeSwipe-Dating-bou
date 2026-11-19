@@ -7,9 +7,9 @@ import {
   RecordReelShareResponse, RecordReelViewResponse, TranscodeReelVideoParams, TranscodeReelVideoResponse,
 } from "@workspace/api-zod";
 import {
-  blocksTable, db, mediaAssetsTable, profilesTable, reelCommentsTable, reelLikesTable, reelSavesTable, reelSharesTable, reelViewsTable, reelsTable, storiesTable, vibeSwipeFollowsTable, vibeSwipeNotificationsTable,
+  blocksTable, db, mediaAssetsTable, profilesTable, reelCommentsTable, reelLikesTable, reelSavesTable, reelSharesTable, reelSlidesTable, reelViewsTable, reelsTable, storiesTable, vibeSwipeFollowsTable, vibeSwipeNotificationsTable,
 } from "@workspace/db";
-import { and, asc, desc, eq, gte, isNull, lt, ne, or, sql, type SQL } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, isNull, lt, ne, or, sql, type SQL } from "drizzle-orm";
 import { Router, type IRouter, type Request } from "express";
 import { requireAuth } from "../middlewares/auth";
 import { cleanReelCaption, decodeReelCursor, encodeReelCursor, reelAssetProblem, reelLocation } from "../lib/reel-cursor";
@@ -19,7 +19,7 @@ import { visibleReelCondition } from "../lib/reels-visibility";
 import { removeUnreferencedProfileMedia } from "../lib/profileMediaCleanup";
 import { ObjectNotFoundError, ObjectStorageService } from "../lib/objectStorage";
 import { ProfileVideoValidationError, transcodeReelVideo } from "../lib/profileVideoTranscoder";
-import { processSafeReel, reelIsApproved } from "../lib/reel-safety";
+import { processSafeReel, processSafeReelImage, reelIsApproved } from "../lib/reel-safety";
 import { ReelSafetyError } from "../lib/reel-safety-policy";
 import { sendReelCommentReplyPush, sendReelLikePush } from "../lib/vibeswipePush";
 
@@ -66,8 +66,12 @@ function uid(req: Request): string {
 
 function reelColumns(viewerId: string) {
   return {
-    id: reelsTable.id, userId: reelsTable.userId, mediaId: reelsTable.mediaId, caption: reelsTable.caption,
+    id: reelsTable.id, userId: reelsTable.userId, mediaId: reelsTable.mediaId, mediaType: reelsTable.mediaType, caption: reelsTable.caption,
     durationSeconds: reelsTable.durationSeconds, createdAt: reelsTable.createdAt,
+    slideMediaIds: sql<string[]>`COALESCE((
+      SELECT array_agg(${reelSlidesTable.mediaId}::text ORDER BY ${reelSlidesTable.position})
+      FROM ${reelSlidesTable} WHERE ${reelSlidesTable.reelId} = ${reelsTable.id}
+    ), ARRAY[]::text[])`,
     viewCount: sql<number>`(SELECT count(*)::int FROM ${reelViewsTable} WHERE ${reelViewsTable.reelId} = ${reelsTable.id})`,
     shareCount: sql<number>`${reelsTable.shareCount} + (SELECT count(*)::int FROM ${reelSharesTable} WHERE ${reelSharesTable.reelId} = ${reelsTable.id})`,
     name: profilesTable.name, age: profilesTable.age, showAge: profilesTable.showAge, city: profilesTable.city,
@@ -99,7 +103,8 @@ function project(row: ReelRow, viewerId: string) {
     id: row.id, creatorId: row.userId, creatorName: row.name, creatorAge: row.showAge ? row.age : null,
     creatorLocation: reelLocation([row.city, row.state, row.country]), creatorVerified: row.isVerified,
     creatorPhoto: row.photos[0] ?? null, creatorFollowedByMe: Boolean(row.creatorFollowedByMe),
-    videoReference: `media:${row.mediaId}`, caption: row.caption,
+    videoReference: `media:${row.mediaId}`, mediaType: row.mediaType as "video" | "slides",
+    slideReferences: row.slideMediaIds.map((id) => `media:${id}`), caption: row.caption,
     durationSeconds: row.durationSeconds, likeCount: Number(row.likeCount), commentCount: Number(row.commentCount),
     viewCount: Number(row.viewCount), shareCount: Number(row.shareCount), saveCount: Number(row.saveCount),
     likedByMe: Boolean(row.likedByMe), savedByMe: Boolean(row.savedByMe), isOwner: row.userId === viewerId, createdAt: row.createdAt,
@@ -264,8 +269,64 @@ router.get("/vibeswipe/reels/saved", async (req, res): Promise<void> => {
 
 router.post("/vibeswipe/reels", async (req, res): Promise<void> => {
   const body = CreateReelBody.safeParse(req.body);
-  if (!body.success) { res.status(400).json({ error: "Choose a processed video and a caption under 300 characters." }); return; }
+  if (!body.success) { res.status(400).json({ error: "Choose an approved video or 2–10 photos, with a caption under 300 characters." }); return; }
   const userId = uid(req);
+  if (body.data.slideMediaIds) {
+    const mediaIds = body.data.slideMediaIds;
+    if (mediaIds.length < 2 || mediaIds.length > 10 || new Set(mediaIds).size !== mediaIds.length) {
+      res.status(400).json({ error: "Choose between 2 and 10 different photos." }); return;
+    }
+    const assets = await db.select().from(mediaAssetsTable).where(inArray(mediaAssetsTable.id, mediaIds));
+    const assetsById = new Map(assets.map((asset) => [asset.id, asset]));
+    const orderedAssets = mediaIds.map((id) => assetsById.get(id));
+    if (orderedAssets.some((asset) => !asset)) { res.status(404).json({ error: "One or more photo uploads could not be found." }); return; }
+    const slides = orderedAssets as NonNullable<typeof orderedAssets[number]>[];
+    if (slides.some((asset) => asset.ownerId !== userId || asset.matchId)) {
+      res.status(403).json({ error: "Every photo must be uploaded by your account." }); return;
+    }
+    if (slides.some((asset) => asset.mediaType !== "image")) {
+      res.status(400).json({ error: "Photo slides can only contain images." }); return;
+    }
+    const [alreadyPosted] = await db.select({ mediaId: reelSlidesTable.mediaId }).from(reelSlidesTable)
+      .where(inArray(reelSlidesTable.mediaId, mediaIds)).limit(1);
+    const [alreadyVideo] = await db.select({ mediaId: reelsTable.mediaId }).from(reelsTable)
+      .where(inArray(reelsTable.mediaId, mediaIds)).limit(1);
+    if (alreadyPosted || alreadyVideo) { res.status(409).json({ error: "One of these photos has already been posted. Choose a fresh copy." }); return; }
+    const [usedByStory] = await db.select({ id: storiesTable.id }).from(storiesTable)
+      .where(inArray(storiesTable.mediaUrl, mediaIds.map((id) => `media:${id}`))).limit(1);
+    if (usedByStory) { res.status(409).json({ error: "Choose photos that are not already used by a Story." }); return; }
+
+    try {
+      for (const asset of slides) await processSafeReelImage(asset);
+    } catch (error) {
+      if (error instanceof ReelSafetyError) { res.status(error.status).json({ error: error.message }); return; }
+      if (error instanceof ObjectNotFoundError) { res.status(404).json({ error: "One or more photo uploads could not be found." }); return; }
+      req.log.error({ err: error, mediaIds }, "Could not check Reel slideshow photos");
+      res.status(500).json({ error: "The photos could not be checked. Please try again." });
+      return;
+    }
+    const created = await db.transaction(async (tx) => {
+      const [reel] = await tx.insert(reelsTable).values({
+        userId, mediaId: mediaIds[0], mediaType: "slides", caption: cleanReelCaption(body.data.caption),
+        durationSeconds: null, createdAt: new Date(),
+      }).onConflictDoNothing({ target: reelsTable.mediaId }).returning({ id: reelsTable.id });
+      if (!reel) return null;
+      const insertedSlides = await tx.insert(reelSlidesTable)
+        .values(mediaIds.map((mediaId, position) => ({ reelId: reel.id, mediaId, position })))
+        .onConflictDoNothing()
+        .returning({ mediaId: reelSlidesTable.mediaId });
+      if (insertedSlides.length !== mediaIds.length) {
+        await tx.delete(reelsTable).where(eq(reelsTable.id, reel.id));
+        return null;
+      }
+      return reel;
+    });
+    if (!created) { res.status(409).json({ error: "One of these photos has already been posted." }); return; }
+    const row = await findVisibleReel(userId, created.id);
+    res.status(201).json(CreateReelResponse.parse(project(row!, userId)));
+    return;
+  }
+  if (!body.data.mediaId) { res.status(400).json({ error: "Choose a processed video or photo slideshow." }); return; }
   const [asset] = await db.select().from(mediaAssetsTable).where(eq(mediaAssetsTable.id, body.data.mediaId)).limit(1);
   const problem = reelAssetProblem(asset, userId);
   if (problem) { res.status(asset && asset.ownerId === userId && !asset.matchId ? 400 : 403).json({ error: problem }); return; }
@@ -328,12 +389,16 @@ router.delete("/vibeswipe/reels/:reelId", async (req, res): Promise<void> => {
   const params = DeleteReelParams.safeParse(req.params);
   if (!params.success) { res.status(400).json({ error: "Invalid Reel." }); return; }
   const userId = uid(req);
+  const slideRows = await db.select({ mediaId: reelSlidesTable.mediaId }).from(reelSlidesTable)
+    .where(eq(reelSlidesTable.reelId, params.data.reelId));
   const [deleted] = await db.delete(reelsTable)
     .where(and(eq(reelsTable.id, params.data.reelId), eq(reelsTable.userId, userId)))
     .returning({ mediaId: reelsTable.mediaId });
   if (!deleted) { res.status(404).json({ error: "Reel not found." }); return; }
-  try { await removeUnreferencedProfileMedia(deleted.mediaId, userId); }
-  catch (error) { req.log.error({ err: error, mediaId: deleted.mediaId }, "Could not remove deleted Reel video"); }
+  for (const mediaId of new Set([deleted.mediaId, ...slideRows.map((row) => row.mediaId)])) {
+    try { await removeUnreferencedProfileMedia(mediaId, userId); }
+    catch (error) { req.log.error({ err: error, mediaId }, "Could not remove deleted Reel media"); }
+  }
   res.status(204).end();
 });
 

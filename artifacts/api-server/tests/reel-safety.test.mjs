@@ -2,11 +2,24 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { reelSafetyExtractionTimeoutMs, reelSafetySamplingPlan } from "../src/lib/reel-safety-sampling.ts";
-import { explicitScore, rejectExplicitFrame, ReelSafetyError } from "../src/lib/reel-safety-policy.ts";
+import { explicitScore, rejectExplicitFrame, rejectExplicitImage, ReelSafetyError } from "../src/lib/reel-safety-policy.ts";
 const read = name => readFileSync(new URL(`../src/${name}`, import.meta.url), "utf8");
 test("unsafe classifications are rejected, ordinary frames pass", () => {
   assert.equal(rejectExplicitFrame([{ label: "normal", score: .95 }, { label: "nsfw", score: .05 }]), .05);
   assert.throws(() => rejectExplicitFrame([{ label: "normal", score: .2 }, { label: "nsfw", score: .8 }]), e => e instanceof ReelSafetyError && e.status === 422);
+  assert.equal(rejectExplicitImage([{ label: "normal", score: .95 }, { label: "nsfw", score: .05 }]), .05);
+  assert.throws(() => rejectExplicitImage([{ label: "normal", score: .2 }, { label: "nsfw", score: .8 }]), e => e instanceof ReelSafetyError && e.status === 422);
+});
+test("photo slides are normalized, safety-checked, and sealed before publication", () => {
+  const service = read("lib/reel-safety.ts");
+  const route = read("routes/vibeswipe-reels.ts");
+  assert.match(service, /export async function processSafeReelImage/);
+  assert.match(service, /await checkReelImage\(normalizedPath\)/);
+  assert.match(service, /checked-reel-slides\/\$\{randomUUID\(\)\}/);
+  assert.match(service, /status='approved',checked_path=\$1,result=\$2/);
+  assert.match(route, /for \(const asset of slides\) await processSafeReelImage\(asset\)/);
+  assert.match(route, /slideMediaIds/);
+  assert.match(route, /\.onConflictDoNothing\(\)[\s\S]*?insertedSlides\.length !== mediaIds\.length/);
 });
 test("missing, invalid or incomplete AI results fail closed", () => {
   for (const result of [[], [{ label: "normal", score: 1 }], [{ label: "normal", score: NaN }, { label: "nsfw", score: .1 }], [{ label: "normal", score: .2 }, { label: "nsfw", score: .1 }]]) {

@@ -6,8 +6,13 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface ReelInput {
-  mediaId: string;
+export type ReelInput = (unknown & {
+  mediaId?: string;
+  /**
+     * @minItems 2
+     * @maxItems 10
+     */
+  slideMediaIds?: string[];
   /** @maxLength 300 */
   caption?: string;
-}
+});

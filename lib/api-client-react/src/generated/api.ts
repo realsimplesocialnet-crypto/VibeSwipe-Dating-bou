@@ -8820,7 +8820,7 @@ export const getCreateReelUrl = () => {
 }
 
 /**
- * @summary Publish a processed private video only after automatic safety approval
+ * @summary Publish an approved video or an ordered photo slideshow as a Reel
  */
 export const createReel = async (reelInput: ReelInput, options?: Parameters<typeof customFetch>[1]): Promise<Reel> => {
 
@@ -8886,7 +8886,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type CreateReelMutationVariables = {data: BodyType<ReelInput>}
 
     /**
- * @summary Publish a processed private video only after automatic safety approval
+ * @summary Publish an approved video or an ordered photo slideshow as a Reel
  */
 export const useCreateReel = <TError = ErrorType<void>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createReel>>, TError,CreateReelMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}

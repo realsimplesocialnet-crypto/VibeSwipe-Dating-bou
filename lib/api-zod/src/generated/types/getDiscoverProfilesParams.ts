@@ -30,7 +30,8 @@ state?: string;
  */
 includePassed?: GetDiscoverProfilesIncludePassed;
 /**
- * @minLength 2
+ * Search member names as the user types; a single character is enough to start.
+ * @minLength 1
  * @maxLength 100
  */
 q?: string;

@@ -1319,6 +1319,14 @@ export interface StoryVideoTranscodeResult {
   height: number;
 }
 
+export type ReelMediaType = typeof ReelMediaType[keyof typeof ReelMediaType];
+
+
+export const ReelMediaType = {
+  video: 'video',
+  slides: 'slides',
+} as const;
+
 export interface Reel {
   id: string;
   creatorId: string;
@@ -1331,6 +1339,8 @@ export interface Reel {
   creatorPhoto: string | null;
   creatorFollowedByMe: boolean;
   videoReference: string;
+  mediaType: ReelMediaType;
+  slideReferences: string[];
   caption: string;
   /** @nullable */
   durationSeconds: number | null;
@@ -1364,11 +1374,16 @@ export interface ReelPage {
   nextCursor: string | null;
 }
 
-export interface ReelInput {
-  mediaId: string;
+export type ReelInput = (unknown & {
+  mediaId?: string;
+  /**
+     * @minItems 2
+     * @maxItems 10
+     */
+  slideMediaIds?: string[];
   /** @maxLength 300 */
   caption?: string;
-}
+});
 
 export interface ReelEngagement {
   likedByMe: boolean;
@@ -1531,7 +1546,8 @@ state?: string;
  */
 includePassed?: GetDiscoverProfilesIncludePassed;
 /**
- * @minLength 2
+ * Search member names as the user types; a single character is enough to start.
+ * @minLength 1
  * @maxLength 100
  */
 q?: string;

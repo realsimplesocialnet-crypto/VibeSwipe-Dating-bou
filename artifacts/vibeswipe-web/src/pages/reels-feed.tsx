@@ -510,7 +510,9 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
                     <ul className="reels-search-list">
                       {searchResults.map((reel) => <li key={reel.id}>
                         <button type="button" onClick={() => openSearchResult(reel)} className="reels-search-result" data-testid={`button-open-search-reel-${reel.id}`}>
-                          <video src={`${reelMediaUrl(reel.videoReference)}#t=0.1`} preload="metadata" muted playsInline aria-hidden="true" />
+                          {reel.mediaType === "slides"
+                            ? <img src={reelMediaUrl(reel.slideReferences[0])} alt="" aria-hidden="true" />
+                            : <video src={`${reelMediaUrl(reel.videoReference)}#t=0.1`} preload="metadata" muted playsInline aria-hidden="true" />}
                           <span className="reels-search-copy">
                             <span className="reels-search-creator">{reel.creatorName}</span>
                             <span className="reels-search-caption">{reel.caption || "Reel"}</span>

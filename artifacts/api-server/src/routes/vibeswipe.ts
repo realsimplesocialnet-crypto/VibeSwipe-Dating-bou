@@ -1172,8 +1172,8 @@ router.get("/vibeswipe/discover", async (req, res): Promise<void> => {
     return;
   }
   const searchTerm = params.data.q?.trim().replace(/\s+/g, " ");
-  if (params.data.q !== undefined && (!searchTerm || searchTerm.length < 2)) {
-    res.status(400).json({ error: "Enter at least two characters to search." });
+  if (params.data.q !== undefined && !searchTerm) {
+    res.status(400).json({ error: "Enter at least one character to search." });
     return;
   }
   const userId = currentUserId(req);

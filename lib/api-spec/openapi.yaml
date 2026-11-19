@@ -386,7 +386,8 @@ paths:
           schema: { type: string, enum: ["true", "false"] }
         - in: query
           name: q
-          schema: { type: string, minLength: 2, maxLength: 100 }
+          description: Search member names as the user types; a single character is enough to start.
+          schema: { type: string, minLength: 1, maxLength: 100 }
       responses:
         "200":
           description: Profiles for discovery
@@ -1680,7 +1681,7 @@ paths:
     post:
       operationId: createReel
       tags: [vibeswipe]
-      summary: Publish a processed private video only after automatic safety approval
+      summary: Publish an approved video or an ordered photo slideshow as a Reel
       requestBody:
         required: true
         content:
@@ -2771,6 +2772,10 @@ components:
         creatorPhoto: { type: ["string", "null"] }
         creatorFollowedByMe: { type: boolean }
         videoReference: { type: string }
+        mediaType: { type: string, enum: [video, slides] }
+        slideReferences:
+          type: array
+          items: { type: string }
         caption: { type: string }
         durationSeconds: { type: ["number", "null"] }
         likeCount: { type: integer }
@@ -2782,7 +2787,7 @@ components:
         savedByMe: { type: boolean }
         isOwner: { type: boolean }
         createdAt: { type: string, format: date-time }
-      required: [id, creatorId, creatorName, creatorAge, creatorLocation, creatorVerified, creatorPhoto, creatorFollowedByMe, videoReference, caption, durationSeconds, likeCount, commentCount, viewCount, shareCount, saveCount, likedByMe, savedByMe, isOwner, createdAt]
+      required: [id, creatorId, creatorName, creatorAge, creatorLocation, creatorVerified, creatorPhoto, creatorFollowedByMe, videoReference, mediaType, slideReferences, caption, durationSeconds, likeCount, commentCount, viewCount, shareCount, saveCount, likedByMe, savedByMe, isOwner, createdAt]
     ReelViewCount:
       type: object
       properties:
@@ -2805,8 +2810,15 @@ components:
       type: object
       properties:
         mediaId: { type: string, format: uuid }
+        slideMediaIds:
+          type: array
+          minItems: 2
+          maxItems: 10
+          items: { type: string, format: uuid }
         caption: { type: string, maxLength: 300 }
-      required: [mediaId]
+      oneOf:
+        - required: [mediaId]
+        - required: [slideMediaIds]
     ReelEngagement:
       type: object
       properties:

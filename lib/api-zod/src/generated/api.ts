@@ -623,7 +623,6 @@ export const getDiscoverProfilesQueryAgeMinMax = 120;
 export const getDiscoverProfilesQueryAgeMaxMin = 18;
 export const getDiscoverProfilesQueryAgeMaxMax = 120;
 
-export const getDiscoverProfilesQueryQMin = 2;
 export const getDiscoverProfilesQueryQMax = 100;
 
 
@@ -636,7 +635,7 @@ export const GetDiscoverProfilesQueryParams = zod.object({
   "country": zod.coerce.string().optional(),
   "state": zod.coerce.string().optional().describe('Exact state or region within the selected country.'),
   "includePassed": zod.enum(['true', 'false']).optional().describe('Include previously passed profiles in an explicit location search; likes, blocks, and privacy rules still apply.'),
-  "q": zod.coerce.string().min(getDiscoverProfilesQueryQMin).max(getDiscoverProfilesQueryQMax).optional()
+  "q": zod.coerce.string().min(1).max(getDiscoverProfilesQueryQMax).optional().describe('Search member names as the user types; a single character is enough to start.')
 })
 
 export const getDiscoverProfilesResponsePreferencesAgeMinMin = 18;
@@ -2078,6 +2077,8 @@ export const GetProfileReelsResponse = zod.object({
   "creatorPhoto": zod.string().nullable(),
   "creatorFollowedByMe": zod.boolean(),
   "videoReference": zod.string(),
+  "mediaType": zod.enum(['video', 'slides']),
+  "slideReferences": zod.array(zod.string()),
   "caption": zod.string(),
   "durationSeconds": zod.number().nullable(),
   "likeCount": zod.int(),
@@ -2502,6 +2503,8 @@ export const GetReelsFeedResponse = zod.object({
   "creatorPhoto": zod.string().nullable(),
   "creatorFollowedByMe": zod.boolean(),
   "videoReference": zod.string(),
+  "mediaType": zod.enum(['video', 'slides']),
+  "slideReferences": zod.array(zod.string()),
   "caption": zod.string(),
   "durationSeconds": zod.number().nullable(),
   "likeCount": zod.int(),
@@ -2519,16 +2522,38 @@ export const GetReelsFeedResponse = zod.object({
 
 
 /**
- * @summary Publish a processed private video only after automatic safety approval
+ * @summary Publish an approved video or an ordered photo slideshow as a Reel
  */
-export const createReelBodyCaptionMax = 300;
+export const createReelBodyOneSlideMediaIdsMin = 2;
+export const createReelBodyOneSlideMediaIdsMax = 10;
+
+export const createReelBodyOneCaptionMax = 300;
+
+export const createReelBodyTwoSlideMediaIdsMin = 2;
+export const createReelBodyTwoSlideMediaIdsMax = 10;
+
+export const createReelBodyTwoCaptionMax = 300;
+
+export const createReelBodyThreeSlideMediaIdsMin = 2;
+export const createReelBodyThreeSlideMediaIdsMax = 10;
+
+export const createReelBodyThreeCaptionMax = 300;
 
 
 
-export const CreateReelBody = zod.object({
+export const CreateReelBody = zod.union([zod.object({
   "mediaId": zod.uuid(),
-  "caption": zod.string().max(createReelBodyCaptionMax).optional()
-})
+  "slideMediaIds": zod.array(zod.uuid()).min(createReelBodyOneSlideMediaIdsMin).max(createReelBodyOneSlideMediaIdsMax).optional(),
+  "caption": zod.string().max(createReelBodyOneCaptionMax).optional()
+}),zod.object({
+  "mediaId": zod.uuid().optional(),
+  "slideMediaIds": zod.array(zod.uuid()).min(createReelBodyTwoSlideMediaIdsMin).max(createReelBodyTwoSlideMediaIdsMax),
+  "caption": zod.string().max(createReelBodyTwoCaptionMax).optional()
+})]).and(zod.object({
+  "mediaId": zod.uuid().optional(),
+  "slideMediaIds": zod.array(zod.uuid()).min(createReelBodyThreeSlideMediaIdsMin).max(createReelBodyThreeSlideMediaIdsMax).optional(),
+  "caption": zod.string().max(createReelBodyThreeCaptionMax).optional()
+}))
 
 export const createReelResponseViewCountMin = 0;
 
@@ -2548,6 +2573,8 @@ export const CreateReelResponse = zod.object({
   "creatorPhoto": zod.string().nullable(),
   "creatorFollowedByMe": zod.boolean(),
   "videoReference": zod.string(),
+  "mediaType": zod.enum(['video', 'slides']),
+  "slideReferences": zod.array(zod.string()),
   "caption": zod.string(),
   "durationSeconds": zod.number().nullable(),
   "likeCount": zod.int(),
@@ -2618,6 +2645,8 @@ export const GetSavedReelsResponse = zod.object({
   "creatorPhoto": zod.string().nullable(),
   "creatorFollowedByMe": zod.boolean(),
   "videoReference": zod.string(),
+  "mediaType": zod.enum(['video', 'slides']),
+  "slideReferences": zod.array(zod.string()),
   "caption": zod.string(),
   "durationSeconds": zod.number().nullable(),
   "likeCount": zod.int(),
@@ -2664,6 +2693,8 @@ export const GetMyReelsResponse = zod.object({
   "creatorPhoto": zod.string().nullable(),
   "creatorFollowedByMe": zod.boolean(),
   "videoReference": zod.string(),
+  "mediaType": zod.enum(['video', 'slides']),
+  "slideReferences": zod.array(zod.string()),
   "caption": zod.string(),
   "durationSeconds": zod.number().nullable(),
   "likeCount": zod.int(),
@@ -2705,6 +2736,8 @@ export const GetReelResponse = zod.object({
   "creatorPhoto": zod.string().nullable(),
   "creatorFollowedByMe": zod.boolean(),
   "videoReference": zod.string(),
+  "mediaType": zod.enum(['video', 'slides']),
+  "slideReferences": zod.array(zod.string()),
   "caption": zod.string(),
   "durationSeconds": zod.number().nullable(),
   "likeCount": zod.int(),

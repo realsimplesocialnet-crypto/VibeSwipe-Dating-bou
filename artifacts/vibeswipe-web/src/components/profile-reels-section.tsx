@@ -103,14 +103,16 @@ function ProfileReelThumbnail({ reel, returnTo, layout }: { reel: Reel; returnTo
       data-testid={`link-profile-reel-${reel.id}`}
       className={`group relative overflow-hidden rounded-xl border border-white/10 bg-black/40 shadow-md ${layout === "grid" ? "aspect-[3/4] w-full min-w-0" : "aspect-[9/16] w-[76px] shrink-0 sm:w-[86px]"}`}
     >
-      <video
-        src={`${reelMediaUrl(reel.videoReference)}#t=0.1`}
-        preload="metadata"
-        muted
-        playsInline
-        className="h-full w-full object-cover"
-        aria-hidden="true"
-      />
+      {reel.mediaType === "slides"
+        ? <img src={reelMediaUrl(reel.slideReferences[0])} alt="" aria-hidden="true" className="h-full w-full object-cover" />
+        : <video
+          src={`${reelMediaUrl(reel.videoReference)}#t=0.1`}
+          preload="metadata"
+          muted
+          playsInline
+          className="h-full w-full object-cover"
+          aria-hidden="true"
+        />}
       <span className="absolute inset-0 flex items-center justify-center bg-black/10 transition-colors group-hover:bg-black/25">
         <span className="flex h-8 w-8 items-center justify-center rounded-full bg-black/45 text-white">
           <Play size={15} fill="currentColor" />

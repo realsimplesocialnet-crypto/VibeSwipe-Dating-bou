@@ -125,6 +125,7 @@ export * from './reelComment';
 export * from './reelCommentInput';
 export * from './reelEngagement';
 export * from './reelInput';
+export * from './reelMediaType';
 export * from './reelPage';
 export * from './reelShareCount';
 export * from './reelVideoTranscodeResult';

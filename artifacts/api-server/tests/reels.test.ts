@@ -156,6 +156,19 @@ test("comments remain repeatable per account and Reel counts include the full co
   assert.match(reels, /tx\.insert\(reelCommentsTable\)\.values/);
 });
 
+test("photo-slide Reels preserve ordered media and protect every image", () => {
+  assert.match(reelTable, /mediaType: text\("media_type"\)\.notNull\(\)\.default\("video"\)/);
+  assert.match(reelTable, /export const reelSlidesTable = pgTable\("vibeswipe_reel_slides"/);
+  assert.match(reelTable, /primaryKey\(\{ name: "vibeswipe_reel_slides_pk", columns: \[t\.reelId, t\.position\] \}\)/);
+  assert.match(apiSpec, /mediaType: \{ type: string, enum: \[video, slides\] \}/);
+  assert.match(apiSpec, /slideMediaIds:[\s\S]*?minItems: 2[\s\S]*?maxItems: 10/);
+  assert.match(reels, /mediaIds\.map\(\(mediaId, position\) => \(\{ reelId: reel\.id, mediaId, position \}\)\)/);
+  assert.match(reels, /asset\.ownerId !== userId/);
+  assert.match(reels, /asset\.mediaType !== "image"/);
+  assert.match(read("../src/lib/reels-visibility.ts"), /NOT EXISTS[\s\S]*FROM \$\{reelSlidesTable\} rs/);
+  assert.match(read("../src/lib/reels-visibility.ts"), /reelSlidesTable\.mediaId\}=\$\{mediaId/);
+});
+
 test("the share sheet counts only completed shares and displays the updated total", () => {
   assert.match(shareSheet, /useRecordReelShare/);
   assert.match(shareSheet, /navigator\.share\(/);
