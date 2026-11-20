@@ -143,7 +143,7 @@ test("Reels viewer keeps autoplay muted, inline and paused offscreen or hidden",
   assert.doesNotMatch(slide, /button-reel-autoplay-blocked|reel-blocked-play/);
   assert.doesNotMatch(slide, /Your browser paused autoplay/);
   const feed = read("../src/pages/reels-feed.tsx");
-  assert.match(feed, /onAutoplayMuted=\{onAutoplayMuted\}/);
+  assert.match(feed, /stableReelActions = useMemo\(\(\) => \(\{[\s\S]*?onAutoplayMuted,[\s\S]*?onToggleSound,/);
   assert.match(feed, /visibilitychange/);
   assert.match(feed, /useState\(document\.visibilityState === "hidden"\)/);
   assert.match(feed, /getNextPageParam/);
@@ -236,7 +236,7 @@ test("Reels comments open below a still-interactive video", () => {
   assert.ok(!/'\/reels'/.test(app.split("const showMainNavigation")[1].split("\n")[0]));
   const feed = read("../src/pages/reels-feed.tsx");
   assert.ok(feed.indexOf("<ReelComments") > feed.indexOf('className="reels-stage"'));
-  assert.match(feed, /active=\{index === active && activeVisibleReelId === reel\.id && !searchOpen\}/);
+  assert.match(feed, /const isActive = index === active && activeVisibleReelId === reel\.id && !searchOpen/);
   assert.doesNotMatch(feed, /active=\{index === active && !searchOpen && !commentsFor\}/);
   assert.match(read("../src/components/reels/reel-slide.tsx"), /className=\{`reel-tap \$\{slideshow \? "is-slideshow" : ""\}`\}[^>]*onClick=\{\(\) =>/);
   const css = read("../src/components/reels/reels.css");

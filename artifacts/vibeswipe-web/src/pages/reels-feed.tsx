@@ -513,6 +513,21 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
     setDebouncedSearchText(nextQuery);
     setSearchOpen(true);
   }, []);
+  const stableReelActions = useMemo(() => ({
+    onAutoplayMuted,
+    onToggleSound,
+    onLike: onReelLike,
+    onComment: openComments,
+    onShare: onShareReel,
+    onSave: onReelSave,
+    onSearchSuggestion: openSearch,
+    onView: onReelView,
+    onAutoCache: onReelAutoCache,
+    onNavigateFeed: go,
+  }), [
+    onAutoplayMuted, onToggleSound, onReelLike, openComments, onShareReel,
+    onReelSave, openSearch, onReelView, onReelAutoCache, go,
+  ]);
   function openSearchResult(reel: Reel) {
     const query = searchText.trim();
     const destination = `/reels/${reel.id}?returnTo=${encodeURIComponent(`/reels?q=${encodeURIComponent(query)}`)}`;
@@ -546,15 +561,17 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
                 aria-hidden="true"
               />;
             }
-            const preloadAhead = index >= active && index <= active + REEL_PRELOAD_AHEAD;
+            const isActive = index === active && activeVisibleReelId === reel.id && !searchOpen;
+            const preloadAhead = index > active && index <= active + REEL_PRELOAD_AHEAD;
+            const shouldPreloadAuto = index >= active && index <= active + 2;
             return <ReelSlide
               key={reel.id}
               reel={reel}
               index={index}
-              active={index === active && activeVisibleReelId === reel.id && !searchOpen}
+              active={isActive}
               near={preloadAhead}
-              posterEnabled={preloadAhead}
-              preload={index >= active && index <= active + 2 ? "auto" : "metadata"}
+              posterEnabled={isActive || preloadAhead}
+              preload={shouldPreloadAuto ? "auto" : "metadata"}
               muted={muted}
               pageHidden={pageHidden}
               compact={commentsFor === reel.id}
@@ -562,17 +579,8 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
               likePending={like.isPending || unlike.isPending}
               savePending={save.isPending || unsave.isPending}
               returnTo={ownPath}
-              onAutoplayMuted={onAutoplayMuted}
-              onToggleSound={onToggleSound}
               offlineSaved={offlineIds.has(reel.id)}
-              onAutoCache={onReelAutoCache}
-              onLike={onReelLike}
-              onSave={onReelSave}
-              onSearchSuggestion={openSearch}
-              onNavigateFeed={go}
-              onView={onReelView}
-              onComment={openComments}
-              onShare={onShareReel}
+              {...stableReelActions}
             />;
           })}
         {activeFeed.isFetchingNextPage && <div className="reels-more" role="status" aria-label="Loading"><QuietSpinner size={18} /></div>}

@@ -28,9 +28,13 @@ test("web video Reels preload three protected posters and virtualize distant car
   assert.match(feed, /IntersectionObserver/);
   assert.match(feed, /threshold: 0\.6/);
   assert.match(feed, /key=\{reel\.id\}/);
-  assert.match(feed, /preload=\{index >= active && index <= active \+ 2 \? "auto" : "metadata"\}/);
-  assert.match(feed, /posterEnabled=\{preloadAhead\}/);
-  assert.match(feed, /active=\{index === active && activeVisibleReelId === reel\.id && !searchOpen\}/);
+  assert.match(feed, /const isActive = index === active && activeVisibleReelId === reel\.id && !searchOpen/);
+  assert.match(feed, /const preloadAhead = index > active && index <= active \+ REEL_PRELOAD_AHEAD/);
+  assert.match(feed, /const shouldPreloadAuto = index >= active && index <= active \+ 2/);
+  assert.match(feed, /preload=\{shouldPreloadAuto \? "auto" : "metadata"\}/);
+  assert.match(feed, /posterEnabled=\{isActive \|\| preloadAhead\}/);
+  assert.match(feed, /stableReelActions = useMemo/);
+  assert.match(feed, /\{\.\.\.stableReelActions\}/);
   assert.match(feed, /const \[muted, setMuted\] = useState\(true\)/);
   assert.match(feed, /onReelLike/);
   const timeUpdate = web.match(/onTimeUpdate=\{\(event\) => \{([\s\S]*?)\n      \}\}/)?.[1] ?? "";
