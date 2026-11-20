@@ -1,9 +1,17 @@
 /* Run before the app bundle: Chrome may offer installation before React mounts. */
 (() => {
-  const modes = ['standalone', 'fullscreen', 'minimal-ui'].map((mode) => window.matchMedia(`(display-mode: ${mode})`));
-  const inApp = () => modes.some((mode) => mode.matches) || navigator.standalone === true;
-  // Playing a website video fullscreen is not a Home Screen installation.
-  const videoFullscreen = () => Boolean(document.fullscreenElement || document.webkitFullscreenElement);
+  const isAndroidWebView = () => {
+    const userAgent = navigator.userAgent || '';
+    const hasWebViewMarker = /(?:;\s*wv\)|\bwv\b)/i.test(userAgent);
+    const hasClassicWebViewSignature = /\bandroid\b/i.test(userAgent)
+      && /\bversion\/[\d.]+/i.test(userAgent)
+      && /\bchrome\/[\d.]+/i.test(userAgent)
+      && /mobile safari\//i.test(userAgent);
+    return hasWebViewMarker || hasClassicWebViewSignature || Boolean(window.Android);
+  };
+  // Android APK wrappers are identified by their WebView/bridge, not the
+  // browser-only display-mode signal. iOS Home Screen apps expose standalone.
+  const inApp = () => isAndroidWebView() || navigator.standalone === true;
   const installedKey = 'myage:pwa-installed:v1';
   const readInstalled = () => {
     try { return window.localStorage.getItem(installedKey); } catch { return null; }
@@ -63,21 +71,17 @@
   window.addEventListener('appinstalled', () => {
     confirmInstalled();
   });
-  const updateMode = () => {
-    if (inApp() && !videoFullscreen()) confirmInstalled();
+  const updateAppContext = () => {
+    if (inApp()) confirmInstalled();
     else if (inApp()) publish({ ...snapshot, installed: true });
     else publish({ ...snapshot, installed: installationConfirmed });
   };
-  modes.forEach((mode) => {
-    if (mode.addEventListener) mode.addEventListener('change', updateMode);
-    else mode.addListener(updateMode);
-  });
-  window.addEventListener('pageshow', updateMode);
+  window.addEventListener('pageshow', updateAppContext);
   window.addEventListener('storage', (event) => {
     if (event.key !== installedKey && event.key !== null) return;
     const remembered = readInstalled();
     installationConfirmed = remembered === 'confirmed' || remembered === 'manual';
-    updateMode();
+    updateAppContext();
   });
 
   if (snapshot.checkingInstalled) {

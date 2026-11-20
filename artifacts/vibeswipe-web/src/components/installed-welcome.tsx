@@ -1,13 +1,13 @@
 import { Download, LockKeyhole, UserRoundPlus } from 'lucide-react';
 import { Link } from 'wouter';
 import { OnboardingVideoBackground } from './onboarding-video-background';
-import { isCurrentAppShell } from '@/lib/android-webview';
+import { isCurrentAndroidWebView } from '@/lib/android-webview';
 import apkDownloadUrl, { shouldShowAndroidApkDownload } from '@/lib/apk-download';
 import { usePwaInstallState } from '@/lib/pwa-install-state';
 
 export function InstalledWelcome() {
   const install = usePwaInstallState();
-  const showAndroidDownload = shouldShowAndroidApkDownload(navigator.userAgent, isCurrentAppShell(), install.installed || install.checkingInstalled);
+  const showAndroidDownload = shouldShowAndroidApkDownload(navigator.userAgent, isCurrentAndroidWebView(), install.installed || install.checkingInstalled);
   return <main data-testid="installed-app-welcome" className="onboarding-welcome">
     <OnboardingVideoBackground/>
     <header className="onboarding-welcome-brand justify-between" aria-label="MYAGEBEAUTY">

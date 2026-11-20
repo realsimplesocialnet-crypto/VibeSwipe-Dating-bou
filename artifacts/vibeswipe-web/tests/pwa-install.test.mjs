@@ -6,9 +6,7 @@ import { runInNewContext } from 'node:vm';
 const source = readFileSync(new URL('../public/pwa-install.js', import.meta.url), 'utf8');
 function setup(options = {}) {
   const window = new EventTarget();
-  const standalone = new EventTarget();
-  standalone.matches = false;
-  window.matchMedia = () => standalone;
+  if (options.androidBridge) window.Android = {};
   const storage = options.storage ?? new Map();
   const timers = [];
   Object.defineProperty(window, 'localStorage', { get() {
@@ -26,7 +24,7 @@ function setup(options = {}) {
     window, navigator: options.navigator ?? {}, document, URL,
     setTimeout: fn => { timers.push(fn); return timers.length; }, clearTimeout: () => {},
   });
-  return { window, standalone, store: window.vibeSwipeInstall, storage, timers };
+  return { window, store: window.vibeSwipeInstall, storage, timers };
 }
 
 test('keeps an early browser prompt until a component subscribes', () => {
@@ -56,22 +54,23 @@ test('an old consumed prompt cannot clear a newer prompt', () => {
   assert.equal(store.getSnapshot().prompt, second);
 });
 
-test('standalone mode is reflected in the shared install state', () => {
-  const { standalone, store } = setup();
-  standalone.matches = true;
-  standalone.dispatchEvent(new Event('change'));
+test('Android WebView is marked installed without relying on standalone display mode', () => {
+  const { store, storage } = setup({ navigator: { userAgent: 'Mozilla/5.0 (Linux; Android 14; wv)' } });
   assert.equal(store.getSnapshot().installed, true);
+  assert.equal(storage.get('myage:pwa-installed:v1'), 'confirmed');
 });
 
-test('watching a video fullscreen does not permanently mark the website as installed', () => {
-  const { standalone, store, storage } = setup({ fullscreenVideo: true });
-  standalone.matches = true;
-  standalone.dispatchEvent(new Event('change'));
-  assert.equal(store.getSnapshot().installed, true);
-  standalone.matches = false;
-  standalone.dispatchEvent(new Event('change'));
+test('Android browser standalone display mode alone is not treated as an APK install', () => {
+  const { store } = setup({ navigator: {
+    userAgent: 'Mozilla/5.0 (Linux; Android 14) Chrome/130 Mobile Safari/537.36',
+    standalone: false,
+  } });
   assert.equal(store.getSnapshot().installed, false);
-  assert.equal(setup({ storage }).store.getSnapshot().installed, false);
+});
+
+test('Android bridge marks the page as running inside its app wrapper', () => {
+  const { store } = setup({ androidBridge: true });
+  assert.equal(store.getSnapshot().installed, true);
 });
 
 test('returning website visits remain eligible without a new browser prompt', () => {
@@ -81,11 +80,10 @@ test('returning website visits remain eligible without a new browser prompt', ()
   assert.equal(store.getSnapshot().prompt, null);
 });
 
-test('install completion stays confirmed when a browser-mode event follows', () => {
-  const { window, standalone, store } = setup();
+test('install completion stays confirmed after page visibility updates', () => {
+  const { window, store } = setup();
   window.dispatchEvent(new Event('appinstalled'));
-  standalone.matches = false;
-  standalone.dispatchEvent(new Event('change'));
+  window.dispatchEvent(new Event('pageshow'));
   assert.equal(store.getSnapshot().installed, true);
 });
 
@@ -131,7 +129,7 @@ test('a real new browser install offer clears a stale marker after uninstalling'
   assert.equal(next.store.getSnapshot().prompt?.type, 'beforeinstallprompt');
 });
 
-test('disabled browser storage cannot prevent the app opening or detecting home-screen mode', () => {
+test('disabled browser storage cannot prevent detecting an iOS Home Screen launch', () => {
   const { store } = setup({ blockedStorage: true, navigator: { standalone: true } });
   assert.equal(store.getSnapshot().installed, true);
   assert.equal(setup({ blockedStorage: true }).store.getSnapshot().installed, false);
@@ -198,4 +196,5 @@ test('PWA metadata and native browser installation remain available for users wi
   const browserInstall = readFileSync(new URL('../public/pwa-install.js', import.meta.url), 'utf8');
   assert.match(browserInstall, /beforeinstallprompt/);
   assert.match(browserInstall, /event\.preventDefault\(\)/);
+  assert.doesNotMatch(browserInstall, /display-mode|matchMedia/);
 });

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { ArrowDownToLine, Share, X } from 'lucide-react';
-import { isCurrentAppShell } from '@/lib/android-webview';
+import { isCurrentAndroidWebView } from '@/lib/android-webview';
 import { isIOSDevice, isMobileBrowser } from '@/lib/app-display-mode';
 import { usePwaInstallState, shouldShowPwaInstallBanner } from '@/lib/pwa-install-state';
 
@@ -10,7 +10,7 @@ export function PwaInstallBanner() {
   const ios = isIOSDevice(navigator);
   const visible = shouldShowPwaInstallBanner({
     mobile: isMobileBrowser(navigator),
-    appShell: isCurrentAppShell(),
+    appShell: isCurrentAndroidWebView(),
     installed: install.installed,
     checkingInstalled: install.checkingInstalled,
     dismissed: install.bannerDismissed,
