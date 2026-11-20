@@ -5,6 +5,8 @@ import test from "node:test";
 const app = await readFile(new URL("../src/App.tsx", import.meta.url), "utf8");
 const quietSpinner = await readFile(new URL("../src/components/ui/quiet-spinner.tsx", import.meta.url), "utf8");
 const welcomeVideo = await readFile(new URL("../src/components/onboarding-video-background.tsx", import.meta.url), "utf8");
+const welcomeVideoCss = await readFile(new URL("../src/components/onboarding-video.css", import.meta.url), "utf8");
+const profileSignup = await readFile(new URL("../src/components/profile-first-signup.tsx", import.meta.url), "utf8");
 const router = await readFile(new URL("../src/lib/router-compat.tsx", import.meta.url), "utf8");
 const profileCache = await readFile(new URL("../src/lib/my-profile-cache.ts", import.meta.url), "utf8");
 
@@ -52,4 +54,16 @@ test("welcome animation is skipped for data-saving and two-gigabyte devices", ()
   assert.match(welcomeVideo, /deviceMemory\?: number/);
   assert.match(welcomeVideo, /device\.deviceMemory <= 2/);
   assert.match(welcomeVideo, /device\.connection\?\.saveData/);
+});
+
+test("full-screen animation remains visible through signup and profile setup", () => {
+  assert.match(welcomeVideoCss, /\.onboarding-cinema\s*\{[^}]*position:\s*fixed;[^}]*inset:\s*0;/s);
+  assert.match(welcomeVideoCss, /\.onboarding-video-form\s*\{[^}]*background:\s*transparent !important;/s);
+  assert.match(welcomeVideoCss, /\.onboarding-video-form \.onboarding-cinema\s*\{\s*z-index:\s*-1;/);
+  assert.match(welcomeVideoCss, /rgba\(15,15,18,\.42\)/);
+  assert.match(welcomeVideoCss, /rgba\(15,15,18,\.34\)/);
+  assert.doesNotMatch(welcomeVideoCss, /linear-gradient\([^;]*#0f0f12\s+100%\)/);
+  assert.match(app, /className="onboarding-video-form auth-sign-up[^"]*"><OnboardingVideoBackground form\/>/);
+  assert.match(app, /className="onboarding-video-form profile-setup-shell[^"]*"><OnboardingVideoBackground form\/>/);
+  assert.match(profileSignup, /function Frame\(\{ children \}:[\s\S]*?<OnboardingVideoBackground form\/>/);
 });
