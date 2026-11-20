@@ -9,10 +9,11 @@ import {
   GetProfileRepostedReelsQueryParams, GetProfileRepostedReelsResponse,
   MarkReelNotInterestedParams, DownloadReelParams,
   GetReelMusicResponse, RecordReelShareResponse, RecordReelViewResponse, TranscodeReelVideoParams,
-  TranscodeReelVideoResponse, type ReelMusicTrack,
+  TranscodeReelVideoResponse, SetReelCommentReactionBody, SetReelCommentReactionParams, SetReelCommentReactionResponse,
+  type ReelMusicTrack,
 } from "@workspace/api-zod";
 import {
-  blocksTable, db, mediaAssetsTable, profilesTable, reelCommentsTable, reelLikesTable, reelSavesTable, reelRepostsTable, reelSharesTable, reelSlidesTable, reelViewsTable, reelNotInterestedTable, reelsTable, storiesTable, vibeSwipeFollowsTable, vibeSwipeNotificationsTable,
+  blocksTable, db, mediaAssetsTable, profilesTable, reelCommentsTable, reelCommentReactionsTable, reelLikesTable, reelSavesTable, reelRepostsTable, reelSharesTable, reelSlidesTable, reelViewsTable, reelNotInterestedTable, reelsTable, storiesTable, vibeSwipeFollowsTable, vibeSwipeNotificationsTable,
 } from "@workspace/db";
 import { and, asc, desc, eq, gte, inArray, isNull, lt, ne, or, sql, type SQL } from "drizzle-orm";
 import { Router, type IRouter, type Request } from "express";
@@ -626,6 +627,9 @@ router.get("/vibeswipe/reels/:reelId/comments", async (req, res): Promise<void> 
     parentCommentId: reelCommentsTable.parentCommentId, content: reelCommentsTable.content,
     mediaId: reelCommentsTable.mediaId,
     createdAt: reelCommentsTable.createdAt, name: profilesTable.name, photos: profilesTable.photos,
+    likeCount: sql<number>`(SELECT count(*)::int FROM ${reelCommentReactionsTable} WHERE ${reelCommentReactionsTable.commentId} = ${reelCommentsTable.id} AND ${reelCommentReactionsTable.reaction} = 'like')`,
+    dislikeCount: sql<number>`(SELECT count(*)::int FROM ${reelCommentReactionsTable} WHERE ${reelCommentReactionsTable.commentId} = ${reelCommentsTable.id} AND ${reelCommentReactionsTable.reaction} = 'dislike')`,
+    myReaction: sql<"like" | "dislike" | null>`(SELECT ${reelCommentReactionsTable.reaction} FROM ${reelCommentReactionsTable} WHERE ${reelCommentReactionsTable.commentId} = ${reelCommentsTable.id} AND ${reelCommentReactionsTable.userId} = ${viewerId} LIMIT 1)`,
   }).from(reelCommentsTable)
     .innerJoin(profilesTable, eq(profilesTable.id, reelCommentsTable.userId))
     .where(and(
@@ -638,6 +642,7 @@ router.get("/vibeswipe/reels/:reelId/comments", async (req, res): Promise<void> 
   res.json(GetReelCommentsResponse.parse(rows.reverse().map((row) => ({
     id: row.id, reelId: row.reelId, parentCommentId: row.parentCommentId, authorId: row.authorId, authorName: row.name, authorPhoto: row.photos[0] ?? null,
     content: row.content, mediaReference: row.mediaId ? `media:${row.mediaId}` : null,
+    likeCount: row.likeCount, dislikeCount: row.dislikeCount, myReaction: row.myReaction,
     canDelete: row.authorId === viewerId || reel.userId === viewerId, createdAt: row.createdAt,
   }))));
 });
@@ -707,8 +712,50 @@ router.post("/vibeswipe/reels/:reelId/comments", async (req, res): Promise<void>
   }
   res.status(201).json(CreateReelCommentResponse.parse({
     id: comment!.id, reelId: reel.id, parentCommentId: comment!.parentCommentId, authorId: userId, authorName: me?.name ?? "You", authorPhoto: me?.photos[0] ?? null,
-    content, mediaReference: mediaId ? `media:${mediaId}` : null, canDelete: true, createdAt: comment!.createdAt,
+    content, mediaReference: mediaId ? `media:${mediaId}` : null, likeCount: 0, dislikeCount: 0, myReaction: null, canDelete: true, createdAt: comment!.createdAt,
   }));
+});
+
+router.put("/vibeswipe/reels/:reelId/comments/:commentId/reaction", async (req, res): Promise<void> => {
+  const params = SetReelCommentReactionParams.safeParse(req.params);
+  const body = SetReelCommentReactionBody.safeParse(req.body);
+  if (!params.success || !body.success) { res.status(400).json({ error: "Choose a valid comment reaction." }); return; }
+  const userId = uid(req);
+  const reel = await findVisibleReel(userId, params.data.reelId);
+  if (!reel) { res.status(404).json({ error: "This Reel is no longer available." }); return; }
+  const [comment] = await db.select({ id: reelCommentsTable.id }).from(reelCommentsTable)
+    .innerJoin(profilesTable, eq(profilesTable.id, reelCommentsTable.userId))
+    .where(and(
+      eq(reelCommentsTable.id, params.data.commentId),
+      eq(reelCommentsTable.reelId, reel.id),
+      eq(profilesTable.deactivated, false),
+      eq(profilesTable.adminSuspended, false),
+      sql`NOT EXISTS (SELECT 1 FROM ${blocksTable} WHERE (${blocksTable.blockerId} = ${userId} AND ${blocksTable.blockedId} = ${reelCommentsTable.userId}) OR (${blocksTable.blockerId} = ${reelCommentsTable.userId} AND ${blocksTable.blockedId} = ${userId}))`,
+    )).limit(1);
+  if (!comment) { res.status(404).json({ error: "Comment not found." }); return; }
+
+  if (body.data.reaction === null) {
+    await db.delete(reelCommentReactionsTable).where(and(
+      eq(reelCommentReactionsTable.commentId, comment.id),
+      eq(reelCommentReactionsTable.userId, userId),
+    ));
+  } else {
+    await db.insert(reelCommentReactionsTable).values({
+      commentId: comment.id,
+      userId,
+      reaction: body.data.reaction,
+    }).onConflictDoUpdate({
+      target: [reelCommentReactionsTable.commentId, reelCommentReactionsTable.userId],
+      set: { reaction: body.data.reaction, createdAt: new Date() },
+    });
+  }
+
+  const [summary] = await db.select({
+    likeCount: sql<number>`count(*) FILTER (WHERE ${reelCommentReactionsTable.reaction} = 'like')::int`,
+    dislikeCount: sql<number>`count(*) FILTER (WHERE ${reelCommentReactionsTable.reaction} = 'dislike')::int`,
+    myReaction: sql<"like" | "dislike" | null>`max(CASE WHEN ${reelCommentReactionsTable.userId} = ${userId} THEN ${reelCommentReactionsTable.reaction} END)`,
+  }).from(reelCommentReactionsTable).where(eq(reelCommentReactionsTable.commentId, comment.id));
+  res.json(SetReelCommentReactionResponse.parse(summary));
 });
 
 router.delete("/vibeswipe/reels/:reelId/comments/:commentId", async (req, res): Promise<void> => {

@@ -66,6 +66,13 @@ export async function ensureReelsSchema(): Promise<void> {
     await client.query("CREATE INDEX IF NOT EXISTS vibeswipe_reel_comments_reel_idx ON vibeswipe_reel_comments(reel_id, created_at)");
     await client.query("CREATE INDEX IF NOT EXISTS vibeswipe_reel_comments_parent_idx ON vibeswipe_reel_comments(parent_comment_id, created_at)");
     await client.query("CREATE INDEX IF NOT EXISTS vibeswipe_reel_comments_media_idx ON vibeswipe_reel_comments(media_id)");
+    await client.query(`CREATE TABLE IF NOT EXISTS vibeswipe_reel_comment_reactions (
+      comment_id uuid NOT NULL REFERENCES vibeswipe_reel_comments(id) ON DELETE CASCADE,
+      user_id text NOT NULL REFERENCES vibeswipe_profiles(id) ON DELETE CASCADE,
+      reaction text NOT NULL CHECK (reaction IN ('like', 'dislike')),
+      created_at timestamptz NOT NULL DEFAULT now(),
+      CONSTRAINT vibeswipe_reel_comment_reactions_pk PRIMARY KEY (comment_id, user_id))`);
+    await client.query("CREATE INDEX IF NOT EXISTS vibeswipe_reel_comment_reactions_comment_idx ON vibeswipe_reel_comment_reactions(comment_id, reaction)");
     await client.query("ALTER TABLE vibeswipe_notifications ADD COLUMN IF NOT EXISTS reel_id uuid REFERENCES vibeswipe_reels(id) ON DELETE CASCADE");
     await client.query("ALTER TABLE vibeswipe_notifications ADD COLUMN IF NOT EXISTS comment_id uuid REFERENCES vibeswipe_reel_comments(id) ON DELETE CASCADE");
     await client.query("CREATE UNIQUE INDEX IF NOT EXISTS vibeswipe_reel_like_notification_idx ON vibeswipe_notifications(recipient_id, actor_id, reel_id) WHERE type = 'reel_like'");

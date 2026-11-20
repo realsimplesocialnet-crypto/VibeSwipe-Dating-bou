@@ -2139,6 +2139,27 @@ paths:
           description: Comment deleted
         "404":
           description: Comment not found
+  /vibeswipe/reels/{reelId}/comments/{commentId}/reaction:
+    put:
+      operationId: setReelCommentReaction
+      tags: [vibeswipe]
+      summary: Set or clear the signed-in user's reaction to a Reel comment
+      parameters:
+        - { in: path, name: reelId, required: true, schema: { type: string, format: uuid } }
+        - { in: path, name: commentId, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SetReelCommentReactionInput" }
+      responses:
+        "200":
+          description: Updated reaction counts
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ReelCommentReactionSummary" }
+        "404":
+          description: Comment or Reel not found
 components:
   securitySchemes:
     bearerAuth:
@@ -3173,9 +3194,36 @@ components:
         authorPhoto: { type: ["string", "null"] }
         content: { type: string }
         mediaReference: { type: ["string", "null"] }
+        likeCount: { type: integer, minimum: 0 }
+        dislikeCount: { type: integer, minimum: 0 }
+        myReaction:
+          oneOf:
+            - $ref: "#/components/schemas/ReelCommentReaction"
+            - type: "null"
         canDelete: { type: boolean }
         createdAt: { type: string, format: date-time }
-      required: [id, reelId, parentCommentId, authorId, authorName, authorPhoto, content, mediaReference, canDelete, createdAt]
+      required: [id, reelId, parentCommentId, authorId, authorName, authorPhoto, content, mediaReference, likeCount, dislikeCount, myReaction, canDelete, createdAt]
+    ReelCommentReaction:
+      type: string
+      enum: [like, dislike]
+    SetReelCommentReactionInput:
+      type: object
+      properties:
+        reaction:
+          oneOf:
+            - $ref: "#/components/schemas/ReelCommentReaction"
+            - type: "null"
+      required: [reaction]
+    ReelCommentReactionSummary:
+      type: object
+      properties:
+        likeCount: { type: integer, minimum: 0 }
+        dislikeCount: { type: integer, minimum: 0 }
+        myReaction:
+          oneOf:
+            - $ref: "#/components/schemas/ReelCommentReaction"
+            - type: "null"
+      required: [likeCount, dislikeCount, myReaction]
     ReelCommentInput:
       type: object
       properties:

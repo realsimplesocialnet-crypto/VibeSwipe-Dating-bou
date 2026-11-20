@@ -3517,6 +3517,12 @@ export const GetReelCommentsParams = zod.object({
   "reelId": zod.uuid()
 })
 
+export const getReelCommentsResponseLikeCountMin = 0;
+
+export const getReelCommentsResponseDislikeCountMin = 0;
+
+
+
 export const GetReelCommentsResponseItem = zod.object({
   "id": zod.uuid(),
   "reelId": zod.uuid(),
@@ -3526,6 +3532,9 @@ export const GetReelCommentsResponseItem = zod.object({
   "authorPhoto": zod.string().nullable(),
   "content": zod.string(),
   "mediaReference": zod.string().nullable(),
+  "likeCount": zod.int().min(getReelCommentsResponseLikeCountMin),
+  "dislikeCount": zod.int().min(getReelCommentsResponseDislikeCountMin),
+  "myReaction": zod.union([zod.enum(['like', 'dislike']),zod.null()]),
   "canDelete": zod.boolean(),
   "createdAt": zod.coerce.date()
 })
@@ -3558,6 +3567,12 @@ export const CreateReelCommentBody = zod.union([zod.object({
   "parentCommentId": zod.uuid().optional()
 }))
 
+export const createReelCommentResponseLikeCountMin = 0;
+
+export const createReelCommentResponseDislikeCountMin = 0;
+
+
+
 export const CreateReelCommentResponse = zod.object({
   "id": zod.uuid(),
   "reelId": zod.uuid(),
@@ -3567,6 +3582,9 @@ export const CreateReelCommentResponse = zod.object({
   "authorPhoto": zod.string().nullable(),
   "content": zod.string(),
   "mediaReference": zod.string().nullable(),
+  "likeCount": zod.int().min(createReelCommentResponseLikeCountMin),
+  "dislikeCount": zod.int().min(createReelCommentResponseDislikeCountMin),
+  "myReaction": zod.union([zod.enum(['like', 'dislike']),zod.null()]),
   "canDelete": zod.boolean(),
   "createdAt": zod.coerce.date()
 })
@@ -3581,5 +3599,30 @@ export const DeleteReelCommentParams = zod.object({
 })
 
 export const DeleteReelCommentResponse = zod.void()
+
+
+/**
+ * @summary Set or clear the signed-in user's reaction to a Reel comment
+ */
+export const SetReelCommentReactionParams = zod.object({
+  "reelId": zod.uuid(),
+  "commentId": zod.uuid()
+})
+
+export const SetReelCommentReactionBody = zod.object({
+  "reaction": zod.union([zod.enum(['like', 'dislike']),zod.null()])
+})
+
+export const setReelCommentReactionResponseLikeCountMin = 0;
+
+export const setReelCommentReactionResponseDislikeCountMin = 0;
+
+
+
+export const SetReelCommentReactionResponse = zod.object({
+  "likeCount": zod.int().min(setReelCommentReactionResponseLikeCountMin),
+  "dislikeCount": zod.int().min(setReelCommentReactionResponseDislikeCountMin),
+  "myReaction": zod.union([zod.enum(['like', 'dislike']),zod.null()])
+})
 
 

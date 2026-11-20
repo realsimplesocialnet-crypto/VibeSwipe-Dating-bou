@@ -4,9 +4,10 @@ import { Link } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   getGetMediaPreviewQueryKey, getGetProfileMediaQueryKey, getGetReelCommentsQueryKey, useCreateReelComment, useDeleteReelComment,
-  useGetMediaPreview, useGetMyProfile, useGetProfileMedia, useGetReelComments, useRequestProfileMediaUpload, type ReelComment,
+  useGetMediaPreview, useGetMyProfile, useGetProfileMedia, useGetReelComments, useRequestProfileMediaUpload, useSetReelCommentReaction,
+  type ReelComment, type ReelCommentReaction,
 } from "@workspace/api-client-react";
-import { ArrowUp, AtSign, Image as ImageIcon, LoaderCircle, Smile, X } from "lucide-react";
+import { ArrowUp, AtSign, Check, ChevronDown, Heart, Image as ImageIcon, LoaderCircle, Search, SlidersHorizontal, Smile, ThumbsDown, X } from "lucide-react";
 import { ReelAvatar } from "@/components/reels/reel-avatar";
 import { userErrorMessage } from "@/lib/user-errors";
 import { QuietSpinner } from "@/components/ui/quiet-spinner";
@@ -106,9 +107,47 @@ function FullReelCommentPhoto({ mediaId, onClose }: { mediaId: string; onClose: 
 function ago(iso: string): string {
   const minutes = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
   if (minutes < 1) return "now";
-  if (minutes < 60) return `${minutes}m`;
-  if (minutes < 1440) return `${Math.round(minutes / 60)}h`;
-  return `${Math.round(minutes / 1440)}d`;
+  if (minutes < 60) return `${minutes}m ago`;
+  if (minutes < 1440) return `${Math.round(minutes / 60)}h ago`;
+  return `${Math.round(minutes / 1440)}d ago`;
+}
+
+function compactCount(value: number): string {
+  if (value < 1000) return String(value);
+  return `${(value / 1000).toFixed(value >= 10_000 ? 0 : 1).replace(/\.0$/, "")}k`;
+}
+
+function CommentReactions({ comment, pending, onReact }: {
+  comment: ReelComment;
+  pending: boolean;
+  onReact: (reaction: ReelCommentReaction) => void;
+}) {
+  return <div className="reel-comment-reactions" aria-label="Comment reactions">
+    <button
+      type="button"
+      className={`reel-comment-vote${comment.myReaction === "like" ? " is-active" : ""}`}
+      aria-label={`Like comment, ${comment.likeCount} likes`}
+      aria-pressed={comment.myReaction === "like"}
+      disabled={pending}
+      onClick={() => onReact("like")}
+      data-testid={`button-like-reel-comment-${comment.id}`}
+    >
+      <Heart size={18} fill={comment.myReaction === "like" ? "currentColor" : "none"} />
+      <span>{compactCount(comment.likeCount)}</span>
+    </button>
+    <button
+      type="button"
+      className={`reel-comment-vote${comment.myReaction === "dislike" ? " is-active" : ""}`}
+      aria-label={`Dislike comment, ${comment.dislikeCount} dislikes`}
+      aria-pressed={comment.myReaction === "dislike"}
+      disabled={pending}
+      onClick={() => onReact("dislike")}
+      data-testid={`button-dislike-reel-comment-${comment.id}`}
+    >
+      <ThumbsDown size={18} />
+      <span>{compactCount(comment.dislikeCount)}</span>
+    </button>
+  </div>;
 }
 
 function ExpandableCommentText({ commentId, content, prefix }: { commentId: string; content: string; prefix?: { label: string; href: string } }) {
@@ -127,10 +166,10 @@ function ExpandableCommentText({ commentId, content, prefix }: { commentId: stri
   }, [content, expanded]);
 
   return <>
-    <p ref={text} className={`break-words text-sm leading-5 text-white ${expanded ? "" : "reel-comment-clamp"}`} data-testid={`text-reel-comment-${commentId}`}>
+    <p ref={text} className={`reel-comment-text break-words text-sm leading-5 ${expanded ? "" : "reel-comment-clamp"}`} data-testid={`text-reel-comment-${commentId}`}>
       {prefix && <><Link href={prefix.href} className="font-semibold text-primary hover:underline">{prefix.label}</Link>{" "}</>}{content}
     </p>
-    {hasMore && <button type="button" onClick={() => setExpanded((value) => !value)} className="mt-0.5 text-xs font-semibold text-white/60 hover:text-primary" aria-expanded={expanded} data-testid={`button-more-comment-${commentId}`}>{expanded ? "Less" : "More"}</button>}
+    {hasMore && <button type="button" onClick={() => setExpanded((value) => !value)} className="mt-0.5 text-xs font-semibold text-muted-foreground hover:text-primary" aria-expanded={expanded} data-testid={`button-more-comment-${commentId}`}>{expanded ? "Less" : "More"}</button>}
   </>;
 }
 
@@ -142,7 +181,13 @@ export function ReelComments({ reelId, creatorId, returnTo, commentCount, canCom
   const create = useCreateReelComment();
   const requestPhotoUpload = useRequestProfileMediaUpload();
   const remove = useDeleteReelComment();
+  const saveReaction = useSetReelCommentReaction();
   const [draft, setDraft] = useState("");
+  const [search, setSearch] = useState("");
+  const [sortMode, setSortMode] = useState<"newest" | "top">("newest");
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [expandedReplies, setExpandedReplies] = useState<Set<string>>(() => new Set());
+  const [reactingIds, setReactingIds] = useState<Set<string>>(() => new Set());
   const [photo, setPhoto] = useState<File | null>(null);
   const [preparingPhoto, setPreparingPhoto] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
@@ -155,6 +200,7 @@ export function ReelComments({ reelId, creatorId, returnTo, commentCount, canCom
   const uploadedPhoto = useRef<{ file: File; mediaId: string } | null>(null);
   const photoPreview = useObjectUrl(photo);
   const touchStart = useRef<{ x: number; y: number } | null>(null);
+  const reactionRequests = useRef(new Set<string>());
   const [replyingTo, setReplyingTo] = useState<ReelComment | null>(null);
   const count = commentCount;
   const visibleCount = comments.data?.length ?? 0;
@@ -176,7 +222,7 @@ export function ReelComments({ reelId, creatorId, returnTo, commentCount, canCom
     const deltaY = touch.clientY - start.y;
     if (deltaY > 64 && Math.abs(deltaX) < 80 && (list.current?.scrollTop ?? 0) <= 0) onClose();
   }
-  useEffect(() => { list.current?.scrollTo({ top: list.current.scrollHeight }); }, [visibleCount]);
+  useEffect(() => { list.current?.scrollTo({ top: 0 }); }, [visibleCount]);
   useEffect(() => {
     if (!focusCommentId || !comments.data) return;
     list.current?.querySelector<HTMLElement>(`[data-comment-id="${focusCommentId}"]`)?.scrollIntoView({ block: "center" });
@@ -186,12 +232,53 @@ export function ReelComments({ reelId, creatorId, returnTo, commentCount, canCom
   for (const comment of comments.data ?? []) {
     if (comment.parentCommentId) repliesByParent.set(comment.parentCommentId, [...(repliesByParent.get(comment.parentCommentId) ?? []), comment]);
   }
+  const normalizedSearch = search.trim().toLocaleLowerCase();
+  const rootComments = (comments.data ?? []).filter((comment) => !comment.parentCommentId);
+  const filteredComments = rootComments.filter((comment) => {
+    if (!normalizedSearch) return true;
+    const replies = repliesByParent.get(comment.id) ?? [];
+    return [comment, ...replies].some((item) => `${item.authorName} ${item.content}`.toLocaleLowerCase().includes(normalizedSearch));
+  });
+  const sortedComments = [...filteredComments].sort((a, b) => sortMode === "top"
+    ? (b.likeCount - a.likeCount) || (new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    : new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   const profileHref = (authorId: string, commentId: string) => {
     const params = new URLSearchParams({ returnTo });
     params.set("commentId", commentId);
     const reelPath = `/reels/${encodeURIComponent(reelId)}?${params.toString()}`;
     return `/profile/${encodeURIComponent(authorId)}?returnTo=${encodeURIComponent(reelPath)}`;
   };
+
+  async function reactToComment(comment: ReelComment, reaction: ReelCommentReaction) {
+    if (reactionRequests.current.has(comment.id)) return;
+    const current = comments.data?.find((item) => item.id === comment.id) ?? comment;
+    const nextReaction = current.myReaction === reaction ? null : reaction;
+    const likeDelta = Number(nextReaction === "like") - Number(current.myReaction === "like");
+    const dislikeDelta = Number(nextReaction === "dislike") - Number(current.myReaction === "dislike");
+    reactionRequests.current.add(comment.id);
+    setReactingIds((ids) => new Set(ids).add(comment.id));
+    setError("");
+    client.setQueryData<ReelComment[]>(key, (old) => (old ?? []).map((item) => item.id === comment.id ? {
+      ...item,
+      likeCount: Math.max(0, item.likeCount + likeDelta),
+      dislikeCount: Math.max(0, item.dislikeCount + dislikeDelta),
+      myReaction: nextReaction,
+    } : item));
+    try {
+      const summary = await saveReaction.mutateAsync({ reelId, commentId: comment.id, data: { reaction: nextReaction } });
+      client.setQueryData<ReelComment[]>(key, (old) => (old ?? []).map((item) => item.id === comment.id ? { ...item, ...summary } : item));
+    } catch (reason) {
+      client.setQueryData<ReelComment[]>(key, (old) => old?.map((item) => item.id === comment.id ? current : item));
+      setError(userErrorMessage(reason, "Your reaction did not save. Try again."));
+    } finally {
+      reactionRequests.current.delete(comment.id);
+      setReactingIds((ids) => {
+        const next = new Set(ids);
+        next.delete(comment.id);
+        return next;
+      });
+    }
+  }
 
   async function postDraft() {
     const content = draft.trim();
@@ -288,79 +375,121 @@ export function ReelComments({ reelId, creatorId, returnTo, commentCount, canCom
   }
 
   return <section className="reel-comments" aria-label="Comments" data-testid="panel-reel-comments" onTouchStart={startCloseGesture} onTouchEnd={finishCloseGesture} onTouchCancel={() => { touchStart.current = null; }}>
-    <header className="flex items-center justify-between px-4 pb-2 pt-3">
-      <h2 className="text-sm font-bold">Comments <span className="font-medium text-white/50">{comments.data ? count : ""}</span></h2>
-      <button type="button" onClick={onClose} aria-label="Close comments" data-testid="button-close-comments" className="flex h-9 w-9 items-center justify-center rounded-full text-white/70 hover:bg-white/10"><X size={18} /></button>
+    <header className="reel-comments-header">
+      <div className="reel-comments-handle" aria-hidden="true" />
+      <div className="reel-comments-title-row">
+        <h2>{count} comments</h2>
+        <div className="reel-comments-header-actions">
+          <div className="reel-comment-filter-wrap">
+            <button type="button" onClick={() => setFilterOpen((open) => !open)} aria-label="Sort comments" aria-expanded={filterOpen} className="reel-comment-header-button" data-testid="button-filter-reel-comments"><SlidersHorizontal size={21} /></button>
+            {filterOpen && <div className="reel-comment-sort-menu" role="group" aria-label="Sort comments">
+              <button type="button" onClick={() => { setSortMode("newest"); setFilterOpen(false); }} aria-pressed={sortMode === "newest"}>Newest first {sortMode === "newest" && <Check size={16} />}</button>
+              <button type="button" onClick={() => { setSortMode("top"); setFilterOpen(false); }} aria-pressed={sortMode === "top"}>Top comments {sortMode === "top" && <Check size={16} />}</button>
+            </div>}
+          </div>
+          <button type="button" onClick={onClose} aria-label="Close comments" data-testid="button-close-comments" className="reel-comment-header-button"><ChevronDown size={22} /></button>
+        </div>
+      </div>
+      <label className="reel-comment-search">
+        <Search size={19} aria-hidden="true" />
+        <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search comments" aria-label="Search comments" data-testid="input-search-reel-comments" />
+        {search && <button type="button" onClick={() => setSearch("")} aria-label="Clear comment search"><X size={17} /></button>}
+      </label>
     </header>
-    <div ref={list} className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4">
+    <div ref={list} className="reel-comment-list">
       {comments.isLoading || (comments.isError && !comments.data) ? <div className="flex justify-center py-8"><QuietSpinner onRetry={() => void comments.refetch()} /></div>
-        : !visibleCount ? <p className="py-6 text-center text-sm text-white/55" data-testid="text-no-comments">{count ? "Comments aren’t available right now." : "No comments yet. Say something kind."}</p>
-        : <ul className="space-y-4 pb-2">{comments.data!.filter((comment) => !comment.parentCommentId).map((comment) => <li key={comment.id} data-testid={`comment-${comment.id}`}>
-          <div className="flex gap-3" data-comment-id={comment.id}>
-            <Link href={profileHref(comment.authorId, comment.id)} aria-label={`Open ${comment.authorName}'s profile`} data-testid={`link-reel-comment-profile-${comment.id}`} className="h-8 w-8 shrink-0 rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary">
-              <ReelAvatar reference={comment.authorPhoto} name={comment.authorName} size={32} />
-            </Link>
-            <div className="min-w-0 flex-1">
-              <p className="text-xs text-white/55"><Link href={profileHref(comment.authorId, comment.id)} className="font-semibold text-white/90 hover:text-primary">{comment.authorName}</Link>{comment.authorId === creatorId && <span className="ml-1.5 rounded-full bg-primary/15 px-1.5 py-0.5 text-[10px] font-bold text-primary">Creator</span>} <span>{ago(comment.createdAt)}</span></p>
-               {comment.content && <ExpandableCommentText commentId={comment.id} content={comment.content} />}
-               {comment.mediaReference && <ReelCommentPhoto reference={comment.mediaReference} />}
-              <div className="mt-1 flex gap-3 text-xs">
-                 {canComment&&<button type="button" onClick={() => { setReplyingTo(comment); setDraft(""); input.current?.focus(); }} className="font-semibold text-white/55 hover:text-primary" data-testid={`button-reply-comment-${comment.id}`}>Reply</button>}
-                {comment.canDelete && (confirming === comment.id
-                  ? <><button type="button" onClick={() => void deleteComment(comment.id)} disabled={remove.isPending} className="font-semibold text-rose-300" data-testid={`button-confirm-delete-comment-${comment.id}`}>Delete comment</button><button type="button" onClick={() => setConfirming(null)} className="text-white/60">Keep</button></>
-                  : <button type="button" onClick={() => setConfirming(comment.id)} className="text-white/45 hover:text-white/80" data-testid={`button-delete-comment-${comment.id}`}>Delete</button>)}
+        : !visibleCount ? <p className="reel-comment-empty" data-testid="text-no-comments">{count ? "Comments aren’t available right now." : "No comments yet. Say something kind."}</p>
+        : !sortedComments.length ? <p className="reel-comment-empty" data-testid="text-no-search-results">No comments match your search.</p>
+        : <ul className="reel-comment-thread-list">{sortedComments.map((comment) => {
+          const replies = repliesByParent.get(comment.id) ?? [];
+          const matchingReplies = normalizedSearch
+            ? replies.filter((reply) => `${reply.authorName} ${reply.content}`.toLocaleLowerCase().includes(normalizedSearch))
+            : replies;
+          const searchMatchedReply = normalizedSearch && matchingReplies.length > 0;
+          const showReplies = expandedReplies.has(comment.id) || Boolean(searchMatchedReply);
+          return <li key={comment.id} data-testid={`comment-${comment.id}`} className="reel-comment-thread">
+            <div className="reel-comment-row" data-comment-id={comment.id}>
+              <Link href={profileHref(comment.authorId, comment.id)} aria-label={`Open ${comment.authorName}'s profile`} data-testid={`link-reel-comment-profile-${comment.id}`} className="reel-comment-avatar-link">
+                <ReelAvatar reference={comment.authorPhoto} name={comment.authorName} size={42} />
+              </Link>
+              <div className="reel-comment-main">
+                <p className="reel-comment-meta"><Link href={profileHref(comment.authorId, comment.id)} className="reel-comment-author">{comment.authorName}</Link>{comment.authorId === creatorId && <span className="reel-comment-creator">Creator</span>} <span>{ago(comment.createdAt)}</span></p>
+                {comment.content && <ExpandableCommentText commentId={comment.id} content={comment.content} />}
+                {comment.mediaReference && <ReelCommentPhoto reference={comment.mediaReference} />}
+                <div className="reel-comment-footer">
+                  <div className="reel-comment-links">
+                    {canComment && <button type="button" onClick={() => { setReplyingTo(comment); setDraft(""); input.current?.focus(); }} className="reel-comment-link" data-testid={`button-reply-comment-${comment.id}`}>Reply</button>}
+                    {comment.canDelete && (confirming === comment.id
+                      ? <><button type="button" onClick={() => void deleteComment(comment.id)} disabled={remove.isPending} className="reel-comment-link is-danger" data-testid={`button-confirm-delete-comment-${comment.id}`}>Delete comment</button><button type="button" onClick={() => setConfirming(null)} className="reel-comment-link">Keep</button></>
+                      : <button type="button" onClick={() => setConfirming(comment.id)} className="reel-comment-link is-muted" data-testid={`button-delete-comment-${comment.id}`}>Delete</button>)}
+                  </div>
+                  <CommentReactions comment={comment} pending={reactingIds.has(comment.id)} onReact={(reaction) => void reactToComment(comment, reaction)} />
+                </div>
+                {replies.length > 0 && <button
+                  type="button"
+                  className="reel-comment-replies-toggle"
+                  aria-expanded={showReplies}
+                  onClick={() => setExpandedReplies((current) => {
+                    const next = new Set(current);
+                    if (next.has(comment.id)) next.delete(comment.id);
+                    else next.add(comment.id);
+                    return next;
+                  })}
+                  data-testid={`button-toggle-replies-${comment.id}`}
+                >{showReplies ? "Hide replies" : `View ${replies.length} ${replies.length === 1 ? "reply" : "replies"}`} <ChevronDown size={15} /></button>}
               </div>
             </div>
-          </div>
-          {(repliesByParent.get(comment.id) ?? []).length > 0 && <ul className="ml-9 mt-3 space-y-3">
-            {(repliesByParent.get(comment.id) ?? []).map((reply) => <li key={reply.id} className="flex gap-2.5" data-testid={`comment-${reply.id}`} data-comment-id={reply.id}>
-              <Link href={profileHref(reply.authorId, reply.id)} aria-label={`Open ${reply.authorName}'s profile`} data-testid={`link-reel-comment-profile-${reply.id}`} className="h-7 w-7 shrink-0 rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary">
-                <ReelAvatar reference={reply.authorPhoto} name={reply.authorName} size={28} />
+            {showReplies && matchingReplies.length > 0 && <ul className="reel-comment-replies">{matchingReplies.map((reply) => <li key={reply.id} className="reel-comment-row is-reply" data-testid={`comment-${reply.id}`} data-comment-id={reply.id}>
+              <Link href={profileHref(reply.authorId, reply.id)} aria-label={`Open ${reply.authorName}'s profile`} data-testid={`link-reel-comment-profile-${reply.id}`} className="reel-comment-avatar-link is-reply-avatar">
+                <ReelAvatar reference={reply.authorPhoto} name={reply.authorName} size={34} />
               </Link>
-              <div className="min-w-0 flex-1">
-                <p className="text-xs text-white/55"><Link href={profileHref(reply.authorId, reply.id)} className="font-semibold text-white/90 hover:text-primary">{reply.authorName}</Link>{reply.authorId === creatorId && <span className="ml-1.5 rounded-full bg-primary/15 px-1.5 py-0.5 text-[10px] font-bold text-primary">Creator</span>} <span>{ago(reply.createdAt)}</span></p>
-                 {reply.content && <ExpandableCommentText
-                   commentId={reply.id}
-                   content={reply.content}
-                   prefix={reply.parentCommentId && commentsById.has(reply.parentCommentId)
-                     ? { label: `@${commentsById.get(reply.parentCommentId)!.authorName}`, href: profileHref(commentsById.get(reply.parentCommentId)!.authorId, reply.parentCommentId) }
-                     : undefined}
-                 />}
-                 {reply.mediaReference && <ReelCommentPhoto reference={reply.mediaReference} />}
-                {reply.canDelete && (confirming === reply.id
-                  ? <p className="mt-1 text-xs"><button type="button" onClick={() => void deleteComment(reply.id)} disabled={remove.isPending} className="font-semibold text-rose-300" data-testid={`button-confirm-delete-comment-${reply.id}`}>Delete reply</button><button type="button" onClick={() => setConfirming(null)} className="ml-3 text-white/60">Keep</button></p>
-                  : <button type="button" onClick={() => setConfirming(reply.id)} className="mt-1 text-xs text-white/45 hover:text-white/80" data-testid={`button-delete-comment-${reply.id}`}>Delete</button>)}
+              <div className="reel-comment-main">
+                <p className="reel-comment-meta"><Link href={profileHref(reply.authorId, reply.id)} className="reel-comment-author">{reply.authorName}</Link>{reply.authorId === creatorId && <span className="reel-comment-creator">Creator</span>} <span>{ago(reply.createdAt)}</span></p>
+                {reply.content && <ExpandableCommentText
+                  commentId={reply.id}
+                  content={reply.content}
+                  prefix={reply.parentCommentId && commentsById.has(reply.parentCommentId)
+                    ? { label: `@${commentsById.get(reply.parentCommentId)!.authorName}`, href: profileHref(commentsById.get(reply.parentCommentId)!.authorId, reply.parentCommentId) }
+                    : undefined}
+                />}
+                {reply.mediaReference && <ReelCommentPhoto reference={reply.mediaReference} />}
+                <div className="reel-comment-footer">
+                  <div className="reel-comment-links">
+                    {canComment && <button type="button" onClick={() => { setReplyingTo(comment); setDraft(""); input.current?.focus(); }} className="reel-comment-link" data-testid={`button-reply-comment-${reply.id}`}>Reply</button>}
+                    {reply.canDelete && (confirming === reply.id
+                      ? <><button type="button" onClick={() => void deleteComment(reply.id)} disabled={remove.isPending} className="reel-comment-link is-danger" data-testid={`button-confirm-delete-comment-${reply.id}`}>Delete reply</button><button type="button" onClick={() => setConfirming(null)} className="reel-comment-link">Keep</button></>
+                      : <button type="button" onClick={() => setConfirming(reply.id)} className="reel-comment-link is-muted" data-testid={`button-delete-comment-${reply.id}`}>Delete</button>)}
+                  </div>
+                  <CommentReactions comment={reply} pending={reactingIds.has(reply.id)} onReact={(reaction) => void reactToComment(reply, reaction)} />
+                </div>
               </div>
-            </li>)}
-          </ul>}
-        </li>)}</ul>}
+            </li>)}</ul>}
+          </li>;
+        })}</ul>}
     </div>
-    {error && <p role="alert" className="px-4 pb-1 text-xs text-rose-300" data-testid="error-reel-comment">{error}</p>}
-    {canComment&&replyingTo && <div className="flex items-center justify-between px-4 pt-2 text-xs text-white/60" data-testid="status-replying-to">
-      <span>Replying to <strong className="text-white/85">{replyingTo.authorName}</strong></span>
-      <button type="button" onClick={() => setReplyingTo(null)} className="font-semibold text-primary" aria-label="Cancel reply">Cancel</button>
+    {error && <p role="alert" className="reel-comment-error" data-testid="error-reel-comment">{error}</p>}
+    {canComment && replyingTo && <div className="reel-comment-replying" data-testid="status-replying-to">
+      <span>Replying to <strong>{replyingTo.authorName}</strong></span>
+      <button type="button" onClick={() => setReplyingTo(null)} aria-label="Cancel reply"><X size={16} /></button>
     </div>}
     {canComment ? <form onSubmit={(event) => void submit(event)} className="reel-comment-composer">
-      <div className="reel-comment-reactions" aria-label="Comment reactions">
-        {["😂", "🤣", "🥰", "😁", "😳", "😉"].map((emoji) => <button key={emoji} type="button" onClick={() => addToDraft(emoji)} aria-label={`Add ${emoji}`} className="reel-comment-reaction">{emoji}</button>)}
-      </div>
       {photo && <div className="reel-comment-photo-preview">
         <img src={photoPreview} alt="Selected comment photo" data-testid="img-reel-comment-selected" />
         <button type="button" onClick={removeSelectedPhoto} disabled={uploadingPhoto || create.isPending} aria-label="Remove photo" className="reel-comment-photo-remove"><X size={16} /></button>
       </div>}
       <input ref={photoInput} type="file" accept={PROFILE_PHOTO_ACCEPT} className="sr-only" aria-label="Choose a photo to comment" data-testid="input-reel-comment-photo" onChange={(event) => void choosePhoto(event.currentTarget.files?.[0])} />
       <div className="reel-comment-compose-row">
-        <div className="h-9 w-9 shrink-0"><ReelAvatar reference={me.data?.photos?.[0] ?? null} name={me.data?.name ?? "Your profile"} size={36} /></div>
+        <div className="reel-comment-composer-avatar"><ReelAvatar reference={me.data?.photos?.[0] ?? null} name={me.data?.name ?? "Your profile"} size={38} /></div>
         <div className="reel-comment-input-wrap">
-          <input ref={input} value={draft} onChange={(event) => setDraft(event.target.value)} maxLength={500} placeholder={replyingTo ? `Reply to ${replyingTo.authorName}` : "Add a comment"} aria-label={replyingTo ? `Reply to ${replyingTo.authorName}` : "Add a comment"} enterKeyHint="send" data-testid="input-reel-comment" className="reel-comment-input" />
+          <input ref={input} value={draft} onChange={(event) => setDraft(event.target.value)} maxLength={500} placeholder={replyingTo ? `Reply to ${replyingTo.authorName}` : "Add a comment..."} aria-label={replyingTo ? `Reply to ${replyingTo.authorName}` : "Add a comment"} enterKeyHint="send" data-testid="input-reel-comment" className="reel-comment-input" />
           <div className="reel-comment-tools" aria-label="Comment tools">
             <button type="button" onClick={() => photoInput.current?.click()} disabled={preparingPhoto || uploadingPhoto || create.isPending} aria-label="Add photo" className="reel-comment-tool" title="Add photo" data-testid="button-add-reel-comment-photo">{preparingPhoto ? <LoaderCircle size={20} className="animate-spin" /> : <ImageIcon size={21} />}</button>
-            <button type="button" onClick={() => addToDraft("😊")} aria-label="Add emoji" className="reel-comment-tool" title="Add emoji"><Smile size={21} /></button>
+            <button type="button" onClick={() => addToDraft(String.fromCodePoint(0x1f60a))} aria-label="Add emoji" className="reel-comment-tool" title="Add emoji"><Smile size={21} /></button>
             <button type="button" onClick={() => addToDraft("@")} aria-label="Mention someone" className="reel-comment-tool" title="Mention someone"><AtSign size={21} /></button>
           </div>
         </div>
         <button type="submit" onPointerDown={(event) => event.preventDefault()} onTouchEnd={(event) => { event.preventDefault(); void postDraft(); }} disabled={(!draft.trim() && !photo) || create.isPending || preparingPhoto || uploadingPhoto} aria-label="Post comment" data-testid="button-post-comment" className="reel-comment-send disabled:opacity-35">{uploadingPhoto ? <LoaderCircle size={19} className="animate-spin" /> : <ArrowUp size={19} />}</button>
       </div>
-    </form> : <p className="px-4 pb-[max(env(safe-area-inset-bottom),14px)] pt-3 text-center text-xs text-white/55">The creator has turned off new comments.</p>}
+    </form> : <p className="reel-comment-disabled">The creator has turned off new comments.</p>}
   </section>;
 }

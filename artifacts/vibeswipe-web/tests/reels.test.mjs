@@ -240,7 +240,7 @@ test("Reels comments open below a still-interactive video", () => {
   assert.match(read("../src/components/reels/reel-slide.tsx"), /className=\{`reel-tap \$\{slideshow \? "is-slideshow" : ""\}`\}[^>]*onClick=\{\(\) =>/);
   const css = read("../src/components/reels/reels.css");
   assert.match(css, /\.reel-comments \{ flex: 0 0 auto/);
-  assert.match(css, /height: var\(--reels-comments-height, min\(62%, 560px\)\)/);
+  assert.match(css, /height: var\(--reels-comments-height, min\(72%, 680px\)\)/);
 });
 
 test("Reel action rail shows engagement counts while profile previews show views only", () => {
@@ -344,6 +344,20 @@ test("Reel comment send keeps the mobile composer focused while submitting", () 
   assert.match(comments, /type="submit" onPointerDown=\{\(event\) => event\.preventDefault\(\)\}[\s\S]*?data-testid="button-post-comment"/);
   assert.match(comments, /await create\.mutateAsync\([\s\S]*?setDraft\(""\)/);
   assert.doesNotMatch(styles.match(/\.reels-root \{[^}]+\}/)?.[0] ?? "", /transition:\s*height/);
+});
+
+test("Reel comments provide searchable threads and saved accessible reactions", () => {
+  const comments = read("../src/components/reels/reel-comments.tsx");
+  const styles = read("../src/components/reels/reels.css");
+  assert.match(comments, /placeholder="Search comments"/);
+  assert.match(comments, /setSortMode\("top"\)/);
+  assert.match(comments, /View \$\{replies\.length\}/);
+  assert.match(comments, /useSetReelCommentReaction/);
+  assert.match(comments, /aria-pressed=\{comment\.myReaction === "like"\}/);
+  assert.match(comments, /aria-pressed=\{comment\.myReaction === "dislike"\}/);
+  assert.match(comments, /myReaction: nextReaction/);
+  assert.match(styles, /\.reel-comments \{[^}]*background: #fff/);
+  assert.match(styles, /\.reel-comment-search \{/);
 });
 
 test("Reels UI copy contains no emoji", () => {

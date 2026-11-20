@@ -5,6 +5,7 @@
  * VibeSwipe dating profile, discovery, matching, messaging, and safety API
  * OpenAPI spec version: 0.1.0
  */
+import type { ReelCommentReaction } from './reelCommentReaction';
 
 export interface ReelComment {
   id: string;
@@ -18,6 +19,11 @@ export interface ReelComment {
   content: string;
   /** @nullable */
   mediaReference: string | null;
+  /** @minimum 0 */
+  likeCount: number;
+  /** @minimum 0 */
+  dislikeCount: number;
+  myReaction: ReelCommentReaction | null;
   canDelete: boolean;
   createdAt: Date;
 }

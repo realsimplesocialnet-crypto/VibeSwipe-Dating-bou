@@ -124,6 +124,24 @@ test("Reel comments support profile links, replies, and reply notifications", ()
   assert.match(schema, /comment_id uuid REFERENCES vibeswipe_reel_comments\(id\) ON DELETE CASCADE/);
 });
 
+test("Reel comment reactions are private-per-user, persistent, and visibility-checked", () => {
+  const route = source("artifacts/api-server/src/routes/vibeswipe-reels.ts");
+  const schema = source("artifacts/api-server/src/lib/reels-schema.ts");
+  const drizzleSchema = source("lib/db/src/schema/vibeswipe-reels.ts");
+  const openapi = source("lib/api-spec/openapi.yaml");
+  assert.match(route, /SetReelCommentReactionParams\.safeParse\(req\.params\)/);
+  assert.match(route, /SetReelCommentReactionBody\.safeParse\(req\.body\)/);
+  assert.match(route, /findVisibleReel\(userId, params\.data\.reelId\)/);
+  assert.match(route, /reelCommentReactionsTable\.userId, userId/);
+  assert.match(route, /onConflictDoUpdate\([\s\S]*?reelCommentReactionsTable\.commentId, reelCommentReactionsTable\.userId/);
+  assert.match(route, /likeCount: row\.likeCount, dislikeCount: row\.dislikeCount, myReaction: row\.myReaction/);
+  assert.match(schema, /vibeswipe_reel_comment_reactions[\s\S]*?ON DELETE CASCADE/);
+  assert.match(schema, /reaction IN \('like', 'dislike'\)/);
+  assert.match(drizzleSchema, /primaryKey\(\{ name: "vibeswipe_reel_comment_reactions_pk", columns: \[t\.commentId, t\.userId\] \}\)/);
+  assert.match(openapi, /\/vibeswipe\/reels\/\{reelId\}\/comments\/\{commentId\}\/reaction:/);
+  assert.match(openapi, /SetReelCommentReactionInput/);
+});
+
 test("Reels request sound and keep an accessible sound control", () => {
   const feed = source("artifacts/vibeswipe-web/src/pages/reels-feed.tsx");
   const slide = source("artifacts/vibeswipe-web/src/components/reels/reel-slide.tsx");
@@ -238,7 +256,7 @@ test("Reel comments keep the TikTok-style composer and support photo-only commen
   assert.match(comments, /<ReelAvatar reference=\{me\.data\?\.photos\?\.\[0\] \?\? null\}/);
   assert.doesNotMatch(comments, /border-t border-white\/10/);
   assert.doesNotMatch(comments, /border-l border-white\/10/);
-  assert.match(styles, /\.reel-comments \{[^}]*border-radius: 20px 20px 0 0/);
+  assert.match(styles, /\.reel-comments \{[^}]*border-radius: 24px 24px 0 0/);
   assert.doesNotMatch(styles, /\.reel-comments \{[^}]*border-top:/);
   assert.match(comments, /reel-comment-reactions/);
   assert.match(comments, /reel-comment-tools/);

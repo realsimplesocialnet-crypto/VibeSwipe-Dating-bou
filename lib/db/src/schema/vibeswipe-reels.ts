@@ -111,5 +111,15 @@ export const reelCommentsTable = pgTable("vibeswipe_reel_comments", {
   byMedia: index("vibeswipe_reel_comments_media_idx").on(t.mediaId),
 }));
 
+export const reelCommentReactionsTable = pgTable("vibeswipe_reel_comment_reactions", {
+  commentId: uuid("comment_id").notNull().references(() => reelCommentsTable.id, { onDelete: "cascade" }),
+  userId: text("user_id").notNull().references(() => profilesTable.id, { onDelete: "cascade" }),
+  reaction: text("reaction").$type<"like" | "dislike">().notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => ({
+  pk: primaryKey({ name: "vibeswipe_reel_comment_reactions_pk", columns: [t.commentId, t.userId] }),
+  byComment: index("vibeswipe_reel_comment_reactions_comment_idx").on(t.commentId, t.reaction),
+}));
+
 export type Reel = typeof reelsTable.$inferSelect;
 export type ReelComment = typeof reelCommentsTable.$inferSelect;

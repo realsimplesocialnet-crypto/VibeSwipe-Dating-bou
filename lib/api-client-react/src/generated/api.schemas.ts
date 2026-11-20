@@ -1573,6 +1573,14 @@ export interface ReelEngagement {
   repostedByMe: boolean;
 }
 
+export type ReelCommentReaction = typeof ReelCommentReaction[keyof typeof ReelCommentReaction];
+
+
+export const ReelCommentReaction = {
+  like: 'like',
+  dislike: 'dislike',
+} as const;
+
 export interface ReelComment {
   id: string;
   reelId: string;
@@ -1585,8 +1593,25 @@ export interface ReelComment {
   content: string;
   /** @nullable */
   mediaReference: string | null;
+  /** @minimum 0 */
+  likeCount: number;
+  /** @minimum 0 */
+  dislikeCount: number;
+  myReaction: ReelCommentReaction | null;
   canDelete: boolean;
   createdAt: string;
+}
+
+export interface SetReelCommentReactionInput {
+  reaction: ReelCommentReaction | null;
+}
+
+export interface ReelCommentReactionSummary {
+  /** @minimum 0 */
+  likeCount: number;
+  /** @minimum 0 */
+  dislikeCount: number;
+  myReaction: ReelCommentReaction | null;
 }
 
 export type ReelCommentInput = (unknown & {

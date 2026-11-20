@@ -107,6 +107,7 @@ import type {
   Reel,
   ReelComment,
   ReelCommentInput,
+  ReelCommentReactionSummary,
   ReelEngagement,
   ReelInput,
   ReelMusicCatalog,
@@ -117,6 +118,7 @@ import type {
   ReferralSummary,
   ReportInput,
   SearchTravelCitiesParams,
+  SetReelCommentReactionInput,
   StoriesFeed,
   StoryCreated,
   StoryInput,
@@ -11496,5 +11498,96 @@ export const useDeleteReelComment = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getDeleteReelCommentMutationOptions(options), queryClient);
+    }
+
+export const getSetReelCommentReactionUrl = (reelId: string,
+    commentId: string,) => {
+
+
+
+
+  return `/api/vibeswipe/reels/${reelId}/comments/${commentId}/reaction`
+}
+
+/**
+ * @summary Set or clear the signed-in user's reaction to a Reel comment
+ */
+export const setReelCommentReaction = async (reelId: string,
+    commentId: string,
+    setReelCommentReactionInput: SetReelCommentReactionInput, options?: Parameters<typeof customFetch>[1]): Promise<ReelCommentReactionSummary> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<ReelCommentReactionSummary>(getSetReelCommentReactionUrl(reelId,commentId),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(setReelCommentReactionInput)
+  }
+);}
+
+
+
+
+
+export const getSetReelCommentReactionMutationKey = () => ['setReelCommentReaction'] as const;
+
+export const getSetReelCommentReactionMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setReelCommentReaction>>, TError,SetReelCommentReactionMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof setReelCommentReaction>>, TError,SetReelCommentReactionMutationVariables, TContext> => {
+
+const mutationKey = getSetReelCommentReactionMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof setReelCommentReaction>>, SetReelCommentReactionMutationVariables> = (props) => {
+          const {reelId,commentId,data} = props ?? {};
+
+          return  setReelCommentReaction(reelId,commentId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SetReelCommentReactionMutationResult = NonNullable<Awaited<ReturnType<typeof setReelCommentReaction>>>
+    export type SetReelCommentReactionMutationBody = BodyType<SetReelCommentReactionInput>
+    export type SetReelCommentReactionMutationError = ErrorType<void>
+    export type SetReelCommentReactionMutationVariables = {reelId: string;commentId: string;data: BodyType<SetReelCommentReactionInput>}
+
+    /**
+ * @summary Set or clear the signed-in user's reaction to a Reel comment
+ */
+export const useSetReelCommentReaction = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setReelCommentReaction>>, TError,SetReelCommentReactionMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof setReelCommentReaction>>,
+        TError,
+        SetReelCommentReactionMutationVariables,
+        TContext
+      > => {
+      return useMutation(getSetReelCommentReactionMutationOptions(options), queryClient);
     }
 
