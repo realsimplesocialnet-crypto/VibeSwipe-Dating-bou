@@ -11,7 +11,7 @@ test('detects the Android bridge even without a wv user-agent marker', () => {
   assert.equal(isAndroidWebView('Mozilla/5.0 (Linux; Android 14) Chrome/130', true), true);
 });
 
-test('keeps ordinary browser visits on the public auth landing page', () => {
+test('does not mistake ordinary browsers for an Android WebView', () => {
   assert.equal(isAndroidWebView('Mozilla/5.0 (Linux; Android 14) Chrome/130', false), false);
   assert.equal(isAndroidWebView('Mozilla/5.0 (iPhone; CPU iPhone OS 18) Safari/604.1', false), false);
 });
@@ -21,7 +21,7 @@ test('opens the existing app for an installed Home Screen PWA', () => {
   assert.equal(shouldLoadAppShell('Mozilla/5.0 (Linux; Android 14) Chrome/130', false, true), true);
 });
 
-test('ordinary browser tabs stay on the public auth page', () => {
+test('ordinary browser tabs do not count as an installed app shell', () => {
   assert.equal(shouldLoadAppShell('Mozilla/5.0 (iPhone; CPU iPhone OS 18) Safari/604.1', false, false), false);
 });
 

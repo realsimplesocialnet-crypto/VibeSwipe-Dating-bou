@@ -2,9 +2,6 @@ import { createRoot } from 'react-dom/client';
 import { lazy, Suspense } from 'react';
 
 import { isAuthEntryPath, isCurrentAppShell, isDedicatedAppPath } from '@/lib/android-webview';
-import PublicAuthLandingPage from '@/pages/public-auth-landing-page';
-
-import './styles/public-auth-landing.css';
 
 const WebViewAppEntry = lazy(() => import('./webview-app-entry'));
 const PublicLegalEntry = lazy(() => import('./public-legal-entry'));
@@ -17,9 +14,15 @@ const scopedPath = artifactBasePath
   : currentPath;
 const inAppShell = isCurrentAppShell()
   || isDedicatedAppPath(window.location.pathname, dedicatedAppPath)
-  || isAuthEntryPath(scopedPath);
+  || isAuthEntryPath(scopedPath)
+  || scopedPath === '/';
 const publicLegalPaths = new Set(['/privacy-policy', '/terms', '/community-guidelines']);
 const isPublicLegalPage = publicLegalPaths.has(scopedPath);
+const loadingScreen = (message: string) => (
+  <main style={{ display: 'grid', minHeight: '100vh', placeItems: 'center', padding: 24, color: '#fff5fa', fontFamily: 'system-ui, sans-serif' }}>
+    <p>{message}</p>
+  </main>
+);
 
 createRoot(document.getElementById('root')!, {
   onCaughtError: (error, errorInfo) => {
@@ -27,15 +30,17 @@ createRoot(document.getElementById('root')!, {
   },
 }).render(
   inAppShell ? (
-    <Suspense fallback={<main className="installer-page"><p className="installer-loading">Opening VIBESWIPES…</p></main>}>
+    <Suspense fallback={loadingScreen('Opening VIBESWIPES…')}>
       <WebViewAppEntry />
     </Suspense>
   ) : isPublicLegalPage ? (
-    <Suspense fallback={<main className="installer-page"><p className="installer-loading">Loading VIBESWIPES information…</p></main>}>
+    <Suspense fallback={loadingScreen('Loading VIBESWIPES information…')}>
       <PublicLegalEntry />
     </Suspense>
   ) : (
-    <PublicAuthLandingPage />
+    <Suspense fallback={loadingScreen('Opening VIBESWIPES…')}>
+      <WebViewAppEntry />
+    </Suspense>
   ),
 );
 

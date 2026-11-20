@@ -1,6 +1,6 @@
 - [Expo package maturity](expo-package-maturity.md) — Avoid bypassing package-maturity blocks when Expo releases are still propagating.
 - [Temporary location sharing](temporary-location-sharing.md) — Keep VibeSwipe location links short-lived, revocable, foreground-only, and limited to location data.
-- [FreeWebToApk Android app](android-installation.md) — User supplies the APK; website root is Login/Sign Up only, app shells open the live app, and installs are never built here.
+- [FreeWebToApk Android app](android-installation.md) — User supplies the APK; website root opens the live welcome screen, app shells load the site, and installs are never built here.
 - [Production query context](production-query-context.md) — Test shared data hooks in production bundles; development can hide peer-specific duplicate providers.
 - [Landing presentation](landing-presentation.md) — Keep the public landing page mature, straight and aligned, without tilted cards or overlapping labels.
 - [Account creation](account-creation-flow.md) — One shared profile-first flow for web and installed apps; picture required, email verification last.
