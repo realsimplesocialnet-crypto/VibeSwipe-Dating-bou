@@ -27,15 +27,15 @@ createRoot(document.getElementById('root')!, {
   },
 }).render(
   inAppShell ? (
-    <Suspense fallback={loadingScreen('Opening MYAGEBEAUTY…')}>
+    <Suspense fallback={loadingScreen('Opening VibeSwipes…')}>
       <WebViewAppEntry />
     </Suspense>
   ) : isPublicLegalPage ? (
-    <Suspense fallback={loadingScreen('Loading MYAGEBEAUTY information…')}>
+    <Suspense fallback={loadingScreen('Loading VibeSwipes information…')}>
       <PublicLegalEntry />
     </Suspense>
   ) : (
-    <Suspense fallback={loadingScreen('Opening MYAGEBEAUTY…')}>
+    <Suspense fallback={loadingScreen('Opening VibeSwipes…')}>
       <WebViewAppEntry />
     </Suspense>
   ),

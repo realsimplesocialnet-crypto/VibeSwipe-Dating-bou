@@ -17,8 +17,8 @@ test("public welcome appears while Clerk restores the session", () => {
 });
 
 test("startup uses a skeleton and silently retries routine fetch failures", () => {
-  assert.match(app, /data-testid="status-app-startup"><RouteSkeleton label="Opening MYAGEBEAUTY"/);
-  assert.doesNotMatch(app, /Opening VIBESWIPES|Still loading\. Check your connection|button-app-startup-retry/);
+  assert.match(app, /data-testid="status-app-startup"><RouteSkeleton label="Opening VibeSwipes"/);
+  assert.doesNotMatch(app, /Opening MYAGEBEAUTY|Still loading\. Check your connection|button-app-startup-retry/);
   assert.match(quietSpinner, /retryNow\(\)/);
   assert.match(quietSpinner, /Math\.min\(2000 \* 2 \*\* retryAttempt, 30_000\)/);
 });

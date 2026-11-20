@@ -2,7 +2,7 @@
 (() => {
   const script = document.currentScript;
   const scope = new URL('./', script.src);
-  const warn = (error) => console.warn('MYAGEBEAUTY offline support is unavailable; the website can still open.', error);
+  const warn = (error) => console.warn('VibeSwipes offline support is unavailable; the website can still open.', error);
 
   // Development must never cache Vite's modules. No browser-brand or install checks.
   if (script.dataset.production !== 'true' || !('serviceWorker' in navigator)) return;

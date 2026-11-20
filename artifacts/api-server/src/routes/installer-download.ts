@@ -24,7 +24,7 @@ router.get(["/installer/MYAGEBEAUTY.apk", "/installer/VIBESWIPES.apk", "/install
 
     res.set({
       "Content-Type": APK_CONTENT_TYPE,
-      "Content-Disposition": 'attachment; filename="MYAGEBEAUTY.apk"',
+      "Content-Disposition": 'attachment; filename="VibeSwipes.apk"',
       "Cache-Control": "public, max-age=300",
       "Accept-Ranges": "bytes",
       "X-Content-Type-Options": "nosniff",
@@ -52,7 +52,7 @@ router.get(["/installer/MYAGEBEAUTY.apk", "/installer/VIBESWIPES.apk", "/install
     await pipeline(file.createReadStream(range ?? {}), res);
   } catch (error) {
     if (req.destroyed || res.destroyed) return;
-    req.log.error({ err: error }, "Could not serve the MYAGEBEAUTY Android installer");
+    req.log.error({ err: error }, "Could not serve the VibeSwipes Android installer");
     if (!res.headersSent) res.status(503).json({ error: "The app download is temporarily unavailable." });
     else res.destroy();
   }

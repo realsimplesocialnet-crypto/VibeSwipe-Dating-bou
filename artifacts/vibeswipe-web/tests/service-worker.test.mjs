@@ -110,7 +110,7 @@ test("tapping a message notification opens its chat in the installed app", async
   assert.equal(focused.length, 1);
 });
 
-test("notification links cannot navigate outside the VIBESWIPES app origin", async () => {
+test("notification links cannot navigate outside the VibeSwipes app origin", async () => {
   const { listeners, navigated } = await loadServiceWorker();
   let pending;
   listeners.get("notificationclick")({
@@ -210,7 +210,7 @@ for (const cause of ["offline", "server error", "timeout"]) {
     let abortTimer;
     let cleared = false;
     const worker = await loadServiceWorker({
-      cacheEntries: new Map([["https://myage.beauty/offline.html", new Response("Reconnect to VIBESWIPES")]]),
+      cacheEntries: new Map([["https://myage.beauty/offline.html", new Response("Reconnect to VibeSwipes")]]),
       fetcher: async (_request, options) => {
         if (cause === "offline") throw new Error("network down");
         if (cause === "server error") return new Response("bad gateway", { status: 502 });
@@ -232,7 +232,7 @@ for (const cause of ["offline", "server error", "timeout"]) {
       await new Promise((resolve) => setImmediate(resolve));
       abortTimer();
     }
-    assert.equal(await (await response).text(), "Reconnect to VIBESWIPES");
+    assert.equal(await (await response).text(), "Reconnect to VibeSwipes");
     assert.equal(cleared, true);
   });
 }

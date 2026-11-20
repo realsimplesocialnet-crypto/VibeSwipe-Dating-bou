@@ -11,7 +11,7 @@ const artifactBasePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 export default function PublicLegalEntry() {
   return (
     <Router base={artifactBasePath}>
-      <Suspense fallback={<main className="min-h-[100dvh] bg-background px-4 py-7 text-sm text-muted-foreground">Loading MYAGEBEAUTY information…</main>}>
+      <Suspense fallback={<main className="min-h-[100dvh] bg-background px-4 py-7 text-sm text-muted-foreground">Loading VibeSwipes information…</main>}>
         <Switch>
           <Route path="/privacy-policy" component={PrivacyPolicyPage} />
           <Route path="/terms" component={TermsPage} />
@@ -20,7 +20,7 @@ export default function PublicLegalEntry() {
             <main className="min-h-[100dvh] bg-background px-4 py-7 text-foreground">
               <div className="mx-auto max-w-3xl">
                 <h1 className="text-2xl font-bold">Page not found</h1>
-                <a className="mt-4 inline-block text-primary underline" href={`${artifactBasePath}/`}>MYAGEBEAUTY home</a>
+                <a className="mt-4 inline-block text-primary underline" href={`${artifactBasePath}/`}>VibeSwipes home</a>
               </div>
             </main>
           </Route>

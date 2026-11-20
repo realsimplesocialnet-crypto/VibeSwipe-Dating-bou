@@ -251,7 +251,7 @@ function SectionContent({ section, settings, editReturnTo }: { section: string; 
       <RouteLink href="/community-guidelines" title="Community guidelines" detail="What we expect from everyone here." icon={<FileText size={18}/>}/>
     </>}
     {section === "app" && <>
-      <ToggleRow icon={<Moon size={18}/>} title="Dark theme" detail="Keep MYAGEBEAUTY in its low-light color scheme." checked={settings.darkMode} disabled={update.isPending} testId="toggle-dark-mode" onChange={value=>void saveSettings({darkMode:value})}/>
+      <ToggleRow icon={<Moon size={18}/>} title="Dark theme" detail="Keep VibeSwipes in its low-light color scheme." checked={settings.darkMode} disabled={update.isPending} testId="toggle-dark-mode" onChange={value=>void saveSettings({darkMode:value})}/>
       <ActionRow icon={<Shield size={18}/>} title="Two-factor authentication" detail="Add another layer of account security." action="Manage" onClick={()=>openUserProfile()}/>
     </>}
     {section === "account-actions" && <>
@@ -259,12 +259,12 @@ function SectionContent({ section, settings, editReturnTo }: { section: string; 
     </>}
     {section === "legal" && <>
       <RouteLink href="/privacy-policy" title="Privacy Policy" detail="How your information is handled." icon={<FileText size={18}/>}/>
-      <RouteLink href="/terms" title="Terms of Service" detail="The terms for using MYAGEBEAUTY." icon={<FileText size={18}/>}/>
+      <RouteLink href="/terms" title="Terms of Service" detail="The terms for using VibeSwipes." icon={<FileText size={18}/>}/>
       <RouteLink href="/community-guidelines" title="Community Guidelines" detail="Standards for a respectful community." icon={<FileText size={18}/>}/>
-      <a href="mailto:Realsimplesocialnet@gmail.com?subject=MYAGEBEAUTY%20support%20request" data-testid="link-contact-support" className="flex min-h-[62px] flex-col justify-center rounded-2xl border border-white/10 bg-white/[.02] px-4 py-3 hover:bg-white/[.04]">
+      <a href="mailto:Realsimplesocialnet@gmail.com?subject=VibeSwipes%20support%20request" data-testid="link-contact-support" className="flex min-h-[62px] flex-col justify-center rounded-2xl border border-white/10 bg-white/[.02] px-4 py-3 hover:bg-white/[.04]">
         <span className="text-sm font-bold">Contact Support</span><span className="mt-1 text-xs text-muted-foreground">Realsimplesocialnet@gmail.com</span>
       </a>
-      <a href="mailto:Realsimplesocialnet@gmail.com?subject=MYAGEBEAUTY%20account%20deletion%20request" data-testid="link-request-account-deletion" className="flex min-h-[62px] flex-col justify-center rounded-2xl border border-white/10 bg-white/[.02] px-4 py-3 hover:bg-white/[.04]">
+      <a href="mailto:Realsimplesocialnet@gmail.com?subject=VibeSwipes%20account%20deletion%20request" data-testid="link-request-account-deletion" className="flex min-h-[62px] flex-col justify-center rounded-2xl border border-white/10 bg-white/[.02] px-4 py-3 hover:bg-white/[.04]">
         <span className="text-sm font-bold">Request account deletion</span><span className="mt-1 text-xs text-muted-foreground">Email the support team to request account and data deletion.</span>
       </a>
     </>}
@@ -391,7 +391,7 @@ function DeactivateRow({ settings, pending, onSave }: { settings: FullSettings; 
   const active = settings.deactivated;
   async function toggle() {
     const verb = active ? "reactivate" : "deactivate";
-    if (!window.confirm(active ? "Reactivate your MYAGEBEAUTY account? Your profile will be available again." : "Deactivate your MYAGEBEAUTY account? Your profile will be hidden until you reactivate.")) return;
+    if (!window.confirm(active ? "Reactivate your VibeSwipes account? Your profile will be available again." : "Deactivate your VibeSwipes account? Your profile will be hidden until you reactivate.")) return;
     await onSave({ deactivated: !active });
   }
   return <section className="rounded-2xl border border-rose-300/15 bg-rose-300/[.035] p-5">

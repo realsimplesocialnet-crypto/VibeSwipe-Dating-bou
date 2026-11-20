@@ -49,17 +49,19 @@ test("terms distinguish planned verification charges from active payments", () =
   assert.match(mobileWelcome, /router\.push\("\/terms"\)/);
 });
 
-test("VIBESWIPES branding is published in web and Android app metadata", () => {
+test("VibeSwipes branding is published in website and PWA metadata", () => {
   const manifest = read("../public/manifest.json");
-  const appConfig = read("../../vibeswipe/app.json");
-  assert.match(manifest, /"name": "VIBESWIPES"/);
-  assert.match(manifest, /"short_name": "VIBESWIPES"/);
-  assert.match(appConfig, /"name": "VIBESWIPES"/);
-  assert.match(appConfig, /"package": "beauty\.myage"/);
-  assert.match(webApp, />VIBESWIPES<\/span>/);
+  const html = read("../index.html");
+  assert.match(manifest, /"name": "VibeSwipes"/);
+  assert.match(manifest, /"short_name": "VibeSwipes"/);
+  assert.match(manifest, /vibeswipes-icon-192\.png/);
+  assert.match(webApp, />VibeSwipes<\/span>/);
   assert.doesNotMatch(webApp, />My<span className="text-primary">age<\/span>/);
-  assert.match(installedWelcome, />VIBESWIPES<\/span>/);
-  assert.match(profileSignup, />VIBESWIPES<\/span>/);
+  assert.match(installedWelcome, />VibeSwipes<\/span>/);
+  assert.match(profileSignup, />VibeSwipes<\/span>/);
+  assert.match(html, /<title>VibeSwipes/);
+  assert.doesNotMatch(html, /MYAGEBEAUTY|MYAGEBEAUTY/i);
+  assert.match(privacy, /VibeSwipes is operated by VIBESWIPES LIMITED/);
 });
 
 test("public legal URLs bypass the install landing without exposing app routes", () => {

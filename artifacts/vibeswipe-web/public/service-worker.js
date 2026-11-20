@@ -1,5 +1,5 @@
 /* Cache the app shell, approved public Reels, and account-scoped recent profiles. */
-const CACHE_NAME = 'myage-shell-v26';
+const CACHE_NAME = 'myage-shell-v27';
 const REEL_CACHE_NAME = 'myage-offline-reels-v1';
 const PROFILE_CACHE_NAME = 'myage-offline-profiles-v1';
 const MAX_OFFLINE_REELS = 3;
@@ -16,11 +16,10 @@ let activeProfileCacheUserId = null;
 const shell = [
   new URL('open.html', scopeUrl).href,
   new URL('manifest.json', scopeUrl).href,
-  new URL('myage-icon-192-v7.png', scopeUrl).href,
-  new URL('myage-icon-512-v7.png', scopeUrl).href,
-  new URL('myage-apple-touch-v7.png', scopeUrl).href,
-  new URL('myage-pwa-icon.svg?v=2', scopeUrl).href,
-  new URL('myage-pwa-icon.svg', scopeUrl).href,
+  new URL('vibeswipes-icon-192.png', scopeUrl).href,
+  new URL('vibeswipes-icon-512.png', scopeUrl).href,
+  new URL('logo.svg?v=1', scopeUrl).href,
+  new URL('logo.svg', scopeUrl).href,
 ];
 
 function appEntryAssets(html) {
@@ -90,7 +89,7 @@ async function cacheAppEntryAssets(cache, html) {
   const visited = new Set();
   const fontUrls = new Set();
   if (!entryAssets.some((url) => /\.m?js(?:$|\?)/i.test(url))) {
-    throw new Error('The MYAGEBEAUTY app entry script could not be found.');
+    throw new Error('The VibeSwipes app entry script could not be found.');
   }
 
   // Follow static imports and the app's main lazy entry only. Feature routes
@@ -100,7 +99,7 @@ async function cacheAppEntryAssets(cache, html) {
     if (visited.has(url)) continue;
     visited.add(url);
     const response = await fetchWithTimeout(url);
-    if (!response.ok) throw new Error('A MYAGEBEAUTY app entry asset could not be downloaded.');
+    if (!response.ok) throw new Error('A VibeSwipes app entry asset could not be downloaded.');
     let source = '';
     if (/\.css(?:$|\?)/i.test(url)) {
       source = await response.clone().text();
@@ -131,7 +130,7 @@ async function cacheAppEntryAssets(cache, html) {
     await cache.put(url, response);
   }
 
-  if (moduleQueue.length) throw new Error('The MYAGEBEAUTY app shell has too many static assets.');
+  if (moduleQueue.length) throw new Error('The VibeSwipes app shell has too many static assets.');
 
   // Fonts are optional shell assets; a missing font must not prevent the app
   // from opening, but local bundled fonts should be ready for repeat visits.
@@ -526,11 +525,11 @@ self.addEventListener('install', (event) => {
   event.waitUntil((async () => {
     const cache = await caches.open(CACHE_NAME);
     const offline = await fetchWithTimeout(offlineUrl);
-    if (!offline.ok) throw new Error('MYAGEBEAUTY recovery page is unavailable.');
+    if (!offline.ok) throw new Error('VibeSwipes recovery page is unavailable.');
     await cache.put(offlineUrl, offline);
     const appShell = await fetchWithTimeout(appShellUrl);
     if (!appShell.ok || !appShell.headers.get('content-type')?.includes('text/html')) {
-      throw new Error('The MYAGEBEAUTY app shell is unavailable.');
+      throw new Error('The VibeSwipes app shell is unavailable.');
     }
     const appHtml = await appShell.clone().text();
     await cache.put(appShellUrl, appShell);
@@ -579,8 +578,8 @@ self.addEventListener('push', (event) => {
   const data = payload.data && typeof payload.data === 'object' ? payload.data : {};
   event.waitUntil(Promise.all([self.registration.showNotification(title, {
     body: typeof payload.body === 'string' ? payload.body : 'You have a new message.',
-    icon: new URL('myage-icon-192-v7.png', scopeUrl).href,
-    badge: new URL('myage-icon-192-v7.png', scopeUrl).href,
+    icon: new URL('vibeswipes-icon-192.png', scopeUrl).href,
+    badge: new URL('vibeswipes-icon-192.png', scopeUrl).href,
     tag: data.type === 'reel_comment_reply' && typeof data.commentId === 'string'
       ? `reel-comment-reply-${data.commentId}`
       : data.type === 'reel_like' && typeof data.reelId === 'string'
@@ -666,13 +665,13 @@ self.addEventListener('fetch', (event) => {
     event.respondWith((async () => {
       const cache = await caches.open(CACHE_NAME);
       const fallback = async () => (await cache.match(appShellUrl)) || (await cache.match(offlineUrl)) || new Response(
-        'MYAGEBEAUTY could not connect. Check your connection and reload this page.',
+        'VibeSwipes could not connect. Check your connection and reload this page.',
         { status: 503, headers: { 'Content-Type': 'text/plain; charset=utf-8' } },
       );
       if (self.navigator?.onLine === false) return fallback();
       try {
         const response = await fetchWithTimeout(request);
-        if (response.status >= 500) throw new Error('MYAGEBEAUTY is temporarily unavailable.');
+        if (response.status >= 500) throw new Error('VibeSwipes is temporarily unavailable.');
         if (response.ok && response.headers.get('content-type')?.includes('text/html')) {
           void cache.put(appShellUrl, response.clone());
         }

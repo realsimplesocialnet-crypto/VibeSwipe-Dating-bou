@@ -18,7 +18,7 @@ export type AdminSectionKey = typeof ADMIN_NAV[number]['key'];
 
 export function AdminWordmark() {
   return <span className="flex items-center gap-2.5">
-    <img src={`${import.meta.env.BASE_URL.replace(/\/$/, '')}/myage-icon-192-v7.png`} alt="" className="h-8 w-8 rounded-lg ring-1 ring-white/10" />
+    <img src={`${import.meta.env.BASE_URL.replace(/\/$/, '')}/vibeswipes-icon-192.png`} alt="" className="h-8 w-8 rounded-lg ring-1 ring-white/10" />
     <span className="leading-none"><span className="brand block text-[17px] font-extrabold">vibe<span className="text-[var(--a-rose)]">swipe</span></span><span className="mono mt-0.5 block text-[9px] uppercase tracking-[.28em] text-[var(--a-mute)]">Admin console</span></span>
   </span>;
 }

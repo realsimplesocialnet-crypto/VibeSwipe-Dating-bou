@@ -27,10 +27,10 @@ export function ReferralProfileCard() {
   async function shareCode() {
     if (!summary.data) return;
     const url = `${SIGNUP_URL}?ref=${encodeURIComponent(summary.data.referralCode)}`;
-    const text = `Join me on MYAGEBEAUTY with my referral code ${summary.data.referralCode}. Your signup helps me earn points.`;
+    const text = `Join me on VibeSwipes with my referral code ${summary.data.referralCode}. Your signup helps me earn points.`;
     try {
       if (navigator.share) {
-        await navigator.share({ title: "Join me on MYAGEBEAUTY", text, url });
+        await navigator.share({ title: "Join me on VibeSwipes", text, url });
       } else {
         await navigator.clipboard.writeText(`${text}\n${url}`);
         setFeedback("Invite link copied");

@@ -5,8 +5,8 @@ const supportEmail = "Realsimplesocialnet@gmail.com";
 
 const sections = [
   {
-    title: "1. Who operates MYAGEBEAUTY",
-    body: "MYAGEBEAUTY is operated by VIBESWIPES LIMITED, a company registered in Nigeria. These Terms apply to the MYAGEBEAUTY website, progressive web app, and mobile app. By creating an account or using the service, you agree to these Terms. If you do not agree, do not use the service.",
+    title: "1. Who operates VibeSwipes",
+    body: "VibeSwipes is operated by VIBESWIPES LIMITED, a company registered in Nigeria. These Terms apply to the VibeSwipes website, progressive web app, and mobile app. By creating an account or using the service, you agree to these Terms. If you do not agree, do not use the service.",
   },
   {
     title: "2. Eligibility and your account",
@@ -14,19 +14,19 @@ const sections = [
   },
   {
     title: "3. The service",
-    body: "MYAGEBEAUTY provides adult profiles, discovery, likes and matches, private messaging, Reels, Stories, and safety tools. Features may change, be limited, or be unavailable in some places. We do not promise a match, relationship, particular number of users, or uninterrupted service.",
+    body: "VibeSwipes provides adult profiles, discovery, likes and matches, private messaging, Reels, Stories, and safety tools. Features may change, be limited, or be unavailable in some places. We do not promise a match, relationship, particular number of users, or uninterrupted service.",
   },
   {
     title: "4. Community rules",
-    body: "Do not harass, threaten, exploit, discriminate against, or defraud anyone; post illegal, non-consensual, or sexually exploitative content; share another person's private information without permission; impersonate someone; spam; or use MYAGEBEAUTY to request money or run a scam. Respect consent and boundaries. A match is not consent to meet, send money, or share private information. Use Block and Report when needed.",
+    body: "Do not harass, threaten, exploit, discriminate against, or defraud anyone; post illegal, non-consensual, or sexually exploitative content; share another person's private information without permission; impersonate someone; spam; or use VibeSwipes to request money or run a scam. Respect consent and boundaries. A match is not consent to meet, send money, or share private information. Use Block and Report when needed.",
   },
   {
     title: "5. Your content",
-    body: "You keep ownership of content you submit. You give MYAGEBEAUTY a worldwide, non-exclusive permission to host, store, adapt for display, and show that content only as needed to operate, secure, and improve the service and to make it available to the audiences you choose. Remove content you no longer want to share. Copies already received by other members and records retained for safety, legal, or security reasons may remain.",
+    body: "You keep ownership of content you submit. You give VibeSwipes a worldwide, non-exclusive permission to host, store, adapt for display, and show that content only as needed to operate, secure, and improve the service and to make it available to the audiences you choose. Remove content you no longer want to share. Copies already received by other members and records retained for safety, legal, or security reasons may remain.",
   },
   {
     title: "6. Safety and verification",
-    body: "Use care when communicating with or meeting people. MYAGEBEAUTY is not a background-check service and cannot guarantee another member's identity, conduct, or safety. Optional face verification checks a live image against a profile photo; it is not legal-identity, age, or location verification. Do not rely on a badge as a guarantee.",
+    body: "Use care when communicating with or meeting people. VibeSwipes is not a background-check service and cannot guarantee another member's identity, conduct, or safety. Optional face verification checks a live image against a profile photo; it is not legal-identity, age, or location verification. Do not rely on a badge as a guarantee.",
   },
   {
     title: "7. Moderation and account status",
@@ -34,11 +34,11 @@ const sections = [
   },
   {
     title: "8. Planned paid verification",
-    body: "Paid verification is planned but is not available or chargeable now. The planned base price is ₦3,000 per month. When launched, the checkout screen will show the price and currency available to you; price, currency, and card acceptance may vary by country, card issuer, processor, and platform. Do not send card details to MYAGEBEAUTY support.",
+    body: "Paid verification is planned but is not available or chargeable now. The planned base price is ₦3,000 per month. When launched, the checkout screen will show the price and currency available to you; price, currency, and card acceptance may vary by country, card issuer, processor, and platform. Do not send card details to VibeSwipes support.",
   },
   {
     title: "9. Future subscriptions, cancellation, and refunds",
-    body: "If the planned verification subscription launches, it will renew monthly until you cancel it through the place where you purchased it. Cancellation stops the next renewal, and access continues through the paid period. If verification is declined or MYAGEBEAUTY cannot provide it, the charge will be refunded. Otherwise, there are no partial-month refunds except where required by law. Any required refund process and timing will be shown by the billing provider.",
+    body: "If the planned verification subscription launches, it will renew monthly until you cancel it through the place where you purchased it. Cancellation stops the next renewal, and access continues through the paid period. If verification is declined or VibeSwipes cannot provide it, the charge will be refunded. Otherwise, there are no partial-month refunds except where required by law. Any required refund process and timing will be shown by the billing provider.",
   },
   {
     title: "10. Cards and app-store billing",
@@ -50,7 +50,7 @@ const sections = [
   },
   {
     title: "12. Intellectual property and service availability",
-    body: "MYAGEBEAUTY and its licensors own the service software, branding, and materials other than member content. Do not copy, reverse engineer, disrupt, or misuse the service, or use its content commercially without permission. The service is provided as available, subject to consumer and other rights that cannot be excluded under applicable law.",
+    body: "VibeSwipes and its licensors own the service software, branding, and materials other than member content. Do not copy, reverse engineer, disrupt, or misuse the service, or use its content commercially without permission. The service is provided as available, subject to consumer and other rights that cannot be excluded under applicable law.",
   },
   {
     title: "13. Changes, law, and contact",
@@ -63,7 +63,7 @@ export default function TermsPage() {
     <main className="min-h-[100dvh] bg-background px-4 py-7 text-foreground" data-testid="page-terms">
       <div className="mx-auto max-w-3xl">
         <Link href="/" className="inline-flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-foreground" data-testid="link-terms-home">
-          <ArrowLeft size={16} /> Back to MYAGEBEAUTY
+          <ArrowLeft size={16} /> Back to VibeSwipes
         </Link>
         <div className="mt-8 rounded-2xl border border-amber-300/20 bg-amber-300/[.06] px-4 py-3 text-xs leading-5 text-amber-100/80" role="note">
           These plain-language Terms are not legal advice. VIBESWIPES LIMITED should have them reviewed by qualified counsel for the countries where the service operates.
@@ -73,9 +73,9 @@ export default function TermsPage() {
             <FileText size={22} />
           </div>
           <div>
-            <p className="text-[10px] font-extrabold uppercase tracking-[.2em] text-primary">MYAGEBEAUTY</p>
+            <p className="text-[10px] font-extrabold uppercase tracking-[.2em] text-primary">VibeSwipes</p>
             <h1 className="mt-1 text-3xl font-extrabold tracking-tight">Terms of Service</h1>
-            <p className="mt-2 text-sm leading-6 text-muted-foreground">Rules for using the MYAGEBEAUTY service.</p>
+            <p className="mt-2 text-sm leading-6 text-muted-foreground">Rules for using the VibeSwipes service.</p>
           </div>
         </div>
         <div className="mt-7 divide-y divide-white/[.08] rounded-3xl border border-white/[.08] bg-card px-5">
@@ -89,8 +89,8 @@ export default function TermsPage() {
         <footer className="mt-7 flex flex-wrap gap-x-5 gap-y-2 border-t border-white/[.08] pt-5 text-xs font-semibold text-muted-foreground">
           <Link href="/privacy-policy" className="hover:text-primary">Privacy Policy</Link>
           <Link href="/community-guidelines" className="hover:text-primary">Community Guidelines</Link>
-          <a href={`mailto:${supportEmail}?subject=MYAGEBEAUTY%20safety%20report`} className="hover:text-primary">Report a safety issue</a>
-          <a href={`mailto:${supportEmail}?subject=MYAGEBEAUTY%20support%20request`} className="hover:text-primary">Contact support</a>
+          <a href={`mailto:${supportEmail}?subject=VibeSwipes%20safety%20report`} className="hover:text-primary">Report a safety issue</a>
+          <a href={`mailto:${supportEmail}?subject=VibeSwipes%20support%20request`} className="hover:text-primary">Contact support</a>
         </footer>
       </div>
     </main>

@@ -85,8 +85,8 @@ test("manifest keeps the full app entry route and offers browser display fallbac
   assert.equal(manifest.scope, "/");
   assert.equal(manifest.display, "standalone");
   assert.equal(manifest.prefer_related_applications, false);
-  assert.equal(manifest.name, "VIBESWIPES");
-  assert.equal(manifest.short_name, "VIBESWIPES");
+  assert.equal(manifest.name, "VibeSwipes");
+  assert.equal(manifest.short_name, "VibeSwipes");
   assert.ok(manifest.display_override.includes("browser"));
   for (const icon of manifest.icons) {
     assert.equal(new URL(icon.src, "https://example.com/").origin, "https://example.com");

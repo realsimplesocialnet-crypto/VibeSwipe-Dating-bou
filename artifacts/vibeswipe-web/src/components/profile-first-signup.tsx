@@ -169,7 +169,7 @@ export function ProfileFirstSignup({ previewOnly = false }: { previewOnly?: bool
       }
       const blocking = signUp.missingFields.filter(f => f !== 'email_address');
       if (blocking.length) {
-        setConfigError(`Account setup is blocked: MYAGEBEAUTY sign-up settings currently also require ${blocking.map(f => FIELD_LABELS[f] ?? f).join(', ')}. An administrator needs to turn this off in the authentication settings. Your answers are saved here — try again once it's updated.`);
+        setConfigError(`Account setup is blocked: VibeSwipes sign-up settings currently also require ${blocking.map(f => FIELD_LABELS[f] ?? f).join(', ')}. An administrator needs to turn this off in the authentication settings. Your answers are saved here — try again once it's updated.`);
         return;
       }
       const sent = await signUp.verifications.sendEmailCode();
@@ -291,7 +291,7 @@ export function ProfileFirstSignup({ previewOnly = false }: { previewOnly?: bool
             onPick={o => set('city', o.name)} onEmpty={empty => setGeoEmpty(g => ({ ...g, cities: empty }))}
             emptyText={`Our location data doesn't list cities for ${a.stateName || a.countryName}. You can continue without one — your profile will show your ${a.stateName ? 'region' : 'country'}.`} placeholder="Search cities" />
         </Q>}
-        {step === 5 && <Q title="How old are you?" hint="MYAGEBEAUTY is for adults 18 and over.">
+        {step === 5 && <Q title="How old are you?" hint="VibeSwipes is for adults 18 and over.">
           <input autoFocus data-testid="input-signup-age" inputMode="numeric" type="number" min={18} max={120} value={a.age} onChange={e => set('age', e.target.value.replace(/\D/g, '').slice(0, 3))} className="field signup-input max-w-[160px]" placeholder="Age" />
           {a.age !== '' && Number(a.age) < 18 && <p className="mt-3 text-sm text-rose-300" data-testid="error-signup-age">You must be 18 or older to join.</p>}
         </Q>}
@@ -353,8 +353,8 @@ function Frame({ children }: { children: ReactNode }) {
     <OnboardingVideoBackground form/>
     <header className="mx-auto flex w-full max-w-4xl items-center justify-between px-5 pt-[calc(env(safe-area-inset-top,0px)+20px)]">
       <Link href="/" className="inline-flex items-center gap-2.5" data-testid="link-signup-brand">
-        <img src={`${basePath}/myage-icon-192-v7.png`} alt="" className="h-9 w-9 rounded-xl ring-1 ring-white/10" />
-        <span className="brand text-[20px] font-extrabold text-[#fff2f7]">MYAGEBEAUTY</span>
+        <img src={`${basePath}/vibeswipes-icon-192.png`} alt="" className="h-9 w-9 rounded-xl ring-1 ring-white/10" />
+        <span className="brand text-[20px] font-extrabold text-[#fff2f7]">VibeSwipes</span>
       </Link>
       <Link href="/sign-in" data-testid="link-signin-from-signup" className="min-h-[44px] content-center rounded-xl px-3 text-sm font-semibold text-muted-foreground hover:text-foreground">Sign in</Link>
     </header>

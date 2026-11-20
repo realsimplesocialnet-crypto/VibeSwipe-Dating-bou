@@ -4,7 +4,7 @@ import { Link } from "wouter";
 const guidelines = [
   {
     title: "Adults 18 and over",
-    detail: "MYAGEBEAUTY is for adults only. Do not create an account if you are under 18, and keep your profile information honest.",
+    detail: "VibeSwipes is for adults only. Do not create an account if you are under 18, and keep your profile information honest.",
   },
   {
     title: "Respect other people",
@@ -19,8 +19,8 @@ const guidelines = [
     detail: "A match is not consent to share private information, images, or contact details. Use Block or Report when needed.",
   },
   {
-    title: "Use MYAGEBEAUTY responsibly",
-    detail: "Do not use the service to threaten, defraud, spam, or harm others. MYAGEBEAUTY may restrict accounts that violate these rules.",
+    title: "Use VibeSwipes responsibly",
+    detail: "Do not use the service to threaten, defraud, spam, or harm others. VibeSwipes may restrict accounts that violate these rules.",
   },
 ];
 
@@ -29,7 +29,7 @@ export default function CommunityGuidelinesPage() {
     <main className="min-h-[100dvh] bg-background px-4 py-7 text-foreground" data-testid="page-terms">
       <div className="mx-auto max-w-3xl">
         <Link href="/" className="inline-flex items-center gap-2 text-xs font-semibold text-muted-foreground hover:text-foreground" data-testid="link-guidelines-back">
-          <ArrowLeft size={15} /> Back to MYAGEBEAUTY
+          <ArrowLeft size={15} /> Back to VibeSwipes
         </Link>
         <div className="mt-8 rounded-2xl border border-amber-300/20 bg-amber-300/[.06] px-4 py-3 text-xs leading-5 text-amber-100/80" role="note">
           These community rules are not legal advice. VIBESWIPES LIMITED should have its legal documents reviewed by qualified counsel.
@@ -39,10 +39,10 @@ export default function CommunityGuidelinesPage() {
             <ShieldCheck size={22} />
           </div>
           <div>
-            <p className="text-[10px] font-extrabold uppercase tracking-[.2em] text-primary">MYAGEBEAUTY</p>
+            <p className="text-[10px] font-extrabold uppercase tracking-[.2em] text-primary">VibeSwipes</p>
             <h1 className="mt-1 text-3xl font-extrabold tracking-tight">Community Guidelines</h1>
             <p className="mt-2 text-sm leading-6 text-muted-foreground">
-              MYAGEBEAUTY is an adults-only dating service. By creating an account or using MYAGEBEAUTY, you agree to follow these rules.
+              VibeSwipes is an adults-only dating service. By creating an account or using VibeSwipes, you agree to follow these rules.
             </p>
           </div>
         </div>
@@ -62,9 +62,9 @@ export default function CommunityGuidelinesPage() {
         <footer className="mt-7 flex flex-wrap gap-x-5 gap-y-2 border-t border-white/[.08] pt-5 text-xs font-semibold text-muted-foreground">
           <Link href="/privacy-policy" className="hover:text-primary">Privacy Policy</Link>
           <Link href="/terms" className="hover:text-primary">Terms of Service</Link>
-          <a href="mailto:Realsimplesocialnet@gmail.com?subject=MYAGEBEAUTY%20safety%20report" className="hover:text-primary">Report a safety issue</a>
-          <a href="mailto:Realsimplesocialnet@gmail.com?subject=MYAGEBEAUTY%20support%20request" className="hover:text-primary">Contact support</a>
-          <Link href="/" className="hover:text-primary">MYAGEBEAUTY home</Link>
+          <a href="mailto:Realsimplesocialnet@gmail.com?subject=VibeSwipes%20safety%20report" className="hover:text-primary">Report a safety issue</a>
+          <a href="mailto:Realsimplesocialnet@gmail.com?subject=VibeSwipes%20support%20request" className="hover:text-primary">Contact support</a>
+          <Link href="/" className="hover:text-primary">VibeSwipes home</Link>
         </footer>
       </div>
     </main>
