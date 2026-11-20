@@ -384,6 +384,7 @@ html:has(.discover-deck), html:has(.discover-deck) body {
 }
 .discover-deck [data-testid="section-stories"] { margin-bottom: 0; }
 .discover-card-slot {
+  position: relative;
   display: flex;
   flex: 1;
   min-height: 0;
@@ -392,29 +393,27 @@ html:has(.discover-deck), html:has(.discover-deck) body {
   margin-inline: auto;
   align-items: center;
   justify-content: center;
+  isolation: isolate;
 }
-.discover-card-slot > article {
-  flex: none;
+.discover-card-layer {
+  position: absolute;
+  inset: 0;
   height: 100%;
   width: 100%;
-  aspect-ratio: auto;
+  transform-origin: 50% 85%;
+  will-change: transform;
+}
+.discover-card-layer > article {
+  height: 100%;
+  width: 100%;
   touch-action: none;
   transform-origin: 50% 85%;
-  transition: transform 220ms ease-out, opacity 220ms ease-out;
+  will-change: transform;
+  user-select: none;
+  -webkit-user-select: none;
 }
-.discover-card-slot > article[data-swipe="idle"] { animation: discover-card-enter 180ms ease-out; }
-.discover-card-slot > article[data-swipe="pass"] { transform: translateX(-110%) rotate(-9deg); opacity: 0; pointer-events: none; }
-.discover-card-slot > article[data-swipe="like"] { transform: translateX(110%) rotate(9deg); opacity: 0; pointer-events: none; }
-.discover-card-slot > article[data-swipe="super"] { transform: translateY(-105%) scale(.96); opacity: 0; pointer-events: none; }
 .discover-deck > .discover-actions { flex-shrink: 0; gap: clamp(12px, 4vw, 22px); padding: 12px 0; }
 .discover-actions > button { flex-shrink: 0; }
-@keyframes discover-card-enter {
-  from { opacity: 0; transform: translateY(8px) scale(.985); }
-  to { opacity: 1; transform: none; }
-}
-@media (prefers-reduced-motion: reduce) {
-  .discover-card-slot > article { animation: none !important; transition: none; }
-}
 html[data-theme="light"] .discover-shell { background:linear-gradient(135deg,#fde1ec 0%,#fbdedc 48%,#ffe5c9 100%); }
 .discover-sticky { background:rgba(15,15,18,.97); backdrop-filter:blur(14px); }
 html[data-theme="light"] .discover-sticky { background:linear-gradient(135deg,rgba(253,225,236,.97),rgba(251,222,220,.97)); }

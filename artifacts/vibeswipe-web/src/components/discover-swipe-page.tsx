@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { AnimatePresence, useReducedMotion } from "framer-motion";
 import { discoveryFilterParams, type DiscoveryFilters } from "@/lib/discovery-filters";
 import { DiscoveryFilterForm } from "@/components/discovery-filter-form";
-import { VerifiedBadge } from "@/components/verified-badge";
 import { useQueryClient } from "@tanstack/react-query";
 import { Redirect, useLocation } from "wouter";
 import {
@@ -26,7 +26,6 @@ import {
   useGetDailyLikeStatus,
   useGetDiscoverProfiles,
   useGetMyProfile,
-  useGetMediaPreview,
   useGetSuperLikeStatus,
   useGetVibeSwipeSettings,
   useRecordProfileView,
@@ -35,21 +34,13 @@ import {
   type Profile,
   type ReportInputReason,
 } from "@workspace/api-client-react";
-import { ArrowLeft, Heart, MapPin, MoreHorizontal, Search, SlidersHorizontal, Star, X, Zap } from "lucide-react";
+import { ArrowLeft, Heart, Search, SlidersHorizontal, Star, X, Zap } from "lucide-react";
 import { isDiscoverSetupRequired, shouldRetryDiscover } from "@/lib/profile-query-state";
 import { StoriesRow } from "@/components/stories/stories-ui";
 import { MatchCelebration } from "@/components/match-celebration";
 import { QuietSpinner } from "@/components/ui/quiet-spinner";
+import { DiscoverSwipeCard, type SwipeAction, type SwipeExit, type SwipeGesture } from "@/components/discover-swipe-card";
 
-const mediaUrl = (ref?: string | null) => ref
-  ? ref.startsWith("http")
-    ? ref
-    : ref.startsWith("media:")
-      ? `/api/vibeswipe/media/${encodeURIComponent(ref.slice(6))}`
-      : ref.startsWith("demo:")
-        ? ""
-        : `/api/storage${ref.startsWith("/") ? ref : `/${ref}`}`
-  : "";
 const useDiscoveryDeck = createUseDiscoveryDeck(useState);
 
 export function DiscoverSwipePage() {
@@ -61,9 +52,13 @@ export function DiscoverSwipePage() {
   const [notice, setNotice] = useState("");
   const [likeConfirmation, setLikeConfirmation] = useState("");
   const [lastPass, setLastPass] = useState<string | null>(null);
-  const [swipeMotion, setSwipeMotion] = useState<"pass" | "like" | "super" | null>(null);
+  const [swipeExit, setSwipeExit] = useState<SwipeExit | null>(null);
+  const [pendingReactionCount, setPendingReactionCount] = useState(0);
+  const [pendingLikeCount, setPendingLikeCount] = useState(0);
+  const [pendingSuperLikeCount, setPendingSuperLikeCount] = useState(0);
   const swipeLock = useRef(false);
   const [matchResult, setMatchResult] = useState<{ profile: Profile; matchId: string | null } | null>(null);
+  const reducedMotion = useReducedMotion() ?? false;
   const myProfile = useGetMyProfile();
   const filterValues: DiscoveryFilters = appliedFilters ?? {
     ageMin: myProfile.data?.preferences.ageMin ?? 22,
@@ -76,8 +71,6 @@ export function DiscoverSwipePage() {
     setFiltersOpen(false);
   }
   const noticeTimer = useRef<number | null>(null);
-  const touchStart = useRef<{ x: number; y: number } | null>(null);
-  const suppressCardOpen = useRef(false);
   const previousTravelFilter = useRef<string | null>(null);
   const settings = useGetVibeSwipeSettings({ query: { queryKey: getGetVibeSwipeSettingsQueryKey() } });
   useEffect(() => () => {
@@ -96,8 +89,46 @@ export function DiscoverSwipePage() {
   });
   const { profiles, index, setIndex, refill } = useDiscoveryDeck(discover.data, feedKey);
   const profile = profiles[index];
+  const reaction = useCreateReaction();
+  const undo = useUndoLastPass();
+  const likes = useGetDailyLikeStatus({ query: { queryKey: getGetDailyLikeStatusQueryKey(), refetchInterval: 60_000 } });
+  const superLikes = useGetSuperLikeStatus({ query: { queryKey: getGetSuperLikeStatusQueryKey(), refetchInterval: 60_000 } });
+  const boost = useGetBoostStatus({ query: { queryKey: getGetBoostStatusQueryKey(), refetchInterval: 10_000 } });
+  const activateBoost = useActivateBoost();
+  const recordView = useRecordProfileView();
+  const block = useBlockProfile();
+  const report = useReportProfile();
+  const profilesRef = useRef(profiles);
+  const indexRef = useRef(index);
+  const activeProfileRef = useRef(profile);
+  const profileByIdRef = useRef(new Map<string, Profile>());
+  const setIndexRef = useRef(setIndex);
+  const pendingLikeCountRef = useRef(0);
+  const pendingSuperLikeCountRef = useRef(0);
+  const reactionQueue = useRef<Promise<void>>(Promise.resolve());
+  const reactionMutateRef = useRef(reaction.mutateAsync);
+  const refetchDiscoverRef = useRef(discover.refetch);
+  const likesRemainingRef = useRef(likes.data?.remaining);
+  const superLikesRemainingRef = useRef(superLikes.data?.remaining);
+  const matchResultRef = useRef(matchResult);
+  profilesRef.current = profiles;
+  indexRef.current = index;
+  activeProfileRef.current = profile;
+  profileByIdRef.current = new Map(profiles.map((item) => [item.id, item]));
+  setIndexRef.current = setIndex;
+  reactionMutateRef.current = reaction.mutateAsync;
+  refetchDiscoverRef.current = discover.refetch;
+  likesRemainingRef.current = likes.data?.remaining;
+  superLikesRemainingRef.current = superLikes.data?.remaining;
+  matchResultRef.current = matchResult;
+  pendingLikeCountRef.current = pendingLikeCount;
+  pendingSuperLikeCountRef.current = pendingSuperLikeCount;
+
+  const stackProfiles = useMemo(() => profiles.slice(index, index + 4), [profiles, index]);
   useEffect(() => {
-    const upcoming = profiles.slice(index, index + 8);
+    const memory = (navigator as Navigator & { deviceMemory?: number }).deviceMemory;
+    const preloadCount = memory !== undefined && memory <= 2 ? 3 : 5;
+    const upcoming = profiles.slice(index, index + preloadCount);
     for (const candidate of upcoming) {
       const key = getGetProfileByIdQueryKey(candidate.id);
       const cached = queryClient.getQueryState(key);
@@ -105,7 +136,7 @@ export function DiscoverSwipePage() {
         void queryClient.prefetchQuery({ queryKey: key, queryFn: async () => candidate, staleTime: 10 * 60_000, gcTime: 30 * 60_000 });
       }
     }
-    for (const candidate of upcoming.slice(0, 3)) {
+    for (const candidate of upcoming) {
       const reference = candidate.photos?.[0];
       if (!reference?.startsWith("media:")) continue;
       const mediaId = reference.slice(6);
@@ -118,26 +149,17 @@ export function DiscoverSwipePage() {
     }
   }, [profiles, index, queryClient]);
   const worldwide = Boolean(profile?.discoveryExpanded || discover.data?.some(p => p.discoveryExpanded));
-  const reaction = useCreateReaction();
-  const undo = useUndoLastPass();
-  const likes = useGetDailyLikeStatus({ query: { queryKey: getGetDailyLikeStatusQueryKey(), refetchInterval: 60_000 } });
-  const superLikes = useGetSuperLikeStatus({ query: { queryKey: getGetSuperLikeStatusQueryKey(), refetchInterval: 60_000 } });
-  const boost = useGetBoostStatus({ query: { queryKey: getGetBoostStatusQueryKey(), refetchInterval: 10_000 } });
-  const activateBoost = useActivateBoost();
-  const recordView = useRecordProfileView();
-  const block = useBlockProfile();
-  const report = useReportProfile();
   const viewed = useRef(new Set<string>());
   const tailRequested = useRef("");
   useEffect(() => {
     const tailKey = `${feedKey}:${index}`;
-    if (index < 1 || index < profiles.length - 2 || reaction.isPending || discover.isFetching || tailRequested.current === tailKey) return;
+    if (index < 1 || index < profiles.length - 2 || pendingReactionCount > 0 || discover.isFetching || tailRequested.current === tailKey) return;
     tailRequested.current = tailKey;
     const exhausted = index >= profiles.length;
     // A prefetch started before the last swipe can contain that now-liked card.
     // Only start a new round from a request sent after the stack was exhausted.
     void discover.refetch().then(result => { if (exhausted && !result.isError) refill(result.data); });
-  }, [feedKey, index, profiles.length, reaction.isPending, discover.isFetching]);
+  }, [feedKey, index, profiles.length, pendingReactionCount, discover.isFetching]);
   const matchOverlay = <MatchCelebration
     visible={!!matchResult} self={(myProfile.data as Profile | undefined) ?? null}
     other={matchResult?.profile ?? null} canMessage={Boolean(matchResult?.matchId)}
@@ -156,59 +178,132 @@ export function DiscoverSwipePage() {
   }, [settings.data?.travelMode, settings.data?.travelCity]);
 
   useEffect(() => {
-    if (profile && !profile.isDemo && !viewed.current.has(profile.id)) {
+    if (!profile || profile.isDemo || viewed.current.has(profile.id)) return;
+    let cancelled = false;
+    const idleWindow = window as Window & {
+      requestIdleCallback?: (callback: () => void, options?: { timeout: number }) => number;
+      cancelIdleCallback?: (handle: number) => void;
+    };
+    const record = () => {
+      if (cancelled || viewed.current.has(profile.id)) return;
       viewed.current.add(profile.id);
       recordView.mutate({ profileId: profile.id });
-    }
-  }, [profile?.id]);
+    };
+    const idleId = idleWindow.requestIdleCallback?.(record, { timeout: 700 });
+    const fallbackId = idleId === undefined ? window.setTimeout(record, 120) : null;
+    return () => {
+      cancelled = true;
+      if (idleId !== undefined) idleWindow.cancelIdleCallback?.(idleId);
+      if (fallbackId !== null) window.clearTimeout(fallbackId);
+    };
+  }, [profile?.id, profile?.isDemo, recordView.mutate]);
 
-  async function swipe(type: "pass" | "like" | "super") {
-    if (!profile || swipeLock.current || reaction.isPending || likeConfirmation || matchResult) return;
-    if (type === "like" && likes.data?.remaining === 0) {
+  const swipe = useCallback((profileId: string, type: SwipeAction, gesture: SwipeGesture = { offsetX: 0, velocityX: 0 }) => {
+    const current = activeProfileRef.current;
+    if (!current || current.id !== profileId || swipeLock.current || matchResultRef.current) return;
+    const likesRemaining = likesRemainingRef.current;
+    if (type === "like" && likesRemaining !== undefined && pendingLikeCountRef.current >= likesRemaining) {
       setNotice("You’ve reached your daily like limit. Come back in 24 hours.");
       return;
     }
-    const current = profile;
-    if (noticeTimer.current !== null) window.clearTimeout(noticeTimer.current);
-    swipeLock.current = true;
-    setSwipeMotion(type);
-    setNotice("");
-    try {
-      const duration = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 220;
-      const [result] = await Promise.all([
-        reaction.mutateAsync({ data: { toUserId: current.id, type } }),
-        new Promise<void>(resolve => window.setTimeout(resolve, duration)),
-      ]);
-      setIndex((value) => value + 1);
-      setLastPass(type === "pass" ? current.id : null);
-      if (type === "like") void queryClient.invalidateQueries({ queryKey: getGetDailyLikeStatusQueryKey() });
-      if (type === "super") void queryClient.invalidateQueries({ queryKey: getGetSuperLikeStatusQueryKey() });
-      if (result.matched) {
-        void queryClient.invalidateQueries({ queryKey: getGetMatchesQueryKey() });
-      }
-      if (type === "like" || type === "super" || result.matched) {
-        setLikeConfirmation(result.matched ? `You and ${current.name} matched.` : type === "super" ? `You super liked ${current.name}` : `You liked ${current.name}`);
-        noticeTimer.current = window.setTimeout(() => {
-          setLikeConfirmation("");
-          if (result.matched) setMatchResult({ profile: current, matchId: result.matchId ?? null });
-        }, 1500);
-      }
-    } catch (error) {
-      if ((error as { status?: number }).status === 404) {
-        setIndex((value) => value + 1);
-        setNotice("This profile is no longer available. Finding someone new.");
-        void discover.refetch();
-        return;
-      }
-      setNotice("That swipe did not save. Try again.");
-    } finally {
-      setSwipeMotion(null);
-      swipeLock.current = false;
+    const superLikesRemaining = superLikesRemainingRef.current;
+    if (type === "super" && superLikesRemaining !== undefined && pendingSuperLikeCountRef.current >= superLikesRemaining) {
+      setNotice("You’ve used your available Super Likes.");
+      return;
     }
-  }
+
+    swipeLock.current = true;
+    const direction = type === "pass" ? -1 : 1;
+    const swipeExitTarget: SwipeExit = type === "super"
+      ? { action: type, x: 0, y: -window.innerHeight * 1.15, rotate: 0, reducedMotion }
+      : {
+          action: type,
+          x: direction * Math.max(window.innerWidth * 1.15, Math.abs(gesture.offsetX) + Math.abs(gesture.velocityX) * 0.16),
+          y: 0,
+          rotate: direction * Math.min(15, 5 + Math.abs(gesture.velocityX) / 280),
+          reducedMotion,
+        };
+
+    const nextIndex = indexRef.current + 1;
+    indexRef.current = nextIndex;
+    activeProfileRef.current = profilesRef.current[nextIndex];
+    setSwipeExit(swipeExitTarget);
+    setIndexRef.current(nextIndex);
+    setNotice("");
+    if (type === "like") {
+      pendingLikeCountRef.current += 1;
+      setPendingLikeCount(pendingLikeCountRef.current);
+    }
+    if (type === "super") {
+      pendingSuperLikeCountRef.current += 1;
+      setPendingSuperLikeCount(pendingSuperLikeCountRef.current);
+    }
+    setPendingReactionCount((count) => count + 1);
+    swipeLock.current = false;
+
+    const submit = async () => {
+      try {
+        const result = await reactionMutateRef.current({ data: { toUserId: current.id, type } });
+        setLastPass(type === "pass" ? current.id : null);
+        if (type === "like") void queryClient.invalidateQueries({ queryKey: getGetDailyLikeStatusQueryKey() });
+        if (type === "super") void queryClient.invalidateQueries({ queryKey: getGetSuperLikeStatusQueryKey() });
+        if (result.matched) void queryClient.invalidateQueries({ queryKey: getGetMatchesQueryKey() });
+        if (result.matched) {
+          if (noticeTimer.current !== null) window.clearTimeout(noticeTimer.current);
+          setLikeConfirmation("");
+          setMatchResult({ profile: current, matchId: result.matchId ?? null });
+        } else if (type === "like" || type === "super") {
+          if (noticeTimer.current !== null) window.clearTimeout(noticeTimer.current);
+          setLikeConfirmation(type === "super" ? `You super liked ${current.name}` : `You liked ${current.name}`);
+          noticeTimer.current = window.setTimeout(() => {
+            setLikeConfirmation("");
+          }, 1500);
+        }
+      } catch (error) {
+        if ((error as { status?: number }).status === 404) {
+          setNotice("This profile is no longer available. Finding someone new.");
+          void refetchDiscoverRef.current();
+        } else {
+          setNotice("That swipe could not be saved. Try again later.");
+        }
+      } finally {
+        if (type === "like") {
+          pendingLikeCountRef.current = Math.max(0, pendingLikeCountRef.current - 1);
+          setPendingLikeCount(pendingLikeCountRef.current);
+        }
+        if (type === "super") {
+          pendingSuperLikeCountRef.current = Math.max(0, pendingSuperLikeCountRef.current - 1);
+          setPendingSuperLikeCount(pendingSuperLikeCountRef.current);
+        }
+        setPendingReactionCount((count) => Math.max(0, count - 1));
+      }
+    };
+
+    reactionQueue.current = reactionQueue.current.then(submit, submit);
+  }, [queryClient, reducedMotion]);
+
+  const openProfile = useCallback((profileId: string) => {
+    if (activeProfileRef.current?.id !== profileId) return;
+    const selected = profileByIdRef.current.get(profileId);
+    if (!selected) return;
+    const key = getGetProfileByIdQueryKey(profileId);
+    const cachedProfile = queryClient.getQueryState(key);
+    if (!cachedProfile?.data || Date.now() - cachedProfile.dataUpdatedAt > 10 * 60_000) {
+      void queryClient.prefetchQuery({ queryKey: key, queryFn: async () => selected, staleTime: 10 * 60_000, gcTime: 30 * 60_000 });
+    }
+    const followKey = getGetProfileFollowSummaryQueryKey(profileId);
+    void queryClient.prefetchQuery({ queryKey: followKey, queryFn: ({ signal }) => getProfileFollowSummary(profileId, { signal }), staleTime: 10 * 60_000, gcTime: 30 * 60_000 });
+    const datingKey = getGetProfileDatingStateQueryKey(profileId);
+    void queryClient.prefetchQuery({ queryKey: datingKey, queryFn: ({ signal }) => getProfileDatingState(profileId, { signal }), staleTime: 10 * 60_000, gcTime: 30 * 60_000 });
+    setLocation(`/profile/${profileId}?returnTo=%2Fdiscover`);
+  }, [queryClient, setLocation]);
+
+  const openOptions = useCallback((profileId: string) => {
+    if (activeProfileRef.current?.id === profileId) setOptionsOpen(true);
+  }, []);
 
   async function undoLastSwipe() {
-    if (!lastPass || undo.isPending || swipeLock.current) return;
+    if (!lastPass || undo.isPending || swipeLock.current || pendingReactionCount > 0) return;
     try {
       const result = await undo.mutateAsync();
       if (result.undone && result.targetUserId === lastPass) {
@@ -262,6 +357,10 @@ export function DiscoverSwipePage() {
     </header>
     <StoriesRow mode={profile ? "all" : "matches"}/>
   </div>;
+  const likeLimitReached = likes.data?.remaining === 0 ||
+    (likes.data?.remaining !== undefined && pendingLikeCount >= likes.data.remaining);
+  const superLikeLimitReached = superLikes.data?.remaining === 0 ||
+    (superLikes.data?.remaining !== undefined && pendingSuperLikeCount >= superLikes.data.remaining);
   if (discover.isLoading) {
     return <div role="status" aria-label="Loading" className="mx-auto flex max-w-xl justify-center px-4 py-12"><QuietSpinner /></div>;
   }
@@ -301,67 +400,26 @@ export function DiscoverSwipePage() {
       {likeConfirmation && <div className="fixed inset-x-0 top-[calc(env(safe-area-inset-top)+1rem)] z-[60] flex justify-center px-4" role="status" aria-live="polite" data-testid="status-discover-liked"><div className="flex items-center gap-2 rounded-full border border-primary/25 bg-[#211a27]/95 px-5 py-3 text-sm font-semibold text-white shadow-2xl backdrop-blur-xl"><Heart size={17} fill="currentColor" className="text-primary"/>{likeConfirmation}</div></div>}
 
       <div className="discover-card-slot" data-testid="discover-card-slot">
-      <article
-        key={profile.id}
-        data-swipe={swipeMotion ?? "idle"}
-        aria-busy={!!swipeMotion}
-        className="relative isolate flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden rounded-[30px] bg-[#17141b] shadow-xl"
-        onTouchStart={(event) => { touchStart.current = { x: event.touches[0].clientX, y: event.touches[0].clientY }; }}
-        onTouchEnd={(event) => {
-          const start = touchStart.current;
-          if (!start) return;
-          const dx = event.changedTouches[0].clientX - start.x;
-          const dy = event.changedTouches[0].clientY - start.y;
-          if (Math.abs(dx) > 12 || Math.abs(dy) > 12) {
-            suppressCardOpen.current = true;
-            window.setTimeout(() => { suppressCardOpen.current = false; }, 350);
-          }
-          if (Math.abs(dx) > 90 && Math.abs(dx) > Math.abs(dy) * 1.2) void swipe(dx > 0 ? "like" : "pass");
-          touchStart.current = null;
-        }}
-        onClick={() => {
-          if (suppressCardOpen.current || swipeLock.current) return;
-          const key = getGetProfileByIdQueryKey(profile.id);
-          const cachedProfile = queryClient.getQueryState(key);
-          if (!cachedProfile?.data || Date.now() - cachedProfile.dataUpdatedAt > 10 * 60_000) {
-            void queryClient.prefetchQuery({ queryKey: key, queryFn: async () => profile, staleTime: 10 * 60_000, gcTime: 30 * 60_000 });
-          }
-          const followKey = getGetProfileFollowSummaryQueryKey(profile.id);
-          void queryClient.prefetchQuery({ queryKey: followKey, queryFn: ({ signal }) => getProfileFollowSummary(profile.id, { signal }), staleTime: 10 * 60_000, gcTime: 30 * 60_000 });
-          const datingKey = getGetProfileDatingStateQueryKey(profile.id);
-          void queryClient.prefetchQuery({ queryKey: datingKey, queryFn: ({ signal }) => getProfileDatingState(profile.id, { signal }), staleTime: 10 * 60_000, gcTime: 30 * 60_000 });
-          setLocation(`/profile/${profile.id}?returnTo=%2Fdiscover`);
-        }}
-        onKeyDown={(event) => {
-          if (!swipeLock.current && event.target === event.currentTarget && (event.key === "Enter" || event.key === " ")) {
-            event.preventDefault();
-             setLocation(`/profile/${profile.id}?returnTo=%2Fdiscover`);
-          }
-        }}
-        data-testid={`card-discover-${profile.id}`}
-        aria-label={`${profile.name}${profile.age !== null ? `, ${profile.age}` : ""}. Tap to view full profile.`}
-        tabIndex={0}
-      >
-        <div className="relative min-h-0 flex-1">
-          {profile.photos?.[0]
-             ? <ProfilePhoto key={profile.id} reference={profile.photos[0]} alt={`${profile.name}${profile.age !== null ? `, ${profile.age}` : ""}`} className="absolute inset-0 h-full w-full object-cover object-top" />
-            : <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_25%,#9f6076,#382b3a_55%,#1b1820)]" />}
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#130f16] via-[#17121a]/10 to-[#17121a]/10" />
-          <button type="button" onClick={(event) => { event.stopPropagation(); setOptionsOpen(true); }} data-testid="button-profile-details" aria-label={`Profile options for ${profile.name}`} className="absolute right-4 top-4 z-[2] rounded-full border border-white/20 bg-black/40 p-2.5 text-white backdrop-blur"><MoreHorizontal size={19} /></button>
-          <div className="pointer-events-none absolute inset-x-5 bottom-5">
-            <div className="flex min-w-0 items-end justify-between gap-3"><h2 className="min-w-0 break-words text-3xl font-bold leading-tight tracking-tight text-white sm:text-4xl">{profile.name}<VerifiedBadge verified={profile.isVerified}/></h2>{profile.age !== null && <span className="shrink-0 pb-0.5 text-xl text-white/80 sm:text-2xl">{profile.age}</span>}</div>
-            <div className="mt-2 flex min-w-0 items-center gap-1.5 text-sm text-white/80"><MapPin size={14} className="shrink-0" /><span className="truncate">{[profile.city, profile.state, profile.country].filter(Boolean).join(", ") || "Nearby"}</span></div>
-            {!!profile.interests?.length && <div className="mt-3 flex flex-wrap gap-2"><span className="rounded-full border border-white/20 bg-black/25 px-3 py-1 text-xs text-white backdrop-blur">{profile.interests[0]}</span></div>}
-          </div>
-        </div>
-
-      </article>
+        <AnimatePresence initial={false} custom={swipeExit}>
+          {stackProfiles.map((candidate, depth) => (
+            <DiscoverSwipeCard
+              key={candidate.id}
+              profile={candidate}
+              depth={depth}
+              active={depth === 0}
+              reducedMotion={reducedMotion}
+              onSwipe={swipe}
+              onOpen={openProfile}
+              onOptions={openOptions}
+            />
+          ))}
+        </AnimatePresence>
       </div>
-        <div className="discover-actions flex items-center justify-center" aria-label="Profile actions" aria-busy={!!swipeMotion}>
-          <button type="button" onClick={(event) => { event.stopPropagation(); void swipe("pass"); }} disabled={reaction.isPending || !!likeConfirmation || !!matchResult} data-testid="button-pass-profile" aria-label="Pass" className="flex h-14 w-14 items-center justify-center rounded-full bg-card text-foreground shadow-lg disabled:opacity-40"><X size={27} /></button>
-          <button type="button" onClick={(event) => { event.stopPropagation(); void undoLastSwipe(); }} disabled={!lastPass || undo.isPending} data-testid="button-undo-pass" aria-label="Undo last pass" className="flex h-10 w-10 items-center justify-center rounded-full bg-card text-muted-foreground shadow-sm disabled:opacity-40"><ArrowLeft size={18} /></button>
-          <button type="button" onClick={(event) => { event.stopPropagation(); void swipe("super"); }} disabled={reaction.isPending || !!likeConfirmation || !!matchResult || superLikes.data?.remaining === 0} data-testid="button-super-like" aria-label={`Super like, ${superLikes.data?.remaining??"unknown"} left`} className="flex h-14 w-14 items-center justify-center rounded-full bg-card text-amber-400 shadow-lg disabled:opacity-40"><Star size={29} fill="currentColor"/></button>
-          <button type="button" onClick={(event) => { event.stopPropagation(); void swipe("like"); }} disabled={reaction.isPending || !!likeConfirmation || !!matchResult || likes.data?.remaining === 0} data-testid="button-like-profile" aria-label="Like" className="flex h-16 w-16 items-center justify-center rounded-full bg-card text-primary shadow-lg disabled:opacity-40"><Heart size={31} fill="currentColor" /></button>
+        <div className="discover-actions flex items-center justify-center" aria-label="Profile actions">
+          <button type="button" onClick={(event) => { event.stopPropagation(); swipe(profile.id, "pass"); }} disabled={!!matchResult} data-testid="button-pass-profile" aria-label="Pass" className="flex h-14 w-14 items-center justify-center rounded-full bg-card text-foreground shadow-lg disabled:opacity-40"><X size={27} /></button>
+          <button type="button" onClick={(event) => { event.stopPropagation(); void undoLastSwipe(); }} disabled={!lastPass || undo.isPending || pendingReactionCount > 0} data-testid="button-undo-pass" aria-label="Undo last pass" className="flex h-10 w-10 items-center justify-center rounded-full bg-card text-muted-foreground shadow-sm disabled:opacity-40"><ArrowLeft size={18} /></button>
+          <button type="button" onClick={(event) => { event.stopPropagation(); swipe(profile.id, "super"); }} disabled={!!matchResult || superLikeLimitReached} data-testid="button-super-like" aria-label={`Super like, ${superLikes.data?.remaining??"unknown"} left`} className="flex h-14 w-14 items-center justify-center rounded-full bg-card text-amber-400 shadow-lg disabled:opacity-40"><Star size={29} fill="currentColor"/></button>
+          <button type="button" onClick={(event) => { event.stopPropagation(); swipe(profile.id, "like"); }} disabled={!!matchResult || likeLimitReached} data-testid="button-like-profile" aria-label="Like" className="flex h-16 w-16 items-center justify-center rounded-full bg-card text-primary shadow-lg disabled:opacity-40"><Heart size={31} fill="currentColor" /></button>
         </div>
 
       {optionsOpen && <ProfileOptionsDialog onClose={() => setOptionsOpen(false)} onReport={(reason) => void reportCurrent(reason)} onBlock={() => void blockCurrent()} />}
@@ -369,22 +427,6 @@ export function DiscoverSwipePage() {
       {matchOverlay}
     </main>
   );
-}
-
-function ProfilePhoto({ reference, alt, className }: { reference: string; alt: string; className: string }) {
-  const mediaId = reference.startsWith("media:") ? reference.slice(6) : "";
-  const media = useGetMediaPreview(mediaId, {
-    query: { enabled: Boolean(mediaId), queryKey: getGetMediaPreviewQueryKey(mediaId), staleTime: 10 * 60_000, gcTime: 30 * 60_000 },
-  });
-  const [objectUrl, setObjectUrl] = useState("");
-  useEffect(() => {
-    if (!media.data) return;
-    const url = URL.createObjectURL(media.data);
-    setObjectUrl(url);
-    return () => URL.revokeObjectURL(url);
-  }, [media.data]);
-  const src = mediaId ? objectUrl : mediaUrl(reference);
-  return src ? <img src={src} alt={alt} className={className} loading="eager" fetchPriority="high" decoding="async" /> : null;
 }
 
 function FilterDialog({ open, onClose, value, travelMode, onApply }: {

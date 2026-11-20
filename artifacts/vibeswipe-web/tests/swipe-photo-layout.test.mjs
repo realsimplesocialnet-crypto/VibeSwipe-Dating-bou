@@ -4,23 +4,24 @@ import { readFile } from "node:fs/promises";
 
 const web = await readFile(new URL("../src/components/discover-swipe-page.tsx", import.meta.url), "utf8");
 const native = await readFile(new URL("../../vibeswipe/app/(tabs)/index.tsx", import.meta.url), "utf8");
+const swipeCard = await readFile(new URL("../src/components/discover-swipe-card.tsx", import.meta.url), "utf8");
 const css = await readFile(new URL("../src/index.css", import.meta.url), "utf8");
 
 test("swipe photo fills a stable allocated frame without fixed portrait sizing", () => {
-  const card = web.match(/<article\b[^>]*className="([^"]+)"/)?.[1] ?? "";
+  const card = swipeCard.match(/<motion\.article\b[^>]*className="([^"]+)"/)?.[1] ?? "";
   assert.match(card, /h-full min-h-0 w-full min-w-0/);
-  assert.match(card, /relative isolate/);
   assert.match(card, /overflow-hidden/);
   assert.doesNotMatch(card, /dvh|aspect-\[|max-h-/);
-  assert.match(web, /ProfilePhoto key=\{profile.id\}.*object-cover object-top/);
+  assert.match(swipeCard, /object-cover object-top/);
 });
 
 test("own avatar is grouped into Stories when a card is shown; empty Discover stays unchanged", () => {
   assert.match(web, /!profile && <StoriesRow mode="own"/);
   assert.match(web, /StoriesRow mode=\{profile \? "all" : "matches"\}/);
-  assert.match(web, /profile\.name/);
-  assert.match(web, /profile\.age !== null/);
-  assert.match(web, /profile\.interests\[0\]/);
+  assert.match(swipeCard, /profile\.name/);
+  assert.match(swipeCard, /profile\.age !== null/);
+  assert.match(swipeCard, /profile\.interests\?\.\s*length/);
+  assert.match(swipeCard, /profile\.interests\[0\]/);
 });
 
 test("native swipe photo uses the same fixed ratio, authenticated source, and top-center positioning", () => {
@@ -40,9 +41,9 @@ test("Discover locks document scrolling and reserves real navigation space", () 
 
 test("photo fits the remaining slot without moving behind Stories or covering actions", () => {
   assert.match(css, /\.discover-card-slot \{[^}]*flex: 1;[^}]*min-height: 0;/s);
-  assert.match(css, /\.discover-card-slot > article \{[^}]*height: 100%;[^}]*width: 100%;[^}]*aspect-ratio: auto;[^}]*touch-action: none;/s);
+  assert.match(css, /\.discover-card-layer > article \{[^}]*height: 100%;[^}]*width: 100%;[^}]*touch-action: none;[^}]*will-change: transform;/s);
   assert.match(css, /\.discover-deck > \.discover-actions \{ flex-shrink: 0;/);
-  assert.match(web, /<\/article>\s*<\/div>\s*<div className="discover-actions/);
+  assert.match(web, /<\/AnimatePresence>\s*<\/div>\s*<div className="discover-actions/);
   for (const [width, height] of [[320,568],[390,844],[412,915],[430,932],[768,1024],[1440,900]]) {
     for (const banner of [0,64,100]) {
       const slotWidth = Math.min(680, width - (width >= 1024 ? 248 : 0)) - (width >= 640 ? 48 : 32);

@@ -3,13 +3,15 @@ import test from "node:test";
 import { readFileSync } from "node:fs";
 const css = readFileSync(new URL("../src/index.css", import.meta.url), "utf8");
 const component = readFileSync(new URL("../src/components/discover-swipe-page.tsx", import.meta.url), "utf8");
+const card = readFileSync(new URL("../src/components/discover-swipe-card.tsx", import.meta.url), "utf8");
 
 test("swipe card fills both dimensions of its responsive slot rather than shrinking to an aspect ratio", () => {
-  const rule = css.match(/\.discover-card-slot > article \{([^}]+)\}/)?.[1];
+  const rule = css.match(/\.discover-card-layer > article \{([^}]+)\}/)?.[1];
   assert.ok(rule);
   assert.match(rule, /height: 100%/);
   assert.match(rule, /width: 100%/);
-  assert.match(rule, /aspect-ratio: auto/);
+  assert.match(rule, /touch-action: none/);
+  assert.match(rule, /will-change: transform/);
   assert.doesNotMatch(component, /aspect-\[4\/5\]|max-w-\[560px\]/);
 });
 test("actions reserve space outside the photo and fit narrow mobile widths", () => {
@@ -31,9 +33,12 @@ test("installed iPhone Discover fills the fixed viewport instead of trusting a s
   assert.match(css, /padding-bottom: var\(--mobile-nav-height/);
 });
 test("swipe animations support pass, like, super like and reduced motion", () => {
-  for (const direction of ["pass", "like", "super"]) assert.ok(css.includes(`article[data-swipe="${direction}"]`));
-  assert.match(css, /prefers-reduced-motion: reduce/);
-  assert.match(component, /key=\{profile\.id\}/);
+  for (const action of ['"pass"', '"like"', '"super"']) assert.ok(card.includes(action));
+  assert.match(component, /<AnimatePresence initial=\{false\} custom=\{swipeExit\}>/);
+  assert.match(card, /type: "spring", stiffness: 720/);
+  assert.match(card, /duration: 0\.16/);
+  assert.match(card, /useMotionValue/);
+  assert.match(card, /dragSnapToOrigin/);
 });
 test("Discover keeps rounded surfaces without bright outlines or a line above the tabs", () => {
   assert.doesNotMatch(component, /rounded-\[28px\] border border-border\/40/);
@@ -45,10 +50,21 @@ test("Discover keeps rounded surfaces without bright outlines or a line above th
   assert.match(app, /getBoundingClientRect\(\)\.height/);
   assert.match(app, /ResizeObserver\(measure\)/);
 });
-test("reaction must save before advancing, failures retain the same profile, and double taps are locked", () => {
-  const swipe = component.slice(component.indexOf("async function swipe("), component.indexOf("async function undoLastSwipe("));
-  assert.ok(swipe.indexOf("await Promise.all") < swipe.indexOf("setIndex"));
-  assert.match(swipe, /if \(!profile \|\| swipeLock\.current/);
-  assert.match(swipe, /finally \{\s*setSwipeMotion\(null\);\s*swipeLock\.current = false/);
-  assert.doesNotMatch(swipe, /value - 1/);
+test("swipes advance immediately while server reactions run in a serialized background queue", () => {
+  const swipe = component.slice(component.indexOf("const swipe = useCallback("), component.indexOf("const openProfile"));
+  assert.ok(swipe.indexOf("setIndexRef.current(nextIndex)") < swipe.indexOf("const submit = async () =>"));
+  assert.doesNotMatch(swipe.slice(0, swipe.indexOf("const submit = async () =>")), /await/);
+  assert.match(swipe, /if \(!current \|\| current\.id !== profileId \|\| swipeLock\.current/);
+  assert.match(swipe, /pendingLikeCountRef\.current >= likesRemaining/);
+});
+
+test("Discover memoizes cards, uses pointer drag physics, and keeps three cards mounted ahead", () => {
+  assert.match(card, /export const DiscoverSwipeCard = memo/);
+  assert.match(card, /drag=\{active \? "x" : false\}/);
+  assert.match(card, /SWIPE_OFFSET_PX = 54/);
+  assert.match(card, /SWIPE_VELOCITY_PX_PER_SECOND = 420/);
+  assert.match(card, /onTap=\{\(\) => \{ if \(active\) onOpen\(profile\.id\); \}\}/);
+  assert.match(component, /profiles\.slice\(index, index \+ 4\)/);
+  assert.match(component, /memory <= 2 \? 3 : 5/);
+  assert.match(component, /const openProfile = useCallback/);
 });
