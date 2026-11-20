@@ -65,3 +65,13 @@ test('short profile screens compact the portrait while keeping photos and saved 
   assert.match(overview, /profile\.photos\.slice\(0,6\)/);
   assert.match(app, /onProfile \? \(lightMode \? "#fde4ec" : "#3a2232"\)/);
 });
+
+test('own profile sections use a continuous surface and retain the media grid', () => {
+  assert.match(css, /\.own-profile \.op-card \{ background:transparent; box-shadow:none; border:0; \}/);
+  assert.match(css, /\.own-profile \.op-section \{ background:transparent; border:0; border-radius:0; padding:0; box-shadow:none; \}/);
+  assert.match(css, /\.own-profile \.sh-profile-social-compact \.sh-profile-stat \{[^}]*border:0;[^}]*background:transparent;/s);
+  assert.match(css, /\.own-profile \.pp-media-tabs-list \{ border-bottom:0; \}/);
+  assert.match(css, /\.own-profile \.pp-media-state \{[^}]*border:0;[^}]*background:transparent;/s);
+  assert.match(css, /\.pp-reel-grid \{ display:grid; grid-template-columns:repeat\(3,minmax\(0,1fr\)\);/);
+  assert.match(overview, /profile\.photos\.slice\(0,6\)/);
+});
