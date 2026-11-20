@@ -284,7 +284,6 @@ export const ReelSlide = memo(function ReelSlide({ reel, index, active, near, po
   }
 
   const src = reelMediaUrl(reel.videoReference);
-  const paused = userPaused || blocked;
   const tapLabel = slideshow
     ? `Photo slideshow, ${slideIndex + 1} of ${slideCount}. Swipe left or right to browse; swipe up for the next Reel or down for the previous Reel.${reel.soundtrack ? " Tap to play or pause the soundtrack." : ""}`
     : `${userPaused || blocked ? "Tap to play" : "Tap to pause"} Reel. Video audio plays automatically.`;

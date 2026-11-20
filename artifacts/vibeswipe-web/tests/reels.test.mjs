@@ -132,19 +132,19 @@ test("media urls stay on the protected endpoint and return paths stay in-app", (
   assert.equal(formatCount(1280), "1.3K");
 });
 
-test("Reels viewer keeps autoplay muted, inline and paused offscreen or hidden", () => {
+test("Reels viewer plays audible audio by default and pauses offscreen or hidden", () => {
   const slide = read("../src/components/reels/reel-slide.tsx");
-  assert.match(slide, /playsInline muted=\{muted\} loop/);
+  assert.match(slide, /playsInline muted=\{false\} loop/);
   assert.doesNotMatch(slide, /muted=\{Boolean\(reel\.soundtrack\)/);
-  assert.match(read("../src/pages/reels-feed.tsx"), /const \[muted, setMuted\] = useState\(true\)/);
+  assert.doesNotMatch(read("../src/pages/reels-feed.tsx"), /const \[muted, setMuted\]/);
   assert.match(slide, /!active \|\| pageHidden \|\| userPaused/);
   assert.match(slide, /setBlocked\(true\)/);
-  assert.match(slide, /name === "NotAllowedError" && !muted/);
-  assert.match(slide, /element\.muted = true;\s*const mutedAttempt = element\.play\(\)/);
-  assert.doesNotMatch(slide, /button-reel-autoplay-blocked|reel-blocked-play/);
+  assert.match(slide, /element\.muted = false/);
+  assert.match(slide, /Tap the video to play with sound/);
+  assert.doesNotMatch(slide, /button-reel-autoplay-blocked|reel-blocked-play|mutedAttempt/);
   assert.doesNotMatch(slide, /Your browser paused autoplay/);
   const feed = read("../src/pages/reels-feed.tsx");
-  assert.match(feed, /stableReelActions = useMemo\(\(\) => \(\{[\s\S]*?onAutoplayMuted,[\s\S]*?onToggleSound,/);
+  assert.match(feed, /stableReelActions = useMemo\(\(\) => \(\{[\s\S]*?onLike: onReelLike/);
   assert.match(feed, /visibilitychange/);
   assert.match(feed, /useState\(document\.visibilityState === "hidden"\)/);
   assert.match(feed, /getNextPageParam/);
@@ -156,7 +156,7 @@ test("tapping anywhere on a Reel toggles playback without hiding navigation", ()
   const css = read("../src/components/reels/reels.css");
   assert.match(slide, /className=\{`reel-tap \$\{slideshow \? "is-slideshow" : ""\}`\}[^>]*onClick=\{\(\) =>/);
   assert.match(slide, /function handleVideoTap\(\)/);
-  assert.match(slide, /now - previousTap\.at < 300/);
+  assert.match(slide, /function handleVideoTap\(\) \{\s*togglePlayback\(\);\s*\}/);
   const playbackHandler = slide.match(/function togglePlayback\(\) \{([\s\S]*?)\n  \}/)?.[1] ?? "";
   assert.match(playbackHandler, /element\.pause\(\)/);
   assert.match(playbackHandler, /element\.play\(\)/);
@@ -169,19 +169,15 @@ test("tapping anywhere on a Reel toggles playback without hiding navigation", ()
   assert.match(css, /data-navigation-visible="false"\]:not\(\[data-comments-open="true"\]\) \.reel-progress/);
 });
 
-test("Reel playback has a visible sound button for voice and soundtrack", () => {
+test("Reel playback has no speaker control and taps only play or pause", () => {
   const slide = read("../src/components/reels/reel-slide.tsx");
   const feed = read("../src/pages/reels-feed.tsx");
   const css = read("../src/components/reels/reels.css");
-  assert.match(slide, /onToggleSound\(\)/);
-  assert.match(slide, /showFlash\(muted \? "sound-on" : "sound-off"\)/);
-  assert.match(slide, /Volume2 size=\{34\}/);
-  assert.match(slide, /VolumeX size=\{34\}/);
-  assert.match(slide, /reel-action-button reel-sound-button/);
-  assert.match(slide, /Turn voice and sound on/);
-  assert.match(slide, /button-toggle-reel-sound-/);
-  assert.match(css, /\.reel-sound-button/);
-  assert.doesNotMatch(feed, /button-reels-mute|reels-sound|Volume2|VolumeX/);
+  assert.match(slide, /Video audio plays automatically/);
+  assert.match(slide, /function handleVideoTap\(\) \{\s*togglePlayback\(\);\s*\}/);
+  assert.doesNotMatch(slide, /toggleSound|button-toggle-reel-sound|Volume2|VolumeX|sound-on|sound-off/);
+  assert.doesNotMatch(feed, /button-reels-mute|reels-sound|Volume2|VolumeX|onToggleSound|onAutoplayMuted/);
+  assert.doesNotMatch(css, /\.reel-sound-button/);
   assert.doesNotMatch(slide, /button-reel-autoplay-blocked|reel-blocked-play/);
 });
 
