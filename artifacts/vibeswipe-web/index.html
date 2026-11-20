@@ -3,8 +3,8 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover" />
-    <title>Myage</title>
-    <meta name="description" content="Meet people who show up as themselves. Myage is an adults-only dating app built for genuine conversation and clear safety controls." />
+    <title>Myage — Install the App</title>
+    <meta name="description" content="Your next connection starts here. Download the Myage Android app." />
     <link rel="canonical" href="https://myage.beauty/" />
     <meta name="theme-color" content="#15131a" />
     <meta name="referrer" content="no-referrer" />
@@ -14,33 +14,33 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="robots" content="index, follow" />
     <meta property="og:title" content="Myage" />
-    <meta property="og:description" content="An adults-only dating app for genuine conversation." />
+    <meta property="og:description" content="Your next connection starts here." />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://myage.beauty/" />
     <meta property="og:site_name" content="Myage" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Myage" />
-    <meta name="twitter:description" content="An adults-only dating app for genuine conversation." />
-    <script src="%BASE_URL%/pwa-install.js?v=9"></script>
-    <script defer src="%BASE_URL%/pwa-launch.js?v=10" data-production="%PROD%"></script>
-    <link rel="manifest" href="%BASE_URL%/manifest.json?v=7" />
-    <link rel="icon" type="image/svg+xml" href="%BASE_URL%/myage-pwa-icon.svg?v=7" />
-    <link rel="icon" type="image/png" sizes="192x192" href="%BASE_URL%/myage-icon-192-v7.png" />
-    <link rel="apple-touch-icon" sizes="180x180" href="%BASE_URL%/myage-apple-touch-v7.png" />
+    <meta name="twitter:description" content="Your next connection starts here." />
+    <script src="%BASE_URL%pwa-install.js?v=10"></script>
+    <script defer src="%BASE_URL%pwa-launch.js?v=11" data-production="%PROD%"></script>
+    <link rel="manifest" href="%BASE_URL%manifest.json?v=7" />
+    <link rel="icon" type="image/svg+xml" href="%BASE_URL%myage-pwa-icon.svg?v=7" />
+    <link rel="icon" type="image/png" sizes="192x192" href="%BASE_URL%myage-icon-192-v7.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="%BASE_URL%myage-apple-touch-v7.png" />
   </head>
-  <body style="margin:0;background:#0F0F12;color:#fbf5f7">
+  <body style="margin:0;background:#100c12;color:#fff5fa">
     <div id="root">
-      <section style="max-width:28rem;margin:15vh auto;padding:1.5rem;border:1px solid rgba(255,255,255,.1);border-radius:1.5rem;background:#1A1A1E;font:16px/1.6 system-ui,sans-serif;color:#fbf5f7;text-align:center">
-        <h1 style="color:#F34E9A">Opening Myage…</h1>
-        <p style="color:#b6a8af">Please wait while the app loads.</p>
-        <div id="startup-help" hidden>
-          <p style="color:#b6a8af">If the app is not opening, check your connection and try again. Your account and messages are not being deleted.</p>
-          <button id="startup-retry" type="button" style="padding:.75rem 1rem;border:0;border-radius:1rem;background:#F34E9A;color:#24111b;font:inherit;font-weight:700;cursor:pointer">Try again</button>
-        </div>
-        <p><a href="%BASE_URL%/open.html" style="color:#F34E9A">Open launch help</a></p>
-        <noscript><p>Enable JavaScript to use Myage, or <a href="%BASE_URL%/open.html">open launch help</a>.</p></noscript>
-      </section>
+      <main style="display:grid;min-height:100vh;min-height:100dvh;place-items:center;padding:24px;font:16px/1.5 system-ui,sans-serif;text-align:center">
+        <section style="display:flex;max-width:360px;flex-direction:column;align-items:center;gap:24px">
+          <div style="display:flex;align-items:center;gap:12px;font-size:28px;font-weight:800;letter-spacing:-.04em">
+            <img src="%BASE_URL%logo.svg" alt="" width="64" height="64" style="border-radius:18px" />
+            <span>Myage</span>
+          </div>
+          <h1 style="max-width:17ch;margin:0;font-size:30px;line-height:1.15">Your next connection starts here.</h1>
+          <a id="installer-install-fallback" href="#install" download="Myage.apk" style="display:inline-flex;min-height:56px;width:min(100%,280px);align-items:center;justify-content:center;border-radius:16px;background:#f34e9a;color:#24111b;font-weight:750;text-decoration:none">Install App</a>
+        </section>
+      </main>
     </div>
-    <script type="module" src="/src/main.tsx"></script>
+    <script type="module" src="%BASE_URL%src/main.tsx"></script>
   </body>
 </html>

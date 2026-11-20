@@ -1,33 +1,15 @@
 ---
 name: Installed-app experience
-description: The user's expected Android installation and iPhone home-screen launch experience.
+description: Public installer-page behavior and Android WebView app detection.
 ---
 
-Android users should visit the VibeSwipe website, install the app to their phone, and open it from its own home-screen icon without the browser address bar. An instruction-only popup is not the requested outcome.
+In ordinary browsers, `myage.beauty` shows only the Myage logo, one short tagline, and one pink button that downloads the project's APK. Do not expose old app pages or navigation in normal-browser views, including direct page URLs.
 
-The website and installed app must display the same screens, design, and core features. Do not make a separate, limited website experience or require installation to use the app.
+Inside the Android app's WebView, bypass the installer landing page and load the full VibeSwipe app from the same URL. Hide all install controls in that WebView. Detect it when the user agent contains `wv` or `window.Android` exists. Existing Home Screen PWAs should also continue to open the full app in standalone mode.
 
-**Why:** The user repeated, “the same way the app display when someone installs it is the same way when people go website because some people can use websites, some people can use the app.”
+**Why:** The user specified one URL with two behaviors: normal browsers get the APK download page, while the APK opens the real app without asking users to install again.
 
-**How to apply:** Reuse the same welcome, account flow, authenticated pages, and navigation in browser and Home Screen modes. Keep optional install controls separate from access to app content.
-
-Both normal website visits and home-screen launches on iPhone and Android should show Create account and Sign in for signed-out users. Signed-in users must finish their profile form before reaching the main app or its navigation; returning users with saved profiles can continue inside. Do not show installation buttons/cards inside the installed app. Browser users may optionally install, but must be able to create an account and use the website without installing.
-
-**Why:** The user repeated the Android installation requirement, objected to seeing Install again inside the installed app, and clarified that website visitors must have the same account-first entry without seeing the whole app before completing their form.
-
-**How to apply:** Detect the actual standalone window, including Safari's home-screen signal, rather than treating every mobile browser visit as an installed app. Distinguish verified website installability from completed physical-device installation, and do not describe an unpublished change as live.
-
-Use PWA installation, not an APK download, for the website install banner. Show the install option to returning mobile website visitors after refresh as well as new visitors, even when no automatic browser install prompt fires. Keep it available until installation is detected, and do not let old dismissal flags suppress it for returning users.
-
-Browser visitors must be able to close the install banner until the next refresh. Remember confirmed installations, including home-screen launches, so installed users are not repeatedly asked to add it again.
-
-**Why:** The user reported permanent install prompts on installed Android and iPhone apps and explicitly wanted Cancel for website visitors, with the prompt eligible again after refresh.
-
-**How to apply:** Distinguish temporary dismissal from remembered installation. iPhone Safari does not reliably expose a separate Home Screen installation to a normal browser tab; offer an explicit “Already installed” option rather than claiming universal detection.
-
-**Why:** The user clarified “just show PWA install something” and said previous website users could not see the install option.
-
-**How to apply:** Make the banner global across website pages, with a real browser prompt when available and platform-specific manual installation instructions otherwise. Never interpret a missing install prompt as proof that the app is installed.
+**How to apply:** Keep the full app entry dynamically available for the detected Android WebView or standalone PWA. Use the existing APK asset for the normal-browser download button.
 
 The user wants the Android app to open “Without chrome”.
 

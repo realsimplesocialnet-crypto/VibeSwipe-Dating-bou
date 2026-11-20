@@ -1,0 +1,115 @@
+:root {
+  color-scheme: dark;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: #100c12;
+  color: #fff5fa;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  width: 100%;
+  min-width: 320px;
+  min-height: 100%;
+  margin: 0;
+}
+
+body {
+  min-height: 100vh;
+  min-height: 100dvh;
+  background:
+    radial-gradient(ellipse at 50% 38%, rgba(243, 78, 154, 0.12), transparent 48%),
+    #100c12;
+}
+
+.installer-page {
+  display: grid;
+  min-height: 100vh;
+  min-height: 100dvh;
+  place-items: center;
+  padding: max(24px, env(safe-area-inset-top)) 24px max(24px, env(safe-area-inset-bottom));
+}
+
+.installer-content {
+  display: flex;
+  width: min(100%, 360px);
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  text-align: center;
+}
+
+.installer-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #fff5fa;
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+}
+
+.installer-brand img {
+  display: block;
+  width: 64px;
+  height: 64px;
+  border-radius: 18px;
+}
+
+.installer-content h1 {
+  margin: 0;
+  max-width: 17ch;
+  color: #fff5fa;
+  font-size: clamp(25px, 7vw, 34px);
+  font-weight: 750;
+  letter-spacing: -0.04em;
+  line-height: 1.15;
+}
+
+.installer-button {
+  display: inline-flex;
+  width: min(100%, 280px);
+  min-height: 56px;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 16px;
+  background: #f34e9a;
+  color: #24111b;
+  font-size: 16px;
+  font-weight: 750;
+  text-decoration: none;
+  transition: background-color 140ms ease, transform 140ms ease;
+}
+
+.installer-button:hover {
+  background: #ff68aa;
+}
+
+.installer-button:active {
+  transform: scale(0.98);
+}
+
+.installer-button:focus-visible {
+  outline: 3px solid #fff5fa;
+  outline-offset: 4px;
+}
+
+.installer-loading {
+  color: #fff5fa;
+  font-size: 15px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .installer-button {
+    transition: none;
+  }
+}

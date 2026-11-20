@@ -3,22 +3,22 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="theme-color" content="#fff0f4">
+  <meta name="theme-color" content="#100c12">
   <meta name="robots" content="noindex">
-  <title>Reconnect to Myage</title>
+  <title>Myage</title>
   <style>
-    body{margin:0;background:#fff0f4;color:#27212b;font:16px/1.65 system-ui,sans-serif}
-    main{max-width:28rem;margin:15vh auto;padding:1.5rem}h1{color:#b5215e;line-height:1.2}
-    button{background:#d93076;color:white;border:0;border-radius:1rem;padding:.85rem 1.25rem;font:inherit;cursor:pointer}
+    *{box-sizing:border-box}
+    body{display:grid;min-height:100vh;min-height:100dvh;place-items:center;margin:0;padding:24px;background:#100c12;color:#fff5fa;font:16px/1.5 system-ui,sans-serif;text-align:center}
+    main{display:flex;flex-direction:column;align-items:center;gap:24px}
+    .brand{display:flex;align-items:center;gap:12px;font-size:28px;font-weight:800;letter-spacing:-.04em}
+    img{width:64px;height:64px;border-radius:18px}
+    h1{max-width:17ch;margin:0;font-size:30px;line-height:1.15}
   </style>
 </head>
 <body>
   <main>
-    <h1>Let’s reconnect.</h1>
-    <p>Myage couldn’t connect right now. Check your internet connection and try again.</p>
-    <p>Your account and messages have not been deleted.</p>
-    <button type="button" onclick="location.reload()">Try again</button>
-    <noscript><p>Enable JavaScript, then reload this page.</p></noscript>
+    <div class="brand"><img src="logo.svg" alt=""><span>Myage</span></div>
+    <h1>Your next connection starts here.</h1>
   </main>
 </body>
 </html>
