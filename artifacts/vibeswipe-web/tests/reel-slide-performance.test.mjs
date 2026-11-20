@@ -21,7 +21,8 @@ test("web video Reels preload three protected posters and virtualize distant car
   assert.match(web, /preload=\{preload\}/);
   assert.match(web, /removeAttribute\("src"\)/);
   assert.match(web, /if \(!active \|\| pageHidden \|\| userPaused \|\| failed\) \{ element\.pause\(\)/);
-  assert.match(web, /playsInline muted=\{Boolean\(reel\.soundtrack\) \|\| muted\} loop/);
+  assert.match(web, /playsInline muted=\{muted\} loop/);
+  assert.match(web, /reel-action-button reel-sound-button/);
   assert.match(feed, /const REEL_PRELOAD_AHEAD = 3/);
   assert.match(feed, /const REEL_MOUNT_BEHIND = 1/);
   assert.match(feed, /reel-slide-placeholder/);

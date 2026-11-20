@@ -38,6 +38,9 @@
 .reel-action-button > svg { display:block; width:36px; height:36px; flex:none; filter:drop-shadow(0 1px 5px rgb(0 0 0 / .82)); }
 .reel-action-button.is-on, .reel-action-button.is-saved { color: var(--reels-accent); }
 .reel-action-button > span { color:#fff; text-align: center; font-size: 14px; font-weight: 700; text-shadow: 0 1px 5px rgb(0 0 0 / .82); }
+.reel-sound-button { gap: 2px; }
+.reel-sound-button > svg { width: 30px; height: 30px; }
+.reel-sound-button > span { font-size: 10px; }
 .reel-meta { position: absolute; left: 18px; right: 100px; bottom: calc(env(safe-area-inset-bottom) + 22px); z-index: 2; display: flex; flex-direction: column; align-items: flex-start; transition: bottom .22s ease; }
 .reel-meta.is-nav-visible { bottom: 22px; }
 .reel-meta.has-search { bottom: calc(env(safe-area-inset-bottom) + 66px); }

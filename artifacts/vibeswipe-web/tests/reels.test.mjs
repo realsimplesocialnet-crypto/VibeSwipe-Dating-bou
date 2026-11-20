@@ -134,7 +134,8 @@ test("media urls stay on the protected endpoint and return paths stay in-app", (
 
 test("Reels viewer keeps autoplay muted, inline and paused offscreen or hidden", () => {
   const slide = read("../src/components/reels/reel-slide.tsx");
-  assert.match(slide, /playsInline muted=\{Boolean\(reel\.soundtrack\) \|\| muted\} loop/);
+  assert.match(slide, /playsInline muted=\{muted\} loop/);
+  assert.doesNotMatch(slide, /muted=\{Boolean\(reel\.soundtrack\)/);
   assert.match(read("../src/pages/reels-feed.tsx"), /const \[muted, setMuted\] = useState\(true\)/);
   assert.match(slide, /!active \|\| pageHidden \|\| userPaused/);
   assert.match(slide, /setBlocked\(true\)/);
@@ -168,7 +169,7 @@ test("tapping anywhere on a Reel toggles playback without hiding navigation", ()
   assert.match(css, /data-navigation-visible="false"\]:not\(\[data-comments-open="true"\]\) \.reel-progress/);
 });
 
-test("Reel playback and sound use video taps without permanent top controls", () => {
+test("Reel playback has a visible sound button for voice and soundtrack", () => {
   const slide = read("../src/components/reels/reel-slide.tsx");
   const feed = read("../src/pages/reels-feed.tsx");
   const css = read("../src/components/reels/reels.css");
@@ -176,9 +177,11 @@ test("Reel playback and sound use video taps without permanent top controls", ()
   assert.match(slide, /showFlash\(muted \? "sound-on" : "sound-off"\)/);
   assert.match(slide, /Volume2 size=\{34\}/);
   assert.match(slide, /VolumeX size=\{34\}/);
-  assert.match(slide, /button-toggle-reel-sound-accessible-/);
+  assert.match(slide, /reel-action-button reel-sound-button/);
+  assert.match(slide, /Turn voice and sound on/);
+  assert.match(slide, /button-toggle-reel-sound-/);
+  assert.match(css, /\.reel-sound-button/);
   assert.doesNotMatch(feed, /button-reels-mute|reels-sound|Volume2|VolumeX/);
-  assert.doesNotMatch(css, /\.reels-sound/);
   assert.doesNotMatch(slide, /button-reel-autoplay-blocked|reel-blocked-play/);
 });
 
