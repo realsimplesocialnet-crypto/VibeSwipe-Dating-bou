@@ -46,7 +46,7 @@ test('My Profile retains separate working Settings and Edit Profile destinations
   assert.match(editLink[0], /aria-label="Edit profile" title="Edit profile"/);
   assert.match(editLink[1], /<Pencil size=\{18\}\s+aria-hidden="true"\s*\/>/);
   assert.doesNotMatch(editLink[1], /Edit profile/i);
-  assert.match(css, /\.own-profile \.op-edit \{ width:40px; height:40px; padding:0;/);
+  assert.match(css, /\.own-profile \.op-edit \{[^}]*position:fixed;[^}]*width:52px;[^}]*height:52px;/s);
   assert.match(native, /router\.push\("\/settings"\)/);
   assert.match(native, /router\.push\("\/edit-profile"\)/);
   assert.match(native, /name="settings"/);
@@ -64,12 +64,16 @@ test('Profile bars blend into the background and reserve space rather than cover
 test('short profile screens compact the portrait while keeping photos and saved videos available', () => {
   assert.match(css, /@container own-profile \(max-height:620px\)/);
   assert.match(css, /@container own-profile \(max-height:500px\)/);
-  assert.match(css, /grid-template-columns:64px minmax\(0,1fr\)/);
+  assert.match(css, /@container own-profile \(max-height:620px\) \{[\s\S]*?\.op-hero-photo \{ aspect-ratio:16 \/ 9; max-height:220px;/);
   assert.match(overview, /<ProfileReelsSection[^>]*own/);
   assert.match(readFileSync(new URL('../src/components/profile-reels-section.tsx', import.meta.url), 'utf8'), /id: "saved"/);
   assert.doesNotMatch(overview, /op-ghost mt-3/);
   assert.match(overview, /data-testid="link-manage-photos"/);
-  assert.match(overview, /profile\.photos\.slice\(0,\s*6\)/);
+  assert.match(overview, /profile\.photos\.slice\(0,\s*5\)/);
+  assert.match(overview, /data-testid="profile-main-photo"/);
+  assert.match(overview, /main profile photo/);
+  assert.match(overview, /About me/);
+  assert.match(overview, /<MapPin size=\{15\}/);
   assert.match(app, /onProfile \? \(lightMode \? "#fde4ec" : "#3a2232"\)/);
 });
 
@@ -80,5 +84,5 @@ test('own profile sections use a continuous surface and retain the media grid', 
   assert.match(css, /\.own-profile \.pp-media-tabs-list \{ border-bottom:0; \}/);
   assert.match(css, /\.own-profile \.pp-media-state \{[^}]*border:0;[^}]*background:transparent;/s);
   assert.match(css, /\.pp-reel-grid \{ display:grid; grid-template-columns:repeat\(3,minmax\(0,1fr\)\);/);
-  assert.match(overview, /profile\.photos\.slice\(0,\s*6\)/);
+  assert.match(overview, /profile\.photos\.slice\(0,\s*5\)/);
 });

@@ -99,7 +99,7 @@ html[data-theme="light"] .profile-nav { background:rgba(255,253,253,.97); border
 html[data-theme="light"] .profile-nav .text-primary { color:#f2557d; }
 .own-profile .op-title { font-family:var(--app-font-serif); font-size:24px; font-weight:800; letter-spacing:-.03em; }
 html.op-lock, html.op-lock body { overflow:hidden; overscroll-behavior:none; }
-.own-profile.op-fit { height:100%; min-height:0; margin-bottom:0; padding-bottom:0; overflow:hidden; container:own-profile / size; }
+.own-profile.op-fit { position:relative; height:100%; min-height:0; margin-bottom:0; padding-bottom:0; overflow:hidden; container:own-profile / size; }
 .own-profile .op-avatar { height:clamp(64px,12cqh,96px); width:clamp(64px,12cqh,96px); flex-shrink:0; }
 .own-profile .op-section { background:transparent; border:0; border-radius:0; padding:0; box-shadow:none; }
 .own-profile .op-section .op-label { display:flex; align-items:center; gap:8px; font-size:11px; letter-spacing:.14em; }
@@ -111,6 +111,21 @@ html[data-theme="light"] .own-profile .op-ico, html[data-theme="light"] .own-pro
 html[data-theme="light"] .own-profile .op-title { color:#2a2328; }
 /* A continuous profile surface: spacing and pink accents replace section cards. */
 .own-profile .op-identity { background:transparent; border:0; box-shadow:none; }
+.own-profile .op-identity-modern { gap:0; padding:0; }
+.own-profile .op-hero-photo { background:linear-gradient(145deg,#392331,#17131a); }
+.own-profile .op-hero-photo img { display:block; }
+.own-profile .op-person-details { min-width:0; }
+.own-profile .op-edit {
+  position:fixed;
+  z-index:35;
+  right:18px;
+  bottom:14px;
+  width:52px;
+  height:52px;
+  margin:0;
+  padding:0;
+  box-shadow:0 8px 26px rgba(243,78,154,.34);
+}
 .own-profile .op-section .op-label { letter-spacing:.12em; }
 .own-profile .op-ico { height:22px; width:22px; }
 .own-profile .sh-profile-social { margin-top:8px; }
@@ -177,22 +192,19 @@ html[data-theme="light"] .app-shell.profile-shell { background:linear-gradient(1
 .own-profile .pp-media-empty-icon { border:0; background:color-mix(in srgb,var(--media-accent) 10%,transparent); }
 @container own-profile (max-height:620px) {
   .op-fit > .page-in { padding-top:6px; }
-  .op-overview > .op-identity { display:grid; grid-template-columns:64px minmax(0,1fr); column-gap:12px; padding:6px 0; text-align:left; }
-  .op-identity > .op-avatar { grid-column:1; grid-row:1 / 4; width:64px; height:64px; }
-  .op-identity > h1, .op-identity > p, .op-identity > div:not(.op-avatar) { grid-column:2; margin-top:0; }
-  .op-identity > div:not(.op-avatar) { justify-content:flex-start; }
-  .op-identity > .op-edit { grid-column:1 / -1; justify-self:center; margin-top:4px; }
+  .op-overview > .op-identity { display:flex; padding:0; text-align:left; }
+  .op-hero-photo { aspect-ratio:16 / 9; max-height:220px; }
+  .op-person-details { padding-inline:4px; }
   .op-section > p { -webkit-line-clamp:1; line-clamp:1; line-height:18px; margin-top:4px; }
   .op-section > .mt-2 { margin-top:4px; }
   .op-section .op-ico { height:20px; width:20px; }
 }
 @container own-profile (max-height:500px) {
   .op-overview { gap:4px; padding-bottom:4px; }
-  .op-overview > .op-identity { grid-template-columns:52px minmax(0,1fr); padding-block:4px; }
-  .op-identity > .op-avatar { width:52px; height:52px; }
-  .op-identity > .op-edit { width:36px; height:36px; }
+  .op-hero-photo { aspect-ratio:16 / 7; max-height:150px; }
+  .op-edit { width:46px; height:46px; }
   .op-overview .op-section { padding-block:4px; }
-  .op-section .op-thumb { height:32px; }
+  .op-section .op-thumb { min-height:32px; }
 }
 html[data-theme="light"] .messages-page { background:linear-gradient(180deg,#fdf7fa 0%,#f8f6fa 100%); }
 .public-profile {
