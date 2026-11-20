@@ -38,11 +38,16 @@ test("swipe animations support pass, like, super like and reduced motion", () =>
   assert.match(card, /type: "spring", stiffness: 720/);
   assert.match(card, /duration: 0\.16/);
   assert.match(card, /useMotionValue/);
-  assert.match(card, /dragElastic=\{0\.04\}/);
+  assert.match(card, /dragElastic=\{0\.035\}/);
   assert.match(card, /dragMomentum=\{false\}/);
   assert.match(card, /dragSnapToOrigin=\{false\}/);
-  assert.match(card, /dragTransition=\{\{ bounceStiffness: 900, bounceDamping: 28 \}\}/);
-  assert.match(card, /animate\(x, 0, \{ type: "spring", stiffness: 900, damping: 28 \}\)/);
+  assert.match(card, /bounceStiffness: 980/);
+  assert.match(card, /bounceDamping: 26/);
+  assert.match(card, /power: 0\.35/);
+  assert.match(card, /timeConstant: 100/);
+  assert.match(card, /stiffness: 980/);
+  assert.match(card, /damping: 26/);
+  assert.match(card, /restDelta: 0\.5/);
 });
 test("Discover keeps rounded surfaces without bright outlines or a line above the tabs", () => {
   assert.doesNotMatch(component, /rounded-\[28px\] border border-border\/40/);
@@ -65,8 +70,8 @@ test("swipes advance immediately while server reactions run in a serialized back
 test("Discover memoizes cards, uses pointer drag physics, and keeps three cards mounted ahead", () => {
   assert.match(card, /export const DiscoverSwipeCard = memo/);
   assert.match(card, /drag=\{active \? "x" : false\}/);
-  assert.match(card, /SWIPE_OFFSET_PX = 80/);
-  assert.match(card, /SWIPE_VELOCITY_PX_PER_SECOND = 400/);
+  assert.match(card, /SWIPE_OFFSET_PX = 72/);
+  assert.match(card, /SWIPE_VELOCITY_PX_PER_SECOND = 450/);
   assert.match(component, /reducedMotion \? 0 : 170/);
   assert.match(card, /onTap=\{\(\) => \{ if \(active\) onOpen\(profile\.id\); \}\}/);
   assert.match(component, /profiles\.slice\(index, index \+ 4\)/);

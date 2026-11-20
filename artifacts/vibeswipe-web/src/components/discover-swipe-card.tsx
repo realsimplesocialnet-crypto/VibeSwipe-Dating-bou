@@ -28,8 +28,8 @@ type DiscoverSwipeCardProps = {
   onOptions: (profileId: string) => void;
 };
 
-const SWIPE_OFFSET_PX = 80;
-const SWIPE_VELOCITY_PX_PER_SECOND = 400;
+const SWIPE_OFFSET_PX = 72;
+const SWIPE_VELOCITY_PX_PER_SECOND = 450;
 
 export const DiscoverSwipeCard = memo(function DiscoverSwipeCard({
   profile,
@@ -107,26 +107,37 @@ export const DiscoverSwipeCard = memo(function DiscoverSwipeCard({
     >
       <motion.article
         className="relative flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden rounded-[30px] bg-[#17141b] shadow-xl"
-        style={{ x, rotate, willChange: "transform" }}
+        style={{ x, rotate, willChange: "transform", touchAction: "none" }}
         drag={active ? "x" : false}
-        dragConstraints={{ left: -1400, right: 1400 }}
-        dragElastic={0.04}
+        dragConstraints={{ left: -1600, right: 1600 }}
+        dragElastic={0.035}
         dragMomentum={false}
         dragSnapToOrigin={false}
-        dragTransition={{ bounceStiffness: 900, bounceDamping: 28 }}
+        dragTransition={{
+          bounceStiffness: 980,
+          bounceDamping: 26,
+          power: 0.35,
+          timeConstant: 100,
+        }}
         whileDrag={reducedMotion ? undefined : { scale: 1.012 }}
         onDragEnd={(_, info) => {
+          if (!active) return;
           const direction = Math.sign(info.offset.x || info.velocity.x);
           const shouldSwipe =
             Math.abs(info.offset.x) >= SWIPE_OFFSET_PX ||
-            (Math.abs(info.velocity.x) >= SWIPE_VELOCITY_PX_PER_SECOND && Math.abs(info.offset.x) >= 8);
-          if (active && shouldSwipe && direction !== 0) {
+            (Math.abs(info.velocity.x) >= SWIPE_VELOCITY_PX_PER_SECOND && Math.abs(info.offset.x) >= 6);
+          if (shouldSwipe && direction !== 0) {
             onSwipe(profile.id, direction > 0 ? "like" : "pass", {
               offsetX: info.offset.x,
               velocityX: info.velocity.x,
             });
           } else if (!reducedMotion) {
-            void animate(x, 0, { type: "spring", stiffness: 900, damping: 28 });
+            void animate(x, 0, {
+              type: "spring",
+              stiffness: 980,
+              damping: 26,
+              restDelta: 0.5,
+            });
           } else {
             x.set(0);
           }
