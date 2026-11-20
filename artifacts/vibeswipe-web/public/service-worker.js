@@ -1,5 +1,5 @@
 /* Cache the app shell, approved public Reels, and account-scoped recent profiles. */
-const CACHE_NAME = 'myage-shell-v24';
+const CACHE_NAME = 'myage-shell-v25';
 const REEL_CACHE_NAME = 'myage-offline-reels-v1';
 const PROFILE_CACHE_NAME = 'myage-offline-profiles-v1';
 const MAX_OFFLINE_REELS = 3;
@@ -21,8 +21,6 @@ const shell = [
   new URL('myage-apple-touch-v7.png', scopeUrl).href,
   new URL('myage-pwa-icon.svg?v=2', scopeUrl).href,
   new URL('myage-pwa-icon.svg', scopeUrl).href,
-  new URL('myage-onboarding-poster.webp', scopeUrl).href,
-  new URL('myage-onboarding-loop.mp4', scopeUrl).href,
 ];
 
 function appEntryAssets(html) {

@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import "./onboarding-video.css";
 
-export const onboardingAsset = (name: string) =>
-  `${import.meta.env.BASE_URL}${name}`;
+export const onboardingAsset = (asset: "loop" | "poster") =>
+  `${import.meta.env.BASE_URL}api/vibeswipe/onboarding-art/${asset === "loop" ? "loop-v1.mp4" : "poster-v1.webp"}`;
 
 export function OnboardingVideoBackground({ form = false }: { form?: boolean }) {
   const video = useRef<HTMLVideoElement>(null);
@@ -68,8 +68,8 @@ export function OnboardingVideoBackground({ form = false }: { form?: boolean }) 
 
   return <>
     <div className={`onboarding-cinema ${form ? "onboarding-cinema-form" : ""}`} aria-hidden="true">
-      <video ref={video} src={loaded ? onboardingAsset("myage-onboarding-loop.mp4") : undefined}
-        poster={onboardingAsset("myage-onboarding-poster.webp")} autoPlay muted loop playsInline
+      <video ref={video} src={loaded ? onboardingAsset("loop") : undefined}
+        poster={onboardingAsset("poster")} autoPlay muted loop playsInline
         controls={false} preload="none" disablePictureInPicture disableRemotePlayback tabIndex={-1}
         onPlaying={() => setPlaying(true)} onPause={() => setPlaying(false)}
         onError={() => { setFailed(true); setPlaying(false); }}
