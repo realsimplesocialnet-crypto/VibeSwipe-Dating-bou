@@ -852,7 +852,7 @@ function OwnProfileOverview({profile,travelCity}:{profile:Profile;travelCity?:st
       {place&&<p data-testid="text-profile-city" title={place} className="op-muted max-w-full truncate text-[14px]">{place}</p>}
       {(profile.gender||travelCity)&&<div className="mt-1 flex max-w-full items-center justify-center gap-2 text-[13px]">{profile.gender&&<span data-testid="text-profile-gender" className="op-muted inline-flex items-center gap-1.5"><GenderIcon size={15} aria-hidden="true"/>{profile.gender}</span>}{travelCity&&<span className="inline-flex min-w-0 items-center gap-1 truncate rounded-full bg-primary/12 px-2.5 py-0.5 text-xs font-semibold text-primary" data-testid="badge-travel" title={`Traveling in ${travelCity}`}><Navigation size={12}/>Traveling in {travelCity}</span>}</div>}
       <ProfileSocialActions profileId={profile.id} viewerId={profile.id} showAction={false} compact />
-      <Link href="/profile/edit?returnTo=%2Fprofile" data-testid="button-edit-profile" className="op-edit mt-[clamp(8px,1.6dvh,16px)] flex h-[clamp(40px,6dvh,50px)] w-full max-w-[280px] items-center justify-center gap-2 rounded-full text-[16px] font-bold transition-transform active:scale-[.98]"><Pencil size={16}/>Edit profile</Link>
+      <Link href="/profile/edit?returnTo=%2Fprofile" data-testid="button-edit-profile" aria-label="Edit profile" title="Edit profile" className="op-edit inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-transform active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"><Pencil size={18} aria-hidden="true"/></Link>
     </section>
     <ReferralProfileCard/>
     <div className="grid shrink-0 grid-cols-2 gap-[clamp(6px,1.2dvh,12px)]">

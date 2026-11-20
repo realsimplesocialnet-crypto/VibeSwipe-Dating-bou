@@ -40,6 +40,12 @@ test('My Profile retains separate working Settings and Edit Profile destinations
   assert.match(overview, /href="\/settings\?returnTo=%2Fprofile"/);
   assert.match(overview, /href="\/profile\/edit\?returnTo=%2Fprofile"/);
   assert.match(overview, /<Settings\b/);
+  const editLink = overview.match(/<Link href="\/profile\/edit\?returnTo=%2Fprofile" data-testid="button-edit-profile"[^>]*>([\s\S]*?)<\/Link>/);
+  assert.ok(editLink, 'Edit Profile link remains available');
+  assert.match(editLink[0], /aria-label="Edit profile" title="Edit profile"/);
+  assert.match(editLink[1], /<Pencil size=\{18\} aria-hidden="true"\/>/);
+  assert.doesNotMatch(editLink[1], /Edit profile/i);
+  assert.match(css, /\.own-profile \.op-edit \{ width:40px; height:40px; padding:0;/);
   assert.match(native, /router\.push\("\/settings"\)/);
   assert.match(native, /router\.push\("\/edit-profile"\)/);
   assert.match(native, /name="settings"/);
