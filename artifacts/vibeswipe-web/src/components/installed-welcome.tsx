@@ -1,23 +1,15 @@
-import { Download, LockKeyhole, UserRoundPlus } from 'lucide-react';
+import { LockKeyhole, UserRoundPlus } from 'lucide-react';
 import { Link } from 'wouter';
 import { OnboardingVideoBackground } from './onboarding-video-background';
-import { isCurrentAndroidWebView } from '@/lib/android-webview';
-import apkDownloadUrl, { shouldShowAndroidApkDownload } from '@/lib/apk-download';
-import { usePwaInstallState } from '@/lib/pwa-install-state';
 
 export function InstalledWelcome() {
-  const install = usePwaInstallState();
-  const showAndroidDownload = shouldShowAndroidApkDownload(navigator.userAgent, isCurrentAndroidWebView(), install.installed || install.checkingInstalled);
   return <main data-testid="installed-app-welcome" className="onboarding-welcome">
     <OnboardingVideoBackground/>
-    <header className="onboarding-welcome-brand justify-between" aria-label="MYAGEBEAUTY">
+    <header className="onboarding-welcome-brand" aria-label="MYAGEBEAUTY">
       <div className="flex items-center gap-[9px]">
         <img src={`${import.meta.env.BASE_URL}myage-icon-192-v7.png`} alt="" className="h-8 w-8 rounded-xl"/>
         <span className="brand text-[22px] font-extrabold tracking-[-.055em]">MYAGEBEAUTY</span>
       </div>
-      {showAndroidDownload && <a href={apkDownloadUrl} download="MYAGEBEAUTY.apk" data-testid="link-download-android-apk" className="inline-flex min-h-10 items-center gap-1.5 rounded-full bg-primary px-3 text-xs font-bold text-primary-foreground shadow-sm hover:opacity-90">
-        <Download size={15}/>Download Android App
-      </a>}
     </header>
     <span className="onboarding-welcome-preview">Onboarding preview</span>
     <footer className="onboarding-welcome-footer">

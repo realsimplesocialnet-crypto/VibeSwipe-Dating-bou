@@ -26,13 +26,11 @@ test("core app screens do not require installation or branch into a limited webs
   assert.doesNotMatch(welcome, /useStandaloneMode|isStandaloneApp|navigator\.standalone|beforeinstallprompt/);
 });
 
-test("install controls appear only in the uninstalled Android or mobile browser flow", () => {
+test("welcome and app shell contain no install or APK download controls", () => {
   assert.doesNotMatch(app, /InstallAction|MobileInstallBanner|ConsumerInstallBanner/);
   const pushSettings = read("../src/components/WebPushSettings.tsx");
   assert.doesNotMatch(pushSettings, /InstallAction/);
-  assert.match(app, /<PwaInstallBanner\/>/);
-  assert.match(welcome, /shouldShowAndroidApkDownload\(navigator\.userAgent, isCurrentAndroidWebView\(\), install\.installed \|\| install\.checkingInstalled\)/);
-  assert.match(welcome, /href=\{apkDownloadUrl\} download="MYAGEBEAUTY\.apk"/);
-  assert.match(read("../src/components/pwa-install-banner.tsx"), /shouldShowPwaInstallBanner/);
+  assert.doesNotMatch(app, /PwaInstallBanner/);
+  assert.doesNotMatch(welcome, /Download Android App|Install options|apkDownloadUrl|shouldShowAndroidApkDownload|link-download-android-apk/);
   assert.match(app, /<Route path="\/sign-up\/\*\?" component=\{BrandedSignUp\}/);
 });

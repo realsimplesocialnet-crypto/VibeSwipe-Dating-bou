@@ -34,7 +34,6 @@ import {
 import NotFound from '@/pages/not-found';
 import { VerifiedBadge } from '@/components/verified-badge';
 import { InstalledWelcome } from '@/components/installed-welcome';
-import { PwaInstallBanner } from '@/components/pwa-install-banner';
 import { MatchCelebration } from '@/components/match-celebration';
 import { MatchStoryAvatar, ProfileStoryAvatar, StoryCameraTrigger, StoryComposerPage } from '@/components/stories/stories-ui';
 import { StoryCameraPage } from '@/components/stories/story-camera-page';
@@ -1245,5 +1244,5 @@ function ClerkRoutes(){const [,setLocation]=useLocation();return <ClerkProvider 
    <Route path="/safety-center" component={SafetyCenterRoute}/><Route path="/report-safety" component={ReportSafetyRoute}/><Route path="/safety/location" component={PublicLocationShareRoute}/>
   <Route path="/profile" component={ProfileRoute}/><Route path="/profile/edit" component={ProfileEditRoute}/><Route path="/profile/:profileId/followers" component={FollowersRoute}/><Route path="/profile/:profileId/following" component={FollowingRoute}/><Route path="/profile/:profileId/from-notifications" component={ViewedNotificationProfileRoute}/><Route path="/profile/:profileId" component={PublicProfileRoute}/><Route path="/verify-profile" component={FaceVerificationRoute}/><Route path="/settings" component={SettingsRoute}/><Route path="/settings/:section" component={SettingsSectionRoute}/><Route component={NotFound}/>
  </Switch></Suspense></ClerkProvider>}
-function App(){if(!clerkPubKey)throw new Error('Missing VITE_CLERK_PUBLISHABLE_KEY');return <QueryClientProvider client={queryClient}><WouterRouter base={basePath}><PwaInstallBanner/><ClerkRoutes/></WouterRouter></QueryClientProvider>}
+function App(){if(!clerkPubKey)throw new Error('Missing VITE_CLERK_PUBLISHABLE_KEY');return <QueryClientProvider client={queryClient}><WouterRouter base={basePath}><ClerkRoutes/></WouterRouter></QueryClientProvider>}
 export default App;

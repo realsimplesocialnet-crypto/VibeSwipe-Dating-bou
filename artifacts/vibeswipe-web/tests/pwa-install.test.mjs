@@ -183,7 +183,7 @@ test('unrelated installs, rejected checks and slow checks do not hide the websit
   assert.equal(store.getSnapshot().installed, false);
 });
 
-test('PWA metadata and native browser installation remain available for users without the app', () => {
+test('the website does not render install prompts or APK download controls', () => {
   const manifest = JSON.parse(readFileSync(new URL('../public/manifest.json', import.meta.url), 'utf8'));
   assert.equal(manifest.related_applications[0].platform, 'webapp');
   assert.equal(manifest.related_applications[0].url, 'manifest.json?v=9');
@@ -191,7 +191,9 @@ test('PWA metadata and native browser installation remain available for users wi
   const app = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8');
   const pushSettings = readFileSync(new URL('../src/components/WebPushSettings.tsx', import.meta.url), 'utf8');
   assert.doesNotMatch(app, /InstallAction|MobileInstallBanner|ConsumerInstallBanner/);
-  assert.match(app, /<PwaInstallBanner\/>/);
+  assert.doesNotMatch(app, /PwaInstallBanner/);
+  const welcome = readFileSync(new URL('../src/components/installed-welcome.tsx', import.meta.url), 'utf8');
+  assert.doesNotMatch(welcome, /Download Android App|apkDownloadUrl|link-download-android-apk/);
   assert.doesNotMatch(pushSettings, /InstallAction/);
   const browserInstall = readFileSync(new URL('../public/pwa-install.js', import.meta.url), 'utf8');
   assert.match(browserInstall, /beforeinstallprompt/);
