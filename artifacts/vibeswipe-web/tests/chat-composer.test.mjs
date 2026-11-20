@@ -56,19 +56,19 @@ test('chat search prioritizes an exact person name over other partial name match
 });
 
 test('website Chats uses real match data, excludes demo and blocked profiles, and renders unread counts', () => {
-  const messages = web.slice(web.indexOf('function ChatsPage()'), web.indexOf('function NotificationsPage()'));
+  const messages = readFileSync(new URL('../src/components/chats-list-page.tsx', import.meta.url), 'utf8');
   assert.match(messages, /useGetMatches/);
-  assert.match(messages, /!m\.profile\.isDemo&&!m\.blockedByMe&&!m\.blockedMe/);
+  assert.match(messages, /!match\.profile\.isDemo && !match\.blockedByMe && !match\.blockedMe/);
   assert.doesNotMatch(messages, /useGetDiscoverProfiles|useGetWhoViewedYou/);
   assert.match(messages, /data-testid="input-search-chats"/);
   assert.match(messages, /searchChatsByPersonName\(list, search\)/);
-  assert.match(messages, /filter === 'unread'/);
-  assert.match(messages, /filter === 'new'/);
+  assert.match(messages, /filter === "unread"/);
+  assert.match(messages, /filter === "new"/);
   assert.match(messages, /<StoryCameraTrigger returnTo="\/messages"[^>]+testId="button-create-story-from-chats"/);
   assert.match(messages, /href="\/stories\/new\?returnTo=%2Fmessages&mode=text"[^>]+data-testid="button-write-story-from-chats"/);
   assert.match(messages, /data-testid="chats-header"/);
   assert.match(messages, /<h1[^>]*>Chats<\/h1>/);
-  assert.match(messages, /extras\.unreadCount!>99\?'99\+':extras\.unreadCount/);
+  assert.match(messages, /extras\.unreadCount!\s*>\s*99\s*\?\s*"99\+"\s*:\s*extras\.unreadCount/);
   assert.match(messages, /returnTo=%2Fmessages/);
 });
 

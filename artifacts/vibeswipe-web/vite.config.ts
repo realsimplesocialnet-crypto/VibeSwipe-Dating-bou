@@ -58,6 +58,7 @@ export default defineConfig({
         '..',
         'attached_assets',
       ),
+      'wouter': path.resolve(import.meta.dirname, 'src/lib/router-compat.tsx'),
     },
     // Shared API hooks and the app must use the same QueryClientContext.
     dedupe: ['react', 'react-dom', '@tanstack/react-query'],

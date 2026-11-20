@@ -2,6 +2,7 @@ import { createRoot } from 'react-dom/client';
 import { lazy, Suspense } from 'react';
 
 import { isAuthEntryPath, isCurrentAppShell, isDedicatedAppPath } from '@/lib/android-webview';
+import { RouteSkeleton } from '@/components/route-skeleton';
 
 const WebViewAppEntry = lazy(() => import('./webview-app-entry'));
 const PublicLegalEntry = lazy(() => import('./public-legal-entry'));
@@ -18,11 +19,7 @@ const inAppShell = isCurrentAppShell()
   || scopedPath === '/';
 const publicLegalPaths = new Set(['/privacy-policy', '/terms', '/community-guidelines']);
 const isPublicLegalPage = publicLegalPaths.has(scopedPath);
-const loadingScreen = (message: string) => (
-  <main style={{ display: 'grid', minHeight: '100vh', placeItems: 'center', padding: 24, color: '#fff5fa', fontFamily: 'system-ui, sans-serif' }}>
-    <p>{message}</p>
-  </main>
-);
+const loadingScreen = (message: string) => <RouteSkeleton label={message} />;
 
 createRoot(document.getElementById('root')!, {
   onCaughtError: (error, errorInfo) => {

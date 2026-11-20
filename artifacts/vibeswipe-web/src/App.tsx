@@ -1,4 +1,4 @@
-import { lazy, memo, Suspense, type ReactNode, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { lazy, memo, Suspense, type ReactNode, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
 import { ClerkProvider, SignIn, useClerk, useSignUp, useUser } from '@clerk/react';
 import { publishableKeyFromHost } from '@clerk/react/internal';
@@ -44,6 +44,9 @@ import { searchChatsByPersonName } from '@/lib/chat-search';
 import { PROFILE_PHOTO_ACCEPT, photoUploadCanRetry, prepareProfilePhoto, uploadProfilePhotoBytes, validatePhotoFile } from '@/lib/profile-photo-upload';
 import { checkAdditionalProfilePhoto } from '@workspace/api-client-react';
 import { userErrorMessage } from '@/lib/user-errors';
+import { readCachedMyProfile, writeCachedMyProfile, clearCachedMyProfile } from '@/lib/my-profile-cache';
+import { RouteSkeleton } from '@/components/route-skeleton';
+import { RouteVisibilityContext } from '@/lib/router-compat';
 import '@/styles/landing.css';
 
 const AdminPage = lazy(() => import('@/pages/admin'));
@@ -59,6 +62,8 @@ const WebPushSettings = lazy(() => import('@/components/WebPushSettings').then(m
 const ReelsFeedPage = lazy(() => import('@/pages/reels-feed').then(module => ({ default: module.ReelsFeedPage })));
 const ReelComposerPage = lazy(() => import('@/pages/reel-composer').then(module => ({ default: module.ReelComposerPage })));
 const DirectChatPage = lazy(() => import('@/pages/direct-chat'));
+const ChatsListPage = lazy(() => import('@/components/chats-list-page').then(module => ({ default: module.ChatsListPage })));
+const ProfilePage = lazy(() => import('@/components/profile-page').then(module => ({ default: module.ProfilePage })));
 const ReelsLibraryPage = lazy(() => import('@/pages/reels-library').then(module => ({ default: module.ReelsLibraryPage })));
 const ActivityOverview = lazy(() => import('@/components/social-hub').then(module => ({ default: module.ActivityOverview })));
 const FollowListPage = lazy(() => import('@/components/social-hub').then(module => ({ default: module.FollowListPage })));
@@ -156,6 +161,7 @@ function UnreadMessageBadge({ count, mobile = false }: { count: number; mobile?:
 
 function AppShell({ children }: { children: ReactNode }) {
   const [location] = useLocation();
+  const routeVisible = useContext(RouteVisibilityContext);
   const [reelsNavigationVisible, setReelsNavigationVisible] = useState(true);
   const shellRef = useRef<HTMLDivElement>(null);
   const mobileNavRef = useRef<HTMLElement>(null);
@@ -166,11 +172,11 @@ function AppShell({ children }: { children: ReactNode }) {
   const mobileActiveIndex = activeLocation === '/reels' ? 1 : activeLocation === '/messages' ? 2 : activeLocation === '/notifications' ? 3 : activeLocation === '/profile' ? 4 : 0;
   const settingsReturnTo = `${location}${window.location.search}${window.location.hash}`;
   const { user } = useUser();
-  const profile = useGetMyProfile();
+  const profile = useGetMyProfile({ query: { enabled: routeVisible } });
   const activeName = profile.data?.name || user?.firstName || 'Your profile';
   const unreadMatches = useGetMatches({ query: {
     queryKey: getGetMatchesQueryKey(),
-    enabled: showMainNavigation,
+    enabled: routeVisible && showMainNavigation,
     refetchInterval: 10_000,
     refetchOnWindowFocus: true,
   } });
@@ -180,7 +186,7 @@ function AppShell({ children }: { children: ReactNode }) {
     unreadCount: (match as MatchListExtras).unreadCount,
   })));
   useEffect(() => {
-    if (!showMainNavigation || !mobileNavRef.current) return;
+    if (!routeVisible || !showMainNavigation || !mobileNavRef.current) return;
     let resumeTimers: number[] = [];
     const measure = () => {
       const nav = mobileNavRef.current;
@@ -224,7 +230,7 @@ function AppShell({ children }: { children: ReactNode }) {
       viewport?.removeEventListener('resize', scheduleMeasure);
       viewport?.removeEventListener('scroll', scheduleMeasure);
     };
-  }, [showMainNavigation, location]);
+  }, [routeVisible, showMainNavigation, location]);
   return <div ref={shellRef} className={`app-shell min-h-[100dvh] bg-background text-foreground ${isSocialPage?'messages-shell':''} ${location==='/discover'?'discover-shell':''} ${location==='/profile'?'profile-shell':''}`}>
     {showMainNavigation && <>
       {!isReelsViewer && <aside className="fixed inset-y-0 left-0 z-30 hidden w-[248px] flex-col border-r border-border bg-background px-5 py-6 lg:flex">
@@ -241,7 +247,7 @@ function AppShell({ children }: { children: ReactNode }) {
     <main className={showMainNavigation && !isReelsViewer ? "min-h-[100dvh] pb-24 lg:ml-[248px] lg:pb-0" : "min-h-[100dvh]"}>
       <ReelsNavigationVisibilityContext.Provider value={setReelsNavigationVisible}>{children}</ReelsNavigationVisibilityContext.Provider>
     </main>
-    {profile.data?.id&&<WebPushSettings key={profile.data.id} compact visible={showMainNavigation && !isReelsViewer} accountId={profile.data.id}/>}
+    {routeVisible && profile.data?.id&&<WebPushSettings key={profile.data.id} compact visible={showMainNavigation && !isReelsViewer} accountId={profile.data.id}/>}
     {showMainNavigation && <nav ref={mobileNavRef} aria-label="Primary" aria-hidden={isReelsViewer && !reelsNavigationVisible} className={`${location==='/profile'?'profile-nav ':''}${isReelsViewer ? `reels-mobile-nav ${reelsNavigationVisible ? '' : 'is-hidden'} ` : ''}mobile-nav fixed inset-x-0 bottom-0 ${isReelsViewer ? 'z-[80]' : 'z-30'} ${isReelsViewer ? '' : 'lg:hidden'} flex justify-around bg-background/95 px-2 pt-2 backdrop-blur-xl`}>
       <span aria-hidden="true" className="mobile-nav-indicator" style={{ transform: `translate3d(${mobileActiveIndex * 100}%, 0, 0)` }} />
       {navItems.map(({ href, label, icon: Icon }) => <Link key={href} href={href} data-testid={`mobile-nav-${label.toLowerCase()}`} aria-current={activeLocation === href ? 'page' : undefined} className={`mnav-item ${activeLocation === href ? 'is-active text-primary' : 'text-muted-foreground'}`}><span className="mnav-icon"><Icon size={19} strokeWidth={activeLocation === href ? 2.25 : 1.85}/>{label === 'Chats' && <UnreadMessageBadge count={unreadMessageCount} mobile/>}</span><span className="mnav-label">{label}</span></Link>)}
@@ -252,17 +258,35 @@ function AppShell({ children }: { children: ReactNode }) {
 
 function Gate({ children }: { children: ReactNode }) {
   const { isLoaded, isSignedIn } = useUser();
+  const routeVisible = useContext(RouteVisibilityContext);
   if (!isLoaded) return <AppOpening />;
-  if (!isSignedIn) return <Redirect to="/welcome"/>;
+  if (!isSignedIn) return routeVisible ? <Redirect to="/welcome"/> : null;
   return <>{children}</>;
 }
 function AppOpening() {
-  return <main role="status" aria-label="Loading" data-testid="status-app-startup" className="flex min-h-[100dvh] items-center justify-center bg-[#0f0f12] text-[#fbf5f7]">
-    <QuietSpinner size={28} />
-  </main>;
+  return <div data-testid="status-app-startup"><RouteSkeleton label="Opening MYAGEBEAUTY" /></div>;
 }
 function RequiredProfile({ children }: { children: ReactNode }) {
-  const profile=useGetMyProfile<Profile>({query:{retry:shouldRetryProfile,staleTime:0,refetchOnMount:'always'}});
+  const { user, isLoaded } = useUser();
+  const cachedProfile = useMemo(
+    () => isLoaded && user?.id ? readCachedMyProfile(user.id) : undefined,
+    [isLoaded, user?.id],
+  );
+  const profile=useGetMyProfile<Profile>({query:{
+    retry:shouldRetryProfile,
+    staleTime:0,
+    refetchOnMount:'always',
+    initialData:cachedProfile?.profile,
+    initialDataUpdatedAt:cachedProfile?.savedAt,
+  }});
+  useEffect(() => {
+    if (
+      isLoaded
+      && user?.id
+      && profile.data
+      && profile.dataUpdatedAt > (cachedProfile?.savedAt ?? 0)
+    ) writeCachedMyProfile(user.id, profile.data);
+  }, [isLoaded, user?.id, profile.data, profile.dataUpdatedAt, cachedProfile?.savedAt]);
   if(profile.isError&&isProfileMissing(profile.error))return <Redirect to="/onboarding"/>;
   if(profile.isLoading||!profile.data)return <div className="min-h-[100dvh] bg-background text-foreground"><PageFrame>{profile.isError?<Retry text="We couldn’t check your profile. Check your connection and try again." onRetry={()=>void profile.refetch()}/>:<ProfileLoading/>}</PageFrame></div>;
   return <AppShell>{children}</AppShell>;
@@ -355,7 +379,7 @@ function Busy({ label: _label = 'Loading' }: { label?: string }) {
     <QuietSpinner />
   </div>;
 }
-function Retry({ onRetry, text: _text, error: _error }: { onRetry: () => void; text?: string; error?: unknown }) {
+export function Retry({ onRetry, text: _text, error: _error }: { onRetry: () => void; text?: string; error?: unknown }) {
   return <div role="status" aria-label="Loading" className="flex justify-center py-10">
     <QuietSpinner onRetry={onRetry} />
   </div>;
@@ -365,7 +389,7 @@ function Avatar({ profile, size = 'md' }: { profile: Profile; size?: 'sm'|'md'|'
   useEffect(()=>setBroken(false),[profile.photos?.[0]]);
   return <div className={`${classes} shrink-0 overflow-hidden rounded-full bg-[linear-gradient(145deg,#703a58,#302333)] ring-1 ring-white/10`} data-testid={`avatar-${profile.id}`}>{src&&!broken?<MediaImage reference={profile.photos?.[0]} onError={()=>setBroken(true)} className="h-full w-full object-cover" alt={`${profile.name}'s profile`}/>:<span className="flex h-full items-center justify-center font-bold text-[#ffd3e6]">{profile.name?.slice(0,1)?.toUpperCase()||'V'}</span>}</div>;
 }
-  function MediaImage({reference,className,alt,onError,onLoad,fallbackSrc,fullResolution=false,progressive=false,loading='lazy',fetchPriority}:{reference?:string;className:string;alt:string;onError?:()=>void;onLoad?:()=>void;fallbackSrc?:string;fullResolution?:boolean;progressive?:boolean;loading?:'eager'|'lazy';fetchPriority?:'high'|'low'|'auto'}) {
+  export function MediaImage({reference,className,alt,onError,onLoad,fallbackSrc,fullResolution=false,progressive=false,loading='lazy',fetchPriority}:{reference?:string;className:string;alt:string;onError?:()=>void;onLoad?:()=>void;fallbackSrc?:string;fullResolution?:boolean;progressive?:boolean;loading?:'eager'|'lazy';fetchPriority?:'high'|'low'|'auto'}) {
   const id=reference?.startsWith('media:')?reference.slice(6):'';
     const preview=useGetMediaPreview(id,{query:{enabled:!!id&&!fullResolution,queryKey:getGetMediaPreviewQueryKey(id),staleTime:10*60_000,gcTime:30*60_000}});
     const [previewLoaded,setPreviewLoaded]=useState(false);
@@ -388,7 +412,7 @@ function Avatar({ profile, size = 'md' }: { profile: Profile; size?: 'sm'|'md'|'
     }
     return src?<img src={src} loading={loading} fetchPriority={fetchPriority} onLoad={()=>{setLoaded(true);if(!id||previewUrl||fullUrl)onLoad?.()}} onError={onError} className={`${className} transition-[filter,opacity] duration-200 ${loaded?'opacity-100 blur-0':'scale-[1.02] opacity-70 blur-sm'}`} alt={alt}/>:null;
 }
-function Empty({ title, detail, action }: { title: string; detail: string; action?: ReactNode }) { return <div className="rounded-[24px] border border-dashed border-white/10 bg-white/[.02] px-6 py-14 text-center"><div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-accent text-primary"><Sparkles size={23}/></div><h3 className="mt-5 text-lg font-bold">{title}</h3><p className="mx-auto mt-2 max-w-md text-sm leading-6 text-muted-foreground">{detail}</p>{action&&<div className="mt-5">{action}</div>}</div>; }
+export function Empty({ title, detail, action }: { title: string; detail: string; action?: ReactNode }) { return <div className="rounded-[24px] border border-dashed border-white/10 bg-white/[.02] px-6 py-14 text-center"><div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-accent text-primary"><Sparkles size={23}/></div><h3 className="mt-5 text-lg font-bold">{title}</h3><p className="mx-auto mt-2 max-w-md text-sm leading-6 text-muted-foreground">{detail}</p>{action&&<div className="mt-5">{action}</div>}</div>; }
 
 export function LegacyDiscoverPage() {
   const qc=useQueryClient(); const [index,setIndex]=useState(0); const [ageMin,setAgeMin]=useState(22); const [ageMax,setAgeMax]=useState(35); const [gender,setGender]=useState('Everyone'); const [city,setCity]=useState(''); const [filters,setFilters]=useState(false); const [detail,setDetail]=useState(false); const [notice,setNotice]=useState(''); const [lastPass,setLastPass]=useState<string|null>(null);
@@ -820,8 +844,8 @@ function NotificationsPage() {
 }
 
 const emptyProfile:ProfileInput={name:'',age:18,gender:'',lookingFor:'Everyone',bio:'',city:'',country:null,state:null,interests:[],occupation:'Prefer not to say',occupationOther:'',photos:[],videoUrl:null,preferences:{ageMin:22,ageMax:35,gender:'Everyone',distanceKm:50}};
-function ProfileLoading(){return <div role="status" aria-label="Loading" className="flex items-center justify-center py-10"><QuietSpinner/></div>}
- function ProfilePage({mode='view',returnTo='/profile'}:{mode?:'view'|'edit';returnTo?:string}){const q=useGetMyProfile<Profile>({query:{refetchOnMount:'always',refetchOnWindowFocus:true,staleTime:0,retry:shouldRetryProfile}});const settings=useGetVibeSwipeSettings();const edit=mode==='edit';const [,setLocation]=useLocation();const [saveError,setSaveError]=useState('');const save=useSaveMyProfile();const requestUpload=useRequestProfileMediaUpload();const transcode=useTranscodeProfileVideo();const [uploading,setUploading]=useState(false);const qc=useQueryClient();const [form,setForm]=useState<ProfileInput>(emptyProfile);const [formReady,setFormReady]=useState(false);const mediaInput=useRef<HTMLInputElement>(null);const [photoPreviews,setPhotoPreviews]=useState<Record<string,string>>({});const photoPreviewUrls=useRef(new Map<string,string>());useEffect(()=>()=>{for(const url of photoPreviewUrls.current.values())URL.revokeObjectURL(url);photoPreviewUrls.current.clear()},[]);useEffect(()=>{if(q.data&&!formReady){setForm({...emptyProfile,...q.data,age:q.data.age??18,preferences:{...emptyProfile.preferences,...q.data.preferences},interests:q.data.interests??[],photos:q.data.photos??[]});setFormReady(true)}},[q.data,formReady]);const change=(key:keyof ProfileInput,value:any)=>setForm(v=>({...v,[key]:value}));function removeProfilePhoto(index:number){const reference=form.photos[index];const preview=photoPreviewUrls.current.get(reference);if(preview){URL.revokeObjectURL(preview);photoPreviewUrls.current.delete(reference);setPhotoPreviews(current=>{const next={...current};delete next[reference];return next})}change('photos',form.photos.filter((_,photoIndex)=>photoIndex!==index))}
+export function ProfileLoading(){return <div role="status" aria-label="Loading" className="flex items-center justify-center py-10"><QuietSpinner/></div>}
+ function LegacyProfilePage({mode='view',returnTo='/profile'}:{mode?:'view'|'edit';returnTo?:string}){const q=useGetMyProfile<Profile>({query:{refetchOnMount:'always',refetchOnWindowFocus:true,staleTime:0,retry:shouldRetryProfile}});const settings=useGetVibeSwipeSettings();const edit=mode==='edit';const [,setLocation]=useLocation();const [saveError,setSaveError]=useState('');const save=useSaveMyProfile();const requestUpload=useRequestProfileMediaUpload();const transcode=useTranscodeProfileVideo();const [uploading,setUploading]=useState(false);const qc=useQueryClient();const [form,setForm]=useState<ProfileInput>(emptyProfile);const [formReady,setFormReady]=useState(false);const mediaInput=useRef<HTMLInputElement>(null);const [photoPreviews,setPhotoPreviews]=useState<Record<string,string>>({});const photoPreviewUrls=useRef(new Map<string,string>());useEffect(()=>()=>{for(const url of photoPreviewUrls.current.values())URL.revokeObjectURL(url);photoPreviewUrls.current.clear()},[]);useEffect(()=>{if(q.data&&!formReady){setForm({...emptyProfile,...q.data,age:q.data.age??18,preferences:{...emptyProfile.preferences,...q.data.preferences},interests:q.data.interests??[],photos:q.data.photos??[]});setFormReady(true)}},[q.data,formReady]);const change=(key:keyof ProfileInput,value:any)=>setForm(v=>({...v,[key]:value}));function removeProfilePhoto(index:number){const reference=form.photos[index];const preview=photoPreviewUrls.current.get(reference);if(preview){URL.revokeObjectURL(preview);photoPreviewUrls.current.delete(reference);setPhotoPreviews(current=>{const next={...current};delete next[reference];return next})}change('photos',form.photos.filter((_,photoIndex)=>photoIndex!==index))}
  async function uploadProfileMedia(file?:File){if(!file||uploading)return;const video=file.type.startsWith('video/');setUploading(true);setSaveError('');try{if(!video)validatePhotoFile(file);const prepared=video?file:await prepareProfilePhoto(file);const contentType:MediaUploadInputContentType=video?(file.type==='video/quicktime'?'video/quicktime':'video/mp4'):'image/jpeg';const result=await requestUpload.mutateAsync({data:{name:prepared.name,size:prepared.size,contentType,mediaType:video?'video':'image'}});if(video){const uploaded=await fetch(result.uploadURL,{method:'PUT',headers:{'Content-Type':contentType},body:prepared});if(!uploaded.ok)throw {status:uploaded.status};const done=await transcode.mutateAsync({mediaId:result.mediaId});change('videoUrl',done.mediaReference)}else{await uploadProfilePhotoBytes(result.uploadURL,prepared);const checked=await checkAdditionalProfilePhoto(result.mediaId);const preview=URL.createObjectURL(prepared);photoPreviewUrls.current.set(checked.mediaReference,preview);setPhotoPreviews(current=>({...current,[checked.mediaReference]:preview}));setForm(current=>({...current,photos:[...current.photos,checked.mediaReference].slice(0,6)}))}}catch(error){setSaveError(userErrorMessage(error,'Your picture could not be uploaded. Choose the photo again to retry.'))}finally{setUploading(false)}}
  async function submit(e:React.FormEvent){e.preventDefault();setSaveError('');if(!form.photos.length){setSaveError('Keep at least one profile photo. Add a photo before saving.');return}try{const updated=await save.mutateAsync({data:form});qc.setQueryData(getGetMyProfileQueryKey(),updated);void qc.invalidateQueries({queryKey:getGetMyProfileQueryKey()});setLocation(returnTo)}catch(error){setSaveError(userErrorMessage(error,'Your changes haven’t saved yet. Check your details and try again.'))}}
 if(q.isError&&isProfileMissing(q.error))return <Redirect to="/onboarding"/>;
@@ -1179,7 +1203,7 @@ function LikesRoute(){return <ShellPage><InboundPeoplePage kind="likes" avatar={
 function FollowListRoute({kind}:{kind:'followers'|'following'}){const params=useParams<{profileId:string}>();return <ShellPage><FollowListPage profileId={params.profileId||''} kind={kind} avatar={p=><Avatar profile={p}/>}/></ShellPage>}
 function FollowersRoute(){return <FollowListRoute kind="followers"/>}
 function FollowingRoute(){return <FollowListRoute kind="following"/>}
-function ChatsRoute(){return <ShellPage><ChatsPage/></ShellPage>}
+function ChatsRoute(){return <ShellPage><ChatsListPage/></ShellPage>}
 function NotificationsRoute(){return <ShellPage><ActivityOverview avatar={p=><Avatar profile={p}/>}/></ShellPage>}
 function ViewedNotificationProfileRoute(){const params=useParams<{profileId:string}>();return <ShellPage><PublicProfile id={params.profileId||''} actionReturnTo="/notifications"/></ShellPage>}
 function PublicProfileRoute(){const params=useParams<{profileId:string}>();const returnTo=safeAppReturnPath(new URLSearchParams(window.location.search).get('returnTo'),'/discover');return <ShellPage><PublicProfile id={params.profileId||''} actionReturnTo={returnTo}/></ShellPage>}
@@ -1204,7 +1228,7 @@ function SettingsThemeSync() {
   return null;
 }
 function postOfflineProfileCacheMessage(message:{type:string;userId?:string}){if(!('serviceWorker'in navigator))return;const controller=navigator.serviceWorker.controller;if(controller){controller.postMessage(message);return}void navigator.serviceWorker.ready.then(registration=>(registration.active??navigator.serviceWorker.controller)?.postMessage(message)).catch(()=>{})}
-function ClerkCacheSync(){const {user,isLoaded}=useUser();const client=useQueryClient();const previous=useRef<string|null|undefined>(undefined);useEffect(()=>{if(!isLoaded)return;const id=user?.id??null;const changed=previous.current!==undefined&&previous.current!==id;if(changed)client.clear();if(changed||!id)postOfflineProfileCacheMessage({type:'myage:clear-profile-cache'});if(id)postOfflineProfileCacheMessage({type:'myage:set-profile-cache-user',userId:id});previous.current=id},[user?.id,isLoaded,client]);return null}
+function ClerkCacheSync(){const {user,isLoaded}=useUser();const client=useQueryClient();const previous=useRef<string|null|undefined>(undefined);useLayoutEffect(()=>{if(!isLoaded)return;const id=user?.id??null;const changed=previous.current!==undefined&&previous.current!==id;if(changed){client.clear();clearCachedMyProfile(previous.current)}if(changed||!id)postOfflineProfileCacheMessage({type:'myage:clear-profile-cache'});if(id)postOfflineProfileCacheMessage({type:'myage:set-profile-cache-user',userId:id});previous.current=id},[user?.id,isLoaded,client]);return null}
 function ProfileNavigationPrefetcher(){
   const {user}=useUser();
   const client=useQueryClient();
@@ -1235,7 +1259,7 @@ function ProfileNavigationPrefetcher(){
   },[user?.id,client]);
   return null;
 }
-function ClerkRoutes(){const [,setLocation]=useLocation();return <ClerkProvider publishableKey={clerkPubKey} proxyUrl={clerkProxyUrl} appearance={appearance} signInUrl={pathFor('/sign-in')} signUpUrl={pathFor('/sign-up')} localization={{signIn:{start:{title:'Welcome back',subtitle:'Your next good conversation is waiting.'}},signUp:{start:{title:'Make room for a spark',subtitle:'Create your adults-only MYAGEBEAUTY account.'}}}} routerPush={to=>setLocation(to.startsWith(basePath)?to.slice(basePath.length)||'/':to)} routerReplace={to=>setLocation(to.startsWith(basePath)?to.slice(basePath.length)||'/':to,{replace:true})}><ClerkCacheSync/><ProfileNavigationPrefetcher/><SettingsThemeSync/><ReferralToastHost/><Suspense fallback={<div className="flex min-h-[45dvh] items-center justify-center text-primary" aria-label="Loading"><LoaderCircle className="animate-spin" size={22}/></div>}><Switch>
+function ClerkRoutes(){const [,setLocation]=useLocation();return <ClerkProvider publishableKey={clerkPubKey} proxyUrl={clerkProxyUrl} appearance={appearance} signInUrl={pathFor('/sign-in')} signUpUrl={pathFor('/sign-up')} localization={{signIn:{start:{title:'Welcome back',subtitle:'Your next good conversation is waiting.'}},signUp:{start:{title:'Make room for a spark',subtitle:'Create your adults-only MYAGEBEAUTY account.'}}}} routerPush={to=>setLocation(to.startsWith(basePath)?to.slice(basePath.length)||'/':to)} routerReplace={to=>setLocation(to.startsWith(basePath)?to.slice(basePath.length)||'/':to,{replace:true})}><ClerkCacheSync/><ProfileNavigationPrefetcher/><SettingsThemeSync/><ReferralToastHost/><Suspense fallback={<RouteSkeleton label="Loading MYAGEBEAUTY" />}><Switch>
   <Route path="/" component={HomeRedirect}/>
   <Route path="/welcome" component={WelcomeRoute}/>
   <Route path="/admin" component={AdminPage}/><Route path="/admin/:section" component={AdminPage}/>

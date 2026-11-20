@@ -4,8 +4,9 @@ import { test } from 'node:test';
 
 const read = path => readFileSync(new URL(path, import.meta.url), 'utf8');
 const app = read('../src/App.tsx');
-const start = app.indexOf('function OwnProfileOverview(');
-const overview = app.slice(start, app.indexOf('\nfunction ', start + 1));
+const profilePage = read('../src/components/profile-page.tsx');
+const start = profilePage.indexOf('function OwnProfileOverview(');
+const overview = profilePage.slice(start, profilePage.indexOf('\nfunction ', start + 1));
 const native = read('../../vibeswipe/app/(tabs)/profile.tsx');
 const css = read('../src/index.css');
 
@@ -43,7 +44,7 @@ test('My Profile retains separate working Settings and Edit Profile destinations
   const editLink = overview.match(/<Link href="\/profile\/edit\?returnTo=%2Fprofile" data-testid="button-edit-profile"[^>]*>([\s\S]*?)<\/Link>/);
   assert.ok(editLink, 'Edit Profile link remains available');
   assert.match(editLink[0], /aria-label="Edit profile" title="Edit profile"/);
-  assert.match(editLink[1], /<Pencil size=\{18\} aria-hidden="true"\/>/);
+  assert.match(editLink[1], /<Pencil size=\{18\}\s+aria-hidden="true"\s*\/>/);
   assert.doesNotMatch(editLink[1], /Edit profile/i);
   assert.match(css, /\.own-profile \.op-edit \{ width:40px; height:40px; padding:0;/);
   assert.match(native, /router\.push\("\/settings"\)/);
@@ -68,7 +69,7 @@ test('short profile screens compact the portrait while keeping photos and saved 
   assert.match(readFileSync(new URL('../src/components/profile-reels-section.tsx', import.meta.url), 'utf8'), /id: "saved"/);
   assert.doesNotMatch(overview, /op-ghost mt-3/);
   assert.match(overview, /data-testid="link-manage-photos"/);
-  assert.match(overview, /profile\.photos\.slice\(0,6\)/);
+  assert.match(overview, /profile\.photos\.slice\(0,\s*6\)/);
   assert.match(app, /onProfile \? \(lightMode \? "#fde4ec" : "#3a2232"\)/);
 });
 
@@ -79,5 +80,5 @@ test('own profile sections use a continuous surface and retain the media grid', 
   assert.match(css, /\.own-profile \.pp-media-tabs-list \{ border-bottom:0; \}/);
   assert.match(css, /\.own-profile \.pp-media-state \{[^}]*border:0;[^}]*background:transparent;/s);
   assert.match(css, /\.pp-reel-grid \{ display:grid; grid-template-columns:repeat\(3,minmax\(0,1fr\)\);/);
-  assert.match(overview, /profile\.photos\.slice\(0,6\)/);
+  assert.match(overview, /profile\.photos\.slice\(0,\s*6\)/);
 });

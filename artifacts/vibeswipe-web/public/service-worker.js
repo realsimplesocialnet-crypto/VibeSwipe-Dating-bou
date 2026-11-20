@@ -1,5 +1,5 @@
 /* Cache the app shell, approved public Reels, and account-scoped recent profiles. */
-const CACHE_NAME = 'myage-shell-v25';
+const CACHE_NAME = 'myage-shell-v26';
 const REEL_CACHE_NAME = 'myage-offline-reels-v1';
 const PROFILE_CACHE_NAME = 'myage-offline-profiles-v1';
 const MAX_OFFLINE_REELS = 3;
@@ -40,15 +40,108 @@ function appEntryAssets(html) {
   return [...assets];
 }
 
+function shellModuleAssets(source) {
+  const assets = new Set();
+  for (const match of source.matchAll(/(?:assets\/)?(?:webview-app-entry-[\w-]+\.js|(?:index|webview-app-entry)-[\w-]+\.css)/g)) {
+    const reference = match[0].startsWith('assets/') ? match[0] : `assets/${match[0]}`;
+    try {
+      const asset = new URL(reference, scopeUrl);
+      if (
+        asset.origin === scopeUrl.origin &&
+        asset.pathname.startsWith(scopeUrl.pathname) &&
+        /\.(?:m?js|css)$/i.test(asset.pathname)
+      ) assets.add(asset.href);
+    } catch {
+      // Ignore malformed build references.
+    }
+  }
+  return [...assets];
+}
+
+function staticModuleImports(source, moduleUrl) {
+  const references = new Set();
+  const patterns = [
+    /\bimport\s*(?:[\w*{},\s$]+?from\s*)?["']([^"']+)["']/g,
+    /\bexport\s*[\w*{},\s$]+?from\s*["']([^"']+)["']/g,
+  ];
+  for (const pattern of patterns) {
+    for (const match of source.matchAll(pattern)) {
+      const reference = match[1];
+      if (!reference.startsWith('.') && !reference.startsWith('/')) continue;
+      try {
+        const asset = new URL(reference, moduleUrl);
+        if (
+          asset.origin === scopeUrl.origin &&
+          asset.pathname.startsWith(scopeUrl.pathname) &&
+          /\.(?:m?js)$/i.test(asset.pathname)
+        ) references.add(asset.href);
+      } catch {
+        // Ignore malformed, external, or bare module references.
+      }
+    }
+  }
+  return [...references];
+}
+
 async function cacheAppEntryAssets(cache, html) {
-  const assets = appEntryAssets(html);
-  if (!assets.some((url) => /\.m?js(?:$|\?)/i.test(url))) {
+  const entryAssets = appEntryAssets(html);
+  const assets = new Set(entryAssets);
+  const moduleQueue = [...entryAssets];
+  const visited = new Set();
+  const fontUrls = new Set();
+  if (!entryAssets.some((url) => /\.m?js(?:$|\?)/i.test(url))) {
     throw new Error('The MYAGEBEAUTY app entry script could not be found.');
   }
-  await Promise.all(assets.map(async (url) => {
+
+  // Follow static imports and the app's main lazy entry only. Feature routes
+  // remain on-demand, while an offline repeat open has the real app shell.
+  while (moduleQueue.length && visited.size < 128) {
+    const url = moduleQueue.shift();
+    if (visited.has(url)) continue;
+    visited.add(url);
     const response = await fetchWithTimeout(url);
     if (!response.ok) throw new Error('A MYAGEBEAUTY app entry asset could not be downloaded.');
+    let source = '';
+    if (/\.css(?:$|\?)/i.test(url)) {
+      source = await response.clone().text();
+      for (const match of source.matchAll(/url\(\s*(?:(["'])(.*?)\1|([^)]*))\s*\)/gi)) {
+        const reference = (match[2] ?? match[3] ?? '').trim();
+        if (!reference || /^(?:data:|blob:|#)/i.test(reference)) continue;
+        try {
+          const font = new URL(reference, url);
+          if (
+            font.origin === scopeUrl.origin &&
+            font.pathname.startsWith(scopeUrl.pathname) &&
+            /\.(?:woff2?|ttf|otf)$/i.test(font.pathname)
+          ) fontUrls.add(font.href);
+        } catch {
+          // Ignore malformed or external font URLs.
+        }
+      }
+    } else if (/\.(?:m?js)(?:$|\?)/i.test(url)) {
+      source = await response.clone().text();
+      for (const dependency of staticModuleImports(source, url)) {
+        if (!visited.has(dependency)) moduleQueue.push(dependency);
+      }
+      for (const dependency of shellModuleAssets(source)) {
+        assets.add(dependency);
+        if (!visited.has(dependency)) moduleQueue.push(dependency);
+      }
+    }
     await cache.put(url, response);
+  }
+
+  if (moduleQueue.length) throw new Error('The MYAGEBEAUTY app shell has too many static assets.');
+
+  // Fonts are optional shell assets; a missing font must not prevent the app
+  // from opening, but local bundled fonts should be ready for repeat visits.
+  await Promise.all([...fontUrls].map(async (url) => {
+    try {
+      const response = await fetchWithTimeout(url);
+      if (response.ok) await cache.put(url, response);
+    } catch {
+      // The browser can fall back to its system font when a font is offline.
+    }
   }));
 }
 

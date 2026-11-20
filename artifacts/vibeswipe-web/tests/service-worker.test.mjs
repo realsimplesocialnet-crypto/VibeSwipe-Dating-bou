@@ -135,6 +135,28 @@ test("one failed optional icon does not prevent service-worker installation", as
           { headers: { "Content-Type": "text/html" } },
         );
       }
+      if (url.endsWith("/assets/app.js")) {
+        return new Response(
+          'import{a}from"./shared.js";const app=import("./admin.js");const deps=["assets/webview-app-entry-main.js","assets/index-main.css","assets/webview-app-entry-main.css","assets/admin.css"]',
+        );
+      }
+      if (url.endsWith("/assets/shared.js")) {
+        return new Response('import"./nested.js";');
+      }
+      if (url.endsWith("/assets/nested.js")) {
+        return new Response("export const ready = true;");
+      }
+      if (url.endsWith("/assets/webview-app-entry-main.js")) {
+        return new Response('import"./shared.js";const route=import("./discover.js")');
+      }
+      if (url.endsWith("/assets/app.css") || url.endsWith("/assets/index-main.css") || url.endsWith("/assets/webview-app-entry-main.css")) {
+        return new Response("@font-face{font-family:App;src:url('/assets/app.woff2')}", {
+          headers: { "Content-Type": "text/css" },
+        });
+      }
+      if (url.endsWith("/assets/app.woff2")) {
+        return new Response("font bytes", { headers: { "Content-Type": "font/woff2" } });
+      }
       return new Response("public recovery content");
     },
   });
@@ -146,6 +168,15 @@ test("one failed optional icon does not prevent service-worker installation", as
   assert.equal(worker.cacheEntries.has("https://myage.beauty/index.html"), true);
   assert.equal(worker.cacheEntries.has("https://myage.beauty/assets/app.js"), true);
   assert.equal(worker.cacheEntries.has("https://myage.beauty/assets/app.css"), true);
+  assert.equal(worker.cacheEntries.has("https://myage.beauty/assets/app.woff2"), true);
+  assert.equal(worker.cacheEntries.has("https://myage.beauty/assets/shared.js"), true);
+  assert.equal(worker.cacheEntries.has("https://myage.beauty/assets/nested.js"), true);
+  assert.equal(worker.cacheEntries.has("https://myage.beauty/assets/webview-app-entry-main.js"), true);
+  assert.equal(worker.cacheEntries.has("https://myage.beauty/assets/index-main.css"), true);
+  assert.equal(worker.cacheEntries.has("https://myage.beauty/assets/webview-app-entry-main.css"), true);
+  assert.equal(worker.cacheEntries.has("https://myage.beauty/assets/admin.js"), false);
+  assert.equal(worker.cacheEntries.has("https://myage.beauty/assets/discover.js"), false);
+  assert.equal(worker.cacheEntries.has("https://myage.beauty/assets/admin.css"), false);
   assert.equal(worker.cacheEntries.has("https://myage.beauty/pwa-launch.js?v=10"), true);
   assert.equal(worker.cacheEntries.has("https://myage.beauty/"), false);
 });

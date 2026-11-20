@@ -119,7 +119,7 @@ test('Super Like has a separate Activity notice and is distinguished in incoming
 });
 
 test('Edit Profile retains real photo controls and the existing save mutation', () => {
-  const editor = app.slice(app.indexOf('function ProfilePage('), app.indexOf('function OwnProfileFrame('));
+  const editor = read('../src/components/profile-page.tsx');
   for (const text of ['Main photo', 'button-remove-profile-photo-', 'button-add-profile-photo-slot-', 'button-save-profile', 'form.photos.length', 'useSaveMyProfile']) assert.ok(editor.includes(text), text);
   for (const text of ['photoPreviews', 'URL.createObjectURL(prepared)', 'fallbackSrc={photoPreviews[photo]}', 'New photos are kept after you tap Save profile']) assert.ok(editor.includes(text), text);
   const nativeEditor = read('../../vibeswipe/app/edit-profile.tsx');

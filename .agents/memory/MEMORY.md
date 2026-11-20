@@ -24,3 +24,4 @@
 - [Top-edge spacing](top-edge-spacing.md) — Keep VibeSwipe screens close to the top safe area; avoid unnecessary blank space above content.
 - [Development schema prompts](drizzle-push-noninteractive.md) — If Drizzle push stops for an interactive legacy-schema conflict, inspect the diff; never bypass it with force.
 - [Company identity](company-identity.md) — Use MYAGEBEAUTY as the product brand and VIBESWIPES LIMITED as the Nigerian legal entity.
+- [Startup cache and Clerk identity](startup-cache-clerk.md) — Cache only the active Clerk user's profile; never persist Clerk session tokens in browser storage.
