@@ -1,5 +1,5 @@
-import { memo, useEffect, useRef, useState } from "react";
-import { motion, useMotionValue, useTransform, type Variants } from "framer-motion";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
+import { animate, motion, useMotionValue, useTransform, type Variants } from "framer-motion";
 import { MapPin, MoreHorizontal } from "lucide-react";
 import {
   getGetMediaPreviewQueryKey,
@@ -28,20 +28,8 @@ type DiscoverSwipeCardProps = {
   onOptions: (profileId: string) => void;
 };
 
-const SWIPE_OFFSET_PX = 54;
-const SWIPE_VELOCITY_PX_PER_SECOND = 420;
-const swipeCardVariants: Variants = {
-  exit: (target: SwipeExit | null) => ({
-    x: target?.x ?? 0,
-    y: target?.y ?? -40,
-    rotate: target?.rotate ?? 0,
-    opacity: 0,
-    pointerEvents: "none" as const,
-    transition: target?.reducedMotion
-      ? { duration: 0 }
-      : { duration: 0.16, ease: [0.16, 0.84, 0.24, 1] as const },
-  }),
-};
+const SWIPE_OFFSET_PX = 80;
+const SWIPE_VELOCITY_PX_PER_SECOND = 400;
 
 export const DiscoverSwipeCard = memo(function DiscoverSwipeCard({
   profile,
@@ -57,6 +45,21 @@ export const DiscoverSwipeCard = memo(function DiscoverSwipeCard({
   const likeOpacity = useTransform(x, [28, 104], [0, 1]);
   const passOpacity = useTransform(x, [-104, -28], [1, 0]);
   const [objectUrl, setObjectUrl] = useState("");
+  const swipeCardVariants = useMemo<Variants>(() => ({
+    exit: (targets: Record<string, SwipeExit> | null) => {
+      const target = targets?.[profile.id];
+      return {
+        x: target?.x ?? 0,
+        y: target?.y ?? -40,
+        rotate: target?.rotate ?? 0,
+        opacity: 0,
+        pointerEvents: "none" as const,
+        transition: target?.reducedMotion
+          ? { duration: 0 }
+          : { duration: 0.16, ease: [0.16, 0.84, 0.24, 1] as const },
+      };
+    },
+  }), [profile.id]);
 
   const mediaId = profile.photos?.[0]?.startsWith("media:")
     ? profile.photos[0].slice(6)
@@ -107,21 +110,25 @@ export const DiscoverSwipeCard = memo(function DiscoverSwipeCard({
         style={{ x, rotate, willChange: "transform" }}
         drag={active ? "x" : false}
         dragConstraints={{ left: -1400, right: 1400 }}
-        dragElastic={0.08}
+        dragElastic={0.04}
         dragMomentum={false}
-        dragSnapToOrigin
-        dragTransition={{ bounceStiffness: 720, bounceDamping: 32 }}
+        dragSnapToOrigin={false}
+        dragTransition={{ bounceStiffness: 900, bounceDamping: 28 }}
         whileDrag={reducedMotion ? undefined : { scale: 1.012 }}
         onDragEnd={(_, info) => {
           const direction = Math.sign(info.offset.x || info.velocity.x);
           const shouldSwipe =
             Math.abs(info.offset.x) >= SWIPE_OFFSET_PX ||
-            (Math.abs(info.velocity.x) >= SWIPE_VELOCITY_PX_PER_SECOND && Math.abs(info.offset.x) >= 12);
+            (Math.abs(info.velocity.x) >= SWIPE_VELOCITY_PX_PER_SECOND && Math.abs(info.offset.x) >= 8);
           if (active && shouldSwipe && direction !== 0) {
             onSwipe(profile.id, direction > 0 ? "like" : "pass", {
               offsetX: info.offset.x,
               velocityX: info.velocity.x,
             });
+          } else if (!reducedMotion) {
+            void animate(x, 0, { type: "spring", stiffness: 900, damping: 28 });
+          } else {
+            x.set(0);
           }
         }}
         onTap={() => { if (active) onOpen(profile.id); }}

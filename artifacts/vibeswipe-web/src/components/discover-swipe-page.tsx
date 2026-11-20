@@ -52,11 +52,12 @@ export function DiscoverSwipePage() {
   const [notice, setNotice] = useState("");
   const [likeConfirmation, setLikeConfirmation] = useState("");
   const [lastPass, setLastPass] = useState<string | null>(null);
-  const [swipeExit, setSwipeExit] = useState<SwipeExit | null>(null);
+  const [swipeExits, setSwipeExits] = useState<Record<string, SwipeExit>>({});
   const [pendingReactionCount, setPendingReactionCount] = useState(0);
   const [pendingLikeCount, setPendingLikeCount] = useState(0);
   const [pendingSuperLikeCount, setPendingSuperLikeCount] = useState(0);
   const swipeLock = useRef(false);
+  const swipeExitTimers = useRef(new Map<string, number>());
   const [matchResult, setMatchResult] = useState<{ profile: Profile; matchId: string | null } | null>(null);
   const reducedMotion = useReducedMotion() ?? false;
   const myProfile = useGetMyProfile();
@@ -75,6 +76,8 @@ export function DiscoverSwipePage() {
   const settings = useGetVibeSwipeSettings({ query: { queryKey: getGetVibeSwipeSettingsQueryKey() } });
   useEffect(() => () => {
     if (noticeTimer.current !== null) window.clearTimeout(noticeTimer.current);
+    for (const timer of swipeExitTimers.current.values()) window.clearTimeout(timer);
+    swipeExitTimers.current.clear();
   }, []);
 
   const params = useMemo(() => discoveryFilterParams(appliedFilters), [appliedFilters]);
@@ -227,8 +230,20 @@ export function DiscoverSwipePage() {
     const nextIndex = indexRef.current + 1;
     indexRef.current = nextIndex;
     activeProfileRef.current = profilesRef.current[nextIndex];
-    setSwipeExit(swipeExitTarget);
     setIndexRef.current(nextIndex);
+    const previousExitTimer = swipeExitTimers.current.get(current.id);
+    if (previousExitTimer !== undefined) window.clearTimeout(previousExitTimer);
+    setSwipeExits((exits) => ({ ...exits, [current.id]: swipeExitTarget }));
+    const exitTimer = window.setTimeout(() => {
+      setSwipeExits((exits) => {
+        if (!(current.id in exits)) return exits;
+        const next = { ...exits };
+        delete next[current.id];
+        return next;
+      });
+      swipeExitTimers.current.delete(current.id);
+    }, reducedMotion ? 0 : 170);
+    swipeExitTimers.current.set(current.id, exitTimer);
     setNotice("");
     if (type === "like") {
       pendingLikeCountRef.current += 1;
@@ -400,7 +415,7 @@ export function DiscoverSwipePage() {
       {likeConfirmation && <div className="fixed inset-x-0 top-[calc(env(safe-area-inset-top)+1rem)] z-[60] flex justify-center px-4" role="status" aria-live="polite" data-testid="status-discover-liked"><div className="flex items-center gap-2 rounded-full border border-primary/25 bg-[#211a27]/95 px-5 py-3 text-sm font-semibold text-white shadow-2xl backdrop-blur-xl"><Heart size={17} fill="currentColor" className="text-primary"/>{likeConfirmation}</div></div>}
 
       <div className="discover-card-slot" data-testid="discover-card-slot">
-        <AnimatePresence initial={false} custom={swipeExit}>
+        <AnimatePresence initial={false} custom={swipeExits}>
           {stackProfiles.map((candidate, depth) => (
             <DiscoverSwipeCard
               key={candidate.id}
