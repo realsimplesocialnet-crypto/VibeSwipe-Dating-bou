@@ -1,5 +1,4 @@
 import { lazy, memo, Suspense, type ReactNode, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { OnboardingVideoBackground } from '@/components/onboarding-video-background';
 import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
 import { ClerkProvider, SignIn, useClerk, useSignUp, useUser } from '@clerk/react';
 import { publishableKeyFromHost } from '@clerk/react/internal';
@@ -33,23 +32,11 @@ import {
 } from 'lucide-react';
 import NotFound from '@/pages/not-found';
 import { VerifiedBadge } from '@/components/verified-badge';
-import { InstalledWelcome } from '@/components/installed-welcome';
-import { MatchCelebration } from '@/components/match-celebration';
-import { MatchStoryAvatar, ProfileStoryAvatar, StoryCameraTrigger, StoryComposerPage } from '@/components/stories/stories-ui';
-import { StoryCameraPage } from '@/components/stories/story-camera-page';
-import { SignupPasswordField } from '@/components/signup-password-field';
-import { ProfileFirstSignup } from '@/components/profile-first-signup';
-import { ReferralProfileCard } from '@/components/referrals/referral-profile-card';
 import { ReferralToastHost } from '@/components/referrals/referral-toast-host';
-import { OnboardingCountryStep } from '@/components/onboarding-country-step';
 import type { OnboardingCountry } from '@workspace/api-client-react';
-import { HobbyMultiSelect, OccupationSelect } from '@/components/profile-field-selectors';
 import { ReelsNavigationVisibilityContext } from '@/components/reels/reels-navigation-context';
-import { ProfileReelsSection } from '@/components/profile-reels-section';
 import { QuietSpinner } from '@/components/ui/quiet-spinner';
 import { sharedReelId } from '@/lib/reels';
-import { ChatMessageBubble } from '@/components/chat-message-bubble';
-import { ChatVoiceNoteRecorder } from '@/components/chat-voice-note-recorder';
 import { chatViewportFrame } from '@/lib/chat-viewport';
 import { isDiscoverSetupRequired, isProfileMissing, shouldRetryDiscover, shouldRetryProfile } from '@/lib/profile-query-state';
 import { totalUnreadMessages, unreadBadgeLabel } from '@/lib/unread-messages';
@@ -81,6 +68,23 @@ const ProfileFollowNotificationAction = lazy(() => import('@/components/social-h
 const ProfileSocialActions = lazy(() => import('@/components/social-hub').then(module => ({ default: module.ProfileSocialActions })));
 const SettingsIndexPage = lazy(() => import('@/components/settings/settings-pages').then(module => ({ default: module.SettingsIndexPage })));
 const SettingsSectionPage = lazy(() => import('@/components/settings/settings-pages').then(module => ({ default: module.SettingsSectionPage })));
+const OnboardingVideoBackground = lazy(() => import('@/components/onboarding-video-background').then(module => ({ default: module.OnboardingVideoBackground })));
+const InstalledWelcome = lazy(() => import('@/components/installed-welcome').then(module => ({ default: module.InstalledWelcome })));
+const MatchCelebration = lazy(() => import('@/components/match-celebration').then(module => ({ default: module.MatchCelebration })));
+const MatchStoryAvatar = lazy(() => import('@/components/stories/stories-ui').then(module => ({ default: module.MatchStoryAvatar })));
+const ProfileStoryAvatar = lazy(() => import('@/components/stories/stories-ui').then(module => ({ default: module.ProfileStoryAvatar })));
+const StoryCameraTrigger = lazy(() => import('@/components/stories/stories-ui').then(module => ({ default: module.StoryCameraTrigger })));
+const StoryComposerPage = lazy(() => import('@/components/stories/stories-ui').then(module => ({ default: module.StoryComposerPage })));
+const StoryCameraPage = lazy(() => import('@/components/stories/story-camera-page').then(module => ({ default: module.StoryCameraPage })));
+const SignupPasswordField = lazy(() => import('@/components/signup-password-field').then(module => ({ default: module.SignupPasswordField })));
+const ProfileFirstSignup = lazy(() => import('@/components/profile-first-signup').then(module => ({ default: module.ProfileFirstSignup })));
+const ReferralProfileCard = lazy(() => import('@/components/referrals/referral-profile-card').then(module => ({ default: module.ReferralProfileCard })));
+const OnboardingCountryStep = lazy(() => import('@/components/onboarding-country-step').then(module => ({ default: module.OnboardingCountryStep })));
+const HobbyMultiSelect = lazy(() => import('@/components/profile-field-selectors').then(module => ({ default: module.HobbyMultiSelect })));
+const OccupationSelect = lazy(() => import('@/components/profile-field-selectors').then(module => ({ default: module.OccupationSelect })));
+const ProfileReelsSection = lazy(() => import('@/components/profile-reels-section').then(module => ({ default: module.ProfileReelsSection })));
+const ChatMessageBubble = lazy(() => import('@/components/chat-message-bubble').then(module => ({ default: module.ChatMessageBubble })));
+const ChatVoiceNoteRecorder = lazy(() => import('@/components/chat-voice-note-recorder').then(module => ({ default: module.ChatVoiceNoteRecorder })));
 
 const queryClient = new QueryClient({ defaultOptions: { queries: { staleTime: 12_000, retry: 1 } } });
 const artifactBasePath = import.meta.env.BASE_URL.replace(/\/$/, '');
@@ -1086,8 +1090,8 @@ function OnboardingSignInAction(){
     {error&&<p role="alert" className="mt-2 max-w-[220px] rounded-xl bg-[#211d25] px-3 py-2 text-xs text-rose-200">{error}</p>}
   </div>
 }
-function HomeRedirect(){const {isLoaded,isSignedIn}=useUser();if(!isLoaded)return <AppOpening/>;return <Redirect to={isSignedIn?'/discover':'/welcome'}/>}
-function WelcomeRoute(){const {isLoaded,isSignedIn}=useUser();if(!isLoaded)return <AppOpening/>;return isSignedIn?<Redirect to="/discover"/>:<InstalledWelcome/>}
+function HomeRedirect(){const {isLoaded,isSignedIn}=useUser();if(!isLoaded)return <InstalledWelcome/>;return <Redirect to={isSignedIn?'/discover':'/welcome'}/>}
+function WelcomeRoute(){const {isLoaded,isSignedIn}=useUser();if(!isLoaded)return <InstalledWelcome/>;return isSignedIn?<Redirect to="/discover"/>:<InstalledWelcome/>}
 function BrandedSignUp(){
   const {signUp,fetchStatus}=useSignUp();
   const [,setLocation]=useLocation();

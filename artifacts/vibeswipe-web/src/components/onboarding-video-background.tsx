@@ -18,8 +18,12 @@ export function OnboardingVideoBackground({ form = false }: { form?: boolean }) 
 
   useEffect(() => {
     const preference = matchMedia("(prefers-reduced-motion: reduce)");
-    const connection = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection;
-    const sync = () => setRestricted(preference.matches || !!connection?.saveData);
+    const device = navigator as Navigator & {
+      connection?: { saveData?: boolean };
+      deviceMemory?: number;
+    };
+    const lowMemory = typeof device.deviceMemory === "number" && device.deviceMemory <= 2;
+    const sync = () => setRestricted(preference.matches || !!device.connection?.saveData || lowMemory);
     const visibility = () => setVisible(!document.hidden);
     sync();
     preference.addEventListener("change", sync);
