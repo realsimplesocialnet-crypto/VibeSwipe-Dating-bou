@@ -4,42 +4,91 @@ import { Feather } from "@expo/vector-icons";
 import { VideoView, useVideoPlayer } from "expo-video";
 import { router } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, FlatList, Image, Pressable, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Image, Pressable, StyleSheet, Text, View } from "react-native";
 import {
+  getGetMyReelsQueryKey,
   getGetProfileLikedReelsQueryKey,
   getGetProfileReelsQueryKey,
+  getGetProfileRepostedReelsQueryKey,
+  getGetSavedReelsQueryKey,
+  getMyReels,
   getProfileLikedReels,
   getProfileReels,
+  getProfileRepostedReels,
+  getSavedReels,
   type Reel,
 } from "@workspace/api-client-react";
 import { usePremiumColors } from "@/hooks/useColors";
 import { mediaUri } from "@/lib/media";
 
+type MediaTab = "reels" | "reposted" | "saved" | "liked";
+
 export function ProfileReelsSection({
   profileId,
   returnTo,
-  layout = "carousel",
+  own = false,
 }: {
   profileId: string;
   returnTo: string;
-  layout?: "carousel" | "grid";
+  own?: boolean;
 }) {
   const colors = usePremiumColors();
   const { getToken } = useAuth();
   const [token, setToken] = useState<string | null>(null);
   const [sectionWidth, setSectionWidth] = useState(0);
-  const reelsQuery = useInfiniteQuery({
+  const [activeTab, setActiveTab] = useState<MediaTab>("reels");
+  const myReels = useInfiniteQuery({
+    queryKey: getGetMyReelsQueryKey(),
+    initialPageParam: undefined as string | undefined,
+    queryFn: ({ pageParam, signal }) => getMyReels(pageParam ? { cursor: pageParam } : undefined, { signal }),
+    getNextPageParam: (page) => page.nextCursor ?? undefined,
+    enabled: own && activeTab === "reels",
+    staleTime: 30_000,
+  });
+  const profileReels = useInfiniteQuery({
     queryKey: getGetProfileReelsQueryKey({ profileId }),
     initialPageParam: undefined as string | undefined,
-    queryFn: ({ pageParam, signal }) =>
-      getProfileReels({ profileId, ...(pageParam ? { cursor: pageParam } : {}) }, { signal }),
+    queryFn: ({ pageParam, signal }) => getProfileReels({ profileId, ...(pageParam ? { cursor: pageParam } : {}) }, { signal }),
     getNextPageParam: (page) => page.nextCursor ?? undefined,
-    enabled: Boolean(profileId),
-    staleTime: 60_000,
-    refetchInterval: 60_000,
-    refetchIntervalInBackground: false,
+    enabled: Boolean(profileId) && !own && activeTab === "reels",
+    staleTime: 30_000,
   });
-  const reels = reelsQuery.data?.pages.flatMap((page) => page.items) ?? [];
+  const reposted = useInfiniteQuery({
+    queryKey: getGetProfileRepostedReelsQueryKey({ profileId }),
+    initialPageParam: undefined as string | undefined,
+    queryFn: ({ pageParam, signal }) => getProfileRepostedReels({ profileId, ...(pageParam ? { cursor: pageParam } : {}) }, { signal }),
+    getNextPageParam: (page) => page.nextCursor ?? undefined,
+    enabled: Boolean(profileId) && activeTab === "reposted",
+    staleTime: 30_000,
+  });
+  const saved = useInfiniteQuery({
+    queryKey: getGetSavedReelsQueryKey(),
+    initialPageParam: undefined as string | undefined,
+    queryFn: ({ pageParam, signal }) => getSavedReels(pageParam ? { cursor: pageParam } : undefined, { signal }),
+    getNextPageParam: (page) => page.nextCursor ?? undefined,
+    enabled: own && activeTab === "saved",
+    staleTime: 30_000,
+  });
+  const liked = useInfiniteQuery({
+    queryKey: getGetProfileLikedReelsQueryKey({ profileId }),
+    initialPageParam: undefined as string | undefined,
+    queryFn: ({ pageParam, signal }) => getProfileLikedReels({ profileId, ...(pageParam ? { cursor: pageParam } : {}) }, { signal }),
+    getNextPageParam: (page) => page.nextCursor ?? undefined,
+    enabled: Boolean(profileId) && activeTab === "liked",
+    staleTime: 30_000,
+  });
+
+  const current = activeTab === "reels" ? (own ? myReels : profileReels)
+    : activeTab === "reposted" ? reposted
+      : activeTab === "saved" ? saved : liked;
+  const reels: Reel[] = current.data?.pages.flatMap((page) => page.items) ?? [];
+  const tileWidth = Math.max(72, Math.floor((sectionWidth - 24 - 8) / 3));
+  const tabs: { id: MediaTab; label: string; icon: "grid" | "repeat" | "bookmark" | "heart" }[] = [
+    { id: "reels", label: "Reels", icon: "grid" },
+    { id: "reposted", label: "Reposts", icon: "repeat" },
+    ...(own ? [{ id: "saved" as const, label: "Saved", icon: "bookmark" as const }] : []),
+    { id: "liked", label: "Likes", icon: "heart" },
+  ];
 
   useEffect(() => {
     let active = true;
@@ -52,138 +101,100 @@ export function ProfileReelsSection({
   }, [getToken]);
 
   function openReel(reel: Reel) {
-    router.push({
-      pathname: "/reels/[reelId]",
-      params: { reelId: reel.id, returnTo },
-    });
+    router.push({ pathname: "/reels/[reelId]", params: { reelId: reel.id, returnTo } });
   }
 
   return (
-    <View testID="profile-reels-section" onLayout={(event) => setSectionWidth(event.nativeEvent.layout.width)} style={[styles.section, { backgroundColor: colors.profileCard }]}>
-      <View style={styles.heading}>
-        <View style={[styles.icon, { backgroundColor: colors.profileChip }]}>
-          <Feather name="film" size={13} color={colors.profileEdit} />
-        </View>
-        <Text style={[styles.title, { color: colors.profileLabel }]}>REELS</Text>
-        {reels.length > 0 ? <Text style={[styles.count, { color: colors.profileMuted }]}>{reels.length}</Text> : null}
+    <View
+      testID={own ? "profile-media-tabs" : "public-profile-media-tabs"}
+      onLayout={(event) => setSectionWidth(event.nativeEvent.layout.width)}
+      style={[styles.section, { backgroundColor: colors.profileCard }]}
+    >
+      <View style={[styles.tabs, { borderBottomColor: colors.profileRule }]} accessibilityRole="tablist" accessibilityLabel="Profile videos">
+        {tabs.map((tab) => (
+          <Pressable
+            key={tab.id}
+            testID={`profile-media-tab-${tab.id}`}
+            accessibilityRole="tab"
+            accessibilityLabel={tab.label}
+            accessibilityState={{ selected: activeTab === tab.id }}
+            onPress={() => setActiveTab(tab.id)}
+            style={[styles.tab, activeTab === tab.id && { borderBottomColor: colors.profileEdit }]}
+          >
+            <Feather name={tab.icon} size={19} color={activeTab === tab.id ? colors.profileEdit : colors.profileMuted} />
+          </Pressable>
+        ))}
       </View>
 
-      {reelsQuery.isLoading ? (
-        <ActivityIndicator color={colors.primary} style={styles.loading} />
-      ) : reelsQuery.isError && !reels.length ? (
-        <ActivityIndicator color={colors.primary} accessibilityLabel="Loading" style={styles.loading} />
+      {current.isLoading ? (
+        <ActivityIndicator color={colors.primary} style={styles.loading} accessibilityLabel={`Loading ${activeTab}`} />
+      ) : current.isError && !reels.length ? (
+        <Pressable
+          testID="button-retry-profile-videos"
+          accessibilityRole="button"
+          onPress={() => void current.refetch()}
+          style={styles.state}
+        >
+          <Feather name={activeTab === "liked" ? "heart" : "alert-circle"} size={18} color={colors.profileMuted} />
+          <Text style={[styles.empty, { color: colors.profileMuted }]}>
+            {!own && activeTab === "liked" ? "Liked videos aren’t available to this viewer." : "Videos could not load. Tap to retry."}
+          </Text>
+        </Pressable>
       ) : reels.length ? (
-        layout === "grid" ? (
-          <>
-            <View style={styles.grid} testID="profile-reels-grid">
-              {reels.map((item) => (
-                <ReelThumbnail
-                  key={item.id}
-                  reel={item}
-                  token={token}
-                  layout="grid"
-                  tileWidth={Math.max(72, Math.floor((sectionWidth - 24 - 16) / 3))}
-                  onPress={() => openReel(item)}
-                />
-              ))}
-            </View>
-            {reelsQuery.hasNextPage ? (
-              <Pressable
-                testID="button-load-more-profile-reels"
-                accessibilityRole="button"
-                disabled={reelsQuery.isFetchingNextPage}
-                onPress={() => void reelsQuery.fetchNextPage()}
-                style={[styles.loadMore, { borderColor: colors.border }]}
-              >
-                {reelsQuery.isFetchingNextPage
-                  ? <ActivityIndicator size="small" color={colors.primary} />
-                  : <Text style={{ color: colors.profileEdit, fontWeight: "800", fontSize: 13 }}>Load more</Text>}
-              </Pressable>
-            ) : null}
-          </>
-        ) : (
-          <FlatList
-            horizontal
-            data={reels}
-            keyExtractor={(item) => item.id}
-            renderItem={({ item }) => (
+        <>
+          <View style={styles.grid} testID={`profile-${activeTab}-grid`}>
+            {reels.map((item) => (
               <ReelThumbnail
+                key={`${activeTab}-${item.id}`}
                 reel={item}
                 token={token}
-                layout="carousel"
+                tileWidth={tileWidth}
                 onPress={() => openReel(item)}
               />
-            )}
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.row}
-            onEndReached={() => {
-              if (reelsQuery.hasNextPage && !reelsQuery.isFetchingNextPage) {
-                void reelsQuery.fetchNextPage();
-              }
-            }}
-            onEndReachedThreshold={0.5}
-            initialNumToRender={4}
-            maxToRenderPerBatch={4}
-            windowSize={4}
-            ListFooterComponent={reelsQuery.isFetchingNextPage ? <ActivityIndicator color={colors.primary} style={styles.more} /> : undefined}
-            testID="profile-reels-carousel"
-          />
-        )
+            ))}
+          </View>
+          {current.hasNextPage ? (
+            <Pressable
+              testID={`button-load-more-profile-${activeTab}`}
+              accessibilityRole="button"
+              disabled={current.isFetchingNextPage}
+              onPress={() => void current.fetchNextPage()}
+              style={[styles.loadMore, { borderColor: colors.border }]}
+            >
+              {current.isFetchingNextPage ? (
+                <ActivityIndicator size="small" color={colors.primary} />
+              ) : (
+                <Text style={{ color: colors.profileEdit, fontWeight: "800", fontSize: 13 }}>
+                  {current.isFetchNextPageError ? "Try again" : "Load more"}
+                </Text>
+              )}
+            </Pressable>
+          ) : null}
+          {current.isFetchNextPageError ? (
+            <Text accessibilityRole="alert" style={[styles.pageError, { color: colors.destructive }]}>More videos could not load.</Text>
+          ) : null}
+        </>
       ) : (
-        <Text testID="profile-reels-empty" style={[styles.empty, { color: colors.profileMuted }]}>No reels yet.</Text>
+        <View style={styles.state} testID={`empty-profile-${activeTab}`}>
+          <Text style={[styles.empty, { color: colors.profileMuted }]}>{emptyCopy(activeTab, own)}</Text>
+        </View>
       )}
     </View>
   );
 }
 
-export function ProfileLikedReelsSection({ profileId, returnTo, layout = "carousel" }: {
-  profileId: string;
-  returnTo: string;
-  layout?: "carousel" | "grid";
-}) {
-  const colors = usePremiumColors();
-  const { getToken } = useAuth();
-  const [token, setToken] = useState<string | null>(null);
-  const [sectionWidth, setSectionWidth] = useState(0);
-  const liked = useInfiniteQuery({
-    queryKey: getGetProfileLikedReelsQueryKey({ profileId }),
-    initialPageParam: undefined as string | undefined,
-    queryFn: ({ pageParam, signal }) => getProfileLikedReels({ profileId, ...(pageParam ? { before: pageParam } : {}) }, { signal }),
-    getNextPageParam: page => page.nextCursor ?? undefined,
-    enabled: Boolean(profileId),
-    staleTime: 30_000,
-  });
-  const reels = liked.data?.pages.flatMap(page => page.items) ?? [];
-  useEffect(() => {
-    let active = true;
-    void getToken().then(value => { if (active) setToken(value); });
-    return () => { active = false; };
-  }, [getToken]);
-  function openReel(reel: Reel) {
-    router.push({ pathname: "/reels/[reelId]", params: { reelId: reel.id, returnTo } });
-  }
-  return <View testID="profile-liked-reels-section" onLayout={event=>setSectionWidth(event.nativeEvent.layout.width)} style={[styles.section,{backgroundColor:colors.profileCard}]}>
-    <View style={styles.heading}><View style={[styles.icon,{backgroundColor:colors.profileChip}]}><Feather name="heart" size={13} color={colors.profileEdit}/></View><Text style={[styles.title,{color:colors.profileLabel}]}>LIKED VIDEOS</Text>{reels.length>0?<Text style={[styles.count,{color:colors.profileMuted}]}>{reels.length}</Text>:null}</View>
-    {liked.isLoading?<ActivityIndicator color={colors.primary} style={styles.loading}/>:liked.isError?<Text style={[styles.empty,{color:colors.profileMuted}]}>Liked videos aren’t available to this viewer.</Text>:reels.length?layout==="grid"?<>
-      <View style={styles.grid} testID="profile-liked-reels-grid">{reels.map(item=><ReelThumbnail key={item.id} reel={item} token={token} layout="grid" tileWidth={Math.max(72,Math.floor((sectionWidth-24-16)/3))} onPress={()=>openReel(item)}/>)}</View>
-      {liked.hasNextPage?<Pressable disabled={liked.isFetchingNextPage} onPress={()=>void liked.fetchNextPage()} style={[styles.loadMore,{borderColor:colors.border}]}>{liked.isFetchingNextPage?<ActivityIndicator size="small" color={colors.primary}/>:<Text style={{color:colors.profileEdit,fontWeight:"800",fontSize:13}}>Load more</Text>}</Pressable>:null}
-    </>:<FlatList horizontal data={reels} keyExtractor={item=>item.id} renderItem={({item})=><ReelThumbnail reel={item} token={token} layout="carousel" onPress={()=>openReel(item)}/>} showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row} onEndReached={()=>{if(liked.hasNextPage&&!liked.isFetchingNextPage)void liked.fetchNextPage()}} onEndReachedThreshold={0.5} initialNumToRender={4} maxToRenderPerBatch={4} windowSize={4} testID="profile-liked-reels-carousel"/>:<Text style={[styles.empty,{color:colors.profileMuted}]}>No liked videos to show.</Text>}
-  </View>;
-}
-
 function ReelThumbnail({
   reel,
   token,
-  layout,
   tileWidth,
   onPress,
 }: {
   reel: Reel;
   token: string | null;
-  layout: "carousel" | "grid";
-  tileWidth?: number;
+  tileWidth: number;
   onPress: () => void;
 }) {
+  const colors = usePremiumColors();
   const viewCount = Number(reel.viewCount ?? 0);
   const viewLabel = `${formatViewCount(viewCount)} ${viewCount === 1 ? "view" : "views"}`;
   const slideshow = reel.mediaType === "slides" && reel.slideReferences.length > 1;
@@ -204,7 +215,7 @@ function ReelThumbnail({
       accessibilityRole="button"
       accessibilityLabel={`Play Reel${reel.caption ? `: ${reel.caption}` : ""}, ${viewLabel}`}
       onPress={onPress}
-      style={({ pressed }) => [styles.thumbnail, { width: layout === "grid" ? tileWidth : 74, aspectRatio: layout === "grid" ? 3 / 4 : 9 / 16, opacity: pressed ? 0.82 : 1 }]}
+      style={({ pressed }) => [styles.thumbnail, { width: tileWidth, opacity: pressed ? 0.82 : 1 }]}
     >
       <View style={styles.videoFrame}>
         {imageSource ? (
@@ -212,14 +223,19 @@ function ReelThumbnail({
         ) : source ? (
           <VideoView player={player} style={StyleSheet.absoluteFill} contentFit="cover" nativeControls={false} pointerEvents="none" />
         ) : (
-          <View style={styles.videoFallback}><Feather name="film" size={21} color="#ffffff80" /></View>
+          <View style={[styles.videoFallback, { backgroundColor: colors.profileChip }]}><Feather name="film" size={21} color={colors.profileMuted} /></View>
         )}
         <View pointerEvents="none" style={styles.playBadge}>
           <Feather name="play" size={14} color="#fff" />
         </View>
+        {reel.repostedByMe ? (
+          <View pointerEvents="none" style={styles.repostBadge}>
+            <Feather name="repeat" size={11} color="#fff" />
+          </View>
+        ) : null}
         <View pointerEvents="none" style={styles.viewCount}>
           <Feather name="eye" size={10} color="#fff" />
-          <Text numberOfLines={1} style={styles.viewCountText} testID={`text-profile-reel-views-${reel.id}`}>{viewLabel}</Text>
+          <Text numberOfLines={1} style={styles.viewCountText} testID={`text-profile-reel-views-${reel.id}`}>{formatViewCount(viewCount)}</Text>
         </View>
       </View>
     </Pressable>
@@ -227,24 +243,30 @@ function ReelThumbnail({
 }
 
 const styles = StyleSheet.create({
-  section: { borderRadius: 20, borderWidth: StyleSheet.hairlineWidth, borderColor: "rgba(255,255,255,0.08)", paddingHorizontal: 12, paddingVertical: 10, gap: 8 },
-  heading: { flexDirection: "row", alignItems: "center", gap: 8 },
-  icon: { width: 24, height: 24, borderRadius: 12, alignItems: "center", justifyContent: "center" },
-  title: { fontSize: 11, fontWeight: "800", letterSpacing: 1.5, flex: 1 },
-  count: { fontSize: 12, fontWeight: "600" },
-  row: { gap: 8, paddingBottom: 2 },
-  thumbnail: { borderRadius: 12, overflow: "hidden", backgroundColor: "#100f12" },
+  section: { borderRadius: 18, borderWidth: StyleSheet.hairlineWidth, borderColor: "rgba(255,255,255,0.08)", paddingHorizontal: 12, paddingTop: 2, paddingBottom: 10 },
+  tabs: { flexDirection: "row", alignItems: "center", justifyContent: "space-around", borderBottomWidth: StyleSheet.hairlineWidth },
+  tab: { flex: 1, height: 46, alignItems: "center", justifyContent: "center", borderBottomWidth: 2, borderBottomColor: "transparent" },
+  thumbnail: { aspectRatio: 3 / 4, overflow: "hidden", backgroundColor: "#100f12" },
   videoFrame: { flex: 1, overflow: "hidden" },
   videoFallback: { flex: 1, alignItems: "center", justifyContent: "center" },
-  playBadge: { position: "absolute", left: "50%", top: "50%", width: 30, height: 30, marginLeft: -15, marginTop: -15, borderRadius: 15, backgroundColor: "rgba(0,0,0,0.52)", alignItems: "center", justifyContent: "center" },
+  playBadge: { position: "absolute", left: "50%", top: "50%", width: 30, height: 30, marginLeft: -15, marginTop: -15, borderRadius: 15, backgroundColor: "rgba(0,0,0,0.48)", alignItems: "center", justifyContent: "center" },
+  repostBadge: { position: "absolute", top: 5, left: 5, width: 22, height: 22, borderRadius: 11, backgroundColor: "rgba(0,0,0,0.58)", alignItems: "center", justifyContent: "center" },
   viewCount: { position: "absolute", left: 4, right: 4, bottom: 4, minHeight: 20, paddingHorizontal: 4, borderRadius: 10, backgroundColor: "rgba(0,0,0,0.72)", flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 3 },
   viewCountText: { color: "#fff", fontSize: 9, lineHeight: 12, fontWeight: "700", flexShrink: 1 },
-  empty: { fontSize: 13, lineHeight: 19, paddingVertical: 2 },
-  loading: { alignSelf: "flex-start", marginVertical: 14, marginLeft: 4 },
-  more: { width: 34 },
-  grid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  loadMore: { minHeight: 42, borderWidth: 1, borderRadius: 13, alignItems: "center", justifyContent: "center", marginTop: 4 },
+  empty: { fontSize: 13, lineHeight: 19, textAlign: "center" },
+  state: { minHeight: 76, alignItems: "center", justifyContent: "center", gap: 7, paddingHorizontal: 12 },
+  loading: { minHeight: 76 },
+  pageError: { textAlign: "center", fontSize: 12, marginTop: 4 },
+  grid: { flexDirection: "row", flexWrap: "wrap", gap: 4, paddingTop: 4, justifyContent: "flex-start" },
+  loadMore: { minHeight: 40, borderWidth: 1, borderRadius: 12, alignItems: "center", justifyContent: "center", marginTop: 8 },
 });
+
+function emptyCopy(tab: MediaTab, own: boolean): string {
+  if (tab === "reels") return own ? "No Reels yet." : "No Reels to show yet.";
+  if (tab === "reposted") return own ? "No reposts yet." : "No reposts to show yet.";
+  if (tab === "saved") return "Saved videos are private to you.";
+  return own ? "No liked videos yet." : "No liked videos to show.";
+}
 
 function formatViewCount(value: number): string {
   if (value < 1_000) return String(value);

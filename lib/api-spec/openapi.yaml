@@ -1491,6 +1491,22 @@ paths:
               schema: { $ref: "#/components/schemas/ReelPage" }
         "404":
           description: Profile not found or unavailable
+  /vibeswipe/profile-reposted-reels:
+    get:
+      operationId: getProfileRepostedReels
+      tags: [vibeswipe]
+      summary: List Reels reposted by a profile that the viewer can access
+      parameters:
+        - { in: query, name: profileId, required: true, schema: { type: string, minLength: 1 } }
+        - { in: query, name: cursor, required: false, schema: { type: string, maxLength: 200 } }
+      responses:
+        "200":
+          description: Visible reposted Reels page
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ReelPage" }
+        "404":
+          description: Profile not found or unavailable
   /vibeswipe/blocks:
     get:
       operationId: getBlockedProfiles
@@ -2051,6 +2067,35 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/ReelEngagement" }
+  /vibeswipe/reels/{reelId}/repost:
+    put:
+      operationId: repostReel
+      tags: [vibeswipe]
+      summary: Add a visible Reel to the signed-in user's reposts
+      parameters:
+        - { in: path, name: reelId, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200":
+          description: Updated engagement
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ReelEngagement" }
+        "404":
+          description: Reel removed or unavailable
+    delete:
+      operationId: removeRepost
+      tags: [vibeswipe]
+      summary: Remove a Reel from the signed-in user's reposts
+      parameters:
+        - { in: path, name: reelId, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200":
+          description: Updated engagement
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ReelEngagement" }
+        "404":
+          description: Reel removed or unavailable
   /vibeswipe/reels/{reelId}/comments:
     get:
       operationId: getReelComments
@@ -3045,11 +3090,13 @@ components:
         viewCount: { type: integer, minimum: 0 }
         shareCount: { type: integer, minimum: 0 }
         saveCount: { type: integer, minimum: 0 }
+        repostCount: { type: integer, minimum: 0 }
         likedByMe: { type: boolean }
         savedByMe: { type: boolean }
+        repostedByMe: { type: boolean }
         isOwner: { type: boolean }
         createdAt: { type: string, format: date-time }
-      required: [id, creatorId, creatorName, creatorLocation, creatorVerified, creatorPhoto, creatorFollowedByMe, canComment, canDownload, videoReference, mediaType, audience, slideReferences, caption, soundtrack, durationSeconds, likeCount, commentCount, viewCount, shareCount, saveCount, likedByMe, savedByMe, isOwner, createdAt]
+      required: [id, creatorId, creatorName, creatorLocation, creatorVerified, creatorPhoto, creatorFollowedByMe, canComment, canDownload, videoReference, mediaType, audience, slideReferences, caption, soundtrack, durationSeconds, likeCount, commentCount, viewCount, shareCount, saveCount, repostCount, likedByMe, savedByMe, repostedByMe, isOwner, createdAt]
     ReelMusicTrack:
       type: object
       properties:
@@ -3112,7 +3159,9 @@ components:
         commentCount: { type: integer }
         saveCount: { type: integer, minimum: 0 }
         shareCount: { type: integer, minimum: 0 }
-      required: [likedByMe, savedByMe, likeCount, commentCount, saveCount, shareCount]
+        repostCount: { type: integer, minimum: 0 }
+        repostedByMe: { type: boolean }
+      required: [likedByMe, savedByMe, likeCount, commentCount, saveCount, shareCount, repostCount, repostedByMe]
     ReelComment:
       type: object
       properties:

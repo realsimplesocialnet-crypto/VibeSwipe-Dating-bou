@@ -68,6 +68,7 @@ import type {
   GetProfileFollowingParams,
   GetProfileLikedReelsParams,
   GetProfileReelsParams,
+  GetProfileRepostedReelsParams,
   GetPublicLocationShareParams,
   GetReelsFeedParams,
   GetSavedReelsParams,
@@ -8194,6 +8195,114 @@ export function useGetProfileLikedReels<TData = Awaited<ReturnType<typeof getPro
 
 
 
+export const getGetProfileRepostedReelsUrl = (params: GetProfileRepostedReelsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/vibeswipe/profile-reposted-reels?${stringifiedParams}` : `/api/vibeswipe/profile-reposted-reels`
+}
+
+/**
+ * @summary List Reels reposted by a profile that the viewer can access
+ */
+export const getProfileRepostedReels = async (params: GetProfileRepostedReelsParams, options?: Parameters<typeof customFetch>[1]): Promise<ReelPage> => {
+
+  return customFetch<ReelPage>(getGetProfileRepostedReelsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetProfileRepostedReelsQueryKey = (params?: GetProfileRepostedReelsParams,) => {
+    return [
+    `/api/vibeswipe/profile-reposted-reels`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetProfileRepostedReelsQueryOptions = <TData = Awaited<ReturnType<typeof getProfileRepostedReels>>, TError = ErrorType<void>>(params: GetProfileRepostedReelsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProfileRepostedReels>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetProfileRepostedReelsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getProfileRepostedReels>>> = ({ signal }) => getProfileRepostedReels(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getProfileRepostedReels>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetProfileRepostedReelsQueryResult = NonNullable<Awaited<ReturnType<typeof getProfileRepostedReels>>>
+export type GetProfileRepostedReelsQueryError = ErrorType<void>
+
+
+export function useGetProfileRepostedReels<TData = Awaited<ReturnType<typeof getProfileRepostedReels>>, TError = ErrorType<void>>(
+ params: GetProfileRepostedReelsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProfileRepostedReels>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getProfileRepostedReels>>,
+          TError,
+          Awaited<ReturnType<typeof getProfileRepostedReels>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetProfileRepostedReels<TData = Awaited<ReturnType<typeof getProfileRepostedReels>>, TError = ErrorType<void>>(
+ params: GetProfileRepostedReelsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProfileRepostedReels>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getProfileRepostedReels>>,
+          TError,
+          Awaited<ReturnType<typeof getProfileRepostedReels>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetProfileRepostedReels<TData = Awaited<ReturnType<typeof getProfileRepostedReels>>, TError = ErrorType<void>>(
+ params: GetProfileRepostedReelsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProfileRepostedReels>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary List Reels reposted by a profile that the viewer can access
+ */
+
+export function useGetProfileRepostedReels<TData = Awaited<ReturnType<typeof getProfileRepostedReels>>, TError = ErrorType<void>>(
+ params: GetProfileRepostedReelsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getProfileRepostedReels>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetProfileRepostedReelsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
 export const getGetBlockedProfilesUrl = () => {
 
 
@@ -10985,6 +11094,154 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
         TContext
       > => {
       return useMutation(getUnsaveReelMutationOptions(options), queryClient);
+    }
+
+export const getRepostReelUrl = (reelId: string,) => {
+
+
+
+
+  return `/api/vibeswipe/reels/${reelId}/repost`
+}
+
+/**
+ * @summary Add a visible Reel to the signed-in user's reposts
+ */
+export const repostReel = async (reelId: string, options?: Parameters<typeof customFetch>[1]): Promise<ReelEngagement> => {
+
+  return customFetch<ReelEngagement>(getRepostReelUrl(reelId),
+  {
+    ...options,
+    method: 'PUT'
+
+
+  }
+);}
+
+
+
+
+
+export const getRepostReelMutationKey = () => ['repostReel'] as const;
+
+export const getRepostReelMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof repostReel>>, TError,RepostReelMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof repostReel>>, TError,RepostReelMutationVariables, TContext> => {
+
+const mutationKey = getRepostReelMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof repostReel>>, RepostReelMutationVariables> = (props) => {
+          const {reelId} = props ?? {};
+
+          return  repostReel(reelId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RepostReelMutationResult = NonNullable<Awaited<ReturnType<typeof repostReel>>>
+
+    export type RepostReelMutationError = ErrorType<void>
+    export type RepostReelMutationVariables = {reelId: string}
+
+    /**
+ * @summary Add a visible Reel to the signed-in user's reposts
+ */
+export const useRepostReel = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof repostReel>>, TError,RepostReelMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof repostReel>>,
+        TError,
+        RepostReelMutationVariables,
+        TContext
+      > => {
+      return useMutation(getRepostReelMutationOptions(options), queryClient);
+    }
+
+export const getRemoveRepostUrl = (reelId: string,) => {
+
+
+
+
+  return `/api/vibeswipe/reels/${reelId}/repost`
+}
+
+/**
+ * @summary Remove a Reel from the signed-in user's reposts
+ */
+export const removeRepost = async (reelId: string, options?: Parameters<typeof customFetch>[1]): Promise<ReelEngagement> => {
+
+  return customFetch<ReelEngagement>(getRemoveRepostUrl(reelId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getRemoveRepostMutationKey = () => ['removeRepost'] as const;
+
+export const getRemoveRepostMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof removeRepost>>, TError,RemoveRepostMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof removeRepost>>, TError,RemoveRepostMutationVariables, TContext> => {
+
+const mutationKey = getRemoveRepostMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof removeRepost>>, RemoveRepostMutationVariables> = (props) => {
+          const {reelId} = props ?? {};
+
+          return  removeRepost(reelId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RemoveRepostMutationResult = NonNullable<Awaited<ReturnType<typeof removeRepost>>>
+
+    export type RemoveRepostMutationError = ErrorType<void>
+    export type RemoveRepostMutationVariables = {reelId: string}
+
+    /**
+ * @summary Remove a Reel from the signed-in user's reposts
+ */
+export const useRemoveRepost = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof removeRepost>>, TError,RemoveRepostMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof removeRepost>>,
+        TError,
+        RemoveRepostMutationVariables,
+        TContext
+      > => {
+      return useMutation(getRemoveRepostMutationOptions(options), queryClient);
     }
 
 export const getGetReelCommentsUrl = (reelId: string,) => {

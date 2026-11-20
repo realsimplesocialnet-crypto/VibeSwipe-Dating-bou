@@ -148,7 +148,22 @@ test("like and save endpoints return counts from unique persisted rows", () => {
   assert.match(reels, /saveCount: Number\(row\.saveCount\)/);
   assert.match(reels, /saveCount: Number\(row\.saveCount\), shareCount: Number\(row\.shareCount\)/);
   assert.match(apiSpec, /saveCount: \{ type: integer, minimum: 0 \}/);
-  assert.match(apiSpec, /required: \[likedByMe, savedByMe, likeCount, commentCount, saveCount, shareCount\]/);
+  assert.match(apiSpec, /required: \[likedByMe, savedByMe, likeCount, commentCount, saveCount, shareCount, repostCount, repostedByMe\]/);
+});
+
+test("reposts persist once per member and profile tabs respect profile and Reel visibility", () => {
+  assert.match(reelTable, /export const reelRepostsTable = pgTable\("vibeswipe_reel_reposts"/);
+  assert.match(reelTable, /vibeswipe_reel_reposts_pk[\s\S]*columns: \[t\.reelId, t\.userId\]/);
+  assert.match(reelTable, /vibeswipe_reel_reposts_user_idx/);
+  assert.match(apiSpec, /\/vibeswipe\/profile-reposted-reels:/);
+  assert.match(apiSpec, /\/vibeswipe\/reels\/\{reelId\}\/repost:/);
+  assert.match(apiSpec, /repostedByMe: \{ type: boolean \}/);
+  assert.match(reels, /router\.get\("\/vibeswipe\/profile-reposted-reels"/);
+  assert.match(reels, /canViewUserProfile\(viewerId, profileId\)/);
+  assert.match(reels, /eq\(reelRepostsTable\.userId, profileId\)/);
+  assert.match(reels, /visibleReelCondition\(viewerId\)/);
+  assert.match(reels, /for \(const kind of \["like", "save", "repost"\] as const\)/);
+  assert.match(reels, /kind === "repost" && reel\.userId === userId/);
 });
 
 test("comments remain repeatable per account and Reel counts include the full comment total", () => {
@@ -214,7 +229,7 @@ test("the share sheet counts only completed shares and displays the updated tota
   assert.match(shareSheet, /sharePromise\.then\(\(\) => trackShare\(\)\)/);
   assert.match(copyAction, /onClose\(\)/);
   assert.match(shareSheet, /await send\.mutateAsync[\s\S]*?onClose\(\)/);
-  assert.match(shareSheet, /filter\(\(match\) => !match\.blockedByMe && !match\.blockedMe\)/);
+  assert.match(shareSheet, /filter\(\(match\) => !match\.blockedByMe && !match\.blockedMe(?: &&[^)]*)?\)/);
   assert.match(reelSlide, /text-share-count-\$\{reel\.id\}/);
   assert.match(nativeChat, /pathname: "\/reels\/\[reelId\]"/);
   assert.match(nativeChat, /returnTo: `\/chat\/\$\{matchId\}`/);
@@ -225,6 +240,6 @@ test("the share sheet counts only completed shares and displays the updated tota
   assert.match(nativeReel, /Linking\.openURL\(targetUrl\)/);
   assert.match(nativeReel, /button-share-reel-\$\{target\}/);
   assert.match(nativeReel, /void recordShare\.mutateAsync/);
-  assert.match(nativeReel, /filter\(\(match\) => !match\.blockedByMe && !match\.blockedMe\)/);
+  assert.match(nativeReel, /filter\(\(match\) => !match\.blockedByMe && !match\.blockedMe(?: &&[^)]*)?\)/);
   assert.match(nativeReel, /Shared a Reel: \/reels\/\$\{reel\.id\}/);
 });

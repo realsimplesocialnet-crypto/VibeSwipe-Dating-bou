@@ -2344,6 +2344,8 @@ export const getProfileReelsResponseItemsItemShareCountMin = 0;
 
 export const getProfileReelsResponseItemsItemSaveCountMin = 0;
 
+export const getProfileReelsResponseItemsItemRepostCountMin = 0;
+
 
 
 export const GetProfileReelsResponse = zod.object({
@@ -2379,8 +2381,10 @@ export const GetProfileReelsResponse = zod.object({
   "viewCount": zod.int().min(getProfileReelsResponseItemsItemViewCountMin),
   "shareCount": zod.int().min(getProfileReelsResponseItemsItemShareCountMin),
   "saveCount": zod.int().min(getProfileReelsResponseItemsItemSaveCountMin),
+  "repostCount": zod.int().min(getProfileReelsResponseItemsItemRepostCountMin),
   "likedByMe": zod.boolean(),
   "savedByMe": zod.boolean(),
+  "repostedByMe": zod.boolean(),
   "isOwner": zod.boolean(),
   "createdAt": zod.coerce.date()
 })),
@@ -2406,6 +2410,8 @@ export const getProfileLikedReelsResponseItemsItemViewCountMin = 0;
 export const getProfileLikedReelsResponseItemsItemShareCountMin = 0;
 
 export const getProfileLikedReelsResponseItemsItemSaveCountMin = 0;
+
+export const getProfileLikedReelsResponseItemsItemRepostCountMin = 0;
 
 
 
@@ -2442,8 +2448,77 @@ export const GetProfileLikedReelsResponse = zod.object({
   "viewCount": zod.int().min(getProfileLikedReelsResponseItemsItemViewCountMin),
   "shareCount": zod.int().min(getProfileLikedReelsResponseItemsItemShareCountMin),
   "saveCount": zod.int().min(getProfileLikedReelsResponseItemsItemSaveCountMin),
+  "repostCount": zod.int().min(getProfileLikedReelsResponseItemsItemRepostCountMin),
   "likedByMe": zod.boolean(),
   "savedByMe": zod.boolean(),
+  "repostedByMe": zod.boolean(),
+  "isOwner": zod.boolean(),
+  "createdAt": zod.coerce.date()
+})),
+  "nextCursor": zod.string().nullable()
+})
+
+
+/**
+ * @summary List Reels reposted by a profile that the viewer can access
+ */
+
+export const getProfileRepostedReelsQueryCursorMax = 200;
+
+
+
+export const GetProfileRepostedReelsQueryParams = zod.object({
+  "profileId": zod.coerce.string().min(1),
+  "cursor": zod.coerce.string().max(getProfileRepostedReelsQueryCursorMax).optional()
+})
+
+export const getProfileRepostedReelsResponseItemsItemViewCountMin = 0;
+
+export const getProfileRepostedReelsResponseItemsItemShareCountMin = 0;
+
+export const getProfileRepostedReelsResponseItemsItemSaveCountMin = 0;
+
+export const getProfileRepostedReelsResponseItemsItemRepostCountMin = 0;
+
+
+
+export const GetProfileRepostedReelsResponse = zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.uuid(),
+  "creatorId": zod.string(),
+  "creatorName": zod.string(),
+  "creatorLocation": zod.string(),
+  "creatorVerified": zod.boolean(),
+  "creatorPhoto": zod.string().nullable(),
+  "creatorFollowedByMe": zod.boolean(),
+  "canComment": zod.boolean(),
+  "canDownload": zod.boolean(),
+  "videoReference": zod.string(),
+  "mediaType": zod.enum(['video', 'slides']),
+  "audience": zod.enum(['public', 'friends']),
+  "slideReferences": zod.array(zod.string()),
+  "caption": zod.string(),
+  "soundtrack": zod.union([zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "artist": zod.string(),
+  "category": zod.string(),
+  "audioUrl": zod.url(),
+  "license": zod.string(),
+  "licenseUrl": zod.url(),
+  "sourceUrl": zod.url(),
+  "attribution": zod.string()
+}),zod.null()]),
+  "durationSeconds": zod.number().nullable(),
+  "likeCount": zod.int(),
+  "commentCount": zod.int(),
+  "viewCount": zod.int().min(getProfileRepostedReelsResponseItemsItemViewCountMin),
+  "shareCount": zod.int().min(getProfileRepostedReelsResponseItemsItemShareCountMin),
+  "saveCount": zod.int().min(getProfileRepostedReelsResponseItemsItemSaveCountMin),
+  "repostCount": zod.int().min(getProfileRepostedReelsResponseItemsItemRepostCountMin),
+  "likedByMe": zod.boolean(),
+  "savedByMe": zod.boolean(),
+  "repostedByMe": zod.boolean(),
   "isOwner": zod.boolean(),
   "createdAt": zod.coerce.date()
 })),
@@ -2864,6 +2939,8 @@ export const getReelsFeedResponseItemsItemShareCountMin = 0;
 
 export const getReelsFeedResponseItemsItemSaveCountMin = 0;
 
+export const getReelsFeedResponseItemsItemRepostCountMin = 0;
+
 
 
 export const GetReelsFeedResponse = zod.object({
@@ -2899,8 +2976,10 @@ export const GetReelsFeedResponse = zod.object({
   "viewCount": zod.int().min(getReelsFeedResponseItemsItemViewCountMin),
   "shareCount": zod.int().min(getReelsFeedResponseItemsItemShareCountMin),
   "saveCount": zod.int().min(getReelsFeedResponseItemsItemSaveCountMin),
+  "repostCount": zod.int().min(getReelsFeedResponseItemsItemRepostCountMin),
   "likedByMe": zod.boolean(),
   "savedByMe": zod.boolean(),
+  "repostedByMe": zod.boolean(),
   "isOwner": zod.boolean(),
   "createdAt": zod.coerce.date()
 })),
@@ -2963,6 +3042,8 @@ export const createReelResponseShareCountMin = 0;
 
 export const createReelResponseSaveCountMin = 0;
 
+export const createReelResponseRepostCountMin = 0;
+
 
 
 export const CreateReelResponse = zod.object({
@@ -2997,8 +3078,10 @@ export const CreateReelResponse = zod.object({
   "viewCount": zod.int().min(createReelResponseViewCountMin),
   "shareCount": zod.int().min(createReelResponseShareCountMin),
   "saveCount": zod.int().min(createReelResponseSaveCountMin),
+  "repostCount": zod.int().min(createReelResponseRepostCountMin),
   "likedByMe": zod.boolean(),
   "savedByMe": zod.boolean(),
+  "repostedByMe": zod.boolean(),
   "isOwner": zod.boolean(),
   "createdAt": zod.coerce.date()
 })
@@ -3047,6 +3130,8 @@ export const getSavedReelsResponseItemsItemShareCountMin = 0;
 
 export const getSavedReelsResponseItemsItemSaveCountMin = 0;
 
+export const getSavedReelsResponseItemsItemRepostCountMin = 0;
+
 
 
 export const GetSavedReelsResponse = zod.object({
@@ -3082,8 +3167,10 @@ export const GetSavedReelsResponse = zod.object({
   "viewCount": zod.int().min(getSavedReelsResponseItemsItemViewCountMin),
   "shareCount": zod.int().min(getSavedReelsResponseItemsItemShareCountMin),
   "saveCount": zod.int().min(getSavedReelsResponseItemsItemSaveCountMin),
+  "repostCount": zod.int().min(getSavedReelsResponseItemsItemRepostCountMin),
   "likedByMe": zod.boolean(),
   "savedByMe": zod.boolean(),
+  "repostedByMe": zod.boolean(),
   "isOwner": zod.boolean(),
   "createdAt": zod.coerce.date()
 })),
@@ -3107,6 +3194,8 @@ export const getMyReelsResponseItemsItemViewCountMin = 0;
 export const getMyReelsResponseItemsItemShareCountMin = 0;
 
 export const getMyReelsResponseItemsItemSaveCountMin = 0;
+
+export const getMyReelsResponseItemsItemRepostCountMin = 0;
 
 
 
@@ -3143,8 +3232,10 @@ export const GetMyReelsResponse = zod.object({
   "viewCount": zod.int().min(getMyReelsResponseItemsItemViewCountMin),
   "shareCount": zod.int().min(getMyReelsResponseItemsItemShareCountMin),
   "saveCount": zod.int().min(getMyReelsResponseItemsItemSaveCountMin),
+  "repostCount": zod.int().min(getMyReelsResponseItemsItemRepostCountMin),
   "likedByMe": zod.boolean(),
   "savedByMe": zod.boolean(),
+  "repostedByMe": zod.boolean(),
   "isOwner": zod.boolean(),
   "createdAt": zod.coerce.date()
 })),
@@ -3164,6 +3255,8 @@ export const getReelResponseViewCountMin = 0;
 export const getReelResponseShareCountMin = 0;
 
 export const getReelResponseSaveCountMin = 0;
+
+export const getReelResponseRepostCountMin = 0;
 
 
 
@@ -3199,8 +3292,10 @@ export const GetReelResponse = zod.object({
   "viewCount": zod.int().min(getReelResponseViewCountMin),
   "shareCount": zod.int().min(getReelResponseShareCountMin),
   "saveCount": zod.int().min(getReelResponseSaveCountMin),
+  "repostCount": zod.int().min(getReelResponseRepostCountMin),
   "likedByMe": zod.boolean(),
   "savedByMe": zod.boolean(),
+  "repostedByMe": zod.boolean(),
   "isOwner": zod.boolean(),
   "createdAt": zod.coerce.date()
 })
@@ -3276,6 +3371,8 @@ export const likeReelResponseSaveCountMin = 0;
 
 export const likeReelResponseShareCountMin = 0;
 
+export const likeReelResponseRepostCountMin = 0;
+
 
 
 export const LikeReelResponse = zod.object({
@@ -3284,7 +3381,9 @@ export const LikeReelResponse = zod.object({
   "likeCount": zod.int(),
   "commentCount": zod.int(),
   "saveCount": zod.int().min(likeReelResponseSaveCountMin),
-  "shareCount": zod.int().min(likeReelResponseShareCountMin)
+  "shareCount": zod.int().min(likeReelResponseShareCountMin),
+  "repostCount": zod.int().min(likeReelResponseRepostCountMin),
+  "repostedByMe": zod.boolean()
 })
 
 
@@ -3296,6 +3395,8 @@ export const unlikeReelResponseSaveCountMin = 0;
 
 export const unlikeReelResponseShareCountMin = 0;
 
+export const unlikeReelResponseRepostCountMin = 0;
+
 
 
 export const UnlikeReelResponse = zod.object({
@@ -3304,7 +3405,9 @@ export const UnlikeReelResponse = zod.object({
   "likeCount": zod.int(),
   "commentCount": zod.int(),
   "saveCount": zod.int().min(unlikeReelResponseSaveCountMin),
-  "shareCount": zod.int().min(unlikeReelResponseShareCountMin)
+  "shareCount": zod.int().min(unlikeReelResponseShareCountMin),
+  "repostCount": zod.int().min(unlikeReelResponseRepostCountMin),
+  "repostedByMe": zod.boolean()
 })
 
 
@@ -3316,6 +3419,8 @@ export const saveReelResponseSaveCountMin = 0;
 
 export const saveReelResponseShareCountMin = 0;
 
+export const saveReelResponseRepostCountMin = 0;
+
 
 
 export const SaveReelResponse = zod.object({
@@ -3324,7 +3429,9 @@ export const SaveReelResponse = zod.object({
   "likeCount": zod.int(),
   "commentCount": zod.int(),
   "saveCount": zod.int().min(saveReelResponseSaveCountMin),
-  "shareCount": zod.int().min(saveReelResponseShareCountMin)
+  "shareCount": zod.int().min(saveReelResponseShareCountMin),
+  "repostCount": zod.int().min(saveReelResponseRepostCountMin),
+  "repostedByMe": zod.boolean()
 })
 
 
@@ -3336,6 +3443,8 @@ export const unsaveReelResponseSaveCountMin = 0;
 
 export const unsaveReelResponseShareCountMin = 0;
 
+export const unsaveReelResponseRepostCountMin = 0;
+
 
 
 export const UnsaveReelResponse = zod.object({
@@ -3344,7 +3453,63 @@ export const UnsaveReelResponse = zod.object({
   "likeCount": zod.int(),
   "commentCount": zod.int(),
   "saveCount": zod.int().min(unsaveReelResponseSaveCountMin),
-  "shareCount": zod.int().min(unsaveReelResponseShareCountMin)
+  "shareCount": zod.int().min(unsaveReelResponseShareCountMin),
+  "repostCount": zod.int().min(unsaveReelResponseRepostCountMin),
+  "repostedByMe": zod.boolean()
+})
+
+
+/**
+ * @summary Add a visible Reel to the signed-in user's reposts
+ */
+export const RepostReelParams = zod.object({
+  "reelId": zod.uuid()
+})
+
+export const repostReelResponseSaveCountMin = 0;
+
+export const repostReelResponseShareCountMin = 0;
+
+export const repostReelResponseRepostCountMin = 0;
+
+
+
+export const RepostReelResponse = zod.object({
+  "likedByMe": zod.boolean(),
+  "savedByMe": zod.boolean(),
+  "likeCount": zod.int(),
+  "commentCount": zod.int(),
+  "saveCount": zod.int().min(repostReelResponseSaveCountMin),
+  "shareCount": zod.int().min(repostReelResponseShareCountMin),
+  "repostCount": zod.int().min(repostReelResponseRepostCountMin),
+  "repostedByMe": zod.boolean()
+})
+
+
+/**
+ * @summary Remove a Reel from the signed-in user's reposts
+ */
+export const RemoveRepostParams = zod.object({
+  "reelId": zod.uuid()
+})
+
+export const removeRepostResponseSaveCountMin = 0;
+
+export const removeRepostResponseShareCountMin = 0;
+
+export const removeRepostResponseRepostCountMin = 0;
+
+
+
+export const RemoveRepostResponse = zod.object({
+  "likedByMe": zod.boolean(),
+  "savedByMe": zod.boolean(),
+  "likeCount": zod.int(),
+  "commentCount": zod.int(),
+  "saveCount": zod.int().min(removeRepostResponseSaveCountMin),
+  "shareCount": zod.int().min(removeRepostResponseShareCountMin),
+  "repostCount": zod.int().min(removeRepostResponseRepostCountMin),
+  "repostedByMe": zod.boolean()
 })
 
 

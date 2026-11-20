@@ -2,10 +2,13 @@ import { useAuth } from "@clerk/expo";
 import {
   getGetMatchesQueryKey,
   getGetMyReelsQueryKey,
+  getGetProfileLikedReelsQueryKey,
   getGetProfileReelsQueryKey,
+  getGetProfileRepostedReelsQueryKey,
   getGetReelQueryKey,
   getGetReelCommentsQueryKey,
   getGetReelsFeedQueryKey,
+  getGetSavedReelsQueryKey,
   getDownloadReelUrl,
   useMarkReelNotInterested,
   useCreateReelComment,
@@ -16,6 +19,8 @@ import {
   useLikeReel,
   useRecordReelShare,
   useRecordReelView,
+  useRepostReel,
+  useRemoveRepost,
   useSaveReel,
   useSendMessage,
   useRequestProfileMediaUpload,
@@ -103,6 +108,8 @@ export default function ProfileReelScreen() {
   const uploadedCommentPhoto = useRef<{ uri: string; mediaId: string } | null>(null);
   const recordView = useRecordReelView();
   const recordShare = useRecordReelShare();
+  const repostReel = useRepostReel();
+  const removeRepost = useRemoveRepost();
   const likeReel = useLikeReel();
   const unlikeReel = useUnlikeReel();
   const saveReel = useSaveReel();
@@ -237,6 +244,16 @@ export default function ProfileReelScreen() {
     void queryClient.invalidateQueries({ queryKey: getGetReelsFeedQueryKey() });
   }
 
+  function refreshRepostLists(creatorId: string) {
+    refreshReelLists(creatorId);
+    void queryClient.invalidateQueries({ queryKey: getGetSavedReelsQueryKey() });
+    const profileIds = new Set([creatorId, userId].filter((value): value is string => Boolean(value)));
+    for (const profileId of profileIds) {
+      void queryClient.invalidateQueries({ queryKey: getGetProfileLikedReelsQueryKey({ profileId }) });
+      void queryClient.invalidateQueries({ queryKey: getGetProfileRepostedReelsQueryKey({ profileId }) });
+    }
+  }
+
   function recordCompletedShare(reel: Reel, destination: "apps" | "chat") {
     void recordShare.mutateAsync({ reelId: reel.id }).then((updated) => {
       queryClient.setQueryData<Reel>(getGetReelQueryKey(reel.id), (current) =>
@@ -273,6 +290,19 @@ export default function ProfileReelScreen() {
       refreshReelLists(reel.creatorId);
     } catch {
       setActionError("Saving did not work. Try again.");
+    }
+  }
+
+  async function toggleRepost() {
+    const reel = reelQuery.data;
+    if (!reel || reel.isOwner || repostReel.isPending || removeRepost.isPending) return;
+    setShareError("");
+    try {
+      const result = await (reel.repostedByMe ? removeRepost : repostReel).mutateAsync({ reelId: reel.id });
+      queryClient.setQueryData<Reel>(getGetReelQueryKey(reel.id), (current) => current ? { ...current, ...result } : current);
+      refreshRepostLists(reel.creatorId);
+    } catch {
+      setShareError(reel.repostedByMe ? "Could not remove this repost. Try again." : "Could not repost this Reel. Try again.");
     }
   }
 
@@ -681,6 +711,26 @@ export default function ProfileReelScreen() {
               </ScrollView>
             )}
             <View style={styles.shareDestinationRow}>
+              {reelQuery.data && !reelQuery.data.isOwner ? (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={reelQuery.data.repostedByMe ? "Remove repost" : "Repost Reel"}
+                  accessibilityState={{ selected: reelQuery.data.repostedByMe, disabled: repostReel.isPending || removeRepost.isPending }}
+                  testID="button-toggle-repost"
+                  disabled={repostReel.isPending || removeRepost.isPending}
+                  onPress={() => void toggleRepost()}
+                  style={styles.shareDestination}
+                >
+                  <View style={[styles.shareDestinationIcon, { backgroundColor: colors.profileChip }]}>
+                    {repostReel.isPending || removeRepost.isPending
+                      ? <ActivityIndicator size="small" color={colors.primary} />
+                      : <Feather name="repeat" size={21} color={colors.profileEdit} />}
+                  </View>
+                  <Text style={[styles.shareDestinationLabel, { color: colors.foreground }]}>
+                    {reelQuery.data.repostedByMe ? "Remove repost" : "Repost"}
+                  </Text>
+                </Pressable>
+              ) : null}
               <Pressable accessibilityRole="button" accessibilityLabel="Copy Reel link" testID="button-copy-reel-link" onPress={() => void copyReelLink()} style={styles.shareDestination}>
                 <View style={[styles.shareDestinationIcon, { backgroundColor: colors.primary }]}><Feather name="link" size={21} color={colors.primaryForeground} /></View>
                 <Text style={[styles.shareDestinationLabel, { color: colors.foreground }]}>Copy link</Text>

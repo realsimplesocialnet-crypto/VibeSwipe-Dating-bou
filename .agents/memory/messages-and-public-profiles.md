@@ -46,3 +46,9 @@ When opening a member profile from a feed or list, Back must restore the origina
 **Why:** The user explicitly repeated that returning from a profile must show the same place and reported Discover replacing the viewed card.
 
 **How to apply:** Preserve the selected card and relevant list position across profile navigation. Refresh in the background without changing the user's current selection; key cached state to the active account and feed.
+
+The member's own profile defaults to their posted Reels in a straight three-column grid. Reposted, saved, and liked videos belong in separate icon tabs; saved videos are visible only to the signed-in owner. Never mix liked videos into the posted-Reels grid.
+
+**Why:** The user asked for the profile media organization to match TikTok and clarified that only their own Reels belong in the main profile grid.
+
+**How to apply:** Keep the same tab separation on web/PWA and Expo, enforce privacy in the API as well as the UI, and keep the active tab and grid simple.

@@ -20,7 +20,7 @@ import {
 import { Feather } from "@expo/vector-icons";
 import { Image as ExpoImage } from "expo-image";
 import { MatchCelebration } from "@/components/MatchCelebration";
-import { ProfileLikedReelsSection, ProfileReelsSection } from "@/components/ProfileReelsSection";
+import { ProfileReelsSection } from "@/components/ProfileReelsSection";
 import { ProfileFollowStats } from "@/components/ProfileFollow";
 import { router, useLocalSearchParams } from "expo-router";
 import { useAuth } from "@clerk/expo";
@@ -386,8 +386,7 @@ export default function PublicProfileScreen() {
                 </View>
               ) : <Text style={[styles.value, { color: colors.profileMuted, marginTop: 8 }]}>No photos shared yet.</Text>}
             </View>
-            <ProfileReelsSection profileId={id} returnTo={reelReturnTo} layout="grid" />
-            <ProfileLikedReelsSection profileId={id} returnTo={reelReturnTo} layout="grid" />
+            <ProfileReelsSection key={id} profileId={id} returnTo={reelReturnTo} />
           </View>
         </View>
       </ScrollView>

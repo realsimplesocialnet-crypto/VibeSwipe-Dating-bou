@@ -51,9 +51,9 @@ test('public profiles reuse cached data and prefetch when a member link is appro
   assert.match(prefetcher, /getProfileFollowSummary/);
   assert.match(prefetcher, /getProfileDatingState/);
   assert.match(read('../src/components/social-hub.tsx'), /staleTime: 60_000/);
-  assert.match(read('../src/components/profile-reels-section.tsx'), /refetchInterval: 60_000/);
+  assert.match(read('../src/components/profile-reels-section.tsx'), /staleTime: 30_000/);
   assert.match(read('../../vibeswipe/components/ProfileFollow.tsx'), /staleTime: 60_000/);
-  assert.match(read('../../vibeswipe/components/ProfileReelsSection.tsx'), /refetchInterval: 60_000/);
+  assert.match(read('../../vibeswipe/components/ProfileReelsSection.tsx'), /staleTime: 30_000/);
 });
 
 test('video calling controls and signaling are removed from both apps', () => {
@@ -75,23 +75,24 @@ test('public profiles group identity and actions, compact details, and browse me
   assert.match(member, /pp-identity-panel/);
   assert.match(member, /<ProfileSocialActions profileId=\{profile\.id\}/);
   assert.match(member, /pp-facts/);
-  assert.match(member, /public-profile-gallery.*pp-gallery-grid/s);
-  assert.match(member, /<ProfileReelsSection[^>]*layout="grid"/);
+  assert.match(member, /<ProfilePhotoGallery/);
+  assert.match(member, /<ProfileReelsSection[^>]*profileId=\{profile\.id\}/);
   assert.match(native, /styles\.identityPanel/);
   assert.match(native, /<ProfileFollowStats profileId=\{user\.id\}/);
   assert.match(native, /public-profile-photo-grid/);
-  assert.match(native, /<ProfileReelsSection[^>]*layout="grid"/);
+  assert.match(native, /<ProfileReelsSection[^>]*profileId=\{id\}/);
   const webReels = read('../src/components/profile-reels-section.tsx');
   const nativeReels = read('../../vibeswipe/components/ProfileReelsSection.tsx');
   const webStyles = read('../src/index.css');
+  assert.match(webStyles, /\.public-profile \.pp-gallery-grid\s*\{/);
   for (const source of [webReels, nativeReels]) {
-    assert.match(source, /layout\?: "carousel" \| "grid"/);
-    assert.match(source, /profile-reels-grid|profile-reels-grid/);
-    assert.match(source, /button-load-more-profile-reels/);
+    assert.match(source, /useInfiniteQuery/);
+    assert.match(source, /button-load-more-profile-/);
+    assert.match(source, /reposted|Reposts/);
   }
-  assert.match(webStyles, /\.public-profile \.pp-reel-grid\s*\{\s*display:\s*grid;\s*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/);
-  assert.match(webReels, /layout = "carousel"/);
-  assert.match(nativeReels, /layout = "carousel"/);
+  assert.match(webStyles, /\.pp-reel-grid\s*\{\s*display:\s*grid;\s*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/);
+  assert.match(webReels, /setActiveTab\(id\)/);
+  assert.match(nativeReels, /setActiveTab\(tab\.id\)/);
 });
 
 test('the shared match celebration is used on both Discover and member profiles', () => {

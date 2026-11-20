@@ -77,6 +77,7 @@ export * from './getProfileFollowersParams';
 export * from './getProfileFollowingParams';
 export * from './getProfileLikedReelsParams';
 export * from './getProfileReelsParams';
+export * from './getProfileRepostedReelsParams';
 export * from './getPublicLocationShareParams';
 export * from './getReelsFeedFeed';
 export * from './getReelsFeedParams';

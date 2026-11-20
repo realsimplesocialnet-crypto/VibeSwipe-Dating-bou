@@ -6,12 +6,13 @@ import {
   GetReelCommentsResponse, GetReelParams, GetReelResponse, GetReelsFeedQueryParams, GetReelsFeedResponse,
   GetProfileLikedReelsQueryParams, GetProfileLikedReelsResponse, GetProfileReelsQueryParams, GetProfileReelsResponse,
   GetSavedReelsQueryParams, GetSavedReelsResponse, LikeReelParams, LikeReelResponse,
+  GetProfileRepostedReelsQueryParams, GetProfileRepostedReelsResponse,
   MarkReelNotInterestedParams, DownloadReelParams,
   GetReelMusicResponse, RecordReelShareResponse, RecordReelViewResponse, TranscodeReelVideoParams,
   TranscodeReelVideoResponse, type ReelMusicTrack,
 } from "@workspace/api-zod";
 import {
-  blocksTable, db, mediaAssetsTable, profilesTable, reelCommentsTable, reelLikesTable, reelSavesTable, reelSharesTable, reelSlidesTable, reelViewsTable, reelNotInterestedTable, reelsTable, storiesTable, vibeSwipeFollowsTable, vibeSwipeNotificationsTable,
+  blocksTable, db, mediaAssetsTable, profilesTable, reelCommentsTable, reelLikesTable, reelSavesTable, reelRepostsTable, reelSharesTable, reelSlidesTable, reelViewsTable, reelNotInterestedTable, reelsTable, storiesTable, vibeSwipeFollowsTable, vibeSwipeNotificationsTable,
 } from "@workspace/db";
 import { and, asc, desc, eq, gte, inArray, isNull, lt, ne, or, sql, type SQL } from "drizzle-orm";
 import { Router, type IRouter, type Request } from "express";
@@ -106,8 +107,10 @@ function reelColumns(viewerId: string) {
     likeCount: sql<number>`(SELECT count(*)::int FROM ${reelLikesTable} WHERE ${reelLikesTable.reelId} = ${reelsTable.id})`,
     commentCount: sql<number>`(SELECT count(*)::int FROM ${reelCommentsTable} WHERE ${reelCommentsTable.reelId} = ${reelsTable.id})`,
     saveCount: sql<number>`(SELECT count(*)::int FROM ${reelSavesTable} WHERE ${reelSavesTable.reelId} = ${reelsTable.id})`,
+    repostCount: sql<number>`(SELECT count(*)::int FROM ${reelRepostsTable} WHERE ${reelRepostsTable.reelId} = ${reelsTable.id})`,
     likedByMe: sql<boolean>`EXISTS (SELECT 1 FROM ${reelLikesTable} WHERE ${reelLikesTable.reelId} = ${reelsTable.id} AND ${reelLikesTable.userId} = ${viewerId})`,
     savedByMe: sql<boolean>`EXISTS (SELECT 1 FROM ${reelSavesTable} WHERE ${reelSavesTable.reelId} = ${reelsTable.id} AND ${reelSavesTable.userId} = ${viewerId})`,
+    repostedByMe: sql<boolean>`EXISTS (SELECT 1 FROM ${reelRepostsTable} WHERE ${reelRepostsTable.reelId} = ${reelsTable.id} AND ${reelRepostsTable.userId} = ${viewerId})`,
   };
 }
 type ReelRow = Awaited<ReturnType<typeof selectReels>>[number];
@@ -132,7 +135,8 @@ function project(row: ReelRow, viewerId: string) {
     soundtrack: row.soundtrack as ReelMusicTrack | null,
     durationSeconds: row.durationSeconds, likeCount: Number(row.likeCount), commentCount: Number(row.commentCount),
     viewCount: Number(row.viewCount), shareCount: Number(row.shareCount), saveCount: Number(row.saveCount),
-    likedByMe: Boolean(row.likedByMe), savedByMe: Boolean(row.savedByMe), isOwner: row.userId === viewerId, createdAt: row.createdAt,
+    repostCount: Number(row.repostCount), likedByMe: Boolean(row.likedByMe), savedByMe: Boolean(row.savedByMe),
+    repostedByMe: Boolean(row.repostedByMe), isOwner: row.userId === viewerId, createdAt: row.createdAt,
   };
 }
 
@@ -147,10 +151,11 @@ async function engagement(viewerId: string, reelId: string) {
     likedByMe: Boolean(row.likedByMe), savedByMe: Boolean(row.savedByMe),
     likeCount: Number(row.likeCount), commentCount: Number(row.commentCount),
     saveCount: Number(row.saveCount), shareCount: Number(row.shareCount),
+    repostCount: Number(row.repostCount), repostedByMe: Boolean(row.repostedByMe),
   } : null;
 }
 
-function afterCursor(cursorText: string | undefined, column: typeof reelsTable.createdAt | typeof reelSavesTable.createdAt | typeof reelLikesTable.createdAt): SQL | undefined | false {
+function afterCursor(cursorText: string | undefined, column: typeof reelsTable.createdAt | typeof reelSavesTable.createdAt | typeof reelLikesTable.createdAt | typeof reelRepostsTable.createdAt): SQL | undefined | false {
   if (!cursorText) return undefined;
   const cursor = decodeReelCursor(cursorText);
   if (!cursor) return false;
@@ -316,6 +321,38 @@ router.get("/vibeswipe/profile-liked-reels", async (req, res): Promise<void> => 
   res.json(GetProfileLikedReelsResponse.parse({
     items: page.map((row) => project(row, viewerId)),
     nextCursor: rows.length > 24 && last ? encodeReelCursor(last.likedAt, last.id) : null,
+  }));
+});
+
+router.get("/vibeswipe/profile-reposted-reels", async (req, res): Promise<void> => {
+  const query = GetProfileRepostedReelsQueryParams.safeParse(req.query);
+  if (!query.success) { res.status(400).json({ error: "Invalid reposted Reels page." }); return; }
+  const viewerId = uid(req);
+  const profileId = query.data.profileId;
+  if (!(await canViewUserProfile(viewerId, profileId))) {
+    res.status(404).json({ error: "Profile not found." });
+    return;
+  }
+  const where = afterCursor(query.data.cursor, reelRepostsTable.createdAt);
+  if (where === false) { res.status(400).json({ error: "Invalid reposted Reels page." }); return; }
+  const rows = await db.select({
+    ...reelColumns(viewerId),
+    repostedAt: reelRepostsTable.createdAt,
+  }).from(reelRepostsTable)
+    .innerJoin(reelsTable, eq(reelsTable.id, reelRepostsTable.reelId))
+    .innerJoin(profilesTable, eq(profilesTable.id, reelsTable.userId))
+    .where(and(
+      eq(reelRepostsTable.userId, profileId),
+      visibleReelCondition(viewerId),
+      where,
+    ))
+    .orderBy(desc(reelRepostsTable.createdAt), desc(reelsTable.id))
+    .limit(25);
+  const page = rows.slice(0, 24);
+  const last = page[page.length - 1];
+  res.json(GetProfileRepostedReelsResponse.parse({
+    items: page.map((row) => project(row, viewerId)),
+    nextCursor: rows.length > 24 && last ? encodeReelCursor(last.repostedAt, last.id) : null,
   }));
 });
 
@@ -536,14 +573,18 @@ router.delete("/vibeswipe/reels/:reelId", async (req, res): Promise<void> => {
   res.status(204).end();
 });
 
-for (const kind of ["like", "save"] as const) {
-  const table = kind === "like" ? reelLikesTable : reelSavesTable;
+for (const kind of ["like", "save", "repost"] as const) {
+  const table = kind === "like" ? reelLikesTable : kind === "save" ? reelSavesTable : reelRepostsTable;
   router.put(`/vibeswipe/reels/:reelId/${kind}`, async (req, res): Promise<void> => {
     const params = LikeReelParams.safeParse(req.params);
     if (!params.success) { res.status(400).json({ error: "Invalid Reel." }); return; }
     const userId = uid(req);
     const reel = await findVisibleReel(userId, params.data.reelId);
     if (!reel) { res.status(404).json({ error: "This Reel is no longer available." }); return; }
+    if (kind === "repost" && reel.userId === userId) {
+      res.status(400).json({ error: "You cannot repost your own Reel." });
+      return;
+    }
     const notify = await db.transaction(async tx => {
       const inserted = await tx.insert(table).values({ reelId: reel.id, userId, createdAt: new Date() }).onConflictDoNothing().returning();
       if (kind !== "like" || !inserted.length || reel.userId === userId) return false;

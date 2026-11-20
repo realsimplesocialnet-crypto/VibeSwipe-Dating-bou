@@ -59,8 +59,15 @@ test("Reels menu and profile lists use server privacy controls", () => {
     assert.match(app, /Not interested/);
     assert.match(app, /canDownload/);
   }
-  assert.match(source("artifacts/vibeswipe-web/src/components/profile-reels-section.tsx"), /ProfileLikedReelsSection/);
-  assert.match(source("artifacts/vibeswipe/components/ProfileReelsSection.tsx"), /ProfileLikedReelsSection/);
+  const webProfileMedia = source("artifacts/vibeswipe-web/src/components/profile-reels-section.tsx");
+  const nativeProfileMedia = source("artifacts/vibeswipe/components/ProfileReelsSection.tsx");
+  for (const media of [webProfileMedia, nativeProfileMedia]) {
+    assert.match(media, /getProfileLikedReels/);
+    assert.match(media, /getProfileRepostedReels/);
+    assert.match(media, /getSavedReels/);
+  }
+  assert.match(webProfileMedia, /role="tablist"/);
+  assert.match(nativeProfileMedia, /accessibilityRole="tablist"/);
   assert.doesNotMatch(webFeed, /creatorAge/);
   assert.doesNotMatch(nativeReel, /creatorAge/);
 });

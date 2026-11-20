@@ -1505,8 +1505,11 @@ export interface Reel {
   shareCount: number;
   /** @minimum 0 */
   saveCount: number;
+  /** @minimum 0 */
+  repostCount: number;
   likedByMe: boolean;
   savedByMe: boolean;
+  repostedByMe: boolean;
   isOwner: boolean;
   createdAt: string;
 }
@@ -1565,6 +1568,9 @@ export interface ReelEngagement {
   saveCount: number;
   /** @minimum 0 */
   shareCount: number;
+  /** @minimum 0 */
+  repostCount: number;
+  repostedByMe: boolean;
 }
 
 export interface ReelComment {
@@ -1815,6 +1821,17 @@ cursor?: string;
 };
 
 export type GetProfileLikedReelsParams = {
+/**
+ * @minLength 1
+ */
+profileId: string;
+/**
+ * @maxLength 200
+ */
+cursor?: string;
+};
+
+export type GetProfileRepostedReelsParams = {
 /**
  * @minLength 1
  */

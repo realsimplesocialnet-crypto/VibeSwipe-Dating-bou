@@ -46,7 +46,7 @@ import { OnboardingCountryStep } from '@/components/onboarding-country-step';
 import type { OnboardingCountry } from '@workspace/api-client-react';
 import { HobbyMultiSelect, OccupationSelect } from '@/components/profile-field-selectors';
 import { ReelsNavigationVisibilityContext } from '@/components/reels/reels-navigation-context';
-import { ProfileLikedReelsSection, ProfileReelsSection } from '@/components/profile-reels-section';
+import { ProfileReelsSection } from '@/components/profile-reels-section';
 import { QuietSpinner } from '@/components/ui/quiet-spinner';
 import { sharedReelId } from '@/lib/reels';
 import { ChatMessageBubble } from '@/components/chat-message-bubble';
@@ -862,7 +862,6 @@ function OwnProfileOverview({profile,travelCity}:{profile:Profile;travelCity?:st
       {profile.photos.length?<div className="mt-2 grid grid-cols-6 gap-1.5">{profile.photos.slice(0,6).map((p,i)=><div key={`${p}-${i}`} className="op-thumb relative aspect-square overflow-hidden rounded-xl"><MediaImage reference={p} alt={`Profile photo ${i+1}${i===0?' (main)':''}`} className="h-full w-full object-cover"/>{i===0&&<span className="absolute inset-x-0 bottom-0 bg-[#F34E9A] text-center text-[9px] font-bold leading-[14px] text-[#24111b]">Main</span>}</div>)}</div>:<p className="op-muted mt-1.5 text-[13px]">Add photos in Edit profile.</p>}
     </section>
      <ProfileReelsSection profileId={profile.id} returnTo="/profile" own />
-     <ProfileLikedReelsSection profileId={profile.id} returnTo="/profile" own />
   </div>;
 }
 function Field({label,children}:{label:string;children:ReactNode}){return <label className="grid gap-2 text-xs font-semibold text-muted-foreground">{label}{children}</label>}
@@ -1045,8 +1044,7 @@ function PublicProfile({id,actionReturnTo='/discover'}:{id:string;actionReturnTo
       </div>
       <div className="pp-profile-media">
         <ProfilePhotoGallery photos={photos} name={profile.name} onOpen={openPhoto}/>
-        <ProfileReelsSection profileId={profile.id} returnTo={`/profile/${encodeURIComponent(id)}?returnTo=${encodeURIComponent(actionReturnTo)}`} layout="grid" />
-        <ProfileLikedReelsSection profileId={profile.id} returnTo={`/profile/${encodeURIComponent(id)}?returnTo=${encodeURIComponent(actionReturnTo)}`} layout="grid" />
+        <ProfileReelsSection profileId={profile.id} returnTo={`/profile/${encodeURIComponent(id)}?returnTo=${encodeURIComponent(actionReturnTo)}`} />
       </div>
     </div>
     </main>

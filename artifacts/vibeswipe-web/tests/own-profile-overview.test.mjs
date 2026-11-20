@@ -54,11 +54,12 @@ test('Profile bars blend into the background and reserve space rather than cover
   assert.match(css, /\.own-profile\.op-fit \{[^}]*padding-bottom:0;[^}]*container:own-profile \/ size;/s);
 });
 
-test('short profile screens compact the portrait and sections without removing photos or Saved Reels', () => {
+test('short profile screens compact the portrait while keeping photos and saved videos available', () => {
   assert.match(css, /@container own-profile \(max-height:620px\)/);
   assert.match(css, /@container own-profile \(max-height:500px\)/);
   assert.match(css, /grid-template-columns:64px minmax\(0,1fr\)/);
-  assert.match(overview, /op-toolbar[\s\S]*?href="\/reels\/saved"/);
+  assert.match(overview, /<ProfileReelsSection[^>]*own/);
+  assert.match(readFileSync(new URL('../src/components/profile-reels-section.tsx', import.meta.url), 'utf8'), /id: "saved"/);
   assert.doesNotMatch(overview, /op-ghost mt-3/);
   assert.match(overview, /data-testid="link-manage-photos"/);
   assert.match(overview, /profile\.photos\.slice\(0,6\)/);
