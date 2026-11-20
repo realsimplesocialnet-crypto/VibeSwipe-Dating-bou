@@ -62,7 +62,7 @@ export default function CommunityGuidelinesPage() {
         <footer className="mt-7 flex flex-wrap gap-x-5 gap-y-2 border-t border-white/[.08] pt-5 text-xs font-semibold text-muted-foreground">
           <Link href="/privacy-policy" className="hover:text-primary">Privacy Policy</Link>
           <Link href="/terms" className="hover:text-primary">Terms of Service</Link>
-          <Link href="/report-safety" className="hover:text-primary">Report a safety issue</Link>
+          <a href="mailto:Realsimplesocialnet@gmail.com?subject=VIBESWIPES%20safety%20report" className="hover:text-primary">Report a safety issue</a>
           <a href="mailto:Realsimplesocialnet@gmail.com?subject=VIBESWIPES%20support%20request" className="hover:text-primary">Contact support</a>
           <Link href="/" className="hover:text-primary">VIBESWIPES home</Link>
         </footer>

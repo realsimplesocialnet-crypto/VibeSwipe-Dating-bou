@@ -101,7 +101,7 @@ export default function PrivacyPolicyPage() {
         <footer className="mt-7 flex flex-wrap gap-x-5 gap-y-2 border-t border-white/[.08] pt-5 text-xs font-semibold text-muted-foreground">
           <Link href="/terms" className="hover:text-primary">Terms of Service</Link>
           <Link href="/community-guidelines" className="hover:text-primary">Community Guidelines</Link>
-          <Link href="/report-safety" className="hover:text-primary">Report a safety issue</Link>
+          <a href={`mailto:${supportEmail}?subject=VIBESWIPES%20safety%20report`} className="hover:text-primary">Report a safety issue</a>
           <a href={`mailto:${supportEmail}?subject=VIBESWIPES%20privacy%20request`} className="hover:text-primary">Contact support</a>
         </footer>
       </div>

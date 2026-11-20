@@ -354,7 +354,7 @@ function Frame({ children }: { children: ReactNode }) {
     <header className="mx-auto flex w-full max-w-4xl items-center justify-between px-5 pt-[calc(env(safe-area-inset-top,0px)+20px)]">
       <Link href="/" className="inline-flex items-center gap-2.5" data-testid="link-signup-brand">
         <img src={`${basePath}/icon.png`} alt="" className="h-9 w-9 rounded-xl ring-1 ring-white/10" />
-        <span className="brand text-[20px] font-extrabold text-[#fff2f7]">My<span className="text-primary">age</span></span>
+        <span className="brand text-[20px] font-extrabold text-[#fff2f7]">VIBESWIPES</span>
       </Link>
       <Link href="/sign-in" data-testid="link-signin-from-signup" className="min-h-[44px] content-center rounded-xl px-3 text-sm font-semibold text-muted-foreground hover:text-foreground">Sign in</Link>
     </header>

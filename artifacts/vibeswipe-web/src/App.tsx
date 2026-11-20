@@ -128,7 +128,7 @@ const appearance = {
 function Brand({ compact = false, small = false }: { compact?: boolean; small?: boolean }) {
   return <Link href="/" className="inline-flex items-center gap-2.5" data-testid="link-brand">
     <img src={assetPathFor('/icon.png')} alt="" className={`${compact || small ? 'h-7 w-7 rounded-lg' : 'h-9 w-9 rounded-xl'} ring-1 ring-border`} />
-    {!compact && <span className={`brand ${small ? 'text-lg' : 'text-[21px]'} font-extrabold text-foreground`}>My<span className="text-primary">age</span></span>}
+    {!compact && <span className={`brand ${small ? 'text-lg' : 'text-[21px]'} font-extrabold text-foreground`}>VIBESWIPES</span>}
   </Link>;
 }
 
