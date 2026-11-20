@@ -17,9 +17,10 @@
   let installationConfirmed = readInstalled() === 'confirmed' || readInstalled() === 'manual';
   if (inApp() && !videoFullscreen()) { installationConfirmed = true; writeInstalled('confirmed'); }
   const canCheckInstalled = typeof navigator.getInstalledRelatedApps === 'function';
+  let deferredPrompt = null;
   let snapshot = {
     prompt: null, installed: installationConfirmed || inApp(),
-    bannerDismissed: false, checkingInstalled: canCheckInstalled && !installationConfirmed,
+    bannerDismissed: false, checkingInstalled: canCheckInstalled && !inApp(),
   };
   const subscribers = new Set();
   const publish = (next) => {
@@ -27,6 +28,7 @@
     subscribers.forEach((notify) => notify());
   };
   const confirmInstalled = (manual = false) => {
+    deferredPrompt = null;
     installationConfirmed = true;
     writeInstalled(manual ? 'manual' : 'confirmed');
     publish({ ...snapshot, prompt: null, installed: true, checkingInstalled: false });
@@ -47,7 +49,11 @@
   };
   window.addEventListener('beforeinstallprompt', (event) => {
     event.preventDefault();
-    if (inApp() || readInstalled() === 'manual') return;
+    if (inApp()) return;
+    if (snapshot.checkingInstalled) {
+      deferredPrompt = event;
+      return;
+    }
     // A new browser offer is a stronger signal than a stale stored marker
     // after uninstalling. A missing offer, however, proves nothing.
     installationConfirmed = false;
@@ -92,10 +98,25 @@
           } catch { return false; }
         });
         if (found) confirmInstalled();
+        else if (deferredPrompt) {
+          const prompt = deferredPrompt;
+          deferredPrompt = null;
+          installationConfirmed = false;
+          writeInstalled(null);
+          publish({ ...snapshot, prompt, installed: false, checkingInstalled: false });
+        }
       } catch { /* Safari and privacy-restricted browsers may not expose this. */ }
       finally {
         clearTimeout(timeout);
-        if (snapshot.checkingInstalled) publish({ ...snapshot, checkingInstalled: false });
+        if (snapshot.checkingInstalled) {
+          if (deferredPrompt) {
+            const prompt = deferredPrompt;
+            deferredPrompt = null;
+            installationConfirmed = false;
+            writeInstalled(null);
+            publish({ ...snapshot, prompt, installed: false, checkingInstalled: false });
+          } else publish({ ...snapshot, checkingInstalled: false });
+        }
       }
     })();
   }

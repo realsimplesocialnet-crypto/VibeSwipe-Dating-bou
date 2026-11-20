@@ -19,13 +19,13 @@ export function userErrorMessage(error: unknown, fallback: string): string {
     if (status === 403) return 'This action is not available for your account. Refresh this screen and try again.';
     if (status === 413) return 'This file is too large. Choose a smaller file and try again.';
     if (status === 429) return 'Too many attempts. Wait a moment, then try again.';
-    if (typeof status === 'number' && status >= 500) return 'VIBESWIPES is having trouble responding. Please try again shortly.';
+    if (typeof status === 'number' && status >= 500) return 'MYAGEBEAUTY is having trouble responding. Please try again shortly.';
     if ('name' in error && (error.name === 'AbortError' || error.name === 'TimeoutError')) {
       return 'The connection took too long. Check your internet connection and try again.';
     }
   }
   if (error instanceof TypeError && /fetch|network|load failed/i.test(error.message)) {
-    return 'Couldn’t connect to VIBESWIPES. Check your internet connection and try again.';
+    return 'Couldn’t connect to MYAGEBEAUTY. Check your internet connection and try again.';
   }
   return fallback;
 }

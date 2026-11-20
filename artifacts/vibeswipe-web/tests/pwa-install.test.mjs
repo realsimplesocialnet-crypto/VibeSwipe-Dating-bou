@@ -112,13 +112,14 @@ test('closing the banner lasts through navigation, but not a fresh website load'
   assert.equal(refreshed.installed, false);
 });
 
-test('Already installed remembers the choice in browsers without install detection', () => {
+test('a new browser install offer clears a stale manual installed marker', () => {
   const { store, storage } = setup();
   store.confirmInstalled();
   const refreshed = setup({ storage });
-  refreshed.window.dispatchEvent(new Event('beforeinstallprompt', { cancelable: true }));
-  assert.equal(refreshed.store.getSnapshot().installed, true);
-  assert.equal(refreshed.store.getSnapshot().prompt, null);
+  const prompt = new Event('beforeinstallprompt', { cancelable: true });
+  refreshed.window.dispatchEvent(prompt);
+  assert.equal(refreshed.store.getSnapshot().installed, false);
+  assert.equal(refreshed.store.getSnapshot().prompt, prompt);
 });
 
 test('a real new browser install offer clears a stale marker after uninstalling', () => {
@@ -155,6 +156,19 @@ test('Chrome detects a pre-existing install before showing the banner', async ()
   assert.equal(setup({ storage }).store.getSnapshot().installed, true);
 });
 
+test('a detected installed PWA suppresses a queued browser install prompt', async () => {
+  const { window, store } = setup({ navigator: {
+    getInstalledRelatedApps: async () => [{ platform: 'webapp', url: 'https://app.example.test/manifest.json?v=9' }],
+  } });
+  const prompt = new Event('beforeinstallprompt', { cancelable: true });
+  window.dispatchEvent(prompt);
+  assert.equal(store.getSnapshot().checkingInstalled, true);
+  assert.equal(store.getSnapshot().prompt, null);
+  await new Promise(setImmediate);
+  assert.equal(store.getSnapshot().installed, true);
+  assert.equal(store.getSnapshot().prompt, null);
+});
+
 test('unrelated installs, rejected checks and slow checks do not hide the website banner forever', async () => {
   for (const getInstalledRelatedApps of [
     async () => [{ platform: 'webapp', url: 'https://another.example.test/manifest.json' }],
@@ -171,14 +185,15 @@ test('unrelated installs, rejected checks and slow checks do not hide the websit
   assert.equal(store.getSnapshot().installed, false);
 });
 
-test('native browser home-screen installation remains available without site install controls', () => {
+test('PWA metadata and native browser installation remain available for users without the app', () => {
   const manifest = JSON.parse(readFileSync(new URL('../public/manifest.json', import.meta.url), 'utf8'));
   assert.equal(manifest.related_applications[0].platform, 'webapp');
-  assert.equal(manifest.related_applications[0].url, 'manifest.json?v=8');
+  assert.equal(manifest.related_applications[0].url, 'manifest.json?v=9');
   assert.equal(manifest.prefer_related_applications, false);
   const app = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8');
   const pushSettings = readFileSync(new URL('../src/components/WebPushSettings.tsx', import.meta.url), 'utf8');
   assert.doesNotMatch(app, /InstallAction|MobileInstallBanner|ConsumerInstallBanner/);
+  assert.match(app, /<PwaInstallBanner\/>/);
   assert.doesNotMatch(pushSettings, /InstallAction/);
   const browserInstall = readFileSync(new URL('../public/pwa-install.js', import.meta.url), 'utf8');
   assert.match(browserInstall, /beforeinstallprompt/);

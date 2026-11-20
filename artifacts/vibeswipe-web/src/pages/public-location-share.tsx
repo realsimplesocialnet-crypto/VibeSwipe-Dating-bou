@@ -38,7 +38,7 @@ export default function PublicLocationSharePage() {
           <MapPin size={22} />
         </div>
         <p className="mt-5 text-[10px] font-extrabold uppercase tracking-[.2em] text-primary">
-          VIBESWIPES safety link
+          MYAGEBEAUTY safety link
         </p>
         <h1 className="mt-1 text-2xl font-extrabold">Live location</h1>
         <p className="mt-2 text-sm leading-6 text-muted-foreground">

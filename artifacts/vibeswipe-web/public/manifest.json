@@ -1,15 +1,15 @@
 {
   "id": "/",
-  "name": "VIBESWIPES",
-  "short_name": "VIBESWIPES",
-  "description": "VIBESWIPES is an adults-only dating app for genuine connection.",
+  "name": "MYAGEBEAUTY",
+  "short_name": "MYAGEBEAUTY",
+  "description": "MYAGEBEAUTY is an adults-only dating app for genuine connection.",
   "start_url": "/app",
   "scope": "/",
   "display": "standalone",
   "display_override": ["standalone", "minimal-ui", "browser"],
   "prefer_related_applications": false,
   "related_applications": [
-    { "platform": "webapp", "url": "manifest.json?v=8" }
+    { "platform": "webapp", "url": "manifest.json?v=9" }
   ],
   "orientation": "any",
   "background_color": "#15131a",
@@ -17,13 +17,13 @@
   "categories": ["lifestyle", "social"],
   "icons": [
     {
-      "src": "vibeswipes-icon-192.png",
+      "src": "myage-icon-192-v7.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "vibeswipes-icon-512.png",
+      "src": "myage-icon-512-v7.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"

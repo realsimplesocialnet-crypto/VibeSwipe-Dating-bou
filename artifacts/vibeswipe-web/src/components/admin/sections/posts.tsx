@@ -118,7 +118,7 @@ export function PostsSection() {
   function requestRemoval(post: Post) {
     setConfirm({
       title: `Remove this ${post.kind}?`,
-      detail: `This permanently removes the ${post.kind} from VIBESWIPES. The action is written to the administrator audit log. Type REMOVE to confirm.`,
+      detail: `This permanently removes the ${post.kind} from MYAGEBEAUTY. The action is written to the administrator audit log. Type REMOVE to confirm.`,
       confirmLabel: `Remove ${post.kind}`,
       word: 'REMOVE',
       onConfirm: async confirmation => {

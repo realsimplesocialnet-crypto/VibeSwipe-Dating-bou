@@ -32,10 +32,22 @@ test('ordinary browser tabs do not count as an installed app shell', () => {
 });
 
 test('APK download link appears only in a regular Android browser', () => {
-  assert.equal(shouldShowAndroidApkDownload('Mozilla/5.0 (Linux; Android 14) Chrome/130', false), true);
-  assert.equal(shouldShowAndroidApkDownload('Mozilla/5.0 (Linux; Android 14; wv) Chrome/130', true), false);
-  assert.equal(shouldShowAndroidApkDownload('Mozilla/5.0 (iPhone; CPU iPhone OS 18) Safari/604.1', false), false);
-  assert.equal(shouldShowAndroidApkDownload('Mozilla/5.0 (Linux; Android 14) Chrome/130', true), false);
+  assert.equal(shouldShowAndroidApkDownload('Mozilla/5.0 (Linux; Android 14) Chrome/130', false, false), true);
+  assert.equal(shouldShowAndroidApkDownload('Mozilla/5.0 (Linux; Android 14; wv) Chrome/130', true, false), false);
+  assert.equal(shouldShowAndroidApkDownload('Mozilla/5.0 (iPhone; CPU iPhone OS 18) Safari/604.1', false, false), false);
+  assert.equal(shouldShowAndroidApkDownload('Mozilla/5.0 (Linux; Android 14) Chrome/130', true, false), false);
+  assert.equal(shouldShowAndroidApkDownload('Mozilla/5.0 (Linux; Android 14) Chrome/130', false, true), false);
+});
+
+test('PWA install banner is hidden after install and in app shells', async () => {
+  const { shouldShowPwaInstallBanner } = await import('../src/lib/pwa-install-state.ts');
+  const common = { mobile: true, appShell: false, installed: false, checkingInstalled: false, dismissed: false };
+  assert.equal(shouldShowPwaInstallBanner(common), true);
+  assert.equal(shouldShowPwaInstallBanner({ ...common, installed: true }), false);
+  assert.equal(shouldShowPwaInstallBanner({ ...common, checkingInstalled: true }), false);
+  assert.equal(shouldShowPwaInstallBanner({ ...common, appShell: true }), false);
+  assert.equal(shouldShowPwaInstallBanner({ ...common, mobile: false }), false);
+  assert.equal(shouldShowPwaInstallBanner({ ...common, dismissed: true }), false);
 });
 
 test('auth links open the real sign-in and sign-up routes', () => {

@@ -38,7 +38,7 @@ export default function ReportSafetyPage() {
           ...(details.trim() ? { details: details.trim() } : {}),
         },
       });
-      setNotice("Your report was sent to the VIBESWIPES safety team. Thank you.");
+      setNotice("Your report was sent to the MYAGEBEAUTY safety team. Thank you.");
       setDetails("");
     } catch {
       setError("The report could not be sent. Check your connection and try again.");
@@ -57,7 +57,7 @@ export default function ReportSafetyPage() {
             <Shield size={22} />
           </div>
           <div>
-            <p className="text-[10px] font-extrabold uppercase tracking-[.2em] text-primary">VIBESWIPES Safety</p>
+            <p className="text-[10px] font-extrabold uppercase tracking-[.2em] text-primary">MYAGEBEAUTY Safety</p>
             <h1 className="mt-1 text-3xl font-extrabold tracking-tight">Report a Scam or Safety Issue</h1>
             <p className="mt-2 text-sm leading-6 text-muted-foreground">Tell us about a profile that made you feel unsafe. Reports are sent privately for review.</p>
           </div>
