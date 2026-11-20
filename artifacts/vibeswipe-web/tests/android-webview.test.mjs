@@ -11,8 +11,13 @@ test('detects the Android bridge even without a wv user-agent marker', () => {
   assert.equal(isAndroidWebView('Mozilla/5.0 (Linux; Android 14) Chrome/130', true), true);
 });
 
+test('detects Android WebViews using the classic Version/Chrome signature', () => {
+  assert.equal(isAndroidWebView('Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/130.0.0.0 Mobile Safari/537.36', false), true);
+});
+
 test('does not mistake ordinary browsers for an Android WebView', () => {
   assert.equal(isAndroidWebView('Mozilla/5.0 (Linux; Android 14) Chrome/130', false), false);
+  assert.equal(isAndroidWebView('Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/130 Mobile Safari/537.36', false), false);
   assert.equal(isAndroidWebView('Mozilla/5.0 (iPhone; CPU iPhone OS 18) Safari/604.1', false), false);
 });
 

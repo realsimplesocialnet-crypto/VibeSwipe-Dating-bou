@@ -1,7 +1,12 @@
 import { isStandaloneApp } from './app-display-mode.ts';
 
 export function isAndroidWebView(userAgent: string, hasAndroidBridge: boolean): boolean {
-  return userAgent.toLowerCase().includes('wv') || hasAndroidBridge;
+  const hasWebViewMarker = /(?:;\s*wv\)|\bwv\b)/i.test(userAgent);
+  const hasClassicAndroidWebViewSignature = /\bandroid\b/i.test(userAgent)
+    && /\bversion\/[\d.]+/i.test(userAgent)
+    && /\bchrome\/[\d.]+/i.test(userAgent)
+    && /mobile safari\//i.test(userAgent);
+  return hasWebViewMarker || hasClassicAndroidWebViewSignature || hasAndroidBridge;
 }
 
 export function shouldLoadAppShell(
