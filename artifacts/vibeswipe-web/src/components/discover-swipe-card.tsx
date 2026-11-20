@@ -107,7 +107,12 @@ export const DiscoverSwipeCard = memo(function DiscoverSwipeCard({
     >
       <motion.article
         className="relative flex h-full min-h-0 w-full min-w-0 flex-col overflow-hidden rounded-[30px] bg-[#17141b] shadow-xl"
-        style={{ x, rotate, willChange: "transform", touchAction: "none" }}
+        style={{
+          x,
+          rotate,
+          willChange: "transform",
+          touchAction: "none",
+        }}
         drag={active ? "x" : false}
         dragConstraints={{ left: -1600, right: 1600 }}
         dragElastic={0.035}
@@ -122,17 +127,19 @@ export const DiscoverSwipeCard = memo(function DiscoverSwipeCard({
         whileDrag={reducedMotion ? undefined : { scale: 1.012 }}
         onDragEnd={(_, info) => {
           if (!active) return;
-          const direction = Math.sign(info.offset.x || info.velocity.x);
+          const offsetX = info.offset.x;
+          const velocityX = info.velocity.x;
+          const direction = Math.sign(offsetX || velocityX);
           const shouldSwipe =
-            Math.abs(info.offset.x) >= SWIPE_OFFSET_PX ||
-            (Math.abs(info.velocity.x) >= SWIPE_VELOCITY_PX_PER_SECOND && Math.abs(info.offset.x) >= 6);
+            Math.abs(offsetX) >= SWIPE_OFFSET_PX ||
+            (Math.abs(velocityX) >= SWIPE_VELOCITY_PX_PER_SECOND && Math.abs(offsetX) >= 6);
           if (shouldSwipe && direction !== 0) {
             onSwipe(profile.id, direction > 0 ? "like" : "pass", {
-              offsetX: info.offset.x,
-              velocityX: info.velocity.x,
+              offsetX,
+              velocityX,
             });
           } else if (!reducedMotion) {
-            void animate(x, 0, {
+            animate(x, 0, {
               type: "spring",
               stiffness: 980,
               damping: 26,
