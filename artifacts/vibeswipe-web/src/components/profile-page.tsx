@@ -12,7 +12,7 @@ import {
   type Profile,
   type ProfileInput,
 } from "@workspace/api-client-react";
-import { ArrowLeft, Briefcase, Camera, Heart, MapPin, Mars, Navigation, NonBinary, Pencil, Settings, UserRound, Venus, X } from "lucide-react";
+import { ArrowLeft, MapPin, Mars, Navigation, NonBinary, Pencil, Settings, Venus, X } from "lucide-react";
 import { Empty, MediaImage, ProfileLoading, Retry } from "@/App";
 import { VerifiedBadge } from "@/components/verified-badge";
 import { Link, Redirect, useLocation } from "@/lib/router-compat";
@@ -67,38 +67,44 @@ function OwnProfileOverview({ profile, travelCity }: { profile: Profile; travelC
   const [broken, setBroken] = useState(false);
   useEffect(() => setBroken(false), [profile.photos?.[0]]);
   const GenderIcon = genderIcon(profile.gender || "");
-  const place = [[profile.city, profile.state].filter(Boolean).join(", "), profile.country].filter(Boolean).join(" · ");
+  const place = [...new Set([profile.city, profile.state, profile.country].map((part) => part?.trim()).filter(Boolean))].join(", ");
   const work = profile.occupation === "Other" ? profile.occupationOther || "Other" : profile.occupation || "Prefer not to say";
   const bio = profile.bio || "Add a bio so people can get to know you.";
   const shown = profile.interests.slice(0, 5);
   const more = profile.interests.length - shown.length;
 
   return <div data-testid="section-own-profile" className="op-overview flex min-h-0 flex-1 flex-col gap-[clamp(6px,1.4dvh,14px)] pb-[clamp(8px,1.6dvh,16px)]">
-    <div className="op-toolbar flex shrink-0 items-center justify-between"><h2 data-testid="text-my-profile-heading" className="op-title">My Profile</h2><div className="flex items-center gap-2"><Link href="/settings?returnTo=%2Fprofile" data-testid="link-profile-settings" aria-label="Settings" className="op-ghost inline-flex items-center gap-2 rounded-full px-3.5 py-2 text-sm font-semibold transition-transform active:scale-95"><Settings size={16} />Settings</Link></div></div>
+    <div className="op-toolbar grid shrink-0 grid-cols-[40px_1fr_40px] items-center">
+      <Link href="/discover" data-testid="link-profile-back" aria-label="Back to Discover" title="Back to Discover" className="op-toolbar-action inline-flex h-10 w-10 items-center justify-center rounded-full transition-transform active:scale-95"><ArrowLeft size={20} aria-hidden="true" /></Link>
+      <h2 data-testid="text-my-profile-heading" className="op-title text-center">My Profile</h2>
+      <Link href="/settings?returnTo=%2Fprofile" data-testid="link-profile-settings" aria-label="Settings" title="Settings" className="op-toolbar-action inline-flex h-10 w-10 items-center justify-center justify-self-end rounded-full transition-transform active:scale-95"><Settings size={18} aria-hidden="true" /></Link>
+    </div>
     <section className="op-card op-identity op-identity-modern flex shrink-0 flex-col text-left">
-      <div className="op-hero-photo relative aspect-[4/3] w-full overflow-hidden rounded-[22px]" data-testid="profile-main-photo">
+      <div className="op-hero-photo relative aspect-[16/7.5] w-full overflow-hidden rounded-[18px]" data-testid="profile-main-photo">
         {profile.photos?.[0] && !broken
           ? <MediaImage reference={profile.photos[0]} onError={() => setBroken(true)} loading="eager" fetchPriority="high" className="h-full w-full object-cover" alt={`${profile.name}'s main profile photo`} />
           : <div className="flex h-full flex-col items-center justify-center gap-2 bg-[linear-gradient(145deg,#392331,#17131a)] text-primary"><span className="text-5xl font-bold">{profile.name?.slice(0, 1)?.toUpperCase()}</span><span className="text-xs font-semibold text-white/70">Add a main photo</span></div>}
       </div>
-      <div className="op-person-details mt-3 text-center">
-        <h1 data-testid="text-profile-name" title={profile.name} className="brand max-w-full truncate text-[clamp(22px,3.4dvh,30px)] font-extrabold leading-tight tracking-[-.03em]">{profile.name}{profile.age !== null ? `, ${profile.age}` : ""}<VerifiedBadge verified={profile.isVerified} /></h1>
-        {place && <p data-testid="text-profile-city" title={place} className="op-muted mt-1 inline-flex max-w-full items-center justify-center gap-1.5 truncate text-[14px]"><MapPin size={15} className="shrink-0 text-primary" aria-hidden="true" />{place}</p>}
-        {(profile.gender || travelCity) && <div className="mt-1 flex max-w-full items-center justify-center gap-2 text-[13px]">{profile.gender && <span data-testid="text-profile-gender" className="op-muted inline-flex items-center gap-1.5"><GenderIcon size={15} aria-hidden="true" />{profile.gender}</span>}{travelCity && <span className="inline-flex min-w-0 items-center gap-1 truncate rounded-full bg-primary/12 px-2.5 py-0.5 text-xs font-semibold text-primary" data-testid="badge-travel" title={`Traveling in ${travelCity}`}><Navigation size={12} />Traveling in {travelCity}</span>}</div>}
+      <div className="op-person-details mt-2 text-left">
+        <h1 data-testid="text-profile-name" title={profile.name} className="brand max-w-full truncate text-[clamp(26px,7vw,38px)] font-extrabold leading-[1.08] tracking-[-.04em]">{profile.name}{profile.age !== null ? `, ${profile.age}` : ""}<VerifiedBadge verified={profile.isVerified} /></h1>
+        {(place || profile.gender || travelCity) && <div className="op-profile-meta mt-1.5 flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1 text-[14px]">
+          {place && <span data-testid="text-profile-city" title={place} className="op-muted inline-flex max-w-full items-center gap-1.5 truncate"><MapPin size={16} className="shrink-0 text-primary" aria-hidden="true" />{place}</span>}
+          {profile.gender && <span data-testid="text-profile-gender" className="op-muted inline-flex items-center gap-1.5">{place && <span aria-hidden="true" className="op-meta-separator">|</span>}<GenderIcon size={16} className="text-primary" aria-hidden="true" />{profile.gender}</span>}
+          {travelCity && <span className="inline-flex min-w-0 items-center gap-1 truncate rounded-full bg-primary/12 px-2.5 py-0.5 text-xs font-semibold text-primary" data-testid="badge-travel" title={`Traveling in ${travelCity}`}><Navigation size={12} />Traveling in {travelCity}</span>}
+        </div>}
       </div>
       <ProfileSocialActions profileId={profile.id} viewerId={profile.id} showAction={false} compact />
       <Link href="/profile/edit?returnTo=%2Fprofile" data-testid="button-edit-profile" aria-label="Edit profile" title="Edit profile" className="op-edit inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-transform active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"><Pencil size={18} aria-hidden="true" /></Link>
     </section>
-    <div className="grid shrink-0 grid-cols-2 gap-[clamp(6px,1.2dvh,12px)]">
-      <section className="op-section min-w-0"><h3 className="op-label"><span className="op-ico"><UserRound size={13} /></span>About me</h3><p data-testid="text-profile-bio" title={bio} className="mt-1.5 line-clamp-2 text-[13.5px] leading-5">{bio}</p></section>
-      <section className="op-section min-w-0"><h3 className="op-label"><span className="op-ico"><Briefcase size={13} /></span>Work</h3><span data-testid="text-profile-occupation" title={work} className="op-chip mt-1.5 inline-flex max-w-full truncate rounded-full px-3 py-1 text-[12.5px] font-semibold">{work}</span></section>
-    </div>
-    <section className="op-section shrink-0"><h3 className="op-label"><span className="op-ico"><Heart size={13} /></span>Hobbies</h3>{profile.interests.length ? <div className="mt-2 flex h-[28px] flex-wrap gap-1.5 overflow-hidden" title={profile.interests.join(", ")} aria-label={`Hobbies: ${profile.interests.join(", ")}`}>{shown.map((interest) => <span key={interest} className="op-chip max-w-[46%] truncate rounded-full px-3 py-1 text-[12.5px] font-semibold">{interest}</span>)}{more > 0 && <Link href="/profile/edit?returnTo=%2Fprofile" data-testid="link-more-hobbies" className="op-chip rounded-full px-3 py-1 text-[12.5px] font-bold">+{more}</Link>}</div> : <p className="op-muted mt-1.5 text-[13px]">Add a few hobbies to your profile.</p>}</section>
-    <section className="op-section shrink-0"><div className="flex items-center justify-between"><h3 className="op-label"><span className="op-ico"><Camera size={13} /></span>Photos <span className="op-muted ml-0.5 text-xs font-semibold tracking-normal">{profile.photos.length}/6</span></h3><Link href="/profile/edit?returnTo=%2Fprofile" data-testid="link-manage-photos" className="op-manage inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold"><Camera size={12} />Manage</Link></div>
-      {profile.photos.length ? <div className="mt-2 grid grid-cols-5 gap-2">{profile.photos.slice(0, 5).map((photo, index) => <div key={`${photo}-${index}`} className="op-thumb relative aspect-square overflow-hidden rounded-xl"><MediaImage reference={photo} alt={`Profile photo ${index + 1}${index === 0 ? " (main)" : ""}`} className="h-full w-full object-cover" />{index === 0 && <span className="absolute inset-x-0 bottom-0 bg-[#F34E9A] text-center text-[9px] font-bold leading-[14px] text-[#24111b]">Main</span>}</div>)}</div> : <p className="op-muted mt-1.5 text-[13px]">Add photos in Edit profile.</p>}
+    <div className="op-rule shrink-0" aria-hidden="true" />
+    <section className="op-section min-w-0 shrink-0"><h3 className="op-label">About me</h3><p data-testid="text-profile-bio" title={bio} className="mt-1.5 line-clamp-3 text-[14px] leading-[1.5]">{bio}</p></section>
+    <section className="op-section shrink-0"><h3 className="op-label">Hobbies</h3>{profile.interests.length ? <div className="mt-2 flex flex-wrap gap-2" title={profile.interests.join(", ")} aria-label={`Hobbies: ${profile.interests.join(", ")}`}>{shown.map((interest) => <span key={interest} className="op-chip max-w-[46%] truncate rounded-full px-3.5 py-1.5 text-[13px] font-semibold">{interest}</span>)}{more > 0 && <Link href="/profile/edit?returnTo=%2Fprofile" data-testid="link-more-hobbies" className="op-chip rounded-full px-3.5 py-1.5 text-[13px] font-bold">+{more}</Link>}</div> : <p className="op-muted mt-1.5 text-[13px]">Add a few hobbies to your profile.</p>}</section>
+    <section className="op-section shrink-0"><h3 className="op-label">Work</h3><span data-testid="text-profile-occupation" title={work} className="op-chip mt-2 inline-flex max-w-full truncate rounded-full px-3.5 py-1.5 text-[13px] font-semibold">{work}</span></section>
+    <section className="op-section shrink-0"><h3 className="op-label">Photos</h3>
+      {profile.photos.length ? <div className="mt-2 grid grid-cols-5 gap-2" data-testid="profile-photo-strip" aria-label={`Profile photos, ${profile.photos.length} total`}>{profile.photos.slice(0, 5).map((photo, index) => <div key={`${photo}-${index}`} className="op-thumb relative aspect-square overflow-hidden rounded-xl"><MediaImage reference={photo} alt={`Profile photo ${index + 1}${index === 0 ? " (main)" : ""}`} className="h-full w-full object-cover" />{index === 0 && <span className="absolute inset-x-0 bottom-0 bg-[#F34E9A] text-center text-[9px] font-bold leading-[14px] text-[#24111b]">Main</span>}</div>)}</div> : <p className="op-muted mt-1.5 text-[13px]">Add photos in Edit profile.</p>}
     </section>
-    <ReferralProfileCard />
     <ProfileReelsSection profileId={profile.id} returnTo="/profile" own />
+    <ReferralProfileCard />
   </div>;
 }
 

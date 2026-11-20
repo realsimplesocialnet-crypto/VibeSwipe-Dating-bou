@@ -3,16 +3,12 @@ name: Own-profile appearance
 description: Approved visual direction for the signed-in user's Profile tab.
 ---
 
-The user wants the established pink accent restored across the app, including the signed-in Profile tab, on dark charcoal surfaces. Use `#F34E9A` for primary actions and active states; do not use the gold or cream treatment. Keep the actual account identity, verification badge, Settings, Edit profile, About, Work, Hobbies, and Photos.
+The signed-in profile should use a dark, flat, photo-led layout with the established pink accent (`#F34E9A`). Follow the current reference: a wide main photo, left-aligned name and age, location and gender, follower counts, About me, Hobbies, Work, a horizontal photo strip, a floating pink pencil edit button, and bottom navigation with Profile active. Use the member's real details and photos, never sample identity or copy.
 
-Keep the Profile title and gear-labelled Settings button at the top right, and the fixed bottom navigation with Profile highlighted. Remove bright pink and in-dashboard logos from this screen.
+Keep sections unboxed with spacing rather than card borders. Preserve Settings, profile editing, referral tools, and the Reels/Reposts/Saved/Likes gallery; content that does not fit the reference's first screen can remain below the fold. Do not add a product logo to the signed-in profile.
 
-My Profile must fit on one screen without vertical scrolling. Use compact previews for long content, with full details available through Edit profile; keep the photo, identity, Settings, Edit profile, and all four section previews above the fixed navigation.
+Show follower and following counts with prominent numbers and smaller labels. Keep the fixed bottom navigation blended into the page background.
 
-My Profile must not show the top logo/branding header. Start with the My Profile title and Settings, leaving more room for the user's pictures. Bottom tabs should blend into the profile background, not form a dark strip that covers the photos.
+**Why:** The user replaced the previous compact profile direction with a specific photo-first reference and asked to match its hierarchy and pink-on-dark appearance.
 
-Show follower and following counts with the numbers prominent and the labels smaller, on both the signed-in profile and other members' profiles.
-
-**Why:** The user first requested charcoal and gold, then explicitly asked to bring the app's pink back and rejected the pale gold/cream look.
-
-**How to apply:** Use the pink accent and dark surfaces for the user's own profile overview in both native and web/PWA versions. Preserve the compact, no-scroll layout and real account data, while keeping follower numbers visually stronger than their labels.
+**How to apply:** Use this direction for future own-profile web changes. Preserve existing data and actions; treat the screenshot as a layout reference, not permission to replace real profile content with its example identity.

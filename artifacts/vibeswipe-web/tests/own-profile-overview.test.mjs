@@ -46,7 +46,8 @@ test('My Profile retains separate working Settings and Edit Profile destinations
   assert.match(editLink[0], /aria-label="Edit profile" title="Edit profile"/);
   assert.match(editLink[1], /<Pencil size=\{18\}\s+aria-hidden="true"\s*\/>/);
   assert.doesNotMatch(editLink[1], /Edit profile/i);
-  assert.match(css, /\.own-profile \.op-edit \{[^}]*position:fixed;[^}]*width:52px;[^}]*height:52px;/s);
+  assert.match(css, /\.own-profile \.op-edit \{[^}]*position:fixed;[^}]*width:68px;[^}]*height:68px;/s);
+  assert.match(overview, /href="\/discover" data-testid="link-profile-back"/);
   assert.match(native, /router\.push\("\/settings"\)/);
   assert.match(native, /router\.push\("\/edit-profile"\)/);
   assert.match(native, /name="settings"/);
@@ -68,12 +69,12 @@ test('short profile screens compact the portrait while keeping photos and saved 
   assert.match(overview, /<ProfileReelsSection[^>]*own/);
   assert.match(readFileSync(new URL('../src/components/profile-reels-section.tsx', import.meta.url), 'utf8'), /id: "saved"/);
   assert.doesNotMatch(overview, /op-ghost mt-3/);
-  assert.match(overview, /data-testid="link-manage-photos"/);
   assert.match(overview, /profile\.photos\.slice\(0,\s*5\)/);
+  assert.match(overview, /data-testid="profile-photo-strip"/);
   assert.match(overview, /data-testid="profile-main-photo"/);
   assert.match(overview, /main profile photo/);
   assert.match(overview, /About me/);
-  assert.match(overview, /<MapPin size=\{15\}/);
+  assert.match(overview, /<MapPin size=\{16\}/);
   assert.match(app, /onProfile \? \(lightMode \? "#fde4ec" : "#3a2232"\)/);
 });
 
