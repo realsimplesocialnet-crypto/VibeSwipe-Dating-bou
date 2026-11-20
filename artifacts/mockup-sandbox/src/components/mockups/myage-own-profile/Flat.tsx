@@ -108,7 +108,7 @@ export function Flat() {
         .mf-stat { min-width: 64px; padding: 0; border: 0; background: transparent; text-align: center; cursor: pointer; }
         .mf-stat strong { display: block; font-size: 17px; line-height: 1.1; font-weight: 760; letter-spacing: -.03em; }
         .mf-stat span { display: block; margin-top: 4px; color: var(--muted); font-size: 11px; }
-        .mf-edit { display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: min(100%, 260px); height: 42px; margin-top: 19px; border: 0; border-radius: 999px; background: var(--pink); color: #26121c !important; font-size: 13px; font-weight: 760; cursor: pointer; transition: transform .18s ease, background .18s ease; }
+        .mf-edit { display: inline-flex; align-items: center; justify-content: center; width: 42px; height: 42px; margin-top: 19px; padding: 0; border: 0; border-radius: 50%; background: var(--pink); color: #26121c !important; cursor: pointer; transition: transform .18s ease, background .18s ease; }
         .mf-edit:hover { background: #ff70ae; transform: translateY(-1px); }
         .mf-referral { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 3px 0; }
         .mf-section-title { display: flex; align-items: center; gap: 9px; margin: 0; font-size: 11px; font-weight: 780; letter-spacing: .12em; text-transform: uppercase; color: #e8dfe5; }
@@ -190,8 +190,8 @@ export function Flat() {
                   <strong>47</strong><span>Following</span>
                 </button>
               </div>
-              <button type="button" className="mf-edit" onClick={() => announce("Edit profile")}>
-                <Pencil size={15} /> Edit profile
+              <button type="button" className="mf-edit" aria-label="Edit profile" title="Edit profile" onClick={() => announce("Edit profile")}>
+                <Pencil size={18} aria-hidden="true" />
               </button>
             </section>
 
