@@ -13,7 +13,7 @@ test("home and protected routes render a startup screen while Clerk restores the
 
 test("startup keeps a quiet spinner and silently retries routine fetch failures", () => {
   assert.match(app, /data-testid="status-app-startup"[^>]*>\s*<QuietSpinner size=\{28\}/);
-  assert.doesNotMatch(app, /Opening Myage|Still loading\. Check your connection|button-app-startup-retry/);
+  assert.doesNotMatch(app, /Opening VIBESWIPES|Still loading\. Check your connection|button-app-startup-retry/);
   assert.match(quietSpinner, /retryNow\(\)/);
   assert.match(quietSpinner, /Math\.min\(2000 \* 2 \*\* retryAttempt, 30_000\)/);
 });

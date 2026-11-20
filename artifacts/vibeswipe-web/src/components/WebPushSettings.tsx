@@ -72,7 +72,7 @@ export function WebPushSettings({ compact = false, visible = true, accountId = "
   useEffect(() => {
     if (!supported) {
       setStatus(
-        "This browser cannot receive background notifications. Use iOS 16.4 or newer with Myage on the Home Screen, or Chrome on Android.",
+        "This browser cannot receive background notifications. Use iOS 16.4 or newer with VIBESWIPES on the Home Screen, or Chrome on Android.",
       );
       setChecked(true);
       return;
@@ -136,10 +136,10 @@ export function WebPushSettings({ compact = false, visible = true, accountId = "
         throw new Error("This browser does not support background notifications.");
       }
       if (iosNeedsHomeScreen) {
-        throw new Error("On iPhone or iPad, add Myage to your Home Screen and open it there before enabling notifications.");
+        throw new Error("On iPhone or iPad, add VIBESWIPES to your Home Screen and open it there before enabling notifications.");
       }
       if (!import.meta.env.PROD) {
-        throw new Error("Background notifications can be enabled on the published Myage website, not in this preview.");
+        throw new Error("Background notifications can be enabled on the published VIBESWIPES website, not in this preview.");
       }
 
       const permission =
@@ -160,7 +160,7 @@ export function WebPushSettings({ compact = false, visible = true, accountId = "
       const loaded = await config.refetch();
       const applicationServerKey = loaded.data?.applicationServerKey;
       if (!applicationServerKey) {
-        throw new Error("Myage could not prepare notifications. Please try again.");
+        throw new Error("VIBESWIPES could not prepare notifications. Please try again.");
       }
       if (existing && !usesApplicationKey(existing, applicationServerKey)) {
         await existing.unsubscribe();
@@ -187,7 +187,7 @@ export function WebPushSettings({ compact = false, visible = true, accountId = "
       const networkFailure = /failed to fetch|networkerror|load failed/i.test(detail);
       setStatus(
         networkFailure
-          ? "Could not reach Myage. Check your connection and try again."
+          ? "Could not reach VIBESWIPES. Check your connection and try again."
           : detail || "Notifications could not be enabled. Please try again.",
       );
     } finally {
@@ -225,7 +225,7 @@ export function WebPushSettings({ compact = false, visible = true, accountId = "
     if (!visible || !checked || enabled || dismissed || !mobile || !import.meta.env.PROD || preferences.data?.notifyMessages === false) return null;
     return <section data-testid="message-notification-reminder" className="fixed inset-x-3 bottom-[calc(78px+env(safe-area-inset-bottom))] z-40 mx-auto max-w-md rounded-2xl border border-primary/25 bg-card p-3 text-foreground shadow-xl">
       <button aria-label="Dismiss notification reminder" onClick={() => { setDismissed(true); try { sessionStorage.setItem(`myage-push-reminder:${accountId}`, "dismissed"); } catch { /* Storage may be unavailable. */ } }} className="absolute right-2 top-2 rounded-full p-1 text-muted-foreground"><X size={16}/></button>
-      <div className="flex items-center gap-3 pr-5"><Bell size={22} className="shrink-0 text-primary"/><div className="min-w-0 flex-1"><p className="text-sm font-bold">Get message notifications</p><p className="mt-0.5 text-xs text-muted-foreground">{iosNeedsHomeScreen ? "On iPhone, open Myage from your Home Screen first." : "Receive alerts even when Myage is closed."}</p></div></div>
+      <div className="flex items-center gap-3 pr-5"><Bell size={22} className="shrink-0 text-primary"/><div className="min-w-0 flex-1"><p className="text-sm font-bold">Get message notifications</p><p className="mt-0.5 text-xs text-muted-foreground">{iosNeedsHomeScreen ? "On iPhone, open VIBESWIPES from your Home Screen first." : "Receive alerts even when VIBESWIPES is closed."}</p></div></div>
       {iosNeedsHomeScreen ? <div className="mt-2"><InstallAction compact/></div> : <button data-testid="button-enable-background-notifications" disabled={busy || !supported} onClick={() => void enablePush()} className="mt-2 flex min-h-10 w-full items-center justify-center gap-2 rounded-xl bg-primary px-3 text-sm font-bold text-primary-foreground disabled:opacity-50">{busy && <LoaderCircle size={15} className="animate-spin"/>}Enable notifications</button>}
       {!!status && <p role="status" className="mt-2 text-xs text-muted-foreground">{status}</p>}
     </section>;
@@ -243,11 +243,11 @@ export function WebPushSettings({ compact = false, visible = true, accountId = "
         <div className="min-w-0 flex-1">
           <h3 className="font-bold">Message notifications</h3>
           <p className="mt-1 text-xs leading-5 text-muted-foreground">
-            Get the sender’s name and preview when Myage is closed. Tap an alert to open that chat.
+            Get the sender’s name and preview when VIBESWIPES is closed. Tap an alert to open that chat.
           </p>
           {iosNeedsHomeScreen && (
             <p className="mt-2 text-xs leading-5 text-amber-200">
-              On iPhone, open Myage from the Home Screen before turning notifications on.
+              On iPhone, open VIBESWIPES from the Home Screen before turning notifications on.
             </p>
           )}
           {status && (

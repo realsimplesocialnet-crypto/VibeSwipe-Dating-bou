@@ -1,3 +1,3 @@
-const apkDownloadUrl = '/api/installer/Myage.apk';
+const apkDownloadUrl = '/api/installer/VIBESWIPES.apk';
 
 export default apkDownloadUrl;

@@ -31,7 +31,7 @@ createRoot(document.getElementById('root')!, {
   },
 }).render(
   inAppShell ? (
-    <Suspense fallback={<main className="installer-page"><p className="installer-loading">Opening Myage…</p></main>}>
+    <Suspense fallback={<main className="installer-page"><p className="installer-loading">Opening VIBESWIPES…</p></main>}>
       <WebViewAppEntry />
     </Suspense>
   ) : (

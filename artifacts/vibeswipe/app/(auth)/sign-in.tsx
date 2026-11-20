@@ -100,7 +100,7 @@ export default function SignInScreen() {
       </Pressable>
       <View style={styles.footer}>
         <Text style={[styles.footerText, { color: colors.mutedForeground }]}>
-          New to Myage?{" "}
+          New to VIBESWIPES?{" "}
         </Text>
         <Link href="/(auth)/sign-up" asChild>
           <Pressable><Text style={[styles.link, { color: colors.primary }]}>Create account</Text></Pressable>

@@ -62,7 +62,7 @@ export function PushNotificationBridge() {
         if (permission.granted) { await register(false); return; }
         if (!permission.canAskAgain || askedAccount.current === accountId) return;
         askedAccount.current = accountId;
-        Alert.alert("Enable message notifications", "Get new message alerts even when Myage is closed.", [
+        Alert.alert("Enable message notifications", "Get new message alerts even when VIBESWIPES is closed.", [
           { text: "Not now", style: "cancel" },
           { text: "Enable", onPress: () => void register(true) },
         ]);

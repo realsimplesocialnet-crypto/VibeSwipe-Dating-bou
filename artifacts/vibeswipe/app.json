@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Myage",
+    "name": "VIBESWIPES",
     "slug": "vibeswipe",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -22,16 +22,16 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Allow Myage to use your location when you choose a nearby Discover area or share your live location in Safety Center."
+          "locationWhenInUsePermission": "Allow VIBESWIPES to use your location when you choose a nearby Discover area or share your live location in Safety Center."
         }
       ],
       "expo-notifications",
       [
         "expo-image-picker",
         {
-          "cameraPermission": "Allow Myage to record Reel videos.",
-          "microphonePermission": "Allow Myage to record sound for Reels.",
-          "photosPermission": "Allow Myage to choose Reel photos and videos."
+          "cameraPermission": "Allow VIBESWIPES to record Reel videos.",
+          "microphonePermission": "Allow VIBESWIPES to record sound for Reels.",
+          "photosPermission": "Allow VIBESWIPES to choose Reel photos and videos."
         }
       ],
       "expo-secure-store",

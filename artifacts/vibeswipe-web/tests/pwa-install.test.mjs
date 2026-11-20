@@ -178,6 +178,6 @@ test('banner has a close button, persistent installed option and releases reserv
   assert.match(ui, /if \(hidden\) \{[^}]*removeProperty\('--install-banner-height'\)/s);
   const manifest = JSON.parse(readFileSync(new URL('../public/manifest.json', import.meta.url), 'utf8'));
   assert.equal(manifest.related_applications[0].platform, 'webapp');
-  assert.equal(manifest.related_applications[0].url, 'manifest.json?v=7');
+  assert.equal(manifest.related_applications[0].url, 'manifest.json?v=8');
   assert.equal(manifest.prefer_related_applications, false);
 });

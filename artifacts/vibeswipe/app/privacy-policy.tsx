@@ -1,17 +1,31 @@
 import { Feather } from "@expo/vector-icons";
 import { router } from "expo-router";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Alert, Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useColors } from "@/hooks/useColors";
 
-const sections = [
-  ["Information collected", "Myage stores account and profile details you provide, including your name, age, gender, dating preferences, biography, interests, work, photos, and registered city, state, and country. When you use the service, it also processes likes, matches, profile views, messages and attachments, online status, and safety actions such as blocks and reports. Emergency contacts and temporary live-location details are used only if you choose those Safety Center features."],
-  ["How information is used", "We use this information to create and display your profile, show relevant people, make matches, deliver messages and notifications, operate safety tools, and maintain the service. We do not sell personal information."],
-  ["What other members can see", "Profile details you add—such as your photo, name, age, location, biography, work, and interests—may be shown to other Myage members. Messages are visible to the people in that conversation. Safety reports, account credentials, and emergency-contact details are not public profile information. A live-location link is available to people you choose to share it with until it expires or is stopped."],
-  ["Service providers and storage", "Clerk handles account sign-in. Myage uses Replit-hosted application services, PostgreSQL, and file storage to operate the service and store profiles, messages, and uploaded media. These providers process information to provide their services to Myage; their own privacy terms also apply."],
-  ["Your choices", "You can update profile details from the Profile area and control safety and visibility features in Settings. Share only information you are comfortable showing to other members."],
-  ["Adults only and changes", "Myage is for people aged 18 and over. We do not knowingly allow minors to use the service. We may update this notice when the service or its data practices change; the current version will be available here."],
+const supportEmail = "Realsimplesocialnet@gmail.com";
+
+const sections: Array<[string, string]> = [
+  ["Who we are", "VIBESWIPES is operated by VIBESWIPES LIMITED, a company registered in Nigeria. This notice applies to the VIBESWIPES website, progressive web app, and mobile app. The service is intended for adults worldwide. Mandatory privacy rights in the country where you live continue to apply."],
+  ["Information we collect", "We process account and profile information you provide, such as your name, age, email or account identifier, gender, dating preferences, biography, interests, work, photos and videos, and the city, state, or country you choose to add. We also process activity needed to run the service, including likes, matches, follows, profile views, Reels, Stories, captions, comments, saved or reposted content, messages, attachments, blocks, and reports."],
+  ["Location and safety information", "You choose your country during signup; signup does not request device location. If you enable a nearby-discovery feature or choose temporary live-location sharing in Safety Center, we may process device location for that feature. A live-location link is shared only with people you choose and remains available until it expires or you stop it. Emergency-contact details are processed only when you choose that feature."],
+  ["Optional face verification", "If face verification is available and you choose to use it, a live camera image and the profile photo selected for checking are sent to Luxand for liveness and face-similarity checks. The live camera frame is not saved as a profile or message photo by VIBESWIPES. A protected checked copy of the selected profile photo may be stored as verification evidence and, after a successful check, used as your main profile photo; it is shown according to your account settings and remains subject to normal profile-photo retention. Verification records can include photo references, status, and review details. Face checks are optional, are not proof of legal identity, and do not establish your age or location. Routine cleanup removes pending, processing, failed, or passed session records after 24 hours; requests awaiting review are expired after 30 days, and completed or cancelled session records are removed after 90 days. That session cleanup does not remove a checked photo that remains on your profile. Luxand's own terms and retention practices also apply."],
+  ["How we use information", "We use information to create and display profiles, support discovery and matching, deliver messages and notifications, provide safety and moderation tools, respond to requests, prevent abuse, secure the service, and maintain its features. We do not sell personal information."],
+  ["What other people can see", "Information and content you post may be shown according to your account and audience settings. Public content may be visible to people beyond your approved followers. Private-account content is limited to approved followers. Messages and attachments are available to the people in that conversation. A location link is available to the recipients you select. Do not post anything you are not comfortable sharing with that audience."],
+  ["Service providers and sharing", "Clerk provides account authentication. Replit hosts application services, the database, and file storage. Luxand processes face-verification images when you choose that feature. Expo and the relevant browser or device push service may process notification tokens and delivery information. These providers process data to provide their services. We may also disclose information when legally required or when reasonably necessary to protect users, investigate abuse, enforce our terms, or protect the service."],
+  ["Authorized administrator access", "Authorized administrators may review account details, online status, posts, stored conversations, and attachments for support, safety, moderation, and service operation. Private conversation inspection, media access, and conversation exports are recorded in an administrator access log. This does not give administrators access to activity in other apps or to messages you have not sent."],
+  ["Retention, access, and deletion requests", "We keep account information while your account is active and as needed to provide the service, protect members, resolve disputes, and meet legal obligations. Deactivating an account hides your profile but is reversible and does not itself delete stored information. To request access, correction, or deletion, email the support team. We will verify and handle the request under the laws that apply; some information may need to be retained for safety, legal, or security reasons."],
+  ["Your choices and device storage", "You can edit profile details, manage visibility and safety settings, block or report members, and control device notifications in the app. The web app uses essential browser storage and session cookies for sign-in, settings, and installation state; disabling them may prevent some features from working. Payments are not currently enabled. We will update this notice before collecting payment information for a future paid feature."],
+  ["International processing, security, and children", "Because VIBESWIPES serves users in multiple countries, our service providers may process information outside your country, subject to protections required by applicable law. We use access controls and other safeguards, but no online service can guarantee absolute security. VIBESWIPES is for adults aged 18 and over; do not create an account if you are under 18."],
+  ["Updates and contact", `We may update this policy when the service or its data practices change. The latest version will be posted here. Last updated November 20, 2026. For privacy questions or requests, contact ${supportEmail}.`],
 ];
+
+function openSupport() {
+  void Linking.openURL(`mailto:${supportEmail}?subject=VIBESWIPES%20privacy%20request`).catch(() => {
+    Alert.alert("Email app unavailable", `Please email ${supportEmail} for a privacy request.`);
+  });
+}
 
 export default function PrivacyPolicyScreen() {
   const colors = useColors();
@@ -25,12 +39,12 @@ export default function PrivacyPolicyScreen() {
       <Pressable onPress={() => router.back()} accessibilityRole="button" accessibilityLabel="Go back" style={styles.back}>
         <Feather name="arrow-left" size={20} color={colors.foreground} />
       </Pressable>
-      <Text style={[styles.brand, { color: colors.primary }]}>MYAGE · MYAGE.BEAUTY</Text>
+      <Text style={[styles.brand, { color: colors.primary }]}>VIBESWIPES</Text>
       <Text style={[styles.title, { color: colors.foreground }]}>Privacy Policy</Text>
-      <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>What information helps Myage work, and what stays private.</Text>
+      <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>How VIBESWIPES handles information when you use the service.</Text>
       <View style={[styles.notice, { backgroundColor: colors.secondary, borderColor: colors.border }]}>
         <Feather name="info" size={16} color={colors.primary} />
-        <Text style={[styles.noticeText, { color: colors.mutedForeground }]}>This is a plain-language notice, not legal advice. The Myage operator should review it for the laws that apply to the business.</Text>
+        <Text style={[styles.noticeText, { color: colors.mutedForeground }]}>This plain-language privacy notice is not legal advice. VIBESWIPES LIMITED should have it reviewed by qualified counsel for the countries where the service operates.</Text>
       </View>
       <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
         {sections.map(([title, detail], index) => (
@@ -50,9 +64,14 @@ export default function PrivacyPolicyScreen() {
         <Text style={[styles.linkText, { color: colors.foreground }]}>Terms of Service</Text>
         <Feather name="chevron-right" size={17} color={colors.mutedForeground} />
       </Pressable>
-      <Pressable onPress={() => router.push("/report-safety")} style={[styles.link, { borderColor: colors.border }]}>
-        <Feather name="shield" size={17} color={colors.primary} />
-        <Text style={[styles.linkText, { color: colors.foreground }]}>Report a safety issue</Text>
+      <Pressable onPress={() => router.push("/community-guidelines")} style={[styles.link, { borderColor: colors.border }]}>
+        <Feather name="users" size={17} color={colors.primary} />
+        <Text style={[styles.linkText, { color: colors.foreground }]}>Community Guidelines</Text>
+        <Feather name="chevron-right" size={17} color={colors.mutedForeground} />
+      </Pressable>
+      <Pressable onPress={openSupport} accessibilityRole="button" style={[styles.link, { borderColor: colors.border }]}>
+        <Feather name="mail" size={17} color={colors.primary} />
+        <Text style={[styles.linkText, { color: colors.foreground }]}>Contact support · {supportEmail}</Text>
         <Feather name="chevron-right" size={17} color={colors.mutedForeground} />
       </Pressable>
     </ScrollView>

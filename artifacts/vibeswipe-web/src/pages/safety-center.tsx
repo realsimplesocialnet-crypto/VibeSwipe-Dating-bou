@@ -143,7 +143,7 @@ export default function SafetyCenterPage() {
     if (navigator.share) {
       try {
         await navigator.share({
-          title: "Myage live location",
+          title: "VIBESWIPES live location",
           text: "My live location link",
           url: link,
         });
@@ -256,7 +256,7 @@ export default function SafetyCenterPage() {
             <Shield size={22} />
           </div>
           <div>
-            <p className="text-[10px] font-extrabold uppercase tracking-[.2em] text-primary">Myage</p>
+            <p className="text-[10px] font-extrabold uppercase tracking-[.2em] text-primary">VIBESWIPES</p>
             <h1 className="mt-1 text-3xl font-extrabold tracking-tight">Safety Center</h1>
             <p className="mt-2 text-sm leading-6 text-muted-foreground">
               Practical tools and guidance to help you meet with confidence.
@@ -272,7 +272,7 @@ export default function SafetyCenterPage() {
               <HeartHandshake size={18} />
             </div>
             <div>
-              <h2 className="font-bold">How to stay safe on Myage</h2>
+              <h2 className="font-bold">How to stay safe on VIBESWIPES</h2>
               <p className="mt-1 text-xs text-muted-foreground">A few simple steps before you meet.</p>
             </div>
           </div>

@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Linking,
   Platform,
   Pressable,
   ScrollView,
@@ -37,6 +38,14 @@ import { PushNotificationSettings } from "@/components/PushNotificationSettings"
 import { DiscoveryLocationSettings } from "@/components/DiscoveryLocationSettings";
 import { QuickmavoShopMenuItem } from "@/components/QuickmavoShopMenuItem";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+const supportEmail = "Realsimplesocialnet@gmail.com";
+
+function openSupport(subject: string) {
+  void Linking.openURL(`mailto:${supportEmail}?subject=${encodeURIComponent(subject)}`).catch(() => {
+    Alert.alert("Email app unavailable", `Please email ${supportEmail}.`);
+  });
+}
 
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
@@ -344,7 +353,7 @@ export default function SettingsScreen() {
           <Feather name="lock" size={19} color={colors.primary} />
           <View style={styles.copy}>
             <Text style={[styles.rowTitle, { color: colors.foreground }]}>Privacy Policy</Text>
-            <Text style={[styles.rowSub, { color: colors.mutedForeground }]}>How Myage uses and protects your information.</Text>
+            <Text style={[styles.rowSub, { color: colors.mutedForeground }]}>How VIBESWIPES handles your information.</Text>
           </View>
           <Feather name="chevron-right" size={18} color={colors.mutedForeground} />
         </View>
@@ -358,7 +367,7 @@ export default function SettingsScreen() {
           <Feather name="book-open" size={19} color={colors.primary} />
           <View style={styles.copy}>
             <Text style={[styles.rowTitle, { color: colors.foreground }]}>Terms of Service</Text>
-            <Text style={[styles.rowSub, { color: colors.mutedForeground }]}>The rules for using Myage.</Text>
+            <Text style={[styles.rowSub, { color: colors.mutedForeground }]}>The rules for using VIBESWIPES.</Text>
           </View>
           <Feather name="chevron-right" size={18} color={colors.mutedForeground} />
         </View>
@@ -373,6 +382,36 @@ export default function SettingsScreen() {
           <View style={styles.copy}>
             <Text style={[styles.rowTitle, { color: colors.foreground }]}>Report a scam or safety issue</Text>
             <Text style={[styles.rowSub, { color: colors.mutedForeground }]}>Send a private report for review.</Text>
+          </View>
+          <Feather name="chevron-right" size={18} color={colors.mutedForeground} />
+        </View>
+      </Pressable>
+      <Pressable
+        onPress={() => openSupport("VIBESWIPES support request")}
+        style={[styles.section, { backgroundColor: colors.card, borderColor: colors.border }]}
+        testID="button-contact-support"
+        accessibilityRole="button"
+      >
+        <View style={styles.row}>
+          <Feather name="mail" size={19} color={colors.primary} />
+          <View style={styles.copy}>
+            <Text style={[styles.rowTitle, { color: colors.foreground }]}>Contact Support</Text>
+            <Text style={[styles.rowSub, { color: colors.mutedForeground }]}>{supportEmail}</Text>
+          </View>
+          <Feather name="chevron-right" size={18} color={colors.mutedForeground} />
+        </View>
+      </Pressable>
+      <Pressable
+        onPress={() => openSupport("VIBESWIPES account deletion request")}
+        style={[styles.section, { backgroundColor: colors.card, borderColor: colors.border }]}
+        testID="button-request-account-deletion"
+        accessibilityRole="button"
+      >
+        <View style={styles.row}>
+          <Feather name="trash-2" size={19} color={colors.primary} />
+          <View style={styles.copy}>
+            <Text style={[styles.rowTitle, { color: colors.foreground }]}>Request account deletion</Text>
+            <Text style={[styles.rowSub, { color: colors.mutedForeground }]}>Email the support team to request account and data deletion.</Text>
           </View>
           <Feather name="chevron-right" size={18} color={colors.mutedForeground} />
         </View>

@@ -9,7 +9,7 @@ export default function InstallerLandingPage() {
   return (
     <main className="installer-page" data-testid="installer-landing">
       <section className="installer-content">
-        <div className="installer-brand" aria-label="Myage">
+        <div className="installer-brand" aria-label="VIBESWIPES">
           <img
             src={`${import.meta.env.BASE_URL}logo.svg`}
             alt=""
@@ -17,14 +17,14 @@ export default function InstallerLandingPage() {
             height="64"
             data-testid="img-myage-logo"
           />
-          <span>Myage</span>
+          <span>VIBESWIPES</span>
         </div>
         <h1 data-testid="text-install-tagline">Your next connection starts here.</h1>
         {!inAppShell && (
           <a
             className="installer-button"
             href={onIOS ? `${import.meta.env.BASE_URL}app` : apkDownloadUrl}
-            download={onIOS ? undefined : 'Myage.apk'}
+            download={onIOS ? undefined : 'VIBESWIPES.apk'}
             data-testid={onIOS ? 'button-open-iphone-app' : 'button-install-apk'}
           >
             {onIOS ? 'Open iPhone App' : 'Install App'}
@@ -32,7 +32,7 @@ export default function InstallerLandingPage() {
         )}
         {onIOS && (
           <p className="installer-ios-help">
-            On iPhone, open Myage in Safari, tap Share, then choose Add to Home Screen.
+            On iPhone, open VIBESWIPES in Safari, tap Share, then choose Add to Home Screen.
           </p>
         )}
       </section>

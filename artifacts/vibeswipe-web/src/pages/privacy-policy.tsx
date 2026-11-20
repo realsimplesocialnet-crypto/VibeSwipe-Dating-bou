@@ -1,38 +1,56 @@
 import { ArrowLeft, ShieldCheck } from "lucide-react";
 import { Link } from "wouter";
 
+const supportEmail = "Realsimplesocialnet@gmail.com";
+
 const sections = [
   {
+    title: "Who we are",
+    body: "VIBESWIPES is operated by VIBESWIPES LIMITED, a company registered in Nigeria. This notice applies to the VIBESWIPES website, progressive web app, and mobile app. The service is intended for adults worldwide. Mandatory privacy rights in the country where you live continue to apply.",
+  },
+  {
+    title: "Information we collect",
+    body: "We process account and profile information you provide, such as your name, age, email or account identifier, gender, dating preferences, biography, interests, work, photos and videos, and the city, state, or country you choose to add. We also process activity needed to run the service, including likes, matches, follows, profile views, Reels, Stories, captions, comments, saved or reposted content, messages, attachments, blocks, and reports.",
+  },
+  {
+    title: "Location and safety information",
+    body: "You choose your country during signup; signup does not request device location. If you enable a nearby-discovery feature or choose temporary live-location sharing in Safety Center, we may process device location for that feature. A live-location link is shared only with people you choose and remains available until it expires or you stop it. Emergency-contact details are processed only when you choose that feature.",
+  },
+  {
     title: "Optional face verification",
-    body: "If you choose face verification and consent, your live camera capture and submitted photo are sent to Luxand.cloud for liveness detection and face matching. Myage does not save the live capture, facial templates, or biometric scores. Once the checks pass, the submitted photo automatically becomes your main public photo and your blue tick appears. Your other gallery photos and later photo additions are compared with that verified face; nonmatching photos are rejected. A new verification photo replaces the main slot; an existing gallery selection is moved to the main slot. Incomplete checked requests expire after 30 days, and completed verification records are retained for up to 90 days before routine cleanup. Luxand processes images under its own privacy terms. This is not proof of legal identity. Changing your main photo requires verification again. You can continue using the app without this optional check.",
+    body: "If face verification is available and you choose to use it, a live camera image and the profile photo selected for checking are sent to Luxand for liveness and face-similarity checks. The live camera frame is not saved as a profile or message photo by VIBESWIPES. A protected checked copy of the selected profile photo may be stored as verification evidence and, after a successful check, used as your main profile photo; it is shown according to your account settings and remains subject to normal profile-photo retention. Verification records can include photo references, status, and review details. Face checks are optional, are not proof of legal identity, and do not establish your age or location. Routine cleanup removes pending, processing, failed, or passed session records after 24 hours; requests awaiting review are expired after 30 days, and completed or cancelled session records are removed after 90 days. That session cleanup does not remove a checked photo that remains on your profile. Luxand's own terms and retention practices also apply.",
   },
   {
-    title: "Information Myage collects",
-    body: "Myage stores the account and profile information you provide, including your name, age, gender, dating preferences, biography, interests, work, profile photos, and registered city, state, and country. When you use the service, it also processes likes, matches, profile views, messages and attachments, online status, and safety actions such as blocks and reports. Emergency contacts and temporary live-location details are processed only if you choose those Safety Center features.",
+    title: "How we use information",
+    body: "We use information to create and display profiles, support discovery and matching, deliver messages and notifications, provide safety and moderation tools, respond to requests, prevent abuse, secure the service, and maintain its features. We do not sell personal information.",
   },
   {
-    title: "How information is used",
-    body: "We use this information to create and display your profile, show relevant people, make matches, deliver messages and notifications, operate safety tools, and maintain the service. We do not sell personal information.",
+    title: "What other people can see",
+    body: "Information and content you post may be shown according to your account and audience settings. Public content may be visible to people beyond your approved followers. Private-account content is limited to approved followers. Messages and attachments are available to the people in that conversation. A location link is available to the recipients you select. Do not post anything you are not comfortable sharing with that audience.",
   },
   {
-    title: "What other members can see",
-    body: "Profile details you add—such as your photo, name, age, location, biography, work, and interests—may be shown to other Myage members as part of discovery and profile views. Messages are visible to the people in that conversation. Safety reports, account credentials, and emergency-contact details are not displayed as public profile information. A live-location link is available to people you choose to share it with until it expires or is stopped.",
+    title: "Service providers and sharing",
+    body: "Clerk provides account authentication. Replit hosts application services, the database, and file storage. Luxand processes face-verification images when you choose that feature. Expo and the relevant browser or device push service may process notification tokens and delivery information. These providers process data to provide their services. We may also disclose information when legally required or when reasonably necessary to protect users, investigate abuse, enforce our terms, or protect the service.",
   },
   {
-    title: "Service providers and storage",
-    body: "Clerk handles account sign-in. Myage uses Replit-hosted application services, PostgreSQL, and file storage to operate the service and store profiles, messages, and uploaded media. These providers process information to provide their services to Myage; their own privacy terms also apply.",
+    title: "Authorized administrator access",
+    body: "Authorized administrators may review account details, online status, posts, stored conversations, and attachments for support, safety, moderation, and service operation. Private conversation inspection, media access, and conversation exports are recorded in an administrator access log. This does not give administrators access to activity in other apps or to messages you have not sent.",
   },
   {
-    title: "Authorized administrative access",
-    body: "Authorized administrators may review account details, online status, posts, stored conversations, and attachments for support, safety, moderation, and service operation. Private conversation inspection, media access, and conversation exports are recorded in an administrator access log. This access does not let administrators see activity in other apps or read unsent messages.",
+    title: "Retention, access, and deletion requests",
+    body: "We keep account information while your account is active and as needed to provide the service, protect members, resolve disputes, and meet legal obligations. Deactivating an account hides your profile but is reversible and does not itself delete stored information. To request access, correction, or deletion, email the support team. We will verify and handle the request under the laws that apply; some information may need to be retained for safety, legal, or security reasons.",
   },
   {
-    title: "Your choices",
-    body: "You can update profile details from the Profile area and control safety and visibility features in Settings. Share only information you are comfortable showing to other members.",
+    title: "Your choices and device storage",
+    body: "You can edit profile details, manage visibility and safety settings, block or report members, and control device notifications in the app. The web app uses essential browser storage and session cookies for sign-in, settings, and installation state; disabling them may prevent some features from working. Payments are not currently enabled. We will update this notice before collecting payment information for a future paid feature.",
   },
   {
-    title: "Adults only and policy changes",
-    body: "Myage is for people aged 18 and over. We do not knowingly allow minors to use the service. We may update this notice when the service or its data practices change; the current version will be available on this page.",
+    title: "International processing, security, and children",
+    body: "Because VIBESWIPES serves users in multiple countries, our service providers may process information outside your country, subject to protections required by applicable law. We use access controls and other safeguards, but no online service can guarantee absolute security. VIBESWIPES is for adults aged 18 and over; do not create an account if you are under 18.",
+  },
+  {
+    title: "Updates and contact",
+    body: `We may update this policy when the service or its data practices change. The latest version will be posted here. Last updated November 20, 2026. For privacy questions or requests, contact ${supportEmail}.`,
   },
 ];
 
@@ -42,15 +60,15 @@ export default function PrivacyPolicyPage() {
       <div className="mx-auto max-w-3xl">
         <header className="flex items-center justify-between gap-4">
           <Link href="/" className="inline-flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-foreground" data-testid="link-privacy-home">
-            <ArrowLeft size={16} /> Back to Myage
+            <ArrowLeft size={16} /> Back to VIBESWIPES
           </Link>
-          <Link href="/" aria-label="Myage home" className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-card text-primary">
-            <span className="text-lg font-black leading-none">M</span>
+          <Link href="/" aria-label="VIBESWIPES home" className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-card text-primary">
+            <span className="text-lg font-black leading-none">V</span>
           </Link>
         </header>
 
         <div className="mt-8 rounded-2xl border border-amber-300/20 bg-amber-300/[.06] px-4 py-3 text-xs leading-5 text-amber-100/80" role="note">
-          This is a plain-language privacy notice, not legal advice. The Myage operator should review it for the laws that apply to the business before relying on it as a final legal policy.
+          This plain-language privacy notice is not legal advice. VIBESWIPES LIMITED should have it reviewed by qualified counsel for the countries where the service operates.
         </div>
 
         <div className="mt-8 flex items-start gap-4">
@@ -58,10 +76,10 @@ export default function PrivacyPolicyPage() {
             <ShieldCheck size={22} />
           </div>
           <div>
-            <p className="text-[10px] font-extrabold uppercase tracking-[.2em] text-primary">Myage · myage.beauty</p>
-          <h1 className="mt-1 text-3xl font-extrabold tracking-tight">Privacy Policy</h1>
+            <p className="text-[10px] font-extrabold uppercase tracking-[.2em] text-primary">VIBESWIPES</p>
+            <h1 className="mt-1 text-3xl font-extrabold tracking-tight">Privacy Policy</h1>
             <p className="mt-2 text-sm leading-6 text-muted-foreground">
-              What information is used to help Myage work, and what stays private.
+              How VIBESWIPES handles information when you use the service.
             </p>
           </div>
         </div>
@@ -82,8 +100,9 @@ export default function PrivacyPolicyPage() {
 
         <footer className="mt-7 flex flex-wrap gap-x-5 gap-y-2 border-t border-white/[.08] pt-5 text-xs font-semibold text-muted-foreground">
           <Link href="/terms" className="hover:text-primary">Terms of Service</Link>
+          <Link href="/community-guidelines" className="hover:text-primary">Community Guidelines</Link>
           <Link href="/report-safety" className="hover:text-primary">Report a safety issue</Link>
-          <Link href="/" className="hover:text-primary">Myage home</Link>
+          <a href={`mailto:${supportEmail}?subject=VIBESWIPES%20privacy%20request`} className="hover:text-primary">Contact support</a>
         </footer>
       </div>
     </main>

@@ -110,7 +110,7 @@ test("tapping a message notification opens its chat in the installed app", async
   assert.equal(focused.length, 1);
 });
 
-test("notification links cannot navigate outside the Myage app origin", async () => {
+test("notification links cannot navigate outside the VIBESWIPES app origin", async () => {
   const { listeners, navigated } = await loadServiceWorker();
   let pending;
   listeners.get("notificationclick")({
@@ -128,7 +128,7 @@ test("one failed optional icon does not prevent service-worker installation", as
   const worker = await loadServiceWorker({
     fetcher: async (request) => {
       const url = String(request);
-      if (url.endsWith("myage-icon-512-v7.png")) throw new Error("offline icon");
+      if (url.endsWith("vibeswipes-icon-512.png")) throw new Error("offline icon");
       if (url.endsWith("/index.html")) {
         return new Response(
           '<script src="/pwa-install.js?v=9"></script><script src="/pwa-launch.js?v=10"></script><link rel="stylesheet" href="/assets/app.css"><script type="module" src="/assets/app.js"></script>',
@@ -179,7 +179,7 @@ for (const cause of ["offline", "server error", "timeout"]) {
     let abortTimer;
     let cleared = false;
     const worker = await loadServiceWorker({
-      cacheEntries: new Map([["https://myage.beauty/offline.html", new Response("Reconnect to Myage")]]),
+      cacheEntries: new Map([["https://myage.beauty/offline.html", new Response("Reconnect to VIBESWIPES")]]),
       fetcher: async (_request, options) => {
         if (cause === "offline") throw new Error("network down");
         if (cause === "server error") return new Response("bad gateway", { status: 502 });
@@ -201,7 +201,7 @@ for (const cause of ["offline", "server error", "timeout"]) {
       await new Promise((resolve) => setImmediate(resolve));
       abortTimer();
     }
-    assert.equal(await (await response).text(), "Reconnect to Myage");
+    assert.equal(await (await response).text(), "Reconnect to VIBESWIPES");
     assert.equal(cleared, true);
   });
 }

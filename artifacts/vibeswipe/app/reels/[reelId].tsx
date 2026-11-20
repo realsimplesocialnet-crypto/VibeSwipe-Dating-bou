@@ -398,7 +398,7 @@ export default function ProfileReelScreen() {
         || (process.env.EXPO_PUBLIC_DOMAIN ? `https://${process.env.EXPO_PUBLIC_DOMAIN}` : "https://myage.beauty")
       ).replace(/\/+$/, "");
       const url = `${origin}/reels/${reel.id}`;
-      const message = `${reel.caption || `${reel.creatorName} on Myage Reels`}\n\n${url}`;
+      const message = `${reel.caption || `${reel.creatorName} on VIBESWIPES Reels`}\n\n${url}`;
       const result = await Share.share(
         { title: `${reel.creatorName} on Reels`, message, url },
         { dialogTitle: "Send to" },
@@ -440,10 +440,10 @@ export default function ProfileReelScreen() {
         || (process.env.EXPO_PUBLIC_DOMAIN ? `https://${process.env.EXPO_PUBLIC_DOMAIN}` : "https://myage.beauty")
       ).replace(/\/+$/, "");
       const url = `${origin}/reels/${reel.id}`;
-      const message = `${reel.caption || `${reel.creatorName} on Myage Reels`}\n\n${url}`;
+      const message = `${reel.caption || `${reel.creatorName} on VIBESWIPES Reels`}\n\n${url}`;
       const encodedUrl = encodeURIComponent(url);
       const encodedMessage = encodeURIComponent(message);
-      const encodedSubject = encodeURIComponent(`${reel.creatorName} on Myage Reels`);
+      const encodedSubject = encodeURIComponent(`${reel.creatorName} on VIBESWIPES Reels`);
       const targetUrl = target === "whatsapp"
         ? `https://wa.me/?text=${encodedMessage}`
         : target === "telegram"

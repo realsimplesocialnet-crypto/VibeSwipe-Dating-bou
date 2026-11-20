@@ -8,7 +8,7 @@ const storage = new ObjectStorageService();
 const APK_OBJECT_PATH = "installer/current/Myage.apk";
 const APK_CONTENT_TYPE = "application/vnd.android.package-archive";
 
-router.get("/installer/Myage.apk", async (req, res): Promise<void> => {
+router.get(["/installer/VIBESWIPES.apk", "/installer/Myage.apk"], async (req, res): Promise<void> => {
   try {
     const file = await storage.searchPublicObject(APK_OBJECT_PATH);
     if (!file) {
@@ -24,7 +24,7 @@ router.get("/installer/Myage.apk", async (req, res): Promise<void> => {
 
     res.set({
       "Content-Type": APK_CONTENT_TYPE,
-      "Content-Disposition": 'attachment; filename="Myage.apk"',
+      "Content-Disposition": 'attachment; filename="VIBESWIPES.apk"',
       "Cache-Control": "public, max-age=300",
       "Accept-Ranges": "bytes",
       "X-Content-Type-Options": "nosniff",
@@ -52,7 +52,7 @@ router.get("/installer/Myage.apk", async (req, res): Promise<void> => {
     await pipeline(file.createReadStream(range ?? {}), res);
   } catch (error) {
     if (req.destroyed || res.destroyed) return;
-    req.log.error({ err: error }, "Could not serve the Myage Android installer");
+    req.log.error({ err: error }, "Could not serve the VIBESWIPES Android installer");
     if (!res.headersSent) res.status(503).json({ error: "The app download is temporarily unavailable." });
     else res.destroy();
   }

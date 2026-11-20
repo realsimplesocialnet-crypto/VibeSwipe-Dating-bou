@@ -79,12 +79,14 @@ test("development does not register a caching worker", async () => {
   assert.equal(app.calls.length, 0);
 });
 
-test("manifest keeps the existing app identity and offers browser display fallback", async () => {
+test("manifest keeps the full app entry route and offers browser display fallback", async () => {
   assert.equal(manifest.id, "/");
-  assert.equal(manifest.start_url, "/");
+  assert.equal(manifest.start_url, "/app");
   assert.equal(manifest.scope, "/");
   assert.equal(manifest.display, "standalone");
   assert.equal(manifest.prefer_related_applications, false);
+  assert.equal(manifest.name, "VIBESWIPES");
+  assert.equal(manifest.short_name, "VIBESWIPES");
   assert.ok(manifest.display_override.includes("browser"));
   for (const icon of manifest.icons) {
     assert.equal(new URL(icon.src, "https://example.com/").origin, "https://example.com");

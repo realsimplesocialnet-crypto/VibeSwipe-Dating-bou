@@ -5,7 +5,7 @@ import { OnboardingVideoBackground } from './onboarding-video-background';
 export function InstalledWelcome() {
   return <main data-testid="installed-app-welcome" className="onboarding-welcome">
     <OnboardingVideoBackground/>
-    <header className="onboarding-welcome-brand" aria-label="Myage">
+    <header className="onboarding-welcome-brand" aria-label="VIBESWIPES">
       <img src={`${import.meta.env.BASE_URL}icon.png`} alt="" className="h-8 w-8 rounded-xl"/>
       <span className="brand text-[22px] font-extrabold tracking-[-.055em]">My<span className="text-[#F34E9A]">age</span></span>
     </header>

@@ -1,16 +1,24 @@
 import { Feather } from "@expo/vector-icons";
 import { router } from "expo-router";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Alert, Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useColors } from "@/hooks/useColors";
 
 const guidelines = [
-  ["Adults 18 and over", "Myage is for adults only. Do not create an account if you are under 18, and keep your profile information honest."],
+  ["Adults 18 and over", "VIBESWIPES is for adults only. Do not create an account if you are under 18, and keep your profile information honest."],
   ["Respect other people", "Harassment, hate speech, threats, unwanted pressure, and sharing someone’s private information are not allowed."],
   ["No scams or fake profiles", "Do not request or send money, misrepresent who you are, impersonate another person, or use a fake profile."],
   ["Respect consent and boundaries", "A match is not consent to share private information, images, or contact details. Use Block or Report when needed."],
-  ["Use Myage responsibly", "Do not use the service to threaten, defraud, spam, or harm others. Myage may restrict accounts that violate these rules."],
+  ["Use VIBESWIPES responsibly", "Do not use the service to threaten, defraud, spam, or harm others. VIBESWIPES may restrict accounts that violate these rules."],
 ];
+
+const supportEmail = "Realsimplesocialnet@gmail.com";
+
+function openSupport() {
+  void Linking.openURL(`mailto:${supportEmail}?subject=VIBESWIPES%20support%20request`).catch(() => {
+    Alert.alert("Email app unavailable", `Please email ${supportEmail} for support.`);
+  });
+}
 
 export default function CommunityGuidelinesScreen() {
   const colors = useColors();
@@ -31,17 +39,17 @@ export default function CommunityGuidelinesScreen() {
           <Feather name="arrow-left" size={20} color={colors.foreground} />
         </Pressable>
         <View>
-          <Text style={[styles.eyebrow, { color: colors.primary }]}>MYAGE · MYAGE.BEAUTY</Text>
-          <Text style={[styles.title, { color: colors.foreground }]}>Terms of Service</Text>
+          <Text style={[styles.eyebrow, { color: colors.primary }]}>VIBESWIPES</Text>
+          <Text style={[styles.title, { color: colors.foreground }]}>Community Guidelines</Text>
         </View>
       </View>
       <View style={[styles.notice, { backgroundColor: colors.secondary, borderColor: colors.border }]}>
         <Feather name="info" size={16} color={colors.primary} />
-        <Text style={[styles.noticeText, { color: colors.mutedForeground }]}>This is a plain-language summary, not legal advice. The Myage operator should review the terms for the laws that apply to the business.</Text>
+        <Text style={[styles.noticeText, { color: colors.mutedForeground }]}>These community rules are not legal advice. VIBESWIPES LIMITED should have its legal documents reviewed by qualified counsel.</Text>
       </View>
       <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
         <Text style={[styles.intro, { color: colors.mutedForeground }]}>
-          By creating an account or using Myage, you agree to follow these rules.
+          By creating an account or using VIBESWIPES, you agree to follow these rules.
         </Text>
         {guidelines.map(([title, detail], index) => (
           <View key={title} style={[styles.item, index > 0 && { borderTopColor: colors.border }]}>
@@ -64,11 +72,28 @@ export default function CommunityGuidelinesScreen() {
         <Feather name="chevron-right" size={17} color={colors.mutedForeground} />
       </Pressable>
       <Pressable
+        onPress={() => router.push("/terms")}
+        style={[styles.safetyLink, { backgroundColor: colors.secondary }]}
+      >
+        <Feather name="book-open" size={17} color={colors.primary} />
+        <Text style={[styles.safetyLinkText, { color: colors.foreground }]}>Terms of Service</Text>
+        <Feather name="chevron-right" size={17} color={colors.mutedForeground} />
+      </Pressable>
+      <Pressable
         onPress={() => router.push("/report-safety")}
         style={[styles.safetyLink, { backgroundColor: colors.secondary }]}
       >
         <Feather name="shield" size={17} color={colors.primary} />
         <Text style={[styles.safetyLinkText, { color: colors.foreground }]}>Report a safety issue</Text>
+        <Feather name="chevron-right" size={17} color={colors.mutedForeground} />
+      </Pressable>
+      <Pressable
+        onPress={openSupport}
+        accessibilityRole="button"
+        style={[styles.safetyLink, { backgroundColor: colors.secondary }]}
+      >
+        <Feather name="mail" size={17} color={colors.primary} />
+        <Text style={[styles.safetyLinkText, { color: colors.foreground }]}>Contact support · {supportEmail}</Text>
         <Feather name="chevron-right" size={17} color={colors.mutedForeground} />
       </Pressable>
     </ScrollView>

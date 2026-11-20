@@ -82,16 +82,16 @@ export default function AdminPage() {
   }, [qc, signOut]);
 
   if (!isLoaded) return <AdminLoading />;
-  if (!isSignedIn) return <GateScreen testId="screen-admin-signin" icon={<Lock size={20} />} title="Sign in to the console" detail="This area is for Myage administrators. Sign in with the account that has admin access. A dating profile is not required.">
+  if (!isSignedIn) return <GateScreen testId="screen-admin-signin" icon={<Lock size={20} />} title="Sign in to the console" detail="This area is for VIBESWIPES administrators. Sign in with the account that has admin access. A dating profile is not required.">
     <Link href={`/sign-in?redirect_url=${encodeURIComponent(`${window.location.origin}${import.meta.env.BASE_URL.replace(/\/$/, '')}/admin`)}`} data-testid="link-admin-signin" className={primaryBtn}>Sign in</Link>
-    <Link href="/" data-testid="link-admin-home" className={ghostBtn}>Back to Myage</Link>
+    <Link href="/" data-testid="link-admin-home" className={ghostBtn}>Back to VIBESWIPES</Link>
   </GateScreen>;
   if (session.isLoading) return <AdminLoading />;
   if (session.isError || !session.data) {
     const st = errorStatus(session.error);
     if (st === 401) return <GateScreen testId="screen-admin-expired" icon={<Lock size={20} />} title="Session expired" detail="Your sign-in is no longer valid. Sign in again to continue."><button type="button" onClick={() => void doSignOut()} data-testid="button-admin-resignin" className={primaryBtn}>Sign in again</button></GateScreen>;
     if (st === 403) return <GateScreen testId="screen-admin-denied" icon={<ShieldX size={20} />} title="No admin access" detail="You are signed in, but this account is not an administrator. Access is granted on the server, not from this screen.">
-      <Link href="/" data-testid="link-admin-denied-home" className={ghostBtn}>Back to Myage</Link>
+      <Link href="/" data-testid="link-admin-denied-home" className={ghostBtn}>Back to VIBESWIPES</Link>
       <button type="button" onClick={() => void doSignOut()} data-testid="button-admin-denied-signout" className={primaryBtn}>Use another account</button>
     </GateScreen>;
     return <GateScreen testId="screen-admin-config-error" icon={<ServerCrash size={20} />} title={st === 503 || st === 500 ? 'Admin is not configured' : 'Console unavailable'} detail={st === 503 || st === 500 ? 'The server could not verify admin access. The admin allow-list may be missing on the server. Nothing has been changed.' : adminError(session.error, 'The admin service could not be reached.')}>

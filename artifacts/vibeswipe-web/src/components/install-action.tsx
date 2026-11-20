@@ -93,7 +93,7 @@ export function InstallAction({ className = '', compact = false, banner = false 
         setNotice('Installation was cancelled. You can keep using the website or install from your browser’s menu.');
       }
     } catch (error) {
-      console.warn('Myage installation prompt could not open.', error);
+      console.warn('VIBESWIPES installation prompt could not open.', error);
       store.clearPrompt(prompt);
       setNotice('The install prompt could not open. Keep using the website, or use your browser’s menu below.');
       setShowHelp(true);
@@ -106,7 +106,7 @@ export function InstallAction({ className = '', compact = false, banner = false 
   return <div ref={bannerRef} data-testid={banner ? 'mobile-install-banner' : undefined}
     className={banner ? 'sticky top-0 z-40 border-b border-primary/20 bg-card text-card-foreground shadow-sm' : `relative ${className}`}>
     <div className={banner ? 'mx-auto flex max-w-6xl items-center gap-3 px-4 py-3' : undefined}>
-    {banner && <><img src={`${import.meta.env.BASE_URL}myage-icon-192-v7.png`} alt="" className="h-10 w-10 shrink-0 rounded-xl" /><div className="min-w-0 flex-1"><p className="text-xs font-bold leading-5">Get the full Myage experience</p><p className="text-[11px] text-muted-foreground">Add the app to your home screen</p></div></>}
+    {banner && <><img src={`${import.meta.env.BASE_URL}vibeswipes-icon-192.png`} alt="" className="h-10 w-10 shrink-0 rounded-xl" /><div className="min-w-0 flex-1"><p className="text-xs font-bold leading-5">Get the full VIBESWIPES experience</p><p className="text-[11px] text-muted-foreground">Add the app to your home screen</p></div></>}
     <button onClick={() => void install()} disabled={busy} aria-expanded={showHelp} aria-controls={showHelp ? helpId : undefined}
       data-testid={banner ? 'button-install-banner' : 'button-install-app'} aria-label={compact ? 'Install app options' : undefined}
       className={`inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-xl ${banner ? 'min-h-11 bg-primary px-3 text-xs font-bold text-primary-foreground hover:opacity-90' : `border border-border bg-secondary/40 ${compact ? 'h-11 w-11' : 'px-3.5 py-2.5'} text-sm font-semibold text-foreground hover:bg-secondary`} disabled:opacity-50`}>
@@ -119,10 +119,10 @@ export function InstallAction({ className = '', compact = false, banner = false 
     {showHelp && <div id={helpId} role="region" aria-label="App installation instructions" className={`absolute right-0 top-full z-50 ${banner ? 'mr-3' : ''} mt-3 w-80 max-w-[calc(100vw-2.5rem)] rounded-2xl border border-border bg-card p-4 text-left text-xs leading-5 text-muted-foreground shadow-xl`}
       data-testid="text-install-help">
       <div className="mb-2 flex items-start justify-between gap-3">
-        <strong className="text-sm text-foreground">Install Myage</strong>
+        <strong className="text-sm text-foreground">Install VIBESWIPES</strong>
         <button onClick={() => setShowHelp(false)} aria-label="Close install instructions" className="rounded p-1 hover:bg-white/10"><X size={14}/></button>
       </div>
-      <p className="mb-3 text-foreground">Installation is optional. You can create your account and use Myage directly on this website.</p>
+      <p className="mb-3 text-foreground">Installation is optional. You can create your account and use VIBESWIPES directly on this website.</p>
       <button type="button" onClick={store.confirmInstalled} data-testid="button-already-installed" className="mb-3 min-h-11 font-semibold text-primary underline">Already installed? Hide install reminders</button>
       {notice && <p role="status" className="mb-3 text-destructive">{notice}</p>}
       {prompt ? <button onClick={() => void install()} disabled={busy} className="mb-3 w-full rounded-xl bg-primary px-4 py-2.5 font-bold text-[#24111b]">Install now</button>
