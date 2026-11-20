@@ -60,7 +60,7 @@ test('Android WebView is marked installed without relying on standalone display 
   assert.equal(storage.get('myage:pwa-installed:v1'), 'confirmed');
 });
 
-test('Android browser standalone display mode alone is not treated as an APK install', () => {
+test('ordinary Android browsers initialize without display-mode detection', () => {
   const { store } = setup({ navigator: {
     userAgent: 'Mozilla/5.0 (Linux; Android 14) Chrome/130 Mobile Safari/537.36',
     standalone: false,

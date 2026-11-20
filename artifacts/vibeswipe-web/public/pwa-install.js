@@ -9,8 +9,8 @@
       && /mobile safari\//i.test(userAgent);
     return hasWebViewMarker || hasClassicWebViewSignature || Boolean(window.Android);
   };
-  // Android APK wrappers are identified by their WebView/bridge, not the
-  // browser-only display-mode signal. iOS Home Screen apps expose standalone.
+  // Android APK wrappers are identified by their WebView/bridge. iOS Home
+  // Screen apps expose navigator.standalone.
   const inApp = () => isAndroidWebView() || navigator.standalone === true;
   const installedKey = 'myage:pwa-installed:v1';
   const readInstalled = () => {
@@ -23,7 +23,7 @@
     } catch { /* Restricted storage must not prevent launching the app. */ }
   };
   let installationConfirmed = readInstalled() === 'confirmed' || readInstalled() === 'manual';
-  if (inApp() && !videoFullscreen()) { installationConfirmed = true; writeInstalled('confirmed'); }
+  if (inApp()) { installationConfirmed = true; writeInstalled('confirmed'); }
   const canCheckInstalled = typeof navigator.getInstalledRelatedApps === 'function';
   let deferredPrompt = null;
   let snapshot = {
@@ -73,7 +73,6 @@
   });
   const updateAppContext = () => {
     if (inApp()) confirmInstalled();
-    else if (inApp()) publish({ ...snapshot, installed: true });
     else publish({ ...snapshot, installed: installationConfirmed });
   };
   window.addEventListener('pageshow', updateAppContext);
