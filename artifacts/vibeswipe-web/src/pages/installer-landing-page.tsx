@@ -1,8 +1,10 @@
 import apkDownloadUrl from '@/lib/apk-download';
+import { isIOSDevice } from '@/lib/app-display-mode';
 import { isCurrentAppShell } from '@/lib/android-webview';
 
 export default function InstallerLandingPage() {
   const inAppShell = isCurrentAppShell();
+  const onIOS = isIOSDevice(navigator);
 
   return (
     <main className="installer-page" data-testid="installer-landing">
@@ -21,12 +23,17 @@ export default function InstallerLandingPage() {
         {!inAppShell && (
           <a
             className="installer-button"
-            href={apkDownloadUrl}
-            download="Myage.apk"
-            data-testid="button-install-apk"
+            href={onIOS ? `${import.meta.env.BASE_URL}app` : apkDownloadUrl}
+            download={onIOS ? undefined : 'Myage.apk'}
+            data-testid={onIOS ? 'button-open-iphone-app' : 'button-install-apk'}
           >
-            Install App
+            {onIOS ? 'Open iPhone App' : 'Install App'}
           </a>
+        )}
+        {onIOS && (
+          <p className="installer-ios-help">
+            On iPhone, open Myage in Safari, tap Share, then choose Add to Home Screen.
+          </p>
         )}
       </section>
     </main>

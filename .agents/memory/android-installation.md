@@ -3,13 +3,13 @@ name: Installed-app experience
 description: Public installer-page behavior and Android WebView app detection.
 ---
 
-In ordinary browsers, `myage.beauty` shows only the Myage logo, one short tagline, and one pink button that downloads the project's APK. Do not expose old app pages or navigation in normal-browser views, including direct page URLs.
+In ordinary browsers, `myage.beauty` shows the Myage logo, one short tagline, and one pink platform-specific action. Android visitors download the APK; iPhone visitors get Safari/Add to Home Screen instructions and an `/app` link. Do not expose legacy app routes from ordinary browser URLs.
 
-Inside the Android app's WebView, bypass the installer landing page and load the full VibeSwipe app from the same URL. Hide all install controls in that WebView. Detect it when the user agent contains `wv` or `window.Android` exists. Existing Home Screen PWAs should also continue to open the full app in standalone mode.
+Inside the Android app's WebView, bypass the installer landing page and load the full VibeSwipe app from the same URL. Hide all install controls in that WebView. Detect it when the user agent contains `wv` or `window.Android` exists. The dedicated `/app` route is the iPhone PWA entry; standalone PWAs should also open the full app.
 
 **Why:** The user specified one URL with two behaviors: normal browsers get the APK download page, while the APK opens the real app without asking users to install again.
 
-**How to apply:** Keep the full app entry dynamically available for the detected Android WebView or standalone PWA. Use the existing APK asset for the normal-browser download button.
+**How to apply:** Keep the root installer and `/app` PWA entry separate, while allowing Android WebViews to open the app at the root URL. Keep the full app entry available for standalone launches and hide install controls in app shells.
 
 The user wants the Android app to open “Without chrome”.
 

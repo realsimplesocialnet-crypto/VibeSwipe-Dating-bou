@@ -1,3 +1,3 @@
-import apkDownloadUrl from '@assets/myagebeauty_1795172841685.apk?url';
+const apkDownloadUrl = '/api/installer/Myage.apk';
 
 export default apkDownloadUrl;

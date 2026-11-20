@@ -83,10 +83,14 @@ const SettingsIndexPage = lazy(() => import('@/components/settings/settings-page
 const SettingsSectionPage = lazy(() => import('@/components/settings/settings-pages').then(module => ({ default: module.SettingsSectionPage })));
 
 const queryClient = new QueryClient({ defaultOptions: { queries: { staleTime: 12_000, retry: 1 } } });
-const basePath = import.meta.env.BASE_URL.replace(/\/$/, '');
+const artifactBasePath = import.meta.env.BASE_URL.replace(/\/$/, '');
+const appPathPrefix = `${artifactBasePath}/app`;
+const isDedicatedAppRoute = window.location.pathname === appPathPrefix || window.location.pathname.startsWith(`${appPathPrefix}/`);
+const basePath = isDedicatedAppRoute ? appPathPrefix : artifactBasePath;
 const clerkPubKey = publishableKeyFromHost(window.location.hostname, import.meta.env.VITE_CLERK_PUBLISHABLE_KEY);
 const clerkProxyUrl = import.meta.env.VITE_CLERK_PROXY_URL;
 const pathFor = (path: string) => `${basePath}${path === '/' ? '/' : path}`;
+const assetPathFor = (path: string) => `${artifactBasePath}${path === '/' ? '/' : path}`;
 function safeAppReturnPath(value: string | null, fallback: string) {
   if (!value || value.startsWith('//')) return fallback;
   try {
@@ -104,7 +108,7 @@ const mediaUrl = (ref?: string | null) => ref ? (ref.startsWith('http') ? ref : 
 
 const appearance = {
   theme: shadcn, cssLayerName: 'clerk',
-  options: { logoPlacement: 'inside' as const, logoLinkUrl: basePath || '/', logoImageUrl: `${window.location.origin}${basePath}/logo.svg` },
+  options: { logoPlacement: 'inside' as const, logoLinkUrl: basePath || '/', logoImageUrl: `${window.location.origin}${assetPathFor('/logo.svg')}` },
   variables: { colorPrimary: '#F34E9A', colorForeground: '#f5edf1', colorMutedForeground: '#a79ca5', colorDanger: '#f06b76', colorBackground: '#15131a', colorInput: '#19161c', colorInputForeground: '#f5edf1', colorNeutral: '#f5edf1', fontFamily: 'DM Sans', borderRadius: '14px' },
   elements: {
     rootBox: 'w-full flex justify-center', cardBox: 'bg-[#211d25] rounded-2xl w-[440px] max-w-full overflow-hidden border border-white/10',
@@ -122,7 +126,7 @@ const appearance = {
 
 function Brand({ compact = false, small = false }: { compact?: boolean; small?: boolean }) {
   return <Link href="/" className="inline-flex items-center gap-2.5" data-testid="link-brand">
-    <img src={pathFor('/icon.png')} alt="" className={`${compact || small ? 'h-7 w-7 rounded-lg' : 'h-9 w-9 rounded-xl'} ring-1 ring-border`} />
+    <img src={assetPathFor('/icon.png')} alt="" className={`${compact || small ? 'h-7 w-7 rounded-lg' : 'h-9 w-9 rounded-xl'} ring-1 ring-border`} />
     {!compact && <span className={`brand ${small ? 'text-lg' : 'text-[21px]'} font-extrabold text-foreground`}>My<span className="text-primary">age</span></span>}
   </Link>;
 }

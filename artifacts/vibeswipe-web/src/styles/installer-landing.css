@@ -94,6 +94,15 @@ body {
   background: #ff68aa;
 }
 
+.installer-ios-help {
+  max-width: 31rem;
+  margin: 0;
+  color: #b7abb4;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  text-align: center;
+}
+
 .installer-button:active {
   transform: scale(0.98);
 }

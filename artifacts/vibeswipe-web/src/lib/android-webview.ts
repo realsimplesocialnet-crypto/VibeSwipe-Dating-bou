@@ -12,6 +12,10 @@ export function shouldLoadAppShell(
   return isAndroidWebView(userAgent, hasAndroidBridge) || isStandalone;
 }
 
+export function isDedicatedAppPath(pathname: string, appPath: string): boolean {
+  return pathname === appPath || pathname.startsWith(`${appPath}/`);
+}
+
 export function isCurrentAndroidWebView(): boolean {
   if (typeof window === 'undefined') return false;
   return isAndroidWebView(window.navigator.userAgent, 'Android' in window);

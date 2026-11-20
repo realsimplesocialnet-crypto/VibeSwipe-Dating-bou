@@ -13,6 +13,15 @@ export function isMobileBrowser(browserNavigator: {
     || (browserNavigator.platform === 'MacIntel' && (browserNavigator.maxTouchPoints ?? 0) > 1);
 }
 
+export function isIOSDevice(browserNavigator: {
+  userAgent?: string;
+  platform?: string;
+  maxTouchPoints?: number;
+}): boolean {
+  return /iPhone|iPad|iPod/i.test(browserNavigator.userAgent ?? '')
+    || (browserNavigator.platform === 'MacIntel' && (browserNavigator.maxTouchPoints ?? 0) > 1);
+}
+
 export function isStandaloneApp(
   browser: Pick<Window, 'matchMedia'>,
   browserNavigator: { standalone?: boolean },
