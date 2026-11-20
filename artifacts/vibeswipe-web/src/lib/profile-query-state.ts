@@ -11,7 +11,14 @@ export function isDiscoverSetupRequired(error: unknown): boolean {
 }
 
 export function shouldRetryDiscover(failureCount: number, error: unknown): boolean {
-  return !isDiscoverSetupRequired(error) && shouldRetryProfile(failureCount, error);
+  if (isDiscoverSetupRequired(error)) return false;
+  const status = typeof error === 'object' && error !== null && 'status' in error
+    ? error.status
+    : undefined;
+  // Clerk may need a moment to refresh a new account's token after signup.
+  // Retry briefly, then let the page show an actionable error instead of spinning forever.
+  if (status === 401) return failureCount < 2;
+  return shouldRetryProfile(failureCount, error);
 }
 
 export function shouldRetryProfile(failureCount: number, error: unknown): boolean {

@@ -30,5 +30,8 @@ test('Discover opens setup only for its missing-profile response', () => {
   }
   assert.equal(shouldRetryDiscover(0, { status: 500 }), true);
   assert.equal(shouldRetryDiscover(1, { status: 500 }), false);
-  assert.equal(shouldRetryDiscover(0, { status: 401 }), false);
+  assert.equal(shouldRetryDiscover(0, { status: 401 }), true);
+  assert.equal(shouldRetryDiscover(1, { status: 401 }), true);
+  assert.equal(shouldRetryDiscover(2, { status: 401 }), false);
+  assert.equal(shouldRetryDiscover(0, { status: 403 }), false);
 });

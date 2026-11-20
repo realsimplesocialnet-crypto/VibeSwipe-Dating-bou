@@ -335,7 +335,8 @@ html[data-theme="light"] .notifications-shell .notification-card { box-shadow:0 
 .discover-shell { background:#0F0F12; }
 /* Discover is a screen-sized deck, not a document scrolling behind a sticky header.
    Let the actual header, banner, and navigation determine the photo's space. */
-html:has(.discover-deck), html:has(.discover-deck) body {
+html:has([data-kept-tab="/discover"]:not([hidden]) .discover-deck),
+html:has([data-kept-tab="/discover"]:not([hidden]) .discover-deck) body {
   overflow: hidden;
   overscroll-behavior: none;
 }

@@ -377,13 +377,33 @@ export function DiscoverSwipePage() {
   const superLikeLimitReached = superLikes.data?.remaining === 0 ||
     (superLikes.data?.remaining !== undefined && pendingSuperLikeCount >= superLikes.data.remaining);
   if (discover.isLoading) {
-    return <div role="status" aria-label="Loading" className="mx-auto flex max-w-xl justify-center px-4 py-12"><QuietSpinner /></div>;
+    return (
+      <div role="status" aria-label="Loading Discover" data-testid="status-discover-loading" className="mx-auto flex min-h-[55dvh] max-w-xl flex-col items-center justify-center gap-4 px-4 text-center">
+        <QuietSpinner />
+        <p className="text-sm text-muted-foreground">Getting your feed ready…</p>
+      </div>
+    );
   }
   if (discover.isError && isDiscoverSetupRequired(discover.error)) return <Redirect to="/onboarding" />;
-  if (discover.isError && (!discover.data || [401, 403, 409].includes(discover.error.status))) {
+  if (discover.isError && !discover.data) {
+    const status = discover.error.status;
+    const message = status === 401
+      ? "Your session needs a refresh. Try loading Discover again."
+      : status === 403
+        ? "Discover is unavailable for this account right now."
+        : "Check your connection, then try again.";
     return (
-      <div role="status" aria-label="Loading" className="mx-auto flex max-w-xl justify-center px-4 py-12">
-        <QuietSpinner onRetry={() => void discover.refetch().then(result => { if (!result.isError) refill(result.data); })} />
+      <div role="alert" data-testid="error-discover-load" className="mx-auto flex min-h-[55dvh] max-w-xl flex-col items-center justify-center px-6 text-center">
+        <h1 className="brand text-xl font-bold">Discover couldn’t load</h1>
+        <p className="mt-2 max-w-sm text-sm leading-6 text-muted-foreground">{message}</p>
+        <button
+          type="button"
+          onClick={() => void discover.refetch().then(result => { if (!result.isError) refill(result.data); })}
+          data-testid="button-retry-discover-load"
+          className="mt-5 rounded-xl bg-primary px-5 py-3 text-sm font-bold text-[#27101d]"
+        >
+          Try again
+        </button>
       </div>
     );
   }
