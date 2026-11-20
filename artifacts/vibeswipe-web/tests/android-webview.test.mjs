@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { isAndroidWebView, isAuthEntryPath, isDedicatedAppPath, shouldLoadAppShell } from '../src/lib/android-webview.ts';
 import { isIOSDevice } from '../src/lib/app-display-mode.ts';
+import { shouldShowAndroidApkDownload } from '../src/lib/apk-download.ts';
 
 test('detects an Android WebView from the wv user-agent marker', () => {
   assert.equal(isAndroidWebView('Mozilla/5.0 (Linux; Android 14; wv)', false), true);
@@ -28,6 +29,13 @@ test('opens the existing app for an installed Home Screen PWA', () => {
 
 test('ordinary browser tabs do not count as an installed app shell', () => {
   assert.equal(shouldLoadAppShell('Mozilla/5.0 (iPhone; CPU iPhone OS 18) Safari/604.1', false, false), false);
+});
+
+test('APK download link appears only in a regular Android browser', () => {
+  assert.equal(shouldShowAndroidApkDownload('Mozilla/5.0 (Linux; Android 14) Chrome/130', false), true);
+  assert.equal(shouldShowAndroidApkDownload('Mozilla/5.0 (Linux; Android 14; wv) Chrome/130', true), false);
+  assert.equal(shouldShowAndroidApkDownload('Mozilla/5.0 (iPhone; CPU iPhone OS 18) Safari/604.1', false), false);
+  assert.equal(shouldShowAndroidApkDownload('Mozilla/5.0 (Linux; Android 14) Chrome/130', true), false);
 });
 
 test('auth links open the real sign-in and sign-up routes', () => {

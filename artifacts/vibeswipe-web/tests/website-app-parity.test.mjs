@@ -30,5 +30,7 @@ test("the app has no custom install controls", () => {
   assert.doesNotMatch(app, /InstallAction|MobileInstallBanner|ConsumerInstallBanner/);
   const pushSettings = read("../src/components/WebPushSettings.tsx");
   assert.doesNotMatch(pushSettings, /InstallAction/);
+  assert.match(welcome, /shouldShowAndroidApkDownload\(navigator\.userAgent, isCurrentAppShell\(\)\)/);
+  assert.match(welcome, /href=\{apkDownloadUrl\} download="VIBESWIPES\.apk"/);
   assert.match(app, /<Route path="\/sign-up\/\*\?" component=\{BrandedSignUp\}/);
 });
