@@ -1,7 +1,7 @@
 import { useEffect, useId, useRef, useState, useSyncExternalStore } from 'react';
 import { Download, X } from 'lucide-react';
 import { isMobileBrowser, useStandaloneMode } from '@/lib/app-display-mode';
-import { isCurrentAndroidWebView } from '@/lib/android-webview';
+import { isCurrentAppShell } from '@/lib/android-webview';
 
 type InstallPrompt = Event & {
   prompt: () => Promise<void>;
@@ -41,16 +41,16 @@ const fallback: InstallStore = {
 };
 
 export function MobileInstallBanner() {
-  if (isCurrentAndroidWebView()) return null;
+  if (isCurrentAppShell()) return null;
   return isMobileBrowser(navigator) ? <InstallAction banner /> : null;
 }
 
 export function InstallAction({ className = '', compact = false, banner = false }: { className?: string; compact?: boolean; banner?: boolean }) {
   const standalone = useStandaloneMode();
-  const inAndroidApp = isCurrentAndroidWebView();
+  const inAppShell = isCurrentAppShell();
   const store = window.vibeSwipeInstall?.dismissBanner ? window.vibeSwipeInstall : fallback;
   const { prompt, installed, bannerDismissed, checkingInstalled } = useSyncExternalStore(store.subscribe, store.getSnapshot);
-  const hidden = inAndroidApp || standalone || installed || checkingInstalled || (banner && bannerDismissed);
+  const hidden = inAppShell || standalone || installed || checkingInstalled || (banner && bannerDismissed);
   const [showHelp, setShowHelp] = useState(false);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState('');

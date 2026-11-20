@@ -16,6 +16,10 @@ export function isDedicatedAppPath(pathname: string, appPath: string): boolean {
   return pathname === appPath || pathname.startsWith(`${appPath}/`);
 }
 
+export function isAuthEntryPath(pathname: string): boolean {
+  return /^\/(?:sign-in|sign-up)(?:\/|$)/.test(pathname);
+}
+
 export function isCurrentAndroidWebView(): boolean {
   if (typeof window === 'undefined') return false;
   return isAndroidWebView(window.navigator.userAgent, 'Android' in window);

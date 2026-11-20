@@ -30,7 +30,7 @@ body {
     #100c12;
 }
 
-.installer-page {
+.public-auth-page {
   display: grid;
   min-height: 100vh;
   min-height: 100dvh;
@@ -38,16 +38,15 @@ body {
   padding: max(24px, env(safe-area-inset-top)) 24px max(24px, env(safe-area-inset-bottom));
 }
 
-.installer-content {
+.public-auth-content {
   display: flex;
   width: min(100%, 360px);
   flex-direction: column;
   align-items: center;
-  gap: 24px;
-  text-align: center;
+  gap: 32px;
 }
 
-.installer-brand {
+.public-auth-brand {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -57,59 +56,66 @@ body {
   letter-spacing: -0.04em;
 }
 
-.installer-brand img {
+.public-auth-brand img {
   display: block;
   width: 64px;
   height: 64px;
   border-radius: 18px;
 }
 
-.installer-content h1 {
-  margin: 0;
-  max-width: 17ch;
-  color: #fff5fa;
-  font-size: clamp(25px, 7vw, 34px);
-  font-weight: 750;
-  letter-spacing: -0.04em;
-  line-height: 1.15;
+.public-auth-actions {
+  display: grid;
+  width: min(100%, 280px);
+  gap: 12px;
 }
 
-.installer-button {
+.public-auth-link {
   display: inline-flex;
-  width: min(100%, 280px);
-  min-height: 56px;
+  min-height: 54px;
   align-items: center;
   justify-content: center;
-  border: 0;
+  border: 1px solid transparent;
   border-radius: 16px;
-  background: #f34e9a;
-  color: #24111b;
   font-size: 16px;
   font-weight: 750;
   text-decoration: none;
   transition: background-color 140ms ease, transform 140ms ease;
 }
 
-.installer-button:hover {
+.public-auth-login {
+  border-color: rgba(255, 245, 250, 0.18);
+  background: rgba(255, 255, 255, 0.04);
+  color: #fff5fa;
+}
+
+.public-auth-login:hover {
+  background: rgba(255, 255, 255, 0.09);
+}
+
+.public-auth-signup {
+  background: #f34e9a;
+  color: #24111b;
+}
+
+.public-auth-signup:hover {
   background: #ff68aa;
 }
 
-.installer-ios-help {
-  max-width: 31rem;
-  margin: 0;
-  color: #b7abb4;
-  font-size: 0.9rem;
-  line-height: 1.6;
-  text-align: center;
-}
-
-.installer-button:active {
+.public-auth-link:active {
   transform: scale(0.98);
 }
 
-.installer-button:focus-visible {
+.public-auth-link:focus-visible {
   outline: 3px solid #fff5fa;
   outline-offset: 4px;
+}
+
+.installer-page {
+  display: grid;
+  min-height: 100vh;
+  min-height: 100dvh;
+  place-items: center;
+  padding: 24px;
 }
 
 .installer-loading {
@@ -118,7 +124,7 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .installer-button {
+  .public-auth-link {
     transition: none;
   }
 }

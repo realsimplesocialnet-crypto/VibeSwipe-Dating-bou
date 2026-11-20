@@ -3,8 +3,8 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover" />
-    <title>VIBESWIPES — Install the App</title>
-    <meta name="description" content="Your next connection starts here. Download the VIBESWIPES Android app." />
+    <title>VIBESWIPES — Login or Sign Up</title>
+    <meta name="description" content="Log in or create a VIBESWIPES account." />
     <link rel="canonical" href="https://myage.beauty/" />
     <meta name="theme-color" content="#15131a" />
     <meta name="referrer" content="no-referrer" />
@@ -14,13 +14,13 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="robots" content="index, follow" />
     <meta property="og:title" content="VIBESWIPES" />
-    <meta property="og:description" content="Your next connection starts here." />
+    <meta property="og:description" content="Log in or create a VIBESWIPES account." />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://myage.beauty/" />
     <meta property="og:site_name" content="VIBESWIPES" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="VIBESWIPES" />
-    <meta name="twitter:description" content="Your next connection starts here." />
+    <meta name="twitter:description" content="Log in or create a VIBESWIPES account." />
     <script src="%BASE_URL%pwa-install.js?v=10"></script>
     <script defer src="%BASE_URL%pwa-launch.js?v=11" data-production="%PROD%"></script>
     <link rel="manifest" href="%BASE_URL%manifest.json?v=8" />
@@ -31,13 +31,15 @@
   <body style="margin:0;background:#100c12;color:#fff5fa">
     <div id="root">
       <main style="display:grid;min-height:100vh;min-height:100dvh;place-items:center;padding:24px;font:16px/1.5 system-ui,sans-serif;text-align:center">
-        <section style="display:flex;max-width:360px;flex-direction:column;align-items:center;gap:24px">
+        <section style="display:flex;max-width:360px;flex-direction:column;align-items:center;gap:32px">
           <div style="display:flex;align-items:center;gap:12px;font-size:28px;font-weight:800;letter-spacing:-.04em">
             <img src="%BASE_URL%logo.svg" alt="" width="64" height="64" style="border-radius:18px" />
             <span>VIBESWIPES</span>
           </div>
-          <h1 style="max-width:17ch;margin:0;font-size:30px;line-height:1.15">Your next connection starts here.</h1>
-          <a id="installer-install-fallback" href="/api/installer/VIBESWIPES.apk" download="VIBESWIPES.apk" style="display:inline-flex;min-height:56px;width:min(100%,280px);align-items:center;justify-content:center;border-radius:16px;background:#f34e9a;color:#24111b;font-weight:750;text-decoration:none">Install App</a>
+          <nav aria-label="Account" style="display:grid;width:min(100%,280px);gap:12px">
+            <a href="%BASE_URL%sign-in" style="display:flex;min-height:54px;align-items:center;justify-content:center;border:1px solid rgba(255,245,250,.18);border-radius:16px;background:rgba(255,255,255,.04);color:#fff5fa;font-weight:750;text-decoration:none">Login</a>
+            <a href="%BASE_URL%sign-up" style="display:flex;min-height:54px;align-items:center;justify-content:center;border-radius:16px;background:#f34e9a;color:#24111b;font-weight:750;text-decoration:none">Sign Up</a>
+          </nav>
         </section>
       </main>
     </div>

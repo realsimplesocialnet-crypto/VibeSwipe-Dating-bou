@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { isAndroidWebView, isDedicatedAppPath, shouldLoadAppShell } from '../src/lib/android-webview.ts';
+import { isAndroidWebView, isAuthEntryPath, isDedicatedAppPath, shouldLoadAppShell } from '../src/lib/android-webview.ts';
 import { isIOSDevice } from '../src/lib/app-display-mode.ts';
 
 test('detects an Android WebView from the wv user-agent marker', () => {
@@ -11,7 +11,7 @@ test('detects the Android bridge even without a wv user-agent marker', () => {
   assert.equal(isAndroidWebView('Mozilla/5.0 (Linux; Android 14) Chrome/130', true), true);
 });
 
-test('keeps ordinary browser visits on the installer landing page', () => {
+test('keeps ordinary browser visits on the public auth landing page', () => {
   assert.equal(isAndroidWebView('Mozilla/5.0 (Linux; Android 14) Chrome/130', false), false);
   assert.equal(isAndroidWebView('Mozilla/5.0 (iPhone; CPU iPhone OS 18) Safari/604.1', false), false);
 });
@@ -21,8 +21,15 @@ test('opens the existing app for an installed Home Screen PWA', () => {
   assert.equal(shouldLoadAppShell('Mozilla/5.0 (Linux; Android 14) Chrome/130', false, true), true);
 });
 
-test('ordinary browser tabs stay on the installer page', () => {
+test('ordinary browser tabs stay on the public auth page', () => {
   assert.equal(shouldLoadAppShell('Mozilla/5.0 (iPhone; CPU iPhone OS 18) Safari/604.1', false, false), false);
+});
+
+test('auth links open the real sign-in and sign-up routes', () => {
+  assert.equal(isAuthEntryPath('/sign-in'), true);
+  assert.equal(isAuthEntryPath('/sign-up'), true);
+  assert.equal(isAuthEntryPath('/sign-up/verify-email'), true);
+  assert.equal(isAuthEntryPath('/discover'), false);
 });
 
 test('routes the dedicated iPhone app path while keeping legacy paths separate', () => {

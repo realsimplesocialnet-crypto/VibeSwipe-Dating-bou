@@ -7,9 +7,9 @@ The owner creates Android APKs with FreeWebToApk. Treat the APK as a WebView wra
 
 **Why:** The owner clarified that Replit Agent's job is only the website, not creating or maintaining the APK.
 
-**How to apply:** Never use Expo, build a native app, or create or replace an APK. Keep the ordinary-browser root minimal, with the VIBESWIPES logo and one Install App button that downloads the owner's exact uploaded APK as `VIBESWIPES.apk`. Keep the full web app available inside the Android WebView at the same site URL, with no install button there. Public legal documents may remain on their own direct URLs.
+**How to apply:** Never use Expo, build a native app, or create or replace an APK. The current public root page shows only the VIBESWIPES brand plus Login and Sign Up, with no APK install button or PWA install banner. Those links open the real sign-in and sign-up routes. The Android WebView uses the live website and must not show an install-again prompt; standalone PWAs must also suppress install options. Public legal documents may remain on their own direct URLs.
 
-When updating the landing-page download, serve the exact uploaded APK bytes. Verify its size and hash against the upload, use the Android APK content type and `VIBESWIPES.apk` filename, and do not mistake an `.apk.html` page for an installer.
+If the owner later asks to expose an APK download, serve the exact uploaded bytes and verify its size and hash; use the Android APK content type and `VIBESWIPES.apk` filename. Never mistake an `.apk.html` page for an installer.
 
 The app should show its usable shell and cached screen content promptly on launch; do not hold the whole app on a loading screen while remote data refreshes. Never bypass authentication or show another account's private data to achieve this.
 

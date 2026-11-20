@@ -1,5 +1,5 @@
 /* Cache the app shell, approved public Reels, and account-scoped recent profiles. */
-const CACHE_NAME = 'myage-shell-v17';
+const CACHE_NAME = 'myage-shell-v18';
 const REEL_CACHE_NAME = 'myage-offline-reels-v1';
 const PROFILE_CACHE_NAME = 'myage-offline-profiles-v1';
 const MAX_OFFLINE_REELS = 3;
