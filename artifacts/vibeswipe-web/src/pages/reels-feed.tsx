@@ -20,6 +20,14 @@ import { QuietSpinner } from "@/components/ui/quiet-spinner";
 import "@/components/reels/reels.css";
 
 const REEL_COMMENTS_HISTORY_KEY = "__myageReelComments";
+const REEL_MOUNT_BEHIND = 1;
+const REEL_PRELOAD_AHEAD = 3;
+
+type ReelActionHandlers = {
+  toggle: (kind: "like" | "save", reel: Reel) => Promise<void>;
+  cacheOffline: (reel: Reel, manual: boolean) => Promise<void>;
+  recordPlayback: (reel: Reel) => Promise<void>;
+};
 
 type ReelCommentsHistoryMarker = { reelId: string; activeIndex: number };
 
@@ -109,9 +117,10 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
   const initialFeedMode = new URLSearchParams(window.location.search).get("tab") === "friends" ? "friends" : "reels";
   const [feedMode, setFeedMode] = useState<"reels" | "friends">(initialFeedMode);
   const [active, setActive] = useState(initialHistoryMarker?.activeIndex ?? 0);
+  const [activeVisibleReelId, setActiveVisibleReelId] = useState<string | null>(null);
   const activeRef = useRef(0);
   activeRef.current = active;
-  const [muted, setMuted] = useState(false);
+  const [muted, setMuted] = useState(true);
   const initialSearch = new URLSearchParams(window.location.search).get("q") ?? "";
   const [searchOpen, setSearchOpen] = useState(Boolean(initialSearch));
   const [searchText, setSearchText] = useState(initialSearch);
@@ -130,6 +139,10 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
   const [offlineIds, setOfflineIds] = useState<Set<string>>(() => new Set());
   const [offlineSavingIds, setOfflineSavingIds] = useState<Set<string>>(() => new Set());
   const [offline, setOffline] = useState(!navigator.onLine);
+  const reelActionHandlers = useRef<ReelActionHandlers | null>(null);
+  const onAutoplayMuted = useCallback(() => setMuted(true), []);
+  const onToggleSound = useCallback(() => setMuted((value) => !value), []);
+  const onShareReel = useCallback((reel: Reel) => setShareFor(reel), []);
   const navigationVisible = !commentsFor && !searchOpen && !viewport.keyboardOpen;
   useEffect(() => {
     setAppNavigationVisible(navigationVisible);
@@ -291,8 +304,12 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
       seen.add(single.data.id);
     }
     if (!profileId && feedMode === "reels" && !list.length && feed.isError) for (const reel of offlineReels) if (!seen.has(reel.id)) { seen.add(reel.id); list.push(reel); }
-    return list.filter((reel) => !removed.has(reel.id)).map((reel) => ({ ...reel, ...patches[reel.id] }));
+    return list.filter((reel) => !removed.has(reel.id)).map((reel) => {
+      const patch = patches[reel.id];
+      return patch ? { ...reel, ...patch } : reel;
+    });
   }, [single.data, profileId, profileFeed.data, feed.data, feed.isError, feedMode, offlineReels, patches, removed]);
+  const reelIdsKey = useMemo(() => reels.map((reel) => reel.id).join("|"), [reels]);
 
   const resumeReelId = initialReelId ?? initialHistoryMarker?.reelId;
   useEffect(() => {
@@ -312,16 +329,23 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
   useEffect(() => {
     const root = scroller.current;
     if (!root || loading) return;
+    if (!("IntersectionObserver" in window)) {
+      setActiveVisibleReelId(reels[active]?.id ?? null);
+      return;
+    }
     const observer = new IntersectionObserver((entries) => {
       for (const entry of entries) {
         if (!entry.isIntersecting || entry.intersectionRatio < 0.6) continue;
         const index = reelSlideIndex((entry.target as HTMLElement).dataset.index, reels.length);
-        if (index !== null) setActive(index);
+        if (index !== null) {
+          setActive(index);
+          setActiveVisibleReelId(reels[index]?.id ?? null);
+        }
       }
     }, { root, threshold: 0.6 });
     root.querySelectorAll(".reel-slide[data-index]").forEach((slide) => observer.observe(slide));
     return () => observer.disconnect();
-  }, [loading, reels.length]);
+  }, [loading, reelIdsKey, active]);
 
   // Keep the current Reel pinned when the stage resizes (comments panel, keyboard, rotation).
   useLayoutEffect(() => {
@@ -419,6 +443,20 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
     }
   }
 
+  reelActionHandlers.current = { toggle, cacheOffline, recordPlayback };
+  const onReelLike = useCallback((reel: Reel) => {
+    void reelActionHandlers.current?.toggle("like", reel);
+  }, []);
+  const onReelSave = useCallback((reel: Reel) => {
+    void reelActionHandlers.current?.toggle("save", reel);
+  }, []);
+  const onReelView = useCallback((reel: Reel) => {
+    void reelActionHandlers.current?.recordPlayback(reel);
+  }, []);
+  const onReelAutoCache = useCallback((reel: Reel) => {
+    void reelActionHandlers.current?.cacheOffline(reel, false);
+  }, []);
+
   async function hideSimilarReels(reel: Reel) {
     try {
       await markNotInterested.mutateAsync({ reelId: reel.id });
@@ -469,12 +507,12 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
     setSearchText("");
     setDebouncedSearchText("");
   }
-  function openSearch(query = "") {
+  const openSearch = useCallback((query = "") => {
     const nextQuery = query.trim().slice(0, 120);
     setSearchText(nextQuery);
     setDebouncedSearchText(nextQuery);
     setSearchOpen(true);
-  }
+  }, []);
   function openSearchResult(reel: Reel) {
     const query = searchText.trim();
     const destination = `/reels/${reel.id}?returnTo=${encodeURIComponent(`/reels?q=${encodeURIComponent(query)}`)}`;
@@ -497,23 +535,46 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
           : activeFeed.isError && !reels.length ? offline ? <div className="reels-empty"><span className="reels-empty-mark"><Clapperboard size={30} /></span><p className="mt-5 text-xl font-bold">No Reels yet</p></div> : <div className="reel-slide"><QuietSpinner size={28} onRetry={() => void activeFeed.refetch()} /></div>
           : !reels.length && feedMode === "friends" && !profileId ? <div className="reels-empty"><span className="reels-empty-mark"><Users size={30} /></span><p className="mt-5 text-xl font-bold">No Friends Reels yet</p><p className="mt-1 max-w-[260px] text-sm leading-6 text-white/60">Reels from people you follow will appear here.</p><button type="button" onClick={() => changeFeedMode("reels")} className="reels-primary mt-6" data-testid="button-open-all-reels">Watch all Reels</button></div>
           : !reels.length ? <div className="reels-empty"><span className="reels-empty-mark"><Clapperboard size={30} /></span><p className="mt-5 text-xl font-bold">No Reels yet</p><p className="mt-1 max-w-[260px] text-sm leading-6 text-white/60">Be the first to share a video with the community.</p><Link href="/reels/new" className="reels-primary mt-6" data-testid="link-post-first-reel">Post a Reel</Link></div>
-          : reels.map((reel, index) => <ReelSlide
-             key={reel.id} reel={reel} index={index} active={index === active && !searchOpen} near={Math.abs(index - active) <= 1}
-              muted={muted} pageHidden={pageHidden} compact={commentsFor === reel.id} navigationVisible={navigationVisible}
+          : reels.map((reel, index) => {
+            const inWindow = index >= active - REEL_MOUNT_BEHIND
+              && index <= active + REEL_PRELOAD_AHEAD;
+            if (!inWindow) {
+              return <div
+                key={reel.id}
+                className="reel-slide reel-slide-placeholder"
+                data-index={index}
+                aria-hidden="true"
+              />;
+            }
+            const preloadAhead = index >= active && index <= active + REEL_PRELOAD_AHEAD;
+            return <ReelSlide
+              key={reel.id}
+              reel={reel}
+              index={index}
+              active={index === active && activeVisibleReelId === reel.id && !searchOpen}
+              near={preloadAhead}
+              posterEnabled={preloadAhead}
+              preload={index >= active && index <= active + 2 ? "auto" : "metadata"}
+              muted={muted}
+              pageHidden={pageHidden}
+              compact={commentsFor === reel.id}
+              navigationVisible={navigationVisible}
               likePending={like.isPending || unlike.isPending}
               savePending={save.isPending || unsave.isPending}
-            returnTo={ownPath}
-             onAutoplayMuted={() => setMuted(true)}
-              onToggleSound={() => setMuted((value) => !value)}
+              returnTo={ownPath}
+              onAutoplayMuted={onAutoplayMuted}
+              onToggleSound={onToggleSound}
               offlineSaved={offlineIds.has(reel.id)}
-              onAutoCache={() => void cacheOffline(reel, false)}
-               onLike={() => void toggle("like", reel)}
-                onSave={() => void toggle("save", reel)}
-                onSearchSuggestion={openSearch}
-               onNavigateFeed={go}
-            onView={() => void recordPlayback(reel)}
-              onComment={() => openComments(reel.id)} onShare={() => setShareFor(reel)}
-          />)}
+              onAutoCache={onReelAutoCache}
+              onLike={onReelLike}
+              onSave={onReelSave}
+              onSearchSuggestion={openSearch}
+              onNavigateFeed={go}
+              onView={onReelView}
+              onComment={openComments}
+              onShare={onShareReel}
+            />;
+          })}
         {activeFeed.isFetchingNextPage && <div className="reels-more" role="status" aria-label="Loading"><QuietSpinner size={18} /></div>}
         {!offline && !activeFeed.hasNextPage && reels.length > 1 && !activeFeed.isLoading && <div className="reels-end">{profileId ? "You’ve seen all of this person’s Reels." : "You are all caught up."}</div>}
       </div>

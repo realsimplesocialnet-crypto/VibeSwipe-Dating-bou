@@ -123,11 +123,11 @@ Reels must not allow nudity or explicit sexual content. The user chose automatic
 
 **How to apply:** Check video content before it becomes publicly playable, reject disallowed material, and never treat face verification as a nudity/content check. Keep this separate from the existing face-verification provider.
 
-Reels should request playback with sound enabled by default. Single-tap the video to pause/play; double-tap it to mute/unmute. Do not show permanent top volume or pause buttons. Browser autoplay rules may still require a viewer gesture before audible playback.
+Reels autoplay muted by default. Single-tap the video to pause/play; double-tap it to mute/unmute. Do not show permanent top volume or pause buttons.
 
-**Why:** The user asked to remove visible top volume and playback controls while keeping video taps for playback and sound interaction.
+**Why:** The user explicitly asked for muted-by-default playback so Reels start smoothly without audible autoplay.
 
-**How to apply:** Attempt to autoplay the active video unmuted and pause off-screen videos. Use a single tap for playback and a double tap for sound, with only brief center feedback; a video tap should resume playback if autoplay is blocked. Do not replace playback with static previews.
+**How to apply:** Start the active video muted when it is mostly in view and pause every inactive video. Keep single-tap playback and double-tap sound controls, with only brief center feedback; a video tap should resume playback if autoplay is blocked. Do not replace playback with static previews.
 
 Reels have no app-imposed duration cap; Story videos are limited to 60 seconds. Keep file-size, safety and processing safeguards separate from Reel duration.
 

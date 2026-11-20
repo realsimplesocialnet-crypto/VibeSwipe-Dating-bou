@@ -134,7 +134,8 @@ test("media urls stay on the protected endpoint and return paths stay in-app", (
 
 test("Reels viewer keeps autoplay muted, inline and paused offscreen or hidden", () => {
   const slide = read("../src/components/reels/reel-slide.tsx");
-  assert.match(slide, /playsInline muted=\{muted\} loop/);
+  assert.match(slide, /playsInline muted=\{Boolean\(reel\.soundtrack\) \|\| muted\} loop/);
+  assert.match(read("../src/pages/reels-feed.tsx"), /const \[muted, setMuted\] = useState\(true\)/);
   assert.match(slide, /!active \|\| pageHidden \|\| userPaused/);
   assert.match(slide, /setBlocked\(true\)/);
   assert.match(slide, /name === "NotAllowedError" && !muted/);
@@ -142,7 +143,7 @@ test("Reels viewer keeps autoplay muted, inline and paused offscreen or hidden",
   assert.doesNotMatch(slide, /button-reel-autoplay-blocked|reel-blocked-play/);
   assert.doesNotMatch(slide, /Your browser paused autoplay/);
   const feed = read("../src/pages/reels-feed.tsx");
-  assert.match(feed, /onAutoplayMuted=\{\(\) => setMuted\(true\)\}/);
+  assert.match(feed, /onAutoplayMuted=\{onAutoplayMuted\}/);
   assert.match(feed, /visibilitychange/);
   assert.match(feed, /useState\(document\.visibilityState === "hidden"\)/);
   assert.match(feed, /getNextPageParam/);
@@ -208,7 +209,7 @@ test("Reels route is code-split and autoplay fallback shows no explanatory messa
 test("Reel views count as soon as playback starts, without requiring a watch-time threshold", () => {
   const slide = read("../src/components/reels/reel-slide.tsx");
   assert.match(slide, /const viewRecorded = useRef\(false\)/);
-  assert.match(slide, /onPlaying=\{\(event\) => \{[\s\S]*?!viewRecorded\.current && !element\.paused[\s\S]*?viewRecorded\.current = true;\s*onView\(\)/);
+  assert.match(slide, /onPlaying=\{\(event\) => \{[\s\S]*?!viewRecorded\.current && !element\.paused[\s\S]*?viewRecorded\.current = true;\s*onView\(reel\)/);
   assert.doesNotMatch(slide, /onPlay=\{onView\}/);
   assert.doesNotMatch(slide, /viewThreshold/);
 });
@@ -235,7 +236,7 @@ test("Reels comments open below a still-interactive video", () => {
   assert.ok(!/'\/reels'/.test(app.split("const showMainNavigation")[1].split("\n")[0]));
   const feed = read("../src/pages/reels-feed.tsx");
   assert.ok(feed.indexOf("<ReelComments") > feed.indexOf('className="reels-stage"'));
-  assert.match(feed, /active=\{index === active && !searchOpen\}/);
+  assert.match(feed, /active=\{index === active && activeVisibleReelId === reel\.id && !searchOpen\}/);
   assert.doesNotMatch(feed, /active=\{index === active && !searchOpen && !commentsFor\}/);
   assert.match(read("../src/components/reels/reel-slide.tsx"), /className=\{`reel-tap \$\{slideshow \? "is-slideshow" : ""\}`\}[^>]*onClick=\{\(\) =>/);
   const css = read("../src/components/reels/reels.css");
@@ -275,7 +276,8 @@ test("Reel action rail shows engagement counts while profile previews show views
   assert.doesNotMatch(slide, /Search\s*["“]/);
   assert.match(read("../public/service-worker.js"), /CACHE_NAME = 'myage-shell-v14'/);
   assert.match(slide, /type=\"range\"[\s\S]*?onChange=\{\(event\) => seekVideo\(event\.currentTarget\.value\)\}/);
-  assert.match(slide, /onTimeUpdate=\{\(event\) => \{[\s\S]*?setProgress\(\(element\.currentTime \/ element\.duration\) \* 100\)/);
+  assert.match(slide, /onTimeUpdate=\{\(event\) => \{[\s\S]*?updateProgress\(\(element\.currentTime \/ element\.duration\) \* 100\)/);
+  assert.doesNotMatch(slide, /setProgress/);
   assert.match(slide, /element\.currentTime = \(nextProgress \/ 100\) \* element\.duration/);
   const css = read("../src/components/reels/reels.css");
   assert.match(css, /--reels-accent: hsl\(var\(--primary\)\)/);

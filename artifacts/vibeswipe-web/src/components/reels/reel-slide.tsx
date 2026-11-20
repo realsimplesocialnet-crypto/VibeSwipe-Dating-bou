@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState, type TouchEvent as ReactTouchEvent } from "react";
+import { memo, useEffect, useRef, useState, type TouchEvent as ReactTouchEvent } from "react";
 import { Link } from "wouter";
-import type { Reel } from "@workspace/api-client-react";
+import { getGetMediaPreviewQueryKey, useGetMediaPreview, type Reel } from "@workspace/api-client-react";
 import { ChevronRight, MapPin, Music2, Pause, Play, Search, Volume2, VolumeX } from "lucide-react";
 import { VerifiedBadge } from "@/components/verified-badge";
 import { ReelAvatar } from "@/components/reels/reel-avatar";
@@ -10,14 +10,16 @@ import { isOfflineReelWifi } from "@/lib/offline-reels";
 import { QuietSpinner } from "@/components/ui/quiet-spinner";
 
 type Props = {
-  reel: Reel; index: number; active: boolean; near: boolean; muted: boolean; pageHidden: boolean;
+  reel: Reel; index: number; active: boolean; near: boolean; posterEnabled: boolean;
+  preload: "auto" | "metadata"; muted: boolean; pageHidden: boolean;
   compact: boolean; navigationVisible: boolean; returnTo: string;
   likePending: boolean; savePending: boolean;
   onAutoplayMuted: () => void; onToggleSound: () => void;
-  onLike: () => void; onComment: () => void; onShare: () => void; onSave: () => void;
+  onLike: (reel: Reel) => void; onComment: (reelId: string) => void;
+  onShare: (reel: Reel) => void; onSave: (reel: Reel) => void;
   onSearchSuggestion: (query: string) => void;
-  onView: () => void;
-  offlineSaved: boolean; onAutoCache: () => void;
+  onView: (reel: Reel) => void;
+  offlineSaved: boolean; onAutoCache: (reel: Reel) => void;
   onNavigateFeed: (direction: number) => void;
 };
 
@@ -41,8 +43,9 @@ function ReelActionIcon({ name }: { name: ReelIconName }) {
   </svg>;
 }
 
-export function ReelSlide({ reel, index, active, near, muted, pageHidden, compact, navigationVisible, returnTo, likePending, savePending, onAutoplayMuted, onToggleSound, onLike, onComment, onShare, onSave, onSearchSuggestion, onView, offlineSaved, onAutoCache, onNavigateFeed }: Props) {
+export const ReelSlide = memo(function ReelSlide({ reel, index, active, near, posterEnabled, preload, muted, pageHidden, compact, navigationVisible, returnTo, likePending, savePending, onAutoplayMuted, onToggleSound, onLike, onComment, onShare, onSave, onSearchSuggestion, onView, offlineSaved, onAutoCache, onNavigateFeed }: Props) {
   const video = useRef<HTMLVideoElement>(null);
+  const progressInput = useRef<HTMLInputElement>(null);
   const soundtrackAudio = useRef<HTMLAudioElement>(null);
   const autoCacheRequested = useRef(false);
   const viewRecorded = useRef(false);
@@ -56,12 +59,25 @@ export function ReelSlide({ reel, index, active, near, muted, pageHidden, compac
   const [captionExpanded, setCaptionExpanded] = useState(false);
   const slideshow = reel.mediaType === "slides" && reel.slideReferences.length > 1;
   const slideCount = reel.slideReferences.length;
+  const videoMediaId = reel.mediaType === "video" && reel.videoReference.startsWith("media:")
+    ? reel.videoReference.slice(6)
+    : "";
+  const shouldLoadPoster = Boolean(videoMediaId) && posterEnabled;
+  const posterQuery = useGetMediaPreview(videoMediaId, {
+    query: {
+      enabled: shouldLoadPoster,
+      queryKey: getGetMediaPreviewQueryKey(videoMediaId),
+      staleTime: 5 * 60_000,
+      gcTime: 5 * 60_000,
+    },
+  });
+  const [posterUrl, setPosterUrl] = useState("");
   const [userPaused, setUserPaused] = useState(false);
   const [blocked, setBlocked] = useState(false);
   const [failed, setFailed] = useState(false);
   const [ready, setReady] = useState(false);
-  const [progress, setProgress] = useState(0);
   const [flash, setFlash] = useState<"play" | "pause" | "sound-on" | "sound-off" | null>(null);
+  const progressValue = useRef(0);
 
   useEffect(() => {
     if (!slideshow) return;
@@ -81,8 +97,24 @@ export function ReelSlide({ reel, index, active, near, muted, pageHidden, compac
     };
   }, [reel.id, reel.slideReferences, slideCount, slideIndex, slideshow]);
 
+  useEffect(() => {
+    if (!posterQuery.data) return;
+    const nextUrl = URL.createObjectURL(posterQuery.data);
+    setPosterUrl(nextUrl);
+    return () => URL.revokeObjectURL(nextUrl);
+  }, [posterQuery.data]);
+
+  useEffect(() => () => {
+    const element = video.current;
+    if (!element) return;
+    element.pause();
+    element.removeAttribute("src");
+    element.load();
+    soundtrackAudio.current?.pause();
+  }, []);
+
   useEffect(() => { if (!active) setUserPaused(false); }, [active]);
-  useEffect(() => { setProgress(0); setSlideIndex(0); setSlideDragOffset(0); setDraggingSlide(false); setReady(false); setCaptionExpanded(false); }, [reel.id]);
+  useEffect(() => { updateProgress(0); setSlideIndex(0); setSlideDragOffset(0); setDraggingSlide(false); setReady(false); setCaptionExpanded(false); }, [reel.id]);
   useEffect(() => () => { if (flashTimer.current !== null) window.clearTimeout(flashTimer.current); }, []);
   useEffect(() => { if (video.current) video.current.muted = Boolean(reel.soundtrack) || muted; }, [muted, reel.soundtrack]);
   useEffect(() => {
@@ -285,12 +317,22 @@ export function ReelSlide({ reel, index, active, near, muted, pageHidden, compac
     video.current?.load();
   }
 
+  function updateProgress(value: number) {
+    const next = Math.min(100, Math.max(0, value));
+    progressValue.current = next;
+    const input = progressInput.current;
+    if (!input) return;
+    input.value = String(next);
+    input.style.setProperty("--reel-progress", `${next}%`);
+    input.setAttribute("aria-valuetext", `${Math.round(next)}%`);
+  }
+
   function seekVideo(value: string) {
     const element = video.current;
     if (!element || !Number.isFinite(element.duration) || element.duration <= 0) return;
     const nextProgress = Math.min(100, Math.max(0, Number(value)));
     element.currentTime = (nextProgress / 100) * element.duration;
-    setProgress(nextProgress);
+    updateProgress(nextProgress);
   }
 
   const src = reelMediaUrl(reel.videoReference);
@@ -335,24 +377,25 @@ export function ReelSlide({ reel, index, active, near, muted, pageHidden, compac
       : <video
       ref={video}
       src={reel.mediaType === "video" && (active || near) ? src : undefined}
+      poster={posterUrl || undefined}
       className="reel-video"
       playsInline muted={Boolean(reel.soundtrack) || muted} loop
-      preload={active ? "auto" : "metadata"}
+      preload={preload}
       onLoadedData={() => setReady(true)}
       onError={() => { if (near) setFailed(true); }}
       onPlaying={(event) => {
         const element = event.currentTarget;
         if (!viewRecorded.current && !element.paused) {
           viewRecorded.current = true;
-          onView();
+          onView(reel);
         }
       }}
       onTimeUpdate={(event) => {
         const element = event.currentTarget;
-        if (element.duration) setProgress((element.currentTime / element.duration) * 100);
+        if (element.duration) updateProgress((element.currentTime / element.duration) * 100);
         if (element.duration && element.currentTime / element.duration >= 0.85 && !autoCacheRequested.current && isOfflineReelWifi() && !offlineSaved) {
           autoCacheRequested.current = true;
-          onAutoCache();
+          onAutoCache(reel);
         }
       }}
       data-testid={`video-reel-${reel.id}`}
@@ -366,7 +409,7 @@ export function ReelSlide({ reel, index, active, near, muted, pageHidden, compac
       tabIndex={-1}
       data-testid={`audio-reel-soundtrack-${reel.id}`}
     /> : null}
-    {!slideshow && !ready && !failed && <div className="reel-loading" aria-hidden="true" />}
+    {!slideshow && !ready && !posterUrl && !failed && <div className="reel-loading" aria-hidden="true" />}
     <button type="button" className={`reel-tap ${slideshow ? "is-slideshow" : ""}`} onTouchStart={startMediaTouch} onTouchMove={moveMediaTouch} onTouchEnd={finishMediaTouch} onTouchCancel={cancelMediaTouch} onClick={() => { if (skipNextTap.current) { skipNextTap.current = false; return; } handleVideoTap(); }} aria-label={tapLabel} aria-pressed={!slideshow && !userPaused && !blocked} data-testid={`button-toggle-reel-playback-${reel.id}`} />
     {slideshow && <div className="reel-slide-counter" aria-live="polite" data-testid={`text-reel-slide-count-${reel.id}`}>{slideIndex + 1}/{slideCount}</div>}
     {slideshow && <div className="reel-slide-dots" role="group" aria-label="Choose photo slide">{reel.slideReferences.map((_, slide) => <button key={slide} type="button" onClick={() => moveSlideTo(slide)} aria-label={`Show photo ${slide + 1}`} aria-current={slide === slideIndex ? "step" : undefined} data-testid={`button-reel-slide-${reel.id}-${slide + 1}`} />)}</div>}
@@ -376,16 +419,16 @@ export function ReelSlide({ reel, index, active, near, muted, pageHidden, compac
     <div className="reel-shade" aria-hidden="true" />
 
     <div className={`reel-rail ${compact ? "is-compact" : ""} ${navigationVisible ? "is-nav-visible" : ""} ${searchSuggestion && !compact ? "has-search" : ""}`}>
-      <button type="button" className={`reel-action-button ${reel.likedByMe ? "is-on" : ""}`} onClick={onLike} disabled={likePending} aria-pressed={reel.likedByMe} aria-label={reel.likedByMe ? "Unlike" : "Like"} data-testid={`button-like-reel-${reel.id}`}>
+      <button type="button" className={`reel-action-button ${reel.likedByMe ? "is-on" : ""}`} onClick={() => onLike(reel)} disabled={likePending} aria-pressed={reel.likedByMe} aria-label={reel.likedByMe ? "Unlike" : "Like"} data-testid={`button-like-reel-${reel.id}`}>
         <ReelActionIcon name="like" /><span data-testid={`text-like-count-${reel.id}`}>{formatCount(reel.likeCount)}</span>
       </button>
-      <button type="button" className="reel-action-button" onClick={onComment} aria-label="Comments" data-testid={`button-comments-reel-${reel.id}`}>
+      <button type="button" className="reel-action-button" onClick={() => onComment(reel.id)} aria-label="Comments" data-testid={`button-comments-reel-${reel.id}`}>
         <ReelActionIcon name="comment" /><span data-testid={`text-comment-count-${reel.id}`}>{formatCount(reel.commentCount)}</span>
       </button>
-      <button type="button" className={`reel-action-button ${reel.savedByMe ? "is-saved" : ""}`} onClick={onSave} disabled={savePending} aria-pressed={reel.savedByMe} aria-label={reel.savedByMe ? "Remove from Saved Reels" : "Save Reel"} data-testid={`button-save-reel-${reel.id}`}>
+      <button type="button" className={`reel-action-button ${reel.savedByMe ? "is-saved" : ""}`} onClick={() => onSave(reel)} disabled={savePending} aria-pressed={reel.savedByMe} aria-label={reel.savedByMe ? "Remove from Saved Reels" : "Save Reel"} data-testid={`button-save-reel-${reel.id}`}>
         <ReelActionIcon name="save" /><span data-testid={`text-save-count-${reel.id}`}>{formatCount(reel.saveCount)}</span>
       </button>
-      <button type="button" className="reel-action-button" onClick={onShare} aria-label={`Share, ${formatCount(reel.shareCount)} shares`} data-testid={`button-share-reel-${reel.id}`}><ReelActionIcon name="share" /><span data-testid={`text-share-count-${reel.id}`}>{formatCount(reel.shareCount)}</span></button>
+      <button type="button" className="reel-action-button" onClick={() => onShare(reel)} aria-label={`Share, ${formatCount(reel.shareCount)} shares`} data-testid={`button-share-reel-${reel.id}`}><ReelActionIcon name="share" /><span data-testid={`text-share-count-${reel.id}`}>{formatCount(reel.shareCount)}</span></button>
     </div>
 
     <div className={`reel-meta ${searchSuggestion && !compact ? "has-search" : ""} ${compact ? "is-compact" : ""} ${navigationVisible ? "is-nav-visible" : ""}`}>
@@ -412,17 +455,19 @@ export function ReelSlide({ reel, index, active, near, muted, pageHidden, compac
       <ChevronRight size={17} aria-hidden="true" />
     </button>}
     {!slideshow && <input
+      ref={progressInput}
       className="reel-progress"
       type="range"
       min="0"
       max="100"
       step="0.1"
-      value={progress}
-      style={{ ["--reel-progress" as string]: `${progress}%` }}
+      defaultValue={0}
       onChange={(event) => seekVideo(event.currentTarget.value)}
       aria-label={`Video progress for ${reel.creatorName}'s Reel`}
-      aria-valuetext={`${Math.round(progress)}%`}
+      aria-valuetext={`${Math.round(progressValue.current)}%`}
       data-testid={`input-reel-progress-${reel.id}`}
     />}
   </section>;
-}
+});
+
+ReelSlide.displayName = "ReelSlide";
