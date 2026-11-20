@@ -29,8 +29,9 @@
       [
         "expo-image-picker",
         {
-          "cameraPermission": "Allow Myage to take a live selfie for face verification.",
-          "photosPermission": "Allow Myage to choose your profile photos."
+          "cameraPermission": "Allow Myage to record Reel videos.",
+          "microphonePermission": "Allow Myage to record sound for Reels.",
+          "photosPermission": "Allow Myage to choose Reel photos and videos."
         }
       ],
       "expo-secure-store",

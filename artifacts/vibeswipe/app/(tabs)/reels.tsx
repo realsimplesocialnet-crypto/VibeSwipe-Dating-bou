@@ -512,6 +512,24 @@ export default function NativeReelsScreen() {
 
   return (
     <View style={[styles.screen, { backgroundColor: colors.discoverBackground }]}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Post a Reel"
+        onPress={() => router.push("/reels/new" as never)}
+        style={[
+          styles.createReelButton,
+          {
+            top: insets.top + 10,
+            backgroundColor: colors.discoverControl,
+            borderColor: colors.discoverControlBorder,
+          },
+        ]}
+      >
+        <Feather name="plus" size={17} color={colors.discoverForeground} />
+        <Text style={[styles.createReelButtonText, { color: colors.discoverForeground }]}>
+          Post
+        </Text>
+      </Pressable>
       <FlatList
         testID="native-reels-feed"
         data={reels}
@@ -559,6 +577,20 @@ export default function NativeReelsScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
+  createReelButton: {
+    position: "absolute",
+    right: 16,
+    zIndex: 10,
+    minHeight: 40,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 12,
+    gap: 5,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: 20,
+  },
+  createReelButtonText: { fontSize: 13, fontWeight: "700" },
   card: { overflow: "hidden" },
   bottomShade: {
     ...StyleSheet.absoluteFill,
