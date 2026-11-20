@@ -7,7 +7,7 @@ The owner creates Android APKs with FreeWebToApk. Treat the APK as a WebView wra
 
 **Why:** The owner clarified that Replit Agent's job is only the website, not creating or maintaining the APK.
 
-**How to apply:** Never use Expo, build a native app, or create or replace an APK. The public root opens the VIBESWIPES welcome screen with Create Account and Login actions. Regular mobile browsers may show the Install App banner; Android WebViews and standalone PWAs must hide it. Public legal documents may remain on their own direct URLs.
+**How to apply:** Never use Expo, build a native app, or create or replace an APK. The public root opens the VIBESWIPES welcome screen with Create Account and Login actions, with no site-owned install button or banner. Keep the manifest, service worker, and browser-native Add to Home Screen path available. Public legal documents may remain on their own direct URLs.
 
 If the owner later asks to expose an APK download, serve the exact uploaded bytes and verify its size and hash; use the Android APK content type and `VIBESWIPES.apk` filename. Never mistake an `.apk.html` page for an installer.
 

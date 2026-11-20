@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { Bell, BellOff, LoaderCircle, X } from "lucide-react";
-import { InstallAction } from "./install-action";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   getGetWebPushConfigQueryKey,
@@ -226,7 +225,7 @@ export function WebPushSettings({ compact = false, visible = true, accountId = "
     return <section data-testid="message-notification-reminder" className="fixed inset-x-3 bottom-[calc(78px+env(safe-area-inset-bottom))] z-40 mx-auto max-w-md rounded-2xl border border-primary/25 bg-card p-3 text-foreground shadow-xl">
       <button aria-label="Dismiss notification reminder" onClick={() => { setDismissed(true); try { sessionStorage.setItem(`myage-push-reminder:${accountId}`, "dismissed"); } catch { /* Storage may be unavailable. */ } }} className="absolute right-2 top-2 rounded-full p-1 text-muted-foreground"><X size={16}/></button>
       <div className="flex items-center gap-3 pr-5"><Bell size={22} className="shrink-0 text-primary"/><div className="min-w-0 flex-1"><p className="text-sm font-bold">Get message notifications</p><p className="mt-0.5 text-xs text-muted-foreground">{iosNeedsHomeScreen ? "On iPhone, open VIBESWIPES from your Home Screen first." : "Receive alerts even when VIBESWIPES is closed."}</p></div></div>
-      {iosNeedsHomeScreen ? <div className="mt-2"><InstallAction compact/></div> : <button data-testid="button-enable-background-notifications" disabled={busy || !supported} onClick={() => void enablePush()} className="mt-2 flex min-h-10 w-full items-center justify-center gap-2 rounded-xl bg-primary px-3 text-sm font-bold text-primary-foreground disabled:opacity-50">{busy && <LoaderCircle size={15} className="animate-spin"/>}Enable notifications</button>}
+      {!iosNeedsHomeScreen && <button data-testid="button-enable-background-notifications" disabled={busy || !supported} onClick={() => void enablePush()} className="mt-2 flex min-h-10 w-full items-center justify-center gap-2 rounded-xl bg-primary px-3 text-sm font-bold text-primary-foreground disabled:opacity-50">{busy && <LoaderCircle size={15} className="animate-spin"/>}Enable notifications</button>}
       {!!status && <p role="status" className="mt-2 text-xs text-muted-foreground">{status}</p>}
     </section>;
   }

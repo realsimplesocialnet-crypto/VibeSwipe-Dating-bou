@@ -33,7 +33,6 @@ import {
 } from 'lucide-react';
 import NotFound from '@/pages/not-found';
 import { VerifiedBadge } from '@/components/verified-badge';
-import { InstallAction, MobileInstallBanner } from '@/components/install-action';
 import { InstalledWelcome } from '@/components/installed-welcome';
 import { MatchCelebration } from '@/components/match-celebration';
 import { MatchStoryAvatar, ProfileStoryAvatar, StoryCameraTrigger, StoryComposerPage } from '@/components/stories/stories-ui';
@@ -232,7 +231,6 @@ function AppShell({ children }: { children: ReactNode }) {
         <div className="mt-auto space-y-2 border-t border-white/[.08] pt-4">
           <Link href="/profile" data-testid="nav-profile" className={`flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold ${location === '/profile' ? 'bg-accent text-[#ff80b6]' : 'text-muted-foreground hover:bg-white/[.04]'}`}><UserRound size={18}/><span className="truncate">{activeName}</span></Link>
           <Link href={`/settings?returnTo=${encodeURIComponent(settingsReturnTo)}`} data-testid="nav-settings" className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-muted-foreground hover:bg-white/[.04]"><Settings size={18}/>Settings</Link>
-          <InstallAction className="px-1 pt-2"/>
         </div>
       </aside>}
     </>}
@@ -291,7 +289,6 @@ function Landing() {
         <p className="mt-6 max-w-[460px] text-[17px] leading-[1.7] text-[#c3b7c0]">Meet people who show up as themselves. Make a real connection, then let the conversation take its time.</p>
         <div className="mt-9 flex flex-col gap-3 sm:flex-row sm:items-center">
           <Link href="/sign-up" data-testid="button-start-meeting" className="inline-flex items-center justify-center gap-3 rounded-2xl bg-primary px-6 py-4 text-[15px] font-bold text-[#24111b] transition-colors hover:bg-[#ff68aa]">Find your person <ArrowRight size={17}/></Link>
-          <InstallAction/>
         </div>
       </div>
 
@@ -1247,6 +1244,5 @@ function ClerkRoutes(){const [,setLocation]=useLocation();return <ClerkProvider 
    <Route path="/safety-center" component={SafetyCenterRoute}/><Route path="/report-safety" component={ReportSafetyRoute}/><Route path="/safety/location" component={PublicLocationShareRoute}/>
   <Route path="/profile" component={ProfileRoute}/><Route path="/profile/edit" component={ProfileEditRoute}/><Route path="/profile/:profileId/followers" component={FollowersRoute}/><Route path="/profile/:profileId/following" component={FollowingRoute}/><Route path="/profile/:profileId/from-notifications" component={ViewedNotificationProfileRoute}/><Route path="/profile/:profileId" component={PublicProfileRoute}/><Route path="/verify-profile" component={FaceVerificationRoute}/><Route path="/settings" component={SettingsRoute}/><Route path="/settings/:section" component={SettingsSectionRoute}/><Route component={NotFound}/>
  </Switch></Suspense></ClerkProvider>}
-function ConsumerInstallBanner(){const [location]=useLocation();return location.startsWith('/admin')||location.startsWith('/reels')||location.startsWith('/sign-in')||location.startsWith('/sign-up')?null:<MobileInstallBanner/>}
-function App(){if(!clerkPubKey)throw new Error('Missing VITE_CLERK_PUBLISHABLE_KEY');return <QueryClientProvider client={queryClient}><WouterRouter base={basePath}><ConsumerInstallBanner/><ClerkRoutes/></WouterRouter></QueryClientProvider>}
+function App(){if(!clerkPubKey)throw new Error('Missing VITE_CLERK_PUBLISHABLE_KEY');return <QueryClientProvider client={queryClient}><WouterRouter base={basePath}><ClerkRoutes/></WouterRouter></QueryClientProvider>}
 export default App;

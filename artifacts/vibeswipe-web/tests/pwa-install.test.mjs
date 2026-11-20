@@ -171,13 +171,16 @@ test('unrelated installs, rejected checks and slow checks do not hide the websit
   assert.equal(store.getSnapshot().installed, false);
 });
 
-test('banner has a close button, persistent installed option and releases reserved height', () => {
-  const ui = readFileSync(new URL('../src/components/install-action.tsx', import.meta.url), 'utf8');
-  assert.match(ui, /onClick=\{store\.dismissBanner\} aria-label="Dismiss install banner"/);
-  assert.match(ui, /onClick=\{store\.confirmInstalled\}/);
-  assert.match(ui, /if \(hidden\) \{[^}]*removeProperty\('--install-banner-height'\)/s);
+test('native browser home-screen installation remains available without site install controls', () => {
   const manifest = JSON.parse(readFileSync(new URL('../public/manifest.json', import.meta.url), 'utf8'));
   assert.equal(manifest.related_applications[0].platform, 'webapp');
   assert.equal(manifest.related_applications[0].url, 'manifest.json?v=8');
   assert.equal(manifest.prefer_related_applications, false);
+  const app = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8');
+  const pushSettings = readFileSync(new URL('../src/components/WebPushSettings.tsx', import.meta.url), 'utf8');
+  assert.doesNotMatch(app, /InstallAction|MobileInstallBanner|ConsumerInstallBanner/);
+  assert.doesNotMatch(pushSettings, /InstallAction/);
+  const browserInstall = readFileSync(new URL('../public/pwa-install.js', import.meta.url), 'utf8');
+  assert.match(browserInstall, /beforeinstallprompt/);
+  assert.match(browserInstall, /event\.preventDefault\(\)/);
 });

@@ -21,7 +21,7 @@ test('a normal Safari or Chrome tab remains the website', () => {
   assert.equal(isStandaloneApp(browser('browser'), {}), false);
 });
 
-test('the install banner targets Android and iPhone browsers, not small desktop windows', () => {
+test('mobile browser detection distinguishes phones from small desktop windows', () => {
   assert.equal(isMobileBrowser({ userAgent: 'Mozilla/5.0 (Linux; Android 14) Chrome/130 Mobile' }), true);
   assert.equal(isMobileBrowser({ userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18) Safari/604.1' }), true);
   assert.equal(isMobileBrowser({ platform: 'MacIntel', maxTouchPoints: 5 }), true);
