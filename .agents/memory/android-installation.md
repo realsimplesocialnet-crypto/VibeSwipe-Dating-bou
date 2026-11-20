@@ -3,25 +3,13 @@ name: Installed-app experience
 description: Public installer-page behavior and Android WebView app detection.
 ---
 
-In ordinary browsers, `myage.beauty` shows the Myage logo, one short tagline, and one pink platform-specific action. Android visitors download the APK; iPhone visitors get Safari/Add to Home Screen instructions and an `/app` link. Do not expose legacy app routes from ordinary browser URLs.
+The owner creates Android APKs with FreeWebToApk. Treat the APK as a WebView wrapper that loads the live website at `myage.beauty`; website changes are how updates reach that installed wrapper.
 
-Inside the Android app's WebView, bypass the installer landing page and load the full VibeSwipe app from the same URL. Hide all install controls in that WebView. Detect it when the user agent contains `wv` or `window.Android` exists. The dedicated `/app` route is the iPhone PWA entry; standalone PWAs should also open the full app.
+**Why:** The owner clarified that Replit Agent's job is only the website, not creating or maintaining the APK.
 
-**Why:** The user specified one URL with two behaviors: normal browsers get the APK download page, while the APK opens the real app without asking users to install again.
+**How to apply:** Never use Expo, build a native app, or create or replace an APK. Keep the ordinary-browser root minimal, with the VIBESWIPES logo and one Install App button that downloads the owner's exact uploaded APK as `VIBESWIPES.apk`. Keep the full web app available inside the Android WebView at the same site URL, with no install button there. Public legal documents may remain on their own direct URLs.
 
-**How to apply:** Keep the root installer and `/app` PWA entry separate, while allowing Android WebViews to open the app at the root URL. Keep the full app entry available for standalone launches and hide install controls in app shells.
-
-The user wants the Android app to open “Without chrome”.
-
-**Why:** The installed app displayed Android’s “Myage requires the following app: Chrome” dialog, and the user rejected installing Chrome as the solution.
-
-**How to apply:** Do not insist on Chrome as the only option. Distinguish installing the website through another supporting browser from a standalone native Android APK. Website code cannot remove the host-browser dependency of an existing Chrome-owned install. Never claim an APK is available before one has actually been built.
-
-Users installed the Android app from the website, not from a supplied TWA APK. The user reported that the “requires Chrome” dialog also occurs when Chrome is already installed.
-
-**Why:** The user corrected the missing-Chrome diagnosis and confirmed website installation.
-
-**How to apply:** Treat the message as a host-browser/installed-launcher availability problem, not proof Chrome is absent. Browser-created WebAPK launcher checks run before website JavaScript; manifest changes, service workers, and a website recovery page cannot intercept that native dialog. Do not fabricate TWA package names or signing fingerprints. Explain when affected users must replace the installed launcher, warn about unsent drafts/sign-in, and never clear account or browser data automatically.
+When updating the landing-page download, serve the exact uploaded APK bytes. Verify its size and hash against the upload, use the Android APK content type and `VIBESWIPES.apk` filename, and do not mistake an `.apk.html` page for an installer.
 
 The app should show its usable shell and cached screen content promptly on launch; do not hold the whole app on a loading screen while remote data refreshes. Never bypass authentication or show another account's private data to achieve this.
 
