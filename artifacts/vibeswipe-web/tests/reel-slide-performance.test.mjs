@@ -21,8 +21,7 @@ test("web video Reels preload three protected posters and virtualize distant car
   assert.match(web, /preload=\{preload\}/);
   assert.match(web, /removeAttribute\("src"\)/);
   assert.match(web, /if \(!active \|\| pageHidden \|\| userPaused \|\| failed\) \{ element\.pause\(\)/);
-  assert.match(web, /playsInline muted=\{muted\} loop/);
-  assert.match(web, /reel-action-button reel-sound-button/);
+  assert.match(web, /playsInline muted=\{false\} loop/);
   assert.match(feed, /const REEL_PRELOAD_AHEAD = 3/);
   assert.match(feed, /const REEL_MOUNT_BEHIND = 1/);
   assert.match(feed, /reel-slide-placeholder/);
@@ -36,7 +35,7 @@ test("web video Reels preload three protected posters and virtualize distant car
   assert.match(feed, /posterEnabled=\{isActive \|\| preloadAhead\}/);
   assert.match(feed, /stableReelActions = useMemo/);
   assert.match(feed, /\{\.\.\.stableReelActions\}/);
-  assert.match(feed, /const \[muted, setMuted\] = useState\(true\)/);
+  assert.doesNotMatch(feed, /const \[muted, setMuted\]/);
   assert.match(feed, /onReelLike/);
   const timeUpdate = web.match(/onTimeUpdate=\{\(event\) => \{([\s\S]*?)\n      \}\}/)?.[1] ?? "";
   assert.match(timeUpdate, /updateProgress/);

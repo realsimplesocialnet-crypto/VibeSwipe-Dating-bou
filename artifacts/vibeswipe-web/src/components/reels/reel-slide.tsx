@@ -1,7 +1,7 @@
 import { memo, useEffect, useRef, useState, type TouchEvent as ReactTouchEvent } from "react";
 import { Link } from "wouter";
 import { getGetMediaPreviewQueryKey, useGetMediaPreview, type Reel } from "@workspace/api-client-react";
-import { ChevronRight, MapPin, Music2, Pause, Play, Search, Volume2, VolumeX } from "lucide-react";
+import { ChevronRight, MapPin, Music2, Pause, Play, Search } from "lucide-react";
 import { VerifiedBadge } from "@/components/verified-badge";
 import { ReelAvatar } from "@/components/reels/reel-avatar";
 import { formatCount, reelMediaUrl } from "@/lib/reels";
@@ -11,10 +11,9 @@ import { QuietSpinner } from "@/components/ui/quiet-spinner";
 
 type Props = {
   reel: Reel; index: number; active: boolean; near: boolean; posterEnabled: boolean;
-  preload: "auto" | "metadata"; muted: boolean; pageHidden: boolean;
+  preload: "auto" | "metadata"; pageHidden: boolean;
   compact: boolean; navigationVisible: boolean; returnTo: string;
   likePending: boolean; savePending: boolean;
-  onAutoplayMuted: () => void; onToggleSound: () => void;
   onLike: (reel: Reel) => void; onComment: (reelId: string) => void;
   onShare: (reel: Reel) => void; onSave: (reel: Reel) => void;
   onSearchSuggestion: (query: string) => void;
@@ -43,14 +42,13 @@ function ReelActionIcon({ name }: { name: ReelIconName }) {
   </svg>;
 }
 
-export const ReelSlide = memo(function ReelSlide({ reel, index, active, near, posterEnabled, preload, muted, pageHidden, compact, navigationVisible, returnTo, likePending, savePending, onAutoplayMuted, onToggleSound, onLike, onComment, onShare, onSave, onSearchSuggestion, onView, offlineSaved, onAutoCache, onNavigateFeed }: Props) {
+export const ReelSlide = memo(function ReelSlide({ reel, index, active, near, posterEnabled, preload, pageHidden, compact, navigationVisible, returnTo, likePending, savePending, onLike, onComment, onShare, onSave, onSearchSuggestion, onView, offlineSaved, onAutoCache, onNavigateFeed }: Props) {
   const video = useRef<HTMLVideoElement>(null);
   const progressInput = useRef<HTMLInputElement>(null);
   const soundtrackAudio = useRef<HTMLAudioElement>(null);
   const autoCacheRequested = useRef(false);
   const viewRecorded = useRef(false);
   const flashTimer = useRef<number | null>(null);
-  const lastVideoTap = useRef<{ at: number; wasPlaying: boolean } | null>(null);
   const mediaTouch = useRef<{ x: number; y: number; axis: "undecided" | "horizontal" | "vertical" } | null>(null);
   const skipNextTap = useRef(false);
   const [slideIndex, setSlideIndex] = useState(0);
@@ -76,7 +74,7 @@ export const ReelSlide = memo(function ReelSlide({ reel, index, active, near, po
   const [blocked, setBlocked] = useState(false);
   const [failed, setFailed] = useState(false);
   const [ready, setReady] = useState(false);
-  const [flash, setFlash] = useState<"play" | "pause" | "sound-on" | "sound-off" | null>(null);
+  const [flash, setFlash] = useState<"play" | "pause" | null>(null);
   const progressValue = useRef(0);
 
   useEffect(() => {
@@ -116,47 +114,26 @@ export const ReelSlide = memo(function ReelSlide({ reel, index, active, near, po
   useEffect(() => { if (!active) setUserPaused(false); }, [active]);
   useEffect(() => { updateProgress(0); setSlideIndex(0); setSlideDragOffset(0); setDraggingSlide(false); setReady(false); setCaptionExpanded(false); }, [reel.id]);
   useEffect(() => () => { if (flashTimer.current !== null) window.clearTimeout(flashTimer.current); }, []);
-  useEffect(() => { if (video.current) video.current.muted = muted; }, [muted]);
   useEffect(() => {
     const audio = soundtrackAudio.current;
     if (!audio) return;
-    if (!reel.soundtrack || !active || pageHidden || userPaused || failed || blocked || muted) {
+    if (!reel.soundtrack || !active || pageHidden || userPaused || failed || blocked) {
       audio.pause();
       if (!active || pageHidden) audio.currentTime = 0;
       return;
     }
     if (audio.paused) void audio.play().catch(() => undefined);
-  }, [active, pageHidden, userPaused, failed, blocked, muted, reel.soundtrack?.id]);
+  }, [active, pageHidden, userPaused, failed, blocked, reel.soundtrack?.id]);
   useEffect(() => {
     const element = video.current;
     if (!element) return;
     if (!active || pageHidden || userPaused || failed) { element.pause(); soundtrackAudio.current?.pause(); return; }
-    element.muted = muted;
+    element.muted = false;
     const attempt = element.play();
     if (attempt) attempt.then(() => setBlocked(false)).catch((error: unknown) => {
       const name = (error as { name?: string }).name;
-      if (name === "AbortError") return;
-      if (name === "NotAllowedError" && !muted) {
-        // iPhone permits inline autoplay when muted. Double-tap can request
-        // sound without an always-visible volume button.
-        element.muted = true;
-        const mutedAttempt = element.play();
-        if (mutedAttempt) {
-          mutedAttempt.then(() => {
-            setBlocked(false);
-            onAutoplayMuted();
-          }).catch((mutedError: unknown) => {
-            if ((mutedError as { name?: string }).name !== "AbortError") setBlocked(true);
-          });
-        } else {
-          setBlocked(false);
-          onAutoplayMuted();
-        }
-        return;
-      }
-      setBlocked(true);
+      if (name !== "AbortError") setBlocked(true);
     });
-    // muted is applied separately so toggling sound never restarts playback.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active, pageHidden, userPaused, failed, near]);
 
@@ -164,20 +141,31 @@ export const ReelSlide = memo(function ReelSlide({ reel, index, active, near, po
     const element = video.current;
     if ((!element && !slideshow) || failed) return;
     if (slideshow) {
-      if (reel.soundtrack) toggleSound();
+      if (!reel.soundtrack) return;
+      if (userPaused || blocked) {
+        setUserPaused(false);
+        setBlocked(false);
+        const audio = soundtrackAudio.current;
+        if (audio) void audio.play().then(() => setBlocked(false)).catch(() => setBlocked(true));
+        showFlash("play");
+      } else {
+        setUserPaused(true);
+        soundtrackAudio.current?.pause();
+        showFlash("pause");
+      }
       return;
     }
     if (!element) return;
     if (blocked || element.paused) {
       setUserPaused(false);
-      element.muted = muted;
+      setBlocked(false);
+      element.muted = false;
       void element.play().then(() => setBlocked(false)).catch((error: unknown) => {
-        const name = (error as { name?: string }).name;
-        if (name === "NotAllowedError" && !muted) {
-          element.muted = true;
-          void element.play().then(() => { setBlocked(false); onAutoplayMuted(); }).catch(() => setBlocked(true));
-        } else if (name !== "AbortError") setBlocked(true);
+        if ((error as { name?: string }).name !== "AbortError") setBlocked(true);
       });
+      if (reel.soundtrack && soundtrackAudio.current) {
+        void soundtrackAudio.current.play().catch(() => undefined);
+      }
       showFlash("play");
     } else {
       setUserPaused(true);
@@ -187,53 +175,13 @@ export const ReelSlide = memo(function ReelSlide({ reel, index, active, near, po
     }
   }
 
-  function showFlash(next: "play" | "pause" | "sound-on" | "sound-off") {
+  function showFlash(next: "play" | "pause") {
     setFlash(next);
     if (flashTimer.current !== null) window.clearTimeout(flashTimer.current);
     flashTimer.current = window.setTimeout(() => { flashTimer.current = null; setFlash(null); }, 520);
   }
 
-  function toggleSound() {
-    const audio = soundtrackAudio.current;
-    if (audio && reel.soundtrack) {
-      if (muted && active && !pageHidden && !userPaused && !blocked) {
-        void audio.play().catch(() => undefined);
-      } else {
-        audio.pause();
-      }
-    }
-    onToggleSound();
-    showFlash(muted ? "sound-on" : "sound-off");
-  }
-
   function handleVideoTap() {
-    if (slideshow) {
-      togglePlayback();
-      return;
-    }
-    const now = performance.now();
-    const previousTap = lastVideoTap.current;
-    if (previousTap && now - previousTap.at < 300) {
-      lastVideoTap.current = null;
-      const element = video.current;
-      if (previousTap.wasPlaying && element) {
-        setUserPaused(false);
-        element.muted = muted;
-        const attempt = element.play();
-        if (attempt) void attempt.then(() => setBlocked(false)).catch(() => setBlocked(true));
-      } else {
-        setUserPaused(true);
-        element?.pause();
-      }
-      toggleSound();
-      return;
-    }
-
-    const element = video.current;
-    lastVideoTap.current = {
-      at: now,
-      wasPlaying: Boolean(element && !element.paused && !blocked && !userPaused),
-    };
     togglePlayback();
   }
 
@@ -338,8 +286,8 @@ export const ReelSlide = memo(function ReelSlide({ reel, index, active, near, po
   const src = reelMediaUrl(reel.videoReference);
   const paused = userPaused || blocked;
   const tapLabel = slideshow
-    ? `Photo slideshow, ${slideIndex + 1} of ${slideCount}. Swipe left or right to browse; swipe up for the next Reel or down for the previous Reel.${reel.soundtrack ? ` Tap to ${muted ? "play" : "mute"} the soundtrack.` : ""}`
-    : `${userPaused || blocked ? "Play" : "Pause"} Reel. Use the sound button to ${muted ? "hear the video" : "mute it"}.`;
+    ? `Photo slideshow, ${slideIndex + 1} of ${slideCount}. Swipe left or right to browse; swipe up for the next Reel or down for the previous Reel.${reel.soundtrack ? " Tap to play or pause the soundtrack." : ""}`
+    : `${userPaused || blocked ? "Tap to play" : "Tap to pause"} Reel. Video audio plays automatically.`;
   const reelReturnParams = new URLSearchParams({ returnTo });
   const creatorProfileReturn = `/reels/${encodeURIComponent(reel.id)}?${reelReturnParams.toString()}`;
   const creatorProfileHref = `/profile/${encodeURIComponent(reel.creatorId)}?returnTo=${encodeURIComponent(creatorProfileReturn)}`;
@@ -379,7 +327,7 @@ export const ReelSlide = memo(function ReelSlide({ reel, index, active, near, po
       src={reel.mediaType === "video" && (active || near) ? src : undefined}
       poster={posterUrl || undefined}
       className="reel-video"
-      playsInline muted={muted} loop
+      playsInline muted={false} loop
       preload={preload}
       onLoadedData={() => setReady(true)}
       onError={() => { if (near) setFailed(true); }}
@@ -410,26 +358,15 @@ export const ReelSlide = memo(function ReelSlide({ reel, index, active, near, po
       data-testid={`audio-reel-soundtrack-${reel.id}`}
     /> : null}
     {!slideshow && !ready && !posterUrl && !failed && <div className="reel-loading" aria-hidden="true" />}
+    {blocked && active && !pageHidden && !failed && <div className="reel-autoplay-prompt" role="status">Tap the video to play with sound</div>}
     <button type="button" className={`reel-tap ${slideshow ? "is-slideshow" : ""}`} onTouchStart={startMediaTouch} onTouchMove={moveMediaTouch} onTouchEnd={finishMediaTouch} onTouchCancel={cancelMediaTouch} onClick={() => { if (skipNextTap.current) { skipNextTap.current = false; return; } handleVideoTap(); }} aria-label={tapLabel} aria-pressed={!slideshow && !userPaused && !blocked} data-testid={`button-toggle-reel-playback-${reel.id}`} />
     {slideshow && <div className="reel-slide-counter" aria-live="polite" data-testid={`text-reel-slide-count-${reel.id}`}>{slideIndex + 1}/{slideCount}</div>}
     {slideshow && <div className="reel-slide-dots" role="group" aria-label="Choose photo slide">{reel.slideReferences.map((_, slide) => <button key={slide} type="button" onClick={() => moveSlideTo(slide)} aria-label={`Show photo ${slide + 1}`} aria-current={slide === slideIndex ? "step" : undefined} data-testid={`button-reel-slide-${reel.id}-${slide + 1}`} />)}</div>}
-    {flash && <span className="reel-flash" aria-hidden="true">{flash === "play" ? <Play size={34} fill="currentColor" /> : flash === "pause" ? <Pause size={34} fill="currentColor" /> : flash === "sound-on" ? <Volume2 size={34} /> : <VolumeX size={34} />}</span>}
+    {flash && <span className="reel-flash" aria-hidden="true">{flash === "play" ? <Play size={34} fill="currentColor" /> : <Pause size={34} fill="currentColor" />}</span>}
     {failed && <div className="reel-blocked" role="status" aria-label="Loading video"><QuietSpinner onRetry={retry} /></div>}
     <div className="reel-shade" aria-hidden="true" />
 
     <div className={`reel-rail ${compact ? "is-compact" : ""} ${navigationVisible ? "is-nav-visible" : ""} ${searchSuggestion && !compact ? "has-search" : ""}`}>
-      {(!slideshow || reel.soundtrack) && <button
-        type="button"
-        className="reel-action-button reel-sound-button"
-        onClick={toggleSound}
-        aria-label={muted ? "Turn voice and sound on" : "Mute voice and sound"}
-        aria-pressed={!muted}
-        title={muted ? "Turn voice and sound on" : "Mute voice and sound"}
-        data-testid={`button-toggle-reel-sound-${reel.id}`}
-      >
-        {muted ? <VolumeX size={30} /> : <Volume2 size={30} />}
-        <span>{muted ? "Sound off" : "Sound on"}</span>
-      </button>}
       <button type="button" className={`reel-action-button ${reel.likedByMe ? "is-on" : ""}`} onClick={() => onLike(reel)} disabled={likePending} aria-pressed={reel.likedByMe} aria-label={reel.likedByMe ? "Unlike" : "Like"} data-testid={`button-like-reel-${reel.id}`}>
         <ReelActionIcon name="like" /><span data-testid={`text-like-count-${reel.id}`}>{formatCount(reel.likeCount)}</span>
       </button>

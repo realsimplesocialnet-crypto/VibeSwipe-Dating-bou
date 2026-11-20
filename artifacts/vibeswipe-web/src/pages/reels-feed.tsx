@@ -120,7 +120,6 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
   const [activeVisibleReelId, setActiveVisibleReelId] = useState<string | null>(null);
   const activeRef = useRef(0);
   activeRef.current = active;
-  const [muted, setMuted] = useState(true);
   const initialSearch = new URLSearchParams(window.location.search).get("q") ?? "";
   const [searchOpen, setSearchOpen] = useState(Boolean(initialSearch));
   const [searchText, setSearchText] = useState(initialSearch);
@@ -140,8 +139,6 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
   const [offlineSavingIds, setOfflineSavingIds] = useState<Set<string>>(() => new Set());
   const [offline, setOffline] = useState(!navigator.onLine);
   const reelActionHandlers = useRef<ReelActionHandlers | null>(null);
-  const onAutoplayMuted = useCallback(() => setMuted(true), []);
-  const onToggleSound = useCallback(() => setMuted((value) => !value), []);
   const onShareReel = useCallback((reel: Reel) => setShareFor(reel), []);
   const navigationVisible = !commentsFor && !searchOpen && !viewport.keyboardOpen;
   useEffect(() => {
@@ -514,8 +511,6 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
     setSearchOpen(true);
   }, []);
   const stableReelActions = useMemo(() => ({
-    onAutoplayMuted,
-    onToggleSound,
     onLike: onReelLike,
     onComment: openComments,
     onShare: onShareReel,
@@ -525,7 +520,7 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
     onAutoCache: onReelAutoCache,
     onNavigateFeed: go,
   }), [
-    onAutoplayMuted, onToggleSound, onReelLike, openComments, onShareReel,
+    onReelLike, openComments, onShareReel,
     onReelSave, openSearch, onReelView, onReelAutoCache, go,
   ]);
   function openSearchResult(reel: Reel) {
@@ -572,7 +567,6 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
               near={preloadAhead}
               posterEnabled={isActive || preloadAhead}
               preload={shouldPreloadAuto ? "auto" : "metadata"}
-              muted={muted}
               pageHidden={pageHidden}
               compact={commentsFor === reel.id}
               navigationVisible={navigationVisible}
