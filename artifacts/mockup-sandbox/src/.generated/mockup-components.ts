@@ -4,10 +4,10 @@ export const modules: ModuleMap = {
   "./components/mockups/admin-suspension/Confirmation.tsx": () => import("../components/mockups/admin-suspension/Confirmation.tsx"),
   "./components/mockups/admin-suspension/SuspendedMember.tsx": () => import("../components/mockups/admin-suspension/SuspendedMember.tsx"),
   "./components/mockups/member-search/MemberSearch.tsx": () => import("../components/mockups/member-search/MemberSearch.tsx"),
-  "./components/mockups/myage-profile/Current.tsx": () => import("../components/mockups/myage-profile/Current.tsx"),
-  "./components/mockups/myage-profile/Refined.tsx": () => import("../components/mockups/myage-profile/Refined.tsx"),
   "./components/mockups/vibeswipe-discover/Current.tsx": () => import("../components/mockups/vibeswipe-discover/Current.tsx"),
   "./components/mockups/vibeswipe-discover/DiscoverRedesign.tsx": () => import("../components/mockups/vibeswipe-discover/DiscoverRedesign.tsx"),
+  "./components/mockups/myage-profile/Current.tsx": () => import("../components/mockups/myage-profile/Current.tsx"),
+  "./components/mockups/myage-profile/Refined.tsx": () => import("../components/mockups/myage-profile/Refined.tsx"),
   "./components/mockups/vibeswipe-landing/Current.tsx": () => import("../components/mockups/vibeswipe-landing/Current.tsx"),
   "./components/mockups/vibeswipe-landing/Premium.tsx": () => import("../components/mockups/vibeswipe-landing/Premium.tsx")
 };
