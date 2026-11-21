@@ -13,11 +13,22 @@ test("web email sign-in keeps Clerk's email flow while omitting social buttons a
   assert.match(app, /<SignIn routing="path" path=\{pathFor\('\/sign-in'\)\} signUpUrl=\{pathFor\('\/sign-up'\)\}/);
 });
 test("login branding stays in normal flow below the safe area, not over the iPhone clock", () => {
-  const route = app.slice(app.indexOf('<Route path="/sign-in/*?">'), app.indexOf('<Route path="/sign-up/*?"'));
+  const route = app.slice(app.indexOf("function SignInRoute()"), app.indexOf("function App()"));
   assert.match(route, /auth-sign-in/);
   assert.match(route, /data-testid="header-sign-in-brand"><Brand\/><\/header>/);
   assert.doesNotMatch(route, /fixed|top-6/);
   assert.match(css, /\.auth-sign-in \{[^}]*padding-top:calc\(env\(safe-area-inset-top,0px\) \+ 16px\);[^}]*safe-area-inset-bottom/s);
+});
+test("Clerk state classes gate the actual sign-in and app screens", () => {
+  const sync = app.slice(app.indexOf("function ClerkAuthStateSync"), app.indexOf("function ProfileNavigationPrefetcher"));
+  const signIn = app.slice(app.indexOf("function SignInRoute()"), app.indexOf("function App()"));
+  assert.match(sync, /useUser\(\)/);
+  assert.match(sync, /classList\.toggle\('is-authed'/);
+  assert.match(sync, /classList\.toggle\('is-guest'/);
+  assert.doesNotMatch(sync, /localStorage|sessionStorage|auth_token/);
+  assert.match(signIn, /if\(isSignedIn\)return <Redirect to="\/discover"\/>/);
+  assert.match(css, /html\.is-authed \.auth-sign-in/);
+  assert.match(css, /html\.is-guest \.app-shell/);
 });
 test("mobile sign-in retains email/password, account creation and safe-area spacing without Google", () => {
   assert.doesNotMatch(native, /useSSO|oauth_google|Continue with Google|google-sign-in|googleSignIn/);

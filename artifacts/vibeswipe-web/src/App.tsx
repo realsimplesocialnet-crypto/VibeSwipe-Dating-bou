@@ -1229,6 +1229,16 @@ function SettingsThemeSync() {
 }
 function postOfflineProfileCacheMessage(message:{type:string;userId?:string}){if(!('serviceWorker'in navigator))return;const controller=navigator.serviceWorker.controller;if(controller){controller.postMessage(message);return}void navigator.serviceWorker.ready.then(registration=>(registration.active??navigator.serviceWorker.controller)?.postMessage(message)).catch(()=>{})}
 function ClerkCacheSync(){const {user,isLoaded}=useUser();const client=useQueryClient();const previous=useRef<string|null|undefined>(undefined);useLayoutEffect(()=>{if(!isLoaded)return;const id=user?.id??null;const changed=previous.current!==undefined&&previous.current!==id;if(changed){client.clear();clearCachedMyProfile(previous.current)}if(changed||!id)postOfflineProfileCacheMessage({type:'myage:clear-profile-cache'});if(id)postOfflineProfileCacheMessage({type:'myage:set-profile-cache-user',userId:id});previous.current=id},[user?.id,isLoaded,client]);return null}
+function ClerkAuthStateSync(){
+  const {isLoaded,isSignedIn}=useUser();
+  useLayoutEffect(()=>{
+    const root=document.documentElement;
+    root.classList.toggle('is-authed',Boolean(isLoaded&&isSignedIn));
+    root.classList.toggle('is-guest',Boolean(isLoaded&&!isSignedIn));
+    return()=>{root.classList.remove('is-authed','is-guest')};
+  },[isLoaded,isSignedIn]);
+  return null;
+}
 function ProfileNavigationPrefetcher(){
   const {user}=useUser();
   const client=useQueryClient();
@@ -1263,7 +1273,7 @@ function ClerkRoutes(){const [,setLocation]=useLocation();return <ClerkProvider 
   <Route path="/" component={HomeRedirect}/>
   <Route path="/welcome" component={WelcomeRoute}/>
   <Route path="/admin" component={AdminPage}/><Route path="/admin/:section" component={AdminPage}/>
-  <Route path="/sign-in/*?"><div className="auth-sign-in grain flex min-h-[100dvh] flex-col bg-background px-4"><header className="mb-6 shrink-0 px-2" data-testid="header-sign-in-brand"><Brand/></header><main className="flex w-full flex-1 flex-col items-center justify-center"><SignIn routing="path" path={pathFor('/sign-in')} signUpUrl={pathFor('/sign-up')}/><p className="mt-5 text-center text-xs text-muted-foreground"><Link href="/privacy-policy" className="hover:text-primary">Privacy Policy</Link><span className="px-2">·</span><Link href="/terms" className="hover:text-primary">Terms of Service</Link></p></main></div></Route>
+   <Route path="/sign-in/*?"><SignInRoute/></Route>
   <Route path="/sign-up/*?" component={BrandedSignUp}/>
   {import.meta.env.DEV&&<Route path="/create-account-preview"><div className="border-b border-primary/20 bg-accent px-5 py-3 text-center text-xs leading-5 text-foreground" role="note">Form preview only. Email-code signup still needs the authentication setting changed.</div><ProfileFirstSignup previewOnly/></Route>}
   <Route path="/onboarding" component={OnboardingRoute}/><Route path="/discover" component={DiscoverRoute}/><Route path="/search" component={SearchRoute}/><Route path="/stories/camera" component={StoryCameraRoute}/><Route path="/stories/new" component={StoryComposerRoute}/><Route path="/reels" component={ReelsRoute}/><Route path="/reels/new" component={ReelComposerRoute}/><Route path="/reels/saved" component={ReelsLibraryRoute}/><Route path="/reels/:reelId" component={ReelRoute}/><Route path="/matches" component={MatchesRoute}/>
@@ -1271,6 +1281,12 @@ function ClerkRoutes(){const [,setLocation]=useLocation();return <ClerkProvider 
    <Route path="/privacy-policy" component={PrivacyPolicyRoute}/><Route path="/terms" component={TermsRoute}/><Route path="/community-guidelines" component={CommunityGuidelinesRoute}/>
    <Route path="/safety-center" component={SafetyCenterRoute}/><Route path="/report-safety" component={ReportSafetyRoute}/><Route path="/safety/location" component={PublicLocationShareRoute}/>
   <Route path="/profile" component={ProfileRoute}/><Route path="/profile/edit" component={ProfileEditRoute}/><Route path="/profile/:profileId/followers" component={FollowersRoute}/><Route path="/profile/:profileId/following" component={FollowingRoute}/><Route path="/profile/:profileId/from-notifications" component={ViewedNotificationProfileRoute}/><Route path="/profile/:profileId" component={PublicProfileRoute}/><Route path="/verify-profile" component={FaceVerificationRoute}/><Route path="/settings" component={SettingsRoute}/><Route path="/settings/:section" component={SettingsSectionRoute}/><Route component={NotFound}/>
- </Switch></Suspense></ClerkProvider>}
+  </Switch></Suspense><ClerkAuthStateSync/></ClerkProvider>}
+function SignInRoute(){
+  const {isLoaded,isSignedIn}=useUser();
+  if(!isLoaded)return <AppOpening/>;
+  if(isSignedIn)return <Redirect to="/discover"/>;
+  return <div className="auth-sign-in grain flex min-h-[100dvh] flex-col bg-background px-4"><header className="mb-6 shrink-0 px-2" data-testid="header-sign-in-brand"><Brand/></header><main className="flex w-full flex-1 flex-col items-center justify-center"><SignIn routing="path" path={pathFor('/sign-in')} signUpUrl={pathFor('/sign-up')}/><p className="mt-5 text-center text-xs text-muted-foreground"><Link href="/privacy-policy" className="hover:text-primary">Privacy Policy</Link><span className="px-2">·</span><Link href="/terms" className="hover:text-primary">Terms of Service</Link></p></main></div>;
+}
 function App(){if(!clerkPubKey)throw new Error('Missing VITE_CLERK_PUBLISHABLE_KEY');return <QueryClientProvider client={queryClient}><WouterRouter base={basePath}><ClerkRoutes/></WouterRouter></QueryClientProvider>}
 export default App;
