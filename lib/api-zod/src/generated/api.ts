@@ -2136,7 +2136,7 @@ export const getNotificationsResponseUnreadCountsFollowsMin = 0;
 export const GetNotificationsResponse = zod.object({
   "notifications": zod.array(zod.object({
   "id": zod.uuid(),
-  "type": zod.enum(['new_match', 'new_message', 'new_like', 'new_super_like', 'new_follow', 'profile_view', 'reel_like', 'reel_comment_reply', 'referral_joined']),
+  "type": zod.enum(['new_match', 'new_message', 'new_like', 'new_super_like', 'new_follow', 'profile_view', 'reel_like', 'reel_comment_reply', 'reel_comment_like', 'referral_joined']),
   "actor": zod.object({
   "id": zod.string(),
   "name": zod.string(),

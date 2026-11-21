@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { runInNewContext } from "node:vm";
-import { buildReelCommentReplyPushPayload, buildReelLikePushPayload } from "../src/lib/vibeswipePushPayload.ts";
+import { buildReelCommentLikePushPayload, buildReelCommentReplyPushPayload, buildReelLikePushPayload } from "../src/lib/vibeswipePushPayload.ts";
 
 const source = (path: string) => readFileSync(new URL(`../../../${path}`, import.meta.url), "utf8");
 
@@ -21,6 +21,32 @@ test("Reel comment reply alert opens the exact reply", () => {
   assert.equal(payload.body, "Jojo replied to your comment");
   assert.equal(payload.data.type, "reel_comment_reply");
   assert.equal(payload.data.url, "reels/reel-123?commentId=comment-456&returnTo=%2Fnotifications");
+});
+
+test("Reel comment like alert opens the exact comment", () => {
+  const payload = buildReelCommentLikePushPayload(" Jojo ", "reel-123", "comment-456");
+  assert.equal(payload.title, "New like on your comment");
+  assert.equal(payload.body, "Jojo liked your comment");
+  assert.equal(payload.data.type, "reel_comment_like");
+  assert.equal(payload.data.url, "reels/reel-123?commentId=comment-456&returnTo=%2Fnotifications");
+});
+
+test("comment likes create one preference-aware notice for another person only", () => {
+  const route = source("artifacts/api-server/src/routes/vibeswipe-reels.ts");
+  const schema = source("artifacts/api-server/src/lib/reels-schema.ts");
+  const realtime = source("artifacts/api-server/src/routes/vibeswipe-realtime.ts");
+  const openapi = source("lib/api-spec/openapi.yaml");
+  assert.match(route, /body\.data\.reaction !== "like" \|\| previousReaction\?\.reaction === "like" \|\| comment\.authorId === userId/);
+  assert.match(route, /recipient\.notifyLikes \?\? recipient\.notifyMatches/);
+  assert.match(route, /type: "reel_comment_like",\s*reelId: reel\.id,\s*commentId: comment\.id/);
+  assert.match(route, /sendReelCommentLikePush/);
+  assert.match(schema, /CREATE UNIQUE INDEX.*recipient_id, actor_id, comment_id.*type = 'reel_comment_like'/);
+  assert.match(realtime, /notification\.type === "reel_comment_like"/);
+  assert.match(openapi, /reel_comment_like/);
+  const activity = source("artifacts/vibeswipe-web/src/components/social-hub.tsx");
+  assert.match(activity, /n\.type === 'reel_comment_like'/);
+  assert.match(activity, /liked your comment/);
+  assert.match(activity, /params\.set\('commentId', n\.commentId\)/);
 });
 
 test("likes and notices are atomic, deduplicated, preference-aware, and never sent to self", () => {
@@ -87,15 +113,25 @@ test("background worker displays a distinct Reel alert without replacing message
   assert.equal(shown[1].title, "New reply to your comment");
   assert.equal(shown[1].options.tag, "reel-comment-reply-comment1");
   assert.equal(shown[1].options.data.url, "reels/reel1?commentId=comment1&returnTo=%2Fnotifications");
+  handlers.get("push")({
+    data: { json: () => buildReelCommentLikePushPayload("Jojo", "reel1", "comment1") },
+    waitUntil: (promise: Promise<unknown>) => { work = promise; },
+  });
+  await work;
+  assert.equal(shown[2].title, "New like on your comment");
+  assert.equal(shown[2].options.tag, "reel-comment-like-comment1");
+  assert.equal(shown[2].options.data.url, "reels/reel1?commentId=comment1&returnTo=%2Fnotifications");
 });
 
-test("Activity shows Reel likes in the actual web and native screens", () => {
-  for (const file of ["artifacts/vibeswipe-web/src/components/social-hub.tsx", "artifacts/vibeswipe/components/SocialHub.tsx"]) {
-    const screen = source(file);
-    assert.match(screen, /reel-like-notice-/);
-    assert.match(screen, /liked your video/);
-    assert.match(screen, /mark\.mutateAsync\(\{ notificationId: n\.id \}\)/);
-  }
+test("web Activity lists Reel and comment notifications with direct comment links", () => {
+  const screen = source("artifacts/vibeswipe-web/src/components/social-hub.tsx");
+  assert.match(screen, /n\.type === 'reel_like'/);
+  assert.match(screen, /n\.type === 'reel_comment_reply'/);
+  assert.match(screen, /n\.type === 'reel_comment_like'/);
+  assert.match(screen, /liked your video/);
+  assert.match(screen, /liked your comment/);
+  assert.match(screen, /params\.set\('commentId', n\.commentId\)/);
+  assert.match(screen, /mark\.mutateAsync\(\{ notificationId: n\.id \}\)/);
 });
 
 test("Reel comments support profile links, replies, and reply notifications", () => {

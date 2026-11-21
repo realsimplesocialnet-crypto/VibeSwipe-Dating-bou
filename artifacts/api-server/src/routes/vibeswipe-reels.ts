@@ -27,7 +27,7 @@ import { ObjectNotFoundError, ObjectStorageService } from "../lib/objectStorage"
 import { ProfileVideoValidationError, transcodeReelVideo } from "../lib/profileVideoTranscoder";
 import { processSafeReel, processSafeReelImage, reelIsApproved } from "../lib/reel-safety";
 import { ReelSafetyError } from "../lib/reel-safety-policy";
-import { sendReelCommentReplyPush, sendReelLikePush } from "../lib/vibeswipePush";
+import { sendReelCommentLikePush, sendReelCommentReplyPush, sendReelLikePush } from "../lib/vibeswipePush";
 import { canCommentOnReel, canViewLikedVideos, canViewUserProfile } from "../lib/profile-privacy";
 import { getReelSoundtrack, REEL_MUSIC_CATALOG } from "../lib/reel-music-catalog";
 
@@ -727,7 +727,7 @@ router.put("/vibeswipe/reels/:reelId/comments/:commentId/reaction", async (req, 
   const userId = uid(req);
   const reel = await findVisibleReel(userId, params.data.reelId);
   if (!reel) { res.status(404).json({ error: "This Reel is no longer available." }); return; }
-  const [comment] = await db.select({ id: reelCommentsTable.id }).from(reelCommentsTable)
+  const [comment] = await db.select({ id: reelCommentsTable.id, authorId: reelCommentsTable.userId }).from(reelCommentsTable)
     .innerJoin(profilesTable, eq(profilesTable.id, reelCommentsTable.userId))
     .where(and(
       eq(reelCommentsTable.id, params.data.commentId),
@@ -738,20 +738,54 @@ router.put("/vibeswipe/reels/:reelId/comments/:commentId/reaction", async (req, 
     )).limit(1);
   if (!comment) { res.status(404).json({ error: "Comment not found." }); return; }
 
-  if (body.data.reaction === null) {
-    await db.delete(reelCommentReactionsTable).where(and(
-      eq(reelCommentReactionsTable.commentId, comment.id),
-      eq(reelCommentReactionsTable.userId, userId),
-    ));
-  } else {
-    await db.insert(reelCommentReactionsTable).values({
+  const notifyCommentLike = await db.transaction(async tx => {
+    const [previousReaction] = await tx.select({ reaction: reelCommentReactionsTable.reaction })
+      .from(reelCommentReactionsTable)
+      .where(and(
+        eq(reelCommentReactionsTable.commentId, comment.id),
+        eq(reelCommentReactionsTable.userId, userId),
+      )).limit(1);
+
+    if (body.data.reaction === null) {
+      await tx.delete(reelCommentReactionsTable).where(and(
+        eq(reelCommentReactionsTable.commentId, comment.id),
+        eq(reelCommentReactionsTable.userId, userId),
+      ));
+    } else {
+      await tx.insert(reelCommentReactionsTable).values({
+        commentId: comment.id,
+        userId,
+        reaction: body.data.reaction,
+      }).onConflictDoUpdate({
+        target: [reelCommentReactionsTable.commentId, reelCommentReactionsTable.userId],
+        set: { reaction: body.data.reaction, createdAt: new Date() },
+      });
+    }
+
+    if (body.data.reaction !== "like" || previousReaction?.reaction === "like" || comment.authorId === userId) return false;
+    const [recipient] = await tx.select({
+      notifyLikes: profilesTable.notifyLikes,
+      notifyMatches: profilesTable.notifyMatches,
+    }).from(profilesTable).where(eq(profilesTable.id, comment.authorId)).limit(1);
+    if (!recipient || !(recipient.notifyLikes ?? recipient.notifyMatches)) return false;
+    const [notification] = await tx.insert(vibeSwipeNotificationsTable).values({
+      recipientId: comment.authorId,
+      actorId: userId,
+      type: "reel_comment_like",
+      reelId: reel.id,
       commentId: comment.id,
-      userId,
-      reaction: body.data.reaction,
-    }).onConflictDoUpdate({
-      target: [reelCommentReactionsTable.commentId, reelCommentReactionsTable.userId],
-      set: { reaction: body.data.reaction, createdAt: new Date() },
-    });
+    }).onConflictDoNothing().returning({ id: vibeSwipeNotificationsTable.id });
+    return Boolean(notification);
+  });
+
+  if (notifyCommentLike) {
+    const [actor] = await db.select({ name: profilesTable.name }).from(profilesTable).where(eq(profilesTable.id, userId)).limit(1);
+    void sendReelCommentLikePush({
+      recipientId: comment.authorId,
+      actorName: actor?.name ?? "Someone",
+      reelId: reel.id,
+      commentId: comment.id,
+    }).catch(error => req.log.error({ err: error, reelId: reel.id, commentId: comment.id }, "Could not deliver Reel comment-like push"));
   }
 
   const [summary] = await db.select({

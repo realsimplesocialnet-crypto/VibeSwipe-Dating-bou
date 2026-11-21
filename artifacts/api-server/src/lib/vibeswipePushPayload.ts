@@ -37,6 +37,19 @@ export function buildReelCommentReplyPushPayload(actorName: string, reelId: stri
   };
 }
 
+export function buildReelCommentLikePushPayload(actorName: string, reelId: string, commentId: string): VibeSwipePushPayload {
+  return {
+    title: "New like on your comment",
+    body: `${actorName.trim() || "Someone"} liked your comment`,
+    data: {
+      type: "reel_comment_like",
+      reelId,
+      commentId,
+      url: `reels/${encodeURIComponent(reelId)}?commentId=${encodeURIComponent(commentId)}&returnTo=%2Fnotifications`,
+    },
+  };
+}
+
 export function isAllowedWebPushEndpoint(endpoint: string): boolean {
   try {
     const url = new URL(endpoint);

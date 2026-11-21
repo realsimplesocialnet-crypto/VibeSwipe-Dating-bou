@@ -70,6 +70,9 @@ export const vibeSwipeNotificationsTable = pgTable(
     reelLikeNotification: uniqueIndex("vibeswipe_reel_like_notification_idx")
       .on(table.recipientId, table.actorId, table.reelId)
       .where(sql`${table.type} = 'reel_like'`),
+    reelCommentLikeNotification: uniqueIndex("vibeswipe_reel_comment_like_notification_idx")
+      .on(table.recipientId, table.actorId, table.commentId)
+      .where(sql`${table.type} = 'reel_comment_like'`),
   }),
 );
 

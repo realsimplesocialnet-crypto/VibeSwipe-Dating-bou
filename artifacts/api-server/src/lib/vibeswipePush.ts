@@ -9,6 +9,7 @@ import * as webPush from "web-push";
 import {
   buildMessagePushPayload,
   buildFollowPushPayload,
+  buildReelCommentLikePushPayload,
   buildReelCommentReplyPushPayload,
   buildReelLikePushPayload,
   type VibeSwipePushPayload,
@@ -257,5 +258,23 @@ export async function sendReelCommentReplyPush(input: {
     subscription.platform === "web" ? sendWebPush(subscription, payload) : sendExpoPush(subscription, payload)));
   if (results.some(result => result.status === "rejected")) {
     throw new Error("Some Reel comment reply push deliveries failed.");
+  }
+}
+
+export async function sendReelCommentLikePush(input: {
+  recipientId: string; actorName: string; reelId: string; commentId: string;
+}): Promise<void> {
+  const [recipient] = await db.select({
+    notifyLikes: profilesTable.notifyLikes, notifyMatches: profilesTable.notifyMatches,
+  }).from(profilesTable).where(eq(profilesTable.id, input.recipientId)).limit(1);
+  if (!recipient || !(recipient.notifyLikes ?? recipient.notifyMatches)) return;
+  const subscriptions = await db.select().from(vibeSwipePushSubscriptionsTable)
+    .where(eq(vibeSwipePushSubscriptionsTable.userId, input.recipientId));
+  if (subscriptions.length === 0) return;
+  const payload = buildReelCommentLikePushPayload(input.actorName, input.reelId, input.commentId);
+  const results = await Promise.allSettled(subscriptions.map(subscription =>
+    subscription.platform === "web" ? sendWebPush(subscription, payload) : sendExpoPush(subscription, payload)));
+  if (results.some(result => result.status === "rejected")) {
+    throw new Error("Some Reel comment-like push deliveries failed.");
   }
 }

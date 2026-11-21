@@ -366,7 +366,7 @@ test("Reel comment send keeps the mobile composer focused while submitting", () 
   assert.doesNotMatch(styles.match(/\.reels-root \{[^}]+\}/)?.[0] ?? "", /transition:\s*height/);
 });
 
-test("Reel comments provide searchable threads and saved accessible reactions", () => {
+test("Reel comments provide searchable threads and a saved like reaction without dislikes", () => {
   const comments = read("../src/components/reels/reel-comments.tsx");
   const styles = read("../src/components/reels/reels.css");
   assert.match(comments, /placeholder="Search comments"/);
@@ -374,7 +374,7 @@ test("Reel comments provide searchable threads and saved accessible reactions", 
   assert.match(comments, /View \$\{replies\.length\}/);
   assert.match(comments, /useSetReelCommentReaction/);
   assert.match(comments, /aria-pressed=\{comment\.myReaction === "like"\}/);
-  assert.match(comments, /aria-pressed=\{comment\.myReaction === "dislike"\}/);
+  assert.doesNotMatch(comments, /ThumbsDown|button-dislike-reel-comment|onReact\("dislike"\)/);
   assert.match(comments, /myReaction: nextReaction/);
   assert.match(styles, /\.reel-comments \{[^}]*background: #fff/);
   assert.match(styles, /\.reel-comment-search \{/);

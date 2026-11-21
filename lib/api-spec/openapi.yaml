@@ -2911,7 +2911,7 @@ components:
           items: { type: string, format: uuid }
     NotificationType:
       type: string
-      enum: [new_match, new_message, new_like, new_super_like, new_follow, profile_view, reel_like, reel_comment_reply, referral_joined]
+      enum: [new_match, new_message, new_like, new_super_like, new_follow, profile_view, reel_like, reel_comment_reply, reel_comment_like, referral_joined]
     Notification:
       type: object
       properties:

@@ -78,7 +78,7 @@ export function ActivityOverview({ avatar: _avatar }: { avatar: AvatarFn }) {
     { key: 'followers', label: 'Followers', href: me.data?.id ? `/profile/${me.data.id}/followers` : '', count: unreadCounts?.follows ?? 0, icon: UserRound, color: '#8b5cf6' },
   ];
   const items = useMemo(() => (notes.data?.notifications ?? [])
-    .filter(n => n.type === 'new_match' || n.type === 'new_like' || n.type === 'new_super_like' || n.type === 'profile_view' || n.type === 'new_follow')
+    .filter(n => n.type === 'new_match' || n.type === 'new_like' || n.type === 'new_super_like' || n.type === 'profile_view' || n.type === 'new_follow' || n.type === 'reel_like' || n.type === 'reel_comment_reply' || n.type === 'reel_comment_like')
     .slice()
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()), [notes.data?.notifications]);
 
@@ -107,12 +107,21 @@ export function ActivityOverview({ avatar: _avatar }: { avatar: AvatarFn }) {
       go(`/chat/${encodeURIComponent(n.matchId)}?returnTo=%2Fnotifications`);
       return;
     }
+    if ((n.type === 'reel_like' || n.type === 'reel_comment_reply' || n.type === 'reel_comment_like') && n.reelId) {
+      const params = new URLSearchParams({ returnTo: '/notifications' });
+      if ((n.type === 'reel_comment_reply' || n.type === 'reel_comment_like') && n.commentId) params.set('commentId', n.commentId);
+      go(`/reels/${encodeURIComponent(n.reelId)}?${params.toString()}`);
+      return;
+    }
     go(`/profile/${encodeURIComponent(n.actor.id)}?returnTo=%2Fnotifications`);
   }
 
   const eventStyle = (type: NotificationsResponse['notifications'][number]['type']) => {
     if (type === 'new_match') return { label: 'matched with you', icon: Heart, color: '#ed4b89' };
     if (type === 'new_like' || type === 'new_super_like') return { label: type === 'new_super_like' ? 'super liked you' : 'liked you', icon: ThumbsUp, color: '#3b82f6' };
+    if (type === 'reel_comment_like') return { label: 'liked your comment', icon: Heart, color: '#ed4b89' };
+    if (type === 'reel_comment_reply') return { label: 'replied to your comment', icon: MessageCircle, color: '#ed4b89' };
+    if (type === 'reel_like') return { label: 'liked your video', icon: Heart, color: '#ed4b89' };
     if (type === 'profile_view') return { label: 'viewed your profile', icon: Eye, color: '#16a394' };
     return { label: 'followed you', icon: UserRound, color: '#8b5cf6' };
   };

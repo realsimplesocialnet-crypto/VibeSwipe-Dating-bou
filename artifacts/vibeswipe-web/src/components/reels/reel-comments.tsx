@@ -7,7 +7,7 @@ import {
   useGetMediaPreview, useGetMyProfile, useGetProfileMedia, useGetReelComments, useRequestProfileMediaUpload, useSetReelCommentReaction,
   type ReelComment, type ReelCommentReaction,
 } from "@workspace/api-client-react";
-import { ArrowUp, Check, ChevronDown, Heart, Image as ImageIcon, LoaderCircle, Search, SlidersHorizontal, ThumbsDown, X } from "lucide-react";
+import { ArrowUp, Check, ChevronDown, Heart, Image as ImageIcon, LoaderCircle, Search, SlidersHorizontal, X } from "lucide-react";
 import { ReelAvatar } from "@/components/reels/reel-avatar";
 import { userErrorMessage } from "@/lib/user-errors";
 import { QuietSpinner } from "@/components/ui/quiet-spinner";
@@ -134,18 +134,6 @@ function CommentReactions({ comment, pending, onReact }: {
     >
       <Heart size={18} fill={comment.myReaction === "like" ? "currentColor" : "none"} />
       <span>{compactCount(comment.likeCount)}</span>
-    </button>
-    <button
-      type="button"
-      className={`reel-comment-vote${comment.myReaction === "dislike" ? " is-active" : ""}`}
-      aria-label={`Dislike comment, ${comment.dislikeCount} dislikes`}
-      aria-pressed={comment.myReaction === "dislike"}
-      disabled={pending}
-      onClick={() => onReact("dislike")}
-      data-testid={`button-dislike-reel-comment-${comment.id}`}
-    >
-      <ThumbsDown size={18} />
-      <span>{compactCount(comment.dislikeCount)}</span>
     </button>
   </div>;
 }
