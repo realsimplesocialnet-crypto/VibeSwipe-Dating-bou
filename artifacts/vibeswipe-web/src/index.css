@@ -530,12 +530,6 @@ html[data-theme="light"] .profile-edit { --pe-bg:345 80% 96%; --pe-card:345 100%
   padding-top:calc(env(safe-area-inset-top,0px) + 16px);
   padding-bottom:calc(env(safe-area-inset-bottom,0px) + 24px);
 }
-html:not(.is-authed):not(.is-guest) body { background:#000; }
-html:not(.is-authed):not(.is-guest) .auth-sign-in,
-html:not(.is-authed):not(.is-guest) .app-shell { visibility:hidden; }
-html.is-authed .auth-sign-in,
-html.is-authed .onboarding-welcome { display:none !important; }
-html.is-guest .app-shell { display:none !important; }
 .chat-surface > header { padding-top: calc(.5rem + env(safe-area-inset-top, 0px)); }
 .chat-surface .chat-wallpaper { background: hsl(var(--chat-soft) / .55); }
 .chat-surface.chat-dark .chat-wallpaper { background: hsl(var(--chat-bg)); }

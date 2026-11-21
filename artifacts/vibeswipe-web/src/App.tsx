@@ -1233,9 +1233,10 @@ function ClerkAuthStateSync(){
   const {isLoaded,isSignedIn}=useUser();
   useLayoutEffect(()=>{
     const root=document.documentElement;
+    root.classList.toggle('is-auth-loading',!isLoaded);
     root.classList.toggle('is-authed',Boolean(isLoaded&&isSignedIn));
     root.classList.toggle('is-guest',Boolean(isLoaded&&!isSignedIn));
-    return()=>{root.classList.remove('is-authed','is-guest')};
+    return()=>{root.classList.remove('is-auth-loading','is-authed','is-guest')};
   },[isLoaded,isSignedIn]);
   return null;
 }

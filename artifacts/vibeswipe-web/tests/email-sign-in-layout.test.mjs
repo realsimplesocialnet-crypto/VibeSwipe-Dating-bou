@@ -4,6 +4,7 @@ import { readFileSync } from "node:fs";
 const read = path => readFileSync(new URL(path, import.meta.url), "utf8");
 const app = read("../src/App.tsx");
 const css = read("../src/index.css");
+const document = read("../index.html");
 const native = read("../../vibeswipe/app/(auth)/sign-in.tsx");
 
 test("web email sign-in keeps Clerk's email flow while omitting social buttons and divider", () => {
@@ -25,10 +26,21 @@ test("Clerk state classes gate the actual sign-in and app screens", () => {
   assert.match(sync, /useUser\(\)/);
   assert.match(sync, /classList\.toggle\('is-authed'/);
   assert.match(sync, /classList\.toggle\('is-guest'/);
+  assert.match(sync, /classList\.toggle\('is-auth-loading'/);
   assert.doesNotMatch(sync, /localStorage|sessionStorage|auth_token/);
   assert.match(signIn, /if\(isSignedIn\)return <Redirect to="\/discover"\/>/);
-  assert.match(css, /html\.is-authed \.auth-sign-in/);
-  assert.match(css, /html\.is-guest \.app-shell/);
+  assert.match(document, /html\.is-authed \.auth-sign-in/);
+  assert.match(document, /html\.is-guest \.app-shell/);
+  assert.match(document, /html\.is-auth-loading \.app-shell/);
+});
+test("the prepaint auth marker is the first head script and does not read a stored token", () => {
+  const head = document.slice(document.indexOf("<head>"), document.indexOf("</head>"));
+  const inlineScript = head.match(/<script>\s*([\s\S]*?)<\/script>/)?.[1] ?? "";
+  assert.ok(inlineScript.length > 0);
+  assert.ok(head.indexOf("<script>") < head.indexOf('src="%BASE_URL%pwa-install.js'));
+  assert.match(inlineScript, /classList\.add\("is-auth-loading"\)/);
+  assert.match(inlineScript, /isPublicLegalPage/);
+  assert.doesNotMatch(inlineScript, /localStorage|sessionStorage|auth_token/);
 });
 test("mobile sign-in retains email/password, account creation and safe-area spacing without Google", () => {
   assert.doesNotMatch(native, /useSSO|oauth_google|Continue with Google|google-sign-in|googleSignIn/);

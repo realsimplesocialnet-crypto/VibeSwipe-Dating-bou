@@ -21,6 +21,24 @@
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="VibeSwipes" />
     <meta name="twitter:description" content="Create a VibeSwipes account or log in." />
+    <style>
+      html.is-auth-loading body { background: #000 !important; }
+      html.is-auth-loading #root > main,
+      html.is-auth-loading .auth-sign-in,
+      html.is-auth-loading .auth-sign-up,
+      html.is-auth-loading .app-shell { visibility: hidden !important; }
+      html.is-authed .auth-sign-in,
+      html.is-authed .onboarding-welcome { display: none !important; }
+      html.is-guest .app-shell { display: none !important; }
+    </style>
+    <script>
+      (function () {
+        var path = window.location.pathname.replace(/\/+$/, "");
+        var isPublicLegalPage = /\/(privacy-policy|terms|community-guidelines)$/.test(path);
+        if (isPublicLegalPage) return;
+        document.documentElement.classList.add("is-auth-loading");
+      })();
+    </script>
     <script src="%BASE_URL%pwa-install.js?v=12"></script>
     <script defer src="%BASE_URL%pwa-launch.js?v=12" data-production="%PROD%"></script>
     <link rel="manifest" href="%BASE_URL%manifest.json?v=10" />
