@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { doublePrecision, foreignKey, index, integer, jsonb, pgTable, primaryKey, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
+import { boolean, doublePrecision, foreignKey, index, integer, jsonb, pgTable, primaryKey, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 import { mediaAssetsTable, profilesTable } from "./vibeswipe";
 
 export const reelSafetyTable = pgTable("vibeswipe_reel_safety", {
@@ -17,6 +17,7 @@ export const reelsTable = pgTable("vibeswipe_reels", {
   mediaId: uuid("media_id").notNull().unique().references(() => mediaAssetsTable.id, { onDelete: "cascade" }),
   mediaType: text("media_type").notNull().default("video"),
   audience: text("audience").$type<"public" | "friends">().notNull().default("public"),
+  allowDownloads: boolean("allow_downloads"),
   caption: text("caption").notNull().default(""),
   soundtrack: jsonb("soundtrack"),
   durationSeconds: doublePrecision("duration_seconds"),

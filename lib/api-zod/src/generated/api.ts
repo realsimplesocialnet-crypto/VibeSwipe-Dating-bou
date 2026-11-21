@@ -3194,18 +3194,21 @@ export const CreateReelBody = zod.union([zod.object({
   "slideMediaIds": zod.array(zod.uuid()).min(1).max(createReelBodyOneSlideMediaIdsMax).optional(),
   "caption": zod.string().max(createReelBodyOneCaptionMax).optional(),
   "audience": zod.enum(['public', 'friends']).default(createReelBodyOneAudienceDefault),
+  "allowDownloads": zod.boolean().optional().describe('Whether viewers may download this Reel'),
   "soundtrackId": zod.string().max(createReelBodyOneSoundtrackIdMax).nullish()
 }),zod.object({
   "mediaId": zod.uuid().optional(),
   "slideMediaIds": zod.array(zod.uuid()).min(1).max(createReelBodyTwoSlideMediaIdsMax),
   "caption": zod.string().max(createReelBodyTwoCaptionMax).optional(),
   "audience": zod.enum(['public', 'friends']).default(createReelBodyTwoAudienceDefault),
+  "allowDownloads": zod.boolean().optional().describe('Whether viewers may download this Reel'),
   "soundtrackId": zod.string().max(createReelBodyTwoSoundtrackIdMax).nullish()
 })]).and(zod.object({
   "mediaId": zod.uuid().optional(),
   "slideMediaIds": zod.array(zod.uuid()).min(1).max(createReelBodyThreeSlideMediaIdsMax).optional(),
   "caption": zod.string().max(createReelBodyThreeCaptionMax).optional(),
   "audience": zod.enum(['public', 'friends']).default(createReelBodyThreeAudienceDefault),
+  "allowDownloads": zod.boolean().optional().describe('Whether viewers may download this Reel'),
   "soundtrackId": zod.string().max(createReelBodyThreeSoundtrackIdMax).nullish()
 }))
 

@@ -3,6 +3,7 @@ import {
   getGetReelsFeedQueryKey,
   useCreateReel,
   useGetReelMusic,
+  useGetVibeSwipeSettings,
   useRequestProfileMediaUpload,
   useTranscodeReelVideo,
   type ReelMusicTrack,
@@ -94,11 +95,14 @@ export default function ReelComposerScreen() {
   const transcode = useTranscodeReelVideo();
   const createReel = useCreateReel();
   const musicQuery = useGetReelMusic({ query: { staleTime: 24 * 60 * 60 * 1000 } });
+  const settings = useGetVibeSwipeSettings({ query: { staleTime: 60_000 } });
 
   const [media, setMedia] = useState<SelectedMedia | null>(null);
   const [caption, setCaption] = useState("");
   const [audience, setAudience] = useState<Audience>("public");
   const [audienceOpen, setAudienceOpen] = useState(false);
+  const [allowDownloads, setAllowDownloads] = useState<boolean | null>(null);
+  const [downloadChoiceOpen, setDownloadChoiceOpen] = useState(false);
   const [soundtrackId, setSoundtrackId] = useState<string | null>(null);
   const [musicOpen, setMusicOpen] = useState(false);
   const [previewingTrackId, setPreviewingTrackId] = useState<string | null>(null);
@@ -142,6 +146,10 @@ export default function ReelComposerScreen() {
     });
     return () => subscription.remove();
   }, []);
+
+  useEffect(() => {
+    if (allowDownloads === null && settings.data) setAllowDownloads(settings.data.allowDownloads);
+  }, [allowDownloads, settings.data]);
 
   useEffect(() => {
     if (selectedVideoUri && isFocused && appActive) videoPlayer.play();
@@ -348,6 +356,10 @@ export default function ReelComposerScreen() {
 
   async function postReel() {
     if (!media || busy) return;
+    if (allowDownloads === null) {
+      setError("Choose whether viewers can download this Reel.");
+      return;
+    }
     setError(null);
     try {
       setStage("uploading");
@@ -369,6 +381,7 @@ export default function ReelComposerScreen() {
           data: {
             mediaId,
             audience,
+            allowDownloads,
             ...(caption.trim() ? { caption: caption.trim() } : {}),
             ...(soundtrackId ? { soundtrackId } : {}),
           },
@@ -403,6 +416,7 @@ export default function ReelComposerScreen() {
           data: {
             slideMediaIds,
             audience,
+            allowDownloads,
             ...(caption.trim() ? { caption: caption.trim() } : {}),
             ...(soundtrackId ? { soundtrackId } : {}),
           },
@@ -445,9 +459,12 @@ export default function ReelComposerScreen() {
           : "";
   const canPost =
     !busy &&
+    allowDownloads !== null &&
     (media?.kind === "video" ||
-      (media?.kind === "slides" && media.assets.length >= 2));
+      (media?.kind === "slides" && media.assets.length >= 1));
   const audienceLabel = audience === "public" ? "Public" : "Friends";
+  const downloadLabel =
+    allowDownloads === true ? "Yes, allow downloads" : allowDownloads === false ? "No downloads" : "Choose download access";
 
   return (
     <View
@@ -725,6 +742,71 @@ export default function ReelComposerScreen() {
                     onPress={() => {
                       setAudience(value);
                       setAudienceOpen(false);
+                    }}
+                    style={styles.audienceOption}
+                  >
+                    <Text
+                      style={[
+                        styles.selectionText,
+                        { color: selected ? colors.primary : colors.foreground },
+                      ]}
+                    >
+                      {label}
+                    </Text>
+                    {selected ? (
+                      <Feather name="check" size={18} color={colors.primary} />
+                    ) : null}
+                  </Pressable>
+                );
+              })}
+            </View>
+          ) : null}
+        </View>
+
+        <View style={styles.field}>
+          <Text style={[styles.sectionLabel, { color: colors.discoverForeground }]}>
+            Allow people to download this Reel?
+          </Text>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Download access: ${downloadLabel}`}
+            accessibilityState={{ expanded: downloadChoiceOpen }}
+            disabled={busy}
+            onPress={() => setDownloadChoiceOpen((open) => !open)}
+            style={[
+              styles.selectionButton,
+              { backgroundColor: colors.card, borderColor: colors.border },
+            ]}
+          >
+            <Text style={[styles.selectionText, { color: colors.foreground }]}>
+              {downloadLabel}
+            </Text>
+            <Feather
+              name={downloadChoiceOpen ? "chevron-up" : "chevron-down"}
+              size={18}
+              color={colors.mutedForeground}
+            />
+          </Pressable>
+          {downloadChoiceOpen ? (
+            <View
+              style={[
+                styles.audienceMenu,
+                { backgroundColor: colors.card, borderColor: colors.border },
+              ]}
+            >
+              {([
+                [true, "Yes, allow downloads"],
+                [false, "No downloads"],
+              ] as const).map(([value, label]) => {
+                const selected = value === allowDownloads;
+                return (
+                  <Pressable
+                    key={String(value)}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected }}
+                    onPress={() => {
+                      setAllowDownloads(value);
+                      setDownloadChoiceOpen(false);
                     }}
                     style={styles.audienceOption}
                   >

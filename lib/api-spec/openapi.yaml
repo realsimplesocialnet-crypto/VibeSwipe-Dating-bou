@@ -2091,16 +2091,16 @@ paths:
         - { in: path, name: reelId, required: true, schema: { type: string, format: uuid } }
       responses:
         "200":
-          description: Reel media
+          description: Video or photo archive
           content:
             video/mp4:
+              schema: { type: string, format: binary }
+            application/zip:
               schema: { type: string, format: binary }
         "403":
           description: Downloads are disabled by the creator
         "404":
           description: Reel unavailable
-        "415":
-          description: Only video Reels can be downloaded
   /vibeswipe/reels/{reelId}/views:
     post:
       operationId: recordReelView
@@ -3365,6 +3365,7 @@ components:
           items: { type: string, format: uuid }
         caption: { type: string, maxLength: 300 }
         audience: { type: string, enum: [public, friends], default: public }
+        allowDownloads: { type: boolean, description: Whether viewers may download this Reel }
         soundtrackId: { type: ["string", "null"], maxLength: 80 }
       oneOf:
         - required: [mediaId]

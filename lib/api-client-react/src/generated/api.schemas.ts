@@ -1753,6 +1753,8 @@ export type ReelInput = (unknown & ({
   /** @maxLength 300 */
   caption?: string;
   audience?: ReelInputAudience;
+  /** Whether viewers may download this Reel */
+  allowDownloads?: boolean;
   /**
      * @maxLength 80
      * @nullable

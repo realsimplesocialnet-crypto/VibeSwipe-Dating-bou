@@ -3,7 +3,7 @@ import { useLocation } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   getGetMyReelsQueryKey, getGetReelsFeedQueryKey, useCreateReel, useGetReelMusic,
-  useRequestProfileMediaUpload, useTranscodeReelVideo, type ReelMusicTrack,
+  useGetVibeSwipeSettings, useRequestProfileMediaUpload, useTranscodeReelVideo, type ReelMusicTrack,
 } from "@workspace/api-client-react";
 import { ArrowLeft, Camera, Check, ChevronLeft, ChevronRight, ExternalLink, Film, Images, Music2, Pause, Play, RotateCcw, Search, X } from "lucide-react";
 import { prepareProfilePhoto, uploadProfilePhotoBytes, validatePreparedPhoto } from "@/lib/profile-photo-upload";
@@ -68,6 +68,7 @@ export function ReelComposerPage() {
   const [musicSearch, setMusicSearch] = useState("");
   const [previewingTrackId, setPreviewingTrackId] = useState<string | null>(null);
   const [audience, setAudience] = useState<ReelAudience | null>(null);
+  const [allowDownloads, setAllowDownloads] = useState<boolean | null>(null);
   const [error, setError] = useState("");
   const [stage, setStage] = useState<Stage>("idle");
   const [uploadAttempt, setUploadAttempt] = useState(0);
@@ -78,6 +79,7 @@ export function ReelComposerPage() {
   const transcode = useTranscodeReelVideo();
   const create = useCreateReel();
   const musicQuery = useGetReelMusic({ query: { staleTime: 24 * 60 * 60 * 1000 } });
+  const settings = useGetVibeSwipeSettings({ query: { staleTime: 60_000 } });
   const previewAudio = useRef<HTMLAudioElement | null>(null);
   const busy = stage !== "idle";
   const hasValidSlideCount = slideFiles.length >= 1 && slideFiles.length <= MAX_REEL_PHOTOS;
@@ -120,6 +122,10 @@ export function ReelComposerPage() {
   }, [slideFiles]);
 
   useEffect(() => () => releasePreviewAudio(), [releasePreviewAudio]);
+
+  useEffect(() => {
+    if (allowDownloads === null && settings.data) setAllowDownloads(settings.data.allowDownloads);
+  }, [allowDownloads, settings.data]);
 
   useEffect(() => {
     const stopWhenHidden = () => {
@@ -225,6 +231,10 @@ export function ReelComposerPage() {
 
   async function post() {
     if (busy || preparingSlides) return;
+    if (allowDownloads === null) {
+      setError("Choose whether viewers can download this Reel.");
+      return;
+    }
     if (mode === "slides" && !hasValidSlideCount) {
       setError(`Choose 1 to ${MAX_REEL_PHOTOS} photos for this Reel.`);
       return;
@@ -259,7 +269,7 @@ export function ReelComposerPage() {
         });
         setStage("processing");
         const reel = await create.mutateAsync({
-          data: { slideMediaIds: mediaIds, audience: audience!, ...(caption.trim() ? { caption: caption.trim() } : {}), ...(soundtrackId ? { soundtrackId } : {}) },
+          data: { slideMediaIds: mediaIds, audience: audience!, allowDownloads, ...(caption.trim() ? { caption: caption.trim() } : {}), ...(soundtrackId ? { soundtrackId } : {}) },
         });
         void client.invalidateQueries({ queryKey: getGetReelsFeedQueryKey() });
         void client.invalidateQueries({ queryKey: getGetMyReelsQueryKey() });
@@ -274,7 +284,7 @@ export function ReelComposerPage() {
       setStage("processing");
       await transcode.mutateAsync({ mediaId: signed.mediaId });
       setStage("publishing");
-      const reel = await create.mutateAsync({ data: { mediaId: signed.mediaId, audience: audience!, ...(caption.trim() ? { caption: caption.trim() } : {}), ...(soundtrackId ? { soundtrackId } : {}) } });
+      const reel = await create.mutateAsync({ data: { mediaId: signed.mediaId, audience: audience!, allowDownloads, ...(caption.trim() ? { caption: caption.trim() } : {}), ...(soundtrackId ? { soundtrackId } : {}) } });
       void client.invalidateQueries({ queryKey: getGetReelsFeedQueryKey() });
       void client.invalidateQueries({ queryKey: getGetMyReelsQueryKey() });
       setLocation(`/reels/${reel.id}?returnTo=${encodeURIComponent(returnTo)}`, { replace: true });
@@ -339,6 +349,14 @@ export function ReelComposerPage() {
           <option value="friends" className="bg-[#151319]">Friends</option>
         </select>
       </label>
+      <label className="block text-xs font-semibold text-white/60">
+        Allow people to download this Reel?
+        <select value={allowDownloads === null ? "" : String(allowDownloads)} onChange={(event) => setAllowDownloads(event.target.value === "true")} disabled={busy} aria-label="Allow people to download this Reel?" data-testid="select-reel-download-permission" className="mt-2 h-12 w-full rounded-xl border border-white/10 bg-white/[.04] px-4 text-sm font-semibold text-white focus:border-primary/60 focus:outline-none">
+          <option value="" disabled className="bg-[#151319]">Choose download access</option>
+          <option value="true" className="bg-[#151319]">Yes, allow downloads</option>
+          <option value="false" className="bg-[#151319]">No downloads</option>
+        </select>
+      </label>
       {stage === "uploading" && uploadAttempt > 1 && <div role="status" aria-label="Loading" className="flex justify-center"><QuietSpinner /></div>}
       {preparingSlides && <p role="status" className="text-center text-xs text-white/55" data-testid="status-reel-photo-preparation">Reading and preparing photos {slidePrepareProgress?.completed ?? 0}/{slidePrepareProgress?.total ?? 0}…</p>}
       {stage !== "idle" && <p role="status" className="text-center text-xs text-white/55" data-testid="status-reel-post">
@@ -350,7 +368,7 @@ export function ReelComposerPage() {
                 : "Publishing your Reel…"}
       </p>}
       {error && <p role="alert" className="rounded-2xl border border-rose-300/25 bg-rose-400/10 px-4 py-3 text-sm text-rose-100" data-testid="error-reel-composer">{error}</p>}
-      <button type="button" onClick={() => void post()} disabled={(mode === "video" ? !file : !hasValidSlideCount) || !audience || busy || preparingSlides} aria-label={busy ? "Posting Reel" : "Post Reel"} data-testid="button-post-reel" className="reels-primary mt-auto w-full disabled:opacity-40">
+      <button type="button" onClick={() => void post()} disabled={(mode === "video" ? !file : !hasValidSlideCount) || !audience || allowDownloads === null || busy || preparingSlides} aria-label={busy ? "Posting Reel" : "Post Reel"} data-testid="button-post-reel" className="reels-primary mt-auto w-full disabled:opacity-40">
         {busy ? <QuietSpinner size={20} /> : "Post"}
       </button>
     </div>

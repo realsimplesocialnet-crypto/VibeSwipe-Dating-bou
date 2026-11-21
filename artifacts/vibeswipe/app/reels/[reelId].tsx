@@ -504,11 +504,13 @@ export default function ProfileReelScreen() {
   async function downloadCurrentReel() {
     const reel = reelQuery.data;
     const domain = process.env.EXPO_PUBLIC_DOMAIN;
-    if (!reel || !reel.canDownload || reel.mediaType !== "video" || !token || !domain || downloadPending) return;
+    if (!reel || !reel.canDownload || !token || !domain || downloadPending) return;
     setDownloadPending(true);
     try {
       const url = `https://${domain}${getDownloadReelUrl(reel.id)}`;
-      const file = await File.downloadFileAsync(url, new File(Paths.document, `myage-reel-${reel.id}.mp4`), { headers: { Authorization: `Bearer ${token}` }, idempotent: true });
+      const fileName = `vibeswipes-reel-${reel.id}${reel.mediaType === "slides" ? "-photos.zip" : ".mp4"}`;
+      const file = await File.downloadFileAsync(url, new File(Paths.document, fileName), { headers: { Authorization: `Bearer ${token}` }, idempotent: true });
+      setShareVisible(false);
       setMoreVisible(false);
       await File.preview(file);
     } catch {
@@ -735,6 +737,21 @@ export default function ProfileReelScreen() {
                 <View style={[styles.shareDestinationIcon, { backgroundColor: colors.primary }]}><Feather name="link" size={21} color={colors.primaryForeground} /></View>
                 <Text style={[styles.shareDestinationLabel, { color: colors.foreground }]}>Copy link</Text>
               </Pressable>
+              {reelQuery.data?.canDownload ? (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Download Reel"
+                  testID="button-download-reel-from-share"
+                  disabled={downloadPending}
+                  onPress={() => void downloadCurrentReel()}
+                  style={styles.shareDestination}
+                >
+                  <View style={[styles.shareDestinationIcon, { backgroundColor: colors.primary }]}>
+                    {downloadPending ? <ActivityIndicator size="small" color={colors.primaryForeground} /> : <Feather name="download" size={21} color={colors.primaryForeground} />}
+                  </View>
+                  <Text style={[styles.shareDestinationLabel, { color: colors.foreground }]}>Download</Text>
+                </Pressable>
+              ) : null}
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel={Platform.OS === "android" && androidShareTargetsVisible ? "Hide share apps" : "Share to apps"}
@@ -778,7 +795,7 @@ export default function ProfileReelScreen() {
           <Pressable accessibilityRole="button" accessibilityLabel="Close Reel options" onPress={()=>setMoreVisible(false)} style={StyleSheet.absoluteFill}/>
           <View style={[styles.moreSheet,{backgroundColor:colors.card,borderColor:colors.border}]}>
             <View style={styles.shareHeading}><Text style={[styles.shareTitle,{color:colors.foreground}]}>Reel options</Text><Pressable accessibilityRole="button" accessibilityLabel="Close" onPress={()=>setMoreVisible(false)} style={styles.closeShare}><Feather name="x" size={20} color={colors.foreground}/></Pressable></View>
-            {reelQuery.data?.canDownload && reelQuery.data.mediaType==="video" ? <Pressable accessibilityRole="button" testID="button-download-reel" disabled={downloadPending} onPress={()=>void downloadCurrentReel()} style={[styles.moreAction,{borderColor:colors.border}]}><Feather name="download" size={18} color={colors.primary}/><Text style={[styles.moreActionText,{color:colors.foreground}]}>{downloadPending?"Downloading…":"Download Reel"}</Text></Pressable>:null}
+            {reelQuery.data?.canDownload ? <Pressable accessibilityRole="button" testID="button-download-reel" disabled={downloadPending} onPress={()=>void downloadCurrentReel()} style={[styles.moreAction,{borderColor:colors.border}]}><Feather name="download" size={18} color={colors.primary}/><Text style={[styles.moreActionText,{color:colors.foreground}]}>{downloadPending?"Downloading…":reelQuery.data.mediaType==="slides"?"Download photos":"Download Reel"}</Text></Pressable>:null}
             {reelQuery.data && !reelQuery.data.isOwner ? <Pressable accessibilityRole="button" testID="button-not-interested-reel" disabled={markNotInterested.isPending} onPress={()=>void markCurrentNotInterested()} style={[styles.moreAction,{borderColor:colors.border}]}><Feather name="eye-off" size={18} color={colors.primary}/><Text style={[styles.moreActionText,{color:colors.foreground}]}>Not interested</Text></Pressable>:null}
             {reelQuery.data?.isOwner && !reelQuery.data.canDownload ? <Text style={[styles.shareError,{color:colors.mutedForeground}]}>Downloads are turned off for your Reels.</Text>:null}
           </View>

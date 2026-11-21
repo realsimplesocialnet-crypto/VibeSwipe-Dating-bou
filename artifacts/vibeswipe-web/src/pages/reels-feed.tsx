@@ -3,7 +3,7 @@ import { Link, useLocation } from "wouter";
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import {
   getGetMyReelsQueryKey, getGetNotificationsQueryKey, getGetProfileReelsQueryKey, getGetReelQueryKey,
-  getGetReelsFeedQueryKey, getGetSavedReelsQueryKey, getProfileReels, getReelsFeed, downloadReel,
+  getGetReelsFeedQueryKey, getGetSavedReelsQueryKey, getProfileReels, getReelsFeed,
   useGetReel, useGetVibeSwipeSettings, useLikeReel, useRecordReelView, useReportReel, useSaveReel,
   useUnlikeReel, useUnsaveReel, useMarkReelNotInterested, type Reel,
 } from "@workspace/api-client-react";
@@ -13,6 +13,7 @@ import { ReelComments } from "@/components/reels/reel-comments";
 import { ReelShareSheet } from "@/components/reels/reel-share-sheet";
 import { ReelsNavigationVisibilityContext } from "@/components/reels/reels-navigation-context";
 import { reelMediaUrl, safeReelReturnPath } from "@/lib/reels";
+import { saveReelDownload } from "@/lib/reel-download";
 import { readOfflineReels, saveReelForOffline } from "@/lib/offline-reels";
 import { reelSlideIndex, reelsViewportFrame } from "@/lib/reels-viewport";
 import { mixReelsByCreator } from "@/lib/reels-feed-order";
@@ -507,15 +508,7 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
   async function downloadCurrentReel(reel: Reel) {
     setNotice("Preparing your download…");
     try {
-      const blob = await downloadReel(reel.id);
-      const url = URL.createObjectURL(blob);
-      const anchor = document.createElement("a");
-      anchor.href = url;
-      anchor.download = `myage-beauty-reel-${reel.id}.mp4`;
-      document.body.appendChild(anchor);
-      anchor.click();
-      anchor.remove();
-      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+      await saveReelDownload(reel);
       setNotice("Download started.");
     } catch {
       setNotice("This Reel could not be downloaded.");
@@ -628,7 +621,7 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
         </div>
       </header>
       {reelMenuOpen && activeReel && <div className="absolute right-3 top-[calc(env(safe-area-inset-top,0px)+54px)] z-30 min-w-48 overflow-hidden rounded-2xl border border-white/10 bg-[#151319]/95 p-1.5 shadow-2xl backdrop-blur-xl" role="menu" data-testid="menu-reel-options">
-        {activeReel.canDownload && activeReel.mediaType === "video" && <button type="button" role="menuitem" onClick={() => void downloadCurrentReel(activeReel)} className="flex min-h-11 w-full items-center gap-3 rounded-xl px-3 text-left text-sm font-semibold text-white hover:bg-white/10" data-testid={`button-download-reel-${activeReel.id}`}><Download size={17}/>Download Reel</button>}
+        {activeReel.canDownload && <button type="button" role="menuitem" onClick={() => void downloadCurrentReel(activeReel)} className="flex min-h-11 w-full items-center gap-3 rounded-xl px-3 text-left text-sm font-semibold text-white hover:bg-white/10" data-testid={`button-download-reel-${activeReel.id}`}><Download size={17}/>{activeReel.mediaType === "slides" ? "Download photos" : "Download Reel"}</button>}
         {!activeReel.isOwner && <button type="button" role="menuitem" disabled={markNotInterested.isPending} onClick={() => void hideSimilarReels(activeReel)} className="flex min-h-11 w-full items-center gap-3 rounded-xl px-3 text-left text-sm font-semibold text-white hover:bg-white/10 disabled:opacity-50" data-testid={`button-not-interested-${activeReel.id}`}><EyeOff size={17}/>Not interested</button>}
         {!activeReel.isOwner && <button type="button" role="menuitem" onClick={() => { setReportReason("other"); setReportDetails(""); setReportFor(activeReel); setReelMenuOpen(false); }} className="flex min-h-11 w-full items-center gap-3 rounded-xl px-3 text-left text-sm font-semibold text-white hover:bg-white/10" data-testid={`button-report-reel-${activeReel.id}`}><Flag size={17}/>{t("Report Reel")}</button>}
         {!activeReel.canDownload && activeReel.isOwner && <p className="px-3 py-2 text-xs text-white/65">You have disabled Reel downloads.</p>}
@@ -709,6 +702,6 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
       void client.invalidateQueries({ queryKey: getGetProfileReelsQueryKey({ profileId: commentReel.creatorId }) });
       void client.invalidateQueries({ queryKey: getGetMyReelsQueryKey() });
     }} />}
-    {shareFor && <ReelShareSheet reel={shareFor} onClose={() => setShareFor(null)} onCountChange={(count) => patchShareCount(shareFor.id, count)} onCountError={setNotice} />}
+    {shareFor && <ReelShareSheet reel={shareFor} onClose={() => setShareFor(null)} onCountChange={(count) => patchShareCount(shareFor.id, count)} onCountError={setNotice} onDownload={async () => { setNotice("Preparing your download…"); await saveReelDownload(shareFor); setNotice("Download started."); }} />}
   </div>;
 }

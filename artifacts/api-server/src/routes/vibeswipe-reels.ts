@@ -32,6 +32,8 @@ import { removeUnreferencedProfileMedia } from "../lib/profileMediaCleanup";
 import { ObjectNotFoundError, ObjectStorageService } from "../lib/objectStorage";
 import { ProfileVideoValidationError, transcodeReelVideo } from "../lib/profileVideoTranscoder";
 import { addReelEndCard } from "../lib/reel-end-card-export";
+import { canDownloadReel } from "../lib/reel-download-permissions";
+import { createReelPhotoArchive } from "../lib/reel-photo-archive";
 import { processSafeReel, processSafeReelImage, reelIsApproved } from "../lib/reel-safety";
 import { ReelSafetyError } from "../lib/reel-safety-policy";
 import { sendReelCommentLikePush, sendReelCommentReplyPush, sendReelLikePush } from "../lib/vibeswipePush";
@@ -86,6 +88,7 @@ function uid(req: Request): string {
 function reelColumns(viewerId: string) {
   return {
     id: reelsTable.id, userId: reelsTable.userId, mediaId: reelsTable.mediaId, mediaType: reelsTable.mediaType,
+    allowDownloads: reelsTable.allowDownloads,
     audience: reelsTable.audience, caption: reelsTable.caption, soundtrack: reelsTable.soundtrack,
     durationSeconds: reelsTable.durationSeconds, createdAt: reelsTable.createdAt,
     slideMediaIds: sql<string[]>`COALESCE((
@@ -137,7 +140,7 @@ function project(row: ReelRow, viewerId: string) {
     creatorLocation: reelLocation([row.city, row.state, row.country]), creatorVerified: row.isVerified,
     creatorPhoto: row.photos[0] ?? null, creatorFollowedByMe: Boolean(row.creatorFollowedByMe),
     canComment: Boolean(row.canComment),
-    canDownload: row.mediaType === "video" && Boolean(row.allowsDownloads),
+    canDownload: canDownloadReel(row.allowDownloads, row.mediaType as "video" | "slides", Boolean(row.allowsDownloads)),
     videoReference: `media:${row.mediaId}`, mediaType: row.mediaType as "video" | "slides", audience: row.audience,
     slideReferences: row.slideMediaIds.map((id) => `media:${id}`), caption: row.caption,
     soundtrack: row.soundtrack as ReelMusicTrack | null,
@@ -433,7 +436,8 @@ router.post("/vibeswipe/reels", async (req, res): Promise<void> => {
     }
     const created = await db.transaction(async (tx) => {
       const [reel] = await tx.insert(reelsTable).values({
-        userId, mediaId: mediaIds[0], mediaType: "slides", audience: body.data.audience ?? "public", caption: cleanReelCaption(body.data.caption),
+        userId, mediaId: mediaIds[0], mediaType: "slides", audience: body.data.audience ?? "public",
+        allowDownloads: body.data.allowDownloads ?? null, caption: cleanReelCaption(body.data.caption),
         soundtrack,
         durationSeconds: null, createdAt: new Date(),
       }).onConflictDoNothing({ target: reelsTable.mediaId }).returning({ id: reelsTable.id });
@@ -462,7 +466,8 @@ router.post("/vibeswipe/reels", async (req, res): Promise<void> => {
     .where(eq(storiesTable.mediaUrl, `media:${body.data.mediaId}`)).limit(1);
   if (story) { res.status(409).json({ error: "This video is already used by a story." }); return; }
   const [created] = await db.insert(reelsTable).values({
-    userId, mediaId: body.data.mediaId, audience: body.data.audience ?? "public", caption: cleanReelCaption(body.data.caption),
+    userId, mediaId: body.data.mediaId, audience: body.data.audience ?? "public",
+    allowDownloads: body.data.allowDownloads ?? null, caption: cleanReelCaption(body.data.caption),
     soundtrack, durationSeconds: asset!.durationSeconds, createdAt: new Date(),
   }).onConflictDoNothing({ target: reelsTable.mediaId }).returning({ id: reelsTable.id });
   if (!created) { res.status(409).json({ error: "This video has already been posted." }); return; }
@@ -485,10 +490,67 @@ router.get("/vibeswipe/reels/:reelId/download", async (req, res): Promise<void> 
   const viewerId = uid(req);
   const reel = await findVisibleReel(viewerId, params.data.reelId);
   if (!reel) { res.status(404).json({ error: "This Reel is no longer available." }); return; }
-  const [owner] = await db.select({ allowDownloads: profilesTable.allowDownloads })
-    .from(profilesTable).where(eq(profilesTable.id, reel.userId)).limit(1);
-  if (!owner?.allowDownloads) { res.status(403).json({ error: "The creator has disabled downloads." }); return; }
-  if (reel.mediaType !== "video") { res.status(415).json({ error: "Only video Reels can be downloaded." }); return; }
+  if (!canDownloadReel(reel.allowDownloads, reel.mediaType as "video" | "slides", Boolean(reel.allowsDownloads))) {
+    res.status(403).json({ error: "The creator has disabled downloads for this Reel." }); return;
+  }
+  if (reel.mediaType === "slides") {
+    const slides = await db.select({
+      id: mediaAssetsTable.id,
+      objectPath: mediaAssetsTable.objectPath,
+      contentType: mediaAssetsTable.contentType,
+      ownerId: mediaAssetsTable.ownerId,
+      matchId: mediaAssetsTable.matchId,
+      mediaType: mediaAssetsTable.mediaType,
+    }).from(reelSlidesTable)
+      .innerJoin(mediaAssetsTable, eq(mediaAssetsTable.id, reelSlidesTable.mediaId))
+      .where(eq(reelSlidesTable.reelId, reel.id))
+      .orderBy(asc(reelSlidesTable.position));
+    if (
+      slides.length < 1 ||
+      slides.length > 10 ||
+      slides.some((slide) => slide.ownerId !== reel.userId || slide.matchId || slide.mediaType !== "image" || slide.contentType !== "image/jpeg")
+    ) {
+      res.status(404).json({ error: "This Reel's photos are no longer available." });
+      return;
+    }
+    const archive = createReelPhotoArchive();
+    const cancelArchive = new AbortController();
+    res.on("close", () => {
+      if (!res.writableEnded) {
+        cancelArchive.abort();
+        archive.abort();
+      }
+    });
+    try {
+      res.status(200);
+      res.setHeader("Content-Type", "application/zip");
+      res.setHeader("Content-Disposition", `attachment; filename="vibeswipes-reel-${reel.id}-photos.zip"`);
+      res.setHeader("Cache-Control", "private, no-store");
+      archive.on("warning", (error) => {
+        req.log.warn({ err: error, reelId: reel.id }, "Could not read a Reel photo for its archive");
+        archive.destroy(error);
+      });
+      archive.on("error", (error) => {
+        req.log.error({ err: error, reelId: reel.id }, "Reel photo archive failed");
+      });
+      const streaming = pipeline(archive, res, { signal: cancelArchive.signal });
+      for (const [index, slide] of slides.entries()) {
+        if (cancelArchive.signal.aborted) return;
+        const file = await reelStorage.getObjectEntityFile(slide.objectPath);
+        archive.append(file.createReadStream(), { name: `photo-${String(index + 1).padStart(2, "0")}.jpg` });
+      }
+      await archive.finalize();
+      await streaming;
+    } catch (error) {
+      if (cancelArchive.signal.aborted || res.destroyed) return;
+      cancelArchive.abort();
+      archive.abort();
+      req.log.error({ err: error, reelId: reel.id }, "Reel photo download failed");
+      if (!res.headersSent) res.status(500).json({ error: "Could not export these Reel photos." });
+      else res.destroy(error instanceof Error ? error : undefined);
+    }
+    return;
+  }
   const [asset] = await db.select().from(mediaAssetsTable).where(eq(mediaAssetsTable.id, reel.mediaId)).limit(1);
   if (!asset) { res.status(404).json({ error: "Reel media not found." }); return; }
   const workDirectory = await mkdtemp(join(tmpdir(), "vibeswipe-reel-export-"));
@@ -520,7 +582,7 @@ router.get("/vibeswipe/reels/:reelId/download", async (req, res): Promise<void> 
     res.status(200);
     res.setHeader("Content-Type", "video/mp4");
     res.setHeader("Content-Length", String(rendered.size));
-    res.setHeader("Content-Disposition", `attachment; filename="myage-beauty-reel-${reel.id}.mp4"`);
+    res.setHeader("Content-Disposition", `attachment; filename="vibeswipes-reel-${reel.id}.mp4"`);
     res.setHeader("Cache-Control", "private, no-store");
     await pipeline(createReadStream(outputPath), res);
   } catch (error) {

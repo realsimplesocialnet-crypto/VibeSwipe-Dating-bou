@@ -5,13 +5,13 @@ import {
   getGetMatchesQueryKey, getGetMyReelsQueryKey, getGetProfileReelsQueryKey, getGetReelQueryKey,
   getGetReelsFeedQueryKey, getGetSavedReelsQueryKey, useGetMatches, useGetMyProfile, useRecordReelShare, useSendMessage, type Reel,
 } from "@workspace/api-client-react";
-import { Copy, Share2, X } from "lucide-react";
+import { Copy, Download, Share2, X } from "lucide-react";
 import { ReelAvatar } from "@/components/reels/reel-avatar";
 import { reelShareMessage, reelShareUrl } from "@/lib/reels";
 import { userErrorMessage } from "@/lib/user-errors";
 import { QuietSpinner } from "@/components/ui/quiet-spinner";
 
-export function ReelShareSheet({ reel, onClose, onCountChange, onCountError }: { reel: Reel; onClose: () => void; onCountChange: (count: number) => void; onCountError?: (message: string) => void }) {
+export function ReelShareSheet({ reel, onClose, onCountChange, onCountError, onDownload }: { reel: Reel; onClose: () => void; onCountChange: (count: number) => void; onCountError?: (message: string) => void; onDownload: () => Promise<void> }) {
   const client = useQueryClient();
   const matches = useGetMatches({ query: { queryKey: getGetMatchesQueryKey() } });
   const me = useGetMyProfile();
@@ -52,6 +52,18 @@ export function ReelShareSheet({ reel, onClose, onCountChange, onCountError }: {
     try { await navigator.clipboard.writeText(url); }
     catch { setStatus("Copy failed. Long-press the link to copy it."); return; }
     onClose();
+  }
+  async function download() {
+    setPending("download");
+    setStatus("Preparing download…");
+    try {
+      await onDownload();
+      onClose();
+    } catch {
+      setStatus("This Reel could not be downloaded. Try again.");
+    } finally {
+      setPending(null);
+    }
   }
   async function sendTo(matchId: string) {
     setPending(matchId); setStatus("");
@@ -97,6 +109,9 @@ export function ReelShareSheet({ reel, onClose, onCountChange, onCountError }: {
         <button type="button" onClick={() => void copy()} data-testid="button-copy-reel-link" className="reel-share-destination">
           <span className="reel-share-destination-icon is-copy"><Copy size={22} /></span><span>Copy link</span>
         </button>
+        {reel.canDownload && <button type="button" onClick={() => void download()} disabled={pending === "download"} data-testid="button-download-reel" className="reel-share-destination">
+          <span className="reel-share-destination-icon is-copy">{pending === "download" ? <QuietSpinner size={18} /> : <Download size={22} />}</span><span>Download</span>
+        </button>}
         <button type="button" onClick={() => void nativeShare()} disabled={!canNativeShare} data-testid="button-native-share" className="reel-share-destination" aria-label="Share to apps">
           <span className="reel-share-destination-icon"><Share2 size={22} /></span><span>More apps</span>
         </button>
