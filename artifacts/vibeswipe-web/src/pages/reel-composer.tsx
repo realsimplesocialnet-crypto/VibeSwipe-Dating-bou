@@ -17,6 +17,34 @@ type Stage = "idle" | "uploading" | "processing" | "publishing";
 type ReelMode = "video" | "slides";
 type ReelAudience = "public" | "friends";
 
+async function mapWithConcurrency<T, R>(
+  items: T[],
+  limit: number,
+  task: (item: T, index: number) => Promise<R>,
+): Promise<R[]> {
+  const results = new Array<R>(items.length);
+  let nextIndex = 0;
+  let failed = false;
+  let failure: unknown;
+  const workers = Array.from({ length: Math.min(Math.max(1, limit), items.length) }, async () => {
+    while (!failed) {
+      const index = nextIndex++;
+      if (index >= items.length) return;
+      try {
+        results[index] = await task(items[index], index);
+      } catch (error) {
+        if (!failed) {
+          failed = true;
+          failure = error;
+        }
+      }
+    }
+  });
+  await Promise.all(workers);
+  if (failed) throw failure;
+  return results;
+}
+
 export function ReelComposerPage() {
   const [, setLocation] = useLocation();
   const client = useQueryClient();
@@ -42,6 +70,7 @@ export function ReelComposerPage() {
   const [checking, setChecking] = useState(false);
   const [stage, setStage] = useState<Stage>("idle");
   const [uploadAttempt, setUploadAttempt] = useState(0);
+  const [slideProgress, setSlideProgress] = useState<{ completed: number; total: number } | null>(null);
   const requestUpload = useRequestProfileMediaUpload();
   const transcode = useTranscodeReelVideo();
   const create = useCreateReel();
@@ -174,12 +203,11 @@ export function ReelComposerPage() {
     if (mode === "video" && !file) return;
     setError("");
     setUploadAttempt(0);
+    setSlideProgress(mode === "slides" ? { completed: 0, total: slideFiles.length } : null);
     try {
       setStage("uploading");
       if (mode === "slides") {
-        const mediaIds: string[] = [];
-        for (let position = 0; position < slideFiles.length; position++) {
-          const photo = slideFiles[position];
+        const mediaIds = await mapWithConcurrency(slideFiles, 3, async (photo) => {
           let mediaId = uploadedSlides.current.get(photo);
           if (!mediaId) {
             const prepared = await prepareProfilePhoto(photo);
@@ -190,8 +218,9 @@ export function ReelComposerPage() {
             mediaId = signed.mediaId;
             uploadedSlides.current.set(photo, mediaId);
           }
-          mediaIds.push(mediaId);
-        }
+          setSlideProgress((current) => current ? { ...current, completed: current.completed + 1 } : current);
+          return mediaId;
+        });
         setStage("processing");
         const reel = await create.mutateAsync({
           data: { slideMediaIds: mediaIds, audience: audience!, ...(caption.trim() ? { caption: caption.trim() } : {}), ...(soundtrackId ? { soundtrackId } : {}) },
@@ -274,6 +303,14 @@ export function ReelComposerPage() {
         </select>
       </label>
       {(checking || stage === "uploading" && uploadAttempt > 1) && <div role="status" aria-label="Loading" className="flex justify-center"><QuietSpinner /></div>}
+      {stage !== "idle" && <p role="status" className="text-center text-xs text-white/55" data-testid="status-reel-post">
+        {stage === "uploading" && mode === "slides" && slideProgress
+          ? `Preparing and uploading photos ${slideProgress.completed}/${slideProgress.total}…`
+          : stage === "uploading" ? "Uploading your video…"
+            : stage === "processing" && mode === "slides" ? "Checking your photos and preparing the Reel…"
+              : stage === "processing" ? "Checking your video…"
+                : "Publishing your Reel…"}
+      </p>}
       {error && <p role="alert" className="rounded-2xl border border-rose-300/25 bg-rose-400/10 px-4 py-3 text-sm text-rose-100" data-testid="error-reel-composer">{error}</p>}
       <button type="button" onClick={() => void post()} disabled={(mode === "video" ? !file : slideFiles.length < 2) || !audience || busy || checking} aria-label={busy ? "Posting Reel" : "Post Reel"} data-testid="button-post-reel" className="reels-primary mt-auto w-full disabled:opacity-40">
         {busy ? <QuietSpinner size={20} /> : "Post"}

@@ -10,10 +10,11 @@ import { ObjectStorageService } from "./objectStorage";
 import { transcodeReelVideo, type TranscodedProfileVideo } from "./profileVideoTranscoder";
 import { checkReelImage, checkReelVideo } from "./reel-safety-checker";
 import { ReelSafetyError, REEL_SAFETY_VERSION } from "./reel-safety-policy";
+import { AsyncSemaphore } from "./async-semaphore";
 import { logger } from "./logger";
 
 const storage = new ObjectStorageService();
-let processing = false;
+const safetyCheckSlots = new AsyncSemaphore(2);
 type Asset = { id: string; ownerId: string; objectPath: string; contentType?: string };
 type Receipt = { status: string; checked_path: string; result: TranscodedProfileVideo | null };
 
@@ -24,9 +25,8 @@ export async function reelIsApproved(asset: Asset): Promise<boolean> {
 }
 
 export async function processSafeReel(asset: Asset): Promise<TranscodedProfileVideo> {
-  if (processing) throw new ReelSafetyError("Another video is being checked. Please try again shortly.");
-  processing = true;
-  const client = await pool.connect().catch(error => { processing = false; throw error; });
+  const releaseSlot = await safetyCheckSlots.acquire();
+  const client = await pool.connect().catch(error => { releaseSlot(); throw error; });
   let locked = false;
   let sealed: string | undefined;
   let recorded = false;
@@ -85,7 +85,7 @@ export async function processSafeReel(asset: Asset): Promise<TranscodedProfileVi
   } finally {
     if (locked) await client.query("SELECT pg_advisory_unlock(637219, hashtext($1))", [asset.id]).catch(() => undefined);
     client.release();
-    processing = false;
+    releaseSlot();
   }
 }
 
@@ -109,9 +109,8 @@ function normalizeSlideImage(source: string, output: string): Promise<void> {
 
 /** Normalize, safety-check, and seal a photo before it can be used in a public Reel. */
 export async function processSafeReelImage(asset: Asset): Promise<void> {
-  if (processing) throw new ReelSafetyError("Another Reel is being checked. Please try again shortly.");
-  processing = true;
-  const client = await pool.connect().catch(error => { processing = false; throw error; });
+  const releaseSlot = await safetyCheckSlots.acquire();
+  const client = await pool.connect().catch(error => { releaseSlot(); throw error; });
   let locked = false;
   let sealed: string | undefined;
   let recorded = false;
@@ -170,13 +169,13 @@ export async function processSafeReelImage(asset: Asset): Promise<void> {
     if (tempDirectory) await rm(tempDirectory, { recursive: true, force: true }).catch(() => undefined);
     if (locked) await client.query("SELECT pg_advisory_unlock(637219, hashtext($1))", [asset.id]).catch(() => undefined);
     client.release();
-    processing = false;
+    releaseSlot();
   }
 }
 
 let backfillRunning = false;
 export async function checkExistingReels(): Promise<void> {
-  if (backfillRunning || processing) return;
+  if (backfillRunning || safetyCheckSlots.busy) return;
   backfillRunning = true;
   try {
     const rows = await pool.query<{ id: string; ownerId: string; objectPath: string }>(`

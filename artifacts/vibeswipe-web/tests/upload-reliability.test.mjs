@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { PROFILE_PHOTO_ACCEPT, photoDimensions, photoUploadCanRetry, readPhotoBytes, sniffPhotoFormat, uploadProfilePhotoBytes, validatePhotoFile } from '../src/lib/profile-photo-upload.ts';
+import { PROFILE_PHOTO_ACCEPT, photoDimensions, photoUploadCanRetry, prepareProfilePhoto, readPhotoBytes, sniffPhotoFormat, uploadProfilePhotoBytes, validatePhotoFile } from '../src/lib/profile-photo-upload.ts';
 import { userErrorMessage } from '../src/lib/user-errors.ts';
 
 test('photo picker accepts JPEG, JPG, PNG and WebP, including generic mobile MIME types', () => {
@@ -40,6 +40,80 @@ test('photo picker reads Android-style streams when arrayBuffer is unavailable',
     stream: () => blob.stream(),
   };
   assert.equal(Buffer.from(await readPhotoBytes(file)).toString(), 'phone photo bytes');
+});
+
+test('photo picker uses FileReader when Android WebView File and stream reads fail', async () => {
+  const originalFileReader = globalThis.FileReader;
+  globalThis.FileReader = class {
+    result = null;
+    onload = null;
+    onerror = null;
+    onabort = null;
+    readAsArrayBuffer() {
+      this.result = new TextEncoder().encode('photo bytes from picker').buffer;
+      this.onload?.();
+    }
+  };
+  try {
+    const file = {
+      arrayBuffer: async () => new ArrayBuffer(0),
+      stream: () => new ReadableStream({ start(controller) { controller.close(); } }),
+    };
+    assert.equal(Buffer.from(await readPhotoBytes(file)).toString(), 'photo bytes from picker');
+  } finally {
+    if (originalFileReader === undefined) delete globalThis.FileReader;
+    else globalThis.FileReader = originalFileReader;
+  }
+});
+
+test('photo picker can prepare a previewable file through the image decoder when bytes are unavailable', async () => {
+  const originalImage = globalThis.Image;
+  const originalCreateObjectURL = URL.createObjectURL;
+  const originalRevokeObjectURL = URL.revokeObjectURL;
+  const originalCreateElement = globalThis.document?.createElement;
+  const originalDocument = globalThis.document;
+  let imageLoads = 0;
+  URL.createObjectURL = () => `blob:picker-test-${imageLoads}`;
+  URL.revokeObjectURL = () => {};
+  globalThis.Image = class {
+    naturalWidth = 900;
+    naturalHeight = 1200;
+    onload = null;
+    onerror = null;
+    set src(_value) { imageLoads++; queueMicrotask(() => this.onload?.()); }
+  };
+  globalThis.document = {
+    createElement: () => ({
+      width: 0,
+      height: 0,
+      getContext: () => ({
+        fillStyle: '',
+        fillRect() {},
+        drawImage() {},
+      }),
+      toBlob(callback) { callback(new Blob(['jpeg image bytes'], { type: 'image/jpeg' })); },
+    }),
+  };
+  try {
+    const file = new File(['picker placeholder'], 'slide.jpg', { type: 'image/jpeg' });
+    file.arrayBuffer = async () => new ArrayBuffer(0);
+    file.stream = () => new ReadableStream({ start(controller) { controller.close(); } });
+    const prepared = await prepareProfilePhoto(file);
+    assert.equal(prepared.type, 'image/jpeg');
+    assert.equal(prepared.name, 'profile-photo.jpg');
+    assert.ok(prepared.size > 0);
+    assert.equal(imageLoads, 2);
+  } finally {
+    if (originalImage === undefined) delete globalThis.Image;
+    else globalThis.Image = originalImage;
+    URL.createObjectURL = originalCreateObjectURL;
+    URL.revokeObjectURL = originalRevokeObjectURL;
+    if (originalDocument === undefined) delete globalThis.document;
+    else {
+      originalDocument.createElement = originalCreateElement;
+      globalThis.document = originalDocument;
+    }
+  }
 });
 
 test('phone pictures keep their aspect ratio without upscaling', () => {

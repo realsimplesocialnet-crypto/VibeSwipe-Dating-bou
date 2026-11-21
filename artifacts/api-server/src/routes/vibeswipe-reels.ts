@@ -412,7 +412,11 @@ router.post("/vibeswipe/reels", async (req, res): Promise<void> => {
     if (usedByStory) { res.status(409).json({ error: "Choose photos that are not already used by a Story." }); return; }
 
     try {
-      for (const asset of slides) await processSafeReelImage(asset);
+      for (let start = 0; start < slides.length; start += 2) {
+        const results = await Promise.allSettled(slides.slice(start, start + 2).map(processSafeReelImage));
+        const failed = results.find((result): result is PromiseRejectedResult => result.status === "rejected");
+        if (failed) throw failed.reason;
+      }
     } catch (error) {
       if (error instanceof ReelSafetyError) { res.status(error.status).json({ error: error.message }); return; }
       if (error instanceof ObjectNotFoundError) { res.status(404).json({ error: "One or more photo uploads could not be found." }); return; }

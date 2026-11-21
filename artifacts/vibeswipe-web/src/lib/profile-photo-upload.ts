@@ -60,6 +60,23 @@ export async function readPhotoBytes(file: File): Promise<Uint8Array> {
   } catch {
     // Report one actionable message below rather than a browser-specific exception.
   }
+  if (typeof FileReader !== 'undefined') {
+    try {
+      const bytes = await new Promise<Uint8Array>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          if (reader.result instanceof ArrayBuffer) resolve(new Uint8Array(reader.result));
+          else reject(new Error('Photo reader returned no data'));
+        };
+        reader.onerror = () => reject(reader.error ?? new Error('Photo reader failed'));
+        reader.onabort = () => reject(new Error('Photo read was cancelled'));
+        reader.readAsArrayBuffer(file);
+      });
+      if (bytes.length) return bytes;
+    } catch {
+      // Some Android WebViews expose picker files through the image decoder only.
+    }
+  }
   throw new PhotoUploadError('PHOTO_READ', 'Your phone couldn’t provide the photo data. Choose the photo again or save a copy to your device first.');
 }
 
@@ -75,6 +92,47 @@ export function photoDimensions(width: number, height: number): { width: number;
   return { width: Math.max(1, Math.round(width * scale)), height: Math.max(1, Math.round(height * scale)) };
 }
 
+async function decodePhotoPreviewAsJpeg(file: File): Promise<Blob> {
+  const url = URL.createObjectURL(file);
+  const image = new Image();
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    await new Promise<void>((resolve, reject) => {
+      timer = setTimeout(() => reject(new PhotoUploadError('PHOTO_DECODE_TIMEOUT', 'This picture took too long to open. Choose another photo.')), 20_000);
+      image.onload = () => resolve();
+      image.onerror = () => reject(new PhotoUploadError('PHOTO_DECODE', 'This photo couldn’t be opened. Choose a readable picture.'));
+      image.src = url;
+    });
+    const dimensions = photoDimensions(image.naturalWidth, image.naturalHeight);
+    if (!image.naturalWidth || !image.naturalHeight) {
+      throw new PhotoUploadError('PHOTO_DECODE', 'This photo couldn’t be opened. Choose a readable picture.');
+    }
+    const canvas = document.createElement('canvas');
+    canvas.width = dimensions.width;
+    canvas.height = dimensions.height;
+    const context = canvas.getContext('2d');
+    if (!context) throw new PhotoUploadError('PHOTO_PREPARE', 'Your browser couldn’t prepare this picture. Try another photo or reopen this screen.');
+    context.fillStyle = '#ffffff';
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    context.drawImage(image, 0, 0, canvas.width, canvas.height);
+    return await new Promise<Blob>((resolve, reject) => {
+      canvas.toBlob(
+        blob => blob
+          ? resolve(blob)
+          : reject(new PhotoUploadError('PHOTO_PREPARE', 'This picture could not be prepared. Choose another photo.')),
+        'image/jpeg',
+        .9,
+      );
+    });
+  } catch (error) {
+    if (error instanceof PhotoUploadError) throw error;
+    throw new PhotoUploadError('PHOTO_READ', 'Your phone can preview this photo but could not prepare it for posting. Save a copy to your device and try again.');
+  } finally {
+    if (timer) clearTimeout(timer);
+    URL.revokeObjectURL(url);
+  }
+}
+
 export function photoUploadCanRetry(error: unknown): boolean {
   if (!error || typeof error !== 'object' || !('code' in error) || typeof error.code !== 'string') return true;
   return !/^PHOTO_(TYPE|EMPTY|SIZE|FORMAT|DECODE|HEIC_CONVERT)$/.test(error.code);
@@ -83,14 +141,23 @@ export function photoUploadCanRetry(error: unknown): boolean {
 /** Read the picker file, verify its actual format, convert, and resize it before upload. */
 export async function prepareProfilePhoto(file: File): Promise<File> {
   validatePhotoFile(file);
-  const bytes = await readPhotoBytes(file);
-  let format = sniffPhotoFormat(bytes);
-  if (!format) {
-    throw new PhotoUploadError('PHOTO_FORMAT', 'This file is not a readable JPG/JPEG, PNG, WebP, or HEIC/HEIF image. Choose another photo.');
+  let format: PhotoFormat;
+  let sourceBlob: Blob;
+  try {
+    const bytes = await readPhotoBytes(file);
+    const detectedFormat = sniffPhotoFormat(bytes);
+    if (!detectedFormat) {
+      throw new PhotoUploadError('PHOTO_FORMAT', 'This file is not a readable JPG/JPEG, PNG, WebP, or HEIC/HEIF image. Choose another photo.');
+    }
+    format = detectedFormat;
+    const stableBytes = new Uint8Array(bytes.byteLength);
+    stableBytes.set(bytes);
+    sourceBlob = new Blob([stableBytes.buffer], { type: format });
+  } catch (error) {
+    if (!(error instanceof PhotoUploadError) || !['PHOTO_READ', 'PHOTO_FORMAT'].includes(error.code)) throw error;
+    sourceBlob = await decodePhotoPreviewAsJpeg(file);
+    format = 'image/jpeg';
   }
-  const stableBytes = new Uint8Array(bytes.byteLength);
-  stableBytes.set(bytes);
-  let sourceBlob: Blob = new Blob([stableBytes.buffer], { type: format });
   if (format === 'image/heic') {
     try {
       const { heicTo } = await import('heic-to');
