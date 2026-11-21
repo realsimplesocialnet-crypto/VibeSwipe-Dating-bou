@@ -17,7 +17,8 @@ test("photo slides are normalized, safety-checked, and sealed before publication
   assert.match(service, /await checkReelImage\(normalizedPath\)/);
   assert.match(service, /checked-reel-slides\/\$\{randomUUID\(\)\}/);
   assert.match(service, /status='approved',checked_path=\$1,result=\$2/);
-  assert.match(route, /for \(const asset of slides\) await processSafeReelImage\(asset\)/);
+  assert.match(route, /for \(let start = 0; start < slides\.length; start \+= 2\)/);
+  assert.match(route, /Promise\.allSettled\(slides\.slice\(start, start \+ 2\)\.map\(processSafeReelImage\)\)/);
   assert.match(route, /slideMediaIds/);
   assert.match(route, /\.onConflictDoNothing\(\)[\s\S]*?insertedSlides\.length !== mediaIds\.length/);
 });

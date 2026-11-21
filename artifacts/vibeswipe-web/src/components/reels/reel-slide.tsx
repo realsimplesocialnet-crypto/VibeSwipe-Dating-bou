@@ -285,7 +285,7 @@ export const ReelSlide = memo(function ReelSlide({ reel, index, active, near, po
 
   const src = reelMediaUrl(reel.videoReference);
   const tapLabel = slideshow
-    ? `Photo slideshow, ${slideIndex + 1} of ${slideCount}. Swipe left or right to browse; swipe up for the next Reel or down for the previous Reel.${reel.soundtrack ? " Tap to play or pause the soundtrack." : ""}`
+    ? `${slideCount > 1 ? `Photo slideshow, ${slideIndex + 1} of ${slideCount}. Swipe left or right to browse.` : "Photo Reel."} Swipe up for the next Reel or down for the previous Reel.${reel.soundtrack ? " Tap to play or pause the soundtrack." : ""}`
     : `${userPaused || blocked ? "Tap to play" : "Tap to pause"} Reel. Video audio plays automatically.`;
   const reelReturnParams = new URLSearchParams({ returnTo });
   const creatorProfileReturn = `/reels/${encodeURIComponent(reel.id)}?${reelReturnParams.toString()}`;

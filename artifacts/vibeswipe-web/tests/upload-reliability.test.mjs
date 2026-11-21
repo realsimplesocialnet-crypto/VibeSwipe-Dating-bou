@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readFileSync } from 'node:fs';
-import { PROFILE_PHOTO_ACCEPT, photoDimensions, photoUploadCanRetry, prepareProfilePhoto, readPhotoBytes, sniffPhotoFormat, uploadProfilePhotoBytes, validatePhotoFile } from '../src/lib/profile-photo-upload.ts';
+import { PROFILE_PHOTO_ACCEPT, photoDimensions, photoUploadCanRetry, prepareProfilePhoto, readPhotoBytes, sniffPhotoFormat, uploadProfilePhotoBytes, validatePhotoFile, validatePreparedPhoto } from '../src/lib/profile-photo-upload.ts';
 import { userErrorMessage } from '../src/lib/user-errors.ts';
 
 test('photo picker accepts JPEG, JPG, PNG and WebP, including generic mobile MIME types', () => {
@@ -121,9 +121,18 @@ test('photo picker can prepare a previewable file through the image decoder when
 
 test('photo slides are prepared before preview and upload uses the prepared files', () => {
   const composer = readFileSync(new URL('../src/pages/reel-composer.tsx', import.meta.url), 'utf8');
-  assert.match(composer, /mapWithConcurrency\(candidates, 2, async \(photo\)[\s\S]*?prepareProfilePhoto\(photo\)/);
+  assert.match(composer, /mapWithConcurrency\(candidates, 2, async \(photo, index\)[\s\S]*?prepareProfilePhoto\(photo\)/);
   assert.match(composer, /const urls = slideFiles\.map\(\(item\) => URL\.createObjectURL\(item\)\)/);
   assert.match(composer, /uploadProfileMediaBytes|uploadProfilePhotoBytes\(signed\.uploadURL, photo/);
+  assert.match(composer, /slideFiles\.length !== 1/);
+  assert.match(composer, /validatePreparedPhoto\(photo\)/);
+});
+
+test('post preflight rejects a broken photo and accepts a prepared JPEG', async () => {
+  const validJpeg = new File([Uint8Array.from([0xff, 0xd8, 0xff, 0x00])], 'prepared.jpg', { type: 'image/jpeg' });
+  const brokenPhoto = new File(['not an image'], 'broken.jpg', { type: 'image/jpeg' });
+  await assert.doesNotReject(validatePreparedPhoto(validJpeg));
+  await assert.rejects(validatePreparedPhoto(brokenPhoto), (error) => error.code === 'PHOTO_FORMAT');
 });
 
 test('phone pictures keep their aspect ratio without upscaling', () => {

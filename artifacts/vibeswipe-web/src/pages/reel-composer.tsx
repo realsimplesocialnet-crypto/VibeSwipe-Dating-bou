@@ -6,7 +6,7 @@ import {
   useRequestProfileMediaUpload, useTranscodeReelVideo, type ReelMusicTrack,
 } from "@workspace/api-client-react";
 import { ArrowLeft, Camera, Check, ChevronLeft, ChevronRight, ExternalLink, Film, Images, Music2, Pause, Play, RotateCcw, Search, X } from "lucide-react";
-import { prepareProfilePhoto, uploadProfilePhotoBytes } from "@/lib/profile-photo-upload";
+import { prepareProfilePhoto, uploadProfilePhotoBytes, validatePreparedPhoto } from "@/lib/profile-photo-upload";
 import { readVideoDuration, reelFileProblem, reelVideoContentType, safeReelReturnPath } from "@/lib/reels";
 import { reelPostUnauthorizedMessage, uploadReelVideoBytes } from "@/lib/reel-upload";
 import { userErrorMessage } from "@/lib/user-errors";
@@ -177,11 +177,11 @@ export function ReelComposerPage() {
     if (!list || busy || preparingSlides) return;
     const incoming = Array.from(list);
     setError("");
-    const remaining = Math.max(0, 10 - slideFiles.length);
+    const remaining = Math.max(0, 1 - slideFiles.length);
     const exceededLimit = incoming.length > remaining;
     const candidates = incoming.slice(0, remaining);
     if (!candidates.length) {
-      if (exceededLimit) setError("A Reel can contain up to 10 photos.");
+      if (exceededLimit) setError("Choose one photo for this Reel.");
       return;
     }
 
@@ -202,9 +202,9 @@ export function ReelComposerPage() {
         }
       });
       const ready = prepared.filter((photo): photo is File => Boolean(photo));
-      if (ready.length) setSlideFiles((current) => [...current, ...ready].slice(0, 10));
+      if (ready.length) setSlideFiles((current) => [...current, ...ready].slice(0, 1));
       if (preparationErrors.length) setError(preparationErrors.find(Boolean) ?? "Some photos could not be read. Save them to your device and select them again.");
-      else if (exceededLimit) setError("A Reel can contain up to 10 photos. The first 10 available photos were added.");
+      else if (exceededLimit) setError("Only one photo can be selected for now.");
     } finally {
       setPreparingSlides(false);
       setSlidePrepareProgress(null);
@@ -227,8 +227,8 @@ export function ReelComposerPage() {
 
   async function post() {
     if (busy || preparingSlides) return;
-    if (mode === "slides" && (slideFiles.length < 2 || slideFiles.length > 10)) {
-      setError("Choose between 2 and 10 photos for your slideshow.");
+    if (mode === "slides" && slideFiles.length !== 1) {
+      setError("Choose one photo for this Reel.");
       return;
     }
     if (mode === "video" && !file) return;
@@ -236,6 +236,14 @@ export function ReelComposerPage() {
     setUploadAttempt(0);
     setSlideProgress(mode === "slides" ? { completed: 0, total: slideFiles.length } : null);
     try {
+      if (mode === "slides") {
+        setStage("processing");
+        await mapWithConcurrency(slideFiles, 2, async (photo) => {
+          await validatePreparedPhoto(photo);
+          setSlideProgress((current) => current ? { ...current, completed: current.completed + 1 } : current);
+        });
+        setSlideProgress({ completed: 0, total: slideFiles.length });
+      }
       setStage("uploading");
       if (mode === "slides") {
         const mediaIds = await mapWithConcurrency(slideFiles, 3, async (photo) => {
@@ -285,11 +293,11 @@ export function ReelComposerPage() {
     </header>
     <input ref={cameraInput} type="file" accept="video/*" capture="user" className="hidden" onChange={(event) => { void choose(event.target.files?.[0]); event.currentTarget.value = ""; }} data-testid="input-reel-camera" />
     <input ref={libraryInput} type="file" accept="video/mp4,video/quicktime,.mp4,.mov" className="hidden" onChange={(event) => { void choose(event.target.files?.[0]); event.currentTarget.value = ""; }} data-testid="input-reel-library" />
-    <input ref={slidesInput} type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.jpg,.jpeg,.png,.webp,.heic,.heif" multiple disabled={busy || preparingSlides} className="hidden" onChange={(event) => { void chooseSlides(event.currentTarget.files); event.currentTarget.value = ""; }} data-testid="input-reel-slides" />
+    <input ref={slidesInput} type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.jpg,.jpeg,.png,.webp,.heic,.heif" disabled={busy || preparingSlides || slideFiles.length >= 1} className="hidden" onChange={(event) => { void chooseSlides(event.currentTarget.files); event.currentTarget.value = ""; }} data-testid="input-reel-slides" />
     <div className="mx-auto flex w-full max-w-[480px] flex-1 flex-col gap-4 px-4 pb-[max(env(safe-area-inset-bottom),16px)]">
       <div className="grid grid-cols-2 rounded-2xl bg-white/[.06] p-1" role="tablist" aria-label="Reel type">
         <button type="button" role="tab" aria-selected={mode === "video"} onClick={() => { setMode("video"); setError(""); }} className={`flex min-h-10 items-center justify-center gap-2 rounded-xl text-sm font-bold ${mode === "video" ? "bg-primary text-primary-foreground" : "text-white/65"}`} data-testid="tab-reel-video"><Film size={16} />Video</button>
-        <button type="button" role="tab" aria-selected={mode === "slides"} onClick={() => { setMode("slides"); setError(""); }} className={`flex min-h-10 items-center justify-center gap-2 rounded-xl text-sm font-bold ${mode === "slides" ? "bg-primary text-primary-foreground" : "text-white/65"}`} data-testid="tab-reel-slides"><Images size={16} />Photo slides</button>
+        <button type="button" role="tab" aria-selected={mode === "slides"} onClick={() => { setMode("slides"); setError(""); }} className={`flex min-h-10 items-center justify-center gap-2 rounded-xl text-sm font-bold ${mode === "slides" ? "bg-primary text-primary-foreground" : "text-white/65"}`} data-testid="tab-reel-slides"><Images size={16} />Photo</button>
       </div>
       <div className="reel-preview">
         {mode === "slides" && slidePreviews.length ? <div className="relative h-full w-full overflow-hidden" onTouchStart={(event) => { const touch = event.changedTouches[0]; previewTouch.current = touch ? { x: touch.clientX, y: touch.clientY } : null; }} onTouchEnd={finishPreviewSwipe} data-testid="preview-reel-slideshow">
@@ -301,11 +309,11 @@ export function ReelComposerPage() {
           : mode === "video" && preview ? <video src={preview} controls playsInline muted autoPlay loop className="h-full w-full object-contain" data-testid="preview-reel-video" />
           : <div className="flex h-full flex-col items-center justify-center px-8 text-center">
             <span className="reels-empty-mark">{mode === "slides" ? <Images size={28} /> : <Film size={28} />}</span>
-            <p className="mt-5 text-lg font-bold">{mode === "slides" ? "Choose 2–10 photos" : "Record or choose a video"}</p>
+            <p className="mt-5 text-lg font-bold">{mode === "slides" ? "Choose one photo" : "Record or choose a video"}</p>
           </div>}
       </div>
       {mode === "slides" ? <div className="flex items-center gap-2">
-        <button type="button" onClick={() => slidesInput.current?.click()} disabled={busy || checking || preparingSlides || slideFiles.length >= 10} data-testid="button-choose-reel-slides" className="reel-sheet-action flex-1">{preparingSlides ? <QuietSpinner size={17} /> : <Images size={18} />}{preparingSlides ? `Preparing photos ${slidePrepareProgress?.completed ?? 0}/${slidePrepareProgress?.total ?? 0}` : slideFiles.length ? `Add photos (${slideFiles.length}/10)` : "Choose photos"}</button>
+        <button type="button" onClick={() => slidesInput.current?.click()} disabled={busy || checking || preparingSlides || slideFiles.length >= 1} data-testid="button-choose-reel-slides" className="reel-sheet-action flex-1">{preparingSlides ? <QuietSpinner size={17} /> : <Images size={18} />}{preparingSlides ? `Preparing photo ${slidePrepareProgress?.completed ?? 0}/${slidePrepareProgress?.total ?? 0}` : slideFiles.length ? "Change photo" : "Choose photo"}</button>
         {slideFiles.length > 0 && <button type="button" onClick={() => { setSlideFiles((current) => current.filter((_, index) => index !== slideIndex)); setSlideIndex((current) => Math.max(0, current - 1)); }} disabled={busy} aria-label="Remove current photo" data-testid="button-remove-reel-slide" className="reel-sheet-action w-12 shrink-0 px-0"><X size={18} /></button>}
       </div> : <div className="grid grid-cols-2 gap-2">
         <button type="button" onClick={() => cameraInput.current?.click()} disabled={busy || checking} data-testid="button-record-reel" className="reel-sheet-action">{file ? <RotateCcw size={18} /> : <Camera size={18} />}{file ? "Record again" : "Record"}</button>
@@ -336,9 +344,9 @@ export function ReelComposerPage() {
       {preparingSlides && <p role="status" className="text-center text-xs text-white/55" data-testid="status-reel-photo-preparation">Reading and preparing photos {slidePrepareProgress?.completed ?? 0}/{slidePrepareProgress?.total ?? 0}…</p>}
       {stage !== "idle" && <p role="status" className="text-center text-xs text-white/55" data-testid="status-reel-post">
         {stage === "uploading" && mode === "slides" && slideProgress
-          ? `Preparing and uploading photos ${slideProgress.completed}/${slideProgress.total}…`
+          ? `Uploading photo ${slideProgress.completed}/${slideProgress.total}…`
           : stage === "uploading" ? "Uploading your video…"
-            : stage === "processing" && mode === "slides" ? "Checking your photos and preparing the Reel…"
+            : stage === "processing" && mode === "slides" ? "Checking your photo and preparing the Reel…"
               : stage === "processing" ? "Checking your video…"
                 : "Publishing your Reel…"}
       </p>}

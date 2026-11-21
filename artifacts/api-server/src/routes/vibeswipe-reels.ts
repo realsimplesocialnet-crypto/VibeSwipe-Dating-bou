@@ -380,7 +380,7 @@ router.get("/vibeswipe/reels/saved", async (req, res): Promise<void> => {
 
 router.post("/vibeswipe/reels", async (req, res): Promise<void> => {
   const body = CreateReelBody.safeParse(req.body);
-  if (!body.success) { res.status(400).json({ error: "Choose an approved video or 2–10 photos, with a caption under 300 characters." }); return; }
+  if (!body.success) { res.status(400).json({ error: "Choose an approved video or photo, with a caption under 300 characters." }); return; }
   const soundtrack = getReelSoundtrack(body.data.soundtrackId);
   if (body.data.soundtrackId && !soundtrack) {
     res.status(400).json({ error: "Choose a music track from the available catalog." }); return;
@@ -388,8 +388,8 @@ router.post("/vibeswipe/reels", async (req, res): Promise<void> => {
   const userId = uid(req);
   if (body.data.slideMediaIds) {
     const mediaIds = body.data.slideMediaIds;
-    if (mediaIds.length < 2 || mediaIds.length > 10 || new Set(mediaIds).size !== mediaIds.length) {
-      res.status(400).json({ error: "Choose between 2 and 10 different photos." }); return;
+    if (mediaIds.length < 1 || mediaIds.length > 10 || new Set(mediaIds).size !== mediaIds.length) {
+      res.status(400).json({ error: "Choose between 1 and 10 different photos." }); return;
     }
     const assets = await db.select().from(mediaAssetsTable).where(inArray(mediaAssetsTable.id, mediaIds));
     const assetsById = new Map(assets.map((asset) => [asset.id, asset]));

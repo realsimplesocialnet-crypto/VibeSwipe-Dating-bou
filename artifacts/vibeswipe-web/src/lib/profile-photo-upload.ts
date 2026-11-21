@@ -87,6 +87,15 @@ export function validatePhotoFile(file: Pick<File, 'size' | 'type' | 'name'>): v
   // The actual bytes are checked with sniffPhotoFormat before upload instead.
 }
 
+/** Re-read the normalized JPEG immediately before upload so a stale picker reference cannot be posted. */
+export async function validatePreparedPhoto(file: File): Promise<void> {
+  validatePhotoFile(file);
+  const format = sniffPhotoFormat(await readPhotoBytes(file));
+  if (format !== 'image/jpeg') {
+    throw new PhotoUploadError('PHOTO_FORMAT', 'This photo is no longer readable. Choose it again or save a copy to your device first.');
+  }
+}
+
 export function photoDimensions(width: number, height: number): { width: number; height: number } {
   const scale = Math.min(1, 1600 / Math.max(width, height));
   return { width: Math.max(1, Math.round(width * scale)), height: Math.max(1, Math.round(height * scale)) };

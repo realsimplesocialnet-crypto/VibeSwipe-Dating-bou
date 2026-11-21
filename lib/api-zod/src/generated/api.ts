@@ -2988,9 +2988,8 @@ export const GetReelsFeedResponse = zod.object({
 
 
 /**
- * @summary Publish an approved video or an ordered photo slideshow as a Reel
+ * @summary Publish an approved video or a photo Reel
  */
-export const createReelBodyOneSlideMediaIdsMin = 2;
 export const createReelBodyOneSlideMediaIdsMax = 10;
 
 export const createReelBodyOneCaptionMax = 300;
@@ -2998,7 +2997,6 @@ export const createReelBodyOneCaptionMax = 300;
 export const createReelBodyOneAudienceDefault = `public`;
 export const createReelBodyOneSoundtrackIdMax = 80;
 
-export const createReelBodyTwoSlideMediaIdsMin = 2;
 export const createReelBodyTwoSlideMediaIdsMax = 10;
 
 export const createReelBodyTwoCaptionMax = 300;
@@ -3006,7 +3004,6 @@ export const createReelBodyTwoCaptionMax = 300;
 export const createReelBodyTwoAudienceDefault = `public`;
 export const createReelBodyTwoSoundtrackIdMax = 80;
 
-export const createReelBodyThreeSlideMediaIdsMin = 2;
 export const createReelBodyThreeSlideMediaIdsMax = 10;
 
 export const createReelBodyThreeCaptionMax = 300;
@@ -3018,19 +3015,19 @@ export const createReelBodyThreeSoundtrackIdMax = 80;
 
 export const CreateReelBody = zod.union([zod.object({
   "mediaId": zod.uuid(),
-  "slideMediaIds": zod.array(zod.uuid()).min(createReelBodyOneSlideMediaIdsMin).max(createReelBodyOneSlideMediaIdsMax).optional(),
+  "slideMediaIds": zod.array(zod.uuid()).min(1).max(createReelBodyOneSlideMediaIdsMax).optional(),
   "caption": zod.string().max(createReelBodyOneCaptionMax).optional(),
   "audience": zod.enum(['public', 'friends']).default(createReelBodyOneAudienceDefault),
   "soundtrackId": zod.string().max(createReelBodyOneSoundtrackIdMax).nullish()
 }),zod.object({
   "mediaId": zod.uuid().optional(),
-  "slideMediaIds": zod.array(zod.uuid()).min(createReelBodyTwoSlideMediaIdsMin).max(createReelBodyTwoSlideMediaIdsMax),
+  "slideMediaIds": zod.array(zod.uuid()).min(1).max(createReelBodyTwoSlideMediaIdsMax),
   "caption": zod.string().max(createReelBodyTwoCaptionMax).optional(),
   "audience": zod.enum(['public', 'friends']).default(createReelBodyTwoAudienceDefault),
   "soundtrackId": zod.string().max(createReelBodyTwoSoundtrackIdMax).nullish()
 })]).and(zod.object({
   "mediaId": zod.uuid().optional(),
-  "slideMediaIds": zod.array(zod.uuid()).min(createReelBodyThreeSlideMediaIdsMin).max(createReelBodyThreeSlideMediaIdsMax).optional(),
+  "slideMediaIds": zod.array(zod.uuid()).min(1).max(createReelBodyThreeSlideMediaIdsMax).optional(),
   "caption": zod.string().max(createReelBodyThreeCaptionMax).optional(),
   "audience": zod.enum(['public', 'friends']).default(createReelBodyThreeAudienceDefault),
   "soundtrackId": zod.string().max(createReelBodyThreeSoundtrackIdMax).nullish()

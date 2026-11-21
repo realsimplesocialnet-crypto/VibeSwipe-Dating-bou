@@ -2,11 +2,13 @@
 export class AsyncSemaphore {
   private active = 0;
   private readonly waiters: Array<() => void> = [];
+  private readonly capacity: number;
 
-  constructor(private readonly capacity: number) {
+  constructor(capacity: number) {
     if (!Number.isInteger(capacity) || capacity < 1) {
       throw new Error("Semaphore capacity must be a positive integer.");
     }
+    this.capacity = capacity;
   }
 
   get busy(): boolean {

@@ -209,7 +209,7 @@ test("photo-slide Reels preserve ordered media and protect every image", () => {
   assert.match(reelTable, /export const reelSlidesTable = pgTable\("vibeswipe_reel_slides"/);
   assert.match(reelTable, /primaryKey\(\{ name: "vibeswipe_reel_slides_pk", columns: \[t\.reelId, t\.position\] \}\)/);
   assert.match(apiSpec, /mediaType: \{ type: string, enum: \[video, slides\] \}/);
-  assert.match(apiSpec, /slideMediaIds:[\s\S]*?minItems: 2[\s\S]*?maxItems: 10/);
+  assert.match(apiSpec, /slideMediaIds:[\s\S]*?minItems: 1[\s\S]*?maxItems: 10/);
   assert.match(reels, /mediaIds\.map\(\(mediaId, position\) => \(\{ reelId: reel\.id, mediaId, position \}\)\)/);
   assert.match(reels, /asset\.ownerId !== userId/);
   assert.match(reels, /asset\.mediaType !== "image"/);

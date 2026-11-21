@@ -1545,7 +1545,7 @@ export const ReelInputAudience = {
 export type ReelInput = (unknown & ({
   mediaId?: string;
   /**
-     * @minItems 2
+     * @minItems 1
      * @maxItems 10
      */
   slideMediaIds?: string[];

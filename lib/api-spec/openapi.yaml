@@ -1855,7 +1855,7 @@ paths:
     post:
       operationId: createReel
       tags: [vibeswipe]
-      summary: Publish an approved video or an ordered photo slideshow as a Reel
+      summary: Publish an approved video or a photo Reel
       requestBody:
         required: true
         content:
@@ -3162,7 +3162,7 @@ components:
         mediaId: { type: string, format: uuid }
         slideMediaIds:
           type: array
-          minItems: 2
+          minItems: 1
           maxItems: 10
           items: { type: string, format: uuid }
         caption: { type: string, maxLength: 300 }
