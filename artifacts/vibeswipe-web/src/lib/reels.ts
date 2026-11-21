@@ -56,13 +56,3 @@ export function formatCount(value: number): string {
   return `${(value / 1_000_000).toFixed(1).replace(/\.0$/, "")}M`;
 }
 
-export function readVideoDuration(file: Blob): Promise<number> {
-  return new Promise((resolve, reject) => {
-    const url = URL.createObjectURL(file);
-    const video = document.createElement("video");
-    video.preload = "metadata";
-    video.onloadedmetadata = () => { URL.revokeObjectURL(url); resolve(video.duration); };
-    video.onerror = () => { URL.revokeObjectURL(url); reject(new Error("This video could not be read. Try another file.")); };
-    video.src = url;
-  });
-}

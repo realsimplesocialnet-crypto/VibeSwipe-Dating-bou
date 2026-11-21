@@ -40,6 +40,8 @@ test("repeated network errors keep a safe, actionable message without leaking th
     (error) =>
       error.code === "REEL_UPLOAD_NETWORK" &&
       /video is still selected/.test(error.userMessage) &&
+      /secure storage/.test(error.userMessage) &&
+      !error.userMessage.includes("localhost") &&
       !error.userMessage.includes("signature"),
   );
 

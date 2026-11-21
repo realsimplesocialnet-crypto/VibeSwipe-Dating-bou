@@ -76,7 +76,7 @@ export async function uploadReelVideoBytes(
         )
         : new ReelUploadError(
           "REEL_UPLOAD_NETWORK",
-          "Your browser couldn’t reach video storage. Your video is still selected; check your connection and tap Post to retry.",
+          "The video couldn’t be uploaded to secure storage. Your video is still selected; check your connection and tap Post to retry.",
         );
       retry = !controller.signal.aborted;
     } finally {

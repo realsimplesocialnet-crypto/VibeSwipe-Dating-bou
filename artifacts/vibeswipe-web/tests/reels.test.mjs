@@ -96,6 +96,16 @@ test("only supported, bounded videos are accepted for upload", () => {
   assert.match(reelFileProblem({ name: "a.jpg", type: "image/jpeg", size: 10 }), /MP4 or MOV/);
 });
 
+test("video selection opens the local preview immediately without waiting for metadata", () => {
+  const composer = read("../src/pages/reel-composer.tsx");
+  assert.match(composer, /function choose\(next: File \| undefined\)/);
+  assert.match(composer, /if \(problem\) \{ setError\(problem\); return; \}\s*setVideoPreviewUnavailable\(false\);\s*setFile\(next\);/);
+  assert.doesNotMatch(composer, /readVideoDuration/);
+  assert.match(composer, /onError=\{\(\) => setVideoPreviewUnavailable\(true\)\}/);
+  assert.match(composer, /The video is still selected and can be posted/);
+  assert.match(composer, /disabled=\{\(mode === "video" \? !file : !hasValidSlideCount\) \|\| !audience \|\| busy \|\| preparingSlides\}/);
+});
+
 test("Reels composer states there is no duration cap and uses full-length processing", () => {
   const composer = read("../src/pages/reel-composer.tsx");
   assert.match(composer, /useTranscodeReelVideo/);
@@ -117,7 +127,7 @@ test("photo-slide Reels accept 1-10 selected photos and validate every upload", 
   assert.match(composer, /const hasValidSlideCount = slideFiles\.length >= 1 && slideFiles\.length <= MAX_REEL_PHOTOS/);
   assert.match(composer, /Choose 1 to \$\{MAX_REEL_PHOTOS\} photos for this Reel/);
   assert.match(composer, /validatePreparedPhoto\(photo\)/);
-  assert.match(composer, /disabled=\{\(mode === "video" \? !file : !hasValidSlideCount\) \|\| !audience \|\| busy \|\| checking \|\| preparingSlides\}/);
+  assert.match(composer, /disabled=\{\(mode === "video" \? !file : !hasValidSlideCount\) \|\| !audience \|\| busy \|\| preparingSlides\}/);
   assert.match(composer, /Add photos \(\$\{slideFiles\.length\}\/\$\{MAX_REEL_PHOTOS\}\)/);
   assert.match(composer, /slideMediaIds: mediaIds/);
   assert.match(composer, /uploadedSlides\.current\.get\(photo\)/);
