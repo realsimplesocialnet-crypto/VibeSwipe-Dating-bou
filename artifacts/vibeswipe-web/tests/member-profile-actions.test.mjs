@@ -99,6 +99,15 @@ test('public profiles group identity and actions, compact details, and browse me
   assert.match(nativeReels, /setActiveTab\(tab\.id\)/);
 });
 
+test('the own-profile scroll lock is released when its retained tab is hidden', () => {
+  const profilePage = read('../src/components/profile-page.tsx');
+  const ownFrame = profilePage.slice(profilePage.indexOf('function OwnProfileFrame'), profilePage.indexOf('function genderIcon'));
+  assert.match(profilePage, /RouteVisibilityContext/);
+  assert.match(ownFrame, /useContext\(RouteVisibilityContext\)/);
+  assert.match(ownFrame, /classList\.toggle\("op-lock", routeVisible\)/);
+  assert.match(ownFrame, /if \(routeVisible\) element\.classList\.remove\("op-lock"\)/);
+});
+
 test('the shared match celebration is used on both Discover and member profiles', () => {
   for (const source of [member, native, read('../src/components/discover-swipe-page.tsx'), read('../../vibeswipe/app/(tabs)/index.tsx')]) {
     assert.match(source, /<MatchCelebration/);

@@ -1,4 +1,4 @@
-import { lazy, useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
+import { lazy, useContext, useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   checkAdditionalProfilePhoto,
@@ -15,7 +15,7 @@ import {
 import { ArrowLeft, MapPin, Mars, Navigation, NonBinary, Pencil, Settings, Venus, X } from "lucide-react";
 import { Empty, MediaImage, ProfileLoading, Retry } from "@/App";
 import { VerifiedBadge } from "@/components/verified-badge";
-import { Link, Redirect, useLocation } from "@/lib/router-compat";
+import { Link, Redirect, RouteVisibilityContext, useLocation } from "@/lib/router-compat";
 import { isProfileMissing, shouldRetryProfile } from "@/lib/profile-query-state";
 import { PROFILE_PHOTO_ACCEPT, prepareProfilePhoto, uploadProfilePhotoBytes, validatePhotoFile } from "@/lib/profile-photo-upload";
 import { userErrorMessage } from "@/lib/user-errors";
@@ -49,11 +49,14 @@ function ProfileEditFrame({ children }: { children: ReactNode }) {
 }
 
 function OwnProfileFrame({ children }: { children: ReactNode }) {
+  const routeVisible = useContext(RouteVisibilityContext);
   useEffect(() => {
     const element = document.documentElement;
-    element.classList.add("op-lock");
-    return () => element.classList.remove("op-lock");
-  }, []);
+    element.classList.toggle("op-lock", routeVisible);
+    return () => {
+      if (routeVisible) element.classList.remove("op-lock");
+    };
+  }, [routeVisible]);
   return <div className="own-profile op-fit -mb-24 lg:mb-0"><div className="page-in mx-auto flex h-full max-w-[560px] flex-col px-4 pt-3 md:pt-6">{children}</div></div>;
 }
 
