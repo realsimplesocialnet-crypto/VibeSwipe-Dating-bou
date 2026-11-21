@@ -55,7 +55,8 @@ export const ReelSlide = memo(function ReelSlide({ reel, index, active, near, po
   const [slideDragOffset, setSlideDragOffset] = useState(0);
   const [draggingSlide, setDraggingSlide] = useState(false);
   const [captionExpanded, setCaptionExpanded] = useState(false);
-  const slideshow = reel.mediaType === "slides" && reel.slideReferences.length > 1;
+  const photoReel = reel.mediaType === "slides" && reel.slideReferences.length > 0;
+  const slideshow = photoReel && reel.slideReferences.length > 1;
   const slideCount = reel.slideReferences.length;
   const videoMediaId = reel.mediaType === "video" && reel.videoReference.startsWith("media:")
     ? reel.videoReference.slice(6)
@@ -139,8 +140,8 @@ export const ReelSlide = memo(function ReelSlide({ reel, index, active, near, po
 
   function togglePlayback() {
     const element = video.current;
-    if ((!element && !slideshow) || failed) return;
-    if (slideshow) {
+    if ((!element && !photoReel) || failed) return;
+    if (photoReel) {
       if (!reel.soundtrack) return;
       if (userPaused || blocked) {
         setUserPaused(false);
@@ -195,13 +196,13 @@ export const ReelSlide = memo(function ReelSlide({ reel, index, active, near, po
   function moveMediaTouch(event: ReactTouchEvent<HTMLButtonElement>) {
     const start = mediaTouch.current;
     const touch = event.touches[0];
-    if (!slideshow || !start || !touch) return;
+    if (!photoReel || !start || !touch) return;
     const dx = touch.clientX - start.x;
     const dy = touch.clientY - start.y;
     const absX = Math.abs(dx);
     const absY = Math.abs(dy);
     if (start.axis === "undecided" && Math.max(absX, absY) > 12) {
-      if (absX >= absY * 1.2) start.axis = "horizontal";
+      if (slideshow && absX >= absY * 1.2) start.axis = "horizontal";
       else if (absY > 28 && absY >= absX * 1.4) start.axis = "vertical";
       if (start.axis === "horizontal") {
         setDraggingSlide(true);
@@ -209,7 +210,7 @@ export const ReelSlide = memo(function ReelSlide({ reel, index, active, near, po
       }
       if (start.axis === "vertical") skipNextTap.current = true;
     }
-    if (start.axis === "horizontal") {
+    if (slideshow && start.axis === "horizontal") {
       event.preventDefault();
       setSlideDragOffset(dx);
     }
@@ -219,12 +220,12 @@ export const ReelSlide = memo(function ReelSlide({ reel, index, active, near, po
     const start = mediaTouch.current;
     mediaTouch.current = null;
     const touch = event.changedTouches[0];
-    if (!slideshow || !start || !touch) return;
+    if (!photoReel || !start || !touch) return;
     const dx = touch.clientX - start.x;
     const dy = touch.clientY - start.y;
     const absX = Math.abs(dx);
     const absY = Math.abs(dy);
-    const horizontalSwipe = start.axis === "horizontal" || (absX > 24 && absX >= absY * 1.2);
+    const horizontalSwipe = slideshow && (start.axis === "horizontal" || (absX > 24 && absX >= absY * 1.2));
     const verticalSwipe = start.axis === "vertical" || (absY > 24 && absY >= absX * 1.2);
     if (horizontalSwipe) {
       event.preventDefault();
@@ -284,7 +285,7 @@ export const ReelSlide = memo(function ReelSlide({ reel, index, active, near, po
   }
 
   const src = reelMediaUrl(reel.videoReference);
-  const tapLabel = slideshow
+  const tapLabel = photoReel
     ? `${slideCount > 1 ? `Photo slideshow, ${slideIndex + 1} of ${slideCount}. Swipe left or right to browse.` : "Photo Reel."} Swipe up for the next Reel or down for the previous Reel.${reel.soundtrack ? " Tap to play or pause the soundtrack." : ""}`
     : `${userPaused || blocked ? "Tap to play" : "Tap to pause"} Reel. Video audio plays automatically.`;
   const reelReturnParams = new URLSearchParams({ returnTo });
@@ -301,7 +302,7 @@ export const ReelSlide = memo(function ReelSlide({ reel, index, active, near, po
     </span>
   </span>;
   return <section className="reel-slide" data-index={index} data-testid={`reel-slide-${reel.id}`} aria-roledescription="Reel" aria-label={`Reel by ${reel.creatorName}`}>
-    {slideshow
+    {photoReel
       ? <div className="reel-photo-slides" data-testid={`reel-photo-slides-${reel.id}`} aria-label={`Photo slide ${slideIndex + 1} of ${slideCount}`}>
         <div className="reel-photo-track" style={{
           width: `${slideCount * 100}%`,
@@ -356,9 +357,9 @@ export const ReelSlide = memo(function ReelSlide({ reel, index, active, near, po
       tabIndex={-1}
       data-testid={`audio-reel-soundtrack-${reel.id}`}
     /> : null}
-    {!slideshow && !ready && !posterUrl && !failed && <div className="reel-loading" aria-hidden="true" />}
+    {!photoReel && !ready && !posterUrl && !failed && <div className="reel-loading" aria-hidden="true" />}
     {blocked && active && !pageHidden && !failed && <div className="reel-autoplay-prompt" role="status">Tap the video to play with sound</div>}
-    <button type="button" className={`reel-tap ${slideshow ? "is-slideshow" : ""}`} onTouchStart={startMediaTouch} onTouchMove={moveMediaTouch} onTouchEnd={finishMediaTouch} onTouchCancel={cancelMediaTouch} onClick={() => { if (skipNextTap.current) { skipNextTap.current = false; return; } handleVideoTap(); }} aria-label={tapLabel} aria-pressed={!slideshow && !userPaused && !blocked} data-testid={`button-toggle-reel-playback-${reel.id}`} />
+    <button type="button" className={`reel-tap ${photoReel ? "is-slideshow" : ""}`} onTouchStart={startMediaTouch} onTouchMove={moveMediaTouch} onTouchEnd={finishMediaTouch} onTouchCancel={cancelMediaTouch} onClick={() => { if (skipNextTap.current) { skipNextTap.current = false; return; } handleVideoTap(); }} aria-label={tapLabel} aria-pressed={!photoReel && !userPaused && !blocked} data-testid={`button-toggle-reel-playback-${reel.id}`} />
     {slideshow && <div className="reel-slide-counter" aria-live="polite" data-testid={`text-reel-slide-count-${reel.id}`}>{slideIndex + 1}/{slideCount}</div>}
     {slideshow && <div className="reel-slide-dots" role="group" aria-label="Choose photo slide">{reel.slideReferences.map((_, slide) => <button key={slide} type="button" onClick={() => moveSlideTo(slide)} aria-label={`Show photo ${slide + 1}`} aria-current={slide === slideIndex ? "step" : undefined} data-testid={`button-reel-slide-${reel.id}-${slide + 1}`} />)}</div>}
     {flash && <span className="reel-flash" aria-hidden="true">{flash === "play" ? <Play size={34} fill="currentColor" /> : <Pause size={34} fill="currentColor" />}</span>}
@@ -401,7 +402,7 @@ export const ReelSlide = memo(function ReelSlide({ reel, index, active, near, po
       <span>Search · {searchSuggestion}</span>
       <ChevronRight size={17} aria-hidden="true" />
     </button>}
-    {!slideshow && <input
+    {!photoReel && <input
       ref={progressInput}
       className="reel-progress"
       type="range"

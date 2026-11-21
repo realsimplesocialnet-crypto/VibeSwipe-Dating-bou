@@ -109,7 +109,7 @@ test("photo-slide Reels can be selected, reviewed, retried, and swiped on web an
   const slide = read("../src/components/reels/reel-slide.tsx");
   const native = read("../../vibeswipe/app/reels/[reelId].tsx");
   assert.match(composer, /type ReelMode = "video" \| "slides"/);
-  assert.match(composer, /disabled=\{busy \|\| preparingSlides \|\| slideFiles\.length >= 1\} className="hidden"[\s\S]*?data-testid="input-reel-slides"/);
+  assert.match(composer, /disabled=\{busy \|\| preparingSlides\} className="hidden"[\s\S]*?data-testid="input-reel-slides"/);
   assert.doesNotMatch(composer, /data-testid="input-reel-slides"[^>]*multiple/);
   assert.match(composer, /mapWithConcurrency\(candidates, 2, async \(photo, index\)[\s\S]*?prepareProfilePhoto\(photo\)/);
   assert.match(composer, /Choose one photo for this Reel/);
@@ -117,6 +117,8 @@ test("photo-slide Reels can be selected, reviewed, retried, and swiped on web an
   assert.match(composer, /slideMediaIds: mediaIds/);
   assert.match(composer, /uploadedSlides\.current\.get\(photo\)/);
   assert.match(slide, /reel\.mediaType === "slides"/);
+  assert.match(slide, /const photoReel = reel\.mediaType === "slides" && reel\.slideReferences\.length > 0/);
+  assert.match(slide, /\{photoReel\s*\?\s*<div className="reel-photo-slides"/);
   assert.match(slide, /Swipe left or right to browse/);
   assert.match(slide, /setSlideIndex\(\(current\) => Math\.max\(0, Math\.min\(slideCount - 1/);
   assert.match(slide, /text-reel-slide-count-/);

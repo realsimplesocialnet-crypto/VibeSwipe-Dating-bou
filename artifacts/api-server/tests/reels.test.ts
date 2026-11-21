@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
-import { CreateReelCommentBody } from "../../../lib/api-zod/src/generated/api.ts";
+import { CreateReelBody, CreateReelCommentBody } from "../../../lib/api-zod/src/generated/api.ts";
 import { cleanReelCaption, decodeReelCursor, encodeReelCursor, reelAssetProblem, reelLocation } from "../src/lib/reel-cursor.ts";
 import { decodeReelFeedMixCursor, encodeReelFeedMixCursor, mixReelFeedLanes } from "../src/lib/reel-feed-mix.ts";
 import { reelSearchTerms } from "../src/lib/reel-search.ts";
@@ -205,6 +205,9 @@ test("Reel comment requests accept text, photo, or both but never an empty comme
 });
 
 test("photo-slide Reels preserve ordered media and protect every image", () => {
+  const onePhotoId = "123e4567-e89b-42d3-a456-426614174000";
+  assert.equal(CreateReelBody.safeParse({ slideMediaIds: [onePhotoId] }).success, true);
+  assert.equal(CreateReelBody.safeParse({ slideMediaIds: [] }).success, false);
   assert.match(reelTable, /mediaType: text\("media_type"\)\.notNull\(\)\.default\("video"\)/);
   assert.match(reelTable, /export const reelSlidesTable = pgTable\("vibeswipe_reel_slides"/);
   assert.match(reelTable, /primaryKey\(\{ name: "vibeswipe_reel_slides_pk", columns: \[t\.reelId, t\.position\] \}\)/);
