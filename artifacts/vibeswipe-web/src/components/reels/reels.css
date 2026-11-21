@@ -108,6 +108,7 @@
 .reels-primary { display: inline-flex; min-height: 48px; align-items: center; justify-content: center; gap: 8px; border-radius: 16px; background: hsl(var(--primary)); padding: 0 24px; font-weight: 800; color: hsl(var(--primary-foreground)); }
 .reels-more, .reels-end { scroll-snap-align: end; padding: 18px; text-align: center; font-size: 13px; color: rgb(255 255 255 / .55); }
 .reel-comments { flex: 0 0 auto; --comment-ink: #17171c; --comment-muted: #74747d; --comment-accent: #e94d97; position: relative; height: var(--reels-comments-height, min(72%, 680px)); min-height: min(390px, 72dvh); display: flex; flex-direction: column; overflow: hidden; border-radius: 24px 24px 0 0; background: #fff; color: var(--comment-ink); box-shadow: 0 -10px 32px rgb(0 0 0 / .16); animation: reel-rise .22s ease-out; }
+.reels-root[data-keyboard-open="true"] > .reel-comments { min-height: 0; max-height: 72%; }
 .reel-comments button:focus-visible { outline: 2px solid #9999a2; outline-offset: 2px; }
 .reel-comments-header { position: relative; flex: none; padding: 9px 20px 12px; background: #fff; }
 .reel-comments-handle { width: 42px; height: 4px; margin: 0 auto 11px; border-radius: 999px; background: #d8d8dc; }

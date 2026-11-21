@@ -16,10 +16,19 @@ test("iPhone keyboard pan keeps the expanded comments and composer in the visibl
 test("the wide comment panel leaves a visible, tappable portion of the video on phones", () => {
   for (const height of [240, 320, 390, 560, 844, 1024]) {
     const frame = reelsViewportFrame(height, 0, 844, true);
-    assert.ok(frame.commentsHeight <= height * 0.62 + 0.5);
-    assert.ok(frame.height - frame.commentsHeight >= height * 0.38 - 0.5);
+    assert.ok(frame.commentsHeight <= height * 0.72 + 0.5);
+    assert.ok(frame.height - frame.commentsHeight >= height * 0.28 - 0.5);
     assert.ok(frame.commentsHeight <= 560);
   }
+});
+
+test("keyboard-open comments override the desktop minimum sheet height", () => {
+  const css = readFileSync(new URL("../src/components/reels/reels.css", import.meta.url), "utf8");
+  const frame = reelsViewportFrame(240, 0, 844, true);
+  assert.equal(frame.keyboardOpen, true);
+  assert.equal(frame.commentsHeight, 160);
+  assert.equal(frame.height - frame.commentsHeight, 80);
+  assert.match(css, /\.reels-root\[data-keyboard-open="true"\] > \.reel-comments\s*\{[^}]*min-height:\s*0[^}]*max-height:\s*72%/);
 });
 
 test("closing the keyboard restores the full viewer and expanded comment pane", () => {

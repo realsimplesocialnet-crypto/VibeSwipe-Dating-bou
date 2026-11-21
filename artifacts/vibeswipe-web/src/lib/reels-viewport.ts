@@ -1,13 +1,23 @@
 /** Size both panes inside Safari's visible area, including its keyboard-time pan. */
 export function reelsViewportFrame(height: number, top: number, fullHeight: number, editing: boolean) {
+  const visibleHeight = Math.max(0, height);
+  const keyboardOpen = editing && fullHeight - height > 100;
+  const regularCommentsHeight = Math.round(visibleHeight * 0.62);
+  const keyboardCommentsHeight = Math.min(
+    visibleHeight * 0.72,
+    Math.max(160, regularCommentsHeight),
+  );
   const frame = {
-    height: Math.max(0, height),
+    height: visibleHeight,
     top: Math.max(0, top),
-    keyboardOpen: editing && fullHeight - height > 100,
+    keyboardOpen,
   };
   return {
     ...frame,
-    commentsHeight: Math.min(560, Math.round(frame.height * 0.62)),
+    commentsHeight: Math.min(
+      560,
+      keyboardOpen ? keyboardCommentsHeight : regularCommentsHeight,
+    ),
   };
 }
 
