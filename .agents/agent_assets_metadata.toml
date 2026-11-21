@@ -112,3 +112,17 @@ mtime_ms = 1794764366263
 storage_uri = "gcs://replit-rams-assets-picard/rams/assets/repl:10568a97-c1ca-4404-b0f1-6a360d301b91/85f06d51-a165-4b04-b998-f41bb354ba2c/884f2476-6f43-48a6-a543-7597aefa7a10"
 storage_version_token = "1794764384950862"
 content_type = "image/jpeg"
+
+[[outputs]]
+id = "wrtEMa-dUuHtWellsGdO1"
+uri = "file://artifacts/vibeswipe-web/public/reel-end-card.png"
+type = "image"
+title = "MyAge Beauty video end card"
+description = "Static transparent PNG fallback used by Reel video exports."
+logical_id = "558bf545-a9ee-4f33-a2b2-3a3af1fbf910"
+content_hash = "sha256:5e205fb626fb72ea0722d8398ed7b3c1d9224c075548c41c5be35af7ca33b63c"
+size = 105490
+mtime_ms = 1795254564736
+storage_uri = "gcs://replit-rams-assets-picard/rams/assets/repl:10568a97-c1ca-4404-b0f1-6a360d301b91/558bf545-a9ee-4f33-a2b2-3a3af1fbf910/8fb1a483-29ff-4f2c-b78b-d81402fbb583"
+storage_version_token = "1795254790001132"
+content_type = "image/png"

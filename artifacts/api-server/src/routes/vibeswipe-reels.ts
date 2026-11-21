@@ -1,5 +1,10 @@
 import { getAuth } from "@clerk/express";
+import { createReadStream, createWriteStream } from "node:fs";
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { Readable } from "node:stream";
+import { pipeline } from "node:stream/promises";
 import {
   CreateReelBody, CreateReelCommentBody, CreateReelCommentParams, CreateReelCommentResponse, CreateReelResponse,
   DeleteReelCommentParams, DeleteReelParams, GetMyReelsQueryParams, GetMyReelsResponse, GetReelCommentsParams,
@@ -26,6 +31,7 @@ import { visibleReelCondition } from "../lib/reels-visibility";
 import { removeUnreferencedProfileMedia } from "../lib/profileMediaCleanup";
 import { ObjectNotFoundError, ObjectStorageService } from "../lib/objectStorage";
 import { ProfileVideoValidationError, transcodeReelVideo } from "../lib/profileVideoTranscoder";
+import { addReelEndCard } from "../lib/reel-end-card-export";
 import { processSafeReel, processSafeReelImage, reelIsApproved } from "../lib/reel-safety";
 import { ReelSafetyError } from "../lib/reel-safety-policy";
 import { sendReelCommentLikePush, sendReelCommentReplyPush, sendReelLikePush } from "../lib/vibeswipePush";
@@ -485,28 +491,48 @@ router.get("/vibeswipe/reels/:reelId/download", async (req, res): Promise<void> 
   if (reel.mediaType !== "video") { res.status(415).json({ error: "Only video Reels can be downloaded." }); return; }
   const [asset] = await db.select().from(mediaAssetsTable).where(eq(mediaAssetsTable.id, reel.mediaId)).limit(1);
   if (!asset) { res.status(404).json({ error: "Reel media not found." }); return; }
+  const workDirectory = await mkdtemp(join(tmpdir(), "vibeswipe-reel-export-"));
+  const inputPath = join(workDirectory, "source.mp4");
+  const outputPath = join(workDirectory, "export.mp4");
+  const cancelExport = new AbortController();
+  res.on("close", () => {
+    if (!res.writableEnded) cancelExport.abort();
+  });
   try {
     const file = await reelStorage.getObjectEntityFile(asset.objectPath);
     const response = await reelStorage.downloadObject(file, 300);
-    res.status(response.status);
-    response.headers.forEach((value, key) => res.setHeader(key, value));
-    res.setHeader("Content-Disposition", 'attachment; filename="myage-reel.mp4"');
-    res.setHeader("Cache-Control", "private, no-store");
-    if (response.body) {
-      const stream = Readable.fromWeb(response.body as ReadableStream<Uint8Array>);
-      res.on("close", () => stream.destroy());
-      stream.on("error", (error) => {
-        req.log.error({ err: error, reelId: reel.id }, "Reel download interrupted");
-        res.destroy();
-      });
-      stream.pipe(res);
-    } else {
-      res.end();
+    if (!response.ok || !response.body) {
+      if (response.status === 404) { res.status(404).json({ error: "Reel media not found." }); return; }
+      throw new Error(`Could not read stored Reel video (${response.status}).`);
     }
+    await pipeline(
+      Readable.fromWeb(response.body as ReadableStream<Uint8Array>),
+      createWriteStream(inputPath),
+      { signal: cancelExport.signal },
+    );
+    const rendered = await addReelEndCard(
+      inputPath,
+      outputPath,
+      join(process.cwd(), "assets", "reel-end-card.png"),
+      cancelExport.signal,
+    );
+    if (cancelExport.signal.aborted || res.destroyed) return;
+    res.status(200);
+    res.setHeader("Content-Type", "video/mp4");
+    res.setHeader("Content-Length", String(rendered.size));
+    res.setHeader("Content-Disposition", `attachment; filename="myage-beauty-reel-${reel.id}.mp4"`);
+    res.setHeader("Cache-Control", "private, no-store");
+    await pipeline(createReadStream(outputPath), res);
   } catch (error) {
+    if (cancelExport.signal.aborted || res.destroyed) return;
     if (error instanceof ObjectNotFoundError) { res.status(404).json({ error: "Reel media not found." }); return; }
     req.log.error({ err: error, reelId: reel.id }, "Reel download failed");
-    res.status(500).json({ error: "Could not download this Reel." });
+    if (!res.headersSent) res.status(500).json({ error: "Could not export this Reel." });
+    else res.destroy(error instanceof Error ? error : undefined);
+  } finally {
+    await rm(workDirectory, { recursive: true, force: true }).catch(error => {
+      req.log.warn({ err: error, reelId: reel.id }, "Could not clean temporary Reel export files");
+    });
   }
 });
 

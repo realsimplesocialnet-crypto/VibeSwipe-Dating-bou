@@ -505,12 +505,13 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
   }
 
   async function downloadCurrentReel(reel: Reel) {
+    setNotice("Preparing your download…");
     try {
       const blob = await downloadReel(reel.id);
       const url = URL.createObjectURL(blob);
       const anchor = document.createElement("a");
       anchor.href = url;
-      anchor.download = `myage-reel-${reel.id}.mp4`;
+      anchor.download = `myage-beauty-reel-${reel.id}.mp4`;
       document.body.appendChild(anchor);
       anchor.click();
       anchor.remove();
