@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
-import { getMyReels, getProfileLikedReels, getProfileReels, getProfileRepostedReels, getSavedReels, getGetMyReelsQueryKey, getGetProfileLikedReelsQueryKey, getGetProfileReelsQueryKey, getGetProfileRepostedReelsQueryKey, getGetSavedReelsQueryKey, type Reel } from "@workspace/api-client-react";
-import { Bookmark, Eye, Heart, LayoutGrid, Repeat2, Play } from "lucide-react";
+import { getMyReels, getProfileLikedReels, getProfileReels, getSavedReels, getGetMyReelsQueryKey, getGetProfileLikedReelsQueryKey, getGetProfileReelsQueryKey, getGetSavedReelsQueryKey, type Reel } from "@workspace/api-client-react";
+import { Bookmark, Eye, Heart, LayoutGrid, Play } from "lucide-react";
 import { Link } from "wouter";
 import { QuietSpinner } from "@/components/ui/quiet-spinner";
 import { formatCount, reelMediaUrl } from "@/lib/reels";
 
-type MediaTab = "reels" | "reposted" | "saved" | "liked";
+type MediaTab = "reels" | "saved" | "liked";
 
 export function ProfileReelsSection({ profileId, returnTo, own = false }: {
   profileId: string;
@@ -18,7 +18,6 @@ export function ProfileReelsSection({ profileId, returnTo, own = false }: {
   const visibleTab = !own && activeTab === "saved" ? "reels" : activeTab;
   const tabs: { id: MediaTab; label: string; accessibleLabel: string; icon: typeof LayoutGrid }[] = [
     { id: "reels", label: "Reels", accessibleLabel: "Grid / Reels", icon: LayoutGrid },
-    { id: "reposted", label: "Reposts", accessibleLabel: "Reposts", icon: Repeat2 },
     ...(own ? [{ id: "saved" as const, label: "Saved", accessibleLabel: "Saved", icon: Bookmark }] : []),
     { id: "liked", label: "Likes", accessibleLabel: "Likes", icon: Heart },
   ];
@@ -36,14 +35,6 @@ export function ProfileReelsSection({ profileId, returnTo, own = false }: {
     queryFn: ({ pageParam, signal }) => getProfileReels({ profileId, ...(pageParam ? { cursor: pageParam } : {}) }, { signal }),
     getNextPageParam: page => page.nextCursor ?? undefined,
     enabled: Boolean(profileId) && !own && visibleTab === "reels",
-    staleTime: 30_000,
-  });
-  const reposted = useInfiniteQuery({
-    queryKey: getGetProfileRepostedReelsQueryKey({ profileId }),
-    initialPageParam: undefined as string | undefined,
-    queryFn: ({ pageParam, signal }) => getProfileRepostedReels({ profileId, ...(pageParam ? { cursor: pageParam } : {}) }, { signal }),
-    getNextPageParam: page => page.nextCursor ?? undefined,
-    enabled: Boolean(profileId) && visibleTab === "reposted",
     staleTime: 30_000,
   });
   const saved = useInfiniteQuery({
@@ -64,8 +55,7 @@ export function ProfileReelsSection({ profileId, returnTo, own = false }: {
   });
 
   const current = visibleTab === "reels" ? (own ? myReels : profileReels)
-    : visibleTab === "reposted" ? reposted
-      : visibleTab === "saved" ? saved : liked;
+    : visibleTab === "saved" ? saved : liked;
   const reels: Reel[] = current.data?.pages.flatMap(page => page.items) ?? [];
   const isPrivacyLimited = !own && visibleTab === "liked" && current.isError && !current.data;
   const sectionClass = own ? "op-section op-media-tabs shrink-0" : "pp-reels-grid-section pp-media-tabs";
@@ -99,7 +89,7 @@ export function ProfileReelsSection({ profileId, returnTo, own = false }: {
           </button>
         </div>}
       </> : <div className="pp-media-state" data-testid={`empty-profile-${visibleTab}`}>
-        <span className="pp-media-empty-icon">{visibleTab === "saved" ? <Bookmark size={18}/> : visibleTab === "liked" ? <Heart size={18}/> : visibleTab === "reposted" ? <Repeat2 size={18}/> : <LayoutGrid size={18}/>}</span>
+        <span className="pp-media-empty-icon">{visibleTab === "saved" ? <Bookmark size={18}/> : visibleTab === "liked" ? <Heart size={18}/> : <LayoutGrid size={18}/>}</span>
         <p>{emptyCopy(visibleTab, own)}</p>
       </div>}
     </div>
@@ -108,7 +98,6 @@ export function ProfileReelsSection({ profileId, returnTo, own = false }: {
 
 function emptyCopy(tab: MediaTab, own: boolean) {
   if (tab === "reels") return own ? "Your first Reel will feel right at home here." : "No Reels to show yet.";
-  if (tab === "reposted") return own ? "Reels you repost will collect here." : "No reposts to show yet.";
   if (tab === "saved") return "Videos you save are private to you.";
   return own ? "Videos you like will appear here." : "No liked videos to show.";
 }
@@ -129,7 +118,6 @@ function ProfileReelThumbnail({ reel, returnTo, profileFeed, dataTestPrefix }: {
       ? <img src={reelMediaUrl(reel.slideReferences[0])} alt="" aria-hidden="true" className="h-full w-full object-cover"/>
       : <video src={`${reelMediaUrl(reel.videoReference)}#t=0.1`} preload="metadata" muted playsInline aria-hidden="true" className="h-full w-full object-cover"/>}
     <span className="pp-reel-overlay" aria-hidden="true"><span className="pp-reel-play"><Play size={15} fill="currentColor"/></span></span>
-    {reel.repostedByMe && <span className="pp-repost-marker" aria-label="Reposted"><Repeat2 size={12}/> Reposted</span>}
     <span className="pp-reel-views" data-testid={`text-profile-reel-views-${reel.id}`}><Eye size={11}/>{formatCount(viewCount)}</span>
   </Link>;
 }

@@ -483,7 +483,6 @@ html[data-theme="light"] .messages-shell .messages-page { background:transparent
 .pp-reel-tile:hover .pp-reel-overlay { background:rgba(10,8,12,.3); }
 .pp-reel-play { display:flex; height:32px; width:32px; align-items:center; justify-content:center; border:1px solid rgba(255,255,255,.38); border-radius:50%; background:rgba(15,12,17,.5); color:white; }
 .pp-reel-views { position:absolute; right:5px; bottom:5px; display:flex; align-items:center; gap:4px; border:1px solid rgba(255,255,255,.22); border-radius:999px; background:rgba(10,8,12,.78); padding:4px 6px; color:white; font-size:9px; font-weight:800; line-height:1; }
-.pp-repost-marker { position:absolute; top:5px; left:5px; display:flex; align-items:center; gap:4px; border-radius:999px; background:rgba(15,12,17,.78); padding:4px 6px; color:#fff; font-size:9px; font-weight:750; }
 .pp-media-loading { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:2px; }
 .pp-media-skeleton { aspect-ratio:3/4; border-radius:0; background:linear-gradient(110deg,var(--media-bg),color-mix(in srgb,var(--media-muted) 16%,var(--media-bg)),var(--media-bg)); background-size:200% 100%; animation:profile-media-shimmer 1.6s ease-in-out infinite; }
 .pp-media-state { display:flex; min-height:132px; flex-direction:column; align-items:center; justify-content:center; gap:9px; border:1px dashed var(--media-line); border-radius:15px; padding:18px 12px; color:var(--media-muted); text-align:center; font-size:12px; line-height:1.45; }

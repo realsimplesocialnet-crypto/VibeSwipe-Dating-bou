@@ -88,8 +88,12 @@ test('public profiles group identity and actions, compact details, and browse me
   for (const source of [webReels, nativeReels]) {
     assert.match(source, /useInfiniteQuery/);
     assert.match(source, /button-load-more-profile-/);
-    assert.match(source, /reposted|Reposts/);
   }
+  assert.doesNotMatch(webReels, /reposted|Reposts|Repeat2/);
+  assert.match(nativeReels, /reposted|Reposts/);
+  assert.match(webReels, /gridTemplateColumns: `repeat\(\$\{tabs\.length\}, minmax\(0, 1fr\)\)`/);
+  const shareSheet = read('../src/components/reels/reel-share-sheet.tsx');
+  assert.doesNotMatch(shareSheet, /Repost|repost|Repeat2|useRepostReel|useRemoveRepost/);
   assert.match(webStyles, /\.pp-reel-grid\s*\{\s*display:\s*grid;\s*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/);
   assert.match(webReels, /setActiveTab\(id\)/);
   assert.match(nativeReels, /setActiveTab\(tab\.id\)/);

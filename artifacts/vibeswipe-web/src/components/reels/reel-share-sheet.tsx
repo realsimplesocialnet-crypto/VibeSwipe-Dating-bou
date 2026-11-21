@@ -2,10 +2,10 @@ import { useState } from "react";
 import { createPortal } from "react-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import {
-  getGetMatchesQueryKey, getGetMyReelsQueryKey, getGetProfileLikedReelsQueryKey, getGetProfileReelsQueryKey, getGetProfileRepostedReelsQueryKey, getGetReelQueryKey,
-  getGetReelsFeedQueryKey, getGetSavedReelsQueryKey, useGetMatches, useGetMyProfile, useRecordReelShare, useRemoveRepost, useRepostReel, useSendMessage, type Reel,
+  getGetMatchesQueryKey, getGetMyReelsQueryKey, getGetProfileReelsQueryKey, getGetReelQueryKey,
+  getGetReelsFeedQueryKey, getGetSavedReelsQueryKey, useGetMatches, useGetMyProfile, useRecordReelShare, useSendMessage, type Reel,
 } from "@workspace/api-client-react";
-import { Copy, Repeat2, Share2, X } from "lucide-react";
+import { Copy, Share2, X } from "lucide-react";
 import { ReelAvatar } from "@/components/reels/reel-avatar";
 import { reelShareMessage, reelShareUrl } from "@/lib/reels";
 import { userErrorMessage } from "@/lib/user-errors";
@@ -17,11 +17,8 @@ export function ReelShareSheet({ reel, onClose, onCountChange, onCountError }: {
   const me = useGetMyProfile();
   const send = useSendMessage();
   const recordShare = useRecordReelShare();
-  const repost = useRepostReel();
-  const removeRepost = useRemoveRepost();
   const [pending, setPending] = useState<string | null>(null);
   const [status, setStatus] = useState("");
-  const [repostedByMe, setRepostedByMe] = useState(reel.repostedByMe);
   const url = reelShareUrl(window.location.origin, import.meta.env.BASE_URL, reel.id);
   const chats = (matches.data ?? []).filter((match) => !match.blockedByMe && !match.blockedMe && match.profile.id !== me.data?.id);
   const canNativeShare = typeof navigator.share === "function";
@@ -36,33 +33,6 @@ export function ReelShareSheet({ reel, onClose, onCountChange, onCountError }: {
       getGetMyReelsQueryKey(),
       getGetSavedReelsQueryKey(),
     ]) void client.invalidateQueries({ queryKey });
-  }
-
-  async function toggleRepost() {
-    setStatus("");
-    setPending("repost");
-    try {
-      const engagement = repostedByMe
-        ? await removeRepost.mutateAsync({ reelId: reel.id })
-        : await repost.mutateAsync({ reelId: reel.id });
-      setRepostedByMe(engagement.repostedByMe);
-      const profileIds = new Set([reel.creatorId, me.data?.id].filter((id): id is string => Boolean(id)));
-      for (const queryKey of [
-        getGetReelQueryKey(reel.id),
-        getGetReelsFeedQueryKey(),
-        getGetMyReelsQueryKey(),
-        getGetSavedReelsQueryKey(),
-      ]) void client.invalidateQueries({ queryKey });
-      for (const profileId of profileIds) {
-        void client.invalidateQueries({ queryKey: getGetProfileReelsQueryKey({ profileId }) });
-        void client.invalidateQueries({ queryKey: getGetProfileLikedReelsQueryKey({ profileId }) });
-        void client.invalidateQueries({ queryKey: getGetProfileRepostedReelsQueryKey({ profileId }) });
-      }
-    } catch (error) {
-      setStatus(userErrorMessage(error, repostedByMe ? "Couldn’t remove the repost. Try again." : "Couldn’t repost this Reel. Try again."));
-    } finally {
-      setPending(null);
-    }
   }
 
   function nativeShare() {
@@ -124,11 +94,6 @@ export function ReelShareSheet({ reel, onClose, onCountChange, onCountError }: {
       </div>
       {status && <p role="status" className="mt-2 text-xs text-white/70" data-testid="status-share-reel">{status}</p>}
       <div className="reel-share-destinations" aria-label="Other sharing options">
-        <button type="button" onClick={() => void toggleRepost()} disabled={pending === "repost"}
-          data-testid="button-toggle-repost" aria-pressed={repostedByMe} className="reel-share-destination">
-          <span className={`reel-share-destination-icon ${repostedByMe ? "is-copy" : ""}`}>{pending === "repost" ? <QuietSpinner size={20}/> : <Repeat2 size={22}/>}</span>
-          <span>{repostedByMe ? "Remove repost" : "Repost"}</span>
-        </button>
         <button type="button" onClick={() => void copy()} data-testid="button-copy-reel-link" className="reel-share-destination">
           <span className="reel-share-destination-icon is-copy"><Copy size={22} /></span><span>Copy link</span>
         </button>
