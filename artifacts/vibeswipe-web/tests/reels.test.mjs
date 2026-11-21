@@ -104,16 +104,21 @@ test("Reels composer states there is no duration cap and uses full-length proces
   assert.match(composer, /500 MB/);
 });
 
-test("photo-slide Reels can be selected, reviewed, retried, and swiped on web and native", () => {
+test("photo-slide Reels accept 1-10 selected photos and validate every upload", () => {
   const composer = read("../src/pages/reel-composer.tsx");
   const slide = read("../src/components/reels/reel-slide.tsx");
   const native = read("../../vibeswipe/app/reels/[reelId].tsx");
   assert.match(composer, /type ReelMode = "video" \| "slides"/);
-  assert.match(composer, /disabled=\{busy \|\| preparingSlides\} className="hidden"[\s\S]*?data-testid="input-reel-slides"/);
-  assert.doesNotMatch(composer, /data-testid="input-reel-slides"[^>]*multiple/);
+  assert.match(composer, /const MAX_REEL_PHOTOS = 10/);
+  assert.match(composer, /multiple disabled=\{busy \|\| preparingSlides\}/);
+  assert.match(composer, /const candidates = incoming\.slice\(0, remaining\)/);
+  assert.match(composer, /\[\.\.\.current, \.\.\.ready\]\.slice\(0, MAX_REEL_PHOTOS\)/);
   assert.match(composer, /mapWithConcurrency\(candidates, 2, async \(photo, index\)[\s\S]*?prepareProfilePhoto\(photo\)/);
-  assert.match(composer, /Choose one photo for this Reel/);
+  assert.match(composer, /const hasValidSlideCount = slideFiles\.length >= 1 && slideFiles\.length <= MAX_REEL_PHOTOS/);
+  assert.match(composer, /Choose 1 to \$\{MAX_REEL_PHOTOS\} photos for this Reel/);
   assert.match(composer, /validatePreparedPhoto\(photo\)/);
+  assert.match(composer, /disabled=\{\(mode === "video" \? !file : !hasValidSlideCount\) \|\| !audience \|\| busy \|\| checking \|\| preparingSlides\}/);
+  assert.match(composer, /Add photos \(\$\{slideFiles\.length\}\/\$\{MAX_REEL_PHOTOS\}\)/);
   assert.match(composer, /slideMediaIds: mediaIds/);
   assert.match(composer, /uploadedSlides\.current\.get\(photo\)/);
   assert.match(slide, /reel\.mediaType === "slides"/);

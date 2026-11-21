@@ -124,7 +124,7 @@ test('photo slides are prepared before preview and upload uses the prepared file
   assert.match(composer, /mapWithConcurrency\(candidates, 2, async \(photo, index\)[\s\S]*?prepareProfilePhoto\(photo\)/);
   assert.match(composer, /const urls = slideFiles\.map\(\(item\) => URL\.createObjectURL\(item\)\)/);
   assert.match(composer, /uploadProfileMediaBytes|uploadProfilePhotoBytes\(signed\.uploadURL, photo/);
-  assert.match(composer, /slideFiles\.length !== 1/);
+  assert.match(composer, /const hasValidSlideCount = slideFiles\.length >= 1 && slideFiles\.length <= MAX_REEL_PHOTOS/);
   assert.match(composer, /validatePreparedPhoto\(photo\)/);
 });
 
