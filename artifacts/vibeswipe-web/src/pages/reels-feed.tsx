@@ -4,10 +4,10 @@ import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import {
   getGetMyReelsQueryKey, getGetNotificationsQueryKey, getGetProfileReelsQueryKey, getGetReelQueryKey,
   getGetReelsFeedQueryKey, getGetSavedReelsQueryKey, getProfileReels, getReelsFeed, downloadReel,
-  useGetReel, useLikeReel, useRecordReelView, useSaveReel,
+  useGetReel, useGetVibeSwipeSettings, useLikeReel, useRecordReelView, useReportReel, useSaveReel,
   useUnlikeReel, useUnsaveReel, useMarkReelNotInterested, type Reel,
 } from "@workspace/api-client-react";
-import { ArrowLeft, Bookmark, Clapperboard, Download, EyeOff, LoaderCircle, MoreHorizontal, Plus, Search, Users, X } from "lucide-react";
+import { ArrowLeft, Bookmark, Clapperboard, Download, EyeOff, Flag, LoaderCircle, MoreHorizontal, Plus, Search, Users, X } from "lucide-react";
 import { ReelSlide } from "@/components/reels/reel-slide";
 import { ReelComments } from "@/components/reels/reel-comments";
 import { ReelShareSheet } from "@/components/reels/reel-share-sheet";
@@ -17,6 +17,7 @@ import { readOfflineReels, saveReelForOffline } from "@/lib/offline-reels";
 import { reelSlideIndex, reelsViewportFrame } from "@/lib/reels-viewport";
 import { mixReelsByCreator } from "@/lib/reels-feed-order";
 import { QuietSpinner } from "@/components/ui/quiet-spinner";
+import { useAppLanguage } from "@/lib/app-language";
 import "@/components/reels/reels.css";
 
 const REEL_COMMENTS_HISTORY_KEY = "__myageReelComments";
@@ -105,6 +106,7 @@ function usePageHidden() {
 
 export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
   const [location, setLocation] = useLocation();
+  const { t } = useAppLanguage();
   const client = useQueryClient();
   const setAppNavigationVisible = useContext(ReelsNavigationVisibilityContext);
   const returnTo = safeReelReturnPath(new URLSearchParams(window.location.search).get("returnTo"));
@@ -134,6 +136,9 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
   const [removed, setRemoved] = useState<Set<string>>(() => new Set());
   const [notice, setNotice] = useState("");
   const [reelMenuOpen, setReelMenuOpen] = useState(false);
+  const [reportFor, setReportFor] = useState<Reel | null>(null);
+  const [reportReason, setReportReason] = useState<"harassment" | "nudity" | "violence" | "hate" | "spam" | "underage" | "other">("other");
+  const [reportDetails, setReportDetails] = useState("");
   const [offlineReels, setOfflineReels] = useState<Reel[]>([]);
   const [offlineIds, setOfflineIds] = useState<Set<string>>(() => new Set());
   const [offlineSavingIds, setOfflineSavingIds] = useState<Set<string>>(() => new Set());
@@ -242,8 +247,18 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
     staleTime: 30_000,
     refetchOnWindowFocus: false,
   });
+  const settings = useGetVibeSwipeSettings({ query: { staleTime: 60_000 } });
+  const keywordFilters = useMemo(
+    () => (settings.data?.keywordFilters ?? []).map((term) => term.trim().toLocaleLowerCase()).filter(Boolean),
+    [settings.data?.keywordFilters],
+  );
+  const matchesKeywordFilter = useCallback((text: string) => {
+    const normalized = text.toLocaleLowerCase();
+    return keywordFilters.some((term) => normalized.includes(term));
+  }, [keywordFilters]);
   const like = useLikeReel(); const unlike = useUnlikeReel(); const save = useSaveReel(); const unsave = useUnsaveReel();
   const markNotInterested = useMarkReelNotInterested();
+  const reportReel = useReportReel();
   const recordView = useRecordReelView();
   const viewedReels = useRef(new Set<string>());
   const activeFeed = profileId ? profileFeed : feed;
@@ -251,8 +266,9 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
   const searchResults = useMemo(() => {
     const seen = new Set<string>();
     return (searchFeed.data?.pages ?? []).flatMap((page) => page.items)
-      .filter((reel) => !seen.has(reel.id) && Boolean(seen.add(reel.id)));
-  }, [searchFeed.data]);
+      .filter((reel) => !seen.has(reel.id) && Boolean(seen.add(reel.id)))
+      .filter((reel) => !matchesKeywordFilter(reel.caption));
+  }, [searchFeed.data, matchesKeywordFilter]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -301,11 +317,11 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
       seen.add(single.data.id);
     }
     if (!profileId && feedMode === "reels" && !list.length && feed.isError) for (const reel of offlineReels) if (!seen.has(reel.id)) { seen.add(reel.id); list.push(reel); }
-    return list.filter((reel) => !removed.has(reel.id)).map((reel) => {
+    return list.filter((reel) => !removed.has(reel.id) && !matchesKeywordFilter(reel.caption)).map((reel) => {
       const patch = patches[reel.id];
       return patch ? { ...reel, ...patch } : reel;
     });
-  }, [single.data, profileId, profileFeed.data, feed.data, feed.isError, feedMode, offlineReels, patches, removed]);
+  }, [single.data, profileId, profileFeed.data, feed.data, feed.isError, feedMode, offlineReels, patches, removed, matchesKeywordFilter]);
   const reelIdsKey = useMemo(() => reels.map((reel) => reel.id).join("|"), [reels]);
 
   const resumeReelId = initialReelId ?? initialHistoryMarker?.reelId;
@@ -471,6 +487,23 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
     }
   }
 
+  async function submitReelReport() {
+    if (!reportFor) return;
+    try {
+      await reportReel.mutateAsync({
+        reelId: reportFor.id,
+        data: { reason: reportReason, details: reportDetails.trim() || undefined },
+      });
+      setNotice("Thanks. Your report was sent for review.");
+    } catch {
+      setNotice("You may have already reported this Reel, or your report could not be sent.");
+    } finally {
+      setReportFor(null);
+      setReportDetails("");
+      setReelMenuOpen(false);
+    }
+  }
+
   async function downloadCurrentReel(reel: Reel) {
     try {
       const blob = await downloadReel(reel.id);
@@ -596,6 +629,7 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
       {reelMenuOpen && activeReel && <div className="absolute right-3 top-[calc(env(safe-area-inset-top,0px)+54px)] z-30 min-w-48 overflow-hidden rounded-2xl border border-white/10 bg-[#151319]/95 p-1.5 shadow-2xl backdrop-blur-xl" role="menu" data-testid="menu-reel-options">
         {activeReel.canDownload && activeReel.mediaType === "video" && <button type="button" role="menuitem" onClick={() => void downloadCurrentReel(activeReel)} className="flex min-h-11 w-full items-center gap-3 rounded-xl px-3 text-left text-sm font-semibold text-white hover:bg-white/10" data-testid={`button-download-reel-${activeReel.id}`}><Download size={17}/>Download Reel</button>}
         {!activeReel.isOwner && <button type="button" role="menuitem" disabled={markNotInterested.isPending} onClick={() => void hideSimilarReels(activeReel)} className="flex min-h-11 w-full items-center gap-3 rounded-xl px-3 text-left text-sm font-semibold text-white hover:bg-white/10 disabled:opacity-50" data-testid={`button-not-interested-${activeReel.id}`}><EyeOff size={17}/>Not interested</button>}
+        {!activeReel.isOwner && <button type="button" role="menuitem" onClick={() => { setReportReason("other"); setReportDetails(""); setReportFor(activeReel); setReelMenuOpen(false); }} className="flex min-h-11 w-full items-center gap-3 rounded-xl px-3 text-left text-sm font-semibold text-white hover:bg-white/10" data-testid={`button-report-reel-${activeReel.id}`}><Flag size={17}/>{t("Report Reel")}</button>}
         {!activeReel.canDownload && activeReel.isOwner && <p className="px-3 py-2 text-xs text-white/65">You have disabled Reel downloads.</p>}
       </div>}
       {searchOpen && <section className="reels-search-overlay" role="dialog" aria-modal="true" aria-label="Search Reels" data-testid="reels-search-overlay">
@@ -639,6 +673,35 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
       </section>}
       {notice && <p role="status" className="reels-notice" data-testid="status-reels">{notice}</p>}
     </div>
+    {reportFor && <div className="fixed inset-0 z-[110] flex items-end justify-center bg-black/75 p-3 sm:items-center" role="presentation" onClick={() => !reportReel.isPending && setReportFor(null)}>
+      <section className="w-full max-w-lg rounded-t-[28px] bg-[#17141b] p-5 pb-[calc(env(safe-area-inset-bottom)+20px)] text-foreground shadow-2xl ring-1 ring-white/10 sm:rounded-[28px]" role="dialog" aria-modal="true" aria-labelledby="report-reel-title" data-testid="dialog-report-reel" onClick={(event) => event.stopPropagation()}>
+        <div className="mb-4 flex items-center justify-between">
+          <h2 id="report-reel-title" className="text-lg font-bold">{t("Report Reel")}</h2>
+          <button type="button" onClick={() => setReportFor(null)} disabled={reportReel.isPending} aria-label={t("Close")} className="grid h-10 w-10 place-items-center rounded-full hover:bg-white/10"><X size={20}/></button>
+        </div>
+        <p className="mb-4 text-sm text-white/65">{t("Choose the reason that best describes this Reel. Reports are reviewed by our safety team.")}</p>
+        <label className="mb-4 block text-sm font-semibold">
+          {t("Reason")}
+          <select value={reportReason} onChange={(event) => setReportReason(event.target.value as typeof reportReason)} className="mt-2 min-h-12 w-full rounded-xl bg-white/[.06] px-3 text-sm text-white outline-none focus:ring-2 focus:ring-primary">
+            <option value="harassment">{t("Harassment or bullying")}</option>
+            <option value="nudity">{t("Nudity or sexual content")}</option>
+            <option value="violence">{t("Violence or dangerous acts")}</option>
+            <option value="hate">{t("Hate or hateful conduct")}</option>
+            <option value="spam">{t("Spam or scam")}</option>
+            <option value="underage">{t("Underage user")}</option>
+            <option value="other">{t("Something else")}</option>
+          </select>
+        </label>
+        <label className="block text-sm font-semibold">
+          {t("More details")} <span className="font-normal text-white/50">({t("optional")})</span>
+          <textarea value={reportDetails} onChange={(event) => setReportDetails(event.target.value.slice(0, 1000))} maxLength={1000} rows={3} placeholder={t("Add details to help the review")} className="mt-2 w-full resize-none rounded-xl bg-white/[.06] p-3 text-sm text-white outline-none placeholder:text-white/40 focus:ring-2 focus:ring-primary"/>
+        </label>
+        <div className="mt-5 flex gap-3">
+          <button type="button" onClick={() => setReportFor(null)} disabled={reportReel.isPending} className="min-h-12 flex-1 rounded-xl bg-white/[.08] font-bold">{t("Cancel")}</button>
+          <button type="button" onClick={() => void submitReelReport()} disabled={reportReel.isPending} className="min-h-12 flex-1 rounded-xl bg-primary font-bold text-[#25111c] disabled:opacity-50" data-testid="button-submit-reel-report">{reportReel.isPending ? t("Sending…") : t("Submit report")}</button>
+        </div>
+      </section>
+    </div>}
     {commentReel && <ReelComments key={commentReel.id} reelId={commentReel.id} creatorId={commentReel.creatorId} returnTo={returnTo} commentCount={commentReel.commentCount} canComment={commentReel.canComment} focusCommentId={initialCommentId} onClose={closeComments} onCountChange={(delta) => {
       patch(commentReel.id, { commentCount: Math.max(0, commentReel.commentCount + delta) });
       void client.invalidateQueries({ queryKey: getGetReelQueryKey(commentReel.id) });

@@ -40,10 +40,12 @@ import { StoriesRow } from "@/components/stories/stories-ui";
 import { MatchCelebration } from "@/components/match-celebration";
 import { QuietSpinner } from "@/components/ui/quiet-spinner";
 import { DiscoverSwipeCard, type SwipeAction, type SwipeExit, type SwipeGesture } from "@/components/discover-swipe-card";
+import { useAppLanguage } from "@/lib/app-language";
 
 const useDiscoveryDeck = createUseDiscoveryDeck(useState);
 
 export function DiscoverSwipePage() {
+  const { t } = useAppLanguage();
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
   const [appliedFilters, setAppliedFilters] = useState<DiscoveryFilters | null>(null);
@@ -367,8 +369,8 @@ export function DiscoverSwipePage() {
 
   const stickyHeader = <div className="discover-sticky sticky top-[var(--install-banner-height,0px)] z-30 -mx-4 mb-4 px-4 pb-1 pt-3 sm:-mx-6 sm:px-6" data-testid="discover-sticky-header">
     <header className="mb-3 rounded-[28px] bg-card/95 px-3 py-2.5 shadow-sm">
-      <div className="flex min-h-11 items-center gap-2.5">{!profile && <StoriesRow mode="own"/>}<span className="min-w-0 flex-1 text-[11px] text-muted-foreground" data-testid="text-discover-likes">{likes.data?.remaining??"—"} likes left</span><button type="button" onClick={()=>setLocation("/search")} aria-label="Search members" data-testid="button-member-search" className="flex h-10 w-9 shrink-0 items-center justify-center text-primary"><Search size={20}/></button><button type="button" onClick={()=>setFiltersOpen(true)} aria-label="Discovery filters" data-testid="button-discovery-filters" className="flex h-10 w-9 shrink-0 items-center justify-center text-primary"><SlidersHorizontal size={22}/></button></div>
-      <div className="mt-1.5 flex items-center justify-between pl-1"><h1 className="text-[13px] font-semibold text-foreground">Meet someone new</h1><button type="button" onClick={()=>void startBoost()} disabled={!boost.data?.available||activateBoost.isPending} aria-label={boost.data?.active?"Boost active":"Activate boost"} data-testid="button-activate-boost" className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-semibold text-primary disabled:opacity-40"><Zap size={12}/>Boost</button></div>
+      <div className="flex min-h-11 items-center gap-2.5">{!profile && <StoriesRow mode="own"/>}<span className="min-w-0 flex-1 text-[11px] text-muted-foreground" data-testid="text-discover-likes">{likes.data?.remaining??"—"} {t("likes left")}</span><button type="button" onClick={()=>setLocation("/search")} aria-label={t("Search members")} data-testid="button-member-search" className="flex h-10 w-9 shrink-0 items-center justify-center text-primary"><Search size={20}/></button><button type="button" onClick={()=>setFiltersOpen(true)} aria-label={t("Discovery filters")} data-testid="button-discovery-filters" className="flex h-10 w-9 shrink-0 items-center justify-center text-primary"><SlidersHorizontal size={22}/></button></div>
+      <div className="mt-1.5 flex items-center justify-between pl-1"><h1 className="text-[13px] font-semibold text-foreground">{t("Meet someone new")}</h1><button type="button" onClick={()=>void startBoost()} disabled={!boost.data?.available||activateBoost.isPending} aria-label={boost.data?.active?t("Boost active"):t("Activate boost")} data-testid="button-activate-boost" className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-semibold text-primary disabled:opacity-40"><Zap size={12}/>{t("Boost")}</button></div>
     </header>
     <StoriesRow mode={profile ? "all" : "matches"}/>
   </div>;
@@ -380,7 +382,7 @@ export function DiscoverSwipePage() {
     return (
       <div role="status" aria-label="Loading Discover" data-testid="status-discover-loading" className="mx-auto flex min-h-[55dvh] max-w-xl flex-col items-center justify-center gap-4 px-4 text-center">
         <QuietSpinner />
-        <p className="text-sm text-muted-foreground">Getting your feed ready…</p>
+        <p className="text-sm text-muted-foreground">{t("Getting your feed ready…")}</p>
       </div>
     );
   }
@@ -388,13 +390,13 @@ export function DiscoverSwipePage() {
   if (discover.isError && !discover.data) {
     const status = discover.error.status;
     const message = status === 401
-      ? "Your session needs a refresh. Try loading Discover again."
+        ? t("Your session needs a refresh. Try loading Discover again.")
       : status === 403
-        ? "Discover is unavailable for this account right now."
-        : "Check your connection, then try again.";
+        ? t("Discover is unavailable for this account right now.")
+        : t("Check your connection, then try again.");
     return (
       <div role="alert" data-testid="error-discover-load" className="mx-auto flex min-h-[55dvh] max-w-xl flex-col items-center justify-center px-6 text-center">
-        <h1 className="brand text-xl font-bold">Discover couldn’t load</h1>
+        <h1 className="brand text-xl font-bold">{t("Discover couldn’t load")}</h1>
         <p className="mt-2 max-w-sm text-sm leading-6 text-muted-foreground">{message}</p>
         <button
           type="button"
@@ -402,7 +404,7 @@ export function DiscoverSwipePage() {
           data-testid="button-retry-discover-load"
           className="mt-5 rounded-xl bg-primary px-5 py-3 text-sm font-bold text-[#27101d]"
         >
-          Try again
+          {t("Try again")}
         </button>
       </div>
     );
@@ -413,11 +415,11 @@ export function DiscoverSwipePage() {
         {stickyHeader}
         <div className="mx-auto max-w-xl pt-10 pb-8">
           {discover.isFetching || reaction.isPending ? <div className="flex justify-center py-6"><QuietSpinner /></div> : <>
-            <h1 className="brand text-2xl font-bold">No matching profiles right now</h1>
-            <p className="mt-2 text-sm text-muted-foreground">Skipped profiles return automatically. Try another location or age range to meet more people.</p>
-            <button onClick={() => setFiltersOpen(true)} data-testid="button-open-filters-empty" className="mt-5 rounded-xl bg-primary px-4 py-3 font-bold text-[#27101d]">Adjust filters</button>
+            <h1 className="brand text-2xl font-bold">{t("No matching profiles right now")}</h1>
+            <p className="mt-2 text-sm text-muted-foreground">{t("Skipped profiles return automatically. Try another location or age range to meet more people.")}</p>
+            <button onClick={() => setFiltersOpen(true)} data-testid="button-open-filters-empty" className="mt-5 rounded-xl bg-primary px-4 py-3 font-bold text-[#27101d]">{t("Adjust filters")}</button>
             <button disabled={discover.isFetching} onClick={() => void discover.refetch().then(result => { if (!result.isError) refill(result.data); })}
-              data-testid="button-refresh-discovery" className="ml-3 mt-5 rounded-xl bg-secondary px-4 py-3 font-bold disabled:opacity-50">Refresh</button>
+              data-testid="button-refresh-discovery" className="ml-3 mt-5 rounded-xl bg-secondary px-4 py-3 font-bold disabled:opacity-50">{t("Refresh")}</button>
           </>}
         </div>
         {matchOverlay}
@@ -430,9 +432,9 @@ export function DiscoverSwipePage() {
     <main className="discover-deck mx-auto flex h-full min-h-0 w-full max-w-[680px] flex-col px-4 sm:px-6">
       {stickyHeader}
 
-      <p role="status" data-testid="status-discovery-worldwide" className="mb-2 min-h-4 text-center text-xs text-muted-foreground">{worldwide ? "Not many people near you yet — showing members worldwide" : ""}</p>
-      {notice && <div role="status" data-testid="status-discover" className="mb-3 rounded-xl border border-primary/20 bg-accent px-4 py-3 text-sm text-[#ffafd1]">{notice}<button onClick={() => setNotice("")} aria-label="Dismiss message" className="float-right"><X size={16} /></button></div>}
-      {likeConfirmation && <div className="fixed inset-x-0 top-[calc(env(safe-area-inset-top)+1rem)] z-[60] flex justify-center px-4" role="status" aria-live="polite" data-testid="status-discover-liked"><div className="flex items-center gap-2 rounded-full border border-primary/25 bg-[#211a27]/95 px-5 py-3 text-sm font-semibold text-white shadow-2xl backdrop-blur-xl"><Heart size={17} fill="currentColor" className="text-primary"/>{likeConfirmation}</div></div>}
+      <p role="status" data-testid="status-discovery-worldwide" className="mb-2 min-h-4 text-center text-xs text-muted-foreground">{worldwide ? t("Not many people near you yet — showing members worldwide") : ""}</p>
+      {notice && <div role="status" data-testid="status-discover" className="mb-3 rounded-xl border border-primary/20 bg-accent px-4 py-3 text-sm text-[#ffafd1]">{t(notice)}<button onClick={() => setNotice("")} aria-label={t("Dismiss message")} className="float-right"><X size={16} /></button></div>}
+      {likeConfirmation && <div className="fixed inset-x-0 top-[calc(env(safe-area-inset-top)+1rem)] z-[60] flex justify-center px-4" role="status" aria-live="polite" data-testid="status-discover-liked"><div className="flex items-center gap-2 rounded-full border border-primary/25 bg-[#211a27]/95 px-5 py-3 text-sm font-semibold text-white shadow-2xl backdrop-blur-xl"><Heart size={17} fill="currentColor" className="text-primary"/>{t(likeConfirmation)}</div></div>}
 
       <div className="discover-card-slot" data-testid="discover-card-slot">
         <AnimatePresence initial={false} custom={swipeExits}>
@@ -450,11 +452,11 @@ export function DiscoverSwipePage() {
           ))}
         </AnimatePresence>
       </div>
-        <div className="discover-actions flex items-center justify-center" aria-label="Profile actions">
-          <button type="button" onClick={(event) => { event.stopPropagation(); swipe(profile.id, "pass"); }} disabled={!!matchResult} data-testid="button-pass-profile" aria-label="Pass" className="flex h-14 w-14 items-center justify-center rounded-full bg-card text-foreground shadow-lg disabled:opacity-40"><X size={27} /></button>
-          <button type="button" onClick={(event) => { event.stopPropagation(); void undoLastSwipe(); }} disabled={!lastPass || undo.isPending || pendingReactionCount > 0} data-testid="button-undo-pass" aria-label="Undo last pass" className="flex h-10 w-10 items-center justify-center rounded-full bg-card text-muted-foreground shadow-sm disabled:opacity-40"><ArrowLeft size={18} /></button>
-          <button type="button" onClick={(event) => { event.stopPropagation(); swipe(profile.id, "super"); }} disabled={!!matchResult || superLikeLimitReached} data-testid="button-super-like" aria-label={`Super like, ${superLikes.data?.remaining??"unknown"} left`} className="flex h-14 w-14 items-center justify-center rounded-full bg-card text-amber-400 shadow-lg disabled:opacity-40"><Star size={29} fill="currentColor"/></button>
-          <button type="button" onClick={(event) => { event.stopPropagation(); swipe(profile.id, "like"); }} disabled={!!matchResult || likeLimitReached} data-testid="button-like-profile" aria-label="Like" className="flex h-16 w-16 items-center justify-center rounded-full bg-card text-primary shadow-lg disabled:opacity-40"><Heart size={31} fill="currentColor" /></button>
+        <div className="discover-actions flex items-center justify-center" aria-label={t("Profile actions")}>
+          <button type="button" onClick={(event) => { event.stopPropagation(); swipe(profile.id, "pass"); }} disabled={!!matchResult} data-testid="button-pass-profile" aria-label={t("Pass")} className="flex h-14 w-14 items-center justify-center rounded-full bg-card text-foreground shadow-lg disabled:opacity-40"><X size={27} /></button>
+          <button type="button" onClick={(event) => { event.stopPropagation(); void undoLastSwipe(); }} disabled={!lastPass || undo.isPending || pendingReactionCount > 0} data-testid="button-undo-pass" aria-label={t("Undo last pass")} className="flex h-10 w-10 items-center justify-center rounded-full bg-card text-muted-foreground shadow-sm disabled:opacity-40"><ArrowLeft size={18} /></button>
+          <button type="button" onClick={(event) => { event.stopPropagation(); swipe(profile.id, "super"); }} disabled={!!matchResult || superLikeLimitReached} data-testid="button-super-like" aria-label={`${t("Super like")}, ${superLikes.data?.remaining??"unknown"} ${t("left")}`} className="flex h-14 w-14 items-center justify-center rounded-full bg-card text-amber-400 shadow-lg disabled:opacity-40"><Star size={29} fill="currentColor"/></button>
+          <button type="button" onClick={(event) => { event.stopPropagation(); swipe(profile.id, "like"); }} disabled={!!matchResult || likeLimitReached} data-testid="button-like-profile" aria-label={t("Like")} className="flex h-16 w-16 items-center justify-center rounded-full bg-card text-primary shadow-lg disabled:opacity-40"><Heart size={31} fill="currentColor" /></button>
         </div>
 
       {optionsOpen && <ProfileOptionsDialog onClose={() => setOptionsOpen(false)} onReport={(reason) => void reportCurrent(reason)} onBlock={() => void blockCurrent()} />}
@@ -468,14 +470,16 @@ function FilterDialog({ open, onClose, value, travelMode, onApply }: {
   open: boolean; onClose: () => void; value: DiscoveryFilters; travelMode: boolean;
   onApply: (value: DiscoveryFilters) => void;
 }) {
+  const { t } = useAppLanguage();
   if (!open) return null;
-  return <Dialog title="Discovery filters" onClose={onClose}><DiscoveryFilterForm initialValue={value} travelMode={travelMode} onApply={onApply} /></Dialog>;
+  return <Dialog title={t("Discovery filters")} onClose={onClose}><DiscoveryFilterForm initialValue={value} travelMode={travelMode} onApply={onApply} /></Dialog>;
 }
 
 function ProfileOptionsDialog({ onClose, onReport, onBlock }: { onClose: () => void; onReport: (reason: ReportInputReason) => void; onBlock: () => void }) {
-  return <Dialog title="Profile options" onClose={onClose}><div className="space-y-4">
-    <p className="text-sm text-muted-foreground">Manage this profile without opening its details.</p>
-    <div className="grid grid-cols-2 gap-2 pt-2"><button type="button" onClick={() => onReport("inappropriate")} data-testid="button-report-profile" className="rounded-xl border border-white/10 px-4 py-3 text-sm font-semibold">Report</button><button type="button" onClick={onBlock} data-testid="button-block-profile" className="rounded-xl border border-rose-400/20 px-4 py-3 text-sm font-semibold text-rose-300">Block profile</button></div>
+  const { t } = useAppLanguage();
+  return <Dialog title={t("Profile options")} onClose={onClose}><div className="space-y-4">
+    <p className="text-sm text-muted-foreground">{t("Manage this profile without opening its details.")}</p>
+    <div className="grid grid-cols-2 gap-2 pt-2"><button type="button" onClick={() => onReport("inappropriate")} data-testid="button-report-profile" className="rounded-xl border border-white/10 px-4 py-3 text-sm font-semibold">{t("Report")}</button><button type="button" onClick={onBlock} data-testid="button-block-profile" className="rounded-xl border border-rose-400/20 px-4 py-3 text-sm font-semibold text-rose-300">{t("Block profile")}</button></div>
   </div></Dialog>;
 }
 

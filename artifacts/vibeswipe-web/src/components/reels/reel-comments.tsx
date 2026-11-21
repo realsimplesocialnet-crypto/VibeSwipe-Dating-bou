@@ -4,12 +4,13 @@ import { Link } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   getGetMediaPreviewQueryKey, getGetProfileMediaQueryKey, getGetReelCommentsQueryKey, useCreateReelComment, useDeleteReelComment,
-  useGetMediaPreview, useGetMyProfile, useGetProfileMedia, useGetReelComments, useRequestProfileMediaUpload, useSetReelCommentReaction,
+  useGetMediaPreview, useGetMyProfile, useGetProfileMedia, useGetReelComments, useGetVibeSwipeSettings, useRequestProfileMediaUpload, useSetReelCommentReaction,
   type ReelComment, type ReelCommentReaction,
 } from "@workspace/api-client-react";
 import { ArrowUp, Check, ChevronDown, Heart, Image as ImageIcon, LoaderCircle, Search, SlidersHorizontal, X } from "lucide-react";
 import { ReelAvatar } from "@/components/reels/reel-avatar";
 import { userErrorMessage } from "@/lib/user-errors";
+import { useAppLanguage } from "@/lib/app-language";
 import { QuietSpinner } from "@/components/ui/quiet-spinner";
 import { PROFILE_PHOTO_ACCEPT, prepareProfilePhoto, uploadProfilePhotoBytes } from "@/lib/profile-photo-upload";
 
@@ -165,6 +166,8 @@ export function ReelComments({ reelId, creatorId, returnTo, commentCount, canCom
   const client = useQueryClient();
   const key = getGetReelCommentsQueryKey(reelId);
   const comments = useGetReelComments(reelId, { query: { queryKey: key } });
+  const settings = useGetVibeSwipeSettings({ query: { staleTime: 60_000 } });
+  const { t } = useAppLanguage();
   const me = useGetMyProfile();
   const create = useCreateReelComment();
   const requestPhotoUpload = useRequestProfileMediaUpload();
@@ -191,7 +194,6 @@ export function ReelComments({ reelId, creatorId, returnTo, commentCount, canCom
   const reactionRequests = useRef(new Set<string>());
   const [replyingTo, setReplyingTo] = useState<ReelComment | null>(null);
   const count = commentCount;
-  const visibleCount = comments.data?.length ?? 0;
   function startCloseGesture(event: ReactTouchEvent<HTMLElement>) {
     const target = event.target;
     if (target instanceof Element && target.closest("input, button, a, textarea")) {
@@ -210,18 +212,21 @@ export function ReelComments({ reelId, creatorId, returnTo, commentCount, canCom
     const deltaY = touch.clientY - start.y;
     if (deltaY > 64 && Math.abs(deltaX) < 80 && (list.current?.scrollTop ?? 0) <= 0) onClose();
   }
-  useEffect(() => { list.current?.scrollTo({ top: 0 }); }, [visibleCount]);
   useEffect(() => {
     if (!focusCommentId || !comments.data) return;
     list.current?.querySelector<HTMLElement>(`[data-comment-id="${focusCommentId}"]`)?.scrollIntoView({ block: "center" });
   }, [focusCommentId, comments.data]);
   const repliesByParent = new Map<string, ReelComment[]>();
   const commentsById = new Map((comments.data ?? []).map((comment) => [comment.id, comment]));
+  const filteredWords = (settings.data?.keywordFilters ?? []).map((word) => word.trim().toLocaleLowerCase()).filter(Boolean);
+  const isFiltered = (content: string) => filteredWords.some((word) => content.toLocaleLowerCase().includes(word));
   for (const comment of comments.data ?? []) {
-    if (comment.parentCommentId) repliesByParent.set(comment.parentCommentId, [...(repliesByParent.get(comment.parentCommentId) ?? []), comment]);
+    if (comment.parentCommentId && !isFiltered(comment.content)) repliesByParent.set(comment.parentCommentId, [...(repliesByParent.get(comment.parentCommentId) ?? []), comment]);
   }
   const normalizedSearch = search.trim().toLocaleLowerCase();
-  const rootComments = (comments.data ?? []).filter((comment) => !comment.parentCommentId);
+  const rootComments = (comments.data ?? []).filter((comment) => !comment.parentCommentId && !isFiltered(comment.content));
+  const visibleCount = rootComments.length + [...repliesByParent.values()].reduce((total, replies) => total + replies.length, 0);
+  useEffect(() => { list.current?.scrollTo({ top: 0 }); }, [visibleCount]);
   const filteredComments = rootComments.filter((comment) => {
     if (!normalizedSearch) return true;
     const replies = repliesByParent.get(comment.id) ?? [];
@@ -375,14 +380,14 @@ export function ReelComments({ reelId, creatorId, returnTo, commentCount, canCom
       </div>
       <label className="reel-comment-search">
         <Search size={19} aria-hidden="true" />
-        <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search comments" aria-label="Search comments" data-testid="input-search-reel-comments" />
+        <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder={t("Search comments")} aria-label={t("Search comments")} data-testid="input-search-reel-comments" />
         {search && <button type="button" onClick={() => setSearch("")} aria-label="Clear comment search"><X size={17} /></button>}
       </label>
     </header>
     <div ref={list} className="reel-comment-list">
       {comments.isLoading || (comments.isError && !comments.data) ? <div className="flex justify-center py-8"><QuietSpinner onRetry={() => void comments.refetch()} /></div>
-        : !visibleCount ? <p className="reel-comment-empty" data-testid="text-no-comments">{count ? "Comments aren’t available right now." : "No comments yet. Say something kind."}</p>
-        : !sortedComments.length ? <p className="reel-comment-empty" data-testid="text-no-search-results">No comments match your search.</p>
+        : !visibleCount ? <p className="reel-comment-empty" data-testid="text-no-comments">{count ? t("Comments aren’t available right now.") : t("No comments yet. Say something kind.")}</p>
+        : !sortedComments.length ? <p className="reel-comment-empty" data-testid="text-no-search-results">{t("No comments match your search.")}</p>
         : <ul className="reel-comment-thread-list">{sortedComments.map((comment) => {
           const replies = repliesByParent.get(comment.id) ?? [];
           const matchingReplies = normalizedSearch
@@ -401,7 +406,7 @@ export function ReelComments({ reelId, creatorId, returnTo, commentCount, canCom
                 {comment.mediaReference && <ReelCommentPhoto reference={comment.mediaReference} />}
                 <div className="reel-comment-footer">
                   <div className="reel-comment-links">
-                    {canComment && <button type="button" onClick={() => { setReplyingTo(comment); setDraft(""); input.current?.focus(); }} className="reel-comment-link" data-testid={`button-reply-comment-${comment.id}`}>Reply</button>}
+                    {canComment && <button type="button" onClick={() => { setReplyingTo(comment); setDraft(""); input.current?.focus(); }} className="reel-comment-link" data-testid={`button-reply-comment-${comment.id}`}>{t("Reply")}</button>}
                     {comment.canDelete && (confirming === comment.id
                       ? <><button type="button" onClick={() => void deleteComment(comment.id)} disabled={remove.isPending} className="reel-comment-link is-danger" data-testid={`button-confirm-delete-comment-${comment.id}`}>Delete comment</button><button type="button" onClick={() => setConfirming(null)} className="reel-comment-link">Keep</button></>
                       : <button type="button" onClick={() => setConfirming(comment.id)} className="reel-comment-link is-muted" data-testid={`button-delete-comment-${comment.id}`}>Delete</button>)}
@@ -438,7 +443,7 @@ export function ReelComments({ reelId, creatorId, returnTo, commentCount, canCom
                 {reply.mediaReference && <ReelCommentPhoto reference={reply.mediaReference} />}
                 <div className="reel-comment-footer">
                   <div className="reel-comment-links">
-                    {canComment && <button type="button" onClick={() => { setReplyingTo(comment); setDraft(""); input.current?.focus(); }} className="reel-comment-link" data-testid={`button-reply-comment-${reply.id}`}>Reply</button>}
+                    {canComment && <button type="button" onClick={() => { setReplyingTo(reply); setDraft(""); input.current?.focus(); }} className="reel-comment-link" data-testid={`button-reply-comment-${reply.id}`}>{t("Reply")}</button>}
                     {reply.canDelete && (confirming === reply.id
                       ? <><button type="button" onClick={() => void deleteComment(reply.id)} disabled={remove.isPending} className="reel-comment-link is-danger" data-testid={`button-confirm-delete-comment-${reply.id}`}>Delete reply</button><button type="button" onClick={() => setConfirming(null)} className="reel-comment-link">Keep</button></>
                       : <button type="button" onClick={() => setConfirming(reply.id)} className="reel-comment-link is-muted" data-testid={`button-delete-comment-${reply.id}`}>Delete</button>)}
@@ -464,7 +469,7 @@ export function ReelComments({ reelId, creatorId, returnTo, commentCount, canCom
       <div className="reel-comment-compose-row">
         <div className="reel-comment-composer-avatar"><ReelAvatar reference={me.data?.photos?.[0] ?? null} name={me.data?.name ?? "Your profile"} size={38} /></div>
         <div className="reel-comment-input-wrap">
-          <input ref={input} value={draft} onChange={(event) => setDraft(event.target.value)} maxLength={500} placeholder={replyingTo ? `Reply to ${replyingTo.authorName}` : "Add a comment..."} aria-label={replyingTo ? `Reply to ${replyingTo.authorName}` : "Add a comment"} enterKeyHint="send" data-testid="input-reel-comment" className="reel-comment-input" />
+          <input ref={input} value={draft} onChange={(event) => setDraft(event.target.value)} maxLength={500} placeholder={replyingTo ? `${t("Reply to")} ${replyingTo.authorName}` : t("Add a comment…")} aria-label={replyingTo ? `${t("Reply to")} ${replyingTo.authorName}` : t("Add a comment…")} enterKeyHint="send" data-testid="input-reel-comment" className="reel-comment-input" />
           <div className="reel-comment-tools" aria-label="Comment tools">
             <button type="button" onClick={() => photoInput.current?.click()} disabled={preparingPhoto || uploadingPhoto || create.isPending} aria-label="Add photo" className="reel-comment-tool" title="Add photo" data-testid="button-add-reel-comment-photo">{preparingPhoto ? <LoaderCircle size={20} className="animate-spin" /> : <ImageIcon size={21} />}</button>
           </div>

@@ -19,6 +19,8 @@ import { ConnectionsSection } from '@/components/admin/sections/connections';
 import { OnlineSection } from '@/components/admin/sections/online';
 import { VerificationsSection } from '@/components/admin/sections/verifications';
 import { SettingsSection } from '@/components/admin/sections/settings';
+import { ReportsSection } from '@/components/admin/sections/reports';
+import { AuditSection } from '@/components/admin/sections/audit';
 import NotFound from '@/pages/not-found';
 
 function GateScreen({ icon, title, detail, children, testId }: { icon: ReactNode; title: string; detail: string; children?: ReactNode; testId: string }) {
@@ -104,6 +106,8 @@ export default function AdminPage() {
     section === 'users' ? <UsersSection /> :
     section === 'chats' ? <ChatsSection /> :
     section === 'posts' ? <PostsSection /> :
+    section === 'reports' ? <ReportsSection /> :
+    section === 'audit' ? <AuditSection /> :
     section === 'connections' ? <ConnectionsSection /> :
     section === 'verifications' ? <VerificationsSection /> :
     section === 'online' ? <OnlineSection /> :

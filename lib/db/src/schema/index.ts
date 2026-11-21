@@ -9,3 +9,4 @@ export * from "./vibeswipe-admin";
 export * from "./vibeswipe-reels";
 export * from "./vibeswipe-direct-chats";
 export * from "./vibeswipe-referrals";
+export * from "./vibeswipe-support";

@@ -4,13 +4,14 @@ import { useClerk } from "@clerk/react";
 import {
   ArrowLeft, ChevronRight, Eye, EyeOff, Globe2, LockKeyhole, MapPin, Moon, Shield,
   SlidersHorizontal, UserRound, Bell, Heart, MessageCircle, ShieldCheck, FileText, UserX, Check, LoaderCircle, LogOut, Download,
+  Clock3, Filter, CircleHelp, Flag, Languages,
 } from "lucide-react";
 import {
   getGetBlockedProfilesQueryKey, getGetDiscoverProfilesQueryKey, getGetFollowRequestsQueryKey, getGetMyProfileQueryKey, getGetVibeSwipeSettingsQueryKey,
   getGetReelsFeedQueryKey, getGetProfileLikedReelsQueryKey, getGetProfileFollowSummaryQueryKey,
   useGetBlockedProfiles, useGetMyProfile, useGetVibeSwipeSettings, useSaveMyProfile,
   useUnblockProfile, useUpdateVibeSwipeSettings, useGetFollowRequests, useApproveFollowRequest, useDeclineFollowRequest,
-  type Profile, type ProfileInput, type VibeSwipeSettings, type FollowRequest,
+  type Profile, type ProfileInput, type VibeSwipeSettings, type FollowRequest, useGetScreenTimeSummary,
 } from "@workspace/api-client-react";
 import { Link, useLocation, useParams } from "wouter";
 import { TravelModeSettings } from "@/components/travel-mode-settings";
@@ -19,6 +20,7 @@ import { WebPushSettings } from "@/components/WebPushSettings";
 import { QuickmavoShopMenuItem } from "@/components/settings/quickmavo-shop";
 import { QuietSpinner } from "@/components/ui/quiet-spinner";
 import { settingsBackTarget } from "@/lib/settings-navigation";
+import { isAppLanguage, useAppLanguage } from "@/lib/app-language";
 
 type FullSettings = VibeSwipeSettings & {
   showAge: boolean;
@@ -28,13 +30,19 @@ type FullSettings = VibeSwipeSettings & {
   notifyMessages: boolean;
   notifyProfileViews: boolean;
   darkMode: boolean;
-  language: string;
+  language: VibeSwipeSettings["language"];
+  keywordFilters: string[];
+  screenTimeReminderMinutes: number | null;
+  screenTimeLimitMinutes: number | null;
   deactivated: boolean;
 };
 
 const sections = [
   { id: "account", label: "Account", icon: UserRound },
   { id: "privacy", label: "Privacy", icon: EyeOff },
+  { id: "language", label: "Language", icon: Languages },
+  { id: "screen-time", label: "Screen time", icon: Clock3 },
+  { id: "filter-keywords", label: "Filter keywords", icon: Filter },
   { id: "follow-requests", label: "Follow Requests", icon: UserRound },
   { id: "discovery", label: "Discovery", icon: SlidersHorizontal },
   { id: "notifications", label: "Notifications", icon: Bell },
@@ -47,6 +55,7 @@ const sections = [
 const settingDefaults: FullSettings = {
   incognito: false, showAge: true, showDistance: true, notifyMatches: true, notifyLikes: true,
   notifyMessages: true, notifyProfileViews: true, darkMode: true, language: "en",
+  keywordFilters: [], screenTimeReminderMinutes: null, screenTimeLimitMinutes: null,
   deactivated: false, travelMode: false, travelCity: null,
   privateAccount: false, whoCanComment: "everyone", whoCanMessage: "everyone",
   allowDownloads: true, likedVideoAudience: "everyone",
@@ -54,6 +63,7 @@ const settingDefaults: FullSettings = {
 
 export function SettingsIndexPage() {
   const [location] = useLocation();
+  const { t } = useAppLanguage();
   const { signOut } = useClerk();
   const [loggingOut, setLoggingOut] = useState(false);
   const [logoutError, setLogoutError] = useState("");
@@ -70,25 +80,44 @@ export function SettingsIndexPage() {
   }
   const returnTo = settingsBackTarget(new URLSearchParams(window.location.search).get("returnTo"), location, window.location.origin);
   const currentPath = `${location}${window.location.search}${window.location.hash}`;
+  const groups = [
+    { title: "Account", items: [sections.find((item) => item.id === "account")!, sections.find((item) => item.id === "privacy")!, sections.find((item) => item.id === "follow-requests")!, sections.find((item) => item.id === "account-actions")!] },
+    { title: "General", items: [sections.find((item) => item.id === "language")!, sections.find((item) => item.id === "screen-time")!, sections.find((item) => item.id === "filter-keywords")!, sections.find((item) => item.id === "discovery")!, sections.find((item) => item.id === "notifications")!, sections.find((item) => item.id === "app")!] },
+    { title: "Support", items: [
+      { id: "report-problem", label: "Report a problem", icon: Flag, href: "/report-problem" },
+      { id: "help-center", label: "Help Center", icon: CircleHelp, href: "/help" },
+      sections.find((item) => item.id === "safety")!,
+      sections.find((item) => item.id === "legal")!,
+    ] },
+  ];
   return <SettingsFrame>
-    <Link href={returnTo} replace data-testid="link-settings-back-profile" className="mb-5 inline-flex min-h-11 min-w-11 items-center gap-2 rounded-lg px-2 text-sm font-semibold text-muted-foreground transition-colors hover:text-foreground"><ArrowLeft size={19}/>Back</Link>
+    <Link href={returnTo} replace data-testid="link-settings-back-profile" className="mb-5 inline-flex min-h-11 min-w-11 items-center gap-2 rounded-lg px-2 text-sm font-semibold text-muted-foreground transition-colors hover:text-foreground"><ArrowLeft size={19}/>{t("Back")}</Link>
     <div className="mb-8">
-      <p className="text-[10px] font-bold uppercase tracking-[.2em] text-primary">Your comfort</p>
-      <h1 className="brand mt-2 text-3xl font-bold tracking-[-.05em] md:text-[2.6rem]">Settings</h1>
+      <p className="text-[10px] font-bold uppercase tracking-[.2em] text-primary">{t("Your comfort")}</p>
+      <h1 className="brand mt-2 text-3xl font-bold tracking-[-.05em] md:text-[2.6rem]">{t("Settings")}</h1>
     </div>
-    <nav aria-label="Settings sections" className="max-w-2xl divide-y divide-white/[.07] border-y border-white/[.07]">
-      {sections.map(({ id, label, icon: Icon }) => <Link key={id} href={`/settings/${id}?returnTo=${encodeURIComponent(currentPath)}`} data-testid={`link-settings-${id}`} className="group flex min-h-[64px] items-center gap-4 py-4 text-[15px] font-semibold transition-colors hover:text-primary">
-        <SettingIcon><Icon size={18}/></SettingIcon><span className="flex-1">{label}</span><ChevronRight size={18} className="text-muted-foreground transition-transform group-hover:translate-x-1 group-hover:text-primary"/>
-      </Link>)}
-      <QuickmavoShopMenuItem />
-      <button type="button" onClick={() => void logout()} disabled={loggingOut}
-        data-testid="button-settings-log-out" aria-busy={loggingOut}
-        className="flex min-h-[64px] w-full items-center gap-4 py-4 text-left text-[15px] font-semibold text-destructive transition-opacity hover:opacity-75 disabled:cursor-wait disabled:opacity-50">
-        <SettingIcon><LogOut size={18} className="text-destructive"/></SettingIcon>
-        <span className="flex-1">{loggingOut ? "Logging out…" : "Log out"}</span>
-        {loggingOut && <LoaderCircle size={18} className="animate-spin"/>}
-      </button>
-    </nav>
+    <div className="max-w-2xl space-y-8" aria-label="Settings sections">
+      {groups.map((group) => <section key={group.title} aria-labelledby={`settings-group-${group.title.toLowerCase()}`}>
+        <h2 id={`settings-group-${group.title.toLowerCase()}`} className="mb-2 text-[11px] font-bold uppercase tracking-[.18em] text-muted-foreground">{t(group.title)}</h2>
+        <nav className="divide-y divide-white/[.06]">
+          {group.items.map((item) => {
+            const Icon = item.icon;
+            const href = "href" in item ? item.href : undefined;
+            return <Link key={item.id} href={href ?? `/settings/${item.id}?returnTo=${encodeURIComponent(currentPath)}`} data-testid={`link-settings-${item.id}`} className="group flex min-h-[58px] items-center gap-4 py-3 text-[15px] font-semibold transition-colors hover:text-primary">
+              <SettingIcon><Icon size={18}/></SettingIcon><span className="flex-1">{t(item.label)}</span><ChevronRight size={18} className="text-muted-foreground transition-transform group-hover:translate-x-1 group-hover:text-primary"/>
+            </Link>;
+          })}
+          {group.title === "General" && <QuickmavoShopMenuItem />}
+          {group.title === "Account" && <button type="button" onClick={() => void logout()} disabled={loggingOut}
+            data-testid="button-settings-log-out" aria-busy={loggingOut}
+            className="flex min-h-[58px] w-full items-center gap-4 py-3 text-left text-[15px] font-semibold text-destructive transition-opacity hover:opacity-75 disabled:cursor-wait disabled:opacity-50">
+            <SettingIcon><LogOut size={18} className="text-destructive"/></SettingIcon>
+            <span className="flex-1">{loggingOut ? t("Logging out…") : t("Log out")}</span>
+            {loggingOut && <LoaderCircle size={18} className="animate-spin"/>}
+          </button>}
+        </nav>
+      </section>)}
+    </div>
     {logoutError && <p role="alert" className="mt-4 max-w-2xl text-sm text-destructive">{logoutError}</p>}
   </SettingsFrame>;
 }
@@ -96,29 +125,30 @@ export function SettingsIndexPage() {
 export function SettingsSectionPage() {
   const { section = "" } = useParams<{ section: string }>();
   const [location] = useLocation();
+  const { t } = useAppLanguage();
   const backTo = settingsBackTarget(new URLSearchParams(window.location.search).get("returnTo"), location, window.location.origin);
   const editReturnTo = `${location}${window.location.search}${window.location.hash}`;
   const selected = sections.find((item) => item.id === section);
   const query = useGetVibeSwipeSettings({ query: { queryKey: getGetVibeSwipeSettingsQueryKey() } });
-  if (!selected) return <SettingsFrame><Link href={backTo} replace className="inline-flex min-h-11 items-center gap-2 text-sm text-muted-foreground"><ArrowLeft size={17}/>Back</Link><p className="mt-8">This settings section isn’t available.</p></SettingsFrame>;
+  if (!selected) return <SettingsFrame><Link href={backTo} replace className="inline-flex min-h-11 items-center gap-2 text-sm text-muted-foreground"><ArrowLeft size={17}/>{t("Back")}</Link><p className="mt-8">{t("This settings section isn’t available.")}</p></SettingsFrame>;
   const saved = { ...settingDefaults, ...(query.data as Partial<FullSettings> | undefined) };
   if (section === "notifications") return <div className="notification-settings min-h-[calc(100dvh-66px)] bg-background text-foreground"><SettingsFrame>
     <div className="mx-auto max-w-xl">
       <div className="mb-6 grid grid-cols-[44px_1fr_44px] items-center">
         <Link href={backTo} replace aria-label="Back" data-testid="link-settings-back" className="flex h-11 w-11 items-center justify-center rounded-full border border-border bg-card text-primary shadow-sm transition-transform hover:-translate-x-0.5"><ArrowLeft size={19}/></Link>
-        <h1 className="text-center text-2xl font-bold tracking-[-.03em] text-primary md:text-[1.8rem]">Notification settings</h1>
+        <h1 className="text-center text-2xl font-bold tracking-[-.03em] text-primary md:text-[1.8rem]">{t("Notification settings")}</h1>
         <span/>
       </div>
-      <p className="mb-6 text-center text-sm text-muted-foreground">Choose what you want to be notified about.</p>
+      <p className="mb-6 text-center text-sm text-muted-foreground">{t("Choose what you want to be notified about.")}</p>
       {(query.isLoading || query.isError) && !query.data ? <div className="flex justify-center py-8"><QuietSpinner onRetry={() => void query.refetch()} /></div>
         : <SectionContent section={section} settings={saved} editReturnTo={editReturnTo}/>}
     </div>
   </SettingsFrame></div>;
   return <SettingsFrame>
-    <Link href={backTo} replace data-testid="link-settings-back" className="mb-5 inline-flex min-h-11 min-w-11 items-center gap-2 rounded-lg px-2 text-sm font-semibold text-muted-foreground transition-colors hover:text-foreground"><ArrowLeft size={19}/>Back</Link>
+    <Link href={backTo} replace data-testid="link-settings-back" className="mb-5 inline-flex min-h-11 min-w-11 items-center gap-2 rounded-lg px-2 text-sm font-semibold text-muted-foreground transition-colors hover:text-foreground"><ArrowLeft size={19}/>{t("Back")}</Link>
     <header className="mb-7">
-      <p className="text-[10px] font-bold uppercase tracking-[.2em] text-primary">Settings</p>
-      <h1 className="brand mt-2 text-3xl font-bold tracking-[-.05em] md:text-[2.6rem]">{selected.label}</h1>
+      <p className="text-[10px] font-bold uppercase tracking-[.2em] text-primary">{t("Settings")}</p>
+      <h1 className="brand mt-2 text-3xl font-bold tracking-[-.05em] md:text-[2.6rem]">{t(selected.label)}</h1>
     </header>
     {(query.isLoading || query.isError) && !query.data ? <div className="flex justify-center py-8"><QuietSpinner onRetry={() => void query.refetch()} /></div>
       : <SectionContent section={section} settings={saved} editReturnTo={editReturnTo}/>}
@@ -131,26 +161,32 @@ function SettingsFrame({ children }: { children: ReactNode }) {
 
 function SectionContent({ section, settings, editReturnTo }: { section: string; settings: FullSettings; editReturnTo: string }) {
   const profile = useGetMyProfile();
+  const screenTime = useGetScreenTimeSummary({ query: { enabled: section === "screen-time" } });
   const update = useUpdateVibeSwipeSettings();
   const saveProfile = useSaveMyProfile();
   const queryClient = useQueryClient();
   const { openUserProfile } = useClerk();
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [newKeyword, setNewKeyword] = useState("");
+  const { t, setLanguage } = useAppLanguage();
 
-  async function saveSettings(patch: Partial<FullSettings>) {
+  async function saveSettings(patch: Partial<FullSettings>): Promise<boolean> {
     setMessage(""); setError("");
     try {
       const result = await update.mutateAsync({ data: { ...settings, ...patch } as VibeSwipeSettings });
       queryClient.setQueryData(getGetVibeSwipeSettingsQueryKey(), { ...settings, ...result });
+      if ("language" in patch && typeof patch.language === "string" && isAppLanguage(patch.language)) setLanguage(patch.language);
       if ("privateAccount" in patch || "incognito" in patch || "whoCanComment" in patch || "allowDownloads" in patch) {
         await queryClient.invalidateQueries({ queryKey: getGetDiscoverProfilesQueryKey() });
         await queryClient.invalidateQueries({ queryKey: getGetReelsFeedQueryKey() });
       }
       if ("likedVideoAudience" in patch) await queryClient.invalidateQueries({ queryKey: getGetProfileLikedReelsQueryKey() });
-      setMessage("Saved");
+      setMessage(t("Saved"));
+      return true;
     } catch {
       setError("Couldn’t save that change. Check your connection and try again.");
+      return false;
     }
   }
 
@@ -199,14 +235,58 @@ function SectionContent({ section, settings, editReturnTo }: { section: string; 
         <SettingIcon><UserRound size={18}/></SettingIcon><span className="min-w-0 flex-1"><strong>Edit profile</strong><small>Update your photos and the details people see.</small></span><ChevronRight size={18} className="text-muted-foreground"/>
       </Link>
       <ActionRow icon={<LockKeyhole size={18}/>} title="Change password" detail="Manage your sign-in credentials." action="Manage" onClick={()=>openUserProfile()}/>
+    </>}
+    {section === "language" && <div className="space-y-4">
+      <p className="text-sm leading-6 text-muted-foreground">{t("Choose your app language.")}</p>
       <div className="setting-row">
         <SettingIcon><Globe2 size={18}/></SettingIcon>
-        <label className="min-w-0 flex-1"><strong>Language</strong><small>English is currently available.</small></label>
-        <select aria-label="Language" data-testid="select-language" value={settings.language} disabled={update.isPending} onChange={event=>void saveSettings({language:event.target.value as "en"})} className="max-w-32 rounded-lg border border-white/10 bg-[#19161c] px-3 py-2 text-sm text-foreground focus:border-primary/60 focus:outline-none">
-          <option value="en">English</option>
+        <label className="min-w-0 flex-1" htmlFor="settings-language"><strong>{t("Language")}</strong><small>{t("Your app menus and controls use this language.")}</small></label>
+        <select id="settings-language" aria-label={t("Language")} data-testid="select-language" value={settings.language} disabled={update.isPending} onChange={event=>void saveSettings({language:event.target.value as FullSettings["language"]})} className="max-w-40 rounded-lg border border-white/10 bg-[#19161c] px-3 py-2 text-sm text-foreground focus:border-primary/60 focus:outline-none">
+          <option value="en">English</option><option value="hi">हिन्दी</option><option value="fr">Français</option><option value="yo">Yorùbá</option>
         </select>
       </div>
-    </>}
+    </div>}
+    {section === "screen-time" && <section className="space-y-5" data-testid="settings-screen-time">
+      <p className="text-sm leading-6 text-muted-foreground">{t("Your time is counted only while VibeSwipes is visible. Other phone apps are not tracked.")}</p>
+      {screenTime.isLoading && !screenTime.data ? <div className="flex justify-center py-8"><QuietSpinner/></div>
+        : screenTime.isError && !screenTime.data ? <InlineError text={t("Your screen-time summary couldn’t load.")} onRetry={()=>void screenTime.refetch()}/>
+        : <>
+          <div className="setting-row">
+            <SettingIcon><Clock3 size={18}/></SettingIcon>
+            <span className="min-w-0 flex-1"><strong>{t("Daily screen time")}</strong><small>{t("Time spent in VibeSwipes")}</small></span>
+            <strong className="text-lg tabular-nums">{formatScreenDuration(screenTime.data?.todaySeconds ?? 0)}</strong>
+          </div>
+          <TimePreference title={t("Daily reminder")} emptyLabel={t("No reminder")} detail={t("The app will show a reminder; it won’t block access.")} value={settings.screenTimeReminderMinutes} disabled={update.isPending} testId="select-screen-time-reminder" onChange={(value)=>void saveSettings({screenTimeReminderMinutes:value})}/>
+          <TimePreference title={t("Daily limit reminder")} emptyLabel={t("No limit")} detail={t("The app will show a reminder; it won’t block access.")} value={settings.screenTimeLimitMinutes} disabled={update.isPending} testId="select-screen-time-limit" onChange={(value)=>void saveSettings({screenTimeLimitMinutes:value})}/>
+          <div className="space-y-3 rounded-2xl bg-card/60 p-4">
+            <h2 className="text-sm font-bold">{t("Last 7 days")}</h2>
+            {(screenTime.data?.days ?? []).map((day) => <div key={day.date} className="flex items-center gap-3 text-xs">
+              <span className="w-20 shrink-0 text-muted-foreground">{formatUsageDate(day.date, settings.language)}</span>
+              <div className="h-2 flex-1 overflow-hidden rounded-full bg-white/10"><div className="h-full rounded-full bg-primary" style={{ width: `${Math.max(2, Math.min(100, day.seconds / 21_600 * 100))}%` }}/></div>
+              <span className="w-14 shrink-0 text-right tabular-nums">{formatScreenDuration(day.seconds)}</span>
+            </div>)}
+          </div>
+        </>}
+    </section>}
+    {section === "filter-keywords" && <section className="space-y-4" data-testid="settings-keyword-filters">
+      <p className="text-sm leading-6 text-muted-foreground">{t("Matching Reel captions and comments will be hidden for you.")}</p>
+      <form className="flex gap-2" onSubmit={async (event) => {
+        event.preventDefault();
+        const value = newKeyword.trim();
+        if (!value || settings.keywordFilters.length >= 25 || settings.keywordFilters.some((word) => word.toLocaleLowerCase() === value.toLocaleLowerCase())) return;
+        if (await saveSettings({ keywordFilters: [...settings.keywordFilters, value] })) setNewKeyword("");
+      }}>
+        <input value={newKeyword} onChange={(event) => setNewKeyword(event.target.value.slice(0, 40))} maxLength={40} placeholder={t("Add a word or phrase")} aria-label={t("Add a word or phrase")} data-testid="input-keyword-filter" className="min-h-11 min-w-0 flex-1 rounded-xl border border-white/10 bg-[#19161c] px-4 text-sm text-foreground outline-none focus:border-primary/50"/>
+        <button type="submit" disabled={update.isPending || !newKeyword.trim() || settings.keywordFilters.length >= 25} className="min-h-11 rounded-xl bg-primary px-4 text-sm font-bold text-[#24111b] disabled:opacity-45" data-testid="button-add-keyword-filter">{t("Add keyword")}</button>
+      </form>
+      {!settings.keywordFilters.length ? <p className="py-6 text-center text-sm text-muted-foreground">{t("No filtered words yet.")}</p>
+        : <ul className="divide-y divide-white/[.06]">
+          {settings.keywordFilters.map((word) => <li key={word} className="flex items-center gap-3 py-3">
+            <span className="min-w-0 flex-1 break-words text-sm">{word}</span>
+            <button type="button" onClick={()=>void saveSettings({keywordFilters:settings.keywordFilters.filter((item)=>item!==word)})} disabled={update.isPending} className="min-h-10 rounded-lg px-3 text-xs font-bold text-primary hover:bg-primary/10 disabled:opacity-50" data-testid={`button-remove-keyword-${encodeURIComponent(word)}`}>{t("Remove")}</button>
+          </li>)}
+        </ul>}
+    </section>}
     {section === "privacy" && <>
       <SettingGroupTitle title="Privacy"/>
       <ToggleRow icon={<LockKeyhole size={18}/>} title="Private account" detail="Only approved followers can see your profile and videos." checked={settings.privateAccount} disabled={update.isPending} testId="toggle-private-account" onChange={value=>void saveSettings({privateAccount:value})}/>
@@ -277,47 +357,85 @@ function SettingIcon({ children }: { children: ReactNode }) {
   return <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent text-primary">{children}</span>;
 }
 
-function ToggleRow({ icon, title, detail, checked, disabled, testId, onChange }: { icon: ReactNode; title: string; detail: string; checked: boolean; disabled: boolean; testId: string; onChange: (value:boolean)=>void }) {
+function TimePreference({ title, emptyLabel, detail, value, disabled, testId, onChange }: { title: string; emptyLabel: string; detail: string; value: number | null; disabled: boolean; testId: string; onChange: (value: number | null) => void }) {
+  const options = [15, 30, 60, 90, 120, 180, 240, 360];
   return <div className="setting-row">
-    <SettingIcon>{icon}</SettingIcon><span className="min-w-0 flex-1"><strong>{title}</strong><small>{detail}</small></span>
-    <button type="button" role="switch" aria-checked={checked} aria-label={title} data-testid={testId} disabled={disabled} onClick={()=>onChange(!checked)} className={`relative h-6 w-11 shrink-0 rounded-full transition-colors disabled:opacity-50 ${checked?'bg-primary':'bg-white/15'}`}>
+    <SettingIcon><Clock3 size={18}/></SettingIcon>
+    <label className="min-w-0 flex-1" htmlFor={testId}><strong>{title}</strong><small>{detail}</small></label>
+    <select id={testId} aria-label={title} data-testid={testId} value={value ?? ""} disabled={disabled} onChange={(event)=>onChange(event.target.value ? Number(event.target.value) : null)} className="max-w-36 rounded-lg border border-white/10 bg-[#19161c] px-3 py-2 text-sm text-foreground focus:border-primary/60 focus:outline-none">
+      <option value="">{emptyLabel}</option>
+      {options.map((minutes) => <option key={minutes} value={minutes}>{formatMinutes(minutes)}</option>)}
+    </select>
+  </div>;
+}
+
+function formatMinutes(minutes: number) {
+  if (minutes < 60) return `${minutes} min`;
+  const hours = minutes / 60;
+  return Number.isInteger(hours) ? `${hours} hr` : `${hours.toFixed(1)} hr`;
+}
+
+function formatScreenDuration(seconds: number) {
+  const minutes = Math.floor(seconds / 60);
+  const hours = Math.floor(minutes / 60);
+  const remainder = minutes % 60;
+  if (hours) return remainder ? `${hours}h ${remainder}m` : `${hours}h`;
+  return `${minutes}m`;
+}
+
+function formatUsageDate(day: string, language: string) {
+  const date = new Date(`${day}T12:00:00Z`);
+  const locale = language === "hi" ? "hi-IN" : language === "fr" ? "fr-FR" : language === "yo" ? "yo-NG" : "en";
+  return new Intl.DateTimeFormat(locale, { weekday: "short", month: "short", day: "numeric", timeZone: "UTC" }).format(date);
+}
+
+function ToggleRow({ icon, title, detail, checked, disabled, testId, onChange }: { icon: ReactNode; title: string; detail: string; checked: boolean; disabled: boolean; testId: string; onChange: (value:boolean)=>void }) {
+  const { t } = useAppLanguage();
+  return <div className="setting-row">
+    <SettingIcon>{icon}</SettingIcon><span className="min-w-0 flex-1"><strong>{t(title)}</strong><small>{t(detail)}</small></span>
+    <button type="button" role="switch" aria-checked={checked} aria-label={t(title)} data-testid={testId} disabled={disabled} onClick={()=>onChange(!checked)} className={`relative h-6 w-11 shrink-0 rounded-full transition-colors disabled:opacity-50 ${checked?'bg-primary':'bg-white/15'}`}>
       <span className={`absolute top-1 h-4 w-4 rounded-full bg-[#211a20] transition-transform ${checked?'translate-x-6':'translate-x-1'}`}/>
     </button>
   </div>;
 }
 
 function SettingGroupTitle({ title }: { title: string }) {
-  return <h2 className="px-1 pt-4 text-[11px] font-bold uppercase tracking-[.16em] text-primary">{title}</h2>;
+  const { t } = useAppLanguage();
+  return <h2 className="px-1 pt-4 text-[11px] font-bold uppercase tracking-[.16em] text-primary">{t(title)}</h2>;
 }
 
 function ChoiceRow({ icon, title, detail, value, options, disabled, testId, onChange }: { icon: ReactNode; title: string; detail: string; value: string; options: [string,string][]; disabled: boolean; testId: string; onChange: (value:string)=>void }) {
+  const { t } = useAppLanguage();
   return <div className="setting-row">
-    <SettingIcon>{icon}</SettingIcon><span className="min-w-0 flex-1"><strong>{title}</strong><small>{detail}</small></span>
-    <select aria-label={title} data-testid={testId} value={value} disabled={disabled} onChange={event=>onChange(event.target.value)} className="max-w-40 rounded-lg border border-white/10 bg-[#19161c] px-3 py-2 text-sm text-foreground focus:border-primary/60 focus:outline-none disabled:opacity-50">
-      {options.map(([option,label])=><option key={option} value={option}>{label}</option>)}
+    <SettingIcon>{icon}</SettingIcon><span className="min-w-0 flex-1"><strong>{t(title)}</strong><small>{t(detail)}</small></span>
+    <select aria-label={t(title)} data-testid={testId} value={value} disabled={disabled} onChange={event=>onChange(event.target.value)} className="max-w-40 rounded-lg border border-white/10 bg-[#19161c] px-3 py-2 text-sm text-foreground focus:border-primary/60 focus:outline-none disabled:opacity-50">
+      {options.map(([option,label])=><option key={option} value={option}>{t(label)}</option>)}
     </select>
   </div>;
 }
 
 function NotifyRow({ icon, title, detail, checked, disabled, testId, onChange }: { icon: ReactNode; title: string; detail: string; checked: boolean; disabled: boolean; testId: string; onChange: (value:boolean)=>void }) {
+  const { t } = useAppLanguage();
   return <div className="flex items-center gap-4 border-b border-border py-4 last:border-b-0">
     <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-accent text-primary">{icon}</span>
-    <span className="min-w-0 flex-1"><strong className="block text-[16px] font-bold text-foreground">{title}</strong><small className="mt-0.5 block text-[13px] text-muted-foreground">{detail}</small></span>
-    <button type="button" role="switch" aria-checked={checked} aria-label={title} data-testid={testId} disabled={disabled} onClick={()=>onChange(!checked)} className={`relative h-8 w-14 shrink-0 rounded-full transition-colors disabled:opacity-50 ${checked?'bg-primary':'bg-muted'}`}>
+    <span className="min-w-0 flex-1"><strong className="block text-[16px] font-bold text-foreground">{t(title)}</strong><small className="mt-0.5 block text-[13px] text-muted-foreground">{t(detail)}</small></span>
+    <button type="button" role="switch" aria-checked={checked} aria-label={t(title)} data-testid={testId} disabled={disabled} onClick={()=>onChange(!checked)} className={`relative h-8 w-14 shrink-0 rounded-full transition-colors disabled:opacity-50 ${checked?'bg-primary':'bg-muted'}`}>
       <span className={`absolute top-1 h-6 w-6 rounded-full border border-border bg-background shadow-sm transition-transform ${checked?'translate-x-7':'translate-x-1'}`}/>
     </button>
   </div>;
 }
 
 function RouteLink({ href, title, detail, icon }: { href: string; title: string; detail: string; icon: ReactNode }) {
+  const { t } = useAppLanguage();
   return <Link href={href} className="setting-row transition-colors hover:border-primary/25">
-    <SettingIcon>{icon}</SettingIcon><span className="min-w-0 flex-1"><strong>{title}</strong><small>{detail}</small></span><ChevronRight size={18} className="text-muted-foreground"/>
+    <SettingIcon>{icon}</SettingIcon><span className="min-w-0 flex-1"><strong>{t(title)}</strong><small>{t(detail)}</small></span><ChevronRight size={18} className="text-muted-foreground"/>
   </Link>;
 }
 
 function ActionRow({ icon, title, detail, action, onClick }: { icon: ReactNode; title: string; detail: string; action: string; onClick: ()=>void }) {
+  const { t } = useAppLanguage();
   return <button type="button" onClick={onClick} className="setting-row w-full text-left transition-colors hover:border-primary/25">
-    <SettingIcon>{icon}</SettingIcon><span className="min-w-0 flex-1"><strong>{title}</strong><small>{detail}</small></span><span className="text-xs font-bold text-primary">{action}</span>
+    <SettingIcon>{icon}</SettingIcon><span className="min-w-0 flex-1"><strong>{t(title)}</strong><small>{t(detail)}</small></span><span className="text-xs font-bold text-primary">{t(action)}</span>
   </button>;
 }
 
@@ -387,7 +505,7 @@ function FollowRequestsPanel() {
   </section>;
 }
 
-function DeactivateRow({ settings, pending, onSave }: { settings: FullSettings; pending: boolean; onSave: (patch: Partial<FullSettings>)=>Promise<void> }) {
+function DeactivateRow({ settings, pending, onSave }: { settings: FullSettings; pending: boolean; onSave: (patch: Partial<FullSettings>)=>Promise<boolean> }) {
   const active = settings.deactivated;
   async function toggle() {
     const verb = active ? "reactivate" : "deactivate";

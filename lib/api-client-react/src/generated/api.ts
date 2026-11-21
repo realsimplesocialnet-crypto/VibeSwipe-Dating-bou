@@ -26,12 +26,15 @@ import type {
 
 import type {
   AdminActionResult,
+  AdminAuditPage,
   AdminChatExport,
   AdminDashboard,
   AdminModerationInput,
   AdminPosts,
   AdminRemovePostInput,
   AdminRemovePostResult,
+  AdminReportStatusInput,
+  AdminReports,
   AdminSession,
   BlockInput,
   BlockedProfile,
@@ -57,9 +60,11 @@ import type {
   FaceVerificationSession,
   FaceVerificationStatus,
   FollowRequest,
+  GetAdminAuditHistoryParams,
   GetAdminChatExportParams,
   GetAdminDashboardParams,
   GetAdminPostsParams,
+  GetAdminReportsParams,
   GetAdminVerificationRequestsParams,
   GetDirectChatMessagesParams,
   GetDiscoverProfilesParams,
@@ -104,6 +109,7 @@ import type {
   ReactionInput,
   ReactionResult,
   ReadReceiptStatus,
+  RecordScreenTimeInput,
   Reel,
   ReelComment,
   ReelCommentInput,
@@ -112,11 +118,13 @@ import type {
   ReelInput,
   ReelMusicCatalog,
   ReelPage,
+  ReelReportInput,
   ReelShareCount,
   ReelVideoTranscodeResult,
   ReelViewCount,
   ReferralSummary,
   ReportInput,
+  ScreenTimeSummary,
   SearchTravelCitiesParams,
   SetReelCommentReactionInput,
   StoriesFeed,
@@ -125,6 +133,8 @@ import type {
   StoryLikeResult,
   StoryVideoTranscodeResult,
   SuperLikeStatus,
+  SupportRequestInput,
+  SupportRequestResponse,
   TravelCityOption,
   TypingInput,
   TypingStatus,
@@ -348,6 +358,311 @@ export function useGetAdminDashboard<TData = Awaited<ReturnType<typeof getAdminD
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
   const queryOptions = getGetAdminDashboardQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetAdminReportsUrl = (params?: GetAdminReportsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/vibeswipe/admin/reports?${stringifiedParams}` : `/api/vibeswipe/admin/reports`
+}
+
+/**
+ * @summary Review member safety reports and support requests
+ */
+export const getAdminReports = async (params?: GetAdminReportsParams, options?: Parameters<typeof customFetch>[1]): Promise<AdminReports> => {
+
+  return customFetch<AdminReports>(getGetAdminReportsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdminReportsQueryKey = (params?: GetAdminReportsParams,) => {
+    return [
+    `/api/vibeswipe/admin/reports`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetAdminReportsQueryOptions = <TData = Awaited<ReturnType<typeof getAdminReports>>, TError = ErrorType<void>>(params?: GetAdminReportsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAdminReports>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminReportsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminReports>>> = ({ signal }) => getAdminReports(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminReports>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetAdminReportsQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminReports>>>
+export type GetAdminReportsQueryError = ErrorType<void>
+
+
+export function useGetAdminReports<TData = Awaited<ReturnType<typeof getAdminReports>>, TError = ErrorType<void>>(
+ params: undefined |  GetAdminReportsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAdminReports>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getAdminReports>>,
+          TError,
+          Awaited<ReturnType<typeof getAdminReports>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetAdminReports<TData = Awaited<ReturnType<typeof getAdminReports>>, TError = ErrorType<void>>(
+ params?: GetAdminReportsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAdminReports>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getAdminReports>>,
+          TError,
+          Awaited<ReturnType<typeof getAdminReports>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetAdminReports<TData = Awaited<ReturnType<typeof getAdminReports>>, TError = ErrorType<void>>(
+ params?: GetAdminReportsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAdminReports>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Review member safety reports and support requests
+ */
+
+export function useGetAdminReports<TData = Awaited<ReturnType<typeof getAdminReports>>, TError = ErrorType<void>>(
+ params?: GetAdminReportsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAdminReports>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetAdminReportsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getUpdateAdminReportStatusUrl = (reportId: string,) => {
+
+
+
+
+  return `/api/vibeswipe/admin/reports/${reportId}/status`
+}
+
+/**
+ * @summary Update the status of a member-submitted report or support request
+ */
+export const updateAdminReportStatus = async (reportId: string,
+    adminReportStatusInput: AdminReportStatusInput, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<void>(getUpdateAdminReportStatusUrl(reportId),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(adminReportStatusInput)
+  }
+);}
+
+
+
+
+
+export const getUpdateAdminReportStatusMutationKey = () => ['updateAdminReportStatus'] as const;
+
+export const getUpdateAdminReportStatusMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAdminReportStatus>>, TError,UpdateAdminReportStatusMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateAdminReportStatus>>, TError,UpdateAdminReportStatusMutationVariables, TContext> => {
+
+const mutationKey = getUpdateAdminReportStatusMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateAdminReportStatus>>, UpdateAdminReportStatusMutationVariables> = (props) => {
+          const {reportId,data} = props ?? {};
+
+          return  updateAdminReportStatus(reportId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateAdminReportStatusMutationResult = NonNullable<Awaited<ReturnType<typeof updateAdminReportStatus>>>
+    export type UpdateAdminReportStatusMutationBody = BodyType<AdminReportStatusInput>
+    export type UpdateAdminReportStatusMutationError = ErrorType<void>
+    export type UpdateAdminReportStatusMutationVariables = {reportId: string;data: BodyType<AdminReportStatusInput>}
+
+    /**
+ * @summary Update the status of a member-submitted report or support request
+ */
+export const useUpdateAdminReportStatus = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAdminReportStatus>>, TError,UpdateAdminReportStatusMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof updateAdminReportStatus>>,
+        TError,
+        UpdateAdminReportStatusMutationVariables,
+        TContext
+      > => {
+      return useMutation(getUpdateAdminReportStatusMutationOptions(options), queryClient);
+    }
+
+export const getGetAdminAuditHistoryUrl = (params?: GetAdminAuditHistoryParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/vibeswipe/admin/audit?${stringifiedParams}` : `/api/vibeswipe/admin/audit`
+}
+
+/**
+ * @summary Review administrator actions
+ */
+export const getAdminAuditHistory = async (params?: GetAdminAuditHistoryParams, options?: Parameters<typeof customFetch>[1]): Promise<AdminAuditPage> => {
+
+  return customFetch<AdminAuditPage>(getGetAdminAuditHistoryUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdminAuditHistoryQueryKey = (params?: GetAdminAuditHistoryParams,) => {
+    return [
+    `/api/vibeswipe/admin/audit`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetAdminAuditHistoryQueryOptions = <TData = Awaited<ReturnType<typeof getAdminAuditHistory>>, TError = ErrorType<unknown>>(params?: GetAdminAuditHistoryParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAdminAuditHistory>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminAuditHistoryQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminAuditHistory>>> = ({ signal }) => getAdminAuditHistory(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminAuditHistory>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetAdminAuditHistoryQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminAuditHistory>>>
+export type GetAdminAuditHistoryQueryError = ErrorType<unknown>
+
+
+export function useGetAdminAuditHistory<TData = Awaited<ReturnType<typeof getAdminAuditHistory>>, TError = ErrorType<unknown>>(
+ params: undefined |  GetAdminAuditHistoryParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAdminAuditHistory>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getAdminAuditHistory>>,
+          TError,
+          Awaited<ReturnType<typeof getAdminAuditHistory>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetAdminAuditHistory<TData = Awaited<ReturnType<typeof getAdminAuditHistory>>, TError = ErrorType<unknown>>(
+ params?: GetAdminAuditHistoryParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAdminAuditHistory>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getAdminAuditHistory>>,
+          TError,
+          Awaited<ReturnType<typeof getAdminAuditHistory>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetAdminAuditHistory<TData = Awaited<ReturnType<typeof getAdminAuditHistory>>, TError = ErrorType<unknown>>(
+ params?: GetAdminAuditHistoryParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAdminAuditHistory>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Review administrator actions
+ */
+
+export function useGetAdminAuditHistory<TData = Awaited<ReturnType<typeof getAdminAuditHistory>>, TError = ErrorType<unknown>>(
+ params?: GetAdminAuditHistoryParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getAdminAuditHistory>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetAdminAuditHistoryQueryOptions(params,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
@@ -3269,6 +3584,195 @@ export const useUpdateVibeSwipeSettings = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getUpdateVibeSwipeSettingsMutationOptions(options), queryClient);
+    }
+
+export const getGetScreenTimeSummaryUrl = () => {
+
+
+
+
+  return `/api/vibeswipe/screen-time`
+}
+
+/**
+ * @summary Get the signed-in member's VibeSwipes usage summary
+ */
+export const getScreenTimeSummary = async ( options?: Parameters<typeof customFetch>[1]): Promise<ScreenTimeSummary> => {
+
+  return customFetch<ScreenTimeSummary>(getGetScreenTimeSummaryUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetScreenTimeSummaryQueryKey = () => {
+    return [
+    `/api/vibeswipe/screen-time`
+    ] as const;
+    }
+
+
+export const getGetScreenTimeSummaryQueryOptions = <TData = Awaited<ReturnType<typeof getScreenTimeSummary>>, TError = ErrorType<unknown>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getScreenTimeSummary>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetScreenTimeSummaryQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getScreenTimeSummary>>> = ({ signal }) => getScreenTimeSummary({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getScreenTimeSummary>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetScreenTimeSummaryQueryResult = NonNullable<Awaited<ReturnType<typeof getScreenTimeSummary>>>
+export type GetScreenTimeSummaryQueryError = ErrorType<unknown>
+
+
+export function useGetScreenTimeSummary<TData = Awaited<ReturnType<typeof getScreenTimeSummary>>, TError = ErrorType<unknown>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getScreenTimeSummary>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getScreenTimeSummary>>,
+          TError,
+          Awaited<ReturnType<typeof getScreenTimeSummary>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetScreenTimeSummary<TData = Awaited<ReturnType<typeof getScreenTimeSummary>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getScreenTimeSummary>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getScreenTimeSummary>>,
+          TError,
+          Awaited<ReturnType<typeof getScreenTimeSummary>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetScreenTimeSummary<TData = Awaited<ReturnType<typeof getScreenTimeSummary>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getScreenTimeSummary>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Get the signed-in member's VibeSwipes usage summary
+ */
+
+export function useGetScreenTimeSummary<TData = Awaited<ReturnType<typeof getScreenTimeSummary>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getScreenTimeSummary>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetScreenTimeSummaryQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getRecordScreenTimeUrl = () => {
+
+
+
+
+  return `/api/vibeswipe/screen-time`
+}
+
+/**
+ * @summary Add a short foreground usage interval inside VibeSwipes
+ */
+export const recordScreenTime = async (recordScreenTimeInput: RecordScreenTimeInput, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<void>(getRecordScreenTimeUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(recordScreenTimeInput)
+  }
+);}
+
+
+
+
+
+export const getRecordScreenTimeMutationKey = () => ['recordScreenTime'] as const;
+
+export const getRecordScreenTimeMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof recordScreenTime>>, TError,RecordScreenTimeMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof recordScreenTime>>, TError,RecordScreenTimeMutationVariables, TContext> => {
+
+const mutationKey = getRecordScreenTimeMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof recordScreenTime>>, RecordScreenTimeMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  recordScreenTime(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RecordScreenTimeMutationResult = NonNullable<Awaited<ReturnType<typeof recordScreenTime>>>
+    export type RecordScreenTimeMutationBody = BodyType<RecordScreenTimeInput>
+    export type RecordScreenTimeMutationError = ErrorType<void>
+    export type RecordScreenTimeMutationVariables = {data: BodyType<RecordScreenTimeInput>}
+
+    /**
+ * @summary Add a short foreground usage interval inside VibeSwipes
+ */
+export const useRecordScreenTime = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof recordScreenTime>>, TError,RecordScreenTimeMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof recordScreenTime>>,
+        TError,
+        RecordScreenTimeMutationVariables,
+        TContext
+      > => {
+      return useMutation(getRecordScreenTimeMutationOptions(options), queryClient);
     }
 
 export const getSearchTravelCitiesUrl = (params: SearchTravelCitiesParams,) => {
@@ -8656,6 +9160,94 @@ export const useReportProfile = <TError = ErrorType<unknown>,
       return useMutation(getReportProfileMutationOptions(options), queryClient);
     }
 
+export const getSubmitSupportRequestUrl = () => {
+
+
+
+
+  return `/api/vibeswipe/support-requests`
+}
+
+/**
+ * @summary Submit a problem report to VibeSwipes support
+ */
+export const submitSupportRequest = async (supportRequestInput: SupportRequestInput, options?: Parameters<typeof customFetch>[1]): Promise<SupportRequestResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<SupportRequestResponse>(getSubmitSupportRequestUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(supportRequestInput)
+  }
+);}
+
+
+
+
+
+export const getSubmitSupportRequestMutationKey = () => ['submitSupportRequest'] as const;
+
+export const getSubmitSupportRequestMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof submitSupportRequest>>, TError,SubmitSupportRequestMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof submitSupportRequest>>, TError,SubmitSupportRequestMutationVariables, TContext> => {
+
+const mutationKey = getSubmitSupportRequestMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof submitSupportRequest>>, SubmitSupportRequestMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  submitSupportRequest(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SubmitSupportRequestMutationResult = NonNullable<Awaited<ReturnType<typeof submitSupportRequest>>>
+    export type SubmitSupportRequestMutationBody = BodyType<SupportRequestInput>
+    export type SubmitSupportRequestMutationError = ErrorType<void>
+    export type SubmitSupportRequestMutationVariables = {data: BodyType<SupportRequestInput>}
+
+    /**
+ * @summary Submit a problem report to VibeSwipes support
+ */
+export const useSubmitSupportRequest = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof submitSupportRequest>>, TError,SubmitSupportRequestMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof submitSupportRequest>>,
+        TError,
+        SubmitSupportRequestMutationVariables,
+        TContext
+      > => {
+      return useMutation(getSubmitSupportRequestMutationOptions(options), queryClient);
+    }
+
 export const getRequestProfileMediaUploadUrl = () => {
 
 
@@ -10575,6 +11167,95 @@ export const useMarkReelNotInterested = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getMarkReelNotInterestedMutationOptions(options), queryClient);
+    }
+
+export const getReportReelUrl = (reelId: string,) => {
+
+
+
+
+  return `/api/vibeswipe/reels/${reelId}/reports`
+}
+
+/**
+ * @summary Report a Reel for administrator review
+ */
+export const reportReel = async (reelId: string,
+    reelReportInput: ReelReportInput, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<void>(getReportReelUrl(reelId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(reelReportInput)
+  }
+);}
+
+
+
+
+
+export const getReportReelMutationKey = () => ['reportReel'] as const;
+
+export const getReportReelMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reportReel>>, TError,ReportReelMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof reportReel>>, TError,ReportReelMutationVariables, TContext> => {
+
+const mutationKey = getReportReelMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof reportReel>>, ReportReelMutationVariables> = (props) => {
+          const {reelId,data} = props ?? {};
+
+          return  reportReel(reelId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ReportReelMutationResult = NonNullable<Awaited<ReturnType<typeof reportReel>>>
+    export type ReportReelMutationBody = BodyType<ReelReportInput>
+    export type ReportReelMutationError = ErrorType<void>
+    export type ReportReelMutationVariables = {reelId: string;data: BodyType<ReelReportInput>}
+
+    /**
+ * @summary Report a Reel for administrator review
+ */
+export const useReportReel = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reportReel>>, TError,ReportReelMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof reportReel>>,
+        TError,
+        ReportReelMutationVariables,
+        TContext
+      > => {
+      return useMutation(getReportReelMutationOptions(options), queryClient);
     }
 
 export const getDownloadReelUrl = (reelId: string,) => {

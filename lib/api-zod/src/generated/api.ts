@@ -148,6 +148,87 @@ export const GetAdminDashboardResponse = zod.object({
 
 
 /**
+ * @summary Review member safety reports and support requests
+ */
+export const getAdminReportsQueryTypeDefault = `all`;
+export const getAdminReportsQueryStatusDefault = `all`;
+export const getAdminReportsQueryQMax = 150;
+
+export const getAdminReportsQueryPageDefault = 1;
+export const getAdminReportsQueryPageMax = 100000;
+
+
+
+export const GetAdminReportsQueryParams = zod.object({
+  "type": zod.enum(['all', 'problem', 'profile', 'reel']).default(getAdminReportsQueryTypeDefault),
+  "status": zod.enum(['all', 'new', 'in_review', 'resolved']).default(getAdminReportsQueryStatusDefault),
+  "q": zod.coerce.string().max(getAdminReportsQueryQMax).optional(),
+  "page": zod.coerce.number().int().min(1).max(getAdminReportsQueryPageMax).default(getAdminReportsQueryPageDefault)
+})
+
+export const GetAdminReportsResponse = zod.object({
+  "page": zod.int(),
+  "pageSize": zod.int(),
+  "total": zod.int(),
+  "items": zod.array(zod.object({
+  "id": zod.uuid(),
+  "type": zod.enum(['problem', 'profile', 'reel']),
+  "reporterId": zod.string(),
+  "reporterName": zod.string(),
+  "targetId": zod.string().nullable(),
+  "targetName": zod.string().nullable(),
+  "category": zod.string(),
+  "details": zod.string().nullable(),
+  "status": zod.enum(['new', 'in_review', 'resolved']),
+  "createdAt": zod.coerce.date()
+}))
+})
+
+
+/**
+ * @summary Update the status of a member-submitted report or support request
+ */
+export const UpdateAdminReportStatusParams = zod.object({
+  "reportId": zod.uuid()
+})
+
+export const UpdateAdminReportStatusBody = zod.object({
+  "type": zod.enum(['problem', 'profile', 'reel']),
+  "status": zod.enum(['new', 'in_review', 'resolved'])
+})
+
+export const UpdateAdminReportStatusResponse = zod.void()
+
+
+/**
+ * @summary Review administrator actions
+ */
+export const getAdminAuditHistoryQueryPageDefault = 1;
+export const getAdminAuditHistoryQueryPageMax = 100000;
+
+
+
+export const GetAdminAuditHistoryQueryParams = zod.object({
+  "page": zod.coerce.number().int().min(1).max(getAdminAuditHistoryQueryPageMax).default(getAdminAuditHistoryQueryPageDefault)
+})
+
+export const GetAdminAuditHistoryResponse = zod.object({
+  "page": zod.int(),
+  "pageSize": zod.int(),
+  "total": zod.int(),
+  "items": zod.array(zod.object({
+  "id": zod.uuid(),
+  "actorId": zod.string(),
+  "actorName": zod.string().nullable(),
+  "actorEmail": zod.string().nullable(),
+  "action": zod.string(),
+  "targetId": zod.string(),
+  "createdAt": zod.coerce.date()
+}))
+})
+
+
+/**
  * @summary Search and page through published and expired posts for administrator oversight
  */
 export const getAdminPostsQueryPageDefault = 1;
@@ -845,6 +926,16 @@ export const GetIcebreakersResponse = zod.array(GetIcebreakersResponseItem)
 /**
  * @summary Get the signed-in user's privacy settings
  */
+export const getVibeSwipeSettingsResponseKeywordFiltersItemMax = 40;
+
+export const getVibeSwipeSettingsResponseKeywordFiltersMax = 25;
+
+export const getVibeSwipeSettingsResponseScreenTimeReminderMinutesMin = 15;
+export const getVibeSwipeSettingsResponseScreenTimeReminderMinutesMax = 720;
+
+export const getVibeSwipeSettingsResponseScreenTimeLimitMinutesMin = 15;
+export const getVibeSwipeSettingsResponseScreenTimeLimitMinutesMax = 720;
+
 export const getVibeSwipeSettingsResponseTravelCityMax = 100;
 
 
@@ -858,7 +949,10 @@ export const GetVibeSwipeSettingsResponse = zod.object({
   "notifyMessages": zod.boolean(),
   "notifyProfileViews": zod.boolean(),
   "darkMode": zod.boolean(),
-  "language": zod.enum(['en']),
+  "language": zod.enum(['en', 'hi', 'fr', 'yo']),
+  "keywordFilters": zod.array(zod.string().min(1).max(getVibeSwipeSettingsResponseKeywordFiltersItemMax)).max(getVibeSwipeSettingsResponseKeywordFiltersMax),
+  "screenTimeReminderMinutes": zod.int().min(getVibeSwipeSettingsResponseScreenTimeReminderMinutesMin).max(getVibeSwipeSettingsResponseScreenTimeReminderMinutesMax).nullable(),
+  "screenTimeLimitMinutes": zod.int().min(getVibeSwipeSettingsResponseScreenTimeLimitMinutesMin).max(getVibeSwipeSettingsResponseScreenTimeLimitMinutesMax).nullable(),
   "deactivated": zod.boolean(),
   "travelMode": zod.boolean(),
   "travelCity": zod.string().max(getVibeSwipeSettingsResponseTravelCityMax).nullable(),
@@ -873,6 +967,16 @@ export const GetVibeSwipeSettingsResponse = zod.object({
 /**
  * @summary Save the signed-in user's privacy settings
  */
+export const updateVibeSwipeSettingsBodyKeywordFiltersItemMax = 40;
+
+export const updateVibeSwipeSettingsBodyKeywordFiltersMax = 25;
+
+export const updateVibeSwipeSettingsBodyScreenTimeReminderMinutesMin = 15;
+export const updateVibeSwipeSettingsBodyScreenTimeReminderMinutesMax = 720;
+
+export const updateVibeSwipeSettingsBodyScreenTimeLimitMinutesMin = 15;
+export const updateVibeSwipeSettingsBodyScreenTimeLimitMinutesMax = 720;
+
 export const updateVibeSwipeSettingsBodyTravelCityMax = 100;
 
 
@@ -886,7 +990,10 @@ export const UpdateVibeSwipeSettingsBody = zod.object({
   "notifyMessages": zod.boolean().optional(),
   "notifyProfileViews": zod.boolean().optional(),
   "darkMode": zod.boolean().optional(),
-  "language": zod.enum(['en']).optional(),
+  "language": zod.enum(['en', 'hi', 'fr', 'yo']).optional(),
+  "keywordFilters": zod.array(zod.string().min(1).max(updateVibeSwipeSettingsBodyKeywordFiltersItemMax)).max(updateVibeSwipeSettingsBodyKeywordFiltersMax).optional(),
+  "screenTimeReminderMinutes": zod.int().min(updateVibeSwipeSettingsBodyScreenTimeReminderMinutesMin).max(updateVibeSwipeSettingsBodyScreenTimeReminderMinutesMax).nullish(),
+  "screenTimeLimitMinutes": zod.int().min(updateVibeSwipeSettingsBodyScreenTimeLimitMinutesMin).max(updateVibeSwipeSettingsBodyScreenTimeLimitMinutesMax).nullish(),
   "deactivated": zod.boolean().optional(),
   "travelMode": zod.boolean().optional(),
   "travelCity": zod.string().max(updateVibeSwipeSettingsBodyTravelCityMax).nullish(),
@@ -896,6 +1003,16 @@ export const UpdateVibeSwipeSettingsBody = zod.object({
   "allowDownloads": zod.boolean().optional(),
   "likedVideoAudience": zod.enum(['everyone', 'followers', 'only_me']).optional()
 })
+
+export const updateVibeSwipeSettingsResponseKeywordFiltersItemMax = 40;
+
+export const updateVibeSwipeSettingsResponseKeywordFiltersMax = 25;
+
+export const updateVibeSwipeSettingsResponseScreenTimeReminderMinutesMin = 15;
+export const updateVibeSwipeSettingsResponseScreenTimeReminderMinutesMax = 720;
+
+export const updateVibeSwipeSettingsResponseScreenTimeLimitMinutesMin = 15;
+export const updateVibeSwipeSettingsResponseScreenTimeLimitMinutesMax = 720;
 
 export const updateVibeSwipeSettingsResponseTravelCityMax = 100;
 
@@ -910,7 +1027,10 @@ export const UpdateVibeSwipeSettingsResponse = zod.object({
   "notifyMessages": zod.boolean(),
   "notifyProfileViews": zod.boolean(),
   "darkMode": zod.boolean(),
-  "language": zod.enum(['en']),
+  "language": zod.enum(['en', 'hi', 'fr', 'yo']),
+  "keywordFilters": zod.array(zod.string().min(1).max(updateVibeSwipeSettingsResponseKeywordFiltersItemMax)).max(updateVibeSwipeSettingsResponseKeywordFiltersMax),
+  "screenTimeReminderMinutes": zod.int().min(updateVibeSwipeSettingsResponseScreenTimeReminderMinutesMin).max(updateVibeSwipeSettingsResponseScreenTimeReminderMinutesMax).nullable(),
+  "screenTimeLimitMinutes": zod.int().min(updateVibeSwipeSettingsResponseScreenTimeLimitMinutesMin).max(updateVibeSwipeSettingsResponseScreenTimeLimitMinutesMax).nullable(),
   "deactivated": zod.boolean(),
   "travelMode": zod.boolean(),
   "travelCity": zod.string().max(updateVibeSwipeSettingsResponseTravelCityMax).nullable(),
@@ -920,6 +1040,43 @@ export const UpdateVibeSwipeSettingsResponse = zod.object({
   "allowDownloads": zod.boolean(),
   "likedVideoAudience": zod.enum(['everyone', 'followers', 'only_me'])
 })
+
+
+/**
+ * @summary Get the signed-in member's VibeSwipes usage summary
+ */
+export const getScreenTimeSummaryResponseTodaySecondsMin = 0;
+export const getScreenTimeSummaryResponseTodaySecondsMax = 86400;
+
+export const getScreenTimeSummaryResponseDaysItemDateRegExp = new RegExp('^[0-9]{4}-[0-9]{2}-[0-9]{2}$');
+export const getScreenTimeSummaryResponseDaysItemSecondsMin = 0;
+export const getScreenTimeSummaryResponseDaysItemSecondsMax = 86400;
+
+export const getScreenTimeSummaryResponseDaysMax = 7;
+
+
+
+export const GetScreenTimeSummaryResponse = zod.object({
+  "todaySeconds": zod.int().min(getScreenTimeSummaryResponseTodaySecondsMin).max(getScreenTimeSummaryResponseTodaySecondsMax),
+  "days": zod.array(zod.object({
+  "date": zod.string().regex(getScreenTimeSummaryResponseDaysItemDateRegExp),
+  "seconds": zod.int().min(getScreenTimeSummaryResponseDaysItemSecondsMin).max(getScreenTimeSummaryResponseDaysItemSecondsMax)
+})).max(getScreenTimeSummaryResponseDaysMax)
+})
+
+
+/**
+ * @summary Add a short foreground usage interval inside VibeSwipes
+ */
+export const recordScreenTimeBodySecondsMax = 60;
+
+
+
+export const RecordScreenTimeBody = zod.object({
+  "seconds": zod.int().min(1).max(recordScreenTimeBodySecondsMax)
+})
+
+export const RecordScreenTimeResponse = zod.void()
 
 
 /**
@@ -2632,6 +2789,25 @@ export const ReportProfileResponse = zod.void()
 
 
 /**
+ * @summary Submit a problem report to VibeSwipes support
+ */
+export const submitSupportRequestBodyDetailsMin = 5;
+export const submitSupportRequestBodyDetailsMax = 2000;
+
+
+
+export const SubmitSupportRequestBody = zod.object({
+  "category": zod.enum(['bug', 'account', 'safety', 'accessibility', 'other']),
+  "details": zod.string().min(submitSupportRequestBodyDetailsMin).max(submitSupportRequestBodyDetailsMax)
+})
+
+export const SubmitSupportRequestResponse = zod.object({
+  "id": zod.uuid(),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
  * @summary Request a protected profile media upload
  */
 export const requestProfileMediaUploadBodyNameMax = 255;
@@ -3316,6 +3492,25 @@ export const MarkReelNotInterestedParams = zod.object({
 })
 
 export const MarkReelNotInterestedResponse = zod.void()
+
+
+/**
+ * @summary Report a Reel for administrator review
+ */
+export const ReportReelParams = zod.object({
+  "reelId": zod.uuid()
+})
+
+export const reportReelBodyDetailsMax = 1000;
+
+
+
+export const ReportReelBody = zod.object({
+  "reason": zod.enum(['harassment', 'nudity', 'violence', 'hate', 'spam', 'underage', 'other']),
+  "details": zod.string().max(reportReelBodyDetailsMax).nullish()
+})
+
+export const ReportReelResponse = zod.void()
 
 
 /**

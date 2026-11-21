@@ -9,6 +9,10 @@ import {
   GetIcebreakersResponse,
   GetSuperLikeStatusResponse,
   GetVibeSwipeSettingsResponse,
+  GetScreenTimeSummaryResponse,
+  RecordScreenTimeBody,
+  SubmitSupportRequestBody,
+  SubmitSupportRequestResponse,
   SearchTravelCitiesQueryParams,
   SearchTravelCitiesResponse,
   ClearChatParams,
@@ -86,6 +90,8 @@ import {
   referralsTable,
   reactionsTable,
   reportsTable,
+  screenTimeDailyTable,
+  supportRequestsTable,
   storiesTable,
   vibeSwipeNotificationsTable,
   vibeSwipeReadReceiptsTable,
@@ -1012,6 +1018,9 @@ router.get("/vibeswipe/settings", async (req, res): Promise<void> => {
       whoCanMessage: profilesTable.whoCanMessage,
       allowDownloads: profilesTable.allowDownloads,
       likedVideoAudience: profilesTable.likedVideoAudience,
+      keywordFilters: profilesTable.keywordFilters,
+      screenTimeReminderMinutes: profilesTable.screenTimeReminderMinutes,
+      screenTimeLimitMinutes: profilesTable.screenTimeLimitMinutes,
     })
     .from(profilesTable)
     .where(eq(profilesTable.id, currentUserId(req)))
@@ -1080,6 +1089,15 @@ router.put("/vibeswipe/settings", async (req, res): Promise<void> => {
       whoCanMessage: body.data.whoCanMessage ?? current.whoCanMessage,
       allowDownloads: body.data.allowDownloads ?? current.allowDownloads,
       likedVideoAudience: body.data.likedVideoAudience ?? current.likedVideoAudience,
+      keywordFilters: body.data.keywordFilters
+        ? [...new Set(body.data.keywordFilters.map((word) => word.trim()).filter(Boolean))]
+        : current.keywordFilters,
+      screenTimeReminderMinutes: body.data.screenTimeReminderMinutes === undefined
+        ? current.screenTimeReminderMinutes
+        : body.data.screenTimeReminderMinutes,
+      screenTimeLimitMinutes: body.data.screenTimeLimitMinutes === undefined
+        ? current.screenTimeLimitMinutes
+        : body.data.screenTimeLimitMinutes,
       updatedAt: new Date(),
     })
     .where(eq(profilesTable.id, userId))
@@ -1101,12 +1119,86 @@ router.put("/vibeswipe/settings", async (req, res): Promise<void> => {
       whoCanMessage: profilesTable.whoCanMessage,
       allowDownloads: profilesTable.allowDownloads,
       likedVideoAudience: profilesTable.likedVideoAudience,
+      keywordFilters: profilesTable.keywordFilters,
+      screenTimeReminderMinutes: profilesTable.screenTimeReminderMinutes,
+      screenTimeLimitMinutes: profilesTable.screenTimeLimitMinutes,
     });
   if (!profile) {
     res.status(404).json({ error: "Profile not found." });
     return;
   }
   res.json(UpdateVibeSwipeSettingsResponse.parse(profile));
+});
+
+router.get("/vibeswipe/screen-time", async (req, res): Promise<void> => {
+  const userId = currentUserId(req);
+  const today = new Date();
+  const todayKey = today.toISOString().slice(0, 10);
+  const firstDay = new Date(today);
+  firstDay.setUTCDate(firstDay.getUTCDate() - 6);
+  const firstKey = firstDay.toISOString().slice(0, 10);
+  const rows = await db.select({
+    date: screenTimeDailyTable.usageDate,
+    seconds: screenTimeDailyTable.secondsUsed,
+  }).from(screenTimeDailyTable).where(and(
+    eq(screenTimeDailyTable.userId, userId),
+    gte(screenTimeDailyTable.usageDate, firstKey),
+  )).orderBy(asc(screenTimeDailyTable.usageDate));
+  const byDate = new Map(rows.map((row) => [row.date, row.seconds]));
+  const days = Array.from({ length: 7 }, (_, offset) => {
+    const date = new Date(firstDay);
+    date.setUTCDate(date.getUTCDate() + offset);
+    const key = date.toISOString().slice(0, 10);
+    return { date: key, seconds: byDate.get(key) ?? 0 };
+  });
+  res.json(GetScreenTimeSummaryResponse.parse({
+    todaySeconds: byDate.get(todayKey) ?? 0,
+    days,
+  }));
+});
+
+router.post("/vibeswipe/screen-time", async (req, res): Promise<void> => {
+  const parsed = RecordScreenTimeBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+  const userId = currentUserId(req);
+  const usageDate = new Date().toISOString().slice(0, 10);
+  await db.insert(screenTimeDailyTable).values({
+    userId,
+    usageDate,
+    secondsUsed: parsed.data.seconds,
+  }).onConflictDoUpdate({
+    target: [screenTimeDailyTable.userId, screenTimeDailyTable.usageDate],
+    set: {
+      secondsUsed: sql`LEAST(86400, ${screenTimeDailyTable.secondsUsed} + ${parsed.data.seconds})`,
+      updatedAt: new Date(),
+    },
+  });
+  res.status(204).end();
+});
+
+router.post("/vibeswipe/support-requests", async (req, res): Promise<void> => {
+  const parsed = SubmitSupportRequestBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: parsed.error.message });
+    return;
+  }
+  const details = parsed.data.details.trim();
+  if (details.length < 5) {
+    res.status(400).json({ error: "Please add a few details so support can help." });
+    return;
+  }
+  const [request] = await db.insert(supportRequestsTable).values({
+    reporterId: currentUserId(req),
+    category: parsed.data.category,
+    details,
+  }).returning({ id: supportRequestsTable.id, createdAt: supportRequestsTable.createdAt });
+  res.status(201).json(SubmitSupportRequestResponse.parse({
+    id: request.id,
+    createdAt: request.createdAt.toISOString(),
+  }));
 });
 
 router.get("/vibeswipe/icebreakers", async (_req, res): Promise<void> => {

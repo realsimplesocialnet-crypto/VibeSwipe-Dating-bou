@@ -10,7 +10,7 @@ const sections = [
   },
   {
     title: "Information we collect",
-    body: "We process account and profile information you provide, such as your name, age, email or account identifier, gender, dating preferences, biography, interests, work, photos and videos, and the city, state, or country you choose to add. We also process activity needed to run the service, including likes, matches, follows, profile views, Reels, Stories, captions, comments, saved or reposted content, messages, attachments, blocks, and reports.",
+    body: "We process account and profile information you provide, such as your name, age, email or account identifier, gender, dating preferences, biography, interests, work, photos and videos, and the city, state, or country you choose to add. We also process activity needed to run the service, including likes, matches, follows, profile views, Reels, Stories, captions, comments, saved or reposted content, messages, attachments, blocks, reports, support requests, keyword-filter preferences, and daily VibeSwipes screen-time totals.",
   },
   {
     title: "Location and safety information",
@@ -22,7 +22,7 @@ const sections = [
   },
   {
     title: "How we use information",
-    body: "We use information to create and display profiles, support discovery and matching, deliver messages and notifications, provide safety and moderation tools, respond to requests, prevent abuse, secure the service, and maintain its features. We do not sell personal information.",
+    body: "We use information to create and display profiles, support discovery and matching, deliver messages and notifications, provide safety and moderation tools, respond to requests, prevent abuse, secure the service, and maintain its features. Screen time counts only while VibeSwipes is visible in the foreground; it does not monitor time in other phone apps. Keyword filters are saved to your account settings and hide matching Reel captions or comments for you. We do not sell personal information.",
   },
   {
     title: "What other people can see",

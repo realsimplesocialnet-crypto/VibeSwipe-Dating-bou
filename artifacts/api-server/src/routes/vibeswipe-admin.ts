@@ -11,8 +11,20 @@ import {
   reactionsTable,
   vibeSwipePresenceTable,
   faceVerificationSessionsTable,
+  reelReportsTable,
+  reelsTable,
+  reportsTable,
+  supportRequestsTable,
 } from "@workspace/db";
-import { and, desc, eq, gte, ilike, inArray, lt, or, sql } from "drizzle-orm";
+import { and, desc, eq, gte, ilike, inArray, lt, or, sql, type SQL } from "drizzle-orm";
+import {
+  GetAdminAuditHistoryQueryParams,
+  GetAdminAuditHistoryResponse,
+  GetAdminReportsQueryParams,
+  GetAdminReportsResponse,
+  UpdateAdminReportStatusBody,
+  UpdateAdminReportStatusParams,
+} from "@workspace/api-zod";
 import { Router, type IRouter, type Request } from "express";
 import { createAdminGuard } from "../lib/admin-access";
 import { loadAdminIdentity } from "../lib/admin-identity";
@@ -173,6 +185,7 @@ function adminActivityDescription(action: string): string {
     read_chat: "Administrator viewed a private conversation",
     export_chat: "Administrator exported a private conversation",
     access_media: "Administrator accessed private media",
+    update_report_status: "Administrator updated a report or support request",
   };
   return descriptions[action] ?? "Administrator performed an administrative action";
 }
@@ -186,6 +199,140 @@ async function closeAdminUserChats(userId: string): Promise<void> {
     .where(or(eq(matchesTable.userAId, userId), eq(matchesTable.userBId, userId)));
   await Promise.all(matches.map((match) => closeAdminChat(match.id)));
 }
+
+router.get("/vibeswipe/admin/reports", async (req, res): Promise<void> => {
+  const parsed = GetAdminReportsQueryParams.safeParse(req.query);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid report query." });
+    return;
+  }
+  const { type, status, q, page } = parsed.data;
+  const pattern = q?.trim() ? `%${q.trim()}%` : null;
+  const statusFilter = (column: SQL) => status === "all" ? sql`true` : sql`${column} = ${status}`;
+  const searchFilter = (fields: SQL[]) => pattern
+    ? sql`(${sql.join(fields.map((field) => sql`${field} ILIKE ${pattern}`), sql` OR `)})`
+    : sql`true`;
+  const sources: SQL[] = [];
+
+  if (type === "all" || type === "problem") {
+    sources.push(sql`
+      SELECT s.id, 'problem'::text AS type, s.reporter_id AS "reporterId",
+        reporter.name AS "reporterName", NULL::text AS "targetId", NULL::text AS "targetName",
+        s.category AS category, s.details AS details, s.status AS status, s.created_at AS "createdAt"
+      FROM vibeswipe_support_requests s
+      JOIN vibeswipe_profiles reporter ON reporter.id = s.reporter_id
+      WHERE ${statusFilter(sql`s.status`)}
+        AND ${searchFilter([sql`reporter.name`, sql`s.category`, sql`s.details`])}
+    `);
+  }
+  if (type === "all" || type === "profile") {
+    sources.push(sql`
+      SELECT r.id, 'profile'::text AS type, r.reporter_id AS "reporterId",
+        reporter.name AS "reporterName", r.reported_id AS "targetId", target.name AS "targetName",
+        r.reason AS category, r.details AS details, r.status AS status, r.created_at AS "createdAt"
+      FROM vibeswipe_reports r
+      JOIN vibeswipe_profiles reporter ON reporter.id = r.reporter_id
+      JOIN vibeswipe_profiles target ON target.id = r.reported_id
+      WHERE ${statusFilter(sql`r.status`)}
+        AND ${searchFilter([sql`reporter.name`, sql`target.name`, sql`r.reason`, sql`r.details`])}
+    `);
+  }
+  if (type === "all" || type === "reel") {
+    sources.push(sql`
+      SELECT rr.id, 'reel'::text AS type, rr.reporter_id AS "reporterId",
+        reporter.name AS "reporterName", rr.reel_id::text AS "targetId",
+        creator.name AS "targetName", rr.reason AS category, rr.details AS details,
+        rr.status AS status, rr.created_at AS "createdAt"
+      FROM vibeswipe_reel_reports rr
+      JOIN vibeswipe_profiles reporter ON reporter.id = rr.reporter_id
+      JOIN vibeswipe_reels reel ON reel.id = rr.reel_id
+      JOIN vibeswipe_profiles creator ON creator.id = reel.user_id
+      WHERE ${statusFilter(sql`rr.status`)}
+        AND ${searchFilter([sql`reporter.name`, sql`creator.name`, sql`rr.reason`, sql`rr.details`, sql`reel.caption`])}
+    `);
+  }
+
+  const offset = (page - 1) * PAGE_SIZE;
+  const allReports = sql.join(sources, sql` UNION ALL `);
+  const countResult = await db.execute<{ count: number }>(sql`
+    SELECT count(*)::int AS count FROM (${allReports}) AS report_rows
+  `);
+  const total = countResult.rows[0]?.count ?? 0;
+  const rows = await db.execute(sql`
+    SELECT * FROM (${allReports}) AS report_rows
+    ORDER BY "createdAt" DESC, id DESC
+    LIMIT ${PAGE_SIZE} OFFSET ${offset}
+  `);
+  res.json(GetAdminReportsResponse.parse({
+    page,
+    pageSize: PAGE_SIZE,
+    total: Number(total),
+    items: rows.rows,
+  }));
+});
+
+router.patch("/vibeswipe/admin/reports/:reportId/status", async (req, res): Promise<void> => {
+  const params = UpdateAdminReportStatusParams.safeParse(req.params);
+  const body = UpdateAdminReportStatusBody.safeParse(req.body);
+  if (!params.success || !body.success) {
+    res.status(400).json({ error: "Invalid report status update." });
+    return;
+  }
+  const updatedAt = new Date();
+  let updated = false;
+  if (body.data.type === "problem") {
+    const rows = await db.update(supportRequestsTable).set({ status: body.data.status, updatedAt })
+      .where(eq(supportRequestsTable.id, params.data.reportId)).returning({ id: supportRequestsTable.id });
+    updated = rows.length > 0;
+  } else if (body.data.type === "profile") {
+    const rows = await db.update(reportsTable).set({ status: body.data.status, updatedAt })
+      .where(eq(reportsTable.id, params.data.reportId)).returning({ id: reportsTable.id });
+    updated = rows.length > 0;
+  } else {
+    const rows = await db.update(reelReportsTable).set({ status: body.data.status, updatedAt })
+      .where(eq(reelReportsTable.id, params.data.reportId)).returning({ id: reelReportsTable.id });
+    updated = rows.length > 0;
+  }
+  if (!updated) {
+    res.status(404).json({ error: "Report not found." });
+    return;
+  }
+  await auditPrivateAccess(req, "update_report_status", params.data.reportId);
+  res.status(204).end();
+});
+
+router.get("/vibeswipe/admin/audit", async (req, res): Promise<void> => {
+  const parsed = GetAdminAuditHistoryQueryParams.safeParse(req.query);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid audit history query." });
+    return;
+  }
+  const { page } = parsed.data;
+  const offset = (page - 1) * PAGE_SIZE;
+  const [total, rows] = await Promise.all([
+    db.select({ count: sql<number>`count(*)::int` }).from(adminAuditTable),
+    db.select().from(adminAuditTable).orderBy(desc(adminAuditTable.createdAt))
+      .limit(PAGE_SIZE).offset(offset),
+  ]);
+  const items = await Promise.all(rows.map(async (entry) => {
+    const identity = await loadAdminIdentity(() => clerkClient.users.getUser(entry.actorId));
+    return {
+      id: entry.id,
+      actorId: entry.actorId,
+      actorName: identity ? [identity.firstName, identity.lastName].filter(Boolean).join(" ") || null : null,
+      actorEmail: identity?.emailAddresses.find((email) => email.id === identity.primaryEmailAddressId)?.emailAddress ?? null,
+      action: entry.action,
+      targetId: entry.targetId,
+      createdAt: entry.createdAt.toISOString(),
+    };
+  }));
+  res.json(GetAdminAuditHistoryResponse.parse({
+    page,
+    pageSize: PAGE_SIZE,
+    total: Number(total[0]?.count ?? 0),
+    items,
+  }));
+});
 
 router.get("/vibeswipe/admin/session", async (req, res): Promise<void> => {
   res.json(res.locals.adminIdentity);

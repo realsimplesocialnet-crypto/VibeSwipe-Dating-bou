@@ -20,6 +20,24 @@ export interface VibeSwipeSettingsUpdateInput {
   notifyProfileViews?: boolean;
   darkMode?: boolean;
   language?: VibeSwipeSettingsUpdateInputLanguage;
+  /**
+     * @maxItems 25
+     * @items.minLength 1
+     * @items.maxLength 40
+     */
+  keywordFilters?: string[];
+  /**
+     * @minimum 15
+     * @maximum 720
+     * @nullable
+     */
+  screenTimeReminderMinutes?: number | null;
+  /**
+     * @minimum 15
+     * @maximum 720
+     * @nullable
+     */
+  screenTimeLimitMinutes?: number | null;
   deactivated?: boolean;
   travelMode?: boolean;
   /**

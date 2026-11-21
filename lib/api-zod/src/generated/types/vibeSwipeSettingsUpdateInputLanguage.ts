@@ -11,4 +11,7 @@ export type VibeSwipeSettingsUpdateInputLanguage = typeof VibeSwipeSettingsUpdat
 
 export const VibeSwipeSettingsUpdateInputLanguage = {
   en: 'en',
+  hi: 'hi',
+  fr: 'fr',
+  yo: 'yo',
 } as const;

@@ -28,6 +28,20 @@ export const reelsTable = pgTable("vibeswipe_reels", {
   captionSearch: index("vibeswipe_reels_caption_search_idx").using("gin", sql`to_tsvector('english', coalesce(${t.caption}, ''))`),
 }));
 
+export const reelReportsTable = pgTable("vibeswipe_reel_reports", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  reelId: uuid("reel_id").notNull().references(() => reelsTable.id, { onDelete: "cascade" }),
+  reporterId: text("reporter_id").notNull().references(() => profilesTable.id, { onDelete: "cascade" }),
+  reason: text("reason").notNull(),
+  details: text("details"),
+  status: text("status").notNull().default("new"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => ({
+  oneReportPerMember: uniqueIndex("vibeswipe_reel_reports_reporter_reel_idx").on(table.reporterId, table.reelId),
+  byCreatedAt: index("vibeswipe_reel_reports_created_idx").on(table.createdAt),
+}));
+
 export const reelNotInterestedTable = pgTable("vibeswipe_reel_not_interested", {
   userId: text("user_id").notNull().references(() => profilesTable.id, { onDelete: "cascade" }),
   reelId: uuid("reel_id").notNull().references(() => reelsTable.id, { onDelete: "cascade" }),

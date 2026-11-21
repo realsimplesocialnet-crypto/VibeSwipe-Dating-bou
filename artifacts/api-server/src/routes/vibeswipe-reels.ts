@@ -10,10 +10,11 @@ import {
   MarkReelNotInterestedParams, DownloadReelParams,
   GetReelMusicResponse, RecordReelShareResponse, RecordReelViewResponse, TranscodeReelVideoParams,
   TranscodeReelVideoResponse, SetReelCommentReactionBody, SetReelCommentReactionParams, SetReelCommentReactionResponse,
+  ReportReelBody,
   type ReelMusicTrack,
 } from "@workspace/api-zod";
 import {
-  blocksTable, db, mediaAssetsTable, profilesTable, reelCommentsTable, reelCommentReactionsTable, reelLikesTable, reelSavesTable, reelRepostsTable, reelSharesTable, reelSlidesTable, reelViewsTable, reelNotInterestedTable, reelsTable, storiesTable, vibeSwipeFollowsTable, vibeSwipeNotificationsTable,
+  blocksTable, db, mediaAssetsTable, profilesTable, reelCommentsTable, reelCommentReactionsTable, reelLikesTable, reelSavesTable, reelRepostsTable, reelSharesTable, reelSlidesTable, reelViewsTable, reelNotInterestedTable, reelReportsTable, reelsTable, storiesTable, vibeSwipeFollowsTable, vibeSwipeNotificationsTable,
 } from "@workspace/db";
 import { and, asc, desc, eq, gte, inArray, isNull, lt, ne, or, sql, type SQL } from "drizzle-orm";
 import { Router, type IRouter, type Request } from "express";
@@ -545,6 +546,32 @@ router.post("/vibeswipe/reels/:reelId/not-interested", async (req, res): Promise
     set: { creatorId: reel.userId, captionTerms, createdAt: new Date() },
   });
   res.status(204).end();
+});
+
+router.post("/vibeswipe/reels/:reelId/reports", async (req, res): Promise<void> => {
+  const params = GetReelParams.safeParse(req.params);
+  const body = ReportReelBody.safeParse(req.body);
+  if (!params.success || !body.success) {
+    res.status(400).json({ error: "Choose a valid report reason." });
+    return;
+  }
+  const reporterId = uid(req);
+  const reel = await findVisibleReel(reporterId, params.data.reelId);
+  if (!reel || reel.userId === reporterId) {
+    res.status(404).json({ error: "This Reel is no longer available." });
+    return;
+  }
+  const [created] = await db.insert(reelReportsTable).values({
+    reelId: reel.id,
+    reporterId,
+    reason: body.data.reason,
+    details: body.data.details?.trim() || null,
+  }).onConflictDoNothing().returning({ id: reelReportsTable.id });
+  if (!created) {
+    res.status(409).json({ error: "You have already reported this Reel." });
+    return;
+  }
+  res.status(201).end();
 });
 
 router.post("/vibeswipe/reels/:reelId/shares", async (req, res): Promise<void> => {

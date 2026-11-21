@@ -11,4 +11,7 @@ export type VibeSwipeSettingsLanguage = typeof VibeSwipeSettingsLanguage[keyof t
 
 export const VibeSwipeSettingsLanguage = {
   en: 'en',
+  hi: 'hi',
+  fr: 'fr',
+  yo: 'yo',
 } as const;

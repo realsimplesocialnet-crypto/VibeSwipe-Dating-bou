@@ -43,6 +43,54 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/AdminDashboard" }
+  /vibeswipe/admin/reports:
+    get:
+      operationId: getAdminReports
+      tags: [vibeswipe]
+      summary: Review member safety reports and support requests
+      parameters:
+        - { name: type, in: query, schema: { type: string, enum: [all, problem, profile, reel], default: all } }
+        - { name: status, in: query, schema: { type: string, enum: [all, new, in_review, resolved], default: all } }
+        - { name: q, in: query, schema: { type: string, maxLength: 150 } }
+        - { name: page, in: query, schema: { type: integer, minimum: 1, maximum: 100000, default: 1 } }
+      responses:
+        "200":
+          description: Paginated member-submitted reports and support requests
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AdminReports" }
+        "400":
+          description: Invalid report query
+  /vibeswipe/admin/reports/{reportId}/status:
+    patch:
+      operationId: updateAdminReportStatus
+      tags: [vibeswipe]
+      summary: Update the status of a member-submitted report or support request
+      parameters:
+        - { name: reportId, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AdminReportStatusInput" }
+      responses:
+        "204":
+          description: Status updated and administrator action audited
+        "404":
+          description: Report not found
+  /vibeswipe/admin/audit:
+    get:
+      operationId: getAdminAuditHistory
+      tags: [vibeswipe]
+      summary: Review administrator actions
+      parameters:
+        - { name: page, in: query, schema: { type: integer, minimum: 1, maximum: 100000, default: 1 } }
+      responses:
+        "200":
+          description: Paginated administrator action history
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AdminAuditPage" }
   /vibeswipe/admin/posts:
     get:
       operationId: getAdminPosts
@@ -560,6 +608,31 @@ paths:
           description: Target profile not found
         "400":
           description: Travel city must be selected from real city suggestions
+  /vibeswipe/screen-time:
+    get:
+      operationId: getScreenTimeSummary
+      tags: [vibeswipe]
+      summary: Get the signed-in member's VibeSwipes usage summary
+      responses:
+        "200":
+          description: Recent foreground usage inside VibeSwipes only
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ScreenTimeSummary" }
+    post:
+      operationId: recordScreenTime
+      tags: [vibeswipe]
+      summary: Add a short foreground usage interval inside VibeSwipes
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RecordScreenTimeInput" }
+      responses:
+        "204":
+          description: Usage interval recorded
+        "400":
+          description: Invalid usage interval
   /vibeswipe/travel-cities:
     get:
       operationId: searchTravelCities
@@ -1560,6 +1633,24 @@ paths:
       responses:
         "201":
           description: Report submitted
+  /vibeswipe/support-requests:
+    post:
+      operationId: submitSupportRequest
+      tags: [vibeswipe]
+      summary: Submit a problem report to VibeSwipes support
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SupportRequestInput" }
+      responses:
+        "201":
+          description: Support request submitted
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SupportRequestResponse" }
+        "400":
+          description: Invalid support request
   /vibeswipe/uploads/request-url:
     post:
       operationId: requestProfileMediaUpload
@@ -1972,6 +2063,25 @@ paths:
           description: Reel excluded from the user's feed
         "404":
           description: Reel unavailable
+  /vibeswipe/reels/{reelId}/reports:
+    post:
+      operationId: reportReel
+      tags: [vibeswipe]
+      summary: Report a Reel for administrator review
+      parameters:
+        - { in: path, name: reelId, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ReelReportInput" }
+      responses:
+        "201":
+          description: Reel report submitted
+        "409":
+          description: This member has already reported this Reel
+        "404":
+          description: Reel unavailable
   /vibeswipe/reels/{reelId}/download:
     get:
       operationId: downloadReel
@@ -2292,6 +2402,53 @@ components:
         stats: { $ref: "#/components/schemas/AdminStats" }
         selectedUser: { anyOf: [{ $ref: "#/components/schemas/AdminUser" }, { type: "null" }] }
         selectedChat: { anyOf: [{ $ref: "#/components/schemas/AdminChat" }, { type: "null" }] }
+    AdminReportItem:
+      type: object
+      required: [id, type, reporterId, reporterName, targetId, targetName, category, details, status, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        type: { type: string, enum: [problem, profile, reel] }
+        reporterId: { type: string }
+        reporterName: { type: string }
+        targetId: { type: [string, "null"] }
+        targetName: { type: [string, "null"] }
+        category: { type: string }
+        details: { type: [string, "null"] }
+        status: { type: string, enum: [new, in_review, resolved] }
+        createdAt: { type: string, format: date-time }
+    AdminReports:
+      type: object
+      required: [page, pageSize, total, items]
+      properties:
+        page: { type: integer }
+        pageSize: { type: integer }
+        total: { type: integer }
+        items: { type: array, items: { $ref: "#/components/schemas/AdminReportItem" } }
+    AdminReportStatusInput:
+      type: object
+      required: [type, status]
+      properties:
+        type: { type: string, enum: [problem, profile, reel] }
+        status: { type: string, enum: [new, in_review, resolved] }
+    AdminAuditEntry:
+      type: object
+      required: [id, actorId, actorName, actorEmail, action, targetId, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        actorId: { type: string }
+        actorName: { type: [string, "null"] }
+        actorEmail: { type: [string, "null"] }
+        action: { type: string }
+        targetId: { type: string }
+        createdAt: { type: string, format: date-time }
+    AdminAuditPage:
+      type: object
+      required: [page, pageSize, total, items]
+      properties:
+        page: { type: integer }
+        pageSize: { type: integer }
+        total: { type: integer }
+        items: { type: array, items: { $ref: "#/components/schemas/AdminAuditEntry" } }
     AdminPost:
       type: object
       required: [id, kind, authorId, authorName, authorPhoto, caption, mediaUrl, thumbnailUrl, mediaType, status, createdAt, expiresAt]
@@ -2607,7 +2764,10 @@ components:
         notifyMessages: { type: boolean }
         notifyProfileViews: { type: boolean }
         darkMode: { type: boolean }
-        language: { type: string, enum: [en] }
+        language: { type: string, enum: [en, hi, fr, yo] }
+        keywordFilters: { type: array, maxItems: 25, items: { type: string, minLength: 1, maxLength: 40 } }
+        screenTimeReminderMinutes: { type: [integer, "null"], minimum: 15, maximum: 720 }
+        screenTimeLimitMinutes: { type: [integer, "null"], minimum: 15, maximum: 720 }
         deactivated: { type: boolean }
         travelMode: { type: boolean }
         travelCity: { type: [string, "null"], maxLength: 100 }
@@ -2616,7 +2776,7 @@ components:
         whoCanMessage: { type: string, enum: [everyone, followers, no_one] }
         allowDownloads: { type: boolean }
         likedVideoAudience: { type: string, enum: [everyone, followers, only_me] }
-      required: [incognito, showAge, showDistance, notifyMatches, notifyLikes, notifyMessages, notifyProfileViews, darkMode, language, deactivated, travelMode, travelCity, privateAccount, whoCanComment, whoCanMessage, allowDownloads, likedVideoAudience]
+      required: [incognito, showAge, showDistance, notifyMatches, notifyLikes, notifyMessages, notifyProfileViews, darkMode, language, keywordFilters, screenTimeReminderMinutes, screenTimeLimitMinutes, deactivated, travelMode, travelCity, privateAccount, whoCanComment, whoCanMessage, allowDownloads, likedVideoAudience]
     VibeSwipeSettingsUpdateInput:
       type: object
       properties:
@@ -2628,7 +2788,10 @@ components:
         notifyMessages: { type: boolean }
         notifyProfileViews: { type: boolean }
         darkMode: { type: boolean }
-        language: { type: string, enum: [en] }
+        language: { type: string, enum: [en, hi, fr, yo] }
+        keywordFilters: { type: array, maxItems: 25, items: { type: string, minLength: 1, maxLength: 40 } }
+        screenTimeReminderMinutes: { type: [integer, "null"], minimum: 15, maximum: 720 }
+        screenTimeLimitMinutes: { type: [integer, "null"], minimum: 15, maximum: 720 }
         deactivated: { type: boolean }
         travelMode: { type: boolean }
         travelCity: { type: [string, "null"], maxLength: 100 }
@@ -2637,6 +2800,41 @@ components:
         whoCanMessage: { type: string, enum: [everyone, followers, no_one] }
         allowDownloads: { type: boolean }
         likedVideoAudience: { type: string, enum: [everyone, followers, only_me] }
+    ScreenTimeDay:
+      type: object
+      required: [date, seconds]
+      properties:
+        date: { type: string, pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' }
+        seconds: { type: integer, minimum: 0, maximum: 86400 }
+    ScreenTimeSummary:
+      type: object
+      required: [todaySeconds, days]
+      properties:
+        todaySeconds: { type: integer, minimum: 0, maximum: 86400 }
+        days: { type: array, maxItems: 7, items: { $ref: "#/components/schemas/ScreenTimeDay" } }
+    RecordScreenTimeInput:
+      type: object
+      required: [seconds]
+      properties:
+        seconds: { type: integer, minimum: 1, maximum: 60 }
+    SupportRequestInput:
+      type: object
+      required: [category, details]
+      properties:
+        category: { type: string, enum: [bug, account, safety, accessibility, other] }
+        details: { type: string, minLength: 5, maxLength: 2000 }
+    SupportRequestResponse:
+      type: object
+      required: [id, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        createdAt: { type: string, format: date-time }
+    ReelReportInput:
+      type: object
+      required: [reason]
+      properties:
+        reason: { type: string, enum: [harassment, nudity, violence, hate, spam, underage, other] }
+        details: { type: [string, "null"], maxLength: 1000 }
     TravelCityOption:
       type: object
       properties:

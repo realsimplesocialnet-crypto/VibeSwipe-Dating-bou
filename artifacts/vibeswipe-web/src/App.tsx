@@ -10,19 +10,19 @@ import {
   getStreamMatchMessagesQueryKey, getGetTypingStatusQueryKey,
   getGetMyProfileQueryKey, getGetNotificationsQueryKey, getGetOnboardingDraftQueryKey, getGetProfileMediaQueryKey,
   getGetProfileByIdQueryKey, getGetProfileDatingStateQueryKey, getGetStoriesQueryKey, getGetSuperLikeStatusQueryKey, getGetVibeSwipeSettingsQueryKey,
-  getGetMatchPresenceQueryKey, getGetWhoLikedYouQueryKey, getGetProfileFollowSummaryQueryKey, getGetMediaPreviewQueryKey,
+  getGetMatchPresenceQueryKey, getGetWhoLikedYouQueryKey, getGetProfileFollowSummaryQueryKey, getGetMediaPreviewQueryKey, getGetScreenTimeSummaryQueryKey,
   getProfileById, getProfileFollowSummary, getProfileDatingState, getMediaPreview,
   useActivateBoost, useBlockProfile, useClearChat,
   useClearOnboardingDraft, useCreateReaction, useDeleteChat, useDeleteMessage,
   useGetBoostStatus, useGetChatReadReceipt, useGetDailyLikeStatus,
   useGetDiscoverProfiles, useGetIcebreakers, useGetMatches, useGetMessages, useGetMyProfile,
-  useGetNotifications, useGetOnboardingDraft, useGetProfileById, useGetProfileDatingState, useGetProfileFollowSummary, useGetProfileMedia, useGetMediaPreview, useGetStories, useGetSuperLikeStatus, useGetVibeSwipeSettings, useGetDirectChats,
+  useGetNotifications, useGetOnboardingDraft, useGetProfileById, useGetProfileDatingState, useGetProfileFollowSummary, useGetProfileMedia, useGetMediaPreview, useGetStories, useGetSuperLikeStatus, useGetVibeSwipeSettings, useGetDirectChats, useGetScreenTimeSummary, useRecordScreenTime,
   useGetTypingStatus, useGetMatchPresence, useMarkChatRead, useGetWhoViewedYou,
   useMarkNotificationRead, useRecordProfileView, useReportProfile, useSaveMyProfile,
   useSaveOnboardingDraft, useSendMessage, useTranscodeProfileVideo, useUnblockProfile,
   useUndoLastPass, useUnmatchMatch, useUnlikeProfile, useUpdateChatTheme, useUpdateTypingStatus, useHeartbeatPresence,
   useRequestChatMediaUpload, useRequestProfileMediaUpload,
-  type ChatTheme, type Message, type Profile, type ProfileDatingState, type ProfileInput, type ReportInputReason, type MediaUploadInputContentType,
+  type ChatTheme, type Message, type Profile, type ProfileDatingState, type ProfileInput, type ReportInputReason, type MediaUploadInputContentType, type ScreenTimeSummary,
 } from '@workspace/api-client-react';
 import { Link, Redirect, Route, Switch, useLocation, useParams, Router as WouterRouter } from 'wouter';
 import {
@@ -47,6 +47,7 @@ import { userErrorMessage } from '@/lib/user-errors';
 import { readCachedMyProfile, writeCachedMyProfile, clearCachedMyProfile } from '@/lib/my-profile-cache';
 import { RouteSkeleton } from '@/components/route-skeleton';
 import { RouteVisibilityContext } from '@/lib/router-compat';
+import { AppLanguageProvider, isAppLanguage, useAppLanguage } from '@/lib/app-language';
 import '@/styles/landing.css';
 
 const AdminPage = lazy(() => import('@/pages/admin'));
@@ -55,6 +56,8 @@ const CommunityGuidelinesPage = lazy(() => import('@/pages/community-guidelines'
 const PrivacyPolicyPage = lazy(() => import('@/pages/privacy-policy'));
 const TermsPage = lazy(() => import('@/pages/terms'));
 const ReportSafetyPage = lazy(() => import('@/pages/report-safety'));
+const HelpCenterPage = lazy(() => import('@/pages/help-center'));
+const ReportProblemPage = lazy(() => import('@/pages/report-problem'));
 const PublicLocationSharePage = lazy(() => import('@/pages/public-location-share'));
 const DiscoverSwipePage = lazy(() => import('@/components/discover-swipe-page').then(module => ({ default: module.DiscoverSwipePage })));
 const MemberSearchPage = lazy(() => import('@/components/member-search-page').then(module => ({ default: module.MemberSearchPage })));
@@ -161,6 +164,7 @@ function UnreadMessageBadge({ count, mobile = false }: { count: number; mobile?:
 
 function AppShell({ children }: { children: ReactNode }) {
   const [location] = useLocation();
+  const { t } = useAppLanguage();
   const routeVisible = useContext(RouteVisibilityContext);
   const [reelsNavigationVisible, setReelsNavigationVisible] = useState(true);
   const shellRef = useRef<HTMLDivElement>(null);
@@ -236,11 +240,11 @@ function AppShell({ children }: { children: ReactNode }) {
       {!isReelsViewer && <aside className="fixed inset-y-0 left-0 z-30 hidden w-[248px] flex-col border-r border-border bg-background px-5 py-6 lg:flex">
         <div className="mb-4 mt-2 px-3 text-[10px] font-bold uppercase tracking-[.2em] text-muted-foreground">Your space</div>
         <nav className="space-y-1">
-          {navItems.map(({ href, label, icon: Icon }) => <Link key={href} href={href} data-testid={`nav-${label.toLowerCase()}`} className={`flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold transition-colors ${activeLocation === href ? 'bg-accent text-[#ff80b6]' : 'text-muted-foreground hover:bg-white/[.04] hover:text-foreground'}`}><Icon size={18}/>{label}{label === 'Chats' && <UnreadMessageBadge count={unreadMessageCount}/>}</Link>)}
+          {navItems.map(({ href, label, icon: Icon }) => <Link key={href} href={href} data-testid={`nav-${label.toLowerCase()}`} className={`flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold transition-colors ${activeLocation === href ? 'bg-accent text-[#ff80b6]' : 'text-muted-foreground hover:bg-white/[.04] hover:text-foreground'}`}><Icon size={18}/>{t(label)}{label === 'Chats' && <UnreadMessageBadge count={unreadMessageCount}/>}</Link>)}
         </nav>
         <div className="mt-auto space-y-2 border-t border-white/[.08] pt-4">
           <Link href="/profile" data-testid="nav-profile" className={`flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold ${location === '/profile' ? 'bg-accent text-[#ff80b6]' : 'text-muted-foreground hover:bg-white/[.04]'}`}><UserRound size={18}/><span className="truncate">{activeName}</span></Link>
-          <Link href={`/settings?returnTo=${encodeURIComponent(settingsReturnTo)}`} data-testid="nav-settings" className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-muted-foreground hover:bg-white/[.04]"><Settings size={18}/>Settings</Link>
+          <Link href={`/settings?returnTo=${encodeURIComponent(settingsReturnTo)}`} data-testid="nav-settings" className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-muted-foreground hover:bg-white/[.04]"><Settings size={18}/>{t("Settings")}</Link>
         </div>
       </aside>}
     </>}
@@ -250,8 +254,8 @@ function AppShell({ children }: { children: ReactNode }) {
     {routeVisible && profile.data?.id&&<WebPushSettings key={profile.data.id} compact visible={showMainNavigation && !isReelsViewer} accountId={profile.data.id}/>}
     {showMainNavigation && <nav ref={mobileNavRef} aria-label="Primary" aria-hidden={isReelsViewer && !reelsNavigationVisible} className={`${location==='/profile'?'profile-nav ':''}${isReelsViewer ? `reels-mobile-nav ${reelsNavigationVisible ? '' : 'is-hidden'} ` : ''}mobile-nav fixed inset-x-0 bottom-0 ${isReelsViewer ? 'z-[80]' : 'z-30'} ${isReelsViewer ? '' : 'lg:hidden'} flex justify-around bg-background/95 px-2 pt-2 backdrop-blur-xl`}>
       <span aria-hidden="true" className="mobile-nav-indicator" style={{ transform: `translate3d(${mobileActiveIndex * 100}%, 0, 0)` }} />
-      {navItems.map(({ href, label, icon: Icon }) => <Link key={href} href={href} data-testid={`mobile-nav-${label.toLowerCase()}`} aria-current={activeLocation === href ? 'page' : undefined} className={`mnav-item ${activeLocation === href ? 'is-active text-primary' : 'text-muted-foreground'}`}><span className="mnav-icon"><Icon size={19} strokeWidth={activeLocation === href ? 2.25 : 1.85}/>{label === 'Chats' && <UnreadMessageBadge count={unreadMessageCount} mobile/>}</span><span className="mnav-label">{label}</span></Link>)}
-      <Link href="/profile" data-testid="mobile-nav-profile" aria-current={location === '/profile' ? 'page' : undefined} className={`mnav-item ${location === '/profile' ? 'is-active text-primary' : 'text-muted-foreground'}`}><span className="mnav-icon"><UserRound size={19} strokeWidth={location === '/profile' ? 2.25 : 1.85}/></span><span className="mnav-label">Profile</span></Link>
+      {navItems.map(({ href, label, icon: Icon }) => <Link key={href} href={href} data-testid={`mobile-nav-${label.toLowerCase()}`} aria-current={activeLocation === href ? 'page' : undefined} className={`mnav-item ${activeLocation === href ? 'is-active text-primary' : 'text-muted-foreground'}`}><span className="mnav-icon"><Icon size={19} strokeWidth={activeLocation === href ? 2.25 : 1.85}/>{label === 'Chats' && <UnreadMessageBadge count={unreadMessageCount} mobile/>}</span><span className="mnav-label">{t(label)}</span></Link>)}
+      <Link href="/profile" data-testid="mobile-nav-profile" aria-current={location === '/profile' ? 'page' : undefined} className={`mnav-item ${location === '/profile' ? 'is-active text-primary' : 'text-muted-foreground'}`}><span className="mnav-icon"><UserRound size={19} strokeWidth={location === '/profile' ? 2.25 : 1.85}/></span><span className="mnav-label">{t("Profile")}</span></Link>
     </nav>}
   </div>;
 }
@@ -1180,6 +1184,8 @@ function CommunityGuidelinesRoute(){return <CommunityGuidelinesPage/>}
 function TermsRoute(){return <TermsPage/>}
 function PrivacyPolicyRoute(){return <PrivacyPolicyPage/>}
 function ReportSafetyRoute(){return <ShellPage><ReportSafetyPage/></ShellPage>}
+function HelpCenterRoute(){return <ShellPage><HelpCenterPage/></ShellPage>}
+function ReportProblemRoute(){return <ShellPage><ReportProblemPage/></ShellPage>}
 function PublicLocationShareRoute(){return <PublicLocationSharePage/>}
 function DiscoverRoute(){return <ShellPage><DiscoverPage/></ShellPage>}
 function SearchRoute(){return <ShellPage><MemberSearchPage/></ShellPage>}
@@ -1207,10 +1213,119 @@ function ChatsRoute(){return <ShellPage><ChatsListPage/></ShellPage>}
 function NotificationsRoute(){return <ShellPage><ActivityOverview avatar={p=><Avatar profile={p}/>}/></ShellPage>}
 function ViewedNotificationProfileRoute(){const params=useParams<{profileId:string}>();return <ShellPage><PublicProfile id={params.profileId||''} actionReturnTo="/notifications"/></ShellPage>}
 function PublicProfileRoute(){const params=useParams<{profileId:string}>();const returnTo=safeAppReturnPath(new URLSearchParams(window.location.search).get('returnTo'),'/discover');return <ShellPage><PublicProfile id={params.profileId||''} actionReturnTo={returnTo}/></ShellPage>}
+function ScreenTimeTracker() {
+  const { isLoaded, isSignedIn, user } = useUser();
+  const profile = useGetMyProfile({ query: { enabled: Boolean(isLoaded && isSignedIn), staleTime: 60_000 } });
+  const enabled = Boolean(isLoaded && isSignedIn && profile.data?.id);
+  const settings = useGetVibeSwipeSettings({ query: { enabled, queryKey: getGetVibeSwipeSettingsQueryKey() } });
+  const summary = useGetScreenTimeSummary({ query: { enabled, queryKey: getGetScreenTimeSummaryQueryKey() } });
+  const record = useRecordScreenTime();
+  const client = useQueryClient();
+  const { t } = useAppLanguage();
+  const [notice, setNotice] = useState("");
+  const [usageTick, setUsageTick] = useState(0);
+  const pendingSeconds = useRef(0);
+  const activeSeconds = useRef(0);
+  const sessionBase = useRef<number | null>(null);
+  const lastTick = useRef(Date.now());
+  const shownReminder = useRef(false);
+  const shownLimit = useRef(false);
+  const recordRef = useRef(record.mutateAsync);
+  recordRef.current = record.mutateAsync;
+
+  useEffect(() => {
+    if (summary.data && sessionBase.current === null) {
+      sessionBase.current = summary.data.todaySeconds;
+    }
+  }, [summary.data]);
+
+  const flush = useCallback(async (force = false) => {
+    const now = Date.now();
+    if (!enabled) {
+      lastTick.current = now;
+      return;
+    }
+    if (document.visibilityState !== "visible" && !force) {
+      lastTick.current = now;
+      return;
+    }
+    const elapsed = Math.max(0, (now - lastTick.current) / 1000);
+    const completedSeconds = Math.floor(elapsed);
+    if (completedSeconds > 0) {
+      activeSeconds.current += completedSeconds;
+      pendingSeconds.current += completedSeconds;
+      lastTick.current += completedSeconds * 1000;
+      setUsageTick((tick) => tick + completedSeconds);
+    }
+    const seconds = Math.min(60, force ? pendingSeconds.current : pendingSeconds.current >= 30 ? pendingSeconds.current : 0);
+    if (seconds < 1) return;
+    pendingSeconds.current -= seconds;
+    try {
+      await recordRef.current({ data: { seconds } });
+      client.setQueryData<ScreenTimeSummary>(getGetScreenTimeSummaryQueryKey(), (previous) => {
+        if (!previous) return previous;
+        const day = new Date().toISOString().slice(0, 10);
+        return {
+          ...previous,
+          todaySeconds: Math.min(86400, previous.todaySeconds + seconds),
+          days: previous.days.map((entry) => entry.date === day
+            ? { ...entry, seconds: Math.min(86400, entry.seconds + seconds) }
+            : entry),
+        };
+      });
+    } catch {
+      pendingSeconds.current = Math.min(300, pendingSeconds.current + seconds);
+    }
+  }, [client, enabled]);
+
+  useEffect(() => {
+    if (!enabled) return;
+    lastTick.current = Date.now();
+    const timer = window.setInterval(() => { void flush(); }, 15_000);
+    const visibility = () => {
+      if (document.visibilityState === "hidden") void flush(true);
+      else lastTick.current = Date.now();
+    };
+    const pageHide = () => { void flush(true); };
+    document.addEventListener("visibilitychange", visibility);
+    window.addEventListener("pagehide", pageHide);
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", visibility);
+      window.removeEventListener("pagehide", pageHide);
+      void flush(true);
+    };
+  }, [enabled, flush, user?.id]);
+
+  useEffect(() => {
+    const total = (sessionBase.current ?? summary.data?.todaySeconds ?? 0) + activeSeconds.current;
+    const limit = settings.data?.screenTimeLimitMinutes;
+    const reminder = settings.data?.screenTimeReminderMinutes;
+    if (limit && total >= limit * 60 && !shownLimit.current) {
+      shownLimit.current = true;
+      setNotice(t("You've reached your daily VibeSwipes limit reminder."));
+    } else if (reminder && total >= reminder * 60 && !shownReminder.current) {
+      shownReminder.current = true;
+      setNotice(t("You’ve reached your VibeSwipes screen-time reminder."));
+    }
+  }, [activeSeconds, settings.data?.screenTimeLimitMinutes, settings.data?.screenTimeReminderMinutes, summary.data?.todaySeconds, t, usageTick]);
+  useEffect(() => {
+    if (!notice) return;
+    const timer = window.setTimeout(() => setNotice(""), 6000);
+    return () => window.clearTimeout(timer);
+  }, [notice]);
+  return notice ? <div className="fixed bottom-[calc(env(safe-area-inset-bottom)+88px)] left-1/2 z-[90] w-[min(92vw,420px)] -translate-x-1/2 rounded-2xl bg-[#241a23] px-4 py-3 text-sm font-semibold text-[#ffe8f2] shadow-2xl ring-1 ring-primary/30" role="status" data-testid="toast-screen-time">{notice}</div> : null;
+}
+
 function SettingsThemeSync() {
   const { isLoaded, isSignedIn } = useUser();
   const settings = useGetVibeSwipeSettings({ query: { enabled: Boolean(isLoaded && isSignedIn), queryKey: getGetVibeSwipeSettingsQueryKey() } });
+  const appLanguage = useAppLanguage();
   const lightMode = isSignedIn && settings.data?.darkMode === false;
+  useEffect(() => {
+    const selected = settings.data?.language;
+    if (selected && isAppLanguage(selected)) appLanguage.setLanguage(selected);
+  }, [settings.data?.language, appLanguage.setLanguage]);
   useEffect(() => {
     if (!isLoaded) return;
     document.documentElement.dataset.theme = lightMode ? "light" : "dark";
@@ -1270,7 +1385,7 @@ function ProfileNavigationPrefetcher(){
   },[user?.id,client]);
   return null;
 }
-function ClerkRoutes(){const [,setLocation]=useLocation();return <ClerkProvider publishableKey={clerkPubKey} proxyUrl={clerkProxyUrl} appearance={appearance} signInUrl={pathFor('/sign-in')} signUpUrl={pathFor('/sign-up')} localization={{signIn:{start:{title:'Welcome back',subtitle:'Your next good conversation is waiting.'}},signUp:{start:{title:'Make room for a spark',subtitle:'Create your adults-only VibeSwipes account.'}}}} routerPush={to=>setLocation(to.startsWith(basePath)?to.slice(basePath.length)||'/':to)} routerReplace={to=>setLocation(to.startsWith(basePath)?to.slice(basePath.length)||'/':to,{replace:true})}><ClerkCacheSync/><ProfileNavigationPrefetcher/><SettingsThemeSync/><ReferralToastHost/><Suspense fallback={<RouteSkeleton label="Loading VibeSwipes" />}><Switch>
+function ClerkRoutes(){const [,setLocation]=useLocation();return <ClerkProvider publishableKey={clerkPubKey} proxyUrl={clerkProxyUrl} appearance={appearance} signInUrl={pathFor('/sign-in')} signUpUrl={pathFor('/sign-up')} localization={{signIn:{start:{title:'Welcome back',subtitle:'Your next good conversation is waiting.'}},signUp:{start:{title:'Make room for a spark',subtitle:'Create your adults-only VibeSwipes account.'}}}} routerPush={to=>setLocation(to.startsWith(basePath)?to.slice(basePath.length)||'/':to)} routerReplace={to=>setLocation(to.startsWith(basePath)?to.slice(basePath.length)||'/':to,{replace:true})}><ClerkCacheSync/><ProfileNavigationPrefetcher/><SettingsThemeSync/><ScreenTimeTracker/><ReferralToastHost/><Suspense fallback={<RouteSkeleton label="Loading VibeSwipes" />}><Switch>
   <Route path="/" component={HomeRedirect}/>
   <Route path="/welcome" component={WelcomeRoute}/>
   <Route path="/admin" component={AdminPage}/><Route path="/admin/:section" component={AdminPage}/>
@@ -1280,7 +1395,7 @@ function ClerkRoutes(){const [,setLocation]=useLocation();return <ClerkProvider 
   <Route path="/onboarding" component={OnboardingRoute}/><Route path="/discover" component={DiscoverRoute}/><Route path="/search" component={SearchRoute}/><Route path="/stories/camera" component={StoryCameraRoute}/><Route path="/stories/new" component={StoryComposerRoute}/><Route path="/reels" component={ReelsRoute}/><Route path="/reels/new" component={ReelComposerRoute}/><Route path="/reels/saved" component={ReelsLibraryRoute}/><Route path="/reels/:reelId" component={ReelRoute}/><Route path="/matches" component={MatchesRoute}/>
    <Route path="/chat/:matchId" component={ChatRoute}/><Route path="/direct-chat/:conversationId" component={DirectChatPage}/><Route path="/views" component={ViewsRoute}/><Route path="/likes" component={LikesRoute}/><Route path="/messages" component={ChatsRoute}/><Route path="/notifications" component={NotificationsRoute}/>
    <Route path="/privacy-policy" component={PrivacyPolicyRoute}/><Route path="/terms" component={TermsRoute}/><Route path="/community-guidelines" component={CommunityGuidelinesRoute}/>
-   <Route path="/safety-center" component={SafetyCenterRoute}/><Route path="/report-safety" component={ReportSafetyRoute}/><Route path="/safety/location" component={PublicLocationShareRoute}/>
+    <Route path="/safety-center" component={SafetyCenterRoute}/><Route path="/report-safety" component={ReportSafetyRoute}/><Route path="/help" component={HelpCenterRoute}/><Route path="/report-problem" component={ReportProblemRoute}/><Route path="/safety/location" component={PublicLocationShareRoute}/>
   <Route path="/profile" component={ProfileRoute}/><Route path="/profile/edit" component={ProfileEditRoute}/><Route path="/profile/:profileId/followers" component={FollowersRoute}/><Route path="/profile/:profileId/following" component={FollowingRoute}/><Route path="/profile/:profileId/from-notifications" component={ViewedNotificationProfileRoute}/><Route path="/profile/:profileId" component={PublicProfileRoute}/><Route path="/verify-profile" component={FaceVerificationRoute}/><Route path="/settings" component={SettingsRoute}/><Route path="/settings/:section" component={SettingsSectionRoute}/><Route component={NotFound}/>
   </Switch></Suspense><ClerkAuthStateSync/></ClerkProvider>}
 function SignInRoute(){
@@ -1289,5 +1404,5 @@ function SignInRoute(){
   if(isSignedIn)return <Redirect to="/discover"/>;
   return <div className="auth-sign-in grain flex min-h-[100dvh] flex-col bg-background px-4"><header className="mb-6 shrink-0 px-2" data-testid="header-sign-in-brand"><Brand/></header><main className="flex w-full flex-1 flex-col items-center justify-center"><SignIn routing="path" path={pathFor('/sign-in')} signUpUrl={pathFor('/sign-up')}/><p className="mt-5 text-center text-xs text-muted-foreground"><Link href="/privacy-policy" className="hover:text-primary">Privacy Policy</Link><span className="px-2">·</span><Link href="/terms" className="hover:text-primary">Terms of Service</Link></p></main></div>;
 }
-function App(){if(!clerkPubKey)throw new Error('Missing VITE_CLERK_PUBLISHABLE_KEY');return <QueryClientProvider client={queryClient}><WouterRouter base={basePath}><ClerkRoutes/></WouterRouter></QueryClientProvider>}
+function App(){if(!clerkPubKey)throw new Error('Missing VITE_CLERK_PUBLISHABLE_KEY');return <QueryClientProvider client={queryClient}><AppLanguageProvider><WouterRouter base={basePath}><ClerkRoutes/></WouterRouter></AppLanguageProvider></QueryClientProvider>}
 export default App;

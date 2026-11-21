@@ -143,6 +143,89 @@ export interface AdminDashboard {
   selectedChat: AdminChat | null;
 }
 
+export type AdminReportItemType = typeof AdminReportItemType[keyof typeof AdminReportItemType];
+
+
+export const AdminReportItemType = {
+  problem: 'problem',
+  profile: 'profile',
+  reel: 'reel',
+} as const;
+
+export type AdminReportItemStatus = typeof AdminReportItemStatus[keyof typeof AdminReportItemStatus];
+
+
+export const AdminReportItemStatus = {
+  new: 'new',
+  in_review: 'in_review',
+  resolved: 'resolved',
+} as const;
+
+export interface AdminReportItem {
+  id: string;
+  type: AdminReportItemType;
+  reporterId: string;
+  reporterName: string;
+  /** @nullable */
+  targetId: string | null;
+  /** @nullable */
+  targetName: string | null;
+  category: string;
+  /** @nullable */
+  details: string | null;
+  status: AdminReportItemStatus;
+  createdAt: string;
+}
+
+export interface AdminReports {
+  page: number;
+  pageSize: number;
+  total: number;
+  items: AdminReportItem[];
+}
+
+export type AdminReportStatusInputType = typeof AdminReportStatusInputType[keyof typeof AdminReportStatusInputType];
+
+
+export const AdminReportStatusInputType = {
+  problem: 'problem',
+  profile: 'profile',
+  reel: 'reel',
+} as const;
+
+export type AdminReportStatusInputStatus = typeof AdminReportStatusInputStatus[keyof typeof AdminReportStatusInputStatus];
+
+
+export const AdminReportStatusInputStatus = {
+  new: 'new',
+  in_review: 'in_review',
+  resolved: 'resolved',
+} as const;
+
+export interface AdminReportStatusInput {
+  type: AdminReportStatusInputType;
+  status: AdminReportStatusInputStatus;
+}
+
+export interface AdminAuditEntry {
+  id: string;
+  actorId: string;
+  /** @nullable */
+  actorName: string | null;
+  /** @nullable */
+  actorEmail: string | null;
+  action: string;
+  targetId: string;
+  createdAt: string;
+}
+
+export interface AdminAuditPage {
+  page: number;
+  pageSize: number;
+  total: number;
+  items: AdminAuditEntry[];
+}
+
 export type AdminPostKind = typeof AdminPostKind[keyof typeof AdminPostKind];
 
 
@@ -636,6 +719,9 @@ export type VibeSwipeSettingsLanguage = typeof VibeSwipeSettingsLanguage[keyof t
 
 export const VibeSwipeSettingsLanguage = {
   en: 'en',
+  hi: 'hi',
+  fr: 'fr',
+  yo: 'yo',
 } as const;
 
 export type VibeSwipeSettingsWhoCanComment = typeof VibeSwipeSettingsWhoCanComment[keyof typeof VibeSwipeSettingsWhoCanComment];
@@ -675,6 +761,24 @@ export interface VibeSwipeSettings {
   notifyProfileViews: boolean;
   darkMode: boolean;
   language: VibeSwipeSettingsLanguage;
+  /**
+     * @maxItems 25
+     * @items.minLength 1
+     * @items.maxLength 40
+     */
+  keywordFilters: string[];
+  /**
+     * @minimum 15
+     * @maximum 720
+     * @nullable
+     */
+  screenTimeReminderMinutes: number | null;
+  /**
+     * @minimum 15
+     * @maximum 720
+     * @nullable
+     */
+  screenTimeLimitMinutes: number | null;
   deactivated: boolean;
   travelMode: boolean;
   /**
@@ -694,6 +798,9 @@ export type VibeSwipeSettingsUpdateInputLanguage = typeof VibeSwipeSettingsUpdat
 
 export const VibeSwipeSettingsUpdateInputLanguage = {
   en: 'en',
+  hi: 'hi',
+  fr: 'fr',
+  yo: 'yo',
 } as const;
 
 export type VibeSwipeSettingsUpdateInputWhoCanComment = typeof VibeSwipeSettingsUpdateInputWhoCanComment[keyof typeof VibeSwipeSettingsUpdateInputWhoCanComment];
@@ -733,6 +840,24 @@ export interface VibeSwipeSettingsUpdateInput {
   notifyProfileViews?: boolean;
   darkMode?: boolean;
   language?: VibeSwipeSettingsUpdateInputLanguage;
+  /**
+     * @maxItems 25
+     * @items.minLength 1
+     * @items.maxLength 40
+     */
+  keywordFilters?: string[];
+  /**
+     * @minimum 15
+     * @maximum 720
+     * @nullable
+     */
+  screenTimeReminderMinutes?: number | null;
+  /**
+     * @minimum 15
+     * @maximum 720
+     * @nullable
+     */
+  screenTimeLimitMinutes?: number | null;
   deactivated?: boolean;
   travelMode?: boolean;
   /**
@@ -745,6 +870,81 @@ export interface VibeSwipeSettingsUpdateInput {
   whoCanMessage?: VibeSwipeSettingsUpdateInputWhoCanMessage;
   allowDownloads?: boolean;
   likedVideoAudience?: VibeSwipeSettingsUpdateInputLikedVideoAudience;
+}
+
+export interface ScreenTimeDay {
+  /** @pattern ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ */
+  date: string;
+  /**
+     * @minimum 0
+     * @maximum 86400
+     */
+  seconds: number;
+}
+
+export interface ScreenTimeSummary {
+  /**
+     * @minimum 0
+     * @maximum 86400
+     */
+  todaySeconds: number;
+  /** @maxItems 7 */
+  days: ScreenTimeDay[];
+}
+
+export interface RecordScreenTimeInput {
+  /**
+     * @minimum 1
+     * @maximum 60
+     */
+  seconds: number;
+}
+
+export type SupportRequestInputCategory = typeof SupportRequestInputCategory[keyof typeof SupportRequestInputCategory];
+
+
+export const SupportRequestInputCategory = {
+  bug: 'bug',
+  account: 'account',
+  safety: 'safety',
+  accessibility: 'accessibility',
+  other: 'other',
+} as const;
+
+export interface SupportRequestInput {
+  category: SupportRequestInputCategory;
+  /**
+     * @minLength 5
+     * @maxLength 2000
+     */
+  details: string;
+}
+
+export interface SupportRequestResponse {
+  id: string;
+  createdAt: string;
+}
+
+export type ReelReportInputReason = typeof ReelReportInputReason[keyof typeof ReelReportInputReason];
+
+
+export const ReelReportInputReason = {
+  harassment: 'harassment',
+  nudity: 'nudity',
+  violence: 'violence',
+  hate: 'hate',
+  spam: 'spam',
+  underage: 'underage',
+  other: 'other',
+} as const;
+
+export interface ReelReportInput {
+  reason: ReelReportInputReason;
+  /**
+     * @maxLength 1000
+     * @nullable
+     */
+  details?: string | null;
 }
 
 export interface TravelCityOption {
@@ -1660,6 +1860,48 @@ export const GetAdminDashboardSection = {
   user: 'user',
   chat: 'chat',
 } as const;
+
+export type GetAdminReportsParams = {
+type?: GetAdminReportsType;
+status?: GetAdminReportsStatus;
+/**
+ * @maxLength 150
+ */
+q?: string;
+/**
+ * @minimum 1
+ * @maximum 100000
+ */
+page?: number;
+};
+
+export type GetAdminReportsType = typeof GetAdminReportsType[keyof typeof GetAdminReportsType];
+
+
+export const GetAdminReportsType = {
+  all: 'all',
+  problem: 'problem',
+  profile: 'profile',
+  reel: 'reel',
+} as const;
+
+export type GetAdminReportsStatus = typeof GetAdminReportsStatus[keyof typeof GetAdminReportsStatus];
+
+
+export const GetAdminReportsStatus = {
+  all: 'all',
+  new: 'new',
+  in_review: 'in_review',
+  resolved: 'resolved',
+} as const;
+
+export type GetAdminAuditHistoryParams = {
+/**
+ * @minimum 1
+ * @maximum 100000
+ */
+page?: number;
+};
 
 export type GetAdminPostsParams = {
 /**

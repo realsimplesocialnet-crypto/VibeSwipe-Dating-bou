@@ -19,6 +19,7 @@ import { Link, Redirect, useLocation } from "@/lib/router-compat";
 import { isProfileMissing, shouldRetryProfile } from "@/lib/profile-query-state";
 import { PROFILE_PHOTO_ACCEPT, prepareProfilePhoto, uploadProfilePhotoBytes, validatePhotoFile } from "@/lib/profile-photo-upload";
 import { userErrorMessage } from "@/lib/user-errors";
+import { useAppLanguage } from "@/lib/app-language";
 
 const ProfileSocialActions = lazy(() => import("@/components/social-hub").then((module) => ({ default: module.ProfileSocialActions })));
 const ReferralProfileCard = lazy(() => import("@/components/referrals/referral-profile-card").then((module) => ({ default: module.ReferralProfileCard })));
@@ -64,6 +65,7 @@ function genderIcon(gender: string) {
 }
 
 function OwnProfileOverview({ profile, travelCity }: { profile: Profile; travelCity?: string | null }) {
+  const { t } = useAppLanguage();
   const [broken, setBroken] = useState(false);
   useEffect(() => setBroken(false), [profile.photos?.[0]]);
   const GenderIcon = genderIcon(profile.gender || "");
@@ -76,14 +78,14 @@ function OwnProfileOverview({ profile, travelCity }: { profile: Profile; travelC
   return <div data-testid="section-own-profile" className="op-overview flex min-h-0 flex-1 flex-col gap-[clamp(6px,1.4dvh,14px)] pb-[clamp(8px,1.6dvh,16px)]">
     <div className="op-toolbar grid shrink-0 grid-cols-[40px_1fr_40px] items-center">
       <Link href="/discover" data-testid="link-profile-back" aria-label="Back to Discover" title="Back to Discover" className="op-toolbar-action inline-flex h-10 w-10 items-center justify-center rounded-full transition-transform active:scale-95"><ArrowLeft size={20} aria-hidden="true" /></Link>
-      <h2 data-testid="text-my-profile-heading" className="op-title text-center">My Profile</h2>
+      <h2 data-testid="text-my-profile-heading" className="op-title text-center">{t("My Profile")}</h2>
       <Link href="/settings?returnTo=%2Fprofile" data-testid="link-profile-settings" aria-label="Settings" title="Settings" className="op-toolbar-action inline-flex h-10 w-10 items-center justify-center justify-self-end rounded-full transition-transform active:scale-95"><Settings size={18} aria-hidden="true" /></Link>
     </div>
     <section className="op-card op-identity op-identity-modern flex shrink-0 flex-col text-left">
       <div className="op-hero-photo relative aspect-[16/7.5] w-full overflow-hidden rounded-[18px]" data-testid="profile-main-photo">
         {profile.photos?.[0] && !broken
           ? <MediaImage reference={profile.photos[0]} onError={() => setBroken(true)} loading="eager" fetchPriority="high" className="h-full w-full object-cover" alt={`${profile.name}'s main profile photo`} />
-          : <div className="flex h-full flex-col items-center justify-center gap-2 bg-[linear-gradient(145deg,#392331,#17131a)] text-primary"><span className="text-5xl font-bold">{profile.name?.slice(0, 1)?.toUpperCase()}</span><span className="text-xs font-semibold text-white/70">Add a main photo</span></div>}
+          : <div className="flex h-full flex-col items-center justify-center gap-2 bg-[linear-gradient(145deg,#392331,#17131a)] text-primary"><span className="text-5xl font-bold">{profile.name?.slice(0, 1)?.toUpperCase()}</span><span className="text-xs font-semibold text-white/70">{t("Add a main photo")}</span></div>}
       </div>
       <div className="op-person-details mt-2 text-left">
         <h1 data-testid="text-profile-name" title={profile.name} className="brand max-w-full truncate text-[clamp(26px,7vw,38px)] font-extrabold leading-[1.08] tracking-[-.04em]">{profile.name}{profile.age !== null ? `, ${profile.age}` : ""}<VerifiedBadge verified={profile.isVerified} /></h1>
@@ -94,14 +96,14 @@ function OwnProfileOverview({ profile, travelCity }: { profile: Profile; travelC
         </div>}
       </div>
       <ProfileSocialActions profileId={profile.id} viewerId={profile.id} showAction={false} compact />
-      <Link href="/profile/edit?returnTo=%2Fprofile" data-testid="button-edit-profile" aria-label="Edit profile" title="Edit profile" className="op-edit inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-transform active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"><Pencil size={18} aria-hidden="true" /></Link>
+      <Link href="/profile/edit?returnTo=%2Fprofile" data-testid="button-edit-profile" aria-label={t("Edit profile")} title={t("Edit profile")} className="op-edit inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-transform active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"><Pencil size={18} aria-hidden="true" /></Link>
     </section>
     <div className="op-rule shrink-0" aria-hidden="true" />
-    <section className="op-section min-w-0 shrink-0"><h3 className="op-label">About me</h3><p data-testid="text-profile-bio" title={bio} className="mt-1.5 line-clamp-3 text-[14px] leading-[1.5]">{bio}</p></section>
-    <section className="op-section shrink-0"><h3 className="op-label">Hobbies</h3>{profile.interests.length ? <div className="mt-2 flex flex-wrap gap-2" title={profile.interests.join(", ")} aria-label={`Hobbies: ${profile.interests.join(", ")}`}>{shown.map((interest) => <span key={interest} className="op-chip max-w-[46%] truncate rounded-full px-3.5 py-1.5 text-[13px] font-semibold">{interest}</span>)}{more > 0 && <Link href="/profile/edit?returnTo=%2Fprofile" data-testid="link-more-hobbies" className="op-chip rounded-full px-3.5 py-1.5 text-[13px] font-bold">+{more}</Link>}</div> : <p className="op-muted mt-1.5 text-[13px]">Add a few hobbies to your profile.</p>}</section>
-    <section className="op-section shrink-0"><h3 className="op-label">Work</h3><span data-testid="text-profile-occupation" title={work} className="op-chip mt-2 inline-flex max-w-full truncate rounded-full px-3.5 py-1.5 text-[13px] font-semibold">{work}</span></section>
-    <section className="op-section shrink-0"><h3 className="op-label">Photos</h3>
-      {profile.photos.length ? <div className="mt-2 grid grid-cols-5 gap-2" data-testid="profile-photo-strip" aria-label={`Profile photos, ${profile.photos.length} total`}>{profile.photos.slice(0, 5).map((photo, index) => <div key={`${photo}-${index}`} className="op-thumb relative aspect-square overflow-hidden rounded-xl"><MediaImage reference={photo} alt={`Profile photo ${index + 1}${index === 0 ? " (main)" : ""}`} className="h-full w-full object-cover" />{index === 0 && <span className="absolute inset-x-0 bottom-0 bg-[#F34E9A] text-center text-[9px] font-bold leading-[14px] text-[#24111b]">Main</span>}</div>)}</div> : <p className="op-muted mt-1.5 text-[13px]">Add photos in Edit profile.</p>}
+    <section className="op-section min-w-0 shrink-0"><h3 className="op-label">{t("About me")}</h3><p data-testid="text-profile-bio" title={bio} className="mt-1.5 line-clamp-3 text-[14px] leading-[1.5]">{bio}</p></section>
+    <section className="op-section shrink-0"><h3 className="op-label">{t("Hobbies")}</h3>{profile.interests.length ? <div className="mt-2 flex flex-wrap gap-2" title={profile.interests.join(", ")} aria-label={`${t("Hobbies")}: ${profile.interests.join(", ")}`}>{shown.map((interest) => <span key={interest} className="op-chip max-w-[46%] truncate rounded-full px-3.5 py-1.5 text-[13px] font-semibold">{interest}</span>)}{more > 0 && <Link href="/profile/edit?returnTo=%2Fprofile" data-testid="link-more-hobbies" className="op-chip rounded-full px-3.5 py-1.5 text-[13px] font-bold">+{more}</Link>}</div> : <p className="op-muted mt-1.5 text-[13px]">{t("Add a few hobbies to your profile.")}</p>}</section>
+    <section className="op-section shrink-0"><h3 className="op-label">{t("Work")}</h3><span data-testid="text-profile-occupation" title={work} className="op-chip mt-2 inline-flex max-w-full truncate rounded-full px-3.5 py-1.5 text-[13px] font-semibold">{work}</span></section>
+    <section className="op-section shrink-0"><h3 className="op-label">{t("Photos")}</h3>
+       {profile.photos.length ? <div className="mt-2 grid grid-cols-5 gap-2" data-testid="profile-photo-strip" aria-label={`${t("Profile photos")}, ${profile.photos.length} ${t("total")}`}>{profile.photos.slice(0, 5).map((photo, index) => <div key={`${photo}-${index}`} className="op-thumb relative aspect-square overflow-hidden rounded-xl"><MediaImage reference={photo} alt={`${t("Profile photo")} ${index + 1}${index === 0 ? ` (${t("main")})` : ""}`} className="h-full w-full object-cover" />{index === 0 && <span className="absolute inset-x-0 bottom-0 bg-[#F34E9A] text-center text-[9px] font-bold leading-[14px] text-[#24111b]">{t("Main")}</span>}</div>)}</div> : <p className="op-muted mt-1.5 text-[13px]">{t("Add photos in Edit profile.")}</p>}
     </section>
     <ProfileReelsSection profileId={profile.id} returnTo="/profile" own />
     <ReferralProfileCard />
@@ -113,6 +115,7 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
 }
 
 export function ProfilePage({ mode = "view", returnTo = "/profile" }: { mode?: "view" | "edit"; returnTo?: string }) {
+  const { t } = useAppLanguage();
   const query = useGetMyProfile<Profile>({ query: { refetchOnMount: "always", refetchOnWindowFocus: true, staleTime: 0, retry: shouldRetryProfile } });
   const settings = useGetVibeSwipeSettings();
   const edit = mode === "edit";
@@ -202,7 +205,7 @@ export function ProfilePage({ mode = "view", returnTo = "/profile" }: { mode?: "
   }
 
   if (query.isError && isProfileMissing(query.error)) return <Redirect to="/onboarding" />;
-  const heading = edit ? <div className="pe-head"><Link href={returnTo} data-testid="link-edit-profile-back" aria-label={returnTo.startsWith("/settings") ? "Back to Settings" : "Back to Profile"} className="pe-round"><ArrowLeft size={19} /></Link><h1 className="pe-title">Edit Profile</h1><span className="w-10" aria-hidden="true" /></div> : null;
+  const heading = edit ? <div className="pe-head"><Link href={returnTo} data-testid="link-edit-profile-back" aria-label={returnTo.startsWith("/settings") ? `${t("Back to")} ${t("Settings")}` : `${t("Back to")} ${t("Profile")}`} className="pe-round"><ArrowLeft size={19} /></Link><h1 className="pe-title">{t("Edit Profile")}</h1><span className="w-10" aria-hidden="true" /></div> : null;
   const Frame = edit ? ProfileEditFrame : OwnProfileFrame;
 
   return <Frame>{heading}{query.isLoading || edit && !formReady ? <ProfileLoading /> : query.isError && !query.data ? <Retry text={query.error?.status === 401 ? "Your session has expired. Please sign in again." : "We couldn’t load your profile. Check your connection and try again."} onRetry={() => void query.refetch()} /> : !query.data ? <Empty title="Your profile is waiting" detail="Finish a few details to begin discovering people." action={<Link href="/onboarding" data-testid="link-profile-onboarding" className="rounded-xl bg-primary px-4 py-3 font-bold text-[#26111b]">Set up profile</Link>} /> : <>{!edit && <OwnProfileOverview profile={query.data} travelCity={settings.data?.travelMode ? settings.data.travelCity : null} />}

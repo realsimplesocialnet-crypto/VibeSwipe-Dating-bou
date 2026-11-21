@@ -1,7 +1,7 @@
 import { type FormEvent, type ReactNode, useState } from 'react';
 import { Link, useLocation } from 'wouter';
 import type { AdminSession } from '@workspace/api-client-react';
-import { Clapperboard, Gauge, HeartHandshake, LogOut, MessagesSquare, Radio, ScanFace, Search, Settings, Users } from 'lucide-react';
+import { Clapperboard, Gauge, HeartHandshake, History, LogOut, MessagesSquare, Radio, ScanFace, Search, Settings, ShieldAlert, Users } from 'lucide-react';
 import { initials } from './admin-ui';
 
 export const ADMIN_NAV = [
@@ -9,6 +9,8 @@ export const ADMIN_NAV = [
   { key: 'users', href: '/admin/users', label: 'Users', icon: Users },
   { key: 'chats', href: '/admin/chats', label: 'Chats', icon: MessagesSquare },
   { key: 'posts', href: '/admin/posts', label: 'Posts', icon: Clapperboard },
+  { key: 'reports', href: '/admin/reports', label: 'Reports', icon: ShieldAlert },
+  { key: 'audit', href: '/admin/audit', label: 'Access history', icon: History },
   { key: 'connections', href: '/admin/connections', label: 'Friends/Connections', icon: HeartHandshake },
   { key: 'verifications', href: '/admin/verifications', label: 'Verifications', icon: ScanFace },
   { key: 'online', href: '/admin/online', label: 'Online', icon: Radio },

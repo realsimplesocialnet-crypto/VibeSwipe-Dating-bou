@@ -54,6 +54,9 @@ export const profilesTable = pgTable("vibeswipe_profiles", {
   whoCanMessage: text("who_can_message").$type<ProfilePrivacyAudience>().notNull().default("everyone"),
   allowDownloads: boolean("allow_downloads").notNull().default(true),
   likedVideoAudience: text("liked_video_audience").$type<LikedVideoAudience>().notNull().default("everyone"),
+  keywordFilters: text("keyword_filters").array().notNull().default(sql`'{}'::text[]`),
+  screenTimeReminderMinutes: integer("screen_time_reminder_minutes"),
+  screenTimeLimitMinutes: integer("screen_time_limit_minutes"),
   showAge: boolean("show_age").notNull().default(true),
   showDistance: boolean("show_distance").notNull().default(true),
   notifyMatches: boolean("notify_matches").notNull().default(true),
@@ -289,6 +292,8 @@ export const reportsTable = pgTable("vibeswipe_reports", {
     .references(() => profilesTable.id, { onDelete: "cascade" }),
   reason: text("reason").notNull(),
   details: text("details"),
+  status: text("status").notNull().default("new"),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
