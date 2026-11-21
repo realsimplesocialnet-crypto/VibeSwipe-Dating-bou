@@ -7,7 +7,7 @@ import {
   useGetMediaPreview, useGetMyProfile, useGetProfileMedia, useGetReelComments, useRequestProfileMediaUpload, useSetReelCommentReaction,
   type ReelComment, type ReelCommentReaction,
 } from "@workspace/api-client-react";
-import { ArrowUp, AtSign, Check, ChevronDown, Heart, Image as ImageIcon, LoaderCircle, Search, SlidersHorizontal, Smile, ThumbsDown, X } from "lucide-react";
+import { ArrowUp, Check, ChevronDown, Heart, Image as ImageIcon, LoaderCircle, Search, SlidersHorizontal, ThumbsDown, X } from "lucide-react";
 import { ReelAvatar } from "@/components/reels/reel-avatar";
 import { userErrorMessage } from "@/lib/user-errors";
 import { QuietSpinner } from "@/components/ui/quiet-spinner";
@@ -355,11 +355,6 @@ export function ReelComments({ reelId, creatorId, returnTo, commentCount, canCom
     void postDraft();
   }
 
-  function addToDraft(value: string) {
-    setDraft((current) => `${current}${current && !current.endsWith(" ") ? " " : ""}${value}`);
-    input.current?.focus({ preventScroll: true });
-  }
-
   async function deleteComment(id: string) {
     setError("");
     try {
@@ -484,8 +479,6 @@ export function ReelComments({ reelId, creatorId, returnTo, commentCount, canCom
           <input ref={input} value={draft} onChange={(event) => setDraft(event.target.value)} maxLength={500} placeholder={replyingTo ? `Reply to ${replyingTo.authorName}` : "Add a comment..."} aria-label={replyingTo ? `Reply to ${replyingTo.authorName}` : "Add a comment"} enterKeyHint="send" data-testid="input-reel-comment" className="reel-comment-input" />
           <div className="reel-comment-tools" aria-label="Comment tools">
             <button type="button" onClick={() => photoInput.current?.click()} disabled={preparingPhoto || uploadingPhoto || create.isPending} aria-label="Add photo" className="reel-comment-tool" title="Add photo" data-testid="button-add-reel-comment-photo">{preparingPhoto ? <LoaderCircle size={20} className="animate-spin" /> : <ImageIcon size={21} />}</button>
-            <button type="button" onClick={() => addToDraft(String.fromCodePoint(0x1f60a))} aria-label="Add emoji" className="reel-comment-tool" title="Add emoji"><Smile size={21} /></button>
-            <button type="button" onClick={() => addToDraft("@")} aria-label="Mention someone" className="reel-comment-tool" title="Mention someone"><AtSign size={21} /></button>
           </div>
         </div>
         <button type="submit" onPointerDown={(event) => event.preventDefault()} onTouchEnd={(event) => { event.preventDefault(); void postDraft(); }} disabled={(!draft.trim() && !photo) || create.isPending || preparingPhoto || uploadingPhoto} aria-label="Post comment" data-testid="button-post-comment" className="reel-comment-send disabled:opacity-35">{uploadingPhoto ? <LoaderCircle size={19} className="animate-spin" /> : <ArrowUp size={19} />}</button>
