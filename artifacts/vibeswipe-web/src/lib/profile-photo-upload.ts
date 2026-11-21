@@ -100,7 +100,7 @@ async function decodePhotoPreviewAsJpeg(file: File): Promise<Blob> {
     await new Promise<void>((resolve, reject) => {
       timer = setTimeout(() => reject(new PhotoUploadError('PHOTO_DECODE_TIMEOUT', 'This picture took too long to open. Choose another photo.')), 20_000);
       image.onload = () => resolve();
-      image.onerror = () => reject(new PhotoUploadError('PHOTO_DECODE', 'This photo couldn’t be opened. Choose a readable picture.'));
+      image.onerror = () => reject(new PhotoUploadError('PHOTO_DECODE', 'This photo could not be read. If it is stored in iCloud or another cloud service, download or save it to your device, then select it again.'));
       image.src = url;
     });
     const dimensions = photoDimensions(image.naturalWidth, image.naturalHeight);

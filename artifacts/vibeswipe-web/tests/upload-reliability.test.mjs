@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { readFileSync } from 'node:fs';
 import { PROFILE_PHOTO_ACCEPT, photoDimensions, photoUploadCanRetry, prepareProfilePhoto, readPhotoBytes, sniffPhotoFormat, uploadProfilePhotoBytes, validatePhotoFile } from '../src/lib/profile-photo-upload.ts';
 import { userErrorMessage } from '../src/lib/user-errors.ts';
 
@@ -95,14 +96,16 @@ test('photo picker can prepare a previewable file through the image decoder when
     }),
   };
   try {
-    const file = new File(['picker placeholder'], 'slide.jpg', { type: 'image/jpeg' });
-    file.arrayBuffer = async () => new ArrayBuffer(0);
-    file.stream = () => new ReadableStream({ start(controller) { controller.close(); } });
-    const prepared = await prepareProfilePhoto(file);
-    assert.equal(prepared.type, 'image/jpeg');
-    assert.equal(prepared.name, 'profile-photo.jpg');
-    assert.ok(prepared.size > 0);
-    assert.equal(imageLoads, 2);
+    const files = Array.from({ length: 3 }, (_, index) => {
+      const file = new File([`picker placeholder ${index}`], `slide-${index}.jpg`, { type: 'image/jpeg' });
+      file.arrayBuffer = async () => new ArrayBuffer(0);
+      file.stream = () => new ReadableStream({ start(controller) { controller.close(); } });
+      return file;
+    });
+    const prepared = await Promise.all(files.map(prepareProfilePhoto));
+    assert.equal(prepared.length, 3);
+    assert.ok(prepared.every((photo) => photo.type === 'image/jpeg' && photo.name === 'profile-photo.jpg' && photo.size > 0));
+    assert.equal(imageLoads, 6);
   } finally {
     if (originalImage === undefined) delete globalThis.Image;
     else globalThis.Image = originalImage;
@@ -114,6 +117,13 @@ test('photo picker can prepare a previewable file through the image decoder when
       globalThis.document = originalDocument;
     }
   }
+});
+
+test('photo slides are prepared before preview and upload uses the prepared files', () => {
+  const composer = readFileSync(new URL('../src/pages/reel-composer.tsx', import.meta.url), 'utf8');
+  assert.match(composer, /mapWithConcurrency\(candidates, 2, async \(photo\)[\s\S]*?prepareProfilePhoto\(photo\)/);
+  assert.match(composer, /const urls = slideFiles\.map\(\(item\) => URL\.createObjectURL\(item\)\)/);
+  assert.match(composer, /uploadProfileMediaBytes|uploadProfilePhotoBytes\(signed\.uploadURL, photo/);
 });
 
 test('phone pictures keep their aspect ratio without upscaling', () => {

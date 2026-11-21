@@ -71,6 +71,8 @@ export function ReelComposerPage() {
   const [stage, setStage] = useState<Stage>("idle");
   const [uploadAttempt, setUploadAttempt] = useState(0);
   const [slideProgress, setSlideProgress] = useState<{ completed: number; total: number } | null>(null);
+  const [preparingSlides, setPreparingSlides] = useState(false);
+  const [slidePrepareProgress, setSlidePrepareProgress] = useState<{ completed: number; total: number } | null>(null);
   const requestUpload = useRequestProfileMediaUpload();
   const transcode = useTranscodeReelVideo();
   const create = useCreateReel();
@@ -171,13 +173,42 @@ export function ReelComposerPage() {
     } finally { setChecking(false); }
   }
 
-  function chooseSlides(list: FileList | null) {
-    if (!list || busy) return;
+  async function chooseSlides(list: FileList | null) {
+    if (!list || busy || preparingSlides) return;
     const incoming = Array.from(list);
     setError("");
     const remaining = Math.max(0, 10 - slideFiles.length);
-    if (incoming.length > remaining) setError("A Reel can contain up to 10 photos.");
-    if (remaining) setSlideFiles((current) => [...current, ...incoming.slice(0, remaining)]);
+    const exceededLimit = incoming.length > remaining;
+    const candidates = incoming.slice(0, remaining);
+    if (!candidates.length) {
+      if (exceededLimit) setError("A Reel can contain up to 10 photos.");
+      return;
+    }
+
+    const preparationErrors: string[] = [];
+    setPreparingSlides(true);
+    setSlidePrepareProgress({ completed: 0, total: candidates.length });
+    try {
+      const prepared = await mapWithConcurrency(candidates, 2, async (photo, index) => {
+        try {
+          return await prepareProfilePhoto(photo);
+        } catch (reason) {
+          preparationErrors[index] = reason instanceof Error
+            ? reason.message
+            : "This photo could not be prepared. Save it to your device and select it again.";
+          return undefined;
+        } finally {
+          setSlidePrepareProgress((current) => current ? { ...current, completed: current.completed + 1 } : current);
+        }
+      });
+      const ready = prepared.filter((photo): photo is File => Boolean(photo));
+      if (ready.length) setSlideFiles((current) => [...current, ...ready].slice(0, 10));
+      if (preparationErrors.length) setError(preparationErrors.find(Boolean) ?? "Some photos could not be read. Save them to your device and select them again.");
+      else if (exceededLimit) setError("A Reel can contain up to 10 photos. The first 10 available photos were added.");
+    } finally {
+      setPreparingSlides(false);
+      setSlidePrepareProgress(null);
+    }
   }
 
   function moveSlide(delta: number) {
@@ -195,7 +226,7 @@ export function ReelComposerPage() {
   }
 
   async function post() {
-    if (busy) return;
+    if (busy || preparingSlides) return;
     if (mode === "slides" && (slideFiles.length < 2 || slideFiles.length > 10)) {
       setError("Choose between 2 and 10 photos for your slideshow.");
       return;
@@ -210,11 +241,10 @@ export function ReelComposerPage() {
         const mediaIds = await mapWithConcurrency(slideFiles, 3, async (photo) => {
           let mediaId = uploadedSlides.current.get(photo);
           if (!mediaId) {
-            const prepared = await prepareProfilePhoto(photo);
             const signed = await requestUpload.mutateAsync({
-              data: { name: prepared.name || "reel-slide.jpg", size: prepared.size, contentType: "image/jpeg", mediaType: "image" },
+              data: { name: photo.name || "reel-slide.jpg", size: photo.size, contentType: "image/jpeg", mediaType: "image" },
             });
-            await uploadProfilePhotoBytes(signed.uploadURL, prepared, { onAttempt: setUploadAttempt });
+            await uploadProfilePhotoBytes(signed.uploadURL, photo, { onAttempt: setUploadAttempt });
             mediaId = signed.mediaId;
             uploadedSlides.current.set(photo, mediaId);
           }
@@ -255,7 +285,7 @@ export function ReelComposerPage() {
     </header>
     <input ref={cameraInput} type="file" accept="video/*" capture="user" className="hidden" onChange={(event) => { void choose(event.target.files?.[0]); event.currentTarget.value = ""; }} data-testid="input-reel-camera" />
     <input ref={libraryInput} type="file" accept="video/mp4,video/quicktime,.mp4,.mov" className="hidden" onChange={(event) => { void choose(event.target.files?.[0]); event.currentTarget.value = ""; }} data-testid="input-reel-library" />
-    <input ref={slidesInput} type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.jpg,.jpeg,.png,.webp,.heic,.heif" multiple className="hidden" onChange={(event) => { chooseSlides(event.currentTarget.files); event.currentTarget.value = ""; }} data-testid="input-reel-slides" />
+    <input ref={slidesInput} type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.jpg,.jpeg,.png,.webp,.heic,.heif" multiple disabled={busy || preparingSlides} className="hidden" onChange={(event) => { void chooseSlides(event.currentTarget.files); event.currentTarget.value = ""; }} data-testid="input-reel-slides" />
     <div className="mx-auto flex w-full max-w-[480px] flex-1 flex-col gap-4 px-4 pb-[max(env(safe-area-inset-bottom),16px)]">
       <div className="grid grid-cols-2 rounded-2xl bg-white/[.06] p-1" role="tablist" aria-label="Reel type">
         <button type="button" role="tab" aria-selected={mode === "video"} onClick={() => { setMode("video"); setError(""); }} className={`flex min-h-10 items-center justify-center gap-2 rounded-xl text-sm font-bold ${mode === "video" ? "bg-primary text-primary-foreground" : "text-white/65"}`} data-testid="tab-reel-video"><Film size={16} />Video</button>
@@ -275,7 +305,7 @@ export function ReelComposerPage() {
           </div>}
       </div>
       {mode === "slides" ? <div className="flex items-center gap-2">
-        <button type="button" onClick={() => slidesInput.current?.click()} disabled={busy || checking || slideFiles.length >= 10} data-testid="button-choose-reel-slides" className="reel-sheet-action flex-1"><Images size={18} />{slideFiles.length ? `Add photos (${slideFiles.length}/10)` : "Choose photos"}</button>
+        <button type="button" onClick={() => slidesInput.current?.click()} disabled={busy || checking || preparingSlides || slideFiles.length >= 10} data-testid="button-choose-reel-slides" className="reel-sheet-action flex-1">{preparingSlides ? <QuietSpinner size={17} /> : <Images size={18} />}{preparingSlides ? `Preparing photos ${slidePrepareProgress?.completed ?? 0}/${slidePrepareProgress?.total ?? 0}` : slideFiles.length ? `Add photos (${slideFiles.length}/10)` : "Choose photos"}</button>
         {slideFiles.length > 0 && <button type="button" onClick={() => { setSlideFiles((current) => current.filter((_, index) => index !== slideIndex)); setSlideIndex((current) => Math.max(0, current - 1)); }} disabled={busy} aria-label="Remove current photo" data-testid="button-remove-reel-slide" className="reel-sheet-action w-12 shrink-0 px-0"><X size={18} /></button>}
       </div> : <div className="grid grid-cols-2 gap-2">
         <button type="button" onClick={() => cameraInput.current?.click()} disabled={busy || checking} data-testid="button-record-reel" className="reel-sheet-action">{file ? <RotateCcw size={18} /> : <Camera size={18} />}{file ? "Record again" : "Record"}</button>
@@ -303,6 +333,7 @@ export function ReelComposerPage() {
         </select>
       </label>
       {(checking || stage === "uploading" && uploadAttempt > 1) && <div role="status" aria-label="Loading" className="flex justify-center"><QuietSpinner /></div>}
+      {preparingSlides && <p role="status" className="text-center text-xs text-white/55" data-testid="status-reel-photo-preparation">Reading and preparing photos {slidePrepareProgress?.completed ?? 0}/{slidePrepareProgress?.total ?? 0}…</p>}
       {stage !== "idle" && <p role="status" className="text-center text-xs text-white/55" data-testid="status-reel-post">
         {stage === "uploading" && mode === "slides" && slideProgress
           ? `Preparing and uploading photos ${slideProgress.completed}/${slideProgress.total}…`
@@ -312,7 +343,7 @@ export function ReelComposerPage() {
                 : "Publishing your Reel…"}
       </p>}
       {error && <p role="alert" className="rounded-2xl border border-rose-300/25 bg-rose-400/10 px-4 py-3 text-sm text-rose-100" data-testid="error-reel-composer">{error}</p>}
-      <button type="button" onClick={() => void post()} disabled={(mode === "video" ? !file : slideFiles.length < 2) || !audience || busy || checking} aria-label={busy ? "Posting Reel" : "Post Reel"} data-testid="button-post-reel" className="reels-primary mt-auto w-full disabled:opacity-40">
+      <button type="button" onClick={() => void post()} disabled={(mode === "video" ? !file : slideFiles.length < 2) || !audience || busy || checking || preparingSlides} aria-label={busy ? "Posting Reel" : "Post Reel"} data-testid="button-post-reel" className="reels-primary mt-auto w-full disabled:opacity-40">
         {busy ? <QuietSpinner size={20} /> : "Post"}
       </button>
     </div>
