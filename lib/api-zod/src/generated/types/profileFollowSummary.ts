@@ -7,6 +7,11 @@
  */
 
 export interface ProfileFollowSummary {
+  /**
+     * Number of this profile's posts visible to the signed-in viewer
+     * @minimum 0
+     */
+  postCount?: number;
   /** @minimum 0 */
   followersCount: number;
   /** @minimum 0 */

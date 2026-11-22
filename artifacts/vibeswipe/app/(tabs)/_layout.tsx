@@ -20,7 +20,7 @@ function NativeTabLayout() {
   const notifications = useGetNotifications({ query: { refetchInterval: 5_000 } });
   const counts = notifications.data?.unreadCounts;
   const messageBadge = counts?.messages ?? 0;
-  const activityBadge = counts ? counts.matches + counts.views + counts.likes + counts.follows + (counts.reels ?? 0) : 0;
+  const activityBadge = counts ? counts.likes + counts.follows + (counts.reels ?? 0) : 0;
   return (
     <>
     <ReferralToastHost data={notifications.data} />
@@ -29,19 +29,27 @@ function NativeTabLayout() {
         <NativeTabs.Trigger.Icon
           sf={{ default: 'house', selected: 'house.fill' }}
         />
-        <NativeTabs.Trigger.Label>Discover</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Label>Home</NativeTabs.Trigger.Label>
+      </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="explore">
+        <NativeTabs.Trigger.Icon sf={{ default: 'magnifyingglass', selected: 'magnifyingglass' }} drawable="search" />
+        <NativeTabs.Trigger.Label>Explore</NativeTabs.Trigger.Label>
+      </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="create">
+        <NativeTabs.Trigger.Icon sf={{ default: 'plus.app', selected: 'plus.app.fill' }} drawable="add" />
+        <NativeTabs.Trigger.Label>Create</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="reels">
         <NativeTabs.Trigger.Icon sf={{ default: 'play.rectangle', selected: 'play.rectangle.fill' }} drawable="video" />
         <NativeTabs.Trigger.Label>Reels</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="views">
+      <NativeTabs.Trigger name="views" hidden>
         <NativeTabs.Trigger.Icon sf={{ default: 'tray', selected: 'tray.fill' }} drawable="inbox" />
         <NativeTabs.Trigger.Label>Chats</NativeTabs.Trigger.Label>
         {messageBadge > 0 ? <NativeTabs.Trigger.Badge>{messageBadge > 99 ? '99+' : String(messageBadge)}</NativeTabs.Trigger.Badge> : null}
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="matches" hidden />
-      <NativeTabs.Trigger name="activity">
+      <NativeTabs.Trigger name="activity" hidden>
         <NativeTabs.Trigger.Icon sf={{ default: 'bell', selected: 'bell.fill' }} />
         <NativeTabs.Trigger.Label>Activity</NativeTabs.Trigger.Label>
         {activityBadge > 0 ? <NativeTabs.Trigger.Badge>{activityBadge > 99 ? '99+' : String(activityBadge)}</NativeTabs.Trigger.Badge> : null}
@@ -65,7 +73,7 @@ function ClassicTabLayout() {
   const notifications = useGetNotifications({ query: { refetchInterval: 5_000 } });
   const counts = notifications.data?.unreadCounts;
   const messageBadge = counts?.messages ?? 0;
-  const activityBadge = counts ? counts.matches + counts.views + counts.likes + counts.follows + (counts.reels ?? 0) : 0;
+  const activityBadge = counts ? counts.likes + counts.follows + (counts.reels ?? 0) : 0;
 
   return (
     <>
@@ -107,7 +115,8 @@ function ClassicTabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Discover',
+          title: 'Home',
+          headerShown: false,
           tabBarIcon: ({ color, focused }) =>
             isIOS ? (
               <SymbolView name="house" tintColor={color} size={24} />
@@ -118,6 +127,22 @@ function ClassicTabLayout() {
                 color={focused ? colors.primary : colors.mutedForeground}
               />
             ),
+        }}
+      />
+      <Tabs.Screen
+        name="explore"
+        options={{
+          title: 'Explore',
+          headerShown: false,
+          tabBarIcon: ({ color }) => <Feather name="search" size={21} color={typeof color === 'string' ? color : colors.primary} />,
+        }}
+      />
+      <Tabs.Screen
+        name="create"
+        options={{
+          title: 'Create',
+          headerShown: false,
+          tabBarIcon: ({ color }) => <Feather name="plus-square" size={22} color={typeof color === 'string' ? color : colors.primary} />,
         }}
       />
       <Tabs.Screen
@@ -133,6 +158,7 @@ function ClassicTabLayout() {
         name="views"
         options={{
           title: 'Chats',
+          href: null,
           headerShown: false,
           tabBarBadge: messageBadge || undefined,
           tabBarIcon: ({ color }) => <Feather name="inbox" size={21} color={typeof color === 'string' ? color : colors.primary} />,
@@ -142,6 +168,7 @@ function ClassicTabLayout() {
         name="activity"
         options={{
           title: 'Activity',
+          href: null,
           headerShown: false,
           tabBarBadge: activityBadge || undefined,
           tabBarIcon: ({ color }) => <Feather name="bell" size={21} color={typeof color === 'string' ? color : colors.primary} />,

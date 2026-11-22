@@ -20,6 +20,7 @@ import {
   matchesTable,
   profilesTable,
   reactionsTable,
+  reelsTable,
   vibeSwipeFollowsTable,
   vibeSwipeFollowRequestsTable,
   vibeSwipeNotificationsTable,
@@ -30,6 +31,7 @@ import { requireAuth } from "../middlewares/auth";
 import { planNewFollowNotification } from "../lib/vibeswipeFollowPolicy";
 import { sendFollowPush } from "../lib/vibeswipePush";
 import { canViewUserProfile } from "../lib/profile-privacy";
+import { visibleReelCondition } from "../lib/reels-visibility";
 
 const router: IRouter = Router();
 router.use(requireAuth);
@@ -68,6 +70,9 @@ async function blockedBetween(userA: string, userB: string): Promise<boolean> {
 }
 
 async function followSummary(viewerId: string, profileId: string) {
+  const [postSummary] = await db.select({ total: count() }).from(reelsTable)
+    .innerJoin(profilesTable, eq(profilesTable.id, reelsTable.userId))
+    .where(and(eq(reelsTable.userId, profileId), visibleReelCondition(viewerId)));
   const [summary] = await db.select({
     followersCount: sql<number>`(select count(*) from ${vibeSwipeFollowsTable} where ${vibeSwipeFollowsTable.followedId} = ${profileId})`.mapWith(Number),
     followingCount: sql<number>`(select count(*) from ${vibeSwipeFollowsTable} where ${vibeSwipeFollowsTable.followerId} = ${profileId})`.mapWith(Number),
@@ -76,9 +81,12 @@ async function followSummary(viewerId: string, profileId: string) {
     requestPendingByMe: sql<boolean>`exists (select 1 from ${vibeSwipeFollowRequestsTable} where ${vibeSwipeFollowRequestsTable.requesterId} = ${viewerId} and ${vibeSwipeFollowRequestsTable.targetId} = ${profileId})`.mapWith(Boolean),
     requestPendingForMe: sql<boolean>`exists (select 1 from ${vibeSwipeFollowRequestsTable} where ${vibeSwipeFollowRequestsTable.requesterId} = ${profileId} and ${vibeSwipeFollowRequestsTable.targetId} = ${viewerId})`.mapWith(Boolean),
   }).from(profilesTable).where(eq(profilesTable.id, profileId)).limit(1);
-  return summary ?? {
-    followersCount: 0, followingCount: 0, isFollowing: false, followsYou: false,
-    requestPendingByMe: false, requestPendingForMe: false,
+  return {
+    ...(summary ?? {
+      followersCount: 0, followingCount: 0, isFollowing: false, followsYou: false,
+      requestPendingByMe: false, requestPendingForMe: false,
+    }),
+    postCount: postSummary?.total ?? 0,
   };
 }
 

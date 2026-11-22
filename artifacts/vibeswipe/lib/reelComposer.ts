@@ -1,6 +1,6 @@
 export const REEL_VIDEO_MAX_BYTES = 500 * 1024 * 1024;
 export const REEL_PHOTO_MAX_BYTES = 15 * 1024 * 1024;
-export const REEL_SLIDE_MIN_COUNT = 2;
+export const REEL_SLIDE_MIN_COUNT = 1;
 export const REEL_SLIDE_MAX_COUNT = 10;
 export const REEL_CAPTION_MAX_LENGTH = 300;
 
@@ -83,7 +83,7 @@ export function validateReelPhoto(size: number, contentType: string | null) {
 export function validateReelSlides(
   slides: Array<{ size: number; contentType: string | null }>,
 ) {
-  if (slides.length < REEL_SLIDE_MIN_COUNT) return "Choose at least 2 photos.";
+  if (slides.length < REEL_SLIDE_MIN_COUNT) return "Choose at least 1 photo.";
   if (slides.length > REEL_SLIDE_MAX_COUNT) return "Choose up to 10 photos.";
 
   for (const slide of slides) {

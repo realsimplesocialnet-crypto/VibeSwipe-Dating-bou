@@ -16,6 +16,7 @@ import {
   GetReelMusicResponse, RecordReelShareResponse, RecordReelViewResponse, TranscodeReelVideoParams,
   TranscodeReelVideoResponse, SetReelCommentReactionBody, SetReelCommentReactionParams, SetReelCommentReactionResponse,
   ReportReelBody,
+  GetSocialFeedQueryParams, GetSocialFeedResponse, UpdateSocialPostParams, UpdateSocialPostBody, UpdateSocialPostResponse,
   type ReelMusicTrack,
 } from "@workspace/api-zod";
 import {
@@ -43,6 +44,8 @@ import { getReelSoundtrack, REEL_MUSIC_CATALOG } from "../lib/reel-music-catalog
 const router: IRouter = Router();
 router.use("/vibeswipe/reels", requireAuth);
 router.use("/vibeswipe/profile-reels", requireAuth);
+router.use("/vibeswipe/social-feed", requireAuth);
+router.use("/vibeswipe/social-posts", requireAuth);
 
 const PAGE_SIZE = 6;
 const reelStorage = new ObjectStorageService();
@@ -172,6 +175,67 @@ function afterCursor(cursorText: string | undefined, column: typeof reelsTable.c
   if (!cursor) return false;
   return sql`(${column}, ${reelsTable.id}) < (${cursor.createdAt.toISOString()}::timestamptz, ${cursor.id}::uuid)`;
 }
+
+// Social posts share the existing media, engagement and privacy model with Reels.
+// A separate chronological cursor avoids changing the older/recent Reel mixer.
+router.get("/vibeswipe/social-feed", async (req, res): Promise<void> => {
+  const query = GetSocialFeedQueryParams.safeParse(req.query);
+  if (!query.success) { res.status(400).json({ error: "Invalid posts page." }); return; }
+  const cursor = afterCursor(query.data.cursor, reelsTable.createdAt);
+  if (cursor === false) { res.status(400).json({ error: "Invalid posts page." }); return; }
+  const viewerId = uid(req);
+  const limit = query.data.limit ?? 12;
+  const scope = query.data.mode === "explore"
+    ? and(
+      eq(reelsTable.audience, "public"),
+      eq(profilesTable.privateAccount, false),
+      eq(profilesTable.incognito, false),
+    )
+    : or(eq(reelsTable.userId, viewerId), sql`EXISTS (
+      SELECT 1 FROM ${vibeSwipeFollowsTable}
+      WHERE ${vibeSwipeFollowsTable.followerId} = ${viewerId}
+        AND ${vibeSwipeFollowsTable.followedId} = ${reelsTable.userId}
+    )`);
+  const terms = query.data.q ? reelSearchTerms(query.data.q) : [];
+  const search = query.data.q
+    ? terms.length
+      ? and(...terms.map((term) => or(
+        sql`to_tsvector('english', coalesce(${reelsTable.caption}, '')) @@ plainto_tsquery('english', ${term})`,
+        sql`to_tsvector('english', coalesce(${profilesTable.name}, '')) @@ plainto_tsquery('english', ${term})`,
+      )))
+      : sql`false`
+    : undefined;
+  const rows = await selectReels(viewerId, and(cursor, scope, search), limit + 1);
+  const page = rows.slice(0, limit);
+  const last = page.at(-1);
+  res.json(GetSocialFeedResponse.parse({
+    items: page.map((row) => project(row, viewerId)),
+    nextCursor: rows.length > limit && last ? encodeReelCursor(last.createdAt, last.id) : null,
+  }));
+});
+
+router.patch("/vibeswipe/social-posts/:reelId", async (req, res): Promise<void> => {
+  const params = UpdateSocialPostParams.safeParse(req.params);
+  const body = UpdateSocialPostBody.safeParse(req.body);
+  if (!params.success || !body.success || !Object.keys(body.data).length) {
+    res.status(400).json({ error: "Choose a valid caption, audience, or download setting." }); return;
+  }
+  const viewerId = uid(req);
+  // Check visibility before editing and bind ownership again on the write.
+  const existing = await findVisibleReel(viewerId, params.data.reelId);
+  if (!existing || existing.userId !== viewerId) {
+    res.status(404).json({ error: "Your post was not found." }); return;
+  }
+  const [updated] = await db.update(reelsTable).set({
+    ...(body.data.caption !== undefined ? { caption: cleanReelCaption(body.data.caption) } : {}),
+    ...(body.data.audience !== undefined ? { audience: body.data.audience } : {}),
+    ...(body.data.allowDownloads !== undefined ? { allowDownloads: body.data.allowDownloads } : {}),
+  }).where(and(eq(reelsTable.id, params.data.reelId), eq(reelsTable.userId, viewerId)))
+    .returning({ id: reelsTable.id });
+  const row = updated ? await findVisibleReel(viewerId, updated.id) : undefined;
+  if (!row) { res.status(404).json({ error: "Your post was not found." }); return; }
+  res.json(UpdateSocialPostResponse.parse(project(row, viewerId)));
+});
 
 router.get("/vibeswipe/reels", async (req, res): Promise<void> => {
   const query = GetReelsFeedQueryParams.safeParse(req.query);

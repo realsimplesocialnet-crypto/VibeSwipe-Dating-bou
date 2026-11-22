@@ -98,7 +98,6 @@ export default function EditProfileScreen() {
             ["Name", "name"],
             ["Age", "age"],
             ["Gender", "gender"],
-            ["Looking for", "lookingFor"],
             ["City", "city"],
           ] as const).map(([label, key]) => (
             <View key={key}>
@@ -126,12 +125,6 @@ export default function EditProfileScreen() {
             onOtherChange={(occupationOther) => setForm({ ...form, occupationOther })}
             testID="edit-profile-occupation"
           />
-          <Text style={[styles.label, { color: colors.profileLabel }]}>Discovery age range</Text>
-          <View style={styles.ageRow}>
-            <TextInput value={String(form.ageMin)} onChangeText={(value) => setForm({ ...form, ageMin: Number(value) || 18 })} keyboardType="number-pad" style={[styles.smallInput, { color: colors.foreground, borderColor: colors.profileRule, backgroundColor: colors.background }]} />
-            <Text style={{ color: colors.profileMuted }}>to</Text>
-            <TextInput value={String(form.ageMax)} onChangeText={(value) => setForm({ ...form, ageMax: Number(value) || 35 })} keyboardType="number-pad" style={[styles.smallInput, { color: colors.foreground, borderColor: colors.profileRule, backgroundColor: colors.background }]} />
-          </View>
         </View>
       </ScrollView>
       <View pointerEvents="box-none" style={[styles.saveHost, { paddingBottom: bottomInset + 12 }]}>

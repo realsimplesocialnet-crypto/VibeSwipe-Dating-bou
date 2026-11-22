@@ -77,6 +77,7 @@ import type {
   GetPublicLocationShareParams,
   GetReelsFeedParams,
   GetSavedReelsParams,
+  GetSocialFeedParams,
   HealthStatus,
   Icebreaker,
   LocationShareCreateInput,
@@ -127,6 +128,7 @@ import type {
   ScreenTimeSummary,
   SearchTravelCitiesParams,
   SetReelCommentReactionInput,
+  SocialPostUpdate,
   StoriesFeed,
   StoryCreated,
   StoryInput,
@@ -10331,6 +10333,203 @@ export const useTranscodeStoryVideo = <TError = ErrorType<void>,
         TContext
       > => {
       return useMutation(getTranscodeStoryVideoMutationOptions(options), queryClient);
+    }
+
+export const getGetSocialFeedUrl = (params?: GetSocialFeedParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/vibeswipe/social-feed?${stringifiedParams}` : `/api/vibeswipe/social-feed`
+}
+
+/**
+ * @summary Chronological social posts from followed accounts or public Explore posts
+ */
+export const getSocialFeed = async (params?: GetSocialFeedParams, options?: Parameters<typeof customFetch>[1]): Promise<ReelPage> => {
+
+  return customFetch<ReelPage>(getGetSocialFeedUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetSocialFeedQueryKey = (params?: GetSocialFeedParams,) => {
+    return [
+    `/api/vibeswipe/social-feed`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetSocialFeedQueryOptions = <TData = Awaited<ReturnType<typeof getSocialFeed>>, TError = ErrorType<void>>(params?: GetSocialFeedParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSocialFeed>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetSocialFeedQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getSocialFeed>>> = ({ signal }) => getSocialFeed(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getSocialFeed>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetSocialFeedQueryResult = NonNullable<Awaited<ReturnType<typeof getSocialFeed>>>
+export type GetSocialFeedQueryError = ErrorType<void>
+
+
+export function useGetSocialFeed<TData = Awaited<ReturnType<typeof getSocialFeed>>, TError = ErrorType<void>>(
+ params: undefined |  GetSocialFeedParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSocialFeed>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getSocialFeed>>,
+          TError,
+          Awaited<ReturnType<typeof getSocialFeed>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetSocialFeed<TData = Awaited<ReturnType<typeof getSocialFeed>>, TError = ErrorType<void>>(
+ params?: GetSocialFeedParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSocialFeed>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getSocialFeed>>,
+          TError,
+          Awaited<ReturnType<typeof getSocialFeed>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetSocialFeed<TData = Awaited<ReturnType<typeof getSocialFeed>>, TError = ErrorType<void>>(
+ params?: GetSocialFeedParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSocialFeed>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Chronological social posts from followed accounts or public Explore posts
+ */
+
+export function useGetSocialFeed<TData = Awaited<ReturnType<typeof getSocialFeed>>, TError = ErrorType<void>>(
+ params?: GetSocialFeedParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getSocialFeed>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetSocialFeedQueryOptions(params,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getUpdateSocialPostUrl = (reelId: string,) => {
+
+
+
+
+  return `/api/vibeswipe/social-posts/${reelId}`
+}
+
+/**
+ * @summary Edit the signed-in author's post without replacing its media
+ */
+export const updateSocialPost = async (reelId: string,
+    socialPostUpdate: SocialPostUpdate, options?: Parameters<typeof customFetch>[1]): Promise<Reel> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<Reel>(getUpdateSocialPostUrl(reelId),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(socialPostUpdate)
+  }
+);}
+
+
+
+
+
+export const getUpdateSocialPostMutationKey = () => ['updateSocialPost'] as const;
+
+export const getUpdateSocialPostMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateSocialPost>>, TError,UpdateSocialPostMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateSocialPost>>, TError,UpdateSocialPostMutationVariables, TContext> => {
+
+const mutationKey = getUpdateSocialPostMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateSocialPost>>, UpdateSocialPostMutationVariables> = (props) => {
+          const {reelId,data} = props ?? {};
+
+          return  updateSocialPost(reelId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateSocialPostMutationResult = NonNullable<Awaited<ReturnType<typeof updateSocialPost>>>
+    export type UpdateSocialPostMutationBody = BodyType<SocialPostUpdate>
+    export type UpdateSocialPostMutationError = ErrorType<void>
+    export type UpdateSocialPostMutationVariables = {reelId: string;data: BodyType<SocialPostUpdate>}
+
+    /**
+ * @summary Edit the signed-in author's post without replacing its media
+ */
+export const useUpdateSocialPost = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateSocialPost>>, TError,UpdateSocialPostMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof updateSocialPost>>,
+        TError,
+        UpdateSocialPostMutationVariables,
+        TContext
+      > => {
+      return useMutation(getUpdateSocialPostMutationOptions(options), queryClient);
     }
 
 export const getGetReelMusicUrl = () => {

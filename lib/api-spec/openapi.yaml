@@ -1902,6 +1902,50 @@ paths:
           description: Video exceeds story duration or size limits
         "404":
           description: Uploaded video was not found
+  /vibeswipe/social-feed:
+    get:
+      operationId: getSocialFeed
+      tags: [vibeswipe]
+      summary: Chronological social posts from followed accounts or public Explore posts
+      parameters:
+        - { in: query, name: cursor, schema: { type: string, maxLength: 200 } }
+        - { in: query, name: limit, schema: { type: integer, minimum: 1, maximum: 24, default: 12 } }
+        - { in: query, name: mode, schema: { type: string, enum: [home, explore], default: home } }
+        - { in: query, name: q, schema: { type: string, minLength: 2, maxLength: 120 } }
+      responses:
+        "200":
+          description: Visible posts in stable newest-first order
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ReelPage" }
+        "400":
+          description: Invalid page
+        "401":
+          description: Sign-in required
+  /vibeswipe/social-posts/{reelId}:
+    patch:
+      operationId: updateSocialPost
+      tags: [vibeswipe]
+      summary: Edit the signed-in author's post without replacing its media
+      parameters:
+        - { in: path, name: reelId, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SocialPostUpdate" }
+      responses:
+        "200":
+          description: Updated post
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Reel" }
+        "400":
+          description: Invalid post update
+        "401":
+          description: Sign-in required
+        "404":
+          description: Post not found or not owned by the caller
   /vibeswipe/reels/music:
     get:
       operationId: getReelMusic
@@ -3054,6 +3098,7 @@ components:
     ProfileFollowSummary:
       type: object
       properties:
+        postCount: { type: integer, minimum: 0, description: Number of this profile's posts visible to the signed-in viewer }
         followersCount: { type: integer, minimum: 0 }
         followingCount: { type: integer, minimum: 0 }
         isFollowing: { type: boolean }
@@ -3354,6 +3399,14 @@ components:
           items: { $ref: "#/components/schemas/Reel" }
         nextCursor: { type: ["string", "null"] }
       required: [items, nextCursor]
+    SocialPostUpdate:
+      type: object
+      minProperties: 1
+      additionalProperties: false
+      properties:
+        caption: { type: string, maxLength: 300 }
+        audience: { type: string, enum: [public, friends] }
+        allowDownloads: { type: boolean }
     ReelInput:
       type: object
       properties:

@@ -1,5 +1,6 @@
 import {
   getGetMyReelsQueryKey,
+  getGetSocialFeedQueryKey,
   getGetReelsFeedQueryKey,
   useCreateReel,
   useGetReelMusic,
@@ -198,7 +199,7 @@ export default function ReelComposerScreen() {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
       permissionDenied(
-        "Allow photo access to choose a Reel video.",
+        "Allow photo access to choose a video.",
         permission.canAskAgain,
       );
       return;
@@ -221,7 +222,7 @@ export default function ReelComposerScreen() {
     setError(null);
     const permission = await ImagePicker.requestCameraPermissionsAsync();
     if (!permission.granted) {
-      permissionDenied("Allow camera access to record a Reel.", permission.canAskAgain);
+      permissionDenied("Allow camera access to record a video.", permission.canAskAgain);
       return;
     }
     try {
@@ -250,7 +251,7 @@ export default function ReelComposerScreen() {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
       permissionDenied(
-        "Allow photo access to choose Reel photos.",
+        "Allow photo access to choose photos.",
         permission.canAskAgain,
       );
       return;
@@ -357,7 +358,7 @@ export default function ReelComposerScreen() {
   async function postReel() {
     if (!media || busy) return;
     if (allowDownloads === null) {
-      setError("Choose whether viewers can download this Reel.");
+      setError("Choose whether viewers can download this post.");
       return;
     }
     setError(null);
@@ -425,6 +426,7 @@ export default function ReelComposerScreen() {
 
       void queryClient.invalidateQueries({ queryKey: getGetReelsFeedQueryKey() });
       void queryClient.invalidateQueries({ queryKey: getGetMyReelsQueryKey() });
+      void queryClient.invalidateQueries({ queryKey: getGetSocialFeedQueryKey() });
       videoUploadCache.current = null;
       slideUploadCache.current.clear();
       router.replace({
@@ -435,7 +437,7 @@ export default function ReelComposerScreen() {
       setError(
         readableError(
           postError,
-          "Your Reel wasn't posted. Your selection is still here; tap Post to retry.",
+          "Your post wasn't posted. Your selection is still here; tap Post to retry.",
         ),
       );
     } finally {
@@ -491,7 +493,7 @@ export default function ReelComposerScreen() {
           <Feather name="arrow-left" size={22} color={colors.discoverForeground} />
         </Pressable>
         <Text style={[styles.title, { color: colors.discoverForeground }]}>
-          New Reel
+          New post
         </Text>
         <View style={styles.headerSpacer} />
       </View>
@@ -580,7 +582,7 @@ export default function ReelComposerScreen() {
                     contentFit="cover"
                     cachePolicy="memory"
                     style={StyleSheet.absoluteFill}
-                    accessibilityLabel={`Reel photo ${index + 1}`}
+                    accessibilityLabel={`Photo ${index + 1}`}
                   />
                   <View style={styles.photoNumber}>
                     <Text style={[styles.photoNumberText, { color: colors.discoverForeground }]}>
@@ -655,7 +657,7 @@ export default function ReelComposerScreen() {
             </Text>
           </View>
           <TextInput
-            accessibilityLabel="Reel caption"
+            accessibilityLabel="Post caption"
             editable={!busy}
             maxLength={REEL_CAPTION_MAX_LENGTH}
             multiline
@@ -702,11 +704,11 @@ export default function ReelComposerScreen() {
 
         <View style={styles.field}>
           <Text style={[styles.sectionLabel, { color: colors.discoverForeground }]}>
-            Who can see this Reel?
+            Who can see this post?
           </Text>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={`Who can see this Reel? ${audienceLabel}`}
+            accessibilityLabel={`Who can see this post? ${audienceLabel}`}
             accessibilityState={{ expanded: audienceOpen }}
             disabled={busy}
             onPress={() => setAudienceOpen((open) => !open)}
@@ -765,7 +767,7 @@ export default function ReelComposerScreen() {
 
         <View style={styles.field}>
           <Text style={[styles.sectionLabel, { color: colors.discoverForeground }]}>
-            Allow people to download this Reel?
+            Allow people to download this post?
           </Text>
           <Pressable
             accessibilityRole="button"
@@ -856,7 +858,7 @@ export default function ReelComposerScreen() {
 
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Post Reel"
+          accessibilityLabel="Share post"
           accessibilityState={{ disabled: !canPost, busy }}
           disabled={!canPost}
           onPress={() => void postReel()}

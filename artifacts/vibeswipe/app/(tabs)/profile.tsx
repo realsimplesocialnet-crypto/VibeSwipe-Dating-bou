@@ -2,6 +2,8 @@ import {
   getGetBlockedProfilesQueryKey,
   getGetDiscoverProfilesQueryKey,
   getGetMatchesQueryKey,
+  getGetMyReelsQueryKey,
+  getMyReels,
   useGetBlockedProfiles,
   useGetMyProfile,
   useGetVibeSwipeSettings,
@@ -10,7 +12,7 @@ import {
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { Platform } from "react-native";
 import { useAuth } from "@clerk/expo";
-import { useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { router } from "expo-router";
 import { ActivityIndicator, Alert, Image, Modal, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -35,6 +37,15 @@ export default function ProfileScreen() {
   const blockedProfiles = useGetBlockedProfiles();
   const unblockProfile = useUnblockProfile();
   const queryClient = useQueryClient();
+  const myPosts = useInfiniteQuery({
+    queryKey: getGetMyReelsQueryKey(),
+    initialPageParam: undefined as string | undefined,
+    queryFn: ({ pageParam, signal }) => getMyReels(pageParam ? { cursor: pageParam } : undefined, { signal }),
+    getNextPageParam: (page) => page.nextCursor ?? undefined,
+    staleTime: 30_000,
+  });
+  const loadedPosts = myPosts.data?.pages.reduce((n, p) => n + p.items.length, 0) ?? 0;
+  const postCountLabel = myPosts.data ? `${loadedPosts}${myPosts.hasNextPage ? "+" : ""} ${loadedPosts === 1 && !myPosts.hasNextPage ? "post" : "posts"}` : "";
   useEffect(() => {
     let active = true;
     void getToken().then((value) => {
@@ -112,6 +123,7 @@ export default function ProfileScreen() {
               {travel ? <View style={[styles.travelBadge, { backgroundColor: colors.profileChip }]}><Feather name="navigation" size={11} color={colors.profileChipForeground} /><Text numberOfLines={1} style={[styles.travelBadgeText, { color: colors.profileChipForeground }]}>Traveling · {travel}</Text></View> : null}
             </View>
           ) : null}
+          {postCountLabel ? <Text testID="profile-post-count" style={[styles.meta, { color: colors.profileLabel, marginTop: 8, fontSize: 14, fontWeight: "800" }]}>{postCountLabel}</Text> : null}
           <ProfileFollowStats profileId={user.id} viewerId={user.id} showAction={false} />
           <ReferralProfileCard />
           <Pressable testID="edit-profile" onPress={() => router.push("/edit-profile")} style={({ pressed }) => [styles.editButton, { height: tight ? 42 : 48, marginTop: tight ? 8 : 12, backgroundColor: colors.profileEdit, transform: [{ scale: pressed ? 0.98 : 1 }] }]}>

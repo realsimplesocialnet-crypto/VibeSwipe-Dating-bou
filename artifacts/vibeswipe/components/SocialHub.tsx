@@ -59,7 +59,7 @@ function useNoticeReader() {
   };
 }
 
-function Screen({ title, sub, back, children }: { title: string; sub?: string; back?: boolean; children: ReactNode }) {
+function Screen({ title, sub, back, home, children }: { title: string; sub?: string; back?: boolean; home?: boolean; children: ReactNode }) {
   const c = usePremiumColors();
   const insets = useSafeAreaInsets();
   const top = Platform.OS === "web" ? 67 : insets.top;
@@ -70,6 +70,12 @@ function Screen({ title, sub, back, children }: { title: string; sub?: string; b
           <Pressable onPress={() => (router.canGoBack() ? router.back() : router.replace("/(tabs)/activity" as never))} testID="button-back-activity" accessibilityRole="button" accessibilityLabel="Back to Activity" style={[s.back, { backgroundColor: c.profileCard, borderColor: c.border }]}>
             <Feather name="arrow-left" size={16} color={c.foreground} />
             <Text style={[s.backText, { color: c.foreground }]}>Activity</Text>
+          </Pressable>
+        )}
+        {home && (
+          <Pressable onPress={() => (router.canGoBack() ? router.back() : router.replace("/(tabs)" as never))} testID="button-back-home" accessibilityRole="button" accessibilityLabel="Back to Home" style={[s.back, { backgroundColor: c.profileCard, borderColor: c.border }]}>
+            <Feather name="arrow-left" size={16} color={c.foreground} />
+            <Text style={[s.backText, { color: c.foreground }]}>Home</Text>
           </Pressable>
         )}
         <Text style={[s.title, { color: c.foreground }]} accessibilityRole="header">{title}</Text>
@@ -104,13 +110,12 @@ export function ActivityOverview() {
   const [readError, setReadError] = useState("");
   const counts = notes.data?.unreadCounts;
   const cards = [
-    { key: "matches", title: "Matches", to: "/(tabs)/matches", count: counts?.matches ?? 0, icon: "heart" as const, color: "#ed4b89" },
-    { key: "likes", title: "Likes", to: "/(tabs)/activity/likes", count: counts?.likes ?? 0, icon: "thumbs-up" as const, color: "#3b82f6" },
-    { key: "views", title: "Views", to: "/(tabs)/activity/views", count: counts?.views ?? 0, icon: "eye" as const, color: "#16a394" },
+    { key: "messages", title: "Messages", to: "/(tabs)/views", count: counts?.messages ?? 0, icon: "send" as const, color: "#ed4b89" },
+    { key: "views", title: "Profile views", to: "/(tabs)/activity/views", count: counts?.views ?? 0, icon: "eye" as const, color: "#16a394" },
     { key: "followers", title: "Followers", to: me.data?.id ? `/followers/${me.data.id}` : "", count: counts?.follows ?? 0, icon: "user" as const, color: "#8b5cf6" },
   ];
   const items = useMemo(() => (notes.data?.notifications ?? [])
-    .filter(n => n.type === "new_match" || n.type === "new_like" || n.type === "new_super_like" || n.type === "profile_view" || n.type === "new_follow")
+    .filter(n => n.type === "profile_view" || n.type === "new_follow")
     .slice()
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()), [notes.data?.notifications]);
 
@@ -143,7 +148,7 @@ export function ActivityOverview() {
   }
 
   return (
-    <Screen title="Activity">
+    <Screen home title="Activity">
       <ScrollView contentContainerStyle={[s.activityContent, { paddingBottom: insets.bottom + 110 }]}>
         <View testID="activity-summary" accessibilityLabel="Activity summary" style={s.activityGrid}>
           {cards.map((card) => (

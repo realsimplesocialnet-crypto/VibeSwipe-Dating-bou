@@ -1822,6 +1822,8 @@ export const GetProfileFollowSummaryParams = zod.object({
   "profileId": zod.coerce.string().min(1)
 })
 
+export const getProfileFollowSummaryResponsePostCountMin = 0;
+
 export const getProfileFollowSummaryResponseFollowersCountMin = 0;
 
 export const getProfileFollowSummaryResponseFollowingCountMin = 0;
@@ -1829,6 +1831,7 @@ export const getProfileFollowSummaryResponseFollowingCountMin = 0;
 
 
 export const GetProfileFollowSummaryResponse = zod.object({
+  "postCount": zod.int().min(getProfileFollowSummaryResponsePostCountMin).optional().describe('Number of this profile\'s posts visible to the signed-in viewer'),
   "followersCount": zod.int().min(getProfileFollowSummaryResponseFollowersCountMin),
   "followingCount": zod.int().min(getProfileFollowSummaryResponseFollowingCountMin),
   "isFollowing": zod.boolean(),
@@ -1877,6 +1880,8 @@ export const FollowProfileParams = zod.object({
   "profileId": zod.coerce.string().min(1)
 })
 
+export const followProfileResponsePostCountMin = 0;
+
 export const followProfileResponseFollowersCountMin = 0;
 
 export const followProfileResponseFollowingCountMin = 0;
@@ -1884,6 +1889,7 @@ export const followProfileResponseFollowingCountMin = 0;
 
 
 export const FollowProfileResponse = zod.object({
+  "postCount": zod.int().min(followProfileResponsePostCountMin).optional().describe('Number of this profile\'s posts visible to the signed-in viewer'),
   "followersCount": zod.int().min(followProfileResponseFollowersCountMin),
   "followingCount": zod.int().min(followProfileResponseFollowingCountMin),
   "isFollowing": zod.boolean(),
@@ -3069,6 +3075,149 @@ export const TranscodeStoryVideoResponse = zod.object({
   "duration": zod.number().gt(transcodeStoryVideoResponseDurationExclusiveMin).max(transcodeStoryVideoResponseDurationMax),
   "width": zod.int().min(1).max(transcodeStoryVideoResponseWidthMax),
   "height": zod.int().min(1).max(transcodeStoryVideoResponseHeightMax)
+})
+
+
+/**
+ * @summary Chronological social posts from followed accounts or public Explore posts
+ */
+export const getSocialFeedQueryCursorMax = 200;
+
+export const getSocialFeedQueryLimitDefault = 12;
+export const getSocialFeedQueryLimitMax = 24;
+
+export const getSocialFeedQueryModeDefault = `home`;
+export const getSocialFeedQueryQMin = 2;
+export const getSocialFeedQueryQMax = 120;
+
+
+
+export const GetSocialFeedQueryParams = zod.object({
+  "cursor": zod.coerce.string().max(getSocialFeedQueryCursorMax).optional(),
+  "limit": zod.coerce.number().int().min(1).max(getSocialFeedQueryLimitMax).default(getSocialFeedQueryLimitDefault),
+  "mode": zod.enum(['home', 'explore']).default(getSocialFeedQueryModeDefault),
+  "q": zod.coerce.string().min(getSocialFeedQueryQMin).max(getSocialFeedQueryQMax).optional()
+})
+
+export const getSocialFeedResponseItemsItemViewCountMin = 0;
+
+export const getSocialFeedResponseItemsItemShareCountMin = 0;
+
+export const getSocialFeedResponseItemsItemSaveCountMin = 0;
+
+export const getSocialFeedResponseItemsItemRepostCountMin = 0;
+
+
+
+export const GetSocialFeedResponse = zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.uuid(),
+  "creatorId": zod.string(),
+  "creatorName": zod.string(),
+  "creatorLocation": zod.string(),
+  "creatorVerified": zod.boolean(),
+  "creatorPhoto": zod.string().nullable(),
+  "creatorFollowedByMe": zod.boolean(),
+  "canComment": zod.boolean(),
+  "canDownload": zod.boolean(),
+  "videoReference": zod.string(),
+  "mediaType": zod.enum(['video', 'slides']),
+  "audience": zod.enum(['public', 'friends']),
+  "slideReferences": zod.array(zod.string()),
+  "caption": zod.string(),
+  "soundtrack": zod.union([zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "artist": zod.string(),
+  "category": zod.string(),
+  "audioUrl": zod.url(),
+  "license": zod.string(),
+  "licenseUrl": zod.url(),
+  "sourceUrl": zod.url(),
+  "attribution": zod.string()
+}),zod.null()]),
+  "durationSeconds": zod.number().nullable(),
+  "likeCount": zod.int(),
+  "commentCount": zod.int(),
+  "viewCount": zod.int().min(getSocialFeedResponseItemsItemViewCountMin),
+  "shareCount": zod.int().min(getSocialFeedResponseItemsItemShareCountMin),
+  "saveCount": zod.int().min(getSocialFeedResponseItemsItemSaveCountMin),
+  "repostCount": zod.int().min(getSocialFeedResponseItemsItemRepostCountMin),
+  "likedByMe": zod.boolean(),
+  "savedByMe": zod.boolean(),
+  "repostedByMe": zod.boolean(),
+  "isOwner": zod.boolean(),
+  "createdAt": zod.coerce.date()
+})),
+  "nextCursor": zod.string().nullable()
+})
+
+
+/**
+ * @summary Edit the signed-in author's post without replacing its media
+ */
+export const UpdateSocialPostParams = zod.object({
+  "reelId": zod.uuid()
+})
+
+export const updateSocialPostBodyCaptionMax = 300;
+
+
+
+export const UpdateSocialPostBody = zod.object({
+  "caption": zod.string().max(updateSocialPostBodyCaptionMax).optional(),
+  "audience": zod.enum(['public', 'friends']).optional(),
+  "allowDownloads": zod.boolean().optional()
+})
+
+export const updateSocialPostResponseViewCountMin = 0;
+
+export const updateSocialPostResponseShareCountMin = 0;
+
+export const updateSocialPostResponseSaveCountMin = 0;
+
+export const updateSocialPostResponseRepostCountMin = 0;
+
+
+
+export const UpdateSocialPostResponse = zod.object({
+  "id": zod.uuid(),
+  "creatorId": zod.string(),
+  "creatorName": zod.string(),
+  "creatorLocation": zod.string(),
+  "creatorVerified": zod.boolean(),
+  "creatorPhoto": zod.string().nullable(),
+  "creatorFollowedByMe": zod.boolean(),
+  "canComment": zod.boolean(),
+  "canDownload": zod.boolean(),
+  "videoReference": zod.string(),
+  "mediaType": zod.enum(['video', 'slides']),
+  "audience": zod.enum(['public', 'friends']),
+  "slideReferences": zod.array(zod.string()),
+  "caption": zod.string(),
+  "soundtrack": zod.union([zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "artist": zod.string(),
+  "category": zod.string(),
+  "audioUrl": zod.url(),
+  "license": zod.string(),
+  "licenseUrl": zod.url(),
+  "sourceUrl": zod.url(),
+  "attribution": zod.string()
+}),zod.null()]),
+  "durationSeconds": zod.number().nullable(),
+  "likeCount": zod.int(),
+  "commentCount": zod.int(),
+  "viewCount": zod.int().min(updateSocialPostResponseViewCountMin),
+  "shareCount": zod.int().min(updateSocialPostResponseShareCountMin),
+  "saveCount": zod.int().min(updateSocialPostResponseSaveCountMin),
+  "repostCount": zod.int().min(updateSocialPostResponseRepostCountMin),
+  "likedByMe": zod.boolean(),
+  "savedByMe": zod.boolean(),
+  "repostedByMe": zod.boolean(),
+  "isOwner": zod.boolean(),
+  "createdAt": zod.coerce.date()
 })
 
 

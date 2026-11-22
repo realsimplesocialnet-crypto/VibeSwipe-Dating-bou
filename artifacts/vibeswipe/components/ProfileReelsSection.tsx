@@ -84,7 +84,7 @@ export function ProfileReelsSection({
   const reels: Reel[] = current.data?.pages.flatMap((page) => page.items) ?? [];
   const tileWidth = Math.max(72, Math.floor((sectionWidth - 24 - 8) / 3));
   const tabs: { id: MediaTab; label: string; icon: "grid" | "repeat" | "bookmark" | "heart" }[] = [
-    { id: "reels", label: "Reels", icon: "grid" },
+    { id: "reels", label: "Posts", icon: "grid" },
     { id: "reposted", label: "Reposts", icon: "repeat" },
     ...(own ? [{ id: "saved" as const, label: "Saved", icon: "bookmark" as const }] : []),
     { id: "liked", label: "Likes", icon: "heart" },
@@ -197,7 +197,7 @@ function ReelThumbnail({
   const colors = usePremiumColors();
   const viewCount = Number(reel.viewCount ?? 0);
   const viewLabel = `${formatViewCount(viewCount)} ${viewCount === 1 ? "view" : "views"}`;
-  const slideshow = reel.mediaType === "slides" && reel.slideReferences.length > 1;
+  const slideshow = reel.mediaType === "slides" && reel.slideReferences.length > 0;
   const uri = mediaUri(slideshow ? reel.slideReferences[0] : reel.videoReference);
   const source = useMemo(
     () => uri && token && !slideshow ? { uri, headers: { Authorization: `Bearer ${token}` } } : null,
@@ -262,7 +262,7 @@ const styles = StyleSheet.create({
 });
 
 function emptyCopy(tab: MediaTab, own: boolean): string {
-  if (tab === "reels") return own ? "No Reels yet." : "No Reels to show yet.";
+  if (tab === "reels") return own ? "Share your first post from Create." : "No posts to show yet.";
   if (tab === "reposted") return own ? "No reposts yet." : "No reposts to show yet.";
   if (tab === "saved") return "Saved videos are private to you.";
   return own ? "No liked videos yet." : "No liked videos to show.";

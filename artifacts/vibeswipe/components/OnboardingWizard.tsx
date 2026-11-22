@@ -45,12 +45,12 @@ const STEPS = [
   "Last name",
   "Age",
   "Gender",
-  "Looking for",
+  "Community",
   "Profile picture",
   "Bio",
   "Hobbies",
   "Work / occupation",
-  "Preferences",
+  "Finish",
 ];
 
 const COUNTRIES = Country.getAllCountries().sort((a, b) =>
@@ -388,8 +388,20 @@ export function OnboardingWizard() {
       ) : null}
 
       {step === 4 ? (
-        <StepFrame title="Who would you like to meet?" subtitle="You can update this preference later.">
-          <ChoiceGrid values={["Everyone", "Women", "Men", "Non-binary people"]} selected={values.lookingFor} onSelect={(value) => update("lookingFor", value)} />
+        <StepFrame title="A space for everyday moments." subtitle="VibeSwipes is for adults 18+ to share photos, Reels and Stories and to meet people through follows.">
+          {[
+            ["users", "Follow people whose everyday you enjoy. Their posts fill your Home feed."],
+            ["lock", "Switch to a private account any time in Settings so only approved followers see your posts."],
+            ["shield", "Be kind. Report or block anyone who makes you uncomfortable."],
+          ].map(([icon, copy]) => (
+            <View key={icon} style={{ flexDirection: "row", gap: 12, alignItems: "flex-start", marginBottom: 16 }}>
+              <Feather name={icon as "users"} size={20} color={colors.primary} />
+              <Text style={{ flex: 1, color: colors.foreground, fontSize: 15, lineHeight: 21 }}>{copy}</Text>
+            </View>
+          ))}
+          <Pressable accessibilityRole="link" onPress={() => router.push("/community-guidelines" as never)}>
+            <Text style={{ color: colors.primary, fontWeight: "700" }}>Read the community guidelines</Text>
+          </Pressable>
         </StepFrame>
       ) : null}
 
@@ -442,36 +454,8 @@ export function OnboardingWizard() {
       ) : null}
 
       {step === 9 ? (
-        <StepFrame title="Set your discovery preferences." subtitle="Choose the age range and distance for people you see.">
-          <Text style={[styles.fieldLabel, { color: colors.foreground }]}>Age range</Text>
-          <View style={styles.ageRow}>
-            <TextInput
-              testID="preference-age-min"
-              value={values.ageMin}
-              onChangeText={(value) => update("ageMin", value.replace(/\D/g, "").slice(0, 3))}
-              keyboardType="number-pad"
-              placeholder="18"
-              placeholderTextColor={colors.mutedForeground}
-              style={[styles.input, styles.rangeInput, { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.card }]}
-            />
-            <Text style={{ color: colors.mutedForeground }}>to</Text>
-            <TextInput
-              testID="preference-age-max"
-              value={values.ageMax}
-              onChangeText={(value) => update("ageMax", value.replace(/\D/g, "").slice(0, 3))}
-              keyboardType="number-pad"
-              placeholder="35"
-              placeholderTextColor={colors.mutedForeground}
-              style={[styles.input, styles.rangeInput, { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.card }]}
-            />
-          </View>
-          <Text style={[styles.fieldLabel, { color: colors.foreground, marginTop: 24 }]}>Maximum distance</Text>
-          <ChoiceGrid
-            values={["10 km", "25 km", "50 km", "100 km", "250 km", "500 km"]}
-            selected={`${values.distanceKm} km`}
-            onSelect={(value) => update("distanceKm", Number(value.replace(/\D/g, "")))}
-          />
-          <Text style={[styles.fieldLabel, { color: colors.foreground, marginTop: 24 }]}>Referral code (optional)</Text>
+        <StepFrame title="Almost there." subtitle="Add a friend's referral code if you have one, then finish setup.">
+          <Text style={[styles.fieldLabel, { color: colors.foreground }]}>Referral code (optional)</Text>
           <TextInput
             testID="onboarding-referral-code"
             value={values.referralCode}

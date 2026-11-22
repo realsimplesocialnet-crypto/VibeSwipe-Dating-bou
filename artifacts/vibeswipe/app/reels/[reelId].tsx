@@ -154,7 +154,7 @@ export default function ProfileReelScreen() {
     };
   }, [getToken]);
 
-  const slideshow = reelQuery.data?.mediaType === "slides" && reelQuery.data.slideReferences.length > 1;
+  const slideshow = reelQuery.data?.mediaType === "slides" && reelQuery.data.slideReferences.length > 0;
   const slideReferences = reelQuery.data?.slideReferences ?? [];
   const uri = reelQuery.data && !slideshow ? mediaUri(reelQuery.data.videoReference) : null;
   const soundtrack = reelQuery.data?.soundtrack ?? null;

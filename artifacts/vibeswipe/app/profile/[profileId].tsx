@@ -9,6 +9,7 @@ import {
   useBlockProfile,
   useCreateReaction,
   useUnlikeProfile,
+  useStartDirectChat,
   useGetDailyLikeStatus,
   useGetMyProfile,
   useGetProfileById,
@@ -57,6 +58,7 @@ export default function PublicProfileScreen() {
   const report = useReportProfile();
   const reaction = useCreateReaction();
   const unlike = useUnlikeProfile();
+  const startChat = useStartDirectChat();
   const dailyLikeStatus = useGetDailyLikeStatus({ query: { queryKey: getGetDailyLikeStatusQueryKey() } });
   const profile = useGetProfileById(id, { query: { queryKey: getGetProfileByIdQueryKey(id), enabled: !!id, staleTime: 10 * 60_000, gcTime: 30 * 60_000 } });
   const datingState = useGetProfileDatingState(id, { query: { queryKey: getGetProfileDatingStateQueryKey(id), enabled: !!id, staleTime: 10 * 60_000, gcTime: 30 * 60_000 } });
@@ -70,6 +72,17 @@ export default function PublicProfileScreen() {
   function goBack() {
     if (router.canGoBack()) router.back();
     else router.replace((fromLikes ? "/(tabs)/activity/likes" : "/(tabs)/activity") as never);
+  }
+  async function openDirectChat() {
+    setActionError("");
+    if (matchId) { router.push({ pathname: "/chat/[matchId]", params: { matchId } }); return; }
+    try {
+      const conversation = await startChat.mutateAsync({ data: { recipientId: id } });
+      router.push({ pathname: "/direct-chat/[conversationId]", params: { conversationId: conversation.id } } as never);
+    } catch (error) {
+      const status = (error as { status?: number }).status;
+      setActionError(status === 403 ? "This member only accepts messages from people they allow." : "Couldn't open a chat. Try again.");
+    }
   }
   function openMatchedChat() {
     if (!matchId || datingState.isError) return;
@@ -245,7 +258,6 @@ export default function PublicProfileScreen() {
   const facts: { icon: ComponentProps<typeof Feather>["name"]; label: string; value: string; testID: string }[] = [
     ...(showAge ? [{ icon: "calendar" as const, label: "Age", value: String(user.age), testID: "public-profile-age" }] : []),
     { icon: "briefcase", label: "Work", value: work, testID: "public-profile-work" },
-    { icon: "heart", label: "Looking for", value: user.lookingFor || "Not shared", testID: "public-profile-looking-for" },
     { icon: "user", label: "Gender", value: user.gender || "Not shared", testID: "public-profile-gender" },
   ];
   const avatarSource = photos.length ? profileImagePreviewSource(photos[0], token) : undefined;
@@ -260,35 +272,17 @@ export default function PublicProfileScreen() {
   const datingAction = (
     <View style={{ flex: 1, minWidth: 0, alignItems: "stretch" }}>
       <Pressable
-        testID={matchId ? "public-profile-message" : "public-profile-like"}
+        testID="public-profile-message"
         accessibilityRole="button"
-        accessibilityLabel={matchId ? `Message ${user.name}` : alreadyLiked ? `Unlike ${user.name}` : superLiked ? `Super liked ${user.name}` : fromLikes ? `Like ${user.name} back` : `Like ${user.name}`}
-        accessibilityState={{ disabled: dateActionDisabled }}
-        disabled={dateActionDisabled}
-        onPress={() => {
-          if (matchId) { openMatchedChat(); return; }
-          if (datingState.isError) { void datingState.refetch(); return; }
-          void reactLike();
-        }}
-        style={({ pressed }) => [styles.profileActionButton, {
-          backgroundColor: alreadyLiked && !matchId ? "transparent" : colors.profileEdit,
-          borderColor: colors.profileEdit,
-          opacity: dateActionDisabled ? 0.58 : pressed ? 0.82 : 1,
-        }]}
+        accessibilityLabel={`Message ${user.name}`}
+        disabled={startChat.isPending}
+        onPress={() => void openDirectChat()}
+        style={({ pressed }) => [styles.profileActionButton, { backgroundColor: "transparent", borderColor: colors.profileEdit, opacity: startChat.isPending ? 0.58 : pressed ? 0.82 : 1 }]}
       >
-        {reaction.isPending || unlike.isPending || actionStatusLoading ? <ActivityIndicator size="small" color={alreadyLiked && !matchId ? colors.profileEdit : colors.profileEditForeground} /> : <Feather name={matchId ? "message-circle" : superLiked ? "star" : "heart"} size={17} color={alreadyLiked && !matchId ? colors.profileEdit : colors.profileEditForeground} />}
-        <Text style={{ color: alreadyLiked && !matchId ? colors.profileEdit : colors.profileEditForeground, fontWeight: "800", fontSize: 13 }}>
-          {matchId ? "Message"
-            : actionStatusLoading ? (fromLikes ? "Like Back" : "Like")
-              : datingState.isError ? "Retry"
-                : superLiked ? "Super liked"
-                  : alreadyLiked ? "Liked"
-                  : likeOut ? "No likes left"
-                    : fromLikes ? "Like Back" : "Like"}
-        </Text>
+        {startChat.isPending ? <ActivityIndicator size="small" color={colors.profileEdit} /> : <Feather name="send" size={16} color={colors.profileEdit} />}
+        <Text style={{ color: colors.profileEdit, fontWeight: "800", fontSize: 13 }}>Message</Text>
       </Pressable>
-      {actionError ? <Text accessibilityRole="alert" style={{ color: colors.destructive, fontSize: 10, textAlign: "center", marginTop: 3 }}>{actionError}</Text>
-        : likeOut && !alreadyLiked && !matchId ? <Text style={{ color: colors.profileMuted, fontSize: 10, textAlign: "center", marginTop: 3 }}>Today’s likes are used up.</Text> : null}
+      {actionError ? <Text accessibilityRole="alert" style={{ color: colors.destructive, fontSize: 10, textAlign: "center", marginTop: 3 }}>{actionError}</Text> : null}
     </View>
   );
 

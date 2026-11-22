@@ -3,11 +3,11 @@ name: Installed-app experience
 description: Public installer-page behavior and Android WebView app detection.
 ---
 
-The owner creates Android APKs with FreeWebToApk. Treat the APK as a WebView wrapper that loads the live website at `myage.beauty`; website changes are how updates reach that installed wrapper.
+The owner previously created Android APKs with FreeWebToApk, loading the live website at `myage.beauty`. That explains existing wrapper behavior, but is not the current native product direction.
 
-**Why:** The owner clarified that Replit Agent's job is only the website, not creating or maintaining the APK.
+**Why:** The owner has since explicitly requested a real native Android app and clarified that the social conversion must not be a web app.
 
-**How to apply:** Never use Expo, build a native app, or create or replace an APK. The public root opens the VIBESWIPES welcome screen with Create Account and Login actions. A direct APK download is available only in regular Android browsers and is hidden inside WebView/standalone app shells, so converted APKs do not show an install-again link. Keep browser-native Add to Home Screen available for PWAs.
+**How to apply:** Use the existing native Expo project for the requested Android social app; see social-product-direction.md. Do not add install prompts or APK download links to the website; the owner subsequently asked to remove them. Native source work and producing a signed installer are separate deliverables.
 
 If the owner later asks to expose an APK download, serve the exact uploaded bytes and verify its size and hash; use the Android APK content type and `VIBESWIPES.apk` filename. Never mistake an `.apk.html` page for an installer.
 

@@ -26,7 +26,7 @@ export const EMPTY_SETUP: SetupData = {
   lastName: "",
   age: "",
   gender: "",
-  lookingFor: "",
+  lookingFor: "Everyone",
   photos: [],
   bio: "",
   country: "",
@@ -57,7 +57,7 @@ export function asSetupData(value: Record<string, unknown>): SetupData {
     lastName: typeof value.lastName === "string" ? value.lastName : "",
     age: typeof value.age === "string" ? value.age : "",
     gender: typeof value.gender === "string" ? value.gender : "",
-    lookingFor: typeof value.lookingFor === "string" ? value.lookingFor : "",
+    lookingFor: typeof value.lookingFor === "string" && value.lookingFor ? value.lookingFor : "Everyone",
     photos: Array.isArray(value.photos)
       ? value.photos.filter((photo): photo is string => typeof photo === "string")
       : [],
@@ -104,27 +104,11 @@ export function getOnboardingStepError(
   if (step === 3 && !values.gender) {
     return "Choose a gender to continue.";
   }
-  if (step === 4 && !values.lookingFor) {
-    return "Choose who you would like to meet.";
-  }
   if (step === 5 && values.photos.length !== 1) {
     return "Add one profile picture to continue.";
   }
   if (step === 0 && (!values.countryCode || !values.countrySource)) {
     return "Select a country to continue.";
-  }
-  if (step === 9) {
-    const min = Number(values.ageMin);
-    const max = Number(values.ageMax);
-    if (!Number.isInteger(min) || min < 18 || min > 120) {
-      return "Set the minimum age between 18 and 120.";
-    }
-    if (!Number.isInteger(max) || max < min || max > 120) {
-      return "The maximum age must be at least the minimum and no more than 120.";
-    }
-    if (values.distanceKm < 1 || values.distanceKm > 500) {
-      return "Choose a distance from 1 to 500 km.";
-    }
   }
   return null;
 }

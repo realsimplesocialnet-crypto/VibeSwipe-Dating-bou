@@ -1266,6 +1266,11 @@ export interface ProfileView {
 }
 
 export interface ProfileFollowSummary {
+  /**
+     * Number of this profile's posts visible to the signed-in viewer
+     * @minimum 0
+     */
+  postCount?: number;
   /** @minimum 0 */
   followersCount: number;
   /** @minimum 0 */
@@ -1735,6 +1740,21 @@ export interface ReelPage {
   nextCursor: string | null;
 }
 
+export type SocialPostUpdateAudience = typeof SocialPostUpdateAudience[keyof typeof SocialPostUpdateAudience];
+
+
+export const SocialPostUpdateAudience = {
+  public: 'public',
+  friends: 'friends',
+} as const;
+
+export interface SocialPostUpdate {
+  /** @maxLength 300 */
+  caption?: string;
+  audience?: SocialPostUpdateAudience;
+  allowDownloads?: boolean;
+}
+
 export type ReelInputAudience = typeof ReelInputAudience[keyof typeof ReelInputAudience];
 
 
@@ -2115,6 +2135,32 @@ cursor?: string;
 export type CheckAdditionalProfilePhoto200 = {
   mediaReference: string;
 };
+
+export type GetSocialFeedParams = {
+/**
+ * @maxLength 200
+ */
+cursor?: string;
+/**
+ * @minimum 1
+ * @maximum 24
+ */
+limit?: number;
+mode?: GetSocialFeedMode;
+/**
+ * @minLength 2
+ * @maxLength 120
+ */
+q?: string;
+};
+
+export type GetSocialFeedMode = typeof GetSocialFeedMode[keyof typeof GetSocialFeedMode];
+
+
+export const GetSocialFeedMode = {
+  home: 'home',
+  explore: 'explore',
+} as const;
 
 export type GetReelsFeedParams = {
 /**
