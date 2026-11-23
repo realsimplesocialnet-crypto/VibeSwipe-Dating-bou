@@ -1,7 +1,7 @@
-import { memo, useEffect, useRef, useState, type TouchEvent as ReactTouchEvent } from "react";
+import { memo, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent, type TouchEvent as ReactTouchEvent } from "react";
 import { Link } from "wouter";
 import { getGetMediaPreviewQueryKey, useGetMediaPreview, type Reel } from "@workspace/api-client-react";
-import { ChevronRight, MapPin, Music2, Pause, Play, Search } from "lucide-react";
+import { ChevronRight, Heart, MapPin, Music2, Pause, Play, Search } from "lucide-react";
 import { VerifiedBadge } from "@/components/verified-badge";
 import { ReelAvatar } from "@/components/reels/reel-avatar";
 import { formatCount, reelMediaUrl } from "@/lib/reels";
@@ -12,10 +12,11 @@ import { QuietSpinner } from "@/components/ui/quiet-spinner";
 type Props = {
   reel: Reel; index: number; active: boolean; near: boolean; posterEnabled: boolean;
   preload: "auto" | "metadata"; pageHidden: boolean;
-  compact: boolean; navigationVisible: boolean; returnTo: string;
+  compact: boolean; navigationVisible: boolean; returnTo: string; uiVisible: boolean;
   likePending: boolean; savePending: boolean;
   onLike: (reel: Reel) => void; onComment: (reelId: string) => void;
   onShare: (reel: Reel) => void; onSave: (reel: Reel) => void;
+  onOverlayVisibilityChange: (visible: boolean) => void;
   onSearchSuggestion: (query: string) => void;
   onView: (reel: Reel) => void;
   offlineSaved: boolean; onAutoCache: (reel: Reel) => void;
@@ -42,13 +43,21 @@ function ReelActionIcon({ name }: { name: ReelIconName }) {
   </svg>;
 }
 
-export const ReelSlide = memo(function ReelSlide({ reel, index, active, near, posterEnabled, preload, pageHidden, compact, navigationVisible, returnTo, likePending, savePending, onLike, onComment, onShare, onSave, onSearchSuggestion, onView, offlineSaved, onAutoCache, onNavigateFeed }: Props) {
+export const ReelSlide = memo(function ReelSlide({ reel, index, active, near, posterEnabled, preload, pageHidden, compact, navigationVisible, returnTo, uiVisible, likePending, savePending, onLike, onComment, onShare, onSave, onOverlayVisibilityChange, onSearchSuggestion, onView, offlineSaved, onAutoCache, onNavigateFeed }: Props) {
   const video = useRef<HTMLVideoElement>(null);
   const progressInput = useRef<HTMLInputElement>(null);
   const soundtrackAudio = useRef<HTMLAudioElement>(null);
   const autoCacheRequested = useRef(false);
   const viewRecorded = useRef(false);
   const flashTimer = useRef<number | null>(null);
+  const holdTimer = useRef<number | null>(null);
+  const holdStart = useRef<{ x: number; y: number } | null>(null);
+  const holdActive = useRef(false);
+  const suppressHoldClick = useRef(false);
+  const lastTap = useRef<{ at: number; paused: boolean; uiVisible: boolean } | null>(null);
+  const lastTapTimer = useRef<number | null>(null);
+  const likeBurstTimer = useRef<number | null>(null);
+  const wasActive = useRef(false);
   const mediaTouch = useRef<{ x: number; y: number; axis: "undecided" | "horizontal" | "vertical" } | null>(null);
   const skipNextTap = useRef(false);
   const [slideIndex, setSlideIndex] = useState(0);
@@ -76,6 +85,7 @@ export const ReelSlide = memo(function ReelSlide({ reel, index, active, near, po
   const [failed, setFailed] = useState(false);
   const [ready, setReady] = useState(false);
   const [flash, setFlash] = useState<"play" | "pause" | null>(null);
+  const [likeBurst, setLikeBurst] = useState(false);
   const progressValue = useRef(0);
 
   useEffect(() => {
@@ -114,7 +124,12 @@ export const ReelSlide = memo(function ReelSlide({ reel, index, active, near, po
 
   useEffect(() => { if (!active) setUserPaused(false); }, [active]);
   useEffect(() => { updateProgress(0); setSlideIndex(0); setSlideDragOffset(0); setDraggingSlide(false); setReady(false); setCaptionExpanded(false); }, [reel.id]);
-  useEffect(() => () => { if (flashTimer.current !== null) window.clearTimeout(flashTimer.current); }, []);
+  useEffect(() => () => {
+    if (flashTimer.current !== null) window.clearTimeout(flashTimer.current);
+    if (holdTimer.current !== null) window.clearTimeout(holdTimer.current);
+    if (lastTapTimer.current !== null) window.clearTimeout(lastTapTimer.current);
+    if (likeBurstTimer.current !== null) window.clearTimeout(likeBurstTimer.current);
+  }, []);
   useEffect(() => {
     const audio = soundtrackAudio.current;
     if (!audio) return;
@@ -128,7 +143,17 @@ export const ReelSlide = memo(function ReelSlide({ reel, index, active, near, po
   useEffect(() => {
     const element = video.current;
     if (!element) return;
-    if (!active || pageHidden || userPaused || failed) { element.pause(); soundtrackAudio.current?.pause(); return; }
+    if (!active || pageHidden || userPaused || failed) {
+      element.pause();
+      soundtrackAudio.current?.pause();
+      if (!active && wasActive.current) {
+        element.currentTime = 0;
+        wasActive.current = false;
+      }
+      return;
+    }
+    if (!wasActive.current) element.currentTime = 0;
+    wasActive.current = true;
     element.muted = false;
     const attempt = element.play();
     if (attempt) attempt.then(() => setBlocked(false)).catch((error: unknown) => {
@@ -182,8 +207,100 @@ export const ReelSlide = memo(function ReelSlide({ reel, index, active, near, po
     flashTimer.current = window.setTimeout(() => { flashTimer.current = null; setFlash(null); }, 520);
   }
 
+  function restorePlayback(paused: boolean) {
+    setUserPaused(paused);
+    setBlocked(false);
+    if (paused) {
+      video.current?.pause();
+      soundtrackAudio.current?.pause();
+      return;
+    }
+    if (!active || pageHidden || failed) return;
+    const element = video.current;
+    if (element) {
+      element.muted = false;
+      void element.play().catch(() => setBlocked(true));
+    }
+    if (reel.soundtrack && soundtrackAudio.current) {
+      void soundtrackAudio.current.play().catch(() => undefined);
+    }
+  }
+
+  function showLikeBurst() {
+    setLikeBurst(true);
+    if (likeBurstTimer.current !== null) window.clearTimeout(likeBurstTimer.current);
+    likeBurstTimer.current = window.setTimeout(() => {
+      likeBurstTimer.current = null;
+      setLikeBurst(false);
+    }, 720);
+  }
+
   function handleVideoTap() {
+    const now = performance.now();
+    const previousTap = lastTap.current;
+    if (previousTap && now - previousTap.at <= 320) {
+      lastTap.current = null;
+      if (lastTapTimer.current !== null) window.clearTimeout(lastTapTimer.current);
+      lastTapTimer.current = null;
+      restorePlayback(previousTap.paused);
+      onOverlayVisibilityChange(previousTap.uiVisible);
+      if (!reel.likedByMe) onLike(reel);
+      showLikeBurst();
+      return;
+    }
+
+    lastTap.current = {
+      at: now,
+      paused: userPaused,
+      uiVisible,
+    };
+    if (lastTapTimer.current !== null) window.clearTimeout(lastTapTimer.current);
+    lastTapTimer.current = window.setTimeout(() => {
+      lastTap.current = null;
+      lastTapTimer.current = null;
+    }, 340);
     togglePlayback();
+    onOverlayVisibilityChange(!uiVisible);
+  }
+
+  function clearHoldTimer() {
+    if (holdTimer.current !== null) window.clearTimeout(holdTimer.current);
+    holdTimer.current = null;
+  }
+
+  function startHold(event: ReactPointerEvent<HTMLButtonElement>) {
+    if (event.pointerType === "mouse" && event.button !== 0) return;
+    clearHoldTimer();
+    holdStart.current = { x: event.clientX, y: event.clientY };
+    holdTimer.current = window.setTimeout(() => {
+      holdTimer.current = null;
+      holdActive.current = true;
+      holdStart.current = null;
+      restorePlayback(true);
+      onOverlayVisibilityChange(false);
+      showFlash("pause");
+    }, 240);
+  }
+
+  function moveHold(event: ReactPointerEvent<HTMLButtonElement>) {
+    const start = holdStart.current;
+    if (!start) return;
+    if (Math.hypot(event.clientX - start.x, event.clientY - start.y) > 12) {
+      clearHoldTimer();
+      holdStart.current = null;
+    }
+  }
+
+  function finishHold() {
+    clearHoldTimer();
+    holdStart.current = null;
+    if (!holdActive.current) return;
+    holdActive.current = false;
+    suppressHoldClick.current = true;
+    onOverlayVisibilityChange(true);
+    restorePlayback(false);
+    showFlash("play");
+    window.setTimeout(() => { suppressHoldClick.current = false; }, 360);
   }
 
   function startMediaTouch(event: ReactTouchEvent<HTMLButtonElement>) {
@@ -287,7 +404,7 @@ export const ReelSlide = memo(function ReelSlide({ reel, index, active, near, po
   const src = reelMediaUrl(reel.videoReference);
   const tapLabel = photoReel
     ? `${slideCount > 1 ? `Photo slideshow, ${slideIndex + 1} of ${slideCount}. Swipe left or right to browse.` : "Photo Reel."} Swipe up for the next Reel or down for the previous Reel.${reel.soundtrack ? " Tap to play or pause the soundtrack." : ""}`
-    : `${userPaused || blocked ? "Tap to play" : "Tap to pause"} Reel. Video audio plays automatically.`;
+    : `${userPaused || blocked ? "Tap to play" : "Tap to pause"} Reel and toggle controls. Press and hold to pause, then release to resume. Video audio plays automatically.`;
   const reelReturnParams = new URLSearchParams({ returnTo });
   const creatorProfileReturn = `/reels/${encodeURIComponent(reel.id)}?${reelReturnParams.toString()}`;
   const creatorProfileHref = `/profile/${encodeURIComponent(reel.creatorId)}?returnTo=${encodeURIComponent(creatorProfileReturn)}`;
@@ -301,7 +418,7 @@ export const ReelSlide = memo(function ReelSlide({ reel, index, active, near, po
       {reel.creatorLocation && <span className="reel-location"><MapPin size={13} className="shrink-0 text-white" /><span className="truncate">{reel.creatorLocation}</span></span>}
     </span>
   </span>;
-  return <section className="reel-slide" data-index={index} data-testid={`reel-slide-${reel.id}`} aria-roledescription="Reel" aria-label={`Reel by ${reel.creatorName}`}>
+  return <section className="reel-slide" data-index={index} data-overlay-visible={uiVisible} data-testid={`reel-slide-${reel.id}`} aria-roledescription="Reel" aria-label={`Reel by ${reel.creatorName}`}>
     {photoReel
       ? <div className="reel-photo-slides" data-testid={`reel-photo-slides-${reel.id}`} aria-label={`Photo slide ${slideIndex + 1} of ${slideCount}`}>
         <div className="reel-photo-track" style={{
@@ -359,10 +476,11 @@ export const ReelSlide = memo(function ReelSlide({ reel, index, active, near, po
     /> : null}
     {!photoReel && !ready && !posterUrl && !failed && <div className="reel-loading" aria-hidden="true" />}
     {blocked && active && !pageHidden && !failed && <div className="reel-autoplay-prompt" role="status">Tap the video to play with sound</div>}
-    <button type="button" className={`reel-tap ${photoReel ? "is-slideshow" : ""}`} onTouchStart={startMediaTouch} onTouchMove={moveMediaTouch} onTouchEnd={finishMediaTouch} onTouchCancel={cancelMediaTouch} onClick={() => { if (skipNextTap.current) { skipNextTap.current = false; return; } handleVideoTap(); }} aria-label={tapLabel} aria-pressed={!photoReel && !userPaused && !blocked} data-testid={`button-toggle-reel-playback-${reel.id}`} />
+    <button type="button" className={`reel-tap ${photoReel ? "is-slideshow" : ""}`} onPointerDown={startHold} onPointerMove={moveHold} onPointerUp={finishHold} onPointerCancel={finishHold} onTouchStart={startMediaTouch} onTouchMove={moveMediaTouch} onTouchEnd={finishMediaTouch} onTouchCancel={cancelMediaTouch} onClick={() => { if (suppressHoldClick.current) { suppressHoldClick.current = false; return; } if (skipNextTap.current) { skipNextTap.current = false; return; } handleVideoTap(); }} aria-label={tapLabel} aria-pressed={!photoReel && !userPaused && !blocked} data-testid={`button-toggle-reel-playback-${reel.id}`} />
     {slideshow && <div className="reel-slide-counter" aria-live="polite" data-testid={`text-reel-slide-count-${reel.id}`}>{slideIndex + 1}/{slideCount}</div>}
     {slideshow && <div className="reel-slide-dots" role="group" aria-label="Choose photo slide">{reel.slideReferences.map((_, slide) => <button key={slide} type="button" onClick={() => moveSlideTo(slide)} aria-label={`Show photo ${slide + 1}`} aria-current={slide === slideIndex ? "step" : undefined} data-testid={`button-reel-slide-${reel.id}-${slide + 1}`} />)}</div>}
     {flash && <span className="reel-flash" aria-hidden="true">{flash === "play" ? <Play size={34} fill="currentColor" /> : <Pause size={34} fill="currentColor" />}</span>}
+    {likeBurst && <span className="reel-like-burst" aria-hidden="true"><Heart size={78} fill="currentColor" /></span>}
     {failed && <div className="reel-blocked" role="status" aria-label="Loading video"><QuietSpinner onRetry={retry} /></div>}
     <div className="reel-shade" aria-hidden="true" />
 
@@ -382,7 +500,21 @@ export const ReelSlide = memo(function ReelSlide({ reel, index, active, near, po
     <div className={`reel-meta ${searchSuggestion && !compact ? "has-search" : ""} ${compact ? "is-compact" : ""} ${navigationVisible ? "is-nav-visible" : ""}`}>
       {reel.isOwner ? creatorIdentity : <Link href={creatorProfileHref} aria-label={`Open ${reel.creatorName}'s profile`} data-testid={`link-reel-profile-${reel.id}`} className="inline-flex max-w-full no-underline">{creatorIdentity}</Link>}
       {!compact && reel.caption && <div className="reel-caption-wrap">
-        <p className={`reel-caption ${captionExpanded ? "is-expanded" : ""}`} data-testid={`text-reel-caption-${reel.id}`}>{reel.caption}</p>
+        <p
+          className={`reel-caption ${captionExpanded ? "is-expanded" : ""}`}
+          onClick={reel.caption.length > 96 ? () => setCaptionExpanded((expanded) => !expanded) : undefined}
+          onKeyDown={event => {
+            if (reel.caption.length > 96 && (event.key === "Enter" || event.key === " ")) {
+              event.preventDefault();
+              setCaptionExpanded((expanded) => !expanded);
+            }
+          }}
+          role={reel.caption.length > 96 ? "button" : undefined}
+          tabIndex={reel.caption.length > 96 ? 0 : undefined}
+          aria-expanded={reel.caption.length > 96 ? captionExpanded : undefined}
+          aria-label={reel.caption.length > 96 ? (captionExpanded ? "Collapse caption" : "Expand caption") : undefined}
+          data-testid={`text-reel-caption-${reel.id}`}
+        >{reel.caption}</p>
         {reel.caption.length > 96 && <button type="button" className="reel-caption-more" onClick={() => setCaptionExpanded((expanded) => !expanded)} aria-expanded={captionExpanded} data-testid={`button-reel-caption-more-${reel.id}`}>{captionExpanded ? "less" : "...more"}</button>}
       </div>}
       {!compact && reel.soundtrack && <div className="reel-track-credit" aria-label={reel.soundtrack.attribution}>

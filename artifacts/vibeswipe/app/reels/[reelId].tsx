@@ -40,7 +40,7 @@ import { File, Paths } from "expo-file-system";
 import { fetch as expoFetch } from "expo/fetch";
 import * as Clipboard from "expo-clipboard";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, Alert, Keyboard, Linking, Modal, Platform, Pressable, ScrollView, Share, StyleSheet, Text, TextInput, View, useWindowDimensions } from "react-native";
+import { ActivityIndicator, Alert, Keyboard, Linking, Modal, PanResponder, Platform, Pressable, ScrollView, Share, StyleSheet, Text, TextInput, View, useWindowDimensions } from "react-native";
 import { KeyboardAvoidingView, useKeyboardState } from "react-native-keyboard-controller";
 import Svg, { Circle, Path } from "react-native-svg";
 import { useQueryClient } from "@tanstack/react-query";
@@ -128,6 +128,13 @@ export default function ProfileReelScreen() {
     query: { enabled: commentsVisible && Boolean(reelId), refetchInterval: commentsVisible ? 5_000 : false },
   });
   const routeActionOpened = useRef(false);
+  const commentSheetPan = useRef(PanResponder.create({
+    onMoveShouldSetPanResponder: (_, gesture) =>
+      gesture.dy > 8 && Math.abs(gesture.dy) > Math.abs(gesture.dx) * 1.15,
+    onPanResponderRelease: (_, gesture) => {
+      if (gesture.dy > 72) setCommentsVisible(false);
+    },
+  })).current;
 
   useEffect(() => {
     routeActionOpened.current = false;
@@ -805,6 +812,9 @@ export default function ProfileReelScreen() {
         <KeyboardAvoidingView behavior="padding" keyboardVerticalOffset={0} style={styles.commentBackdrop}>
           <Pressable accessibilityRole="button" accessibilityLabel="Close comments" onPress={() => setCommentsVisible(false)} style={StyleSheet.absoluteFill} />
           <View style={[styles.commentSheet, { backgroundColor: colors.card, paddingBottom: keyboardVisible ? 4 : Math.max(insets.bottom, 12) }]}>
+            <View {...commentSheetPan.panHandlers} style={styles.commentHandleArea} accessibilityLabel="Swipe down to close comments">
+              <View style={[styles.commentHandle, { backgroundColor: colors.border }]} />
+            </View>
             <View style={styles.shareHeading}>
               <Text style={[styles.shareTitle, { color: colors.foreground }]}>Comments <Text style={{ color: colors.mutedForeground }}>{reelQuery.data?.commentCount ?? 0}</Text></Text>
               <View style={styles.commentHeadingActions}>
@@ -979,6 +989,8 @@ const styles = StyleSheet.create({
   shareList: { minHeight: 100, maxHeight: 104, marginBottom: 4 },
   commentBackdrop: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.55)" },
   commentSheet: { maxHeight: "68%", minHeight: "46%", borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 16, paddingTop: 12, paddingBottom: 12 },
+  commentHandleArea: { height: 18, alignItems: "center", justifyContent: "center", marginTop: -8, marginBottom: 4 },
+  commentHandle: { width: 38, height: 4, borderRadius: 2 },
   commentHeadingActions: { flexDirection: "row", alignItems: "center", gap: 8 },
   commentPlayback: { minHeight: 34, flexDirection: "row", alignItems: "center", gap: 5, borderRadius: 17, backgroundColor: "rgba(255,255,255,0.08)", paddingHorizontal: 10 },
   commentPlaybackText: { fontSize: 11, fontWeight: "700" },

@@ -120,6 +120,7 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
   const initialFeedMode = new URLSearchParams(window.location.search).get("tab") === "friends" ? "friends" : "reels";
   const [feedMode, setFeedMode] = useState<"reels" | "friends">(initialFeedMode);
   const [active, setActive] = useState(initialHistoryMarker?.activeIndex ?? 0);
+  const [uiVisible, setUiVisible] = useState(true);
   const [activeVisibleReelId, setActiveVisibleReelId] = useState<string | null>(null);
   const activeRef = useRef(0);
   activeRef.current = active;
@@ -146,12 +147,13 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
   const [offline, setOffline] = useState(!navigator.onLine);
   const reelActionHandlers = useRef<ReelActionHandlers | null>(null);
   const onShareReel = useCallback((reel: Reel) => setShareFor(reel), []);
-  const navigationVisible = !commentsFor && !searchOpen && !viewport.keyboardOpen;
+  const navigationVisible = uiVisible && !commentsFor && !searchOpen && !viewport.keyboardOpen;
   useEffect(() => {
     setAppNavigationVisible(navigationVisible);
   }, [navigationVisible, setAppNavigationVisible]);
   useEffect(() => () => setAppNavigationVisible(true), [setAppNavigationVisible]);
   useEffect(() => setReelMenuOpen(false), [active]);
+  useEffect(() => setUiVisible(true), [active]);
 
   const openComments = useCallback((reelId: string) => {
     const currentState = window.history.state;
@@ -165,6 +167,7 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
       window.history.pushState(nextState, "", window.location.href);
     }
     commentsHistoryOpen.current = true;
+    setUiVisible(true);
     setCommentsFor(reelId);
   }, []);
 
@@ -173,6 +176,7 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
       window.history.back();
       return;
     }
+    setUiVisible(true);
     setCommentsFor(null);
   }, []);
 
@@ -565,7 +569,7 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
     ? `/reels/${reels[active].id}?${resumeParams.toString()}`
     : ownPath;
 
-  return <div className="reels-root" style={{ top: viewport.top, bottom: "auto", ["--reels-viewport-height" as string]: `${viewport.height}px`, ["--reels-comments-height" as string]: `${viewport.commentsHeight}px` }} data-keyboard-open={viewport.keyboardOpen} data-comments-open={Boolean(commentReel)} data-navigation-visible={navigationVisible} data-testid="page-reels">
+  return <div className="reels-root" style={{ top: viewport.top, bottom: "auto", ["--reels-viewport-height" as string]: `${viewport.height}px`, ["--reels-comments-height" as string]: `${viewport.commentsHeight}px` }} data-keyboard-open={viewport.keyboardOpen} data-comments-open={Boolean(commentReel)} data-navigation-visible={navigationVisible} data-overlay-visible={uiVisible} data-testid="page-reels">
     <div className="reels-stage">
       <div ref={scroller} className={`reels-scroller ${commentsFor ? "is-locked" : ""}`} data-testid="reels-scroller">
         {loading ? <div className="reel-slide"><QuietSpinner size={28} /></div>
@@ -597,6 +601,8 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
               pageHidden={pageHidden}
               compact={commentsFor === reel.id}
               navigationVisible={navigationVisible}
+              uiVisible={uiVisible}
+              onOverlayVisibilityChange={setUiVisible}
               likePending={like.isPending || unlike.isPending}
               savePending={save.isPending || unsave.isPending}
               returnTo={ownPath}
@@ -696,6 +702,7 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
         </div>
       </section>
     </div>}
+    {commentReel && <button type="button" className="reel-comments-backdrop" onClick={closeComments} aria-label="Close comments" data-testid="button-dismiss-comments-backdrop" />}
     {commentReel && <ReelComments key={commentReel.id} reelId={commentReel.id} creatorId={commentReel.creatorId} returnTo={returnTo} commentCount={commentReel.commentCount} canComment={commentReel.canComment} focusCommentId={initialCommentId} onClose={closeComments} onCountChange={(delta) => {
       patch(commentReel.id, { commentCount: Math.max(0, commentReel.commentCount + delta) });
       void client.invalidateQueries({ queryKey: getGetReelQueryKey(commentReel.id) });

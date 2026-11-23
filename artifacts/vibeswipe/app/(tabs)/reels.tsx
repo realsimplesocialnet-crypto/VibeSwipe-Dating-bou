@@ -22,6 +22,7 @@ import { mediaUri } from "@/lib/media";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   AppState,
+  Animated,
   FlatList,
   Pressable,
   ScrollView,
@@ -59,6 +60,8 @@ function NativeReelCard({
   onShare,
   onCreatorPress,
   actionError,
+  uiVisible,
+  onOverlayVisibilityChange,
 }: {
   reel: Reel;
   width: number;
@@ -72,11 +75,26 @@ function NativeReelCard({
   onShare: (reel: Reel) => void;
   onCreatorPress: (reel: Reel) => void;
   actionError: string;
+  uiVisible: boolean;
+  onOverlayVisibilityChange: (visible: boolean) => void;
 }) {
   const colors = useColors();
   const slideshow = reel.mediaType === "slides" && reel.slideReferences.length > 0;
   const [slideIndex, setSlideIndex] = useState(0);
   const [videoFailed, setVideoFailed] = useState(false);
+  const [userPaused, setUserPaused] = useState(false);
+  const [playbackFlash, setPlaybackFlash] = useState<"play" | "pause" | null>(null);
+  const [likeBurst, setLikeBurst] = useState(false);
+  const [captionExpanded, setCaptionExpanded] = useState(false);
+  const heartScale = useRef(new Animated.Value(0)).current;
+  const flashOpacity = useRef(new Animated.Value(0)).current;
+  const flashScale = useRef(new Animated.Value(0.75)).current;
+  const wasActive = useRef(false);
+  const holdActive = useRef(false);
+  const suppressTap = useRef(false);
+  const lastTap = useRef<{ at: number; playing: boolean; uiVisible: boolean } | null>(null);
+  const lastTapTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const flashTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const viewRecorded = useRef(false);
   const activeRef = useRef(isActive);
   activeRef.current = isActive;
@@ -132,17 +150,29 @@ function NativeReelCard({
 
   useEffect(() => {
     setVideoFailed(false);
+    setUserPaused(false);
+    setCaptionExpanded(false);
     viewRecorded.current = false;
     setSlideIndex(0);
   }, [reel.id]);
 
   useEffect(() => {
+    if (isActive) setUserPaused(false);
+  }, [isActive]);
+
+  useEffect(() => {
     player.loop = true;
     player.muted = !isActive || Boolean(soundtrack);
-    if (!isActive || slideshow || !videoSource) {
+    if (!isActive || slideshow || !videoSource || userPaused) {
       player.pause();
+      if (!isActive && wasActive.current) {
+        player.currentTime = 0;
+        wasActive.current = false;
+      }
       return;
     }
+    if (!wasActive.current) player.currentTime = 0;
+    wasActive.current = true;
 
     const markViewed = () => {
       if (activeRef.current && !reel.isOwner && !viewRecorded.current) {
@@ -167,10 +197,10 @@ function NativeReelCard({
       subscription.remove();
       player.pause();
     };
-  }, [isActive, player, recordView.mutate, reel.id, reel.isOwner, slideshow, soundtrack, videoSource]);
+  }, [isActive, player, recordView.mutate, reel.id, reel.isOwner, slideshow, soundtrack, userPaused, videoSource]);
 
   useEffect(() => {
-    if (!isActive || !soundtrack || !soundtrackStatus.isLoaded) {
+    if (!isActive || userPaused || !soundtrack || !soundtrackStatus.isLoaded) {
       soundtrackPlayer.pause();
       return;
     }
@@ -179,7 +209,98 @@ function NativeReelCard({
     soundtrackPlayer.volume = 1;
     soundtrackPlayer.play();
     return () => soundtrackPlayer.pause();
-  }, [isActive, soundtrack?.id, soundtrackPlayer, soundtrackStatus.isLoaded]);
+  }, [isActive, userPaused, soundtrack?.id, soundtrackPlayer, soundtrackStatus.isLoaded]);
+
+  useEffect(() => () => {
+    if (lastTapTimer.current) clearTimeout(lastTapTimer.current);
+    if (flashTimer.current) clearTimeout(flashTimer.current);
+  }, []);
+
+  function showPlaybackFlash(action: "play" | "pause") {
+    setPlaybackFlash(action);
+    flashOpacity.setValue(0);
+    flashScale.setValue(0.75);
+    Animated.parallel([
+      Animated.timing(flashOpacity, { toValue: 1, duration: 90, useNativeDriver: true }),
+      Animated.spring(flashScale, { toValue: 1, useNativeDriver: true, speed: 22, bounciness: 6 }),
+    ]).start();
+    if (flashTimer.current) clearTimeout(flashTimer.current);
+    flashTimer.current = setTimeout(() => {
+      flashTimer.current = null;
+      Animated.timing(flashOpacity, { toValue: 0, duration: 180, useNativeDriver: true }).start(() => {
+        setPlaybackFlash(null);
+      });
+    }, 240);
+  }
+
+  function setNativePlayback(playing: boolean) {
+    if (playing && isActive && !videoFailed) {
+      setUserPaused(false);
+      player.play();
+      if (soundtrack) soundtrackPlayer.play();
+      showPlaybackFlash("play");
+    } else {
+      setUserPaused(true);
+      player.pause();
+      soundtrackPlayer.pause();
+      showPlaybackFlash("pause");
+    }
+  }
+
+  function showLikeBurst() {
+    setLikeBurst(true);
+    heartScale.setValue(0.45);
+    Animated.sequence([
+      Animated.spring(heartScale, { toValue: 1, useNativeDriver: true, speed: 24, bounciness: 8 }),
+      Animated.timing(heartScale, { toValue: 0, duration: 220, useNativeDriver: true }),
+    ]).start(({ finished }) => {
+      if (finished) setLikeBurst(false);
+    });
+  }
+
+  function handleMediaTap() {
+    if (suppressTap.current) {
+      suppressTap.current = false;
+      return;
+    }
+    const now = Date.now();
+    const previousTap = lastTap.current;
+    if (previousTap && now - previousTap.at <= 320) {
+      lastTap.current = null;
+      if (lastTapTimer.current) clearTimeout(lastTapTimer.current);
+      lastTapTimer.current = null;
+      setNativePlayback(previousTap.playing);
+      onOverlayVisibilityChange(previousTap.uiVisible);
+      if (!reel.likedByMe) onLike(reel);
+      showLikeBurst();
+      return;
+    }
+
+    lastTap.current = { at: now, playing: !userPaused, uiVisible };
+    if (lastTapTimer.current) clearTimeout(lastTapTimer.current);
+    lastTapTimer.current = setTimeout(() => {
+      lastTap.current = null;
+      lastTapTimer.current = null;
+    }, 340);
+    setNativePlayback(!player.playing);
+    onOverlayVisibilityChange(!uiVisible);
+  }
+
+  function startPressAndHold() {
+    if (!isActive || slideshow) return;
+    holdActive.current = true;
+    setNativePlayback(false);
+    onOverlayVisibilityChange(false);
+  }
+
+  function finishPressAndHold() {
+    if (!holdActive.current) return;
+    holdActive.current = false;
+    suppressTap.current = true;
+    onOverlayVisibilityChange(true);
+    setNativePlayback(true);
+    setTimeout(() => { suppressTap.current = false; }, 360);
+  }
 
   const actions = [
     {
@@ -271,42 +392,55 @@ function NativeReelCard({
         </>
       ) : null}
 
-      <LinearGradient
-        pointerEvents="none"
-        colors={["transparent", "rgba(0,0,0,0.28)", "rgba(0,0,0,0.84)"]}
-        locations={[0.48, 0.73, 1]}
-        style={styles.bottomShade}
-      />
-      <LinearGradient
-        pointerEvents="none"
-        colors={["transparent", "rgba(0,0,0,0.24)"]}
-        start={{ x: 0, y: 0.5 }}
-        end={{ x: 1, y: 0.5 }}
-        style={styles.actionShade}
-      />
+      {!slideshow ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={player.playing ? "Pause Reel. Tap to hide controls, hold to pause." : "Play Reel. Tap to show controls, hold to pause."}
+          delayLongPress={240}
+          onLongPress={startPressAndHold}
+          onPressOut={finishPressAndHold}
+          onPress={handleMediaTap}
+          style={StyleSheet.absoluteFill}
+          testID={`native-reel-video-gesture-${reel.id}`}
+        />
+      ) : null}
 
-      <View style={styles.actionRail}>
-        {actions.map((action) => (
-          <Pressable
-            key={action.key}
-            accessibilityRole="button"
-            accessibilityLabel={`${action.label}, ${compactCount(action.count)}`}
-            testID={action.testID}
-            onPress={action.onPress}
-            style={({ pressed }) => [styles.actionButton, pressed ? styles.actionPressed : null]}
-          >
-            <Feather
-              name={action.icon}
-              size={32}
-              color={action.active ? colors.primary : colors.discoverForeground}
-              strokeWidth={action.active ? 2.2 : 2}
-            />
-            <Text style={[styles.actionCount, { color: colors.discoverForeground }]}>
-              {compactCount(action.count)}
-            </Text>
-          </Pressable>
-        ))}
-      </View>
+      {uiVisible ? <>
+        <LinearGradient
+          pointerEvents="none"
+          colors={["transparent", "rgba(0,0,0,0.28)", "rgba(0,0,0,0.84)"]}
+          locations={[0.48, 0.73, 1]}
+          style={styles.bottomShade}
+        />
+        <LinearGradient
+          pointerEvents="none"
+          colors={["transparent", "rgba(0,0,0,0.24)"]}
+          start={{ x: 0, y: 0.5 }}
+          end={{ x: 1, y: 0.5 }}
+          style={styles.actionShade}
+        />
+        <View style={styles.actionRail}>
+          {actions.map((action) => (
+            <Pressable
+              key={action.key}
+              accessibilityRole="button"
+              accessibilityLabel={`${action.label}, ${compactCount(action.count)}`}
+              testID={action.testID}
+              onPress={action.onPress}
+              style={({ pressed }) => [styles.actionButton, pressed ? styles.actionPressed : null]}
+            >
+              <Feather
+                name={action.icon}
+                size={32}
+                color={action.active ? colors.primary : colors.discoverForeground}
+                strokeWidth={action.active ? 2.2 : 2}
+              />
+              <Text style={[styles.actionCount, { color: colors.discoverForeground }]}>
+                {compactCount(action.count)}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
 
       <View style={styles.creatorDetails}>
         <Pressable
@@ -338,7 +472,13 @@ function NativeReelCard({
           </View>
         </Pressable>
         {reel.caption ? (
-          <Text numberOfLines={3} style={[styles.caption, { color: colors.discoverForeground }]}>
+          <Text
+            numberOfLines={captionExpanded ? undefined : 2}
+            onPress={() => setCaptionExpanded((expanded) => !expanded)}
+            accessibilityRole="button"
+            accessibilityLabel={captionExpanded ? "Collapse caption" : "Expand caption"}
+            style={[styles.caption, { color: colors.discoverForeground }]}
+          >
             {reel.caption}
           </Text>
         ) : null}
@@ -356,6 +496,17 @@ function NativeReelCard({
           </Text>
         ) : null}
       </View>
+      </> : null}
+      {playbackFlash ? (
+        <Animated.View pointerEvents="none" style={[styles.playbackFlash, { opacity: flashOpacity, transform: [{ scale: flashScale }] }]}>
+          <Feather name={playbackFlash === "play" ? "play" : "pause"} size={36} color="#fff" />
+        </Animated.View>
+      ) : null}
+      {likeBurst ? (
+        <Animated.View pointerEvents="none" style={[styles.likeBurst, { transform: [{ scale: heartScale }] }]}>
+          <Feather name="heart" size={80} color="#fff" fill="#fff" />
+        </Animated.View>
+      ) : null}
     </View>
   );
 }
@@ -370,6 +521,7 @@ export default function NativeReelsScreen() {
   const [token, setToken] = useState<string | null>(null);
   const [appActive, setAppActive] = useState(AppState.currentState === "active");
   const [activeIndex, setActiveIndex] = useState(0);
+  const [uiVisible, setUiVisible] = useState(true);
   const [patches, setPatches] = useState<Record<string, ReelPatch>>({});
   const [actionError, setActionError] = useState<{ reelId: string; message: string } | null>(null);
   const likeReel = useLikeReel();
@@ -395,6 +547,8 @@ export default function NativeReelsScreen() {
     });
     return () => subscription.remove();
   }, []);
+
+  useEffect(() => setUiVisible(true), [activeIndex]);
 
   const feed = useInfiniteQuery({
     queryKey: getGetReelsFeedQueryKey(FEED_PARAMS),
@@ -512,7 +666,7 @@ export default function NativeReelsScreen() {
 
   return (
     <View style={[styles.screen, { backgroundColor: colors.discoverBackground }]}>
-      <Pressable
+      {uiVisible ? <Pressable
         accessibilityRole="button"
         accessibilityLabel="Post a Reel"
         onPress={() => router.push("/reels/new" as never)}
@@ -529,7 +683,7 @@ export default function NativeReelsScreen() {
         <Text style={[styles.createReelButtonText, { color: colors.discoverForeground }]}>
           Post
         </Text>
-      </Pressable>
+      </Pressable> : null}
       <FlatList
         testID="native-reels-feed"
         data={reels}
@@ -548,9 +702,11 @@ export default function NativeReelsScreen() {
             onShare={openShare}
             onCreatorPress={openCreator}
             actionError={actionError?.reelId === item.id ? actionError.message : ""}
+            uiVisible={uiVisible}
+            onOverlayVisibilityChange={setUiVisible}
           />
         )}
-        extraData={{ activeIndex, patches, isFocused, appActive, actionError }}
+        extraData={{ activeIndex, patches, isFocused, appActive, actionError, uiVisible }}
         pagingEnabled
         snapToInterval={height}
         snapToAlignment="start"
@@ -601,6 +757,28 @@ const styles = StyleSheet.create({
     top: "40%",
     bottom: 126,
     width: 92,
+  },
+  playbackFlash: {
+    position: "absolute",
+    top: "50%",
+    left: "50%",
+    width: 76,
+    height: 76,
+    marginTop: -38,
+    marginLeft: -38,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 38,
+    backgroundColor: "rgba(0,0,0,0.46)",
+  },
+  likeBurst: {
+    position: "absolute",
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    alignItems: "center",
+    justifyContent: "center",
   },
   actionRail: {
     position: "absolute",
