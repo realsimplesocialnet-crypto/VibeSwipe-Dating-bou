@@ -250,9 +250,7 @@ export function OnboardingWizard() {
   const filteredCountries = COUNTRIES.filter((country) =>
     country.name.toLowerCase().includes(search.trim().toLowerCase()),
   ).slice(0, search.trim() ? 100 : 35);
-  const topPadding =
-    (Platform.OS === "web" ? Math.max(67, insets.top + 16) : insets.top + 16) +
-    Math.min(110, Math.max(72, viewport.height * 0.12));
+  const animationSpaceHeight = Math.min(420, Math.max(250, viewport.height * 0.4));
   const bottomPadding = Platform.OS === "web" ? 34 : insets.bottom + 16;
 
   if (savedDraft.isLoading || !hydrated) {
@@ -270,11 +268,20 @@ export function OnboardingWizard() {
       style={[styles.screen, { backgroundColor: "transparent" }]}
       contentContainerStyle={[
         styles.container,
-        { minHeight: viewport.height, paddingTop: topPadding, paddingBottom: bottomPadding },
+        { minHeight: viewport.height },
       ]}
       keyboardShouldPersistTaps="handled"
       bottomOffset={70}
     >
+      <View style={{ height: animationSpaceHeight }} />
+      <View style={[
+        styles.formPanel,
+        {
+          backgroundColor: colors.background,
+          minHeight: viewport.height - animationSpaceHeight,
+          paddingBottom: bottomPadding,
+        },
+      ]}>
       <View style={styles.header}>
         <Text style={[styles.eyebrow, { color: colors.primary }]}>CREATE YOUR PROFILE</Text>
         <View style={styles.headerActions}>
@@ -500,6 +507,7 @@ export function OnboardingWizard() {
           )}
         </Pressable>
       </View>
+      </View>
     </KeyboardAwareScrollViewCompat>
     </View>
   );
@@ -574,7 +582,8 @@ function ChoiceGrid({ values, selected, onSelect }: { values: string[]; selected
 const styles = StyleSheet.create({
   loading: { flex: 1, alignItems: "center", justifyContent: "center" },
   screen: { flex: 1 },
-  container: { flexGrow: 1, paddingHorizontal: 22 },
+  container: { flexGrow: 1 },
+  formPanel: { flexGrow: 1, paddingHorizontal: 22, paddingTop: 20, borderTopLeftRadius: 24, borderTopRightRadius: 24 },
   header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   headerActions: { flexDirection: "row", alignItems: "center", gap: 10 },
   signInButton: { minHeight: 40, justifyContent: "center", paddingHorizontal: 8 },

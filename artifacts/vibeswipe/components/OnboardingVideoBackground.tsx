@@ -75,7 +75,7 @@ export function OnboardingVideoBackground({ form = false }: { form?: boolean }) 
       <Image source={{ uri: asset("poster-v1.webp") }} style={StyleSheet.absoluteFill} resizeMode="cover"/>
       <VideoView player={player} style={[StyleSheet.absoluteFill, { opacity: ready ? 1 : 0 }]} contentFit="cover"
         onFirstFrameRender={() => setReady(true)} nativeControls={false} surfaceType="textureView"/>
-      <View style={[StyleSheet.absoluteFill, { backgroundColor: form ? colors.background : "#111111", opacity: form ? .46 : .58 }]}/>
+      <View style={[StyleSheet.absoluteFill, { backgroundColor: form ? colors.background : "#111111", opacity: form ? .12 : .16 }]}/>
     </View>
   );
 }

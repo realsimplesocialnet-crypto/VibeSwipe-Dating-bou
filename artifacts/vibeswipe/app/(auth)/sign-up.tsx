@@ -18,6 +18,7 @@ import { useColors } from "@/hooks/useColors";
 export default function SignUpScreen() {
   const colors = useColors();
   const { height } = useWindowDimensions();
+  const animationSpaceHeight = Math.min(420, Math.max(250, height * 0.4));
   const { signUp, errors, fetchStatus } = useSignUp();
   const { ref } = useLocalSearchParams<{ ref?: string | string[] }>();
   const referralFromUrl = (Array.isArray(ref) ? ref[0] : ref ?? "")
@@ -94,12 +95,11 @@ export default function SignUpScreen() {
     <OnboardingVideoBackground form/>
     <KeyboardAwareScrollViewCompat
       style={{ flex: 1, backgroundColor: "transparent" }}
-      contentContainerStyle={[
-        styles.container,
-        { paddingTop: Math.min(140, Math.max(110, height * 0.16)) },
-      ]}
+      contentContainerStyle={styles.container}
       bottomOffset={24}
     >
+      <View style={{ height: animationSpaceHeight }} />
+      <View style={[styles.panel, { backgroundColor: colors.background, minHeight: height - animationSpaceHeight }]}>
       <Pressable
         testID="sign-up-back"
         style={styles.back}
@@ -258,13 +258,15 @@ export default function SignUpScreen() {
           <Pressable><Text style={[styles.legalLink, { color: colors.mutedForeground }]}>Terms of Service</Text></Pressable>
         </Link>
       </View>
+      </View>
     </KeyboardAwareScrollViewCompat>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flexGrow: 1, justifyContent: "flex-end", paddingHorizontal: 24, paddingBottom: 36 },
+  container: { flexGrow: 1 },
+  panel: { flexGrow: 1, paddingHorizontal: 24, paddingTop: 18, paddingBottom: 36, borderTopLeftRadius: 24, borderTopRightRadius: 24 },
   back: { marginBottom: 35, width: 42, height: 42, borderRadius: 21, alignItems: "center", justifyContent: "center" },
   eyebrow: { fontSize: 11, fontWeight: "700", letterSpacing: 2.3, marginBottom: 10 },
   progressTrack: { flexDirection: "row", gap: 7, marginBottom: 20 },
