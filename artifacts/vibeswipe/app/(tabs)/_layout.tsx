@@ -31,17 +31,16 @@ function NativeTabLayout() {
         />
         <NativeTabs.Trigger.Label>Home</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="explore">
-        <NativeTabs.Trigger.Icon sf={{ default: 'magnifyingglass', selected: 'magnifyingglass' }} drawable="search" />
-        <NativeTabs.Trigger.Label>Explore</NativeTabs.Trigger.Label>
-      </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="create">
-        <NativeTabs.Trigger.Icon sf={{ default: 'plus.app', selected: 'plus.app.fill' }} drawable="add" />
-        <NativeTabs.Trigger.Label>Create</NativeTabs.Trigger.Label>
-      </NativeTabs.Trigger>
       <NativeTabs.Trigger name="reels">
         <NativeTabs.Trigger.Icon sf={{ default: 'play.rectangle', selected: 'play.rectangle.fill' }} drawable="video" />
         <NativeTabs.Trigger.Label>Reels</NativeTabs.Trigger.Label>
+      </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="create">
+        <NativeTabs.Trigger.Icon sf={{ default: 'plus.app', selected: 'plus.app.fill' }} drawable="add" />
+      </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="explore">
+        <NativeTabs.Trigger.Icon sf={{ default: 'magnifyingglass', selected: 'magnifyingglass' }} drawable="search" />
+        <NativeTabs.Trigger.Label>Discover</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="views" hidden>
         <NativeTabs.Trigger.Icon sf={{ default: 'tray', selected: 'tray.fill' }} drawable="inbox" />
@@ -130,27 +129,32 @@ function ClassicTabLayout() {
         }}
       />
       <Tabs.Screen
-        name="explore"
-        options={{
-          title: 'Explore',
-          headerShown: false,
-          tabBarIcon: ({ color }) => <Feather name="search" size={21} color={typeof color === 'string' ? color : colors.primary} />,
-        }}
-      />
-      <Tabs.Screen
-        name="create"
-        options={{
-          title: 'Create',
-          headerShown: false,
-          tabBarIcon: ({ color }) => <Feather name="plus-square" size={22} color={typeof color === 'string' ? color : colors.primary} />,
-        }}
-      />
-      <Tabs.Screen
         name="reels"
         options={{
           title: 'Reels',
           headerShown: false,
           tabBarIcon: ({ color }) => <Feather name="film" size={21} color={typeof color === 'string' ? color : colors.primary} />,
+        }}
+      />
+      <Tabs.Screen
+        name="create"
+        options={{
+          title: '',
+          tabBarAccessibilityLabel: 'Create',
+          headerShown: false,
+          tabBarIcon: () => (
+            <View style={{ width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center', marginTop: -13, backgroundColor: colors.primary }}>
+              <Feather name="plus" size={23} color={colors.primaryForeground} />
+            </View>
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="explore"
+        options={{
+          title: 'Discover',
+          headerShown: false,
+          tabBarIcon: ({ color }) => <Feather name="search" size={21} color={typeof color === 'string' ? color : colors.primary} />,
         }}
       />
       <Tabs.Screen name="matches" options={{ href: null }} />

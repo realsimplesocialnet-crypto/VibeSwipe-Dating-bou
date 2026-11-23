@@ -10,7 +10,6 @@ import {
   type VibeSwipeSettings,
 } from "@workspace/api-client-react";
 import { useColors } from "@/hooks/useColors";
-import { useTheme } from "@/hooks/useTheme";
 
 type NotifyKey = "notifyLikes" | "notifyMessages" | "notifyProfileViews";
 type NotifySettings = Record<NotifyKey, boolean>;
@@ -23,17 +22,25 @@ const rows: { key: NotifyKey; title: string; detail: string; icon: ComponentProp
 
 export default function NotificationSettingsScreen() {
   const colors = useColors();
-  const { scheme } = useTheme();
-  const dark = scheme === "dark";
   const queryClient = useQueryClient();
   const settings = useGetVibeSwipeSettings();
   const update = useUpdateVibeSwipeSettings();
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
 
-  const p = dark
-    ? { bg: colors.background, card: colors.card, title: colors.primary, text: colors.foreground, sub: colors.mutedForeground, tile: colors.accent, icon: colors.primary, on: colors.primary, off: colors.border, line: colors.border, btn: colors.card }
-    : { bg: "#FDEEF2", card: "#FFFAFB", title: "#E0507F", text: "#2B1D24", sub: "#7D6370", tile: "#FDE8EE", icon: "#EF5F8F", on: "#F27AA0", off: "#ECD9E0", line: "#F6DBE4", btn: "#FFFAFB" };
+  const p = {
+    bg: colors.background,
+    card: colors.card,
+    title: colors.foreground,
+    text: colors.foreground,
+    sub: colors.mutedForeground,
+    tile: colors.secondary,
+    icon: colors.foreground,
+    on: colors.primary,
+    off: colors.border,
+    line: colors.border,
+    btn: colors.card,
+  };
 
   const data = settings.data as (VibeSwipeSettings & Partial<NotifySettings>) | undefined;
   const value = (k: NotifyKey) => data?.[k] ?? true;
@@ -76,7 +83,7 @@ export default function NotificationSettingsScreen() {
           </Pressable>
         </View>
       ) : (
-        <View testID="card-notification-settings" style={[styles.card, { backgroundColor: p.card, borderColor: dark ? colors.border : "transparent", shadowColor: p.title }]}>
+          <View testID="card-notification-settings" style={[styles.card, { backgroundColor: p.card, borderColor: colors.border, shadowColor: p.title }]}>
           {rows.map((row) => (
             <View key={row.key} style={[styles.row, { borderBottomColor: p.line }]}>
               <View style={[styles.tile, { backgroundColor: p.tile }]}><Feather name={row.icon} size={22} color={p.icon} /></View>
@@ -91,7 +98,7 @@ export default function NotificationSettingsScreen() {
                 disabled={update.isPending}
                 onValueChange={(next) => void save(row.key, next)}
                 trackColor={{ true: p.on, false: p.off }}
-                thumbColor="#FFFAFB"
+                thumbColor={colors.primaryForeground}
                 ios_backgroundColor={p.off}
               />
             </View>
@@ -132,7 +139,7 @@ const styles = StyleSheet.create({
   noteText: { flex: 1, fontSize: 12 },
   skeleton: { height: 60, borderRadius: 16, marginVertical: 8 },
   retry: { alignSelf: "flex-start", marginVertical: 12, paddingHorizontal: 18, paddingVertical: 10, borderRadius: 12 },
-  retryText: { color: "#FFFAFB", fontWeight: "700" },
+  retryText: { color: "#FFFFFF", fontWeight: "700" },
   status: { marginTop: 14, gap: 6, minHeight: 20 },
   statusRow: { flexDirection: "row", alignItems: "center", gap: 8 },
 });

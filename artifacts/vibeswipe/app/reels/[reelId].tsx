@@ -398,7 +398,7 @@ export default function ProfileReelScreen() {
         || (process.env.EXPO_PUBLIC_DOMAIN ? `https://${process.env.EXPO_PUBLIC_DOMAIN}` : "https://myage.beauty")
       ).replace(/\/+$/, "");
       const url = `${origin}/reels/${reel.id}`;
-      const message = `${reel.caption || `${reel.creatorName} on VIBESWIPES Reels`}\n\n${url}`;
+      const message = `${reel.caption || `${reel.creatorName} on MyAgeBeauty Reels`}\n\n${url}`;
       const result = await Share.share(
         { title: `${reel.creatorName} on Reels`, message, url },
         { dialogTitle: "Send to" },
@@ -440,10 +440,10 @@ export default function ProfileReelScreen() {
         || (process.env.EXPO_PUBLIC_DOMAIN ? `https://${process.env.EXPO_PUBLIC_DOMAIN}` : "https://myage.beauty")
       ).replace(/\/+$/, "");
       const url = `${origin}/reels/${reel.id}`;
-      const message = `${reel.caption || `${reel.creatorName} on VIBESWIPES Reels`}\n\n${url}`;
+      const message = `${reel.caption || `${reel.creatorName} on MyAgeBeauty Reels`}\n\n${url}`;
       const encodedUrl = encodeURIComponent(url);
       const encodedMessage = encodeURIComponent(message);
-      const encodedSubject = encodeURIComponent(`${reel.creatorName} on VIBESWIPES Reels`);
+      const encodedSubject = encodeURIComponent(`${reel.creatorName} on MyAgeBeauty Reels`);
       const targetUrl = target === "whatsapp"
         ? `https://wa.me/?text=${encodedMessage}`
         : target === "telegram"
@@ -630,7 +630,7 @@ export default function ProfileReelScreen() {
         {reelQuery.data ? (
           <View style={styles.caption}>
             <View style={styles.creatorRow}>
-              <LinearGradient colors={["#ff63aa", "#a875ff"]} style={styles.creatorAvatarRing}>
+              <LinearGradient colors={["#FFFFFF", "#777777"]} style={styles.creatorAvatarRing}>
                 <ProfileAvatar
                   profile={{
                     name: reelQuery.data.creatorName,
@@ -759,7 +759,7 @@ export default function ProfileReelScreen() {
                 onPress={() => Platform.OS === "android" ? setAndroidShareTargetsVisible((visible) => !visible) : void shareToApps()}
                 style={styles.shareDestination}
               >
-                <View style={[styles.shareDestinationIcon, { backgroundColor: "#2388e9" }]}><Feather name="share-2" size={21} color="#fff" /></View>
+                <View style={[styles.shareDestinationIcon, { backgroundColor: colors.primary }]}><Feather name="share-2" size={21} color={colors.primaryForeground} /></View>
                 <Text style={[styles.shareDestinationLabel, { color: colors.foreground }]}>More apps</Text>
               </Pressable>
             </View>
@@ -1016,7 +1016,7 @@ const styles = StyleSheet.create({
   shareRecipient: { width: 64, minHeight: 88, alignItems: "center", gap: 5, paddingHorizontal: 0 },
   shareRecipientSent: { opacity: 0.76 },
   shareRecipientAvatarWrap: { position: "relative", width: 56, height: 56 },
-  shareRecipientSendMark: { position: "absolute", right: -2, bottom: -2, width: 21, height: 21, alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: "#1b161f", borderRadius: 11 },
+  shareRecipientSendMark: { position: "absolute", right: -2, bottom: -2, width: 21, height: 21, alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: "#111111", borderRadius: 11 },
   shareRecipientName: { maxWidth: 64, fontSize: 11, fontWeight: "700", textAlign: "center" },
   shareDestinationRow: { flexDirection: "row", gap: 22, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: "rgba(255,255,255,0.12)", marginHorizontal: -18, marginTop: 8, paddingHorizontal: 18, paddingTop: 14 },
   shareDestination: { minWidth: 66, alignItems: "center", gap: 6 },

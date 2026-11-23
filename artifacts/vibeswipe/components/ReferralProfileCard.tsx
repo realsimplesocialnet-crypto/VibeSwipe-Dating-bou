@@ -31,9 +31,9 @@ export function ReferralProfileCard() {
   async function shareCode() {
     if (!summary.data) return;
     const url = `${SIGNUP_URL}?ref=${encodeURIComponent(summary.data.referralCode)}`;
-    const message = `Join me on VIBESWIPES with my referral code ${summary.data.referralCode}. Your signup helps me earn points.\n${url}`;
+    const message = `Join me on MyAgeBeauty with my referral code ${summary.data.referralCode}. Your signup helps me earn points.\n${url}`;
     try {
-      await Share.share({ title: "Join me on VIBESWIPES", message, url });
+      await Share.share({ title: "Join me on MyAgeBeauty", message, url });
     } catch {
       setFeedback("Could not share invite");
     }

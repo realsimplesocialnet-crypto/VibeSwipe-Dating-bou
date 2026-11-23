@@ -35,7 +35,7 @@ export function ProfileAvatar({
           {profile.name.slice(0, 1).toUpperCase()}
         </Text>
       )}
-      {profile.isVerified && <View accessibilityLabel="Verified profile" style={{ position: "absolute", bottom: size * 0.14, right: size * 0.14, backgroundColor: "white", borderRadius: 20, padding: 1 }}><Feather name="check-circle" size={Math.max(12, size * 0.2)} color="#2997e8"/></View>}
+      {profile.isVerified && <View accessibilityLabel="Verified profile" style={{ position: "absolute", bottom: size * 0.14, right: size * 0.14, backgroundColor: colors.background, borderRadius: 20, padding: 1 }}><Feather name="check-circle" size={Math.max(12, size * 0.2)} color={colors.foreground}/></View>}
     </View>
   );
 }

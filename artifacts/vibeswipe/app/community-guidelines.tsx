@@ -5,17 +5,17 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useColors } from "@/hooks/useColors";
 
 const guidelines = [
-  ["Adults 18 and over", "VIBESWIPES is for adults only. Do not create an account if you are under 18, and keep your profile information honest."],
+  ["Adults 18 and over", "MyAgeBeauty is for adults only. Do not create an account if you are under 18, and keep your profile information honest."],
   ["Respect other people", "Harassment, hate speech, threats, unwanted pressure, and sharing someone’s private information are not allowed."],
   ["No scams or fake profiles", "Do not request or send money, misrepresent who you are, impersonate another person, or use a fake profile."],
-  ["Respect consent and boundaries", "A match is not consent to share private information, images, or contact details. Use Block or Report when needed."],
-  ["Use VIBESWIPES responsibly", "Do not use the service to threaten, defraud, spam, or harm others. VIBESWIPES may restrict accounts that violate these rules."],
+  ["Respect consent and boundaries", "A follow or conversation is not consent to share private information, images, or contact details. Use Block or Report when needed."],
+  ["Use MyAgeBeauty responsibly", "Do not use the service to threaten, defraud, spam, or harm others. MyAgeBeauty may restrict accounts that violate these rules."],
 ];
 
 const supportEmail = "Realsimplesocialnet@gmail.com";
 
 function openSupport() {
-  void Linking.openURL(`mailto:${supportEmail}?subject=VIBESWIPES%20support%20request`).catch(() => {
+  void Linking.openURL(`mailto:${supportEmail}?subject=MyAgeBeauty%20support%20request`).catch(() => {
     Alert.alert("Email app unavailable", `Please email ${supportEmail} for support.`);
   });
 }
@@ -39,7 +39,7 @@ export default function CommunityGuidelinesScreen() {
           <Feather name="arrow-left" size={20} color={colors.foreground} />
         </Pressable>
         <View>
-          <Text style={[styles.eyebrow, { color: colors.primary }]}>VIBESWIPES</Text>
+          <Text style={[styles.eyebrow, { color: colors.primary }]}>MyAgeBeauty</Text>
           <Text style={[styles.title, { color: colors.foreground }]}>Community Guidelines</Text>
         </View>
       </View>
@@ -49,7 +49,7 @@ export default function CommunityGuidelinesScreen() {
       </View>
       <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
         <Text style={[styles.intro, { color: colors.mutedForeground }]}>
-          By creating an account or using VIBESWIPES, you agree to follow these rules.
+          By creating an account or using MyAgeBeauty, you agree to follow these rules.
         </Text>
         {guidelines.map(([title, detail], index) => (
           <View key={title} style={[styles.item, index > 0 && { borderTopColor: colors.border }]}>

@@ -88,7 +88,7 @@ const styles = StyleSheet.create({
   top: { flex: 1, alignItems: "center", justifyContent: "center" },
   title: { marginTop: 10, fontSize: 40, fontWeight: "800", letterSpacing: -1, textAlign: "center" },
   pair: { marginTop: 36, flexDirection: "row", alignItems: "center", justifyContent: "center", paddingBottom: 14 },
-  photo: { alignItems: "center", justifyContent: "center", shadowColor: "#7a1d40", shadowOpacity: 0.22, shadowRadius: 18, shadowOffset: { width: 0, height: 10 }, elevation: 6 },
+  photo: { alignItems: "center", justifyContent: "center", shadowColor: "#111111", shadowOpacity: 0.22, shadowRadius: 18, shadowOffset: { width: 0, height: 10 }, elevation: 6 },
   heart: { position: "absolute", bottom: 0, alignSelf: "center", width: 54, height: 54, borderRadius: 27, borderWidth: 4, alignItems: "center", justifyContent: "center" },
   sub: { marginTop: 30, fontSize: 17, lineHeight: 25, textAlign: "center" },
   actions: { marginTop: 36, gap: 12 },

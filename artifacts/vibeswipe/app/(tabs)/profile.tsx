@@ -13,6 +13,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { router } from "expo-router";
 import { ActivityIndicator, Alert, Image, Modal, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { AppHeader } from "@/components/AppHeader";
 import { ProfileAvatar } from "@/components/ProfileAvatar";
 import { ProfileReelsSection } from "@/components/ProfileReelsSection";
 import { ProfileFollowStats } from "@/components/ProfileFollow";
@@ -28,6 +29,7 @@ export default function ProfileScreen() {
   const window = useWindowDimensions();
   const [areaHeight, setAreaHeight] = useState(0);
   const [blockedOpen, setBlockedOpen] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState(false);
   const [mediaToken, setMediaToken] = useState<string | null>(null);
   const profile = useGetMyProfile();
   const blockedProfiles = useGetBlockedProfiles();
@@ -56,10 +58,10 @@ export default function ProfileScreen() {
     }
   }
   if (profile.isLoading) {
-    return <View style={[styles.center, { backgroundColor: colors.profileGradientMiddle }]}><ActivityIndicator color={colors.primary} /></View>;
+    return <View style={[styles.root, { backgroundColor: colors.profileGradientMiddle }]}><AppHeader /><View style={styles.center}><ActivityIndicator color={colors.primary} /></View></View>;
   }
   if (!profile.data) {
-    return <View style={[styles.center, { backgroundColor: colors.profileGradientMiddle }]}><ActivityIndicator color={colors.primary} accessibilityLabel="Loading" /></View>;
+    return <View style={[styles.root, { backgroundColor: colors.profileGradientMiddle }]}><AppHeader /><View style={styles.center}><ActivityIndicator color={colors.primary} accessibilityLabel="Loading" /></View></View>;
   }
   const user = profile.data;
   const place = [[user.city, user.state].filter(Boolean).join(", "), user.country].filter(Boolean).join(" · ");
@@ -67,93 +69,122 @@ export default function ProfileScreen() {
   const genderIcon = /^(man|male|men)\b/.test(g) ? "gender-male" : /^(woman|female|women)\b/.test(g) ? "gender-female" : "gender-non-binary";
   const work = user.occupation === "Other" ? user.occupationOther || "Other" : user.occupation || "Prefer not to say";
   const bio = user.bio || "Add a bio so people can get to know you.";
-  // Tab bar is absolutely positioned; header (title) already owns the top inset.
   const tabBar = Platform.OS === "web" ? 84 : 49 + insets.bottom;
   const avail = (areaHeight || window.height - 100) - tabBar;
-  const tight = avail < 560;
-  const avatar = Math.round(Math.max(64, Math.min(140, avail * 0.17)));
-  const gap = tight ? 7 : 11;
-  const shownHobbies = user.interests.slice(0, tight ? 3 : 4);
-  const moreHobbies = user.interests.length - shownHobbies.length;
+  const avatar = Math.round(Math.max(80, Math.min(112, avail * 0.14)));
   const photos = user.photos.slice(0, 6);
   const blockedCount = blockedProfiles.data?.length ?? 0;
-  const sectionHead = (icon: "user" | "briefcase" | "heart" | "camera", title: string) => (
-    <View style={styles.sectionHead}>
-      <View style={[styles.sectionIcon, { backgroundColor: colors.profileChip }]}><Feather name={icon} size={12} color={colors.profileEdit} /></View>
-      <Text style={[styles.label, { color: colors.profileLabel }]}>{title}</Text>
-    </View>
-  );
   return (
-    <View style={{ flex: 1, backgroundColor: colors.profileGradientMiddle }} onLayout={(e) => setAreaHeight(e.nativeEvent.layout.height)}>
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={[styles.scrollContent, { paddingBottom: tabBar + gap, paddingTop: tight ? 8 : 12, gap }]} showsVerticalScrollIndicator={false}>
-        <View style={styles.top}>
-          <Pressable testID="profile-blocked" accessibilityLabel="Blocked profiles" onPress={() => setBlockedOpen(true)} style={({ pressed }) => [styles.pill, { backgroundColor: colors.profileCard, opacity: pressed ? 0.7 : 1 }]}>
-            <Feather name="slash" size={14} color={colors.profileMuted} />
-            <Text style={[styles.pillText, { color: colors.profileMuted }]}>Blocked{blockedCount ? ` (${blockedCount})` : ""}</Text>
-          </Pressable>
-          <Pressable testID="profile-settings" accessibilityLabel="Settings" onPress={() => router.push("/settings")} style={({ pressed }) => [styles.pill, { backgroundColor: colors.profileCard, opacity: pressed ? 0.7 : 1 }]}>
-            <Feather name="settings" size={15} color={colors.profileLabel} />
-            <Text style={[styles.pillText, { color: colors.profileLabel }]}>Settings</Text>
-          </Pressable>
-        </View>
-        <View style={[styles.card, { backgroundColor: colors.profileCard, paddingVertical: tight ? 10 : 16 }]}>
-          <View style={[styles.portrait, { borderColor: colors.profileChip }]}><ProfileAvatar profile={user} size={avatar} /></View>
-          <View style={styles.identity}>
-            <Text numberOfLines={1} accessibilityLabel={`${user.name}${user.age !== null ? `, ${user.age}` : ""}`} style={[styles.name, { color: colors.profileLabel, fontSize: tight ? 22 : 26 }]}>{user.name}{user.age !== null ? `, ${user.age}` : ""}</Text>
-            {user.isVerified ? <Feather name="check-circle" size={18} color={colors.premiumAccent} accessibilityLabel="Verified profile" /> : null}
-          </View>
-          {place ? <Text numberOfLines={1} accessibilityLabel={place} style={[styles.city, { color: colors.profileMuted }]}>{place}</Text> : null}
-          {user.gender ? (
-            <View style={styles.metaRow}>
-              {user.gender ? <View style={styles.genderRow}><MaterialCommunityIcons name={genderIcon} size={15} color={colors.profileMuted} /><Text style={[styles.meta, { color: colors.profileMuted }]}>{user.gender}</Text></View> : null}
+    <View style={[styles.root, { backgroundColor: colors.profileGradientMiddle }]} onLayout={(e) => setAreaHeight(e.nativeEvent.layout.height)}>
+      <AppHeader />
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={[styles.scrollContent, { paddingBottom: tabBar + 18 }]} showsVerticalScrollIndicator={false}>
+        <View style={[styles.profileCard, { backgroundColor: colors.profileCard, borderColor: colors.border }]}>
+          <View style={styles.cover}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Upload profile picture"
+              onPress={() => router.push("/edit-profile")}
+              style={({ pressed }) => [styles.uploadPicture, { opacity: pressed ? 0.7 : 1 }]}
+            >
+              <Feather name="camera" size={14} color="#FFFFFF" />
+              <Text style={styles.uploadPictureText}>Upload picture</Text>
+            </Pressable>
+            <View style={styles.coverActions}>
+              <Pressable testID="profile-blocked" accessibilityLabel={`Blocked profiles${blockedCount ? `, ${blockedCount}` : ""}`} onPress={() => setBlockedOpen(true)} style={styles.coverAction}>
+                <Feather name="slash" size={18} color="#FFFFFF" />
+              </Pressable>
+              <Pressable testID="profile-settings" accessibilityLabel="Settings" onPress={() => router.push("/settings")} style={styles.coverAction}>
+                <Feather name="settings" size={20} color="#FFFFFF" />
+              </Pressable>
             </View>
-          ) : null}
-          <ProfileFollowStats profileId={user.id} viewerId={user.id} showAction={false} />
-          <ReferralProfileCard />
-          <Pressable testID="edit-profile" onPress={() => router.push("/edit-profile")} style={({ pressed }) => [styles.editButton, { height: tight ? 42 : 48, marginTop: tight ? 8 : 12, backgroundColor: colors.profileEdit, transform: [{ scale: pressed ? 0.98 : 1 }] }]}>
-            <Feather name="edit-2" size={15} color={colors.profileEditForeground} />
-            <Text style={[styles.editText, { color: colors.profileEditForeground }]}>Edit profile</Text>
-          </Pressable>
-        </View>
-        <View style={[styles.twoCol, { gap }]}>
-          <View style={[styles.sectionCard, styles.half, { backgroundColor: colors.profileCard }]}>
-            {sectionHead("user", "ABOUT")}
-            <Text numberOfLines={2} accessibilityLabel={bio} style={[styles.body, { color: colors.profileLabel }]}>{bio}</Text>
           </View>
-          <View style={[styles.sectionCard, styles.half, { backgroundColor: colors.profileCard }]}>
-            {sectionHead("briefcase", "WORK")}
-            <Text numberOfLines={2} accessibilityLabel={work} style={[styles.body, { color: colors.profileLabel }]}>{work}</Text>
-          </View>
-        </View>
-        <View style={[styles.sectionCard, { backgroundColor: colors.profileCard }]}>
-          {sectionHead("heart", "HOBBIES")}
-          {user.interests.length ? (
-            <View style={styles.tags} accessibilityLabel={`Hobbies: ${user.interests.join(", ")}`}>
-              {shownHobbies.map((item) => <Text key={item} numberOfLines={1} style={[styles.tag, { backgroundColor: colors.profileChip, color: colors.profileChipForeground }]}>{item}</Text>)}
-              {moreHobbies > 0 ? <Pressable accessibilityLabel={`${moreHobbies} more hobbies, open editor`} onPress={() => router.push("/edit-profile")}><Text style={[styles.tag, { backgroundColor: colors.profileChip, color: colors.profileEdit }]}>+{moreHobbies}</Text></Pressable> : null}
+
+          <View style={styles.profileIdentity}>
+            <View style={[styles.portrait, { backgroundColor: colors.profileCard, borderColor: colors.profileCard, marginTop: -58 }]}>
+              <ProfileAvatar profile={user} size={avatar} />
             </View>
-          ) : <Text style={[styles.body, { color: colors.profileMuted }]}>Add a few interests to your profile.</Text>}
-        </View>
-        <View style={[styles.sectionCard, { backgroundColor: colors.profileCard }]}>
-          <View style={styles.photoHeading}>
-            <View style={styles.sectionHeadRow}>{sectionHead("camera", "PHOTOS")}<Text style={[styles.meta, { color: colors.profileMuted, marginBottom: 6 }]}>{user.photos.length}/6</Text></View>
-            <Pressable accessibilityRole="button" accessibilityLabel="Manage profile photos" onPress={() => router.push("/edit-profile")} style={[styles.managePhotos, { backgroundColor: colors.profileChip }]}>
-              <Feather name="camera" size={12} color={colors.profileEdit} />
-              <Text style={[styles.managePhotosText, { color: colors.profileEdit }]}>Manage</Text>
+            <View style={styles.identity}>
+              <Text numberOfLines={2} accessibilityLabel={`${user.name}${user.age !== null ? `, ${user.age}` : ""}`} style={[styles.name, { color: colors.profileLabel }]}>{user.name}{user.age !== null ? `, ${user.age}` : ""}</Text>
+              {user.isVerified ? <Feather name="check-circle" size={18} color={colors.profileLabel} accessibilityLabel="Verified profile" /> : null}
+            </View>
+            {work && work !== "Prefer not to say" ? <Text numberOfLines={1} style={[styles.city, { color: colors.profileMuted }]}>{work}</Text> : null}
+            <Pressable
+              accessibilityRole="button"
+              accessibilityState={{ expanded: detailsOpen }}
+              onPress={() => setDetailsOpen((open) => !open)}
+              style={styles.seeMore}
+            >
+              <Text style={[styles.seeMoreText, { color: colors.foreground }]}>{detailsOpen ? "See less" : "See more"}</Text>
+              <Feather name={detailsOpen ? "chevron-up" : "chevron-down"} size={15} color={colors.foreground} />
             </Pressable>
           </View>
-          {photos.length ? (
-            <View style={styles.mediaRow}>
-              {photos.map((photo, index) => (
-                <View key={`${photo}-${index}`} accessibilityLabel={`Profile photo ${index + 1}${index === 0 ? " (main)" : ""}`} style={[styles.mediaThumb, { backgroundColor: colors.profileChip }]}>
-                  {profileImageSource(photo, mediaToken) ? <Image source={profileImageSource(photo, mediaToken)} style={styles.mediaImage} resizeMode="cover" /> : <Feather name="image" size={16} color={colors.profileMuted} />}
-                  {index === 0 ? <View style={[styles.mainPhotoBadge, { backgroundColor: colors.profileEdit }]}><Text style={[styles.mainPhotoBadgeText, { color: colors.profileEditForeground }]}>Main</Text></View> : null}
+
+          <View style={styles.statsInset}>
+            <ProfileFollowStats profileId={user.id} viewerId={user.id} showAction={false} />
+          </View>
+
+          <View style={styles.actionRow}>
+            <Pressable testID="edit-profile" onPress={() => router.push("/edit-profile")} style={({ pressed }) => [styles.actionButton, { backgroundColor: colors.profileEdit, opacity: pressed ? 0.8 : 1 }]}>
+              <Feather name="edit-2" size={16} color={colors.profileEditForeground} />
+              <Text style={[styles.actionText, { color: colors.profileEditForeground }]}>Edit Profile</Text>
+            </Pressable>
+            <Pressable testID="find-users" onPress={() => router.push("/search")} style={({ pressed }) => [styles.actionButton, { backgroundColor: colors.secondary, opacity: pressed ? 0.8 : 1 }]}>
+              <Feather name="search" size={17} color={colors.foreground} />
+              <Text style={[styles.actionText, { color: colors.foreground }]}>Find @users</Text>
+            </Pressable>
+          </View>
+
+          {detailsOpen && (
+            <View style={styles.details}>
+              <View style={styles.twoCol}>
+                <View style={styles.detailSection}>
+                  <Text style={[styles.detailHeading, { color: colors.foreground }]}>About me</Text>
+                  <Text style={[styles.body, { color: colors.foreground }]}>{bio}</Text>
+                  {place ? <Text style={[styles.city, styles.detailPlace, { color: colors.mutedForeground }]}>{place}</Text> : null}
+                  {user.gender ? <View style={styles.genderRow}><MaterialCommunityIcons name={genderIcon} size={15} color={colors.mutedForeground} /><Text style={[styles.meta, { color: colors.mutedForeground }]}>{user.gender}</Text></View> : null}
                 </View>
-              ))}
-              {Array.from({ length: 6 - photos.length }).map((_, i) => <View key={`empty-${i}`} style={[styles.mediaThumb, { backgroundColor: colors.profileChip, opacity: 0.5 }]} />)}
+                <View style={styles.detailSection}>
+                  <Text style={[styles.detailHeading, { color: colors.foreground }]}>Work</Text>
+                  <Text style={[styles.body, { color: colors.foreground }]}>{work}</Text>
+                </View>
+              </View>
+              <View style={styles.detailSection}>
+                <Text style={[styles.detailHeading, { color: colors.foreground }]}>Hobbies</Text>
+                {user.interests.length ? (
+                  <View style={styles.tags} accessibilityLabel={`Hobbies: ${user.interests.join(", ")}`}>
+                    {user.interests.map((item) => <Text key={item} numberOfLines={1} style={[styles.tag, { backgroundColor: colors.profileChip, color: colors.profileChipForeground }]}>{item}</Text>)}
+                  </View>
+                ) : <Text style={[styles.body, { color: colors.profileMuted }]}>Add a few interests to your profile.</Text>}
+              </View>
+              <View style={styles.detailSection}>
+                <View style={styles.photoHeading}>
+                  <Text style={[styles.detailHeading, { color: colors.foreground }]}>Photos <Text style={{ color: colors.profileMuted, fontWeight: "500" }}>{user.photos.length}/6</Text></Text>
+                  <Pressable accessibilityRole="button" accessibilityLabel="Manage profile photos" onPress={() => router.push("/edit-profile")} style={styles.managePhotos}>
+                    <Feather name="camera" size={13} color={colors.foreground} />
+                    <Text style={[styles.managePhotosText, { color: colors.foreground }]}>Manage</Text>
+                  </Pressable>
+                </View>
+                {photos.length ? (
+                  <View style={styles.mediaRow}>
+                    {photos.map((photo, index) => (
+                      <View key={`${photo}-${index}`} accessibilityLabel={`Profile photo ${index + 1}${index === 0 ? " (main)" : ""}`} style={[styles.mediaThumb, { backgroundColor: colors.profileChip }]}>
+                        {profileImageSource(photo, mediaToken) ? <Image source={profileImageSource(photo, mediaToken)} style={styles.mediaImage} resizeMode="cover" /> : <Feather name="image" size={16} color={colors.profileMuted} />}
+                        {index === 0 ? <View style={[styles.mainPhotoBadge, { backgroundColor: colors.profileEdit }]}><Text style={[styles.mainPhotoBadgeText, { color: colors.profileEditForeground }]}>Main</Text></View> : null}
+                      </View>
+                    ))}
+                  </View>
+                ) : (
+                  <Pressable onPress={() => router.push("/edit-profile")} style={styles.emptyPhotos}>
+                    <Feather name="image" size={17} color={colors.profileMuted} />
+                    <Text style={[styles.body, { color: colors.profileMuted }]}>Add photos to your profile.</Text>
+                  </Pressable>
+                )}
+              </View>
+              <ReferralProfileCard />
             </View>
-          ) : <Text style={[styles.body, { color: colors.profileMuted }]}>Add photos in Edit profile.</Text>}
+          )}
         </View>
+
         <ProfileReelsSection key={`own-${user.id}`} profileId={user.id} returnTo="/(tabs)/profile" own />
       </ScrollView>
       <Modal visible={blockedOpen} transparent animationType="slide" onRequestClose={() => setBlockedOpen(false)}>
@@ -187,39 +218,43 @@ export default function ProfileScreen() {
 }
 
 const styles = StyleSheet.create({
+  root: { flex: 1 },
   center: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12 },
   retry: { borderRadius: 20, paddingHorizontal: 18, paddingVertical: 10 },
-  scrollContent: { flexGrow: 1, paddingHorizontal: 16, justifyContent: "flex-start" },
-  top: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  pill: { height: 36, borderRadius: 18, paddingHorizontal: 13, flexDirection: "row", gap: 6, alignItems: "center" },
-  pillText: { fontSize: 13, fontWeight: "700" },
-  card: { borderRadius: 24, paddingHorizontal: 16, alignItems: "center" },
+  scrollContent: { flexGrow: 1, paddingHorizontal: 18, paddingTop: 18, paddingBottom: 18, gap: 18, justifyContent: "flex-start" },
+  profileCard: { overflow: "hidden", borderRadius: 24, borderWidth: StyleSheet.hairlineWidth },
+  cover: { height: 116, backgroundColor: "#111111", justifyContent: "flex-end", position: "relative" },
+  uploadPicture: { position: "absolute", left: 16, bottom: 13, flexDirection: "row", alignItems: "center", gap: 6 },
+  uploadPictureText: { color: "#FFFFFF", fontSize: 12, fontWeight: "700" },
+  coverActions: { position: "absolute", top: 12, right: 12, flexDirection: "row", gap: 8 },
+  coverAction: { width: 40, height: 40, borderRadius: 13, backgroundColor: "rgba(0,0,0,0.18)", alignItems: "center", justifyContent: "center" },
+  profileIdentity: { alignItems: "center", paddingHorizontal: 18, paddingBottom: 12 },
+  statsInset: { paddingHorizontal: 18 },
   portrait: { borderWidth: 3, borderRadius: 999, overflow: "hidden" },
-  name: { fontWeight: "800", textAlign: "center", letterSpacing: -0.5, marginTop: 6, maxWidth: "100%" },
+  name: { fontSize: 26, lineHeight: 32, fontWeight: "800", textAlign: "center", letterSpacing: -0.5, marginTop: 10, maxWidth: "100%" },
   identity: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, maxWidth: "100%" },
-  city: { fontSize: 14, marginTop: 2, textAlign: "center", maxWidth: "100%" },
-  metaRow: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 4, maxWidth: "100%" },
+  city: { fontSize: 14, marginTop: 5, textAlign: "center", maxWidth: "100%" },
+  detailPlace: { textAlign: "left", marginTop: 8 },
   genderRow: { flexDirection: "row", alignItems: "center", gap: 4 },
   meta: { fontSize: 12, fontWeight: "600" },
-  travelBadge: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 12, flexShrink: 1 },
-  travelBadgeText: { fontSize: 11, fontWeight: "700", flexShrink: 1 },
-  editButton: { flexDirection: "row", gap: 8, borderRadius: 26, alignSelf: "stretch", marginHorizontal: 20, alignItems: "center", justifyContent: "center" },
-  editText: { fontSize: 16, fontWeight: "700" },
-  twoCol: { flexDirection: "row" },
-  half: { flex: 1, minWidth: 0 },
-  sectionCard: { borderRadius: 18, paddingHorizontal: 13, paddingVertical: 10 },
-  sectionHead: { flexDirection: "row", alignItems: "center", gap: 7, marginBottom: 6 },
-  sectionHeadRow: { flexDirection: "row", alignItems: "center", gap: 6 },
-  sectionIcon: { width: 22, height: 22, borderRadius: 11, alignItems: "center", justifyContent: "center" },
-  label: { fontSize: 11, fontWeight: "800", letterSpacing: 1.4 },
-  body: { fontSize: 13, lineHeight: 18 },
-  tags: { flexDirection: "row", flexWrap: "nowrap", gap: 6, overflow: "hidden" },
-  tag: { overflow: "hidden", borderRadius: 14, paddingHorizontal: 10, paddingVertical: 5, fontSize: 12, fontWeight: "600", maxWidth: 120 },
+  seeMore: { flexDirection: "row", alignItems: "center", gap: 5, paddingVertical: 12 },
+  seeMoreText: { fontSize: 13, fontWeight: "700" },
+  actionRow: { flexDirection: "row", gap: 10, paddingHorizontal: 18, paddingBottom: 18 },
+  actionButton: { flex: 1, minHeight: 46, borderRadius: 15, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 },
+  actionText: { fontSize: 14, fontWeight: "700" },
+  details: { paddingHorizontal: 18, paddingBottom: 18, gap: 18 },
+  detailSection: { gap: 7 },
+  detailHeading: { fontSize: 16, fontWeight: "800" },
+  twoCol: { flexDirection: "row", gap: 14 },
+  body: { fontSize: 14, lineHeight: 21 },
+  tags: { flexDirection: "row", flexWrap: "wrap", gap: 7 },
+  tag: { overflow: "hidden", borderRadius: 20, paddingHorizontal: 13, paddingVertical: 7, fontSize: 13, fontWeight: "600", maxWidth: 160 },
   photoHeading: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  managePhotos: { flexDirection: "row", gap: 5, alignItems: "center", borderRadius: 12, paddingHorizontal: 9, paddingVertical: 5, marginBottom: 6 },
-  managePhotosText: { fontSize: 11, fontWeight: "700" },
+  managePhotos: { flexDirection: "row", gap: 5, alignItems: "center", paddingHorizontal: 9, paddingVertical: 5 },
+  managePhotosText: { fontSize: 12, fontWeight: "700" },
   mediaRow: { flexDirection: "row", gap: 5 },
-  mediaThumb: { flex: 1, aspectRatio: 1, borderRadius: 10, alignItems: "center", justifyContent: "center", overflow: "hidden", position: "relative" },
+  emptyPhotos: { minHeight: 58, flexDirection: "row", alignItems: "center", gap: 8 },
+  mediaThumb: { flex: 1, aspectRatio: 1, alignItems: "center", justifyContent: "center", overflow: "hidden", position: "relative" },
   mediaImage: { width: "100%", height: "100%" },
   mainPhotoBadge: { position: "absolute", left: 0, right: 0, bottom: 0, alignItems: "center", paddingVertical: 1 },
   mainPhotoBadgeText: { fontSize: 8, fontWeight: "800" },

@@ -196,7 +196,7 @@ export default function PublicProfileScreen() {
           <View style={[styles.likesHeader, { marginTop: 12 }]}>
             <Text testID="public-profile-name" style={[styles.name, { color: colors.foreground, textAlign: "center" }]}>
               {user.name}{showAge ? <Text style={{ color: colors.profileMuted, fontWeight: "600" }}>, {user.age}</Text> : null}
-              {user.isVerified && <Feather name="check-circle" size={21} color="#2997e8" accessibilityLabel="Verified profile" />}
+              {user.isVerified && <Feather name="check-circle" size={21} color={colors.foreground} accessibilityLabel="Verified profile" />}
             </Text>
             <View style={styles.locationRow}>
               <Feather name="map-pin" size={14} color={colors.profileEdit} />
@@ -213,7 +213,7 @@ export default function PublicProfileScreen() {
             <View style={styles.identityCopy}>
               <Text testID="public-profile-name" style={[styles.name, { color: colors.foreground }]}>
                 {user.name}{showAge ? <Text style={{ color: colors.profileMuted, fontWeight: "600" }}>, {user.age}</Text> : null}
-                {user.isVerified && <Feather name="check-circle" size={21} color="#2997e8" accessibilityLabel="Verified profile" />}
+                {user.isVerified && <Feather name="check-circle" size={21} color={colors.foreground} accessibilityLabel="Verified profile" />}
               </Text>
               <View style={styles.locationRow}>
                 <Feather name="map-pin" size={14} color={colors.profileEdit} />

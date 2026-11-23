@@ -2,8 +2,10 @@ import { useGetNotifications } from "@workspace/api-client-react";
 import { Feather } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import { useColors } from "@/hooks/useColors";
 
 export function NotificationBell({ color }: { color: string }) {
+  const colors = useColors();
   const notifications = useGetNotifications({
     query: { refetchInterval: 5_000 },
   });
@@ -20,8 +22,8 @@ export function NotificationBell({ color }: { color: string }) {
     >
       <Feather name="bell" size={19} color={color} />
       {unread > 0 ? (
-        <View style={styles.badge}>
-          <Text style={styles.badgeText}>{unread > 99 ? "99+" : unread}</Text>
+          <View style={[styles.badge, { backgroundColor: colors.primary, borderColor: colors.background }]}>
+          <Text style={[styles.badgeText, { color: colors.primaryForeground }]}>{unread > 99 ? "99+" : unread}</Text>
         </View>
       ) : null}
     </Pressable>
@@ -49,9 +51,8 @@ const styles = StyleSheet.create({
     height: 17,
     paddingHorizontal: 3,
     borderRadius: 9,
-    backgroundColor: "#FF2D55",
     alignItems: "center",
     justifyContent: "center",
   },
-  badgeText: { color: "#fff", fontSize: 9, fontWeight: "800" },
+  badgeText: { fontSize: 9, fontWeight: "800" },
 });

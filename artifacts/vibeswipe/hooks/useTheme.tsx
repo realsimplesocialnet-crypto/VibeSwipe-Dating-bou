@@ -9,12 +9,12 @@ type ThemeContextValue = {
 };
 
 const ThemeContext = createContext<ThemeContextValue>({
-  scheme: "dark",
+  scheme: "light",
   setScheme: async () => undefined,
 });
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [scheme, setSchemeState] = useState<ColorScheme>("dark");
+  const [scheme, setSchemeState] = useState<ColorScheme>("light");
   useEffect(() => {
     void AsyncStorage.getItem("vibeswipe-color-scheme").then((saved) => {
       if (saved === "light" || saved === "dark") setSchemeState(saved);

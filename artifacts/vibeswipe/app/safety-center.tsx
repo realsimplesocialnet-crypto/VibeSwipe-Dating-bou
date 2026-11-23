@@ -151,7 +151,7 @@ export default function SafetyCenterScreen() {
   async function shareLinkWithFriend(link: string) {
     try {
       await Share.share({
-        title: "VIBESWIPES live location",
+        title: "MyAgeBeauty live location",
         message: `My live location link: ${link}`,
         url: link,
       });
@@ -226,7 +226,7 @@ export default function SafetyCenterScreen() {
     try {
       await Linking.openSettings();
     } catch {
-      setLocationError("Open your device settings and allow location access for VIBESWIPES.");
+      setLocationError("Open your device settings and allow location access for MyAgeBeauty.");
     }
   }
 
@@ -255,7 +255,7 @@ export default function SafetyCenterScreen() {
           <Feather name="arrow-left" size={20} color={colors.foreground} />
         </Pressable>
         <View>
-          <Text style={[styles.eyebrow, { color: colors.primary }]}>VIBESWIPES</Text>
+          <Text style={[styles.eyebrow, { color: colors.primary }]}>MyAgeBeauty</Text>
           <Text style={[styles.title, { color: colors.foreground }]}>Safety Center</Text>
         </View>
       </View>
@@ -414,7 +414,7 @@ export default function SafetyCenterScreen() {
         {active ? (
           <View style={[styles.activeNotice, { backgroundColor: colors.accent }]}>
             <View style={styles.activeHeading}>
-              <View style={[styles.onlineDot, { backgroundColor: "#4bd29b" }]} />
+              <View style={[styles.onlineDot, { backgroundColor: colors.primary }]} />
               <Text style={[styles.activeText, { color: colors.foreground }]}>
                 Location link is active{expiry ? ` · expires at ${expiry}` : ""}
               </Text>

@@ -33,6 +33,7 @@ import {
   View,
 } from "react-native";
 import { ProfileAvatar } from "@/components/ProfileAvatar";
+import { AppHeader } from "@/components/AppHeader";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useColors } from "@/hooks/useColors";
 
@@ -83,6 +84,7 @@ export default function ChatsScreen() {
   const searchedMatches = !query ? allMatches : exactNameMatches.length ? exactNameMatches : allMatches.filter(match => match.profile.name.toLocaleLowerCase().includes(query));
   const chats = searchedMatches.filter((match) => Boolean(match.lastMessage) && (filter !== "unread" || (match.unreadCount ?? 0) > 0));
   const directList = (direct.data ?? []).filter(item => !item.profile.isDemo && (!query || item.profile.name.toLocaleLowerCase().includes(query))).filter(item => filter !== "unread" || item.unreadCount > 0).sort((a,b)=>new Date(b.lastMessageAt ?? 0).getTime()-new Date(a.lastMessageAt ?? 0).getTime());
+  const threadCount = allMatches.filter((match) => Boolean(match.lastMessage)).length + (direct.data ?? []).filter((item) => !item.profile.isDemo).length;
 
   async function refreshSafetyAndLists() {
     await Promise.all([
@@ -144,20 +146,22 @@ export default function ChatsScreen() {
     || deleteChat.isPending;
 
   return (
-    <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: colors.messagesBackground }}><View style={styles.screen}>
+    <View style={{ flex: 1, backgroundColor: colors.messagesBackground }}>
+      <AppHeader active="messages" />
+      <View style={styles.screen}>
       <View style={styles.chatsTopRow} testID="chats-header">
-        <Text style={[styles.chatsTitle, { color: colors.foreground }]}>Chats</Text>
-        <Pressable accessibilityRole="button" accessibilityLabel="Notifications" onPress={() => router.push("/(tabs)/activity")} style={styles.notificationsButton}><Feather name="bell" size={23} color={colors.foreground}/></Pressable>
+        <Text style={[styles.chatsTitle, { color: colors.foreground }]}>Messages</Text>
+        <Text style={[styles.threadCount, { color: colors.mutedForeground }]}>{threadCount} {threadCount === 1 ? "thread" : "threads"}</Text>
       </View>
-      <View style={[styles.chatSearch, { backgroundColor: colors.profileCard, borderColor: colors.border }]}>
+      <View style={[styles.chatSearch, { backgroundColor: colors.secondary }]}>
         <Feather name="search" size={19} color={colors.mutedForeground} />
         <TextInput
           value={search}
           onChangeText={setSearch}
           maxLength={100}
-          placeholder="Search by name"
+          placeholder="Search conversations..."
           placeholderTextColor={colors.mutedForeground}
-          accessibilityLabel="Search chats by person name"
+          accessibilityLabel="Search conversations"
           testID="input-search-chats"
           returnKeyType="search"
           style={[styles.chatSearchInput, { color: colors.foreground }]}
@@ -179,12 +183,6 @@ export default function ChatsScreen() {
       {matches.isError && direct.isError ? (
         <ActivityIndicator color={colors.primary} accessibilityLabel="Loading" style={styles.loading} />
       ) : null}
-      {!matches.isLoading && !direct.isLoading && !matches.isError && !direct.isError && !allMatches.length && !directList.length ? (
-        <View style={styles.empty}>
-          <Text style={[styles.emptyTitle, { color: colors.foreground }]}>No conversations yet</Text>
-          <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>Follow people and start a conversation.</Text>
-        </View>
-      ) : null}
       <FlatList
         data={chats}
         scrollEnabled={chats.length > 0 || directList.length > 0}
@@ -201,8 +199,11 @@ export default function ChatsScreen() {
           </View> : null}
         </View>}
         ListEmptyComponent={directList.length ? undefined : search.trim() || filter !== "all"
-          ? <Text testID="empty-chat-search" style={[styles.noChatsYet, { color: colors.mutedForeground }]}>{search.trim() ? "No chats found for that name." : "No unread chats."}</Text>
-          : undefined}
+          ? <Text testID="empty-chat-search" style={[styles.noChatsYet, { color: colors.mutedForeground }]}>{search.trim() ? "No conversations match that search." : "No unread conversations."}</Text>
+          : <View style={styles.empty}>
+              <Text style={[styles.emptyTitle, { color: colors.foreground }]}>No conversations yet</Text>
+              <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>Follow people and start a conversation.</Text>
+            </View>}
         renderItem={({ item }) => {
           const isBlocked = item.blockedByMe || item.blockedMe;
           const status = item.blockedByMe ? "You blocked this person" : item.blockedMe ? "Messaging unavailable" : null;
@@ -336,7 +337,8 @@ export default function ChatsScreen() {
           </View>
         </View>
       </Modal>
-    </View></SafeAreaView>
+      </View>
+    </View>
   );
 }
 
@@ -393,14 +395,15 @@ const visitorStyles = StyleSheet.create({
 });
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, paddingHorizontal: 18, paddingTop: 8, paddingBottom: 90 },
-  chatsTopRow: { minHeight: 42, flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 12 },
-  chatsTitle: { fontSize: 32, fontWeight: "900", letterSpacing: -0.8 },
+  screen: { flex: 1, paddingHorizontal: 18, paddingTop: 12, paddingBottom: 90 },
+  chatsTopRow: { minHeight: 36, flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 10 },
+  chatsTitle: { fontSize: 23, fontWeight: "800", letterSpacing: -0.4 },
+  threadCount: { fontSize: 12, fontWeight: "500" },
   notificationsButton: { width: 42, height: 42, alignItems: "center", justifyContent: "center" },
-  chatSearch: { height: 48, flexDirection: "row", alignItems: "center", gap: 10, borderWidth: StyleSheet.hairlineWidth, borderRadius: 24, paddingHorizontal: 15 },
+  chatSearch: { height: 48, flexDirection: "row", alignItems: "center", gap: 10, borderRadius: 14, paddingHorizontal: 15 },
   chatSearchInput: { flex: 1, minWidth: 0, height: "100%", fontSize: 15 },
   chatFilters: { gap: 8, paddingTop: 12, paddingBottom: 10, paddingRight: 8 },
-  chatFilter: { minHeight: 36, borderWidth: StyleSheet.hairlineWidth, borderRadius: 20, paddingHorizontal: 15, alignItems: "center", justifyContent: "center" },
+  chatFilter: { minHeight: 36, borderRadius: 20, paddingHorizontal: 15, alignItems: "center", justifyContent: "center" },
   chatFilterText: { fontSize: 13, fontWeight: "700" },
   wordmark: { flexDirection: "row", alignItems: "center", gap: 10 },
   monogram: { fontSize: 34, fontWeight: "900", letterSpacing: -3 },
@@ -410,7 +413,7 @@ const styles = StyleSheet.create({
   badge: { minWidth: 28, height: 28, paddingHorizontal: 6, borderRadius: 14, alignItems: "center", justifyContent: "center" },
   badgeText: { fontSize: 13, fontWeight: "800" },
   loading: { marginTop: 40 },
-  list: { paddingBottom: 18 },
+  list: { flexGrow: 1, paddingBottom: 18 },
   row: { minHeight: 84, flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 0 },
   meta: { alignSelf: "stretch", alignItems: "flex-end", justifyContent: "space-between", paddingVertical: 18 },
   dot: { width: 11, height: 11, borderRadius: 6 },
@@ -422,7 +425,7 @@ const styles = StyleSheet.create({
   last: { fontSize: 14 },
   blockedLabel: { fontSize: 11, fontWeight: "700" },
   actionTrigger: { paddingHorizontal: 5, paddingVertical: 12 },
-  empty: { alignItems: "center", marginTop: 78, gap: 10 },
+  empty: { flex: 1, minHeight: 250, alignItems: "center", justifyContent: "center", paddingHorizontal: 22, gap: 8 },
   emptyTitle: { fontSize: 17, fontWeight: "700" },
   errorBox: { paddingVertical: 12 },
   errorText: { fontSize: 13 },

@@ -2,14 +2,15 @@ import { Feather } from "@expo/vector-icons";
 import { useQueryClient } from "@tanstack/react-query";
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { ActivityIndicator, AppState, FlatList, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, AppState, FlatList, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   getGetNotificationsQueryKey, getGetWhoViewedYouQueryKey,
-  useGetMyProfile, useGetNotifications, useGetWhoViewedYou, useMarkNotificationRead,
+  useGetNotifications, useGetWhoViewedYou, useMarkNotificationRead,
   createUseMarkActivitySeen, patchActivityReads, type ActivityCategory, type NotificationsResponse,
 } from "@workspace/api-client-react";
 import { ProfileAvatar } from "@/components/ProfileAvatar";
+import { AppHeader } from "@/components/AppHeader";
 import { usePremiumColors } from "@/hooks/useColors";
 
 const live = { refetchInterval: 15000, refetchOnMount: "always" as const, refetchOnWindowFocus: true, staleTime: 0 };
@@ -88,19 +89,42 @@ export function ActivityOverview() {
   const qc = useQueryClient();
   const insets = useSafeAreaInsets();
   const notes = useGetNotifications({ query: { queryKey: getGetNotificationsQueryKey(), ...live } });
-  const me = useGetMyProfile();
   const mark = useMarkNotificationRead();
   const [readError, setReadError] = useState("");
-  const counts = notes.data?.unreadCounts;
-  const cards = [
-    { key: "messages", title: "Messages", to: "/(tabs)/views", count: counts?.messages ?? 0, icon: "send" as const, color: "#ed4b89" },
-    { key: "views", title: "Profile views", to: "/(tabs)/activity/views", count: counts?.views ?? 0, icon: "eye" as const, color: "#16a394" },
-    { key: "followers", title: "Followers", to: me.data?.id ? `/followers/${me.data.id}` : "", count: counts?.follows ?? 0, icon: "user" as const, color: "#8b5cf6" },
-  ];
-  const items = useMemo(() => (notes.data?.notifications ?? [])
+  const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState<"all" | "likes" | "comments" | "follows" | "views">("all");
+  const allItems = useMemo(() => (notes.data?.notifications ?? [])
     .filter(n => n.type === "profile_view" || n.type === "new_follow" || n.type === "reel_like" || n.type === "reel_comment_like" || n.type === "reel_comment_reply")
     .slice()
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()), [notes.data?.notifications]);
+  const items = useMemo(() => {
+    const term = search.trim().toLocaleLowerCase();
+    return allItems.filter((item) => {
+      const categoryMatches = filter === "all"
+        || (filter === "likes" && (item.type === "reel_like" || item.type === "reel_comment_like"))
+        || (filter === "comments" && item.type === "reel_comment_reply")
+        || (filter === "follows" && item.type === "new_follow")
+        || (filter === "views" && item.type === "profile_view");
+      return categoryMatches && (!term || item.actor.name.toLocaleLowerCase().includes(term));
+    });
+  }, [allItems, filter, search]);
+
+  async function markAllRead() {
+    const unreadIds = allItems.filter((item) => !item.readAt).map((item) => item.id);
+    if (!unreadIds.length || mark.isPending) return;
+    const key = getGetNotificationsQueryKey();
+    const stamp = new Date().toISOString();
+    setReadError("");
+    await qc.cancelQueries({ queryKey: key });
+    qc.setQueryData<NotificationsResponse>(key, (data) => data ? patchActivityReads(data, unreadIds, stamp) : data);
+    const results = await Promise.allSettled(unreadIds.map((notificationId) => mark.mutateAsync({ notificationId })));
+    const failedIds = unreadIds.filter((_, index) => results[index]?.status === "rejected");
+    if (failedIds.length) {
+      qc.setQueryData<NotificationsResponse>(key, (data) => data ? patchActivityReads(data, failedIds, stamp, true) : data);
+      setReadError("Some notifications could not be marked as read. Try again.");
+    }
+    void qc.invalidateQueries({ queryKey: key });
+  }
 
   async function openActivityItem(n: NotificationsResponse["notifications"][number]) {
     const key = getGetNotificationsQueryKey();
@@ -138,46 +162,91 @@ export function ActivityOverview() {
   }
 
   return (
-    <Screen home title="Activity">
+    <View style={[s.flex, { backgroundColor: c.messagesBackground }]}>
+      <AppHeader active="notifications" />
       <ScrollView contentContainerStyle={[s.activityContent, { paddingBottom: insets.bottom + 110 }]}>
-        <View testID="activity-summary" accessibilityLabel="Activity summary" style={s.activityGrid}>
-          {cards.map((card) => (
-            <Pressable key={card.key} onPress={() => card.to && router.push(card.to as never)} testID={`link-summary-${card.key}`} accessibilityRole="button" accessibilityLabel={`${card.title}, ${card.count} unread`} disabled={!card.to} style={({ pressed }) => [s.activityMetric, { backgroundColor: c.profileCard, borderColor: c.border, opacity: !card.to ? 0.65 : pressed ? 0.86 : 1 }]}>
-              <View style={[s.activityMetricIcon, { backgroundColor: card.color }]}><Feather name={card.icon} size={23} color="#fff" /></View>
-              <View style={s.activityMetricCopy}>
-                <Text style={[s.activityMetricCount, { color: c.foreground }]} testID={`text-count-${card.key}`}>{notes.isLoading && !notes.data ? <ActivityIndicator size="small" color={c.primary} /> : card.count}</Text>
-                <Text style={[s.activityMetricLabel, { color: c.mutedForeground }]}>{card.title}</Text>
-              </View>
+        <View testID="activity-summary" style={[s.notificationControls, { backgroundColor: c.profileCard, borderColor: c.border }]}>
+          <View style={s.notificationHeading}>
+            <View style={s.notificationTitleCopy}>
+              <Text style={[s.notificationTitle, { color: c.foreground }]} accessibilityRole="header">Notifications</Text>
+              <Text style={[s.notificationSubtitle, { color: c.mutedForeground }]}>
+                {allItems.some((item) => !item.readAt) ? "Stay up to date with your community." : "You are caught up on all activity."}
+              </Text>
+            </View>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Mark all notifications read"
+              disabled={!allItems.some((item) => !item.readAt) || mark.isPending}
+              onPress={() => void markAllRead()}
+              style={[s.markReadButton, { backgroundColor: c.secondary, opacity: !allItems.some((item) => !item.readAt) || mark.isPending ? 0.48 : 1 }]}
+            >
+              {mark.isPending ? <ActivityIndicator size="small" color={c.foreground} /> : <Feather name="check" size={15} color={c.foreground} />}
+              <Text style={[s.markReadText, { color: c.foreground }]}>Mark all read</Text>
             </Pressable>
-          ))}
+          </View>
+          <View style={[s.activitySearch, { backgroundColor: c.secondary }]}>
+            <Feather name="search" size={18} color={c.mutedForeground} />
+            <TextInput
+              value={search}
+              onChangeText={setSearch}
+              placeholder="Search activity feed..."
+              placeholderTextColor={c.mutedForeground}
+              accessibilityLabel="Search activity feed"
+              returnKeyType="search"
+              maxLength={100}
+              style={[s.activitySearchInput, { color: c.foreground }]}
+            />
+            {search ? <Pressable accessibilityRole="button" accessibilityLabel="Clear search" onPress={() => setSearch("")}><Feather name="x" size={17} color={c.mutedForeground} /></Pressable> : null}
+          </View>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.activityFilters} accessibilityLabel="Notification filters">
+            {([
+              ["all", "All"],
+              ["likes", "Likes"],
+              ["comments", "Comments"],
+              ["follows", "Follows"],
+              ["views", "Profile views"],
+            ] as const).map(([value, label]) => {
+              const selected = filter === value;
+              return <Pressable
+                key={value}
+                accessibilityRole="button"
+                accessibilityState={{ selected }}
+                testID={`activity-filter-${value}`}
+                onPress={() => setFilter(value)}
+                style={[s.activityFilter, { backgroundColor: selected ? c.primary : c.secondary }]}
+              >
+                <Text style={[s.activityFilterText, { color: selected ? c.primaryForeground : c.foreground }]}>{label}</Text>
+              </Pressable>;
+            })}
+          </ScrollView>
         </View>
         {readError ? <Text accessibilityRole="alert" style={[s.activityReadError, { color: c.destructive }]}>{readError}</Text> : null}
         {notes.isLoading || (notes.isError && !notes.data) ? (
           <State loading={notes.isLoading} error={notes.isError} empty={false} onRetry={() => void notes.refetch()} icon="bell" emptyTitle="" emptyText="" />
         ) : null}
         {!notes.isLoading && !notes.isError && items.length === 0 ? (
-          <View style={[s.activityEmpty, { borderColor: c.border }]} testID="status-empty-activity"><Feather name="heart" size={22} color={c.primary}/><Text style={{ color: c.mutedForeground, fontWeight: "700" }}>You’re all caught up</Text></View>
+          <View style={[s.activityEmpty, { backgroundColor: c.profileCard, borderColor: c.border }]} testID="status-empty-activity"><Feather name="bell" size={22} color={c.mutedForeground}/><Text style={{ color: c.mutedForeground, fontWeight: "600", textAlign: "center" }}>{search || filter !== "all" ? "No notifications match your current filter." : "You are caught up on all activity."}</Text></View>
         ) : null}
         {items.length > 0 ? <View testID="activity-feed" accessibilityLabel="Activity feed">
           {items.map(n => {
             const event = n.type === "reel_like"
-              ? { label: "liked your post", icon: "heart" as const, color: "#ed4b89" }
+              ? { label: "liked your post", icon: "heart" as const }
               : n.type === "reel_comment_like"
-                ? { label: "liked your comment", icon: "heart" as const, color: "#ed4b89" }
+                ? { label: "liked your comment", icon: "heart" as const }
                 : n.type === "reel_comment_reply"
-                  ? { label: "replied to your comment", icon: "message-circle" as const, color: "#3b82f6" }
+                  ? { label: "replied to your comment", icon: "message-circle" as const }
                   : n.type === "profile_view"
-                  ? { label: "viewed your profile", icon: "eye" as const, color: "#16a394" }
-                  : { label: "followed you", icon: "user" as const, color: "#8b5cf6" };
-            return <Pressable key={n.id} onPress={() => void openActivityItem(n)} testID={`activity-item-${n.id}`} accessibilityRole="button" accessibilityLabel={`${n.actor.name} ${event.label}, ${ago(n.createdAt)}${n.readAt ? ", read" : ", unread"}`} accessibilityState={{ disabled: false }} style={({ pressed }) => [s.activityRow, { borderBottomColor: c.border, opacity: n.readAt ? 0.56 : pressed ? 0.84 : 1 }]}>
-              <View style={[s.activityFeedIcon, { backgroundColor: event.color }]}><Feather name={event.icon} size={19} color="#fff"/></View>
+                  ? { label: "viewed your profile", icon: "eye" as const }
+                  : { label: "followed you", icon: "user" as const };
+            return <Pressable key={n.id} onPress={() => void openActivityItem(n)} testID={`activity-item-${n.id}`} accessibilityRole="button" accessibilityLabel={`${n.actor.name} ${event.label}, ${ago(n.createdAt)}${n.readAt ? ", read" : ", unread"}`} accessibilityState={{ disabled: false }} style={({ pressed }) => [s.activityRow, { borderBottomColor: c.border, opacity: n.readAt ? 0.72 : pressed ? 0.84 : 1 }]}>
+              <View style={[s.activityFeedIcon, { backgroundColor: c.secondary }]}><Feather name={event.icon} size={19} color={c.foreground}/></View>
               <View style={s.activityFeedCopy}><Text numberOfLines={1} style={[s.activityFeedText, { color: c.foreground }]}><Text style={{ fontWeight: "800" }}>{n.actor.name}</Text> {event.label}</Text><Text style={[s.time, { color: c.mutedForeground }]}>{ago(n.createdAt)}</Text></View>
               {!n.readAt ? <View style={[s.dot, { backgroundColor: c.primary }]} accessibilityLabel="Unread"/> : null}
             </Pressable>;
           })}
         </View> : null}
       </ScrollView>
-    </Screen>
+    </View>
   );
 }
 
@@ -222,19 +291,31 @@ export function ProfileViewsPage() {
 
 const s = StyleSheet.create({
   flex: { flex: 1 },
-  activityContent: { paddingHorizontal: 16, paddingTop: 8, gap: 10 },
+  activityContent: { paddingHorizontal: 16, paddingTop: 14, gap: 14 },
+  notificationControls: { borderWidth: StyleSheet.hairlineWidth, borderRadius: 20, padding: 16, gap: 13 },
+  notificationHeading: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 10 },
+  notificationTitleCopy: { flex: 1, minWidth: 0 },
+  notificationTitle: { fontSize: 24, lineHeight: 30, fontWeight: "800", letterSpacing: -0.5 },
+  notificationSubtitle: { fontSize: 13, lineHeight: 18, marginTop: 2 },
+  markReadButton: { minHeight: 40, borderRadius: 13, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 5, paddingHorizontal: 10 },
+  markReadText: { fontSize: 11, fontWeight: "700" },
+  activitySearch: { minHeight: 46, borderRadius: 14, flexDirection: "row", alignItems: "center", gap: 9, paddingHorizontal: 13 },
+  activitySearchInput: { flex: 1, minWidth: 0, height: 46, fontSize: 14 },
+  activityFilters: { flexDirection: "row", alignItems: "center", gap: 8, paddingRight: 4 },
+  activityFilter: { minHeight: 38, borderRadius: 13, paddingHorizontal: 13, alignItems: "center", justifyContent: "center" },
+  activityFilterText: { fontSize: 12, fontWeight: "700" },
   activityGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10, marginBottom: 12 },
   activityMetric: { width: "48.5%", minHeight: 92, flexGrow: 1, flexBasis: "45%", flexDirection: "row", alignItems: "center", gap: 12, borderWidth: 1, borderRadius: 17, padding: 12 },
   activityMetricIcon: { width: 46, height: 46, borderRadius: 15, alignItems: "center", justifyContent: "center" },
   activityMetricCopy: { minWidth: 0, gap: 2 },
   activityMetricCount: { fontSize: 25, fontWeight: "800", lineHeight: 29, fontVariant: ["tabular-nums"] },
   activityMetricLabel: { fontSize: 13, fontWeight: "600" },
-  activityRow: { minHeight: 72, flexDirection: "row", alignItems: "center", gap: 12, borderBottomWidth: StyleSheet.hairlineWidth, paddingHorizontal: 4, paddingVertical: 10 },
+  activityRow: { minHeight: 72, flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 4, paddingVertical: 10 },
   activityFeedIcon: { width: 42, height: 42, borderRadius: 21, alignItems: "center", justifyContent: "center" },
   activityFeedCopy: { flex: 1, minWidth: 0, gap: 4 },
   activityFeedText: { fontSize: 14 },
   activityReadError: { borderWidth: 1, borderRadius: 12, padding: 10, fontSize: 13 },
-  activityEmpty: { minHeight: 120, alignItems: "center", justifyContent: "center", gap: 10, borderTopWidth: StyleSheet.hairlineWidth },
+  activityEmpty: { minHeight: 260, alignItems: "center", justifyContent: "center", gap: 12, borderWidth: StyleSheet.hairlineWidth, borderRadius: 20, padding: 24 },
   brandBar: { flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 18, paddingBottom: 6 },
   logo: { width: 30, height: 30, borderRadius: 9, alignItems: "center", justifyContent: "center" },
   logoM: { fontSize: 18, fontWeight: "800" },

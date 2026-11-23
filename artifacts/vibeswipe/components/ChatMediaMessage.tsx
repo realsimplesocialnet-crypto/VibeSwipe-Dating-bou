@@ -34,7 +34,7 @@ export function ChatMediaMessage({ reference, type, previewUrl = PREVIEW_URL }: 
       setToken(freshToken); setAttempt(value => value + 1); setLoaded(true);
     } catch { if (request === generation.current) { setLoading(false); setError("Couldn’t load this media. Please try again."); } }
   }
-  const preview = <View style={s.preview}><Image source={{ uri: previewUrl }} style={StyleSheet.absoluteFill} resizeMode="cover"/><Feather name={icon} size={36} color="#bc346f"/><Text style={s.previewTitle}>{label} · Tap to view</Text><Text style={s.previewHint}>Loads only when you choose</Text></View>;
+  const preview = <View style={s.preview}><Image source={{ uri: previewUrl }} style={StyleSheet.absoluteFill} resizeMode="cover"/><Feather name={icon} size={36} color="#111111"/><Text style={s.previewTitle}>{label} · Tap to view</Text><Text style={s.previewHint}>Loads only when you choose</Text></View>;
   return <>
     <Pressable accessibilityRole="button" accessibilityLabel={`Open ${label.toLowerCase()} preview`} testID="chat-media-preview" onPress={() => { Keyboard.dismiss(); setLoaded(false); setError(""); setOpen(true); }}>{preview}</Pressable>
     <Modal visible={open} animationType="fade" presentationStyle="fullScreen" onRequestClose={close}>
@@ -63,6 +63,6 @@ const s = StyleSheet.create({
   close: { padding: 12, borderRadius: 28 }, content: { flex: 1, minHeight: 0, alignItems: "center", justifyContent: "center", padding: 12 },
   full: { width: "100%", height: "100%" }, spinner: { position: "absolute" }, footer: { paddingHorizontal: 20, paddingBottom: 12, gap: 12 },
   button: { minHeight: 48, borderRadius: 16, alignItems: "center", justifyContent: "center" }, primaryText: { color: "#ffffff", fontWeight: "700" },
-  preview: { width: 224, maxWidth: "100%", height: 148, borderRadius: 16, backgroundColor: "#fde0ec", overflow: "hidden", alignItems: "center", justifyContent: "center", gap: 8 },
-  previewTitle: { color: "#bc346f", fontWeight: "700", fontSize: 14 }, previewHint: { color: "#96305b", fontSize: 11 },
+  preview: { width: 224, maxWidth: "100%", height: 148, borderRadius: 16, backgroundColor: "#EEEEEE", overflow: "hidden", alignItems: "center", justifyContent: "center", gap: 8 },
+  previewTitle: { color: "#111111", fontWeight: "700", fontSize: 14 }, previewHint: { color: "#666666", fontSize: 11 },
 });

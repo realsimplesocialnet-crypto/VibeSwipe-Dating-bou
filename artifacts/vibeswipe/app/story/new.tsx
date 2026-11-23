@@ -20,7 +20,7 @@ import {
 import { useColors } from "@/hooks/useColors";
 import { getReelPhotoContentType, getReelVideoContentType } from "@/lib/reelComposer";
 
-const BACKGROUNDS = ["#F34E9A", "#1A1A1E", "#6c263d", "#3678d4", "#238b63", "#8b5bd5"];
+const BACKGROUNDS = ["#111111", "#202020", "#303030", "#404040", "#505050", "#606060"];
 
 export default function StoryComposer() {
   const colors = useColors();
@@ -92,9 +92,9 @@ export default function StoryComposer() {
     <KeyboardAvoidingView behavior="padding" style={{ flex: 1, backgroundColor: asset ? colors.discoverBackground : background }}>
       {asset ? (isVideo ? <VideoView player={player} style={StyleSheet.absoluteFill} contentFit="contain" nativeControls={false} /> : <Image source={{ uri: asset.uri }} style={StyleSheet.absoluteFill} contentFit="contain" />) : null}
       <View style={[styles.top, { paddingTop: insets.top + 8 }]}>
-        <Pressable onPress={() => router.back()} hitSlop={10} accessibilityLabel="Close"><Feather name="x" size={26} color="#fff7fb" /></Pressable>
+        <Pressable onPress={() => router.back()} hitSlop={10} accessibilityLabel="Close"><Feather name="x" size={26} color="#FFFFFF" /></Pressable>
         <Text style={styles.heading}>New story</Text>
-        {asset ? <Pressable onPress={() => setAsset(null)} hitSlop={10} accessibilityLabel="Remove media"><Feather name="trash-2" size={21} color="#fff7fb" /></Pressable> : <View style={{ width: 26 }} />}
+        {asset ? <Pressable onPress={() => setAsset(null)} hitSlop={10} accessibilityLabel="Remove media"><Feather name="trash-2" size={21} color="#FFFFFF" /></Pressable> : <View style={{ width: 26 }} />}
       </View>
       <View style={styles.middle}>
         <TextInput value={caption} onChangeText={setCaption} maxLength={500} multiline placeholder={asset ? "Add a caption" : "Type something"} placeholderTextColor="rgba(255,255,255,0.6)" style={[styles.caption, !asset && styles.captionBig]} testID="story-caption" />
@@ -107,8 +107,8 @@ export default function StoryComposer() {
         ) : null}
         {error ? <Text accessibilityRole="alert" style={styles.error}>{error}</Text> : null}
         <View style={styles.actions}>
-          <Pressable onPress={() => void pick(false)} style={styles.round} accessibilityLabel="Choose from library"><Feather name="image" size={21} color="#fff7fb" /></Pressable>
-          <Pressable onPress={() => void pick(true)} style={styles.round} accessibilityLabel="Use camera"><Feather name="camera" size={21} color="#fff7fb" /></Pressable>
+          <Pressable onPress={() => void pick(false)} style={styles.round} accessibilityLabel="Choose from library"><Feather name="image" size={21} color="#FFFFFF" /></Pressable>
+          <Pressable onPress={() => void pick(true)} style={styles.round} accessibilityLabel="Use camera"><Feather name="camera" size={21} color="#FFFFFF" /></Pressable>
           <View style={{ flex: 1 }} />
           <Pressable onPress={() => void post()} disabled={!!busy} style={[styles.share, { backgroundColor: colors.primary, opacity: busy ? 0.7 : 1 }]} testID="story-post">
             {busy ? <ActivityIndicator color={colors.primaryForeground} size="small" /> : <Feather name="arrow-up-circle" size={18} color={colors.primaryForeground} />}
@@ -123,14 +123,14 @@ export default function StoryComposer() {
 
 const styles = StyleSheet.create({
   top: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16 },
-  heading: { color: "#fff7fb", fontWeight: "800", fontSize: 16 },
+  heading: { color: "#FFFFFF", fontWeight: "800", fontSize: 16 },
   middle: { flex: 1, justifyContent: "center", paddingHorizontal: 24 },
-  caption: { color: "#fff7fb", fontSize: 17, fontWeight: "600", textAlign: "center", textShadowColor: "rgba(0,0,0,0.6)", textShadowRadius: 6 },
+  caption: { color: "#FFFFFF", fontSize: 17, fontWeight: "600", textAlign: "center", textShadowColor: "rgba(0,0,0,0.6)", textShadowRadius: 6 },
   captionBig: { fontSize: 28, fontWeight: "800" },
   bottom: { paddingHorizontal: 16, gap: 12 },
   swatches: { flexDirection: "row", gap: 10, justifyContent: "center" },
-  swatch: { width: 28, height: 28, borderRadius: 14, borderColor: "#fff7fb" },
-  error: { color: "#fff7fb", backgroundColor: "rgba(212,67,88,0.85)", padding: 10, borderRadius: 10, overflow: "hidden", fontWeight: "600" },
+  swatch: { width: 28, height: 28, borderRadius: 14, borderColor: "#FFFFFF" },
+  error: { color: "#FFFFFF", backgroundColor: "rgba(212,67,88,0.85)", padding: 10, borderRadius: 10, overflow: "hidden", fontWeight: "600" },
   actions: { flexDirection: "row", alignItems: "center", gap: 10 },
   round: { width: 46, height: 46, borderRadius: 23, backgroundColor: "rgba(15,12,15,0.55)", alignItems: "center", justifyContent: "center" },
   share: { flexDirection: "row", alignItems: "center", gap: 8, borderRadius: 24, paddingHorizontal: 18, height: 46 },

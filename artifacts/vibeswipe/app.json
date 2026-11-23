@@ -1,12 +1,12 @@
 {
   "expo": {
-    "name": "VIBESWIPES",
+    "name": "MyAgeBeauty",
     "slug": "vibeswipe",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "vibeswipe",
-    "userInterfaceStyle": "dark",
+    "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": false
     },
@@ -22,16 +22,16 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Allow VIBESWIPES to use your location when you choose a nearby Discover area or share your live location in Safety Center."
+          "locationWhenInUsePermission": "Allow MyAgeBeauty to use your location when you choose a nearby Discover area or share your live location in Safety Center."
         }
       ],
       "expo-notifications",
       [
         "expo-image-picker",
         {
-          "cameraPermission": "Allow VIBESWIPES to record Reel videos.",
-          "microphonePermission": "Allow VIBESWIPES to record sound for Reels.",
-          "photosPermission": "Allow VIBESWIPES to choose Reel photos and videos."
+          "cameraPermission": "Allow MyAgeBeauty to record Reel videos.",
+          "microphonePermission": "Allow MyAgeBeauty to record sound for Reels.",
+          "photosPermission": "Allow MyAgeBeauty to choose Reel photos and videos."
         }
       ],
       "expo-secure-store",

@@ -89,7 +89,7 @@ function Tile({ reel, token, size }: { reel: Reel; token: string | null; size: n
         </View>
       )}
       <View style={styles.badge} pointerEvents="none">
-        <Feather name={photo ? (reel.slideReferences.length > 1 ? "copy" : "image") : "play"} size={13} color="#fff7fb" />
+        <Feather name={photo ? (reel.slideReferences.length > 1 ? "copy" : "image") : "play"} size={13} color="#FFFFFF" />
       </View>
     </Pressable>
   );
@@ -107,5 +107,5 @@ const styles = StyleSheet.create({
   cta: { borderRadius: 12, paddingHorizontal: 20, paddingVertical: 12, marginTop: 6 },
   badge: { position: "absolute", top: 6, right: 6 },
   videoTile: { alignItems: "center", justifyContent: "center", padding: 8 },
-  videoCaption: { color: "#fff7fb", fontSize: 11, fontWeight: "700", textAlign: "center" },
+  videoCaption: { color: "#FFFFFF", fontSize: 11, fontWeight: "700", textAlign: "center" },
 });

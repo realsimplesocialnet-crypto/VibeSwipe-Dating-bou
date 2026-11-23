@@ -390,7 +390,7 @@ const styles = StyleSheet.create({
   photoRow: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
   photoSlot: { width: 76, height: 92, borderRadius: 14, overflow: "hidden" },
   singlePhotoSlot: { width: 120, height: 150, borderRadius: 18, overflow: "hidden" },
-  photo: { width: "100%", height: "100%", backgroundColor: "#211b20" },
+  photo: { width: "100%", height: "100%", backgroundColor: "#111111" },
   pendingTag: { position: "absolute", left: 4, right: 4, bottom: 4, borderRadius: 8, paddingHorizontal: 6, paddingVertical: 4, alignItems: "center", backgroundColor: "rgba(0,0,0,0.72)" },
   pendingText: { color: "#ffffff", fontSize: 9, fontWeight: "700" },
   mainBadge: { position: "absolute", left: 4, bottom: 4, borderRadius: 9, backgroundColor: "rgba(0,0,0,0.72)", paddingHorizontal: 6, paddingVertical: 3 },

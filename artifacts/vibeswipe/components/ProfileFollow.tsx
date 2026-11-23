@@ -152,7 +152,7 @@ export function ProfileFollowStats({ profileId, viewerId, showAction = true, soc
   });
   return (
     <View style={styles.statsWrap} testID="profile-follow-stats">
-      <View style={[styles.stats, { backgroundColor: colors.profileCard, borderColor: colors.border }]}>
+        <View style={styles.stats}>
         <View testID="profile-post-count-stat" accessibilityLabel={`${query.data?.postCount ?? 0} posts`} style={styles.stat}>
           {query.data ? <Text style={[styles.statValue, { color: colors.profileLabel }]}>{query.data.postCount}</Text> : query.isError ? <Text style={[styles.statValue, { color: colors.profileLabel }]}>—</Text> : <View style={{ width: 24, height: 16, borderRadius: 8, backgroundColor: colors.border, opacity: 0.65 }} />}
           <Text style={[styles.statLabel, { color: colors.profileMuted }]}>Posts</Text>
@@ -320,12 +320,12 @@ const styles = StyleSheet.create({
   pageHead: { paddingHorizontal: 18, paddingBottom: 12 },
   back: { alignSelf: "flex-start", flexDirection: "row", alignItems: "center", gap: 7, borderWidth: 1, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 7, marginBottom: 10 },
   pageTitle: { fontSize: 34, fontWeight: "800", letterSpacing: -1.2 },
-  statsWrap: { width: "100%", gap: 9, marginTop: 12 },
-  stats: { flex: 1, minHeight: 58, borderWidth: 1, borderRadius: 15, flexDirection: "row", alignItems: "center" },
+  statsWrap: { width: "100%", gap: 9, marginTop: 4 },
+  stats: { minHeight: 68, flexDirection: "row", alignItems: "center" },
   stat: { flex: 1, alignItems: "center", justifyContent: "center", paddingVertical: 7 },
   statValue: { fontSize: 22, lineHeight: 25, fontWeight: "900" },
-  statLabel: { fontSize: 12, fontWeight: "800" },
-  statRule: { width: StyleSheet.hairlineWidth, height: 34 },
+  statLabel: { fontSize: 12, fontWeight: "500" },
+  statRule: { width: StyleSheet.hairlineWidth, height: 38, backgroundColor: "#E5E5E5" },
   actionsRow: { flexDirection: "row", alignItems: "flex-start", gap: 9 },
   actionPlaceholder: { flex: 1, minHeight: 42, borderWidth: 1.5, borderRadius: 999, alignItems: "center", justifyContent: "center" },
   actionWrap: { flex: 1, minWidth: 0, alignItems: "center" },

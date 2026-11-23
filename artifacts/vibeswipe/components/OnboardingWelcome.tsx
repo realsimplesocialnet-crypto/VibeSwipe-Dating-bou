@@ -1,4 +1,4 @@
-import { Image, Pressable, StyleSheet, Text, useWindowDimensions, View } from "react-native";
+import { Pressable, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import { router } from "expo-router";
 import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -13,8 +13,8 @@ export function OnboardingWelcome() {
   return <View style={[styles.root, { backgroundColor: colors.background }]}>
     <OnboardingVideoBackground/>
     <View style={[styles.brand, { paddingTop: insets.top + 21 }]}>
-      <Image source={require("../assets/images/icon.png")} style={styles.icon}/>
-      <Text style={[styles.wordmark, { color: colors.foreground }]}>VibeSwipes</Text>
+      <View style={[styles.icon, { backgroundColor: colors.primary }]}><Text style={[styles.iconText, { color: colors.primaryForeground }]}>M</Text></View>
+      <Text style={[styles.wordmark, { color: colors.foreground }]}>MyAgeBeauty</Text>
     </View>
     <Text style={[styles.preview, { top: insets.top + 74 }]}>ONBOARDING PREVIEW</Text>
     <LinearGradient colors={["rgba(15,15,18,0)", colors.background, colors.background]}
@@ -46,22 +46,23 @@ export function OnboardingWelcome() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: "#ebdfd1" },
+  root: { flex: 1, backgroundColor: "#FFFFFF" },
   brand: { flexDirection: "row", alignItems: "center", gap: 9, paddingHorizontal: 24 },
-  icon: { width: 32, height: 32, borderRadius: 11 },
-  wordmark: { color: "#201c2e", fontSize: 22, fontWeight: "800", letterSpacing: -1 },
-  preview: { position: "absolute", left: 24, fontSize: 10, letterSpacing: 1.2, color: "#655860" },
+  icon: { width: 32, height: 32, borderRadius: 16, alignItems: "center", justifyContent: "center" },
+  iconText: { fontSize: 19, fontWeight: "900" },
+  wordmark: { color: "#111111", fontSize: 22, fontWeight: "800", letterSpacing: -1 },
+  preview: { position: "absolute", left: 24, fontSize: 10, letterSpacing: 1.2, color: "#666666" },
   footer: { position: "absolute", bottom: 0, left: 0, right: 0, paddingTop: 52, paddingHorizontal: 24 },
   footerInner: { width: "100%", maxWidth: 400, alignSelf: "center", alignItems: "center" },
-  heading: { color: "#201c2e", fontSize: 30, lineHeight: 33, fontWeight: "800", textAlign: "center", letterSpacing: -1 },
-  subtitle: { color: "#6e626b", fontSize: 13, lineHeight: 20, textAlign: "center", marginTop: 8, marginBottom: 16 },
+  heading: { color: "#111111", fontSize: 30, lineHeight: 33, fontWeight: "800", textAlign: "center", letterSpacing: -1 },
+  subtitle: { color: "#666666", fontSize: 13, lineHeight: 20, textAlign: "center", marginTop: 8, marginBottom: 16 },
   actions: { flexDirection: "row", width: "100%", gap: 12 },
   button: { flex: 1, minHeight: 54, borderRadius: 16, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7 },
-  primary: { backgroundColor: "#F34E9A" },
-  secondary: { backgroundColor: "rgba(255,255,255,.9)", borderWidth: 1, borderColor: "#cdb9be" },
+  primary: { backgroundColor: "#111111" },
+  secondary: { backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: "#D9D9D9" },
   primaryText: { color: "#fff", fontSize: 14, fontWeight: "700" },
-  secondaryText: { color: "#302536", fontSize: 14, fontWeight: "700" },
+  secondaryText: { color: "#111111", fontSize: 14, fontWeight: "700" },
   legal: { marginTop: 14, flexDirection: "row", flexWrap: "wrap", justifyContent: "center", alignItems: "center", gap: 4 },
-  legalText: { color: "#71616c", fontSize: 10 },
-  legalLink: { color: "#71616c", fontSize: 10, textDecorationLine: "underline" },
+  legalText: { color: "#666666", fontSize: 10 },
+  legalLink: { color: "#666666", fontSize: 10, textDecorationLine: "underline" },
 });

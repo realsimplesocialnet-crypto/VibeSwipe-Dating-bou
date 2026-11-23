@@ -56,12 +56,12 @@ import { useColors } from "@/hooks/useColors";
 import { mediaUri } from "@/lib/media";
 
 const THEME_OPTIONS: { key: ChatThemeType; label: string; color: string }[] = [
-  { key: ChatTheme.pink, label: "Pink", color: "#F34E9A" },
-  { key: ChatTheme.blue, label: "Blue", color: "#3678d4" },
-  { key: ChatTheme.purple, label: "Purple", color: "#8b5bd5" },
-  { key: ChatTheme.green, label: "Green", color: "#238b63" },
-  { key: ChatTheme.dark, label: "Dark", color: "#28242a" },
-  { key: ChatTheme.light, label: "Light", color: "#f4eeee" },
+  { key: ChatTheme.pink, label: "Black", color: "#111111" },
+  { key: ChatTheme.blue, label: "Charcoal", color: "#292929" },
+  { key: ChatTheme.purple, label: "Graphite", color: "#414141" },
+  { key: ChatTheme.green, label: "Gray", color: "#595959" },
+  { key: ChatTheme.dark, label: "Dark", color: "#181818" },
+  { key: ChatTheme.light, label: "Light", color: "#F2F2F2" },
 ];
 const MAX_IMAGE_BYTES = 15 * 1024 * 1024;
 const MAX_VIDEO_BYTES = 500 * 1024 * 1024;
@@ -800,7 +800,7 @@ const styles = StyleSheet.create({
   recordingPill: { flex: 1, minHeight: 44, borderRadius: 23, borderWidth: 1, flexDirection: "row", alignItems: "center", paddingHorizontal: 12, gap: 9 },
   recordingDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: "#d44358" },
   recordingText: { flex: 1, fontSize: 13 },
-  recordSend: { width: 34, height: 34, borderRadius: 17, backgroundColor: "#F34E9A", alignItems: "center", justifyContent: "center" },
+  recordSend: { width: 34, height: 34, borderRadius: 17, backgroundColor: "#111111", alignItems: "center", justifyContent: "center" },
   blockedNotice: { minHeight: 56, flexDirection: "row", gap: 10, alignItems: "center", justifyContent: "center", borderTopWidth: StyleSheet.hairlineWidth },
   blockedText: { fontSize: 13 },
   modalScrim: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.42)" },

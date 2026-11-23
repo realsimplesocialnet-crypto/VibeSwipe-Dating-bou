@@ -40,7 +40,7 @@ export default function ReportSafetyScreen() {
         },
       });
       setDetails("");
-      Alert.alert("Report sent", "Thank you. The VIBESWIPES safety team will review this profile.");
+      Alert.alert("Report sent", "Thank you. The MyAgeBeauty safety team will review this profile.");
     } catch {
       Alert.alert("Could not send report", "Check your connection and try again.");
     }
@@ -62,7 +62,7 @@ export default function ReportSafetyScreen() {
           <Feather name="shield" size={20} color={colors.primary} />
         </View>
         <View style={styles.headingCopy}>
-          <Text style={[styles.eyebrow, { color: colors.primary }]}>VIBESWIPES SAFETY</Text>
+          <Text style={[styles.eyebrow, { color: colors.primary }]}>MYAGEBEAUTY SAFETY</Text>
           <Text style={[styles.title, { color: colors.foreground }]}>Report a scam or safety issue</Text>
         </View>
       </View>
@@ -82,7 +82,7 @@ export default function ReportSafetyScreen() {
               <Pressable key={match.profile.id} onPress={() => setTargetUserId(match.profile.id)} accessibilityRole="radio" accessibilityState={{ selected }} style={[styles.person, { borderColor: selected ? colors.primary : colors.border, backgroundColor: selected ? colors.accent : colors.background }]}>
                 <View style={styles.personCopy}>
                   <Text style={[styles.personName, { color: colors.foreground }]}>{match.profile.name}</Text>
-                  <Text style={[styles.help, { color: colors.mutedForeground }]}>{match.profile.city || "VIBESWIPES member"}</Text>
+                  <Text style={[styles.help, { color: colors.mutedForeground }]}>{match.profile.city || "MyAgeBeauty member"}</Text>
                 </View>
                 <Feather name={selected ? "check-circle" : "circle"} size={19} color={selected ? colors.primary : colors.mutedForeground} />
               </Pressable>

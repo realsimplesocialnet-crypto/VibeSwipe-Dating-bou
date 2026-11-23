@@ -186,7 +186,7 @@ export default function SettingsScreen() {
           <Feather name="lock" size={19} color={colors.primary} />
           <View style={styles.copy}>
             <Text style={[styles.rowTitle, { color: colors.foreground }]}>Privacy Policy</Text>
-            <Text style={[styles.rowSub, { color: colors.mutedForeground }]}>How VIBESWIPES handles your information.</Text>
+            <Text style={[styles.rowSub, { color: colors.mutedForeground }]}>How MyAgeBeauty handles your information.</Text>
           </View>
           <Feather name="chevron-right" size={18} color={colors.mutedForeground} />
         </View>
@@ -200,7 +200,7 @@ export default function SettingsScreen() {
           <Feather name="book-open" size={19} color={colors.primary} />
           <View style={styles.copy}>
             <Text style={[styles.rowTitle, { color: colors.foreground }]}>Terms of Service</Text>
-            <Text style={[styles.rowSub, { color: colors.mutedForeground }]}>The rules for using VIBESWIPES.</Text>
+            <Text style={[styles.rowSub, { color: colors.mutedForeground }]}>The rules for using MyAgeBeauty.</Text>
           </View>
           <Feather name="chevron-right" size={18} color={colors.mutedForeground} />
         </View>
@@ -220,7 +220,7 @@ export default function SettingsScreen() {
         </View>
       </Pressable>
       <Pressable
-        onPress={() => openSupport("VIBESWIPES support request")}
+        onPress={() => openSupport("MyAgeBeauty support request")}
         style={[styles.section, { backgroundColor: colors.card, borderColor: colors.border }]}
         testID="button-contact-support"
         accessibilityRole="button"
@@ -235,7 +235,7 @@ export default function SettingsScreen() {
         </View>
       </Pressable>
       <Pressable
-        onPress={() => openSupport("VIBESWIPES account deletion request")}
+        onPress={() => openSupport("MyAgeBeauty account deletion request")}
         style={[styles.section, { backgroundColor: colors.card, borderColor: colors.border }]}
         testID="button-request-account-deletion"
         accessibilityRole="button"

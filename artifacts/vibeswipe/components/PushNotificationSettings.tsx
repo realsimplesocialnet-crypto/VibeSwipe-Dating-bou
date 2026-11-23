@@ -34,7 +34,7 @@ export function PushNotificationSettings() {
     if (
       Constants.executionEnvironment === "storeClient"
     ) {
-      setStatus("Background notifications require the installed VIBESWIPES app, not Expo Go.");
+      setStatus("Background notifications require the installed MyAgeBeauty app, not Expo Go.");
       return;
     }
     let active = true;
@@ -75,12 +75,12 @@ export function PushNotificationSettings() {
         return;
       }
       if (!Device.isDevice) {
-        throw new Error("Install VIBESWIPES on a real phone to enable notifications.");
+        throw new Error("Install MyAgeBeauty on a real phone to enable notifications.");
       }
       if (
         Constants.executionEnvironment === "storeClient"
       ) {
-        throw new Error("Background notifications require the installed VIBESWIPES app, not Expo Go.");
+        throw new Error("Background notifications require the installed MyAgeBeauty app, not Expo Go.");
       }
       await prepareMessageChannel();
       const current = await Notifications.getPermissionsAsync();
@@ -124,7 +124,7 @@ export function PushNotificationSettings() {
             Message notifications
           </Text>
           <Text style={[styles.description, { color: colors.mutedForeground }]}>
-            Get the sender’s name and message preview, even when VIBESWIPES is closed.
+            Get the sender’s name and message preview, even when MyAgeBeauty is closed.
           </Text>
         </View>
       </View>

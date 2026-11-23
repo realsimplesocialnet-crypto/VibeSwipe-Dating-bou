@@ -57,7 +57,7 @@ export function StoriesRow({ token }: { token: string | null }) {
           return (
             <Pressable key={group.poster.id} onPress={() => setOpenIndex(index)} style={styles.bubble} accessibilityRole="button" accessibilityLabel={`${group.poster.name} story${unseen ? ", new" : ""}`} testID={`story-${group.poster.id}`}>
               {unseen || group.own ? (
-                <LinearGradient colors={[colors.primary, "#ff9a62", colors.primary]} start={{ x: 0, y: 1 }} end={{ x: 1, y: 0 }} style={styles.ring}>
+                <LinearGradient colors={[colors.primary, colors.mutedForeground, colors.primary]} start={{ x: 0, y: 1 }} end={{ x: 1, y: 0 }} style={styles.ring}>
                   <View style={[styles.ringGap, { backgroundColor: colors.background }]}><CreatorAvatar name={group.poster.name} photo={group.poster.photo} token={token} size={60} /></View>
                 </LinearGradient>
               ) : (
@@ -170,7 +170,7 @@ function StoryViewer({ groups, start, token, onClose }: { groups: Group[]; start
         </View>
         <View style={[styles.top, { paddingTop: insets.top + 8 }]}>
           <View style={styles.bars}>
-            {group.stories.map((s, idx) => <View key={s.id} style={[styles.bar, { backgroundColor: idx <= i ? "#fff7fb" : "rgba(255,255,255,0.32)" }]} />)}
+            {group.stories.map((s, idx) => <View key={s.id} style={[styles.bar, { backgroundColor: idx <= i ? "#FFFFFF" : "rgba(255,255,255,0.32)" }]} />)}
           </View>
           <View style={styles.topRow}>
             <Pressable style={styles.topLeft} disabled={group.own} onPress={() => { close(); router.push({ pathname: "/profile/[profileId]", params: { profileId: group.poster.id } }); }}>
@@ -178,21 +178,21 @@ function StoryViewer({ groups, start, token, onClose }: { groups: Group[]; start
               <Text style={styles.poster}>{group.own ? "Your story" : group.poster.name}</Text>
               <Text style={styles.time}>{timeAgo(story.createdAt)}</Text>
             </Pressable>
-            {group.own ? <Pressable onPress={deleteStory} hitSlop={10} accessibilityLabel="Delete story" style={styles.topBtn}><Feather name="trash-2" size={19} color="#fff7fb" /></Pressable> : null}
-            <Pressable onPress={close} hitSlop={10} accessibilityLabel="Close stories" style={styles.topBtn}><Feather name="x" size={24} color="#fff7fb" /></Pressable>
+            {group.own ? <Pressable onPress={deleteStory} hitSlop={10} accessibilityLabel="Delete story" style={styles.topBtn}><Feather name="trash-2" size={19} color="#FFFFFF" /></Pressable> : null}
+            <Pressable onPress={close} hitSlop={10} accessibilityLabel="Close stories" style={styles.topBtn}><Feather name="x" size={24} color="#FFFFFF" /></Pressable>
           </View>
         </View>
         <View style={[styles.bottom, { paddingBottom: insets.bottom + 14 }]}>
           {group.own ? (
             <>
-              <Pressable onPress={() => { close(); router.push("/story/new" as never); }} style={styles.pill}><Feather name="plus" size={15} color="#fff7fb" /><Text style={styles.pillText}>Add more</Text></Pressable>
-              <View style={styles.pill}><Feather name="heart" size={15} color="#fff7fb" /><Text style={styles.pillText}>{story.likeCount}</Text></View>
+              <Pressable onPress={() => { close(); router.push("/story/new" as never); }} style={styles.pill}><Feather name="plus" size={15} color="#FFFFFF" /><Text style={styles.pillText}>Add more</Text></Pressable>
+              <View style={styles.pill}><Feather name="heart" size={15} color="#FFFFFF" /><Text style={styles.pillText}>{story.likeCount}</Text></View>
             </>
           ) : (
             <>
               <View style={{ flex: 1 }} />
               <Pressable onPress={() => void toggleLike()} hitSlop={10} accessibilityRole="button" accessibilityLabel={isLiked ? "Unlike story" : "Like story"} style={styles.topBtn}>
-                <Feather name="heart" size={27} color={isLiked ? colors.primary : "#fff7fb"} />
+                <Feather name="heart" size={27} color={isLiked ? colors.primary : "#FFFFFF"} />
               </Pressable>
             </>
           )}
@@ -220,14 +220,14 @@ const styles = StyleSheet.create({
   bar: { flex: 1, height: 2.5, borderRadius: 2 },
   topRow: { flexDirection: "row", alignItems: "center", gap: 6 },
   topLeft: { flex: 1, flexDirection: "row", alignItems: "center", gap: 8 },
-  poster: { color: "#fff7fb", fontWeight: "800", fontSize: 14 },
+  poster: { color: "#FFFFFF", fontWeight: "800", fontSize: 14 },
   time: { color: "rgba(255,255,255,0.7)", fontSize: 12 },
   topBtn: { padding: 6 },
   bottom: { position: "absolute", left: 0, right: 0, bottom: 0, flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 14 },
   pill: { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 14, paddingVertical: 9, borderRadius: 20, backgroundColor: "rgba(15,12,15,0.55)" },
-  pillText: { color: "#fff7fb", fontWeight: "700", fontSize: 13 },
+  pillText: { color: "#FFFFFF", fontWeight: "700", fontSize: 13 },
   captionWrap: { position: "absolute", left: 20, right: 20, bottom: 110 },
   captionCenter: { top: 0, bottom: 0, justifyContent: "center" },
-  caption: { color: "#fff7fb", fontSize: 16, fontWeight: "600", textAlign: "center", textShadowColor: "rgba(0,0,0,0.6)", textShadowRadius: 6 },
+  caption: { color: "#FFFFFF", fontSize: 16, fontWeight: "600", textAlign: "center", textShadowColor: "rgba(0,0,0,0.6)", textShadowRadius: 6 },
   captionBig: { fontSize: 28, fontWeight: "800", letterSpacing: -0.5 },
 });

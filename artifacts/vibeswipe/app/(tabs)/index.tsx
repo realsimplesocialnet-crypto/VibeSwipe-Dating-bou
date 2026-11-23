@@ -2,10 +2,11 @@ import { Feather } from "@expo/vector-icons";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, AppState, FlatList, Platform, Pressable, RefreshControl, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, AppState, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { getGetSocialFeedQueryKey, getSocialFeed, useGetNotifications, type Reel } from "@workspace/api-client-react";
+import { getGetSocialFeedQueryKey, getSocialFeed, type Reel } from "@workspace/api-client-react";
 import { useColors } from "@/hooks/useColors";
+import { AppHeader } from "@/components/AppHeader";
 import { PostCard, PostSkeleton, useMediaToken } from "@/components/social/PostCard";
 import { StoriesRow } from "@/components/social/Stories";
 
@@ -26,10 +27,6 @@ export default function HomeFeedScreen() {
     const subscription = AppState.addEventListener("change", (state) => setAppActive(state === "active"));
     return () => subscription.remove();
   }, []);
-  const notifications = useGetNotifications({ query: { enabled: screenActive, refetchInterval: 15_000 } });
-  const counts = notifications.data?.unreadCounts;
-  const messageBadge = counts?.messages ?? 0;
-  const activityBadge = counts ? counts.likes + counts.follows + (counts.reels ?? 0) : 0;
   const feed = useInfiniteQuery({
     queryKey: [...getGetSocialFeedQueryKey({ mode: "home" }), "infinite"],
     initialPageParam: undefined as string | undefined,
@@ -47,8 +44,6 @@ export default function HomeFeedScreen() {
     setActiveId(first?.item?.id ?? null);
   }).current;
   const onRemoved = useCallback((id: string) => setRemoved((s) => new Set(s).add(id)), []);
-  const top = Platform.OS === "web" ? 67 : insets.top;
-
   const header = (
     <View>
       <StoriesRow token={token} />
@@ -57,14 +52,7 @@ export default function HomeFeedScreen() {
 
   return (
     <View style={[styles.screen, { backgroundColor: colors.background }]}>
-      <View style={[styles.bar, { paddingTop: top + 6, borderBottomColor: colors.border, backgroundColor: colors.background }]}>
-        <Text style={[styles.brand, { color: colors.foreground }]} accessibilityRole="header">Vibe<Text style={{ color: colors.primary }}>Swipes</Text></Text>
-        <View style={styles.barActions}>
-          <BarIcon icon="plus-square" label="Create" onPress={() => router.push("/(tabs)/create" as never)} />
-          <BarIcon icon="heart" label="Activity" badge={activityBadge} onPress={() => router.push("/(tabs)/activity" as never)} />
-          <BarIcon icon="send" label="Messages" badge={messageBadge} onPress={() => router.push("/(tabs)/views" as never)} />
-        </View>
-      </View>
+      <AppHeader />
       {feed.isLoading ? (
         <View>{header}<PostSkeleton /><PostSkeleton /></View>
       ) : feed.isError && !posts.length ? (
@@ -114,24 +102,8 @@ export default function HomeFeedScreen() {
   );
 }
 
-function BarIcon({ icon, label, badge = 0, onPress }: { icon: keyof typeof Feather.glyphMap; label: string; badge?: number; onPress: () => void }) {
-  const colors = useColors();
-  return (
-    <Pressable onPress={onPress} hitSlop={6} accessibilityRole="button" accessibilityLabel={badge ? `${label}, ${badge} new` : label} style={styles.barBtn}>
-      <Feather name={icon} size={23} color={colors.foreground} />
-      {badge > 0 ? <View style={[styles.badge, { backgroundColor: colors.primary, borderColor: colors.background }]}><Text style={[styles.badgeText, { color: colors.primaryForeground }]}>{badge > 99 ? "99+" : badge}</Text></View> : undefined}
-    </Pressable>
-  );
-}
-
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-  bar: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 14, paddingBottom: 8, borderBottomWidth: StyleSheet.hairlineWidth },
-  brand: { fontSize: 26, fontWeight: "900", letterSpacing: -1.2, fontStyle: "italic" },
-  barActions: { flexDirection: "row", alignItems: "center", gap: 14 },
-  barBtn: { padding: 3 },
-  badge: { position: "absolute", top: -4, right: -7, minWidth: 18, height: 18, borderRadius: 9, borderWidth: 2, alignItems: "center", justifyContent: "center", paddingHorizontal: 3 },
-  badgeText: { fontSize: 9, fontWeight: "900" },
   center: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12, padding: 30 },
   empty: { alignItems: "center", paddingHorizontal: 32, paddingTop: 48, gap: 12 },
   emptyIcon: { width: 76, height: 76, borderRadius: 38, borderWidth: 2, alignItems: "center", justifyContent: "center", marginBottom: 4 },

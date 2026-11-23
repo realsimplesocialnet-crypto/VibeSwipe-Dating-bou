@@ -367,7 +367,7 @@ export function OnboardingWizard() {
       ) : null}
 
       {step === 2 ? (
-        <StepFrame title="How old are you?" subtitle="VIBESWIPES is only for adults aged 18 and over.">
+        <StepFrame title="How old are you?" subtitle="MyAgeBeauty is only for adults aged 18 and over.">
           <TextInput
             testID="profile-age"
             value={values.age}
@@ -388,7 +388,7 @@ export function OnboardingWizard() {
       ) : null}
 
       {step === 4 ? (
-        <StepFrame title="A space for everyday moments." subtitle="VibeSwipes is for adults 18+ to share photos, Reels and Stories and to meet people through follows.">
+        <StepFrame title="A space for everyday moments." subtitle="MyAgeBeauty is for adults 18+ to share photos, Reels, Stories, and conversations.">
           {[
             ["users", "Follow people whose everyday you enjoy. Their posts fill your Home feed."],
             ["lock", "Switch to a private account any time in Settings so only approved followers see your posts."],
