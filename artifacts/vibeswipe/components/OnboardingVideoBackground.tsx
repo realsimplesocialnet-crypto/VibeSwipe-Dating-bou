@@ -10,10 +10,10 @@ const asset = (name: string) => `${origin}/api/vibeswipe/onboarding-art/${name}`
 
 export function OnboardingVideoBackground({ form = false }: { form?: boolean }) {
   const colors = useColors();
-  const [reduced, setReduced] = useState(true);
+  const [reduced, setReduced] = useState(false);
   const [choice, setChoice] = useState<boolean | null>(null);
   const [focused, setFocused] = useState(false);
-  const [active, setActive] = useState(AppState.currentState === "active");
+  const [active, setActive] = useState(true);
   const [playing, setPlaying] = useState(false);
   const [ready, setReady] = useState(false);
   const [retry, setRetry] = useState(0);
@@ -75,7 +75,7 @@ export function OnboardingVideoBackground({ form = false }: { form?: boolean }) 
       <Image source={{ uri: asset("poster-v1.webp") }} style={StyleSheet.absoluteFill} resizeMode="cover"/>
       <VideoView player={player} style={[StyleSheet.absoluteFill, { opacity: ready ? 1 : 0 }]} contentFit="cover"
         onFirstFrameRender={() => setReady(true)} nativeControls={false} surfaceType="textureView"/>
-      <View style={[StyleSheet.absoluteFill, { backgroundColor: form ? colors.background : "#111111", opacity: form ? .86 : .58 }]}/>
+      <View style={[StyleSheet.absoluteFill, { backgroundColor: form ? colors.background : "#111111", opacity: form ? .46 : .58 }]}/>
     </View>
   );
 }
