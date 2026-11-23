@@ -12,7 +12,6 @@ import {
   useClearChat,
   useDeleteMessage,
   useGetChatReadReceipt,
-  useGetIcebreakers,
   useGetMatchPresence,
   useGetMatches,
   useGetMessages,
@@ -23,11 +22,10 @@ import {
   useSendMessage,
   useTranscodeProfileVideo,
   useUnblockProfile,
-  useUnmatchMatch,
   useUpdateChatTheme,
   useUpdateTypingStatus,
 } from "@workspace/api-client-react";
-import { Feather, Ionicons } from "@expo/vector-icons";
+import { Feather } from "@expo/vector-icons";
 import { useAuth } from "@clerk/expo";
 import { useQueryClient } from "@tanstack/react-query";
 import { File } from "expo-file-system";
@@ -130,13 +128,11 @@ export default function ChatScreen() {
   const readReceipt = useGetChatReadReceipt(matchId ?? "", {
     query: { enabled: !!match, refetchInterval: 5_000 },
   });
-  const icebreakers = useGetIcebreakers({ query: { enabled: !!match } });
   const sendMessage = useSendMessage();
   const blockProfile = useBlockProfile();
   const unblockProfile = useUnblockProfile();
   const reportProfile = useReportProfile();
   const clearChat = useClearChat();
-  const unmatch = useUnmatchMatch();
   const updateTheme = useUpdateChatTheme();
   const requestUpload = useRequestChatMediaUpload();
   const transcodeVideo = useTranscodeProfileVideo();
@@ -494,19 +490,6 @@ export default function ChatScreen() {
         } },
         { text: "Cancel", style: "cancel" },
       ]);
-    } else if (action === "Unmatch") {
-      Alert.alert(`Unmatch ${match?.profile.name}?`, "This removes the match and shared chat history.", [
-        { text: "Unmatch", style: "destructive", onPress: async () => {
-          try {
-            await unmatch.mutateAsync({ matchId });
-            await queryClient.invalidateQueries({ queryKey: getGetMatchesQueryKey() });
-            router.replace(returnPath as never);
-          } catch {
-            setError("Could not unmatch. Please try again.");
-          }
-        } },
-        { text: "Cancel", style: "cancel" },
-      ]);
     }
   }
 
@@ -558,7 +541,7 @@ export default function ChatScreen() {
           </View>
           <View style={styles.headerCopy}>
             <Text numberOfLines={1} style={[styles.name, { color: themedForeground }]}>{match.profile.name}</Text>
-            <Text numberOfLines={2} style={[styles.status, { color: colors.mutedForeground }]}>A conversation just for your mutual match</Text>
+            <Text numberOfLines={2} style={[styles.status, { color: colors.mutedForeground }]}>Private conversation</Text>
             {typing.data?.isTyping || presence.data?.isOnline || presence.data?.lastSeenAt ? <Text numberOfLines={1} style={[styles.status, { color: presence.data?.isOnline ? colors.chatOnline : colors.mutedForeground }]}>{typing.data?.isTyping ? "Typing…" : presence.data?.isOnline ? "Online" : formatLastSeen(presence.data?.lastSeenAt)}</Text> : null}
           </View>
         </Pressable>
@@ -606,25 +589,9 @@ export default function ChatScreen() {
         ListHeaderComponent={otherIsTyping ? <Text style={[styles.typing, { color: colors.mutedForeground }]}>{match.profile.name} is typing…</Text> : undefined}
         ListEmptyComponent={messages.isError ? <ActivityIndicator color={colors.primary} accessibilityLabel="Loading" /> : !blocked ? (
           <View style={styles.icebreakerWrap} testID="chat-empty-conversation">
-            <Ionicons name="heart" size={56} color={colors.primary} style={[styles.emptyIcon, { opacity: 0.5 }]} />
-            <Text style={[styles.emptyTitle, { color: colors.primary, fontFamily: Platform.OS === "ios" ? "Georgia" : "serif" }]}>A good conversation starts here</Text>
-            <Text style={[styles.emptySubtitle, { color: colors.mutedForeground }]}>Break the ice with a question</Text>
-            <View style={styles.suggestionsHeading}><Ionicons name="sparkles-outline" size={22} color={colors.primary} /><Text style={[styles.suggestionsLabel, { color: colors.mutedForeground }]}>Suggested questions</Text></View>
-            {icebreakers.isLoading || icebreakers.isError ? <ActivityIndicator color={colors.primary} accessibilityLabel="Loading" /> : null}
-            {icebreakers.data?.slice(0, 3).map((prompt, index) => (
-              <Pressable
-                key={prompt.id}
-                accessibilityRole="button"
-                accessibilityLabel={`Use suggested question: ${prompt.question}`}
-                testID={`chat-suggestion-${index}`}
-                disabled={busyMedia || sendMessage.isPending}
-                onPress={() => { setDraft(prompt.question); inputRef.current?.focus(); }}
-                style={[styles.icebreakerChip, { borderColor: colors.border, backgroundColor: colors.card }]}
-              >
-                <Feather name={index === 2 ? "music" : "coffee"} size={24} color={colors.primary} />
-                <Text style={[styles.icebreakerText, { color: themedForeground }]}>{prompt.question}</Text>
-              </Pressable>
-            ))}
+            <Feather name="message-circle" size={44} color={colors.primary} style={[styles.emptyIcon, { opacity: 0.5 }]} />
+            <Text style={[styles.emptyTitle, { color: colors.primary }]}>Start a conversation</Text>
+            <Text style={[styles.emptySubtitle, { color: colors.mutedForeground }]}>Send a message to say hello.</Text>
           </View>
         ) : undefined}
         renderItem={({ item }) => {
@@ -746,11 +713,10 @@ export default function ChatScreen() {
               "Report",
               "Change chat color",
               "Clear chat",
-              "Unmatch",
             ].map((action) => (
               <Pressable key={action} accessibilityRole="button" testID={`chat-action-${action.toLowerCase().replaceAll(" ", "-")}`} onPress={() => menuAction(action)} style={styles.menuItem}>
-                <Feather name={action === "Search chat" ? "search" : action === "Block" || action === "Unblock" ? "slash" : action === "Report" ? "flag" : action === "Change chat color" ? "droplet" : action === "Clear chat" ? "trash-2" : "user-x"} size={18} color={action === "Block" || action === "Report" || action === "Unmatch" ? colors.destructive : colors.foreground} />
-                <Text style={[styles.menuLabel, { color: action === "Block" || action === "Report" || action === "Unmatch" ? colors.destructive : colors.foreground }]}>{action}</Text>
+                <Feather name={action === "Search chat" ? "search" : action === "Block" || action === "Unblock" ? "slash" : action === "Report" ? "flag" : action === "Change chat color" ? "droplet" : "trash-2"} size={18} color={action === "Block" || action === "Report" ? colors.destructive : colors.foreground} />
+                <Text style={[styles.menuLabel, { color: action === "Block" || action === "Report" ? colors.destructive : colors.foreground }]}>{action}</Text>
               </Pressable>
             ))}
           </View>

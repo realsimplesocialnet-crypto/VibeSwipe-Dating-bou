@@ -134,11 +134,11 @@ export function ProfileFollowNotificationAction({ profileId, viewerId, onFollow 
   />;
 }
 
-export function ProfileFollowStats({ profileId, viewerId, showAction = true, datingAction }: {
+export function ProfileFollowStats({ profileId, viewerId, showAction = true, socialAction }: {
   profileId: string;
   viewerId?: string;
   showAction?: boolean;
-  datingAction?: ReactNode;
+  socialAction?: ReactNode;
 }) {
   const colors = usePremiumColors();
   const query = useGetProfileFollowSummary(profileId, {
@@ -153,6 +153,11 @@ export function ProfileFollowStats({ profileId, viewerId, showAction = true, dat
   return (
     <View style={styles.statsWrap} testID="profile-follow-stats">
       <View style={[styles.stats, { backgroundColor: colors.profileCard, borderColor: colors.border }]}>
+        <View testID="profile-post-count-stat" accessibilityLabel={`${query.data?.postCount ?? 0} posts`} style={styles.stat}>
+          {query.data ? <Text style={[styles.statValue, { color: colors.profileLabel }]}>{query.data.postCount}</Text> : query.isError ? <Text style={[styles.statValue, { color: colors.profileLabel }]}>—</Text> : <View style={{ width: 24, height: 16, borderRadius: 8, backgroundColor: colors.border, opacity: 0.65 }} />}
+          <Text style={[styles.statLabel, { color: colors.profileMuted }]}>Posts</Text>
+        </View>
+        <View style={[styles.statRule, { backgroundColor: colors.profileRule }]} />
         <Pressable
           testID="link-profile-followers"
           accessibilityRole="button"
@@ -184,7 +189,7 @@ export function ProfileFollowStats({ profileId, viewerId, showAction = true, dat
             followsYou={query.data?.followsYou ?? false}
             requestPendingByMe={query.data?.requestPendingByMe ?? false}
           />
-          {datingAction}
+          {socialAction}
         </View>
       ) : null}
     </View>

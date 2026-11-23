@@ -1,32 +1,21 @@
 import {
-  getGetDailyLikeStatusQueryKey,
-  getGetDiscoverProfilesQueryKey,
   getGetMatchesQueryKey,
-  getGetNotificationsQueryKey,
   getGetProfileByIdQueryKey,
-  getGetProfileDatingStateQueryKey,
-  getGetWhoLikedYouQueryKey,
   useBlockProfile,
-  useCreateReaction,
-  useUnlikeProfile,
   useStartDirectChat,
-  useGetDailyLikeStatus,
   useGetMyProfile,
   useGetProfileById,
-  useGetProfileDatingState,
   useRecordProfileView,
   useReportProfile,
-  type ProfileDatingState,
 } from "@workspace/api-client-react";
 import { Feather } from "@expo/vector-icons";
 import { Image as ExpoImage } from "expo-image";
-import { MatchCelebration } from "@/components/MatchCelebration";
 import { ProfileReelsSection } from "@/components/ProfileReelsSection";
 import { ProfileFollowStats } from "@/components/ProfileFollow";
 import { router, useLocalSearchParams } from "expo-router";
 import { useAuth } from "@clerk/expo";
 import { useQueryClient } from "@tanstack/react-query";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { ActivityIndicator, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import type { ComponentProps } from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -52,30 +41,17 @@ export default function PublicProfileScreen() {
   const [confirmSafety, setConfirmSafety] = useState<"block" | "report" | null>(null);
   const [safetyError, setSafetyError] = useState("");
   const [reported, setReported] = useState(false);
-  const [confirmation, setConfirmation] = useState<{ kind: "like"; text: string } | null>(null);
-  const [matchResult, setMatchResult] = useState<{ name: string; matchId: string | null } | null>(null);
   const block = useBlockProfile();
   const report = useReportProfile();
-  const reaction = useCreateReaction();
-  const unlike = useUnlikeProfile();
   const startChat = useStartDirectChat();
-  const dailyLikeStatus = useGetDailyLikeStatus({ query: { queryKey: getGetDailyLikeStatusQueryKey() } });
   const profile = useGetProfileById(id, { query: { queryKey: getGetProfileByIdQueryKey(id), enabled: !!id, staleTime: 10 * 60_000, gcTime: 30 * 60_000 } });
-  const datingState = useGetProfileDatingState(id, { query: { queryKey: getGetProfileDatingStateQueryKey(id), enabled: !!id, staleTime: 10 * 60_000, gcTime: 30 * 60_000 } });
-  const matchId = datingState.isError ? null : datingState.data?.matchId ?? null;
   const recordView = useRecordProfileView();
-  const confirmationTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const busy = useRef(false);
-  const mounted = useRef(true);
-  const currentId = useRef(id);
-  currentId.current = id;
   function goBack() {
     if (router.canGoBack()) router.back();
     else router.replace((fromLikes ? "/(tabs)/activity/likes" : "/(tabs)/activity") as never);
   }
   async function openDirectChat() {
     setActionError("");
-    if (matchId) { router.push({ pathname: "/chat/[matchId]", params: { matchId } }); return; }
     try {
       const conversation = await startChat.mutateAsync({ data: { recipientId: id } });
       router.push({ pathname: "/direct-chat/[conversationId]", params: { conversationId: conversation.id } } as never);
@@ -83,10 +59,6 @@ export default function PublicProfileScreen() {
       const status = (error as { status?: number }).status;
       setActionError(status === 403 ? "This member only accepts messages from people they allow." : "Couldn't open a chat. Try again.");
     }
-  }
-  function openMatchedChat() {
-    if (!matchId || datingState.isError) return;
-    router.push({ pathname: "/chat/[matchId]", params: { matchId } });
   }
 
   useEffect(() => {
@@ -120,86 +92,6 @@ export default function PublicProfileScreen() {
     setViewer(null);
     setAvatarError(false);
   }, [id]);
-  useEffect(() => {
-    mounted.current = true;
-    return () => {
-      mounted.current = false;
-      if (confirmationTimer.current) clearTimeout(confirmationTimer.current);
-    };
-  }, []);
-
-  const likeOut = dailyLikeStatus.data?.remaining === 0;
-  const alreadyLiked = datingState.data?.reaction === "like";
-  const superLiked = datingState.data?.reaction === "super";
-  const locked = reaction.isPending || unlike.isPending || !!confirmation || !!matchResult;
-
-  async function reactLike() {
-    const user = profile.data;
-    if (!user || busy.current || locked || matchId || superLiked) return;
-    const datingKey = getGetProfileDatingStateQueryKey(user.id);
-    const previousDatingState = datingState.data ?? { reaction: null, matchId: null };
-    if (alreadyLiked) {
-      busy.current = true;
-      setActionError("");
-      queryClient.setQueryData<ProfileDatingState>(datingKey, {
-        reaction: null,
-        matchId: previousDatingState.matchId,
-      });
-      try {
-        await unlike.mutateAsync({ profileId: user.id });
-        if (!mounted.current || currentId.current !== user.id) { busy.current = false; return; }
-        busy.current = false;
-        void queryClient.invalidateQueries({ queryKey: datingKey });
-        void queryClient.invalidateQueries({ queryKey: getGetDiscoverProfilesQueryKey() });
-        void queryClient.invalidateQueries({ queryKey: getGetDailyLikeStatusQueryKey() });
-        void queryClient.invalidateQueries({ queryKey: getGetMatchesQueryKey() });
-        void queryClient.invalidateQueries({ queryKey: getGetWhoLikedYouQueryKey() });
-      } catch {
-        busy.current = false;
-        if (!mounted.current || currentId.current !== user.id) return;
-        queryClient.setQueryData<ProfileDatingState>(datingKey, previousDatingState);
-        setActionError("Could not remove that like. Please try again.");
-      }
-      return;
-    }
-    if (likeOut) { setActionError("You have used all of today’s likes. They reset in 24 hours."); return; }
-    const targetId = user.id;
-    const name = user.name;
-    busy.current = true;
-    setActionError("");
-    queryClient.setQueryData<ProfileDatingState>(datingKey, {
-      reaction: "like",
-      matchId: previousDatingState.matchId,
-    });
-    try {
-      const result = await reaction.mutateAsync({ data: { toUserId: targetId, type: "like" } });
-      if (!mounted.current || currentId.current !== targetId) { busy.current = false; return; }
-      queryClient.setQueryData<ProfileDatingState>(datingKey, { reaction: "like", matchId: result.matchId ?? null });
-      void queryClient.invalidateQueries({ queryKey: getGetDiscoverProfilesQueryKey() });
-      void queryClient.invalidateQueries({ queryKey: getGetWhoLikedYouQueryKey() });
-      void queryClient.invalidateQueries({ queryKey: getGetDailyLikeStatusQueryKey() });
-      void queryClient.invalidateQueries({ queryKey: getGetMatchesQueryKey() });
-      void queryClient.invalidateQueries({ queryKey: getGetNotificationsQueryKey() });
-      setConfirmation({ kind: "like", text: `You liked ${name}` });
-      confirmationTimer.current = setTimeout(() => {
-        confirmationTimer.current = null;
-        busy.current = false;
-        if (!mounted.current || currentId.current !== targetId) return;
-        setConfirmation(null);
-        if (result.matched) setMatchResult({ name, matchId: result.matchId ?? null });
-      }, 1500);
-    } catch (error) {
-      busy.current = false;
-      if (!mounted.current || currentId.current !== targetId) return;
-      queryClient.setQueryData<ProfileDatingState>(datingKey, previousDatingState);
-      const message = error instanceof Error ? error.message : "";
-      const capped = /limit|429|remaining|already/i.test(message);
-      setActionError(
-        capped ? "You have reached today’s like limit." : "Your like didn’t go through. Please try again.",
-      );
-      void dailyLikeStatus.refetch();
-    }
-  }
 
   async function runSafety(kind: "block" | "report") {
     const user = profile.data;
@@ -265,11 +157,7 @@ export default function PublicProfileScreen() {
   const heroHeight = Math.min(Math.max(height * 0.42, 280), 420);
   const mediaColumnWidth = width >= 820 ? Math.min(360, Math.floor((Math.min(width, 900) - 48) * 0.44)) : Math.max(0, Math.min(width, 900) - (width < 380 ? 32 : 48));
   const photoTileWidth = Math.max(72, Math.floor((mediaColumnWidth - 16) / 3));
-  const actionStatusLoading = (!datingState.data && datingState.isLoading) || (!alreadyLiked && !dailyLikeStatus.data && dailyLikeStatus.isLoading);
-  const dateActionDisabled = matchId
-    ? false
-    : locked || actionStatusLoading || superLiked || (!alreadyLiked && (likeOut || (!datingState.data && !datingState.isError)));
-  const datingAction = (
+  const socialAction = (
     <View style={{ flex: 1, minWidth: 0, alignItems: "stretch" }}>
       <Pressable
         testID="public-profile-message"
@@ -334,7 +222,7 @@ export default function PublicProfileScreen() {
             </View>
           </View>
         )}
-        <ProfileFollowStats profileId={user.id} viewerId={me.data?.id} datingAction={datingAction} />
+        <ProfileFollowStats profileId={user.id} viewerId={me.data?.id} socialAction={socialAction} />
 
         <View style={[styles.profileLayout, width >= 820 && styles.profileLayoutWide]}>
           <View style={[styles.detailColumn, width >= 820 && styles.detailColumnWide]}>
@@ -385,13 +273,6 @@ export default function PublicProfileScreen() {
         </View>
       </ScrollView>
 
-      {confirmation ? (
-        <View style={[styles.confirmation, { top: topInset + 64, backgroundColor: colors.profileCard, shadowColor: colors.profileChipForeground }]} accessibilityRole="alert" accessibilityLiveRegion="polite" testID="public-profile-like-confirmation">
-          <Feather name="heart" size={16} color={colors.profileEdit} />
-          <Text style={[styles.confirmationText, { color: colors.foreground }]}>{confirmation.text}</Text>
-        </View>
-      ) : null}
-
       <Modal visible={viewer !== null} animationType="fade" onRequestClose={() => setViewer(null)} supportedOrientations={["portrait", "landscape"]}>
         <View testID="public-profile-photo-viewer" style={{ flex: 1, backgroundColor: colors.chatMediaBackdrop }}>
           <ScrollView
@@ -419,10 +300,6 @@ export default function PublicProfileScreen() {
           </View>
         </View>
       </Modal>
-
-      <MatchCelebration visible={!!matchResult} self={me.data ?? null} other={profile.data ?? null} canMessage={!!matchResult?.matchId}
-        onMessage={() => { const matchId = matchResult?.matchId; if (!matchId) return; setMatchResult(null); router.push({ pathname: "/chat/[matchId]", params: { matchId } }); }}
-        onKeepSwiping={() => setMatchResult(null)} />
 
       <Modal visible={menuOpen} transparent animationType="fade" onRequestClose={() => { setMenuOpen(false); setConfirmSafety(null); }}>
         <Pressable style={[styles.matchScrim, { backgroundColor: colors.photoBadge }]} onPress={() => { setMenuOpen(false); setConfirmSafety(null); }}>

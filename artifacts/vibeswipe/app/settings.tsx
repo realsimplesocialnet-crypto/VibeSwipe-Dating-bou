@@ -16,18 +16,15 @@ import {
   View,
 } from "react-native";
 import {
-  getGetDiscoverProfilesQueryKey,
   getGetFollowRequestsQueryKey,
   getGetProfileFollowSummaryQueryKey,
-  getGetReelsFeedQueryKey,
+  getGetSocialFeedQueryKey,
   getGetVibeSwipeSettingsQueryKey,
   useGetFollowRequests,
   useGetMyProfile,
   useApproveFollowRequest,
   useDeclineFollowRequest,
   useGetVibeSwipeSettings,
-  getSearchTravelCitiesQueryKey,
-  useSearchTravelCities,
   useUpdateVibeSwipeSettings,
   type FollowRequest, type VibeSwipeSettings,
 } from "@workspace/api-client-react";
@@ -35,7 +32,6 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useColors } from "@/hooks/useColors";
 import { useTheme } from "@/hooks/useTheme";
 import { PushNotificationSettings } from "@/components/PushNotificationSettings";
-import { DiscoveryLocationSettings } from "@/components/DiscoveryLocationSettings";
 import { QuickmavoShopMenuItem } from "@/components/QuickmavoShopMenuItem";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -68,36 +64,7 @@ export default function SettingsScreen() {
   }
   const settings = useGetVibeSwipeSettings();
   const updateSettings = useUpdateVibeSwipeSettings();
-  const [incognito, setIncognito] = useState(false);
-  const [travelMode, setTravelMode] = useState(false);
-  const [travelCity, setTravelCity] = useState("");
-  const [selectedTravelCity, setSelectedTravelCity] = useState("");
-  const [citySearch, setCitySearch] = useState("");
-  const [debouncedCitySearch, setDebouncedCitySearch] = useState("");
-  const [travelMessage, setTravelMessage] = useState("");
-  const [travelError, setTravelError] = useState("");
   const dark = scheme === "dark";
-  const citySuggestions = useSearchTravelCities({ search: debouncedCitySearch }, {
-    query: {
-      queryKey: getSearchTravelCitiesQueryKey({ search: debouncedCitySearch }),
-      enabled: travelMode && debouncedCitySearch.length >= 2,
-      retry: false,
-    },
-  });
-
-  useEffect(() => {
-    if (!settings.data) return;
-    setIncognito(settings.data.incognito);
-    setTravelMode(settings.data.travelMode);
-    setTravelCity(settings.data.travelCity ?? "");
-    setCitySearch(settings.data.travelCity ?? "");
-    setSelectedTravelCity(settings.data.travelCity ?? "");
-  }, [settings.data]);
-
-  useEffect(() => {
-    const timer = setTimeout(() => setDebouncedCitySearch(citySearch.trim()), 250);
-    return () => clearTimeout(timer);
-  }, [citySearch]);
 
   async function saveTheme(darkMode: boolean) {
     const previousScheme = scheme;
@@ -116,63 +83,18 @@ export default function SettingsScreen() {
     }
   }
 
-  async function savePrivacySettings(next: {
-    incognito: boolean;
-    travelMode: boolean;
-    travelCity: string | null;
-  }): Promise<boolean> {
-    try {
-      const saved = await updateSettings.mutateAsync({
-        data: {
-          incognito: next.incognito,
-          travelMode: next.travelMode,
-          travelCity: next.travelCity,
-        },
-      });
-      queryClient.setQueryData(getGetVibeSwipeSettingsQueryKey(), saved);
-      await queryClient.invalidateQueries({ queryKey: getGetDiscoverProfilesQueryKey() });
-      return true;
-    } catch {
-      setTravelError("Travel Mode could not be saved. Check your connection and try again.");
-      Alert.alert("Could not save settings", "Please try again.");
-      return false;
-    }
-  }
-
   async function saveAccountSettings(patch: Partial<VibeSwipeSettings>) {
     try {
       const saved = await updateSettings.mutateAsync({ data: patch });
       queryClient.setQueryData(getGetVibeSwipeSettingsQueryKey(), { ...settings.data, ...saved });
-      if ("privateAccount" in patch || "incognito" in patch) {
-        await queryClient.invalidateQueries({ queryKey: getGetDiscoverProfilesQueryKey() });
-        await queryClient.invalidateQueries({ queryKey: getGetReelsFeedQueryKey() });
+      if ("privateAccount" in patch) {
+        await queryClient.invalidateQueries({ queryKey: getGetSocialFeedQueryKey() });
       }
       if ("allowDownloads" in patch || "whoCanComment" in patch || "likedVideoAudience" in patch) {
-        await queryClient.invalidateQueries({ queryKey: getGetReelsFeedQueryKey() });
+        await queryClient.invalidateQueries({ queryKey: getGetSocialFeedQueryKey() });
       }
     } catch {
       Alert.alert("Could not save settings", "Please check your connection and try again.");
-    }
-  }
-
-  function selectCity(value: string) {
-    setSelectedTravelCity(value);
-    setCitySearch(value);
-    setTravelError("");
-    setTravelMessage("");
-  }
-
-  async function saveTravelCity() {
-    if (!selectedTravelCity) {
-      setTravelError("Choose a real city from the search results before saving.");
-      return;
-    }
-    const saved = await savePrivacySettings({ incognito, travelMode: true, travelCity: selectedTravelCity });
-    if (saved) {
-      setTravelMode(true);
-      setTravelCity(selectedTravelCity);
-      setTravelMessage(`Now showing people in ${selectedTravelCity}.`);
-      setTravelError("");
     }
   }
 
@@ -219,96 +141,6 @@ export default function SettingsScreen() {
         <View style={[styles.divider, { backgroundColor: colors.border }]}/>
         <ChoiceSetting title="Show liked videos" detail="Who can see Reels you liked" value={settings.data?.likedVideoAudience ?? "everyone"} disabled={updateSettings.isPending || settings.isLoading} colors={colors} options={[["everyone","Everyone"],["followers","Followers only"],["only_me","Only me"]]} onChange={value=>void saveAccountSettings({ likedVideoAudience: value as VibeSwipeSettings["likedVideoAudience"] })}/>
       </View>
-      <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>DISCOVERY</Text>
-      <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.border }]}>
-        <View style={[styles.row, styles.settingRow]}>
-          <View style={[styles.icon, { backgroundColor: colors.accent }]}><Feather name="eye-off" size={17} color={colors.primary} /></View>
-          <View style={styles.copy}>
-            <Text style={[styles.rowTitle, { color: colors.foreground }]}>Incognito Mode</Text>
-            <Text style={[styles.rowSub, { color: colors.mutedForeground }]}>Only people you like can see you.</Text>
-          </View>
-          <Switch
-            value={incognito}
-            disabled={updateSettings.isPending || settings.isLoading}
-            onValueChange={(value) => {
-              setTravelError("");
-              setIncognito(value);
-              void savePrivacySettings({ incognito: value, travelMode, travelCity: travelMode ? travelCity || null : null });
-            }}
-            trackColor={{ true: colors.primary }}
-          />
-        </View>
-        <View style={[styles.divider, { backgroundColor: colors.border }]} />
-        <View style={[styles.row, styles.settingRow]}>
-          <View style={[styles.icon, { backgroundColor: colors.accent }]}><Feather name="map-pin" size={17} color={colors.primary} /></View>
-          <View style={styles.copy}>
-            <Text style={[styles.rowTitle, { color: colors.foreground }]}>Travel Mode</Text>
-            <Text style={[styles.rowSub, { color: colors.mutedForeground }]}>
-              {travelMode && travelCity ? `Discover people in ${travelCity}.` : "Choose a city to explore people there."}
-            </Text>
-          </View>
-          <Switch
-            value={travelMode}
-            disabled={updateSettings.isPending || settings.isLoading}
-            onValueChange={async (value) => {
-              setTravelMessage("");
-              setTravelError("");
-              const nextCity = value ? travelCity || null : null;
-              const saved = await savePrivacySettings({ incognito, travelMode: value, travelCity: nextCity });
-              if (saved) {
-                setTravelMode(value);
-                if (value) {
-                  setTravelMessage(nextCity ? `Now showing people in ${nextCity}.` : "Travel Mode is on. Choose a real city, then save it.");
-                } else {
-                  setTravelCity("");
-                  setSelectedTravelCity("");
-                  setCitySearch("");
-                  setTravelMessage("Travel Mode is off. Discovery is back to your registered city.");
-                }
-              } else {
-                setTravelMode(!value);
-              }
-            }}
-            trackColor={{ true: colors.primary }}
-            testID="toggle-travel-mode"
-          />
-        </View>
-        {travelMode ? (
-          <>
-            <TextInput
-              value={citySearch}
-              onChangeText={(value) => { setCitySearch(value); setSelectedTravelCity(""); setTravelError(""); setTravelMessage(""); }}
-              placeholder="Search real cities"
-              placeholderTextColor={colors.mutedForeground}
-              returnKeyType="search"
-              style={[styles.cityInput, { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.background }]}
-              testID="input-travel-city"
-            />
-            {selectedTravelCity ? <Text style={[styles.selectedCity, { color: colors.primary }]}>Selected city: {selectedTravelCity}</Text> : null}
-            {debouncedCitySearch.length >= 2 && (citySuggestions.isFetching || (citySuggestions.isError && !citySuggestions.data?.length)) ? <ActivityIndicator color={colors.primary} accessibilityLabel="Loading" style={styles.cityStatus} /> : null}
-            {citySuggestions.data?.map((city) => (
-              <Pressable key={city.name} onPress={() => selectCity(city.name)} style={[styles.suggestion, { borderColor: colors.border }]}>
-                <Feather name="map-pin" size={15} color={selectedTravelCity === city.name ? colors.primary : colors.mutedForeground} />
-                <Text style={[styles.suggestionText, { color: colors.foreground }]}>{city.name}</Text>
-                {selectedTravelCity === city.name ? <Feather name="check" size={16} color={colors.primary} /> : null}
-              </Pressable>
-            ))}
-            {debouncedCitySearch.length >= 2 && !citySuggestions.isFetching && !citySuggestions.isError && !citySuggestions.data?.length ? <Text style={[styles.cityStatus, { color: colors.mutedForeground }]}>No real city matches that search.</Text> : null}
-            <Pressable
-              accessibilityRole="button"
-              testID="button-save-travel-city"
-              disabled={!selectedTravelCity || updateSettings.isPending}
-              onPress={() => void saveTravelCity()}
-              style={[styles.saveCityButton, { backgroundColor: colors.secondary, opacity: selectedTravelCity && !updateSettings.isPending ? 1 : 0.5 }]}
-            >
-              <Text style={[styles.saveCityText, { color: colors.foreground }]}>{updateSettings.isPending ? "Saving city…" : "Save city"}</Text>
-            </Pressable>
-          </>
-        ) : null}
-        {travelMessage ? <Text accessibilityRole="status" style={[styles.cityStatus, { color: colors.primary }]}>{travelMessage}</Text> : null}
-        {travelError ? <Text accessibilityRole="alert" style={[styles.cityStatus, { color: colors.destructive }]}>{travelError}</Text> : null}
-      </View>
-      <DiscoveryLocationSettings />
       <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>SAFETY</Text>
       <Pressable
         accessibilityRole="button"
@@ -336,7 +168,7 @@ export default function SettingsScreen() {
           <Feather name="bell" size={19} color={colors.primary} />
           <View style={styles.copy}>
             <Text style={[styles.rowTitle, { color: colors.foreground }]}>Notification settings</Text>
-            <Text style={[styles.rowSub, { color: colors.mutedForeground }]}>New matches, likes, messages, and views.</Text>
+            <Text style={[styles.rowSub, { color: colors.mutedForeground }]}>Likes, messages, and profile views.</Text>
           </View>
           <Feather name="chevron-right" size={18} color={colors.mutedForeground} />
         </View>

@@ -12,12 +12,11 @@ import {
 import { useColors } from "@/hooks/useColors";
 import { useTheme } from "@/hooks/useTheme";
 
-type NotifyKey = "notifyMatches" | "notifyLikes" | "notifyMessages" | "notifyProfileViews";
+type NotifyKey = "notifyLikes" | "notifyMessages" | "notifyProfileViews";
 type NotifySettings = Record<NotifyKey, boolean>;
 
 const rows: { key: NotifyKey; title: string; detail: string; icon: ComponentProps<typeof Feather>["name"]; testID: string }[] = [
-  { key: "notifyMatches", title: "New matches", detail: "When you match with someone new", icon: "heart", testID: "toggle-notify-matches" },
-  { key: "notifyLikes", title: "Likes", detail: "When someone likes your profile", icon: "thumbs-up", testID: "toggle-notify-likes" },
+  { key: "notifyLikes", title: "Likes", detail: "When someone likes your profile or posts", icon: "heart", testID: "toggle-notify-likes" },
   { key: "notifyMessages", title: "Messages", detail: "When you receive a new message", icon: "message-circle", testID: "toggle-notify-messages" },
   { key: "notifyProfileViews", title: "Views", detail: "When someone views your profile", icon: "eye", testID: "toggle-notify-profile-views" },
 ];
@@ -67,7 +66,7 @@ export default function NotificationSettingsScreen() {
 
       {settings.isLoading ? (
         <View accessibilityLabel="Loading settings" style={[styles.card, { backgroundColor: p.card }]}>
-          {[0, 1, 2, 3].map((i) => <View key={i} style={[styles.skeleton, { backgroundColor: p.tile }]} />)}
+          {[0, 1, 2].map((i) => <View key={i} style={[styles.skeleton, { backgroundColor: p.tile }]} />)}
         </View>
       ) : settings.isError ? (
         <View accessibilityRole="alert" style={[styles.card, { backgroundColor: p.card }]}>

@@ -2,17 +2,14 @@ import {
   getGetBlockedProfilesQueryKey,
   getGetDiscoverProfilesQueryKey,
   getGetMatchesQueryKey,
-  getGetMyReelsQueryKey,
-  getMyReels,
   useGetBlockedProfiles,
   useGetMyProfile,
-  useGetVibeSwipeSettings,
   useUnblockProfile,
 } from "@workspace/api-client-react";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { Platform } from "react-native";
 import { useAuth } from "@clerk/expo";
-import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { router } from "expo-router";
 import { ActivityIndicator, Alert, Image, Modal, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -33,19 +30,9 @@ export default function ProfileScreen() {
   const [blockedOpen, setBlockedOpen] = useState(false);
   const [mediaToken, setMediaToken] = useState<string | null>(null);
   const profile = useGetMyProfile();
-  const settings = useGetVibeSwipeSettings();
   const blockedProfiles = useGetBlockedProfiles();
   const unblockProfile = useUnblockProfile();
   const queryClient = useQueryClient();
-  const myPosts = useInfiniteQuery({
-    queryKey: getGetMyReelsQueryKey(),
-    initialPageParam: undefined as string | undefined,
-    queryFn: ({ pageParam, signal }) => getMyReels(pageParam ? { cursor: pageParam } : undefined, { signal }),
-    getNextPageParam: (page) => page.nextCursor ?? undefined,
-    staleTime: 30_000,
-  });
-  const loadedPosts = myPosts.data?.pages.reduce((n, p) => n + p.items.length, 0) ?? 0;
-  const postCountLabel = myPosts.data ? `${loadedPosts}${myPosts.hasNextPage ? "+" : ""} ${loadedPosts === 1 && !myPosts.hasNextPage ? "post" : "posts"}` : "";
   useEffect(() => {
     let active = true;
     void getToken().then((value) => {
@@ -89,7 +76,6 @@ export default function ProfileScreen() {
   const shownHobbies = user.interests.slice(0, tight ? 3 : 4);
   const moreHobbies = user.interests.length - shownHobbies.length;
   const photos = user.photos.slice(0, 6);
-  const travel = settings.data?.travelMode && settings.data.travelCity ? settings.data.travelCity : null;
   const blockedCount = blockedProfiles.data?.length ?? 0;
   const sectionHead = (icon: "user" | "briefcase" | "heart" | "camera", title: string) => (
     <View style={styles.sectionHead}>
@@ -117,13 +103,11 @@ export default function ProfileScreen() {
             {user.isVerified ? <Feather name="check-circle" size={18} color={colors.premiumAccent} accessibilityLabel="Verified profile" /> : null}
           </View>
           {place ? <Text numberOfLines={1} accessibilityLabel={place} style={[styles.city, { color: colors.profileMuted }]}>{place}</Text> : null}
-          {user.gender || travel ? (
+          {user.gender ? (
             <View style={styles.metaRow}>
               {user.gender ? <View style={styles.genderRow}><MaterialCommunityIcons name={genderIcon} size={15} color={colors.profileMuted} /><Text style={[styles.meta, { color: colors.profileMuted }]}>{user.gender}</Text></View> : null}
-              {travel ? <View style={[styles.travelBadge, { backgroundColor: colors.profileChip }]}><Feather name="navigation" size={11} color={colors.profileChipForeground} /><Text numberOfLines={1} style={[styles.travelBadgeText, { color: colors.profileChipForeground }]}>Traveling · {travel}</Text></View> : null}
             </View>
           ) : null}
-          {postCountLabel ? <Text testID="profile-post-count" style={[styles.meta, { color: colors.profileLabel, marginTop: 8, fontSize: 14, fontWeight: "800" }]}>{postCountLabel}</Text> : null}
           <ProfileFollowStats profileId={user.id} viewerId={user.id} showAction={false} />
           <ReferralProfileCard />
           <Pressable testID="edit-profile" onPress={() => router.push("/edit-profile")} style={({ pressed }) => [styles.editButton, { height: tight ? 42 : 48, marginTop: tight ? 8 : 12, backgroundColor: colors.profileEdit, transform: [{ scale: pressed ? 0.98 : 1 }] }]}>

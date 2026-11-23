@@ -11,7 +11,6 @@ import {
   Modal,
   Pressable,
   ScrollView,
-  Share,
   StyleSheet,
   Text,
   useWindowDimensions,
@@ -22,7 +21,6 @@ import {
   getGetSocialFeedQueryKey,
   useDeleteReel,
   useLikeReel,
-  useRecordReelShare,
   useReportReel,
   useSaveReel,
   useUnlikeReel,
@@ -82,12 +80,12 @@ export function CreatorAvatar({ name, photo, token, size = 34, ring = false }: {
 
 function PostVideo({ reference, token, active, height }: { reference: string; token: string | null; active: boolean; height: number }) {
   const colors = useColors();
-  const [muted, setMuted] = useState(true);
+  const [muted, setMuted] = useState(false);
   const source = useMemo(() => {
     const auth = authedSource(reference, token);
     return auth ? { ...auth, useCaching: true } : null;
   }, [reference, token]);
-  const player = useVideoPlayer(source, (p) => { p.loop = true; p.muted = true; });
+  const player = useVideoPlayer(source, (p) => { p.loop = true; p.muted = false; });
   useEffect(() => {
     if (active && source) player.play(); else player.pause();
   }, [active, player, source]);
@@ -142,11 +140,12 @@ export const PostCard = memo(function PostCard({ reel, token, active, onRemoved,
   const [saved, setSaved] = useState(reel.savedByMe);
   const [captionOpen, setCaptionOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const likeBusy = useRef(false);
+  const saveBusy = useRef(false);
   const like = useLikeReel();
   const unlike = useUnlikeReel();
   const save = useSaveReel();
   const unsave = useUnsaveReel();
-  const share = useRecordReelShare();
   const remove = useDeleteReel();
   const report = useReportReel();
   useEffect(() => { setLiked(reel.likedByMe); setLikeCount(reel.likeCount); setSaved(reel.savedByMe); }, [reel.id, reel.likedByMe, reel.likeCount, reel.savedByMe]);
@@ -156,7 +155,9 @@ export const PostCard = memo(function PostCard({ reel, token, active, onRemoved,
   const mediaHeight = Math.round(mediaWidth * (photo ? 1.25 : 1.25));
 
   async function toggleLike(forceOn = false) {
+    if (likeBusy.current) return;
     if (forceOn && liked) return;
+    likeBusy.current = true;
     const next = !liked;
     setLiked(next); setLikeCount((c) => Math.max(0, c + (next ? 1 : -1)));
     try {
@@ -164,23 +165,28 @@ export const PostCard = memo(function PostCard({ reel, token, active, onRemoved,
       void queryClient.invalidateQueries({ queryKey: getGetSocialFeedQueryKey(), refetchType: "none" });
     } catch {
       setLiked(!next); setLikeCount((c) => Math.max(0, c + (next ? -1 : 1)));
+      Alert.alert("Could not update like", "Please try again.");
+    } finally {
+      likeBusy.current = false;
     }
   }
   async function toggleSave() {
+    if (saveBusy.current) return;
+    saveBusy.current = true;
     const next = !saved;
     setSaved(next);
     try {
       if (next) await save.mutateAsync({ reelId: reel.id }); else await unsave.mutateAsync({ reelId: reel.id });
       void queryClient.invalidateQueries({ queryKey: getGetSocialFeedQueryKey(), refetchType: "none" });
-    } catch { setSaved(!next); }
+    } catch {
+      setSaved(!next);
+      Alert.alert("Could not save post", "Please try again.");
+    } finally {
+      saveBusy.current = false;
+    }
   }
-  async function sharePost() {
-    const domain = process.env.EXPO_PUBLIC_DOMAIN;
-    const link = domain ? `https://${domain}/reels/${reel.id}` : undefined;
-    try {
-      const result = await Share.share({ message: `${reel.creatorName} on VibeSwipes${link ? `\n${link}` : ""}`, ...(link ? { url: link } : {}) });
-      if (result.action === Share.sharedAction) share.mutate({ reelId: reel.id });
-    } catch { /* share sheet dismissed */ }
+  function sharePost() {
+    router.push({ pathname: "/reels/[reelId]", params: { reelId: reel.id, returnTo, openShare: "1" } } as never);
   }
   function openComments() {
     router.push({ pathname: "/reels/[reelId]", params: { reelId: reel.id, returnTo, openComments: "1" } } as never);

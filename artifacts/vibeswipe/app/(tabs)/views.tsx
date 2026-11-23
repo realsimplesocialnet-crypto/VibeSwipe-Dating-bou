@@ -11,7 +11,6 @@ import {
   useGetNotifications,
   useReportProfile,
   useUnblockProfile,
-  useUnmatchMatch,
   type Profile,
   type ReportInputReason,
 } from "@workspace/api-client-react";
@@ -72,19 +71,17 @@ export default function ChatsScreen() {
   const unblockProfile = useUnblockProfile();
   const reportProfile = useReportProfile();
   const deleteChat = useDeleteChat();
-  const unmatch = useUnmatchMatch();
   const [actionTarget, setActionTarget] = useState<ActionTarget | null>(null);
   const [showReportReasons, setShowReportReasons] = useState(false);
   const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState<"all" | "unread" | "new">("all");
+  const [filter, setFilter] = useState<"all" | "unread">("all");
   const allMatches = useMemo(() => (matches.data ?? []).filter((m) => !m.profile.isDemo && !m.blockedByMe && !m.blockedMe).sort((a, b) =>
     new Date(b.lastMessageAt ?? b.updatedAt).getTime() - new Date(a.lastMessageAt ?? a.updatedAt).getTime()), [matches.data]);
   const unreadTotal = allMatches.reduce((total, match) => total + (match.unreadCount ?? 0), 0) + (direct.data ?? []).reduce((total,item)=>total+item.unreadCount,0);
   const query = search.trim().toLocaleLowerCase();
   const exactNameMatches = query ? allMatches.filter(match => match.profile.name.trim().toLocaleLowerCase() === query) : [];
   const searchedMatches = !query ? allMatches : exactNameMatches.length ? exactNameMatches : allMatches.filter(match => match.profile.name.toLocaleLowerCase().includes(query));
-  const newMatches = filter === "unread" ? [] : searchedMatches.filter((match) => !match.lastMessage && (filter === "all" || filter === "new"));
-  const chats = filter === "new" ? [] : searchedMatches.filter((match) => Boolean(match.lastMessage) && (filter !== "unread" || (match.unreadCount ?? 0) > 0));
+  const chats = searchedMatches.filter((match) => Boolean(match.lastMessage) && (filter !== "unread" || (match.unreadCount ?? 0) > 0));
   const directList = (direct.data ?? []).filter(item => !item.profile.isDemo && (!query || item.profile.name.toLocaleLowerCase().includes(query))).filter(item => filter !== "unread" || item.unreadCount > 0).sort((a,b)=>new Date(b.lastMessageAt ?? 0).getTime()-new Date(a.lastMessageAt ?? 0).getTime());
 
   async function refreshSafetyAndLists() {
@@ -138,33 +135,13 @@ export default function ChatsScreen() {
     ]);
   }
 
-  function confirmUnmatch(target: ActionTarget) {
-    if (!target.matchId) return;
-    Alert.alert(
-      "Unmatch?",
-      "This deletes the shared match and chat for both of you. You may see each other again in Discover.",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Unmatch",
-          style: "destructive",
-          onPress: () => {
-            void unmatch.mutateAsync({ matchId: target.matchId! })
-              .then(refreshSafetyAndLists)
-              .catch(() => Alert.alert("Could not unmatch", "Please try again."));
-          },
-        },
-      ],
-    );
-  }
-
   function openActions(target: ActionTarget) {
     setShowReportReasons(false);
     setActionTarget(target);
   }
 
   const actionBusy = blockProfile.isPending || unblockProfile.isPending || reportProfile.isPending
-    || deleteChat.isPending || unmatch.isPending;
+    || deleteChat.isPending;
 
   return (
     <SafeAreaView edges={["top"]} style={{ flex: 1, backgroundColor: colors.messagesBackground }}><View style={styles.screen}>
@@ -191,7 +168,6 @@ export default function ChatsScreen() {
         {([
           ["all", "All"],
           ["unread", unreadTotal ? `Unread ${unreadTotal > 99 ? "99+" : unreadTotal}` : "Unread"],
-          ["new", "New matches"],
         ] as const).map(([value, label]) => {
           const selected = filter === value;
           return <Pressable key={value} accessibilityRole="button" accessibilityState={{ selected }} testID={`chat-filter-${value}`} onPress={() => setFilter(value)} style={[styles.chatFilter, { backgroundColor: selected ? colors.primary : colors.profileCard, borderColor: selected ? colors.primary : colors.border }]}>
@@ -206,12 +182,12 @@ export default function ChatsScreen() {
       {!matches.isLoading && !direct.isLoading && !matches.isError && !direct.isError && !allMatches.length && !directList.length ? (
         <View style={styles.empty}>
           <Text style={[styles.emptyTitle, { color: colors.foreground }]}>No conversations yet</Text>
-          <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>Match with someone to start chatting.</Text>
+          <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>Follow people and start a conversation.</Text>
         </View>
       ) : null}
       <FlatList
         data={chats}
-        scrollEnabled={chats.length > 0 || newMatches.length > 0 || directList.length > 0}
+        scrollEnabled={chats.length > 0 || directList.length > 0}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
         ListHeaderComponent={<View>
@@ -223,23 +199,10 @@ export default function ChatsScreen() {
               <View style={styles.meta}><Text style={[styles.time,{color:colors.mutedForeground}]}>{timeAgo(item.lastMessageAt)}</Text>{item.unreadCount>0?<View style={[styles.badge,{backgroundColor:colors.primary}]}><Text style={[styles.badgeText,{color:colors.chatOnAccent}]}>{item.unreadCount>99?"99+":item.unreadCount}</Text></View>:null}</View>
             </Pressable>)}
           </View> : null}
-          {newMatches.length ? <View style={{ marginBottom: 18 }} testID="section-new-matches">
-            <Text style={[styles.sectionTitle, { color: colors.primary }]}>NEW MATCHES</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.newMatchesRow}>
-              {newMatches.map((match) => (
-                <Pressable key={match.id} testID={`new-match-${match.id}`} accessibilityRole="button" accessibilityLabel={`Start a chat with ${match.profile.name}`} onPress={() => router.push({ pathname: "/chat/[matchId]", params: { matchId: match.id, returnTo: "messages" } } as never)} style={({ pressed }) => [styles.newMatchCard, { backgroundColor: colors.profileCard, opacity: pressed ? 0.84 : 1 }]}>
-                  <ProfileAvatar profile={match.profile} size={58} />
-                  <Text numberOfLines={1} style={[styles.newMatchName, { color: colors.foreground }]}>{match.profile.name}{match.profile.age !== null ? `, ${match.profile.age}` : ""}</Text>
-                  <Text numberOfLines={2} style={[styles.newMatchSub, { color: colors.mutedForeground }]}>You both liked each other ❤️</Text>
-                  <Text style={[styles.newMatchAction, { color: colors.primary }]}>Message</Text>
-                </Pressable>
-              ))}
-            </ScrollView>
-          </View> : null}
         </View>}
         ListEmptyComponent={directList.length ? undefined : search.trim() || filter !== "all"
-          ? <Text testID="empty-chat-search" style={[styles.noChatsYet, { color: colors.mutedForeground }]}>{search.trim() ? "No chats found for that name." : filter === "unread" ? "No unread chats." : "No new matches."}</Text>
-          : newMatches.length ? <Text style={[styles.noChatsYet, { color: colors.mutedForeground }]}>No chats yet. Start a conversation with a new match.</Text> : undefined}
+          ? <Text testID="empty-chat-search" style={[styles.noChatsYet, { color: colors.mutedForeground }]}>{search.trim() ? "No chats found for that name." : "No unread chats."}</Text>
+          : undefined}
         renderItem={({ item }) => {
           const isBlocked = item.blockedByMe || item.blockedMe;
           const status = item.blockedByMe ? "You blocked this person" : item.blockedMe ? "Messaging unavailable" : null;
@@ -257,9 +220,9 @@ export default function ChatsScreen() {
               >
                 <ProfileAvatar profile={item.profile} size={64} />
                 <View style={styles.copy}>
-                  <Text numberOfLines={1} style={[styles.name, { color: colors.foreground }]}>{item.profile.name} <Feather name="heart" size={14} color={colors.primary}/></Text>
+                  <Text numberOfLines={1} style={[styles.name, { color: colors.foreground }]}>{item.profile.name}</Text>
                   <Text numberOfLines={2} style={[styles.last, { color: status ? colors.destructive : unread ? colors.foreground : colors.mutedForeground, fontWeight: unread ? "600" : "400" }]}>
-                    {status ?? item.lastMessage ?? "You matched. Say hello."}
+                    {status ?? item.lastMessage ?? "Start a conversation"}
                   </Text>
                 </View>
                 <View style={styles.meta}>
@@ -364,19 +327,6 @@ export default function ChatsScreen() {
                       >
                         <Text style={[styles.actionText, { color: colors.foreground }]}>Delete chat</Text>
                         <Feather name="trash-2" size={17} color={colors.mutedForeground} />
-                      </Pressable>
-                      <Pressable
-                        testID={`unmatch-${actionTarget.matchId}`}
-                        disabled={actionBusy}
-                        onPress={() => {
-                          const target = actionTarget;
-                          setActionTarget(null);
-                          confirmUnmatch(target);
-                        }}
-                        style={[styles.actionRow, { borderTopColor: colors.border }]}
-                      >
-                        <Text style={[styles.actionText, { color: colors.destructive }]}>Unmatch</Text>
-                        <Feather name="user-x" size={17} color={colors.destructive} />
                       </Pressable>
                     </>
                   ) : null}

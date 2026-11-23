@@ -1,8 +1,8 @@
 import { Feather } from "@expo/vector-icons";
 import { useInfiniteQuery } from "@tanstack/react-query";
-import { router } from "expo-router";
-import { useCallback, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, FlatList, Platform, Pressable, RefreshControl, StyleSheet, Text, View } from "react-native";
+import { router, useFocusEffect } from "expo-router";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ActivityIndicator, AppState, FlatList, Platform, Pressable, RefreshControl, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { getGetSocialFeedQueryKey, getSocialFeed, useGetNotifications, type Reel } from "@workspace/api-client-react";
 import { useColors } from "@/hooks/useColors";
@@ -14,8 +14,19 @@ export default function HomeFeedScreen() {
   const insets = useSafeAreaInsets();
   const token = useMediaToken();
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [screenFocused, setScreenFocused] = useState(true);
+  const [appActive, setAppActive] = useState(AppState.currentState === "active");
   const [removed, setRemoved] = useState<Set<string>>(new Set());
-  const notifications = useGetNotifications({ query: { refetchInterval: 15_000 } });
+  const screenActive = screenFocused && appActive;
+  useFocusEffect(useCallback(() => {
+    setScreenFocused(true);
+    return () => setScreenFocused(false);
+  }, []));
+  useEffect(() => {
+    const subscription = AppState.addEventListener("change", (state) => setAppActive(state === "active"));
+    return () => subscription.remove();
+  }, []);
+  const notifications = useGetNotifications({ query: { enabled: screenActive, refetchInterval: 15_000 } });
   const counts = notifications.data?.unreadCounts;
   const messageBadge = counts?.messages ?? 0;
   const activityBadge = counts ? counts.likes + counts.follows + (counts.reels ?? 0) : 0;
@@ -25,6 +36,7 @@ export default function HomeFeedScreen() {
     queryFn: ({ pageParam, signal }) => getSocialFeed({ mode: "home", limit: 12, ...(pageParam ? { cursor: pageParam } : {}) }, { signal }),
     getNextPageParam: (page) => page.nextCursor ?? undefined,
     staleTime: 20_000,
+    enabled: screenActive,
   });
   const posts = useMemo(() => {
     const seen = new Set<string>();
@@ -66,7 +78,7 @@ export default function HomeFeedScreen() {
           data={posts}
           keyExtractor={(r) => r.id}
           ListHeaderComponent={header}
-          renderItem={({ item }) => <PostCard reel={item} token={token} active={activeId === item.id} onRemoved={onRemoved} />}
+          renderItem={({ item }) => <PostCard reel={item} token={token} active={screenActive && activeId === item.id} onRemoved={onRemoved} />}
           onViewableItemsChanged={onViewable}
           viewabilityConfig={{ itemVisiblePercentThreshold: 60 }}
           onEndReached={() => { if (feed.hasNextPage && !feed.isFetchingNextPage) void feed.fetchNextPage(); }}

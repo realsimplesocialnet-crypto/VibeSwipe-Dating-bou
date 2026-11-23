@@ -16,10 +16,9 @@ export default function EditProfileScreen() {
   const profile = useGetMyProfile();
   const saveProfile = useSaveMyProfile();
   const [form, setForm] = useState({
-    name: "", age: "", gender: "Woman", lookingFor: "Everyone", bio: "", city: "", country: "", state: "",
+    name: "", age: "", gender: "Woman", bio: "", city: "", country: "", state: "",
     interests: [] as string[], occupation: "Prefer not to say", occupationOther: "",
     photos: [] as string[], videoUrl: null as string | null,
-    ageMin: 22, ageMax: 35, distanceKm: 50,
   });
 
   useEffect(() => {
@@ -29,7 +28,6 @@ export default function EditProfileScreen() {
       name: value.name,
       age: String(value.age),
       gender: value.gender,
-      lookingFor: value.lookingFor,
       bio: value.bio,
       city: value.city,
       country: value.country ?? "",
@@ -39,14 +37,11 @@ export default function EditProfileScreen() {
       occupationOther: value.occupationOther || "",
       photos: value.photos,
       videoUrl: value.videoUrl ?? null,
-      ageMin: value.preferences.ageMin,
-      ageMax: value.preferences.ageMax,
-      distanceKm: value.preferences.distanceKm,
     });
   }, [profile.data]);
 
   async function save() {
-    if (!form.name.trim() || Number(form.age) < 18 || !form.photos.length) {
+    if (!profile.data || !form.name.trim() || Number(form.age) < 18 || !form.photos.length) {
       Alert.alert("Check your profile", "Age must be 18 or older, and at least one photo is required.");
       return;
     }
@@ -54,13 +49,13 @@ export default function EditProfileScreen() {
       const savedProfile = await saveProfile.mutateAsync({
         data: {
           name: form.name.trim(), age: Number(form.age), gender: form.gender,
-          lookingFor: form.lookingFor, bio: form.bio.trim(), city: form.city.trim(),
+          lookingFor: profile.data.lookingFor, bio: form.bio.trim(), city: form.city.trim(),
           country: form.country || null, state: form.state || null,
           interests: form.interests.slice(0, 12),
           occupation: form.occupation,
           occupationOther: form.occupation === "Other" ? form.occupationOther.trim().slice(0, 80) : "",
           photos: form.photos, videoUrl: form.videoUrl,
-          preferences: { ageMin: form.ageMin, ageMax: form.ageMax, gender: form.lookingFor, distanceKm: form.distanceKm },
+          preferences: profile.data.preferences,
         },
       });
       queryClient.setQueryData(getGetMyProfileQueryKey(), savedProfile);
