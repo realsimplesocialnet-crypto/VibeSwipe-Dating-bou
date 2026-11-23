@@ -250,7 +250,9 @@ export function OnboardingWizard() {
   const filteredCountries = COUNTRIES.filter((country) =>
     country.name.toLowerCase().includes(search.trim().toLowerCase()),
   ).slice(0, search.trim() ? 100 : 35);
-  const topPadding = Platform.OS === "web" ? Math.max(67, insets.top + 16) : insets.top + 16;
+  const topPadding =
+    (Platform.OS === "web" ? Math.max(67, insets.top + 16) : insets.top + 16) +
+    Math.min(110, Math.max(72, viewport.height * 0.12));
   const bottomPadding = Platform.OS === "web" ? 34 : insets.bottom + 16;
 
   if (savedDraft.isLoading || !hydrated) {

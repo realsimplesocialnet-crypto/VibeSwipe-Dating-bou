@@ -10,12 +10,14 @@ import {
   Text,
   TextInput,
   View,
+  useWindowDimensions,
 } from "react-native";
 import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollViewCompat";
 import { useColors } from "@/hooks/useColors";
 
 export default function SignUpScreen() {
   const colors = useColors();
+  const { height } = useWindowDimensions();
   const { signUp, errors, fetchStatus } = useSignUp();
   const { ref } = useLocalSearchParams<{ ref?: string | string[] }>();
   const referralFromUrl = (Array.isArray(ref) ? ref[0] : ref ?? "")
@@ -92,7 +94,10 @@ export default function SignUpScreen() {
     <OnboardingVideoBackground form/>
     <KeyboardAwareScrollViewCompat
       style={{ flex: 1, backgroundColor: "transparent" }}
-      contentContainerStyle={styles.container}
+      contentContainerStyle={[
+        styles.container,
+        { paddingTop: Math.min(140, Math.max(110, height * 0.16)) },
+      ]}
       bottomOffset={24}
     >
       <Pressable
@@ -259,7 +264,7 @@ export default function SignUpScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flexGrow: 1, justifyContent: "center", paddingHorizontal: 24, paddingTop: 60, paddingBottom: 36 },
+  container: { flexGrow: 1, justifyContent: "flex-end", paddingHorizontal: 24, paddingBottom: 36 },
   back: { marginBottom: 35, width: 42, height: 42, borderRadius: 21, alignItems: "center", justifyContent: "center" },
   eyebrow: { fontSize: 11, fontWeight: "700", letterSpacing: 2.3, marginBottom: 10 },
   progressTrack: { flexDirection: "row", gap: 7, marginBottom: 20 },
