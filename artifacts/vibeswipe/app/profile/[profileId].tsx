@@ -178,7 +178,7 @@ export default function PublicProfileScreen() {
     <View style={{ flex: 1, backgroundColor: bg }}>
       <ScrollView style={{ flex: 1 }} contentContainerStyle={[styles.content, { paddingTop: topInset, paddingBottom: bottomInset + 40, paddingHorizontal: width < 380 ? 16 : 24 }]}>
         <View style={styles.topRow}>
-          <Pressable testID="public-profile-back" accessibilityRole="button" accessibilityLabel="Back to Likes" onPress={goBack} style={[styles.round, { backgroundColor: colors.profileCard, shadowColor: colors.profileChipForeground }]}>
+          <Pressable testID="public-profile-back" accessibilityRole="button" accessibilityLabel="Back" onPress={goBack} style={[styles.round, { backgroundColor: colors.profileCard, shadowColor: colors.profileChipForeground }]}>
             <Feather name="arrow-left" size={20} color={colors.foreground} />
           </Pressable>
           <Pressable testID="public-profile-more" accessibilityRole="button" accessibilityLabel={`More actions for ${user.name}`} onPress={() => { setSafetyError(""); setConfirmSafety(null); setMenuOpen(true); }} style={[styles.round, { backgroundColor: colors.profileCard, shadowColor: colors.profileChipForeground }]}>
@@ -308,7 +308,7 @@ export default function PublicProfileScreen() {
               <>
                 <Text style={[styles.menuTitle, { color: colors.foreground }]}>{confirmSafety === "block" ? `Block ${user.name}?` : `Report ${user.name}?`}</Text>
                 <Text style={[styles.matchCopy, { color: colors.mutedForeground, textAlign: "left" }]}>
-                  {confirmSafety === "block" ? "They won’t be able to see you or message you, and any match will end." : "Our safety team will review this profile. They won’t be told who reported them."}
+                  {confirmSafety === "block" ? "They will no longer be able to see your profile or message you." : "Our safety team will review this profile. They won’t be told who reported them."}
                 </Text>
                 {safetyError ? <Text accessibilityRole="alert" testID="public-profile-safety-error" style={[styles.safetyError, { color: colors.destructive }]}>{safetyError}</Text> : null}
                 <Pressable testID="public-profile-confirm-safety" accessibilityRole="button" disabled={block.isPending || report.isPending} onPress={() => void runSafety(confirmSafety)} style={[styles.matchPrimary, { backgroundColor: colors.destructive, opacity: block.isPending || report.isPending ? 0.6 : 1 }]}>

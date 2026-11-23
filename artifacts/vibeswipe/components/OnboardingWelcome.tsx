@@ -14,14 +14,14 @@ export function OnboardingWelcome() {
     <OnboardingVideoBackground/>
     <View style={[styles.brand, { paddingTop: insets.top + 21 }]}>
       <Image source={require("../assets/images/icon.png")} style={styles.icon}/>
-      <Text style={[styles.wordmark, { color: colors.foreground }]}>My<Text style={{ color: colors.primary }}>age</Text></Text>
+      <Text style={[styles.wordmark, { color: colors.foreground }]}>VibeSwipes</Text>
     </View>
     <Text style={[styles.preview, { top: insets.top + 74 }]}>ONBOARDING PREVIEW</Text>
     <LinearGradient colors={["rgba(15,15,18,0)", colors.background, colors.background]}
       locations={[0, .2, 1]} style={[styles.footer, { paddingBottom: Math.max(16, insets.bottom) }]}>
       <View style={styles.footerInner}>
-        <Text style={[styles.heading, { color: colors.foreground }, height < 650 && { fontSize: 24 }]}>Your next connection starts here.</Text>
-        <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>Create your profile. Meet someone who gets you.</Text>
+        <Text style={[styles.heading, { color: colors.foreground }, height < 650 && { fontSize: 24 }]}>Your community starts here.</Text>
+        <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>Share photos and videos. Follow people and join conversations.</Text>
         <View style={styles.actions}>
           <Pressable testID="create-account" accessibilityRole="button" style={[styles.button, styles.primary, { backgroundColor: colors.primary }]}
             onPress={() => router.push("/(auth)/sign-up")}>

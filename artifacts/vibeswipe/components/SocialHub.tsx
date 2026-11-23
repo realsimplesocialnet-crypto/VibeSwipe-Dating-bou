@@ -5,14 +5,11 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import { ActivityIndicator, AppState, FlatList, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
-  getGetMatchesQueryKey, getGetNotificationsQueryKey, getGetWhoLikedYouQueryKey, getGetWhoViewedYouQueryKey,
-  useCreateReaction, useGetMatches, useGetMyProfile, useGetNotifications, useGetWhoLikedYou, useGetWhoViewedYou, useMarkNotificationRead,
-  useGetDailyLikeStatus,
+  getGetNotificationsQueryKey, getGetWhoViewedYouQueryKey,
+  useGetMyProfile, useGetNotifications, useGetWhoViewedYou, useMarkNotificationRead,
   createUseMarkActivitySeen, patchActivityReads, type ActivityCategory, type NotificationsResponse,
-  type Match, type Profile,
 } from "@workspace/api-client-react";
 import { ProfileAvatar } from "@/components/ProfileAvatar";
-import { MatchCelebration } from "@/components/MatchCelebration";
 import { usePremiumColors } from "@/hooks/useColors";
 
 const live = { refetchInterval: 15000, refetchOnMount: "always" as const, refetchOnWindowFocus: true, staleTime: 0 };
@@ -32,7 +29,6 @@ function SeenError({ seen }: { seen: ReturnType<typeof useMarkActivitySeen> }) {
   const c = usePremiumColors();
   return seen.error ? <Pressable disabled={seen.pending} onPress={() => void seen.retry()} accessibilityRole="button" style={{ padding: 12, marginHorizontal: 20 }}><Text accessibilityRole="alert" style={{ color: c.primary }}>Couldn’t clear the new count. Tap to retry.</Text></Pressable> : null;
 }
-const active = (m?: Match[]) => (m ?? []).filter((x) => !x.profile.isDemo && !x.blockedByMe && !x.blockedMe);
 function ago(v: string) {
   const s = Math.max(0, (Date.now() - new Date(v).getTime()) / 1000);
   if (s < 60) return "Just now";
@@ -41,22 +37,9 @@ function ago(v: string) {
   if (s < 604800) return `${Math.floor(s / 86400)}d ago`;
   return new Date(v).toLocaleDateString();
 }
-const label = (p: Profile) => `${p.name}${p.age !== null && p.showAge !== false ? `, ${p.age}` : ""}`;
-
 function useRefetchOnFocus(fns: (() => unknown)[]) {
   const ref = fns;
   useFocusEffect(useCallback(() => { ref.forEach((f) => void f()); }, [])); // eslint-disable-line react-hooks/exhaustive-deps
-}
-
-function useNoticeReader() {
-  const qc = useQueryClient();
-  const notes = useGetNotifications({ query: live });
-  const mark = useMarkNotificationRead();
-  return (actorId: string, type: "new_match" | "new_like" | "profile_view") => {
-    const unread = notes.data?.notifications.filter(n => n.actor.id === actorId && (n.type === type || (type === "new_like" && n.type === "new_super_like")) && !n.readAt) ?? [];
-    if (unread.length) void Promise.allSettled(unread.map(n => mark.mutateAsync({ notificationId: n.id })))
-      .then(() => qc.invalidateQueries({ queryKey: getGetNotificationsQueryKey() }));
-  };
 }
 
 function Screen({ title, sub, back, home, children }: { title: string; sub?: string; back?: boolean; home?: boolean; children: ReactNode }) {
@@ -115,7 +98,7 @@ export function ActivityOverview() {
     { key: "followers", title: "Followers", to: me.data?.id ? `/followers/${me.data.id}` : "", count: counts?.follows ?? 0, icon: "user" as const, color: "#8b5cf6" },
   ];
   const items = useMemo(() => (notes.data?.notifications ?? [])
-    .filter(n => n.type === "profile_view" || n.type === "new_follow")
+    .filter(n => n.type === "profile_view" || n.type === "new_follow" || n.type === "reel_like" || n.type === "reel_comment_like" || n.type === "reel_comment_reply")
     .slice()
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()), [notes.data?.notifications]);
 
@@ -140,8 +123,15 @@ export function ActivityOverview() {
         void qc.invalidateQueries({ queryKey: key });
       }
     }
-    if (n.type === "new_match" && n.matchId) {
-      router.push({ pathname: "/chat/[matchId]", params: { matchId: n.matchId, returnTo: "activity" } });
+    if (n.reelId && (n.type === "reel_like" || n.type === "reel_comment_like" || n.type === "reel_comment_reply")) {
+      router.push({
+        pathname: "/reels/[reelId]",
+        params: {
+          reelId: n.reelId,
+          returnTo: "/(tabs)/activity",
+          ...(n.commentId ? { openComments: "1", commentId: n.commentId } : {}),
+        },
+      } as never);
       return;
     }
     router.push({ pathname: "/profile/[profileId]", params: { profileId: n.actor.id, returnTo: "activity" } });
@@ -170,11 +160,13 @@ export function ActivityOverview() {
         ) : null}
         {items.length > 0 ? <View testID="activity-feed" accessibilityLabel="Activity feed">
           {items.map(n => {
-            const event = n.type === "new_match"
-              ? { label: "matched with you", icon: "heart" as const, color: "#ed4b89" }
-              : n.type === "new_like" || n.type === "new_super_like"
-                ? { label: n.type === "new_super_like" ? "super liked you" : "liked you", icon: "thumbs-up" as const, color: "#3b82f6" }
-                : n.type === "profile_view"
+            const event = n.type === "reel_like"
+              ? { label: "liked your post", icon: "heart" as const, color: "#ed4b89" }
+              : n.type === "reel_comment_like"
+                ? { label: "liked your comment", icon: "heart" as const, color: "#ed4b89" }
+                : n.type === "reel_comment_reply"
+                  ? { label: "replied to your comment", icon: "message-circle" as const, color: "#3b82f6" }
+                  : n.type === "profile_view"
                   ? { label: "viewed your profile", icon: "eye" as const, color: "#16a394" }
                   : { label: "followed you", icon: "user" as const, color: "#8b5cf6" };
             return <Pressable key={n.id} onPress={() => void openActivityItem(n)} testID={`activity-item-${n.id}`} accessibilityRole="button" accessibilityLabel={`${n.actor.name} ${event.label}, ${ago(n.createdAt)}${n.readAt ? ", read" : ", unread"}`} accessibilityState={{ disabled: false }} style={({ pressed }) => [s.activityRow, { borderBottomColor: c.border, opacity: n.readAt ? 0.56 : pressed ? 0.84 : 1 }]}>
@@ -189,133 +181,38 @@ export function ActivityOverview() {
   );
 }
 
-export function InboundPeoplePage({ kind }: { kind: "likes" | "views" }) {
-  const readNotice = useNoticeReader();
+export function ProfileViewsPage() {
   const c = usePremiumColors();
   const insets = useSafeAreaInsets();
-  const isLikes = kind === "likes";
-  const likes = useGetWhoLikedYou({ query: { queryKey: getGetWhoLikedYouQueryKey(), enabled: isLikes, ...live } });
-  const views = useGetWhoViewedYou({ query: { queryKey: getGetWhoViewedYouQueryKey(), enabled: !isLikes, ...live } });
-  const me = useGetMyProfile();
-  const reaction = useCreateReaction();
-  const dailyLikeStatus = useGetDailyLikeStatus();
-  const [match, setMatch] = useState<{ profile: Profile; matchId: string | null } | null>(null);
-  const [actionError, setActionError] = useState("");
-  const [busyId, setBusyId] = useState("");
-  const qc = useQueryClient();
-  const q = isLikes ? likes : views;
-  const seen = useSeenOnFocus(kind, q.isSuccess && !q.isFetching);
-  useRefetchOnFocus([q.refetch]);
-  const rows = useMemo(() => (isLikes ? (likes.data ?? []).map((l) => ({ profile: l.profile, at: l.likedAt, isSuperLike: l.isSuperLike })) : (views.data ?? []).map((v) => ({ profile: v.profile, at: v.viewedAt, isSuperLike: false }))), [isLikes, likes.data, views.data]);
+  const views = useGetWhoViewedYou({ query: { queryKey: getGetWhoViewedYouQueryKey(), ...live } });
+  const seen = useSeenOnFocus("views", views.isSuccess && !views.isFetching);
+  useRefetchOnFocus([views.refetch]);
+  const rows = useMemo(() => (views.data ?? []).map((view) => ({ profile: view.profile, at: view.viewedAt })), [views.data]);
   return (
-     <Screen back title={isLikes ? "Dating Likes" : "Views"} sub={isLikes ? "People who liked your profile" : "People who viewed your profile"}>
-      {actionError ? <Text accessibilityRole="alert" style={{ color: c.destructive, marginHorizontal: 18, marginBottom: 8 }}>{actionError}</Text> : null}
+     <Screen back title="Profile views" sub="People who viewed your profile">
       <SeenError seen={seen} />
-      {q.isLoading || (q.isError && !q.data) ? (
-        <View style={s.list}><State loading={q.isLoading} error={q.isError && !q.data} empty={false} onRetry={() => void q.refetch()} icon={isLikes ? "heart" : "eye"} emptyTitle="" emptyText="" /></View>
+      {views.isLoading || (views.isError && !views.data) ? (
+        <View style={s.list}><State loading={views.isLoading} error={views.isError && !views.data} empty={false} onRetry={() => void views.refetch()} icon="eye" emptyTitle="" emptyText="" /></View>
       ) : !rows.length ? (
-        isLikes ? (
-          <View style={[s.emptyLikes, { backgroundColor: c.premiumBackground }]} testID="status-empty-likes">
-            <View style={[s.emptyHeart, { backgroundColor: c.premiumSoft, borderColor: c.premiumBorder }]}>
-              <Feather name="heart" size={32} color={c.premiumAccent} />
-            </View>
-            <Text style={[s.emptyTitle, { color: c.premiumForeground }]}>No new likes yet.</Text>
-            <Text style={[s.emptySubtitle, { color: c.premiumMuted }]}>Keep swiping!</Text>
-          </View>
-        ) : <View style={s.list}><State loading={false} error={false} empty onRetry={() => void q.refetch()} icon="eye" emptyTitle="No views yet" emptyText="When someone opens your profile, they show up here." /></View>
+        <View style={s.list}><State loading={false} error={false} empty onRetry={() => void views.refetch()} icon="eye" emptyTitle="No views yet" emptyText="When someone opens your profile, they show up here." /></View>
       ) : (
         <FlatList
           data={rows}
-          keyExtractor={(r) => `${r.profile.id}-${r.at}`}
+          keyExtractor={(row) => `${row.profile.id}-${row.at}`}
           contentContainerStyle={[s.list, { paddingBottom: insets.bottom + 110 }]}
-          renderItem={({ item: r }) => (
-             <View testID={`card-${kind}-profile-${r.profile.id}`} style={[s.card, { backgroundColor: c.profileCard, borderColor: c.border }]}>
+          renderItem={({ item: row }) => (
+             <View testID={`card-views-profile-${row.profile.id}`} style={[s.card, { backgroundColor: c.profileCard, borderColor: c.border }]}>
               <View style={s.row}>
-               <Pressable onPress={() => { readNotice(r.profile.id, isLikes ? "new_like" : "profile_view"); router.push({ pathname: "/profile/[profileId]", params: { profileId: r.profile.id, ...(isLikes ? { returnTo: "likes" } : {}) } } as never); }} testID={`link-${kind}-profile-${r.profile.id}`} accessibilityRole="button" accessibilityLabel={`View ${r.profile.name}'s profile`} style={[s.row, s.flex]}>
-              <View style={[s.avatarRing, { borderColor: c.premiumAccent }]}><ProfileAvatar profile={r.profile} size={54} /></View>
+                <Pressable onPress={() => router.push({ pathname: "/profile/[profileId]", params: { profileId: row.profile.id } } as never)} testID={`link-views-profile-${row.profile.id}`} accessibilityRole="button" accessibilityLabel={`View ${row.profile.name}'s profile`} style={[s.row, s.flex]}>
+              <View style={[s.avatarRing, { borderColor: c.premiumAccent }]}><ProfileAvatar profile={row.profile} size={54} /></View>
               <View style={s.flex}>
-                <Text numberOfLines={1} style={[s.name, { color: c.foreground }]}>{label(r.profile)}</Text>
-                <Text style={{ color: c.mutedForeground, fontSize: 13 }}>{isLikes ? (r.isSuperLike ? "Super Liked your profile" : "Liked your profile") : "Viewed your profile"} · {ago(r.at)}</Text>
+                <Text numberOfLines={1} style={[s.name, { color: c.foreground }]}>{`${row.profile.name}${row.profile.age !== null && row.profile.showAge !== false ? `, ${row.profile.age}` : ""}`}</Text>
+                <Text style={{ color: c.mutedForeground, fontSize: 13 }}>Viewed your profile · {ago(row.at)}</Text>
               </View>
-              {isLikes ? <View style={[s.heartBadge, { backgroundColor: c.premiumSoft }]}><Feather name={r.isSuperLike ? "star" : "heart"} size={17} color={c.premiumAccent} /></View> : (
-                <View style={[s.pill, { backgroundColor: c.profileChip }]}><Feather name="eye" size={14} color={c.primary} /><Text style={{ color: c.primary, fontWeight: "700", fontSize: 12 }}>View</Text></View>
-              )}
+              <View style={[s.pill, { backgroundColor: c.profileChip }]}><Feather name="eye" size={14} color={c.primary} /><Text style={{ color: c.primary, fontWeight: "700", fontSize: 12 }}>View</Text></View>
                </Pressable>
               </View>
-              {isLikes ? <View style={[s.likeActions, { borderTopColor: c.border }]}>
-                <Pressable testID={`button-pass-like-${r.profile.id}`} accessibilityRole="button" disabled={reaction.isPending || busyId === r.profile.id}
-                  onPress={async () => {
-                    setBusyId(r.profile.id); setActionError("");
-                    try {
-                      await reaction.mutateAsync({ data: { toUserId: r.profile.id, type: "pass" } });
-                      await Promise.all([
-                        qc.invalidateQueries({ queryKey: getGetWhoLikedYouQueryKey() }),
-                        qc.invalidateQueries({ queryKey: getGetNotificationsQueryKey() }),
-                      ]);
-                    } catch { setActionError(`Your pass on ${r.profile.name} did not save. Please try again.`); }
-                    finally { setBusyId(""); }
-                  }}
-                  style={[s.likeActionButton, { borderColor: c.border }]}
-                ><Text style={{ color: c.mutedForeground, fontWeight: "800", fontSize: 12 }}>Pass</Text></Pressable>
-                <Pressable testID={`button-like-back-${r.profile.id}`} accessibilityRole="button" disabled={reaction.isPending || busyId === r.profile.id || dailyLikeStatus.data?.remaining === 0}
-                  onPress={async () => {
-                    setBusyId(r.profile.id); setActionError("");
-                    try {
-                      const result = await reaction.mutateAsync({ data: { toUserId: r.profile.id, type: "like" } });
-                      await Promise.all([
-                        qc.invalidateQueries({ queryKey: getGetWhoLikedYouQueryKey() }),
-                        qc.invalidateQueries({ queryKey: getGetMatchesQueryKey() }),
-                        qc.invalidateQueries({ queryKey: getGetNotificationsQueryKey() }),
-                      ]);
-                      if (result.matched) setMatch({ profile: r.profile, matchId: result.matchId ?? null });
-                      else setActionError(`Your like to ${r.profile.name} was sent.`);
-                    } catch { setActionError(`Your Like Back to ${r.profile.name} did not go through. Please try again.`); }
-                    finally { setBusyId(""); }
-                  }}
-                  style={[s.likeActionButton, { backgroundColor: c.primary, borderColor: c.primary }]}
-                ><Text style={{ color: c.primaryForeground, fontWeight: "800", fontSize: 12 }}>Like Back</Text></Pressable>
-              </View> : null}
              </View>
-          )}
-        />
-      )}
-        <MatchCelebration visible={!!match} self={me.data ?? null} other={match?.profile ?? null} canMessage={!!match?.matchId}
-          onMessage={() => { if (!match?.matchId) return; const matchId = match.matchId; setMatch(null); router.push({ pathname: "/chat/[matchId]", params: { matchId, returnTo: "likes" } }); }}
-          onKeepSwiping={() => setMatch(null)} />
-    </Screen>
-  );
-}
-
-export function MutualMatchesPage() {
-  const readNotice = useNoticeReader();
-  const c = usePremiumColors();
-  const insets = useSafeAreaInsets();
-  const matches = useGetMatches({ query: { queryKey: getGetMatchesQueryKey(), ...live } });
-  const seen = useSeenOnFocus("matches", matches.isSuccess && !matches.isFetching);
-  useRefetchOnFocus([matches.refetch]);
-  const list = useMemo(() => active(matches.data), [matches.data]);
-  return (
-    <Screen title="Matches">
-      <SeenError seen={seen} />
-      {matches.isLoading || (matches.isError && !matches.data) ? (
-        <View style={s.list}><State loading={matches.isLoading} error={matches.isError && !matches.data} empty={!list.length} onRetry={() => void matches.refetch()} icon="users" emptyTitle="No matches yet" emptyText="When someone you like likes you back, you'll meet here." /></View>
-      ) : !list.length ? (
-        <View style={s.list}><Pressable onPress={() => router.navigate("/(tabs)" as never)} testID="link-empty-discover" style={[s.btn, { backgroundColor: c.primary }]}><Text style={{ color: c.primaryForeground, fontWeight: "700" }}>Explore profiles</Text></Pressable></View>
-      ) : (
-        <FlatList
-          data={list}
-          keyExtractor={(m) => m.id}
-          contentContainerStyle={[s.list, { paddingBottom: insets.bottom + 110 }]}
-          renderItem={({ item: m }) => (
-            <View style={[s.card, s.row, { backgroundColor: c.profileCard, borderColor: c.border }]} testID={`card-match-${m.id}`}>
-              <Pressable onPress={() => { readNotice(m.profile.id, "new_match"); router.push({ pathname: "/chat/[matchId]", params: { matchId: m.id, returnTo: "matches" } } as never); }} testID={`link-match-name-${m.id}`} accessibilityLabel={`Chat with ${m.profile.name}`} style={[s.row, s.flex]}>
-                <ProfileAvatar profile={m.profile} size={56} />
-                <Text numberOfLines={1} style={[s.name, s.flex, { color: c.foreground }]}>{label(m.profile)}</Text>
-              </Pressable>
-              <Pressable onPress={() => { readNotice(m.profile.id, "new_match"); router.push({ pathname: "/chat/[matchId]", params: { matchId: m.id, returnTo: "matches" } } as never); }} testID={`link-match-chat-${m.id}`} accessibilityRole="button" accessibilityLabel={`Chat with ${m.profile.name}`} style={[s.chat, { backgroundColor: c.profileChip }]}>
-                <Feather name="message-circle" size={20} color={c.primary} />
-              </Pressable>
-            </View>
           )}
         />
       )}

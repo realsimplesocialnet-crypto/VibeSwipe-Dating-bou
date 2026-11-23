@@ -22,10 +22,10 @@ test("native Reel video validation accepts MP4 and MOV within the size limit", (
   assert.match(validateReelVideo(1, null) ?? "", /MP4 or MOV/);
 });
 
-test("native Reel slideshow validation requires 2–10 supported small photos", () => {
+test("native photo posts accept 1–10 supported small photos", () => {
   const photo = { size: REEL_PHOTO_MAX_BYTES, contentType: "image/jpeg" };
-  assert.match(validateReelSlides([photo]) ?? "", /at least 2/);
-  assert.equal(validateReelSlides([photo, photo]), null);
+  assert.equal(validateReelSlides([photo]), null);
+  assert.equal(validateReelSlides(Array.from({ length: 10 }, () => photo)), null);
   assert.match(
     validateReelSlides(Array.from({ length: 11 }, () => photo)) ?? "",
     /up to 10/,

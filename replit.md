@@ -1,6 +1,6 @@
 # VibeSwipe
 
-A mobile-first dating app for profiles, mutual likes, matches, and private chat.
+A native Android social networking app for profiles, feeds, photo/video posts, Reels, Stories, and direct messages. The website is separate and remains unchanged.
 
 ## Run & Operate
 
@@ -42,7 +42,7 @@ A mobile-first dating app for profiles, mutual likes, matches, and private chat.
 
 - Email/password and Google sign-in, 18+ onboarding, profile editing, and media uploads.
 - VibeSwipe sign-up collects email and password on separate screens. Email uses format validation without a minimum length; the password screen requires at least 15 characters, remains visible by default, and includes a show/hide control and minimum-length error.
-- Profile discovery, pass/like/super-like, mutual matches, match-gated chat, and reporting/blocking.
+- Home and Explore feeds, follow relationships, posts and Reels, Stories, direct messages, reporting/blocking, and privacy controls.
 - Discover video playback is muted by default and keeps the active and next two profiles buffered.
 
 ## User preferences

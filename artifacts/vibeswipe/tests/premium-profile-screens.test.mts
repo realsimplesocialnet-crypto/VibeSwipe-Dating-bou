@@ -4,25 +4,32 @@ import test from "node:test";
 
 const read = (path: string) => readFileSync(new URL(path, import.meta.url), "utf8");
 
-test("Likes screens use charcoal and pink, with a clear empty state and profile entry", () => {
-  const colors = read("../constants/colors.ts");
-  const likes = read("../components/SocialHub.tsx");
-  assert.match(colors, /premiumBackground: "#0F0F12"/);
-  assert.match(colors, /premiumCard: "#1A1A1E"/);
-  assert.match(colors, /premiumAccent: "#F34E9A"/);
-  assert.match(likes, /No new likes yet\./);
-  assert.match(likes, /Keep swiping!/);
-  assert.match(likes, /returnTo: "likes"/);
+test("native Home is a social feed with Stories and no dating swipe deck", () => {
+  const home = read("../app/(tabs)/index.tsx");
+  const stories = read("../components/social/Stories.tsx");
+  assert.match(home, /getSocialFeed\(\{ mode: "home"/);
+  assert.match(home, /<StoriesRow/);
+  assert.match(home, /<PostCard/);
+  assert.doesNotMatch(home, /useGetDiscoverProfiles|reactLike|SwipeDeck/);
+  assert.match(stories, /Stories/);
 });
 
-test("profile opened from Likes shows a working Like Back action and returns to Likes", () => {
+test("social profile exposes follow, message, post count, and posts without dating actions", () => {
   const profile = read("../app/profile/[profileId].tsx");
   const ownProfile = read("../app/(tabs)/profile.tsx");
+  const followStats = read("../components/ProfileFollow.tsx");
+  const likesRoute = read("../app/(tabs)/activity/likes.tsx");
+  const activity = read("../components/SocialHub.tsx");
   const tabs = read("../app/(tabs)/_layout.tsx");
-  assert.match(profile, /returnTo === "likes"/);
-  assert.match(profile, /"Like Back"/);
-  assert.match(profile, /reactLike\(\)/);
+  assert.match(profile, /ProfileFollowStats/);
+  assert.match(profile, /public-profile-message/);
+  assert.doesNotMatch(profile, /reactLike|"Like Back"|MatchCelebration/);
   assert.match(profile, /public-profile-hero/);
+  assert.match(followStats, /profile-post-count-stat/);
+  assert.match(ownProfile, /ProfileFollowStats/);
+  assert.match(likesRoute, /Redirect href="\/\(tabs\)\/activity"/);
+  assert.match(activity, /n\.type === "reel_like"/);
+  assert.match(activity, /openComments: "1"/);
   assert.match(ownProfile, /usePremiumColors/);
   assert.match(ownProfile, /user\.isVerified/);
   assert.match(tabs, /tintColor=\{colors\.premiumAccent\}/);

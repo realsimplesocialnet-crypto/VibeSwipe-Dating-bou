@@ -134,7 +134,7 @@ export function buildProfileInput(values: SetupData) {
       gender: values.lookingFor,
       distanceKm: values.distanceKm,
     },
-    referralCode: values.referralCode || undefined,
+    ...(values.referralCode ? { referralCode: values.referralCode } : {}),
   };
 }
 

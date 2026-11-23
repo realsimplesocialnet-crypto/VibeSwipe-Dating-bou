@@ -1,5 +1,5 @@
-import { InboundPeoplePage } from "@/components/SocialHub";
+import { ProfileViewsPage } from "@/components/SocialHub";
 
 export default function ViewsScreen() {
-  return <InboundPeoplePage kind="views" />;
+  return <ProfileViewsPage />;
 }

@@ -38,13 +38,9 @@ test("each required onboarding screen rejects missing or invalid input", () => {
     { step: 1, patch: { lastName: "" } },
     { step: 2, patch: { age: "17" } },
     { step: 3, patch: { gender: "" } },
-    { step: 4, patch: { lookingFor: "" } },
     { step: 5, patch: { photos: [] } },
     { step: 5, patch: { photos: ["media:one", "media:two"] } },
     { step: 0, patch: { countryCode: "", countrySource: "" } },
-    { step: 9, patch: { ageMin: "17" } },
-    { step: 9, patch: { ageMin: "40", ageMax: "39" } },
-    { step: 9, patch: { distanceKm: 501 } },
   ];
 
   for (const { step, patch } of cases) {
@@ -55,10 +51,12 @@ test("each required onboarding screen rejects missing or invalid input", () => {
   }
 });
 
-test("valid steps accept the required details, one photo, and discovery values", () => {
+test("valid steps accept the required details and one profile photo without dating preferences", () => {
   for (const step of [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]) {
     assert.equal(getOnboardingStepError(step, completeSetup), null);
   }
+  assert.equal(getOnboardingStepError(4, { ...completeSetup, lookingFor: "" }), null);
+  assert.equal(getOnboardingStepError(9, { ...completeSetup, ageMin: "", ageMax: "", distanceKm: -1 }), null);
 });
 
 test("the final profile payload saves selected hobbies and occupation", () => {
