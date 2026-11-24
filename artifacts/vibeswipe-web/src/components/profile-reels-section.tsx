@@ -59,7 +59,7 @@ export function ProfileReelsSection({ profileId, returnTo, own = false }: {
   const reels: Reel[] = current.data?.pages.flatMap(page => page.items) ?? [];
   const isPrivacyLimited = !own && visibleTab === "liked" && current.isError && !current.data;
   const sectionClass = own ? "op-section op-media-tabs shrink-0" : "pp-reels-grid-section pp-media-tabs";
-  const tabClass = (tab: MediaTab) => `pp-media-tab ${tab === "liked" ? "is-likes-tab" : ""} ${visibleTab === tab ? "is-active" : ""}`;
+  const tabClass = (tab: MediaTab) => `pp-media-tab ${visibleTab === tab ? "is-active" : ""}`;
 
   return <section className={sectionClass} data-testid={own ? "section-profile-reels" : "section-public-profile-reels"}>
     <div className="pp-media-tabs-list" role="tablist" aria-label="Profile videos" style={{ gridTemplateColumns: `repeat(${tabs.length}, minmax(0, 1fr))` }}>

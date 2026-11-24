@@ -101,12 +101,12 @@ export function ProfileFollowButton({ profileId, viewerId, isFollowing: initialI
         onPress={() => void toggle()}
         style={({ pressed }) => [
           styles.followButton,
-          { borderColor: colors.profileEdit, backgroundColor: isFollowing ? "transparent" : colors.profileEdit, opacity: pending ? 0.55 : pressed ? 0.8 : 1 },
+          { borderColor: colors.profileActionAccent, backgroundColor: isFollowing ? "transparent" : colors.profileActionAccent, opacity: pending ? 0.55 : pressed ? 0.8 : 1 },
         ]}
       >
-        {pending && <ActivityIndicator size="small" color={isFollowing ? colors.profileEdit : colors.profileEditForeground} />}
-        {!isFollowing && !pending && <Feather name="user-plus" size={14} color={colors.profileEditForeground} />}
-        <Text style={{ color: isFollowing ? colors.profileEdit : colors.profileEditForeground, fontWeight: "800", fontSize: 12 }}>
+        {pending && <ActivityIndicator size="small" color={isFollowing ? colors.profileActionAccent : colors.profileActionForeground} />}
+        {!isFollowing && !pending && <Feather name="user-plus" size={14} color={colors.profileActionForeground} />}
+        <Text style={{ color: isFollowing ? colors.profileActionAccent : colors.profileActionForeground, fontWeight: "800", fontSize: 12 }}>
           {isFollowing ? "Following" : requested ? "Requested · Cancel" : followsYou ? "Follow back" : "Follow"}
         </Text>
       </Pressable>
@@ -165,7 +165,7 @@ export function ProfileFollowStats({ profileId, viewerId, showAction = true, soc
           onPress={() => router.push({ pathname: "/followers/[profileId]", params: { profileId } })}
           style={styles.stat}
         >
-          {query.data ? <Text style={[styles.statValue, { color: colors.profileSocialAccent }]}>{query.data.followersCount}</Text> : query.isError ? <Text style={[styles.statValue, { color: colors.profileSocialAccent }]}>—</Text> : <View testID="skeleton-profile-follower-count" style={{ width: 24, height: 16, borderRadius: 8, backgroundColor: colors.border, opacity: 0.65 }} />}
+          {query.data ? <Text style={[styles.statValue, { color: colors.profileLabel }]}>{query.data.followersCount}</Text> : query.isError ? <Text style={[styles.statValue, { color: colors.profileLabel }]}>—</Text> : <View testID="skeleton-profile-follower-count" style={{ width: 24, height: 16, borderRadius: 8, backgroundColor: colors.border, opacity: 0.65 }} />}
           <Text style={[styles.statLabel, { color: colors.profileMuted }]}>Followers</Text>
         </Pressable>
         <View style={[styles.statRule, { backgroundColor: colors.profileRule }]} />
@@ -176,7 +176,7 @@ export function ProfileFollowStats({ profileId, viewerId, showAction = true, soc
           onPress={() => router.push({ pathname: "/following/[profileId]", params: { profileId } })}
           style={styles.stat}
         >
-          {query.data ? <Text style={[styles.statValue, { color: colors.profileSocialAccent }]}>{query.data.followingCount}</Text> : query.isError ? <Text style={[styles.statValue, { color: colors.profileSocialAccent }]}>—</Text> : <View testID="skeleton-profile-following-count" style={{ width: 24, height: 16, borderRadius: 8, backgroundColor: colors.border, opacity: 0.65 }} />}
+          {query.data ? <Text style={[styles.statValue, { color: colors.profileLabel }]}>{query.data.followingCount}</Text> : query.isError ? <Text style={[styles.statValue, { color: colors.profileLabel }]}>—</Text> : <View testID="skeleton-profile-following-count" style={{ width: 24, height: 16, borderRadius: 8, backgroundColor: colors.border, opacity: 0.65 }} />}
           <Text style={[styles.statLabel, { color: colors.profileMuted }]}>Following</Text>
         </Pressable>
       </View>

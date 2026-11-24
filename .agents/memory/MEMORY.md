@@ -8,7 +8,7 @@
 - [Clerk Protect in automated tests](clerk-protect-testing.md) — Development sign-up may require a human Protect check; do not bypass it to automate account creation.
 - [Main-screen headers](main-screen-headers.md) — No logos or wordmarks after login; keep welcome, login and signup branding, and preserve space for cards and controls.
 - [Concise in-app copy](concise-in-app-copy.md) — Keep signed-in screens focused on functional labels and controls; avoid slogans and extra explanations.
-- [Own-profile appearance](own-profile-appearance.md) — Use round profile photos, put age in About, and keep MyAgeBeauty's profile surfaces monochrome.
+- [Profile appearance](own-profile-appearance.md) — Keep profile counts black/white; use rose-red for Follow and Like buttons.
 - [Settings theme persistence](settings-theme.md) — Settings routes must preserve the user's selected app theme instead of switching colors on navigation.
 - [Messages and public profiles](messages-and-public-profiles.md) — Keep five tabs, a single Inbox, separate Activity access, and monochrome profiles.
 - [Mobile chat keyboard](mobile-chat-keyboard.md) — Safari can pan its visible viewport; anchor the composer to that viewport without extra keyboard-time bottom inset.

@@ -307,7 +307,7 @@ html[data-theme="light"] .public-profile {
 .public-profile .sh-profile-stats { gap: 10px; }
 .public-profile .sh-profile-stat { min-height: 54px; border-radius: 16px; }
 html[data-theme="light"] .public-profile .sh-profile-stat { background:#fff; border-color:#e5e5e5; color:#111; }
-html[data-theme="light"] .public-profile .sh-profile-stat strong { color:#FE2C55; }
+html[data-theme="light"] .public-profile .sh-profile-stat strong { color:#111; }
 html[data-theme="light"] .public-profile .sh-profile-stat span { color:#666; }
 .public-profile .sh-profile-actions { gap: 10px; }
 .public-profile .sh-follow-button,
@@ -485,8 +485,6 @@ html[data-theme="light"] .messages-shell .messages-page { background:transparent
 .pp-media-tab:after { position:absolute; right:12%; bottom:-1px; left:12%; height:2px; border-radius:99px; background:transparent; content:""; }
 .pp-media-tab.is-active { background:color-mix(in srgb,var(--media-accent) 10%,transparent); color:var(--media-accent); }
 .pp-media-tab.is-active:after { background:var(--media-accent); }
-.pp-media-tab.is-likes-tab.is-active { background:color-mix(in srgb,#FE2C55 10%,transparent); color:#FE2C55; }
-.pp-media-tab.is-likes-tab.is-active:after { background:#FE2C55; }
 .pp-media-tab:focus-visible, .pp-media-state button:focus-visible { outline:2px solid var(--media-accent); outline-offset:2px; }
 .pp-media-panel { min-width:0; padding-top:10px; }
 .pp-media-pagination { display:flex; flex-direction:column; align-items:center; gap:8px; padding:14px 0 3px; }
