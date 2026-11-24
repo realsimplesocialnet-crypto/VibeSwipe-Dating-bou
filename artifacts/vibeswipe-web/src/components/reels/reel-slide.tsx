@@ -259,8 +259,11 @@ export const ReelSlide = memo(function ReelSlide({ reel, index, active, near, po
       lastTap.current = null;
       lastTapTimer.current = null;
     }, 340);
-    togglePlayback();
-    onOverlayVisibilityChange(!uiVisible);
+    if (uiVisible) {
+      togglePlayback();
+    } else {
+      onOverlayVisibilityChange(true);
+    }
   }
 
   function clearHoldTimer() {
@@ -404,7 +407,9 @@ export const ReelSlide = memo(function ReelSlide({ reel, index, active, near, po
   const src = reelMediaUrl(reel.videoReference);
   const tapLabel = photoReel
     ? `${slideCount > 1 ? `Photo slideshow, ${slideIndex + 1} of ${slideCount}. Swipe left or right to browse.` : "Photo Reel."} Swipe up for the next Reel or down for the previous Reel.${reel.soundtrack ? " Tap to play or pause the soundtrack." : ""}`
-    : `${userPaused || blocked ? "Tap to play" : "Tap to pause"} Reel and toggle controls. Press and hold to pause, then release to resume. Video audio plays automatically.`;
+    : uiVisible
+      ? `${userPaused || blocked ? "Tap to play" : "Tap to pause"} Reel. Press and hold to pause, then release to resume. Video audio plays automatically.`
+      : "Show Reel controls without changing playback. Video audio keeps playing.";
   const reelReturnParams = new URLSearchParams({ returnTo });
   const creatorProfileReturn = `/reels/${encodeURIComponent(reel.id)}?${reelReturnParams.toString()}`;
   const creatorProfileHref = `/profile/${encodeURIComponent(reel.creatorId)}?returnTo=${encodeURIComponent(creatorProfileReturn)}`;
