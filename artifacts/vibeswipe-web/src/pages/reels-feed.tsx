@@ -7,7 +7,7 @@ import {
   useGetReel, useGetVibeSwipeSettings, useLikeReel, useRecordReelView, useReportReel, useSaveReel,
   useUnlikeReel, useUnsaveReel, useMarkReelNotInterested, type Reel,
 } from "@workspace/api-client-react";
-import { ArrowLeft, Bookmark, Clapperboard, Download, EyeOff, Flag, LoaderCircle, Maximize2, MoreHorizontal, Plus, Search, Users, X } from "lucide-react";
+import { ArrowLeft, Bookmark, Clapperboard, Download, EyeOff, Flag, LoaderCircle, MoreHorizontal, Plus, Search, Users, X } from "lucide-react";
 import { ReelSlide } from "@/components/reels/reel-slide";
 import { ReelComments } from "@/components/reels/reel-comments";
 import { ReelShareSheet } from "@/components/reels/reel-share-sheet";
@@ -634,7 +634,6 @@ export function ReelsFeedPage({
         </div>
       </header>
       {reelMenuOpen && activeReel && <div className="absolute right-3 top-[calc(env(safe-area-inset-top,0px)+54px)] z-30 min-w-48 overflow-hidden rounded-2xl border border-white/10 bg-[#151319]/95 p-1.5 shadow-2xl backdrop-blur-xl" role="menu" data-testid="menu-reel-options">
-        <button type="button" role="menuitem" onClick={() => { setReelMenuOpen(false); setUiVisible(false); }} className="flex min-h-11 w-full items-center gap-3 rounded-xl px-3 text-left text-sm font-semibold text-white hover:bg-white/10" data-testid="button-reel-clean-view"><Maximize2 size={17}/>Watch full screen</button>
         {activeReel.canDownload && <button type="button" role="menuitem" onClick={() => void downloadCurrentReel(activeReel)} className="flex min-h-11 w-full items-center gap-3 rounded-xl px-3 text-left text-sm font-semibold text-white hover:bg-white/10" data-testid={`button-download-reel-${activeReel.id}`}><Download size={17}/>{activeReel.mediaType === "slides" ? "Download photos" : "Download Reel"}</button>}
         {!activeReel.isOwner && <button type="button" role="menuitem" disabled={markNotInterested.isPending} onClick={() => void hideSimilarReels(activeReel)} className="flex min-h-11 w-full items-center gap-3 rounded-xl px-3 text-left text-sm font-semibold text-white hover:bg-white/10 disabled:opacity-50" data-testid={`button-not-interested-${activeReel.id}`}><EyeOff size={17}/>Not interested</button>}
         {!activeReel.isOwner && <button type="button" role="menuitem" onClick={() => { setReportReason("other"); setReportDetails(""); setReportFor(activeReel); setReelMenuOpen(false); }} className="flex min-h-11 w-full items-center gap-3 rounded-xl px-3 text-left text-sm font-semibold text-white hover:bg-white/10" data-testid={`button-report-reel-${activeReel.id}`}><Flag size={17}/>{t("Report Reel")}</button>}
