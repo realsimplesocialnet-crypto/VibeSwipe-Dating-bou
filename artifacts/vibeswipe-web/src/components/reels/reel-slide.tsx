@@ -259,8 +259,17 @@ export const ReelSlide = memo(function ReelSlide({ reel, index, active, near, po
       lastTap.current = null;
       lastTapTimer.current = null;
     }, 340);
-    if (photoReel) togglePlayback();
-    onOverlayVisibilityChange(!uiVisible);
+    if (photoReel) {
+      togglePlayback();
+      onOverlayVisibilityChange(!uiVisible);
+      return;
+    }
+    if (uiVisible && !userPaused && !blocked) {
+      onOverlayVisibilityChange(false);
+      return;
+    }
+    togglePlayback();
+    if (!uiVisible && (userPaused || blocked)) onOverlayVisibilityChange(true);
   }
 
   function clearHoldTimer() {
@@ -404,7 +413,7 @@ export const ReelSlide = memo(function ReelSlide({ reel, index, active, near, po
   const src = reelMediaUrl(reel.videoReference);
   const tapLabel = photoReel
     ? `${slideCount > 1 ? `Photo slideshow, ${slideIndex + 1} of ${slideCount}. Swipe left or right to browse.` : "Photo Reel."} Swipe up for the next Reel or down for the previous Reel. Tap to show or hide controls.${reel.soundtrack ? " Tap also plays or pauses the soundtrack." : ""}`
-    : `${uiVisible ? "Tap to hide controls and view full screen" : "Tap to show controls"} without changing playback. Press and hold to pause, then release to resume. Video audio plays automatically.`;
+    : `${uiVisible ? (userPaused || blocked ? "Tap to play" : "Tap to hide controls and view full screen") : (userPaused || blocked ? "Tap to play and show controls" : "Tap to pause")} Reel. Video audio plays automatically.`;
   const reelReturnParams = new URLSearchParams({ returnTo });
   const creatorProfileReturn = `/reels/${encodeURIComponent(reel.id)}?${reelReturnParams.toString()}`;
   const creatorProfileHref = `/profile/${encodeURIComponent(reel.creatorId)}?returnTo=${encodeURIComponent(creatorProfileReturn)}`;
