@@ -39,7 +39,7 @@ export const initials = (name?: string) => (name || '?').split(/\s+/).filter(Boo
 
 export function Pill({ tone = 'mute', children }: { tone?: 'mute' | 'rose' | 'mint' | 'amber' | 'red'; children: ReactNode }) {
   const map = {
-    mute: 'border-white/10 text-[#b9adb6]', rose: 'border-[#f34e9a]/35 bg-[#f34e9a]/10 text-[#ff8cc0]',
+    mute: 'border-white/10 text-[#b9b9b9]', rose: 'border-white/30 bg-white/[.08] text-white',
     mint: 'border-[#7fd6b0]/30 bg-[#7fd6b0]/10 text-[#9fe6c6]', amber: 'border-[#f2b766]/30 bg-[#f2b766]/10 text-[#f6c987]', red: 'border-[#f06b76]/35 bg-[#f06b76]/10 text-[#ff9aa3]',
   };
   return <span className={`inline-flex items-center gap-1 whitespace-nowrap rounded-full border px-2 py-0.5 text-[10.5px] font-bold uppercase tracking-[.08em] ${map[tone]}`}>{children}</span>;
@@ -59,7 +59,7 @@ export function ErrorBox({ error, onRetry, text }: { error: unknown; onRetry: ()
 
 export function EmptyState({ title, detail }: { title: string; detail: string }) {
   return <div className="px-6 py-16 text-center">
-    <div className="mx-auto mb-4 grid h-12 w-12 place-items-center rounded-2xl border border-dashed border-[#f34e9a]/35 text-[#f34e9a] mono text-xs">0</div>
+    <div className="mx-auto mb-4 grid h-12 w-12 place-items-center rounded-2xl border border-dashed border-white/30 text-white mono text-xs">0</div>
     <div className="font-bold">{title}</div>
     <p className="mx-auto mt-1 max-w-sm text-sm text-[var(--a-mute)]">{detail}</p>
   </div>;
@@ -114,7 +114,7 @@ export function AdminPhoto({ reference, alt, className }: { reference: string; a
 }
 
 export function UserMark({ name, online, size = 36 }: { name: string; online?: boolean; size?: number }) {
-  return <span className="relative inline-grid shrink-0 place-items-center rounded-full bg-[linear-gradient(145deg,#6d3253,#2c2131)] text-[11px] font-bold text-[#ffd3e6] ring-1 ring-white/10" style={{ width: size, height: size }}>
+  return <span className="relative inline-grid shrink-0 place-items-center rounded-full bg-[linear-gradient(145deg,#555,#171717)] text-[11px] font-bold text-white ring-1 ring-white/10" style={{ width: size, height: size }}>
     {initials(name)}
     {online && <span className="a-pulse absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-[var(--a-panel)] bg-[#7fd6b0]" />}
   </span>;

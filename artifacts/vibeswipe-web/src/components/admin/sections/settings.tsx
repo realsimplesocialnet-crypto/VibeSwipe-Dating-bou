@@ -23,7 +23,7 @@ export function SettingsSection({ session, onSignOut }: { session: AdminSession;
     <section className="a-panel mt-4 flex flex-col gap-4 p-5 sm:flex-row sm:items-center">
       <KeyRound size={18} className="shrink-0 text-[var(--a-rose)]" />
       <div className="flex-1"><div className="text-sm font-bold">Sign out</div><p className="text-xs text-[var(--a-mute)]">Ends the session and clears all loaded admin data from this device.</p></div>
-      <button type="button" disabled={busy} onClick={async () => { setBusy(true); await onSignOut(); setBusy(false); }} data-testid="button-admin-signout" className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-[var(--a-rose)] px-4 text-sm font-extrabold text-[#24111b] disabled:opacity-50">
+      <button type="button" disabled={busy} onClick={async () => { setBusy(true); await onSignOut(); setBusy(false); }} data-testid="button-admin-signout" className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-[var(--a-rose)] px-4 text-sm font-extrabold text-black disabled:opacity-50">
         {busy ? <Loader2 size={15} className="animate-spin" /> : <LogOut size={15} />}Sign out
       </button>
     </section>

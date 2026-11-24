@@ -228,7 +228,7 @@ export function DiscoveryLocationSettings({
         {scope === "radius" && (
           <label className="grid gap-3 text-xs font-semibold text-muted-foreground">
             Distance · {radiusKm} km
-            <input type="range" min={1} max={500} value={radiusKm} data-testid="input-settings-distance" onChange={(event) => setRadiusKm(Number(event.target.value))} className="w-full accent-[#f34e9a]"/>
+            <input type="range" min={1} max={500} value={radiusKm} data-testid="input-settings-distance" onChange={(event) => setRadiusKm(Number(event.target.value))} className="w-full accent-primary"/>
           </label>
         )}
 

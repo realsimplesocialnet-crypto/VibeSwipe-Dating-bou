@@ -31,7 +31,7 @@ export function PwaInstallBanner() {
       if (choice.outcome === 'accepted') store?.confirmInstalled();
       else setShowHelp(true);
     } catch (error) {
-      console.warn('VibeSwipes install prompt could not open.', error);
+      console.warn('MyAgeBeauty install prompt could not open.', error);
       window.vibeSwipeInstall?.clearPrompt(install.prompt);
       setShowHelp(true);
     }
@@ -41,7 +41,7 @@ export function PwaInstallBanner() {
     <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-2.5">
       <img src={`${import.meta.env.BASE_URL}vibeswipes-icon-192.png`} alt="" className="h-10 w-10 shrink-0 rounded-xl"/>
       <div className="min-w-0 flex-1">
-        <p className="text-xs font-bold leading-5">Get VibeSwipes on your Home Screen</p>
+        <p className="text-xs font-bold leading-5">Get MyAgeBeauty on your Home Screen</p>
         <p className="text-[11px] text-muted-foreground">{ios ? 'Open it like an app whenever you want.' : 'Open it faster, right from your phone.'}</p>
       </div>
       <button type="button" onClick={() => void installApp()} aria-expanded={showHelp} aria-controls={showHelp ? 'myage-pwa-install-help' : undefined}
@@ -53,7 +53,7 @@ export function PwaInstallBanner() {
         <X size={17}/>
       </button>
     </div>
-    {showHelp && <div id="myage-pwa-install-help" role="region" aria-label="VibeSwipes installation steps" className="mx-auto max-w-6xl px-4 pb-3 text-xs leading-5 text-muted-foreground">
+    {showHelp && <div id="myage-pwa-install-help" role="region" aria-label="MyAgeBeauty installation steps" className="mx-auto max-w-6xl px-4 pb-3 text-xs leading-5 text-muted-foreground">
       {ios
         ? <>In Safari, tap <strong className="text-foreground">Share</strong>, choose <strong className="text-foreground">Add to Home Screen</strong>, then tap <strong className="text-foreground">Add</strong>.</>
         : <>Open your browser menu and choose <strong className="text-foreground">Install app</strong> or <strong className="text-foreground">Add to Home screen</strong>.</>}

@@ -29,13 +29,6 @@ export function AppHeader({ active }: { active?: "notifications" | "messages" })
         },
       ]}
     >
-      <View style={styles.brand}>
-        <View style={[styles.mark, { backgroundColor: colors.primary }]}>
-          <Text style={[styles.markText, { color: colors.primaryForeground }]}>M</Text>
-        </View>
-        <Text style={[styles.wordmark, { color: colors.foreground }]}>MyAgeBeauty</Text>
-      </View>
-
       <View style={styles.actions}>
         <HeaderButton
           label={activityCount ? `Notifications, ${activityCount} unread` : "Notifications"}
@@ -45,7 +38,7 @@ export function AppHeader({ active }: { active?: "notifications" | "messages" })
           onPress={() => router.push("/(tabs)/activity")}
         />
         <HeaderButton
-          label={messageCount ? `Messages, ${messageCount} unread` : "Messages"}
+          label={messageCount ? `Inbox, ${messageCount} unread` : "Inbox"}
           icon="message-square"
           active={active === "messages"}
           count={messageCount}
@@ -102,15 +95,11 @@ const styles = StyleSheet.create({
     minHeight: 60,
     paddingHorizontal: 18,
     paddingBottom: 8,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: 0,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
   },
-  brand: { flexDirection: "row", alignItems: "center", gap: 9 },
-  mark: { width: 27, height: 27, borderRadius: 14, alignItems: "center", justifyContent: "center" },
-  markText: { fontSize: 16, fontWeight: "900", lineHeight: 20 },
-  wordmark: { fontSize: 18, fontWeight: "800", letterSpacing: -0.45 },
   actions: { flexDirection: "row", alignItems: "center", gap: 8 },
   action: { width: 42, height: 42, borderRadius: 12, alignItems: "center", justifyContent: "center" },
   pressed: { opacity: 0.72 },

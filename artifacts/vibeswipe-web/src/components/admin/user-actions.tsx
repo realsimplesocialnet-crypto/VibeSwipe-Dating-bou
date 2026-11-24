@@ -24,7 +24,7 @@ export function UserActions({ u, compact = false, onDeleted }: { u: AdminUser; c
     <div className="flex flex-wrap gap-2">
       {u.verified
         ? <button type="button" disabled={pending} onClick={() => void run('unverify', u.id)} data-testid={`button-unverify-${u.id}`} className={`${base} border-[var(--a-line)] hover:bg-white/5`}><ShieldOff size={13} />Unverify</button>
-        : <Link href="/admin/verifications" data-testid={`button-verify-${u.id}`} title="View automatic verification checks" className={`${base} border-[var(--a-line)] hover:bg-white/5`}><BadgeCheck size={13} className="text-[#ff8cc0]" />Verification status</Link>}
+        : <Link href="/admin/verifications" data-testid={`button-verify-${u.id}`} title="View automatic verification checks" className={`${base} border-[var(--a-line)] hover:bg-white/5`}><BadgeCheck size={13} className="text-white" />Verification status</Link>}
       {u.suspended
         ? <button type="button" disabled={pending} onClick={() => void run('unblock', u.id)} data-testid={`button-unblock-${u.id}`} className={`${base} border-[#7fd6b0]/30 text-[#9fe6c6] hover:bg-[#7fd6b0]/10`}><Undo2 size={13} />Unblock</button>
         : <button type="button" disabled={pending} onClick={() => setReq({ title: `Block ${u.name}?`, detail: 'They will be signed out of discovery and cannot message matches until you unblock them. Their data stays intact.', confirmLabel: 'Block member', tone: 'neutral', onConfirm: () => run('block', u.id) })} data-testid={`button-block-${u.id}`} className={`${base} border-[#f2b766]/30 text-[#f6c987] hover:bg-[#f2b766]/10`}><Ban size={13} />Block</button>}

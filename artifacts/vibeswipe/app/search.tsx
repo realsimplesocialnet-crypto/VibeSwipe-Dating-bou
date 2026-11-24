@@ -130,7 +130,7 @@ export default function MemberSearchScreen() {
                   <ProfileAvatar profile={item} size={54} />
                   <View style={styles.resultCopy}>
                     <Text numberOfLines={1} style={[styles.name, { color: colors.foreground }]}>
-                      {item.name}{item.age != null ? `, ${item.age}` : ""}
+                      {item.name}
                     </Text>
                     {place ? <Text numberOfLines={1} style={[styles.location, { color: colors.mutedForeground }]}>{place}</Text> : null}
                   </View>

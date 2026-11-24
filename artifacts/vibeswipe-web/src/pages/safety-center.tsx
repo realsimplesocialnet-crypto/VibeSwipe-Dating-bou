@@ -143,7 +143,7 @@ export default function SafetyCenterPage() {
     if (navigator.share) {
       try {
         await navigator.share({
-          title: "VibeSwipes live location",
+          title: "MyAgeBeauty live location",
           text: "My live location link",
           url: link,
         });
@@ -256,7 +256,7 @@ export default function SafetyCenterPage() {
             <Shield size={22} />
           </div>
           <div>
-            <p className="text-[10px] font-extrabold uppercase tracking-[.2em] text-primary">VibeSwipes</p>
+            <p className="text-[10px] font-extrabold uppercase tracking-[.2em] text-primary">MyAgeBeauty</p>
             <h1 className="mt-1 text-3xl font-extrabold tracking-tight">Safety Center</h1>
             <p className="mt-2 text-sm leading-6 text-muted-foreground">
               Practical tools and guidance to help you meet with confidence.
@@ -272,7 +272,7 @@ export default function SafetyCenterPage() {
               <HeartHandshake size={18} />
             </div>
             <div>
-              <h2 className="font-bold">How to stay safe on VibeSwipes</h2>
+              <h2 className="font-bold">How to stay safe on MyAgeBeauty</h2>
               <p className="mt-1 text-xs text-muted-foreground">A few simple steps before you meet.</p>
             </div>
           </div>
@@ -495,7 +495,7 @@ export default function SafetyCenterPage() {
               type="button"
               onClick={() => void startLocationShare()}
               disabled={createLocationShare.isPending}
-              className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-primary px-4 text-xs font-extrabold text-[#24111b] disabled:opacity-50"
+              className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-primary px-4 text-xs font-extrabold text-primary-foreground disabled:opacity-50"
               data-testid="button-start-location-share"
             >
               <Navigation size={15} />

@@ -46,7 +46,7 @@ export function LocationChoice({
     : 'No cities are listed for this location. You can continue without one.';
 
   return <div className="space-y-3">
-    {value && <p className="text-sm font-semibold text-[#ffd3e6]" role="status">Selected: {value}</p>}
+    {value && <p className="text-sm font-semibold text-foreground" role="status">Selected: {value}</p>}
     <label className="sr-only" htmlFor={`location-search-${level}`}>{title}</label>
     <input id={`location-search-${level}`} data-testid={`input-onboarding-${level}-search`} value={filter} onChange={event => setFilter(event.target.value)} placeholder={title} autoComplete="off" className="field"/>
     {loading ? <div role="status" aria-label="Loading" className="flex justify-center py-2"><QuietSpinner size={18}/></div>

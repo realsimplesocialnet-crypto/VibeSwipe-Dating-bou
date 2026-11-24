@@ -46,7 +46,7 @@ export function ChatDrawer({ chatId, onClose }: { chatId: string; onClose: () =>
     {!opened ? <section className="m-5 rounded-2xl border border-[#f2b766]/25 bg-[#f2b766]/[.06] p-5" data-testid="chat-access-notice">
       <h2 className="font-bold">Restricted admin access</h2>
       <p className="mt-2 text-sm leading-6 text-[var(--a-mute)]">Conversation contents and attachments are private. Opening this conversation will access its contents, and admin access is logged.</p>
-      <button type="button" onClick={() => setOpenedChatId(chatId)} data-testid="button-acknowledge-chat-access" className="mt-4 inline-flex min-h-10 items-center justify-center rounded-xl bg-[var(--a-rose)] px-4 py-2 text-sm font-extrabold text-[#24111b]">I understand, open conversation</button>
+      <button type="button" onClick={() => setOpenedChatId(chatId)} data-testid="button-acknowledge-chat-access" className="mt-4 inline-flex min-h-10 items-center justify-center rounded-xl bg-[var(--a-rose)] px-4 py-2 text-sm font-extrabold text-black">I understand, open conversation</button>
     </section> :
       r.isError && !r.data ? <ErrorBox error={r.error} onRetry={() => void r.refetch()} text="This conversation could not load." /> :
       !r.data ? <><p className="px-5 pt-4 text-xs text-[var(--a-mute)]" role="status" aria-live="polite">Loading conversation contents…</p><Skeleton rows={8} /></> :
@@ -66,9 +66,9 @@ export function ChatDrawer({ chatId, onClose }: { chatId: string; onClose: () =>
           <DateRange from={from} to={to} onChange={(f, t) => { setFrom(f); setTo(t); }} testId="filter-chat-range" />
           <div className="flex flex-wrap items-center gap-2">
             <div className="flex h-10 overflow-hidden rounded-xl border border-[var(--a-line)]" role="radiogroup" aria-label="Export format">
-              {(['txt', 'json'] as const).map(f => <button key={f} type="button" role="radio" aria-checked={format === f} onClick={() => setFormat(f)} data-testid={`button-export-format-${f}`} className={`mono px-3 text-xs font-bold uppercase ${format === f ? 'bg-[#f34e9a]/15 text-[#ff8cc0]' : 'text-[var(--a-mute)]'}`}>{f}</button>)}
+              {(['txt', 'json'] as const).map(f => <button key={f} type="button" role="radio" aria-checked={format === f} onClick={() => setFormat(f)} data-testid={`button-export-format-${f}`} className={`mono px-3 text-xs font-bold uppercase ${format === f ? 'bg-white/[.08] text-white' : 'text-[var(--a-mute)]'}`}>{f}</button>)}
             </div>
-            <button type="button" disabled={exporting} onClick={() => void exportRange()} data-testid="button-export-chat" className="inline-flex h-10 items-center gap-2 rounded-xl bg-[var(--a-rose)] px-4 text-xs font-extrabold text-[#24111b] disabled:opacity-50">{exporting ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}Export {from || to ? 'range' : 'all'}</button>
+            <button type="button" disabled={exporting} onClick={() => void exportRange()} data-testid="button-export-chat" className="inline-flex h-10 items-center gap-2 rounded-xl bg-[var(--a-rose)] px-4 text-xs font-extrabold text-black disabled:opacity-50">{exporting ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}Export {from || to ? 'range' : 'all'}</button>
             <button type="button" disabled={pending} onClick={() => setReq({ title: 'Delete this entire conversation?', detail: `All messages between ${c.userAName} and ${c.userBName} will be permanently removed for both members.`, confirmLabel: 'Delete chat', word: 'DELETE', onConfirm: async conf => { const ok = await run('delete_chat', c.id, conf); if (ok) onClose(); return ok; } })} data-testid="button-delete-chat" className="ml-auto inline-flex h-10 items-center gap-2 rounded-xl border border-[#f06b76]/30 px-3 text-xs font-bold text-[#ff9aa3] hover:bg-[#f06b76]/10 disabled:opacity-40"><Trash2 size={14} />Delete chat</button>
           </div>
         </div>
@@ -76,7 +76,7 @@ export function ChatDrawer({ chatId, onClose }: { chatId: string; onClose: () =>
           <ol className={`space-y-1 p-4 transition-opacity ${r.isPlaceholderData ? 'opacity-50' : ''}`}>{r.data.messages.map(m => {
             const mine = m.senderId === c.userAId;
             return <li key={m.id} className={`group flex ${mine ? 'justify-start' : 'justify-end'}`} data-testid={`row-message-${m.id}`}>
-              <div className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 ${m.deleted ? 'border border-dashed border-white/10 bg-transparent' : mine ? 'bg-[var(--a-raise)]' : 'bg-[#f34e9a]/12'}`}>
+              <div className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 ${m.deleted ? 'border border-dashed border-white/10 bg-transparent' : 'bg-[var(--a-raise)]'}`}>
                 <div className="flex items-center gap-2 text-[11px] text-[var(--a-mute)]"><span className="font-bold text-[var(--a-ink)]">{m.senderName}</span><time className="mono">{utc(m.createdAt)}</time>
                   {!m.deleted && <button type="button" disabled={pending} aria-label="Delete message" onClick={() => setReq({ title: 'Delete this message?', detail: `"${(m.content || 'Attachment').slice(0, 120)}" will be removed for both members.`, confirmLabel: 'Delete message', word: 'DELETE', onConfirm: conf => run('delete_message', m.id, conf) })} data-testid={`button-delete-message-${m.id}`} className="ml-1 grid h-6 w-6 place-items-center rounded-md text-[#ff9aa3] opacity-60 hover:bg-[#f06b76]/10 hover:opacity-100 sm:opacity-0 sm:group-hover:opacity-100"><Trash2 size={12} /></button>}
                 </div>

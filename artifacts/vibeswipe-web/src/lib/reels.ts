@@ -38,7 +38,7 @@ export function sharedReelId(content: string | null | undefined): string | null 
 }
 
 export function safeReelReturnPath(value: string | null): string {
-  return value && value.startsWith("/") && !value.startsWith("//") ? value : "/discover";
+  return value && value.startsWith("/") && !value.startsWith("//") ? value : "/reels";
 }
 
 /** Preserve the library's caller through Saved/Posted and individual-video round trips. */

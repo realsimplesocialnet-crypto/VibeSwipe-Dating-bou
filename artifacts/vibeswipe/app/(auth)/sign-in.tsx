@@ -54,9 +54,9 @@ export default function SignInScreen() {
         <Feather name="arrow-left" size={20} color={colors.foreground} />
       </Pressable>
       <Text style={[styles.eyebrow, { color: colors.primary }]}>WELCOME BACK</Text>
-      <Text style={[styles.title, { color: colors.foreground }]}>Your next story starts here.</Text>
+      <Text style={[styles.title, { color: colors.foreground }]}>Your feed is waiting.</Text>
       <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>
-        Sign in to see who’s nearby.
+        Sign in to catch up on photos, Reels, and messages.
       </Text>
       <Text style={[styles.label, { color: colors.foreground }]}>Email</Text>
       <TextInput

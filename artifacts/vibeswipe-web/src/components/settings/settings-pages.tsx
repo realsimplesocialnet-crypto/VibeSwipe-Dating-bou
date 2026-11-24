@@ -247,13 +247,13 @@ function SectionContent({ section, settings, editReturnTo }: { section: string; 
       </div>
     </div>}
     {section === "screen-time" && <section className="space-y-5" data-testid="settings-screen-time">
-      <p className="text-sm leading-6 text-muted-foreground">{t("Your time is counted only while VibeSwipes is visible. Other phone apps are not tracked.")}</p>
+      <p className="text-sm leading-6 text-muted-foreground">{t("Your time is counted only while MyAgeBeauty is visible. Other phone apps are not tracked.")}</p>
       {screenTime.isLoading && !screenTime.data ? <div className="flex justify-center py-8"><QuietSpinner/></div>
         : screenTime.isError && !screenTime.data ? <InlineError text={t("Your screen-time summary couldn’t load.")} onRetry={()=>void screenTime.refetch()}/>
         : <>
           <div className="setting-row">
             <SettingIcon><Clock3 size={18}/></SettingIcon>
-            <span className="min-w-0 flex-1"><strong>{t("Daily screen time")}</strong><small>{t("Time spent in VibeSwipes")}</small></span>
+            <span className="min-w-0 flex-1"><strong>{t("Daily screen time")}</strong><small>{t("Time spent in MyAgeBeauty")}</small></span>
             <strong className="text-lg tabular-nums">{formatScreenDuration(screenTime.data?.todaySeconds ?? 0)}</strong>
           </div>
           <TimePreference title={t("Daily reminder")} emptyLabel={t("No reminder")} detail={t("The app will show a reminder; it won’t block access.")} value={settings.screenTimeReminderMinutes} disabled={update.isPending} testId="select-screen-time-reminder" onChange={(value)=>void saveSettings({screenTimeReminderMinutes:value})}/>
@@ -277,7 +277,7 @@ function SectionContent({ section, settings, editReturnTo }: { section: string; 
         if (await saveSettings({ keywordFilters: [...settings.keywordFilters, value] })) setNewKeyword("");
       }}>
         <input value={newKeyword} onChange={(event) => setNewKeyword(event.target.value.slice(0, 40))} maxLength={40} placeholder={t("Add a word or phrase")} aria-label={t("Add a word or phrase")} data-testid="input-keyword-filter" className="min-h-11 min-w-0 flex-1 rounded-xl border border-white/10 bg-[#19161c] px-4 text-sm text-foreground outline-none focus:border-primary/50"/>
-        <button type="submit" disabled={update.isPending || !newKeyword.trim() || settings.keywordFilters.length >= 25} className="min-h-11 rounded-xl bg-primary px-4 text-sm font-bold text-[#24111b] disabled:opacity-45" data-testid="button-add-keyword-filter">{t("Add keyword")}</button>
+        <button type="submit" disabled={update.isPending || !newKeyword.trim() || settings.keywordFilters.length >= 25} className="min-h-11 rounded-xl bg-primary px-4 text-sm font-bold text-primary-foreground disabled:opacity-45" data-testid="button-add-keyword-filter">{t("Add keyword")}</button>
       </form>
       {!settings.keywordFilters.length ? <p className="py-6 text-center text-sm text-muted-foreground">{t("No filtered words yet.")}</p>
         : <ul className="divide-y divide-white/[.06]">
@@ -331,7 +331,7 @@ function SectionContent({ section, settings, editReturnTo }: { section: string; 
       <RouteLink href="/community-guidelines" title="Community guidelines" detail="What we expect from everyone here." icon={<FileText size={18}/>}/>
     </>}
     {section === "app" && <>
-      <ToggleRow icon={<Moon size={18}/>} title="Dark theme" detail="Keep VibeSwipes in its low-light color scheme." checked={settings.darkMode} disabled={update.isPending} testId="toggle-dark-mode" onChange={value=>void saveSettings({darkMode:value})}/>
+      <ToggleRow icon={<Moon size={18}/>} title="Dark theme" detail="Use MyAgeBeauty’s black and white dark theme." checked={settings.darkMode} disabled={update.isPending} testId="toggle-dark-mode" onChange={value=>void saveSettings({darkMode:value})}/>
       <ActionRow icon={<Shield size={18}/>} title="Two-factor authentication" detail="Add another layer of account security." action="Manage" onClick={()=>openUserProfile()}/>
     </>}
     {section === "account-actions" && <>
@@ -339,12 +339,12 @@ function SectionContent({ section, settings, editReturnTo }: { section: string; 
     </>}
     {section === "legal" && <>
       <RouteLink href="/privacy-policy" title="Privacy Policy" detail="How your information is handled." icon={<FileText size={18}/>}/>
-      <RouteLink href="/terms" title="Terms of Service" detail="The terms for using VibeSwipes." icon={<FileText size={18}/>}/>
+      <RouteLink href="/terms" title="Terms of Service" detail="The terms for using MyAgeBeauty." icon={<FileText size={18}/>}/>
       <RouteLink href="/community-guidelines" title="Community Guidelines" detail="Standards for a respectful community." icon={<FileText size={18}/>}/>
-      <a href="mailto:Realsimplesocialnet@gmail.com?subject=VibeSwipes%20support%20request" data-testid="link-contact-support" className="flex min-h-[62px] flex-col justify-center rounded-2xl border border-white/10 bg-white/[.02] px-4 py-3 hover:bg-white/[.04]">
+      <a href="mailto:Realsimplesocialnet@gmail.com?subject=MyAgeBeauty%20support%20request" data-testid="link-contact-support" className="flex min-h-[62px] flex-col justify-center rounded-2xl border border-white/10 bg-white/[.02] px-4 py-3 hover:bg-white/[.04]">
         <span className="text-sm font-bold">Contact Support</span><span className="mt-1 text-xs text-muted-foreground">Realsimplesocialnet@gmail.com</span>
       </a>
-      <a href="mailto:Realsimplesocialnet@gmail.com?subject=VibeSwipes%20account%20deletion%20request" data-testid="link-request-account-deletion" className="flex min-h-[62px] flex-col justify-center rounded-2xl border border-white/10 bg-white/[.02] px-4 py-3 hover:bg-white/[.04]">
+      <a href="mailto:Realsimplesocialnet@gmail.com?subject=MyAgeBeauty%20account%20deletion%20request" data-testid="link-request-account-deletion" className="flex min-h-[62px] flex-col justify-center rounded-2xl border border-white/10 bg-white/[.02] px-4 py-3 hover:bg-white/[.04]">
         <span className="text-sm font-bold">Request account deletion</span><span className="mt-1 text-xs text-muted-foreground">Email the support team to request account and data deletion.</span>
       </a>
     </>}
@@ -509,7 +509,7 @@ function DeactivateRow({ settings, pending, onSave }: { settings: FullSettings; 
   const active = settings.deactivated;
   async function toggle() {
     const verb = active ? "reactivate" : "deactivate";
-    if (!window.confirm(active ? "Reactivate your VibeSwipes account? Your profile will be available again." : "Deactivate your VibeSwipes account? Your profile will be hidden until you reactivate.")) return;
+    if (!window.confirm(active ? "Reactivate your MyAgeBeauty account? Your profile will be available again." : "Deactivate your MyAgeBeauty account? Your profile will be hidden until you reactivate.")) return;
     await onSave({ deactivated: !active });
   }
   return <section className="rounded-2xl border border-rose-300/15 bg-rose-300/[.035] p-5">

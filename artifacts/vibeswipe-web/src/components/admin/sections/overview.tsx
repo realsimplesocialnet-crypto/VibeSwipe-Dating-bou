@@ -22,7 +22,7 @@ function Panel({ title, meta, link, testId, children }: { title: string; meta?: 
 }
 
 function InspectBtn({ onClick, testId, label = 'Inspect' }: { onClick: () => void; testId: string; label?: string }) {
-  return <button type="button" onClick={onClick} data-testid={testId} className="inline-flex h-7 shrink-0 items-center gap-1 rounded-lg border border-[var(--a-line)] px-2 text-[11px] font-bold hover:border-[#f34e9a]/50 hover:text-[#ff8cc0]">
+  return <button type="button" onClick={onClick} data-testid={testId} className="inline-flex h-7 shrink-0 items-center gap-1 rounded-lg border border-[var(--a-line)] px-2 text-[11px] font-bold hover:border-white/50 hover:text-white">
     <Eye size={12} />{label}
   </button>;
 }
@@ -125,13 +125,13 @@ export function OverviewSection() {
             <ul>{recentPosts.map(p => <li key={p.id} className="a-row flex items-center gap-3 px-4 py-2" data-testid={`row-recent-post-${p.id}`}>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-1.5 truncate text-sm font-bold">
-                  <button type="button" onClick={() => openUser(p.authorId)} data-testid={`button-post-author-${p.id}`} className="truncate hover:text-[#ff8cc0]">{p.authorName}</button>
+                  <button type="button" onClick={() => openUser(p.authorId)} data-testid={`button-post-author-${p.id}`} className="truncate hover:text-white">{p.authorName}</button>
                   <Pill tone="mute">{p.kind}</Pill>
                   <Pill tone={p.status === 'published' ? 'mint' : p.status === 'processing' ? 'amber' : p.status === 'blocked' || p.status === 'deleted' ? 'red' : 'mute'}>{p.status}</Pill>
                 </div>
                 <div className="truncate text-[11px] text-[var(--a-mute)]">{p.caption || 'No caption'} · <span title={utc(p.createdAt)}>{ago(p.createdAt)}</span></div>
               </div>
-              <Link href={`/admin/posts?q=${encodeURIComponent(p.id)}`} data-testid={`link-inspect-post-${p.id}`} className="inline-flex h-7 shrink-0 items-center gap-1 rounded-lg border border-[var(--a-line)] px-2 text-[11px] font-bold hover:border-[#f34e9a]/50 hover:text-[#ff8cc0]"><Eye size={12} />Inspect</Link>
+              <Link href={`/admin/posts?q=${encodeURIComponent(p.id)}`} data-testid={`link-inspect-post-${p.id}`} className="inline-flex h-7 shrink-0 items-center gap-1 rounded-lg border border-[var(--a-line)] px-2 text-[11px] font-bold hover:border-white/50 hover:text-white"><Eye size={12} />Inspect</Link>
             </li>)}</ul></>}
         </Panel>
       </div>

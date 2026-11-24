@@ -163,7 +163,7 @@ export function StoriesRow({mode="all"}:{mode?:"all"|"own"|"matches"}) {
             <span className="relative block h-[68px] w-[68px]">
               {own.length > 0
                 ? <button type="button" onClick={() => setActive({ stories: own, name: profile.data?.name || "Your story", photo: profile.data?.photos?.[0] ?? null })} data-testid="button-own-story" aria-label="View your story" className="group absolute inset-0 h-full w-full rounded-full">
-                    <span className={`flex h-full w-full items-center justify-center rounded-full p-[2px] transition-transform group-hover:scale-[1.04] ${own.some((story) => !story.viewed) ? "bg-gradient-to-br from-[#ef9bc7] via-[#bd8ae1] to-[#8e79d5]" : "bg-white/25"}`}>
+                    <span className={`flex h-full w-full items-center justify-center rounded-full p-[2px] transition-transform group-hover:scale-[1.04] ${own.some((story) => !story.viewed) ? "bg-white" : "bg-white/25"}`}>
                       <span className="h-full w-full overflow-hidden rounded-full"><StoryAvatar reference={profile.data?.photos?.[0] ?? null} name={profile.data?.name ?? "You"} className="h-full w-full text-xl"/></span>
                     </span>
                   </button>
@@ -175,7 +175,7 @@ export function StoriesRow({mode="all"}:{mode?:"all"|"own"|"matches"}) {
             <span className="w-full truncate text-[11px] font-medium text-foreground">Your story</span>
           </div>}
           {mutualFollows.map((group) => <button type="button" key={group.poster.id} onClick={() => setActive({ stories: group.stories, name: group.poster.name, photo: group.poster.photo, matchId: group.matchId, profileId: group.poster.id })} data-testid={`button-story-${group.poster.id}`} aria-label={`View ${group.poster.name}'s story`} className="group flex w-[72px] shrink-0 flex-col items-center gap-1.5 text-center">
-            <span className={`flex h-[68px] w-[68px] items-center justify-center overflow-hidden rounded-full p-[2px] transition-transform group-hover:scale-[1.04] ${group.stories.some((story) => !story.viewed) ? "bg-gradient-to-br from-[#ef9bc7] via-[#bd8ae1] to-[#8e79d5]" : "bg-white/25"}`}><span className="h-full w-full overflow-hidden rounded-full"><StoryAvatar reference={group.poster.photo} name={group.poster.name} className="h-full w-full text-xl"/></span></span>
+            <span className={`flex h-[68px] w-[68px] items-center justify-center overflow-hidden rounded-full p-[2px] transition-transform group-hover:scale-[1.04] ${group.stories.some((story) => !story.viewed) ? "bg-white" : "bg-white/25"}`}><span className="h-full w-full overflow-hidden rounded-full"><StoryAvatar reference={group.poster.photo} name={group.poster.name} className="h-full w-full text-xl"/></span></span>
             <span className="w-full truncate text-[11px] font-medium text-foreground">{group.poster.name.split(/\s+/)[0].slice(0, 12)}</span>
           </button>)}
         </div>}
@@ -231,7 +231,7 @@ export function MatchStoryAvatar({
       data-testid={`button-match-story-avatar-${matchId}`}
       className="shrink-0 rounded-full disabled:cursor-not-allowed disabled:opacity-50"
     >
-      <span className={`flex h-[50px] w-[50px] items-center justify-center rounded-full ${hasStory ? "bg-[#F34E9A] p-[2.5px]" : "border border-white/10 p-[2px]"}`}>
+      <span className={`flex h-[50px] w-[50px] items-center justify-center rounded-full ${hasStory ? "bg-white p-[2.5px]" : "border border-white/10 p-[2px]"}`}>
         <span className="h-full w-full overflow-hidden rounded-full border-2 border-[#211d25]">
           <StoryAvatar reference={profile.photos?.[0] ?? null} name={profile.name} className="h-full w-full text-sm"/>
         </span>
@@ -501,7 +501,7 @@ function StoryViewer({ active, onClose }: { active: ActiveStory | null; onClose:
           {active.profileId && <div className="flex items-center gap-2">
             {active.matchId ? <form onSubmit={(event) => void sendReply(event)} className="flex min-w-0 flex-1 items-center gap-2">
               <input value={reply} onChange={(event) => setReply(event.target.value)} maxLength={1900} disabled={send.isPending} placeholder={`Reply to ${active.name}…`} aria-label={`Reply to ${active.name}'s story`} data-testid="input-story-reply" className="min-h-12 min-w-0 flex-1 rounded-full border border-white/25 bg-black/25 px-4 text-sm text-white outline-none placeholder:text-white/65 focus:border-white/60"/>
-              <button type="submit" disabled={!reply.trim() || send.isPending} aria-label="Send story reply" data-testid="button-send-story-reply" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary text-[#24111b] disabled:opacity-45">{send.isPending ? <LoaderCircle className="animate-spin" size={17}/> : <Send size={17}/>}</button>
+              <button type="submit" disabled={!reply.trim() || send.isPending} aria-label="Send story reply" data-testid="button-send-story-reply" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground disabled:opacity-45">{send.isPending ? <LoaderCircle className="animate-spin" size={17}/> : <Send size={17}/>}</button>
             </form> : <span className="min-w-0 flex-1"/>}
             <button type="button" onClick={() => void toggleStoryLike()} disabled={likeStory.isPending || unlikeStory.isPending}
               aria-pressed={likedByMe} aria-label={likedByMe ? `Unlike ${active.name}'s story` : `Like ${active.name}'s story`}
@@ -635,7 +635,7 @@ export function StoryComposerPage({ returnTo, initialMode = "text" }: { returnTo
         </>}
         {error && <p role="alert" data-testid="error-story-composer" className="mt-4 rounded-xl border border-rose-300/20 bg-rose-300/[.06] px-3 py-2.5 text-xs leading-5 text-rose-200">{error}</p>}
         {success && <p role="status" data-testid="status-story-posted" className="mt-4 flex items-center gap-2 rounded-xl border border-emerald-300/15 bg-emerald-300/[.06] px-3 py-2.5 text-xs text-emerald-200"><Check size={15}/>Your story is up. Heading back…</p>}
-        <button type="button" onClick={() => void post()} disabled={busy || success} aria-label={busy ? "Posting story" : success ? "Posted" : "Post story"} data-testid="button-post-story" className="mt-4 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary px-5 text-sm font-bold text-[#25121e] transition-colors hover:bg-[#ff78b8] disabled:cursor-wait disabled:opacity-60 sm:mt-5">{busy ? <QuietSpinner size={18} /> : success ? "Posted" : "Post story"}</button>
+        <button type="button" onClick={() => void post()} disabled={busy || success} aria-label={busy ? "Posting story" : success ? "Posted" : "Post story"} data-testid="button-post-story" className="mt-4 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary px-5 text-sm font-bold text-primary-foreground transition-colors hover:opacity-90 disabled:cursor-wait disabled:opacity-60 sm:mt-5">{busy ? <QuietSpinner size={18} /> : success ? "Posted" : "Post story"}</button>
       </section>
       <aside className="hidden md:block">
         <div className="sticky top-8">

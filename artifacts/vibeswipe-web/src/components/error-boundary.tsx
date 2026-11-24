@@ -38,7 +38,7 @@ function toError(value: unknown): Error {
 
 function DefaultFallback({ error }: ErrorFallbackProps) {
   return (
-    <div role="status" aria-label="Loading" className="min-h-[100dvh] w-full flex items-center justify-center bg-[#121015] p-6 text-[#fff2f7]">
+    <div role="status" aria-label="Loading" className="min-h-[100dvh] w-full flex items-center justify-center bg-[#121212] p-6 text-white">
       <div className="flex w-full max-w-lg flex-col items-center">
         {/* Dev only: messages can carry API responses and other internals. */}
         {import.meta.env.DEV ? (

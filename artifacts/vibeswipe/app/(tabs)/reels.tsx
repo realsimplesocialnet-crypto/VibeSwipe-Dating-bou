@@ -33,7 +33,6 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-const FEED_PARAMS = { feed: "reels" as const, limit: 12 };
 const PRELOAD_AHEAD = 2;
 type VisibleToken = { index?: number; isViewable: boolean };
 
@@ -521,7 +520,9 @@ export default function NativeReelsScreen() {
   const [token, setToken] = useState<string | null>(null);
   const [appActive, setAppActive] = useState(AppState.currentState === "active");
   const [activeIndex, setActiveIndex] = useState(0);
+  const [feedMode, setFeedMode] = useState<"reels" | "friends">("reels");
   const [uiVisible, setUiVisible] = useState(true);
+  const listRef = useRef<FlatList<Reel>>(null);
   const [patches, setPatches] = useState<Record<string, ReelPatch>>({});
   const [actionError, setActionError] = useState<{ reelId: string; message: string } | null>(null);
   const likeReel = useLikeReel();
@@ -550,12 +551,13 @@ export default function NativeReelsScreen() {
 
   useEffect(() => setUiVisible(true), [activeIndex]);
 
+  const feedParams = useMemo(() => ({ feed: feedMode, limit: 12 }), [feedMode]);
   const feed = useInfiniteQuery({
-    queryKey: getGetReelsFeedQueryKey(FEED_PARAMS),
+    queryKey: getGetReelsFeedQueryKey(feedParams),
     initialPageParam: undefined as string | undefined,
     queryFn: ({ pageParam, signal }) =>
       getReelsFeed(
-        { ...FEED_PARAMS, ...(pageParam ? { cursor: pageParam } : {}) },
+        { ...feedParams, ...(pageParam ? { cursor: pageParam } : {}) },
         { signal },
       ),
     getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
@@ -575,6 +577,14 @@ export default function NativeReelsScreen() {
       if (typeof visibleIndex === "number") setActiveIndex(visibleIndex);
     },
   ).current;
+
+  function selectFeedMode(mode: "reels" | "friends") {
+    if (mode === feedMode) return;
+    setActiveIndex(0);
+    setUiVisible(true);
+    listRef.current?.scrollToOffset({ offset: 0, animated: false });
+    setFeedMode(mode);
+  }
 
   function mergedReel(reel: Reel): Reel {
     return patches[reel.id] ? { ...reel, ...patches[reel.id] } : reel;
@@ -656,16 +666,28 @@ export default function NativeReelsScreen() {
       onPress={() => void feed.refetch()}
       style={[styles.emptyState, { height, paddingTop: insets.top }]}
     >
-      <Text style={[styles.emptyText, { color: colors.discoverForeground }]}>Couldn’t load Reels. Tap to retry.</Text>
+      <Text style={[styles.emptyText, { color: colors.discoverForeground }]}>Couldn’t load videos. Tap to retry.</Text>
     </Pressable>
   ) : feed.data ? (
     <View style={[styles.emptyState, { height, paddingTop: insets.top }]}>
-      <Text style={[styles.emptyText, { color: colors.discoverForeground }]}>No Reels yet.</Text>
+      <Text style={[styles.emptyText, { color: colors.discoverForeground }]}>{feedMode === "friends" ? "No Friends videos yet." : "No videos yet."}</Text>
     </View>
   ) : undefined;
 
   return (
     <View style={[styles.screen, { backgroundColor: colors.discoverBackground }]}>
+      {uiVisible ? (
+        <View style={[styles.feedTabs, { top: insets.top + 9 }]} accessibilityRole="tablist">
+          <Pressable testID="native-reels-tab-for-you" accessibilityRole="tab" accessibilityState={{ selected: feedMode === "reels" }} onPress={() => selectFeedMode("reels")} style={styles.feedTab}>
+            <Text style={[styles.feedTabText, { color: feedMode === "reels" ? colors.discoverForeground : colors.discoverMuted, fontWeight: feedMode === "reels" ? "800" : "600" }]}>For You</Text>
+            {feedMode === "reels" ? <View style={[styles.feedTabIndicator, { backgroundColor: colors.discoverForeground }]} /> : null}
+          </Pressable>
+          <Pressable testID="native-reels-tab-friends" accessibilityRole="tab" accessibilityState={{ selected: feedMode === "friends" }} onPress={() => selectFeedMode("friends")} style={styles.feedTab}>
+            <Text style={[styles.feedTabText, { color: feedMode === "friends" ? colors.discoverForeground : colors.discoverMuted, fontWeight: feedMode === "friends" ? "800" : "600" }]}>Friends</Text>
+            {feedMode === "friends" ? <View style={[styles.feedTabIndicator, { backgroundColor: colors.discoverForeground }]} /> : null}
+          </Pressable>
+        </View>
+      ) : null}
       {uiVisible ? <Pressable
         accessibilityRole="button"
         accessibilityLabel="Post a Reel"
@@ -685,6 +707,7 @@ export default function NativeReelsScreen() {
         </Text>
       </Pressable> : null}
       <FlatList
+        ref={listRef}
         testID="native-reels-feed"
         data={reels}
         keyExtractor={(item) => item.id}
@@ -733,6 +756,20 @@ export default function NativeReelsScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
+  feedTabs: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    zIndex: 5,
+    height: 46,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 26,
+  },
+  feedTab: { minHeight: 42, alignItems: "center", justifyContent: "center", paddingHorizontal: 3 },
+  feedTabText: { fontSize: 16, textShadowColor: "rgba(0,0,0,0.7)", textShadowRadius: 3 },
+  feedTabIndicator: { position: "absolute", bottom: 1, width: 26, height: 2, borderRadius: 1 },
   createReelButton: {
     position: "absolute",
     right: 16,

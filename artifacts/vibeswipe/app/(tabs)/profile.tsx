@@ -104,7 +104,7 @@ export default function ProfileScreen() {
               <ProfileAvatar profile={user} size={avatar} />
             </View>
             <View style={styles.identity}>
-              <Text numberOfLines={2} accessibilityLabel={`${user.name}${user.age !== null ? `, ${user.age}` : ""}`} style={[styles.name, { color: colors.profileLabel }]}>{user.name}{user.age !== null ? `, ${user.age}` : ""}</Text>
+              <Text numberOfLines={2} accessibilityLabel={user.name} style={[styles.name, { color: colors.profileLabel }]}>{user.name}</Text>
               {user.isVerified ? <Feather name="check-circle" size={18} color={colors.profileLabel} accessibilityLabel="Verified profile" /> : null}
             </View>
             {work && work !== "Prefer not to say" ? <Text numberOfLines={1} style={[styles.city, { color: colors.profileMuted }]}>{work}</Text> : null}
@@ -140,6 +140,7 @@ export default function ProfileScreen() {
                 <View style={styles.detailSection}>
                   <Text style={[styles.detailHeading, { color: colors.foreground }]}>About me</Text>
                   <Text style={[styles.body, { color: colors.foreground }]}>{bio}</Text>
+                  {user.age !== null ? <Text style={[styles.meta, { color: colors.mutedForeground, marginTop: 8 }]}>Age · {user.age}</Text> : null}
                   {place ? <Text style={[styles.city, styles.detailPlace, { color: colors.mutedForeground }]}>{place}</Text> : null}
                   {user.gender ? <View style={styles.genderRow}><MaterialCommunityIcons name={genderIcon} size={15} color={colors.mutedForeground} /><Text style={[styles.meta, { color: colors.mutedForeground }]}>{user.gender}</Text></View> : null}
                 </View>

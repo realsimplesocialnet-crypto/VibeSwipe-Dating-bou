@@ -11,6 +11,8 @@ import { SymbolView } from 'expo-symbols';
 import { useGetNotifications } from '@workspace/api-client-react';
 import { ReferralToastHost } from '@/components/ReferralToastHost';
 
+export const unstable_settings = { initialRouteName: 'reels' };
+
 // IMPORTANT: iOS 26 uses NativeTabs for native tabs with liquid glass support.
 // NativeTabs intentionally does NOT use custom design tokens — liquid glass
 // is a system-level appearance provided by iOS and cannot be overridden.
@@ -25,28 +27,27 @@ function NativeTabLayout() {
     <>
     <ReferralToastHost data={notifications.data} />
     <NativeTabs tintColor={colors.premiumAccent}>
-      <NativeTabs.Trigger name="index">
+      <NativeTabs.Trigger name="reels">
         <NativeTabs.Trigger.Icon
           sf={{ default: 'house', selected: 'house.fill' }}
+          drawable="home"
         />
         <NativeTabs.Trigger.Label>Home</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="reels">
-        <NativeTabs.Trigger.Icon sf={{ default: 'play.rectangle', selected: 'play.rectangle.fill' }} drawable="video" />
-        <NativeTabs.Trigger.Label>Reels</NativeTabs.Trigger.Label>
+      <NativeTabs.Trigger name="index">
+        <NativeTabs.Trigger.Icon sf={{ default: 'person.2', selected: 'person.2.fill' }} drawable="group" />
+        <NativeTabs.Trigger.Label>Friends</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="create">
         <NativeTabs.Trigger.Icon sf={{ default: 'plus.app', selected: 'plus.app.fill' }} drawable="add" />
+        <NativeTabs.Trigger.Label>Create</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="explore">
-        <NativeTabs.Trigger.Icon sf={{ default: 'magnifyingglass', selected: 'magnifyingglass' }} drawable="search" />
-        <NativeTabs.Trigger.Label>Discover</NativeTabs.Trigger.Label>
-      </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="views" hidden>
+      <NativeTabs.Trigger name="views">
         <NativeTabs.Trigger.Icon sf={{ default: 'tray', selected: 'tray.fill' }} drawable="inbox" />
-        <NativeTabs.Trigger.Label>Chats</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Label>Inbox</NativeTabs.Trigger.Label>
         {messageBadge > 0 ? <NativeTabs.Trigger.Badge>{messageBadge > 99 ? '99+' : String(messageBadge)}</NativeTabs.Trigger.Badge> : null}
       </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="explore" hidden />
       <NativeTabs.Trigger name="matches" hidden />
       <NativeTabs.Trigger name="activity" hidden>
         <NativeTabs.Trigger.Icon sf={{ default: 'bell', selected: 'bell.fill' }} />
@@ -112,7 +113,7 @@ function ClassicTabLayout() {
       }}
     >
       <Tabs.Screen
-        name="index"
+        name="reels"
         options={{
           title: 'Home',
           headerShown: false,
@@ -129,11 +130,11 @@ function ClassicTabLayout() {
         }}
       />
       <Tabs.Screen
-        name="reels"
+        name="index"
         options={{
-          title: 'Reels',
+          title: 'Friends',
           headerShown: false,
-          tabBarIcon: ({ color }) => <Feather name="film" size={21} color={typeof color === 'string' ? color : colors.primary} />,
+          tabBarIcon: ({ color }) => <Feather name="users" size={21} color={typeof color === 'string' ? color : colors.primary} />,
         }}
       />
       <Tabs.Screen
@@ -149,25 +150,17 @@ function ClassicTabLayout() {
           ),
         }}
       />
-      <Tabs.Screen
-        name="explore"
-        options={{
-          title: 'Discover',
-          headerShown: false,
-          tabBarIcon: ({ color }) => <Feather name="search" size={21} color={typeof color === 'string' ? color : colors.primary} />,
-        }}
-      />
       <Tabs.Screen name="matches" options={{ href: null }} />
       <Tabs.Screen
         name="views"
         options={{
-          title: 'Chats',
-          href: null,
+          title: 'Inbox',
           headerShown: false,
           tabBarBadge: messageBadge || undefined,
           tabBarIcon: ({ color }) => <Feather name="inbox" size={21} color={typeof color === 'string' ? color : colors.primary} />,
         }}
       />
+      <Tabs.Screen name="explore" options={{ href: null }} />
       <Tabs.Screen
         name="activity"
         options={{

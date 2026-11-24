@@ -6,7 +6,7 @@ import { invalidateAdmin, useAdminToast, useDebounced } from "../admin-hooks";
 import { adminError, EmptyState, ErrorBox, Pager, Pill, Skeleton, utc } from "../admin-ui";
 import { SearchField, SectionHeader } from "../section-kit";
 
-const buttonClass = "h-10 rounded-xl border border-[var(--a-line)] bg-[var(--a-panel)] px-3 text-xs font-bold text-[var(--a-ink)] outline-none focus:border-[#f34e9a]/55";
+const buttonClass = "h-10 rounded-xl border border-[var(--a-line)] bg-[var(--a-panel)] px-3 text-xs font-bold text-[var(--a-ink)] outline-none focus:border-white/55";
 
 export function ReportsSection() {
   const client = useQueryClient();

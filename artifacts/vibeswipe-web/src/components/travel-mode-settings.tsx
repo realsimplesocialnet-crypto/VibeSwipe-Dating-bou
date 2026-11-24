@@ -98,7 +98,7 @@ export function TravelModeSettings() {
           checked={travelMode}
           disabled={settings.isLoading || update.isPending}
           onChange={(event) => void toggleTravelMode(event.target.checked)}
-          className="h-5 w-5 accent-[#f34e9a]"
+          className="h-5 w-5 accent-primary"
         />
       </div>
 
@@ -116,7 +116,7 @@ export function TravelModeSettings() {
               className="field pl-10"
             />
           </label>
-          {selectedCity && <p className="text-xs text-[#ffd3e6]" data-testid="selected-travel-city">Selected city: {selectedCity}</p>}
+          {selectedCity && <p className="text-xs text-foreground" data-testid="selected-travel-city">Selected city: {selectedCity}</p>}
           {debouncedSearch.length >= 2 && cities.isFetching && <p role="status" className="text-xs text-muted-foreground">Searching real cities…</p>}
           {cities.isError && <p role="alert" className="text-xs text-rose-300">City search is unavailable. Check your connection and try again.</p>}
           {cities.data?.length ? (

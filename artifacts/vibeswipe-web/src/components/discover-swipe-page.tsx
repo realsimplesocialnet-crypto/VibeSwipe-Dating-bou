@@ -402,7 +402,7 @@ export function DiscoverSwipePage() {
           type="button"
           onClick={() => void discover.refetch().then(result => { if (!result.isError) refill(result.data); })}
           data-testid="button-retry-discover-load"
-          className="mt-5 rounded-xl bg-primary px-5 py-3 text-sm font-bold text-[#27101d]"
+          className="mt-5 rounded-xl bg-primary px-5 py-3 text-sm font-bold text-primary-foreground"
         >
           {t("Try again")}
         </button>
@@ -417,7 +417,7 @@ export function DiscoverSwipePage() {
           {discover.isFetching || reaction.isPending ? <div className="flex justify-center py-6"><QuietSpinner /></div> : <>
             <h1 className="brand text-2xl font-bold">{t("No matching profiles right now")}</h1>
             <p className="mt-2 text-sm text-muted-foreground">{t("Skipped profiles return automatically. Try another location or age range to meet more people.")}</p>
-            <button onClick={() => setFiltersOpen(true)} data-testid="button-open-filters-empty" className="mt-5 rounded-xl bg-primary px-4 py-3 font-bold text-[#27101d]">{t("Adjust filters")}</button>
+            <button onClick={() => setFiltersOpen(true)} data-testid="button-open-filters-empty" className="mt-5 rounded-xl bg-primary px-4 py-3 font-bold text-primary-foreground">{t("Adjust filters")}</button>
             <button disabled={discover.isFetching} onClick={() => void discover.refetch().then(result => { if (!result.isError) refill(result.data); })}
               data-testid="button-refresh-discovery" className="ml-3 mt-5 rounded-xl bg-secondary px-4 py-3 font-bold disabled:opacity-50">{t("Refresh")}</button>
           </>}
@@ -433,7 +433,7 @@ export function DiscoverSwipePage() {
       {stickyHeader}
 
       <p role="status" data-testid="status-discovery-worldwide" className="mb-2 min-h-4 text-center text-xs text-muted-foreground">{worldwide ? t("Not many people near you yet — showing members worldwide") : ""}</p>
-      {notice && <div role="status" data-testid="status-discover" className="mb-3 rounded-xl border border-primary/20 bg-accent px-4 py-3 text-sm text-[#ffafd1]">{t(notice)}<button onClick={() => setNotice("")} aria-label={t("Dismiss message")} className="float-right"><X size={16} /></button></div>}
+      {notice && <div role="status" data-testid="status-discover" className="mb-3 rounded-xl border border-primary/20 bg-accent px-4 py-3 text-sm text-primary">{t(notice)}<button onClick={() => setNotice("")} aria-label={t("Dismiss message")} className="float-right"><X size={16} /></button></div>}
       {likeConfirmation && <div className="fixed inset-x-0 top-[calc(env(safe-area-inset-top)+1rem)] z-[60] flex justify-center px-4" role="status" aria-live="polite" data-testid="status-discover-liked"><div className="flex items-center gap-2 rounded-full border border-primary/25 bg-[#211a27]/95 px-5 py-3 text-sm font-semibold text-white shadow-2xl backdrop-blur-xl"><Heart size={17} fill="currentColor" className="text-primary"/>{t(likeConfirmation)}</div></div>}
 
       <div className="discover-card-slot" data-testid="discover-card-slot">

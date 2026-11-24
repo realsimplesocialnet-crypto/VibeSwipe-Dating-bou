@@ -72,10 +72,10 @@ export function ActivityOverview({ avatar: _avatar }: { avatar: AvatarFn }) {
   const [readError, setReadError] = useState('');
   const unreadCounts = notes.data?.unreadCounts;
   const metricCards = [
-    { key: 'matches', label: 'Matches', href: '/matches', count: unreadCounts?.matches ?? 0, icon: Heart, color: '#ed4b89' },
-    { key: 'likes', label: 'Likes', href: '/likes', count: unreadCounts?.likes ?? 0, icon: ThumbsUp, color: '#3b82f6' },
-    { key: 'views', label: 'Views', href: '/views', count: unreadCounts?.views ?? 0, icon: Eye, color: '#16a394' },
-    { key: 'followers', label: 'Followers', href: me.data?.id ? `/profile/${me.data.id}/followers` : '', count: unreadCounts?.follows ?? 0, icon: UserRound, color: '#8b5cf6' },
+    { key: 'matches', label: 'Matches', href: '/matches', count: unreadCounts?.matches ?? 0, icon: Heart, color: '#171717' },
+    { key: 'likes', label: 'Likes', href: '/likes', count: unreadCounts?.likes ?? 0, icon: ThumbsUp, color: '#171717' },
+    { key: 'views', label: 'Views', href: '/views', count: unreadCounts?.views ?? 0, icon: Eye, color: '#171717' },
+    { key: 'followers', label: 'Followers', href: me.data?.id ? `/profile/${me.data.id}/followers` : '', count: unreadCounts?.follows ?? 0, icon: UserRound, color: '#171717' },
   ];
   const items = useMemo(() => (notes.data?.notifications ?? [])
     .filter(n => n.type === 'new_match' || n.type === 'new_like' || n.type === 'new_super_like' || n.type === 'profile_view' || n.type === 'new_follow' || n.type === 'reel_like' || n.type === 'reel_comment_reply' || n.type === 'reel_comment_like')
@@ -117,13 +117,13 @@ export function ActivityOverview({ avatar: _avatar }: { avatar: AvatarFn }) {
   }
 
   const eventStyle = (type: NotificationsResponse['notifications'][number]['type']) => {
-    if (type === 'new_match') return { label: 'matched with you', icon: Heart, color: '#ed4b89' };
-    if (type === 'new_like' || type === 'new_super_like') return { label: type === 'new_super_like' ? 'super liked you' : 'liked you', icon: ThumbsUp, color: '#3b82f6' };
-    if (type === 'reel_comment_like') return { label: 'liked your comment', icon: Heart, color: '#ed4b89' };
-    if (type === 'reel_comment_reply') return { label: 'replied to your comment', icon: MessageCircle, color: '#ed4b89' };
-    if (type === 'reel_like') return { label: 'liked your video', icon: Heart, color: '#ed4b89' };
-    if (type === 'profile_view') return { label: 'viewed your profile', icon: Eye, color: '#16a394' };
-    return { label: 'followed you', icon: UserRound, color: '#8b5cf6' };
+    if (type === 'new_match') return { label: 'matched with you', icon: Heart, color: '#171717' };
+    if (type === 'new_like' || type === 'new_super_like') return { label: type === 'new_super_like' ? 'super liked you' : 'liked you', icon: ThumbsUp, color: '#171717' };
+    if (type === 'reel_comment_like') return { label: 'liked your comment', icon: Heart, color: '#171717' };
+    if (type === 'reel_comment_reply') return { label: 'replied to your comment', icon: MessageCircle, color: '#171717' };
+    if (type === 'reel_like') return { label: 'liked your video', icon: Heart, color: '#171717' };
+    if (type === 'profile_view') return { label: 'viewed your profile', icon: Eye, color: '#171717' };
+    return { label: 'followed you', icon: UserRound, color: '#171717' };
   };
 
   return <div className="social-hub activity-screen min-h-[calc(100dvh-48px)] lg:min-h-[100dvh]"><div className="page-in mx-auto max-w-[720px] px-4 pb-12 pt-6 md:px-8 md:pt-10">
@@ -190,7 +190,7 @@ export function InboundPeoplePage({ avatar, kind }: { avatar: AvatarFn; kind: 'l
       : <ul className="space-y-3">{rows.map(r => <li key={`${r.profile.id}-${r.at}`} className="sh-card flex flex-wrap items-center gap-4 rounded-[22px] p-3.5 md:p-4">
         <Link href={`/profile/${r.profile.id}?returnTo=${rt}`} onClick={() => readNotice(r.profile.id, isLikes ? 'new_like' : 'profile_view')} data-testid={`link-${kind}-profile-${r.profile.id}`} aria-label={`View ${r.profile.name}'s profile`} className="flex min-w-0 flex-1 items-center gap-4">
           <div className="h-14 w-14 shrink-0 overflow-hidden rounded-full">{avatar(r.profile)}</div>
-          <div className="min-w-0 flex-1"><div className="truncate text-[17px] font-bold">{r.profile.name}{r.profile.age !== null && r.profile.showAge !== false ? `, ${r.profile.age}` : ''}</div><div className="sh-muted text-sm">{isLikes ? (r.isSuperLike ? 'Super Liked your profile' : 'Liked your profile') : 'Viewed your profile'} <span aria-hidden="true">·</span> <time dateTime={r.at}>{ago(r.at)}</time></div></div>
+          <div className="min-w-0 flex-1"><div className="truncate text-[17px] font-bold">{r.profile.name}</div><div className="sh-muted text-sm">{isLikes ? (r.isSuperLike ? 'Super Liked your profile' : 'Liked your profile') : 'Viewed your profile'} <span aria-hidden="true">·</span> <time dateTime={r.at}>{ago(r.at)}</time></div></div>
           {isLikes ? (r.isSuperLike ? <Star size={22} fill="currentColor" className="shrink-0 text-primary" aria-hidden="true" /> : <Heart size={22} fill="currentColor" className="shrink-0 text-primary" aria-hidden="true" />) : <span className="sh-pill inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold"><Eye size={15} aria-hidden="true" />View</span>}
         </Link>
         {isLikes && <div className="flex w-full gap-2 pl-[4.5rem] sm:w-auto sm:pl-0">
@@ -344,7 +344,7 @@ function FollowListRow({ entry, profileId, viewerId, returnTo, avatar }: { entry
   return <li className="sh-card flex items-center gap-3 rounded-[22px] p-3.5 md:p-4">
     <Link href={href} aria-label={`Open ${entry.profile.name}'s profile`} className="h-12 w-12 shrink-0 overflow-hidden rounded-full">{avatar(entry.profile)}</Link>
     <Link href={href} className="min-w-0 flex-1">
-      <span className="block truncate text-[16px] font-bold">{entry.profile.name}{entry.profile.age !== null && entry.profile.showAge !== false ? `, ${entry.profile.age}` : ''}</span>
+      <span className="block truncate text-[16px] font-bold">{entry.profile.name}</span>
       <span className="sh-muted block truncate text-xs">{[entry.profile.city, entry.profile.state, entry.profile.country].filter(Boolean).join(', ') || 'Location not shared'}</span>
     </Link>
     <FollowActionButton profileId={entry.profile.id} viewerId={viewerId} isFollowing={entry.isFollowing} followsYou={entry.followsYou} />
@@ -407,7 +407,7 @@ export function MutualMatchesPage(_props: { avatar: AvatarFn }) {
       : !list.length ? <Link href="/discover" data-testid="link-empty-discover" className="inline-flex rounded-2xl bg-primary px-5 py-3 font-bold text-primary-foreground">Explore profiles</Link>
       : <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">{list.map(m => <li key={m.id} data-testid={`card-match-${m.id}`} className="sh-card flex items-center gap-3 rounded-[22px] p-3.5">
         <MatchStoryAvatar matchId={m.id} profile={m.profile} storyGroup={stories.data?.mutualFollows.find(g => g.poster.id === m.profile.id)} returnTo="/matches" />
-        <Link href={`/chat/${m.id}?returnTo=%2Fmatches`} onClick={() => readNotice(m.profile.id, 'new_match')} data-testid={`link-match-name-${m.id}`} className="min-w-0 flex-1 truncate text-[17px] font-bold">{m.profile.name}{m.profile.age !== null && m.profile.showAge !== false ? `, ${m.profile.age}` : ''}</Link>
+        <Link href={`/chat/${m.id}?returnTo=%2Fmatches`} onClick={() => readNotice(m.profile.id, 'new_match')} data-testid={`link-match-name-${m.id}`} className="min-w-0 flex-1 truncate text-[17px] font-bold">{m.profile.name}</Link>
         <Link href={`/chat/${m.id}?returnTo=%2Fmatches`} onClick={() => readNotice(m.profile.id, 'new_match')} data-testid={`link-match-chat-${m.id}`} aria-label={`Chat with ${m.profile.name}`} className="sh-chat flex h-11 w-11 shrink-0 items-center justify-center rounded-full"><MessageCircle size={20} aria-hidden="true" /></Link>
       </li>)}</ul>}
   </div></div>;

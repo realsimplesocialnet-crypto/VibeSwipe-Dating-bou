@@ -150,7 +150,7 @@ export default function ChatsScreen() {
       <AppHeader active="messages" />
       <View style={styles.screen}>
       <View style={styles.chatsTopRow} testID="chats-header">
-        <Text style={[styles.chatsTitle, { color: colors.foreground }]}>Messages</Text>
+        <Text style={[styles.chatsTitle, { color: colors.foreground }]}>Inbox</Text>
         <Text style={[styles.threadCount, { color: colors.mutedForeground }]}>{threadCount} {threadCount === 1 ? "thread" : "threads"}</Text>
       </View>
       <View style={[styles.chatSearch, { backgroundColor: colors.secondary }]}>
@@ -369,7 +369,7 @@ export function VisitorsScreen() {
       >
         <View style={[visitorStyles.avatarRing, { borderColor: colors.primary }]}><ProfileAvatar profile={profile} size={62} /></View>
         <View style={visitorStyles.copy}>
-          <Text style={[visitorStyles.name, { color: colors.foreground }]}>{profile.name}{profile.age != null ? `, ${profile.age}` : ""} <Feather name="heart" size={15} color={colors.primary} /></Text>
+          <Text style={[visitorStyles.name, { color: colors.foreground }]}>{profile.name} <Feather name="heart" size={15} color={colors.primary} /></Text>
           <View style={{ flexDirection: "row", gap: 5, alignItems: "flex-start" }}><Feather name="map-pin" size={15} color={colors.primary} /><Text style={[visitorStyles.location, { color: colors.mutedForeground, flex: 1 }]}>{profile.city?.trim() || profile.state?.trim() || profile.country?.trim() || "Location not shared"}</Text></View>
         </View>
         <Feather name="chevron-right" size={21} color={colors.primary} />

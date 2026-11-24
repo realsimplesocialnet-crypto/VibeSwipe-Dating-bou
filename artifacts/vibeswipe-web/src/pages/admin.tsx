@@ -28,7 +28,7 @@ function GateScreen({ icon, title, detail, children, testId }: { icon: ReactNode
     <div className="a-fade w-full max-w-[420px]">
       <AdminWordmark />
       <div className="a-panel mt-8 p-7">
-        <div className="grid h-11 w-11 place-items-center rounded-xl bg-[#f34e9a]/10 text-[var(--a-rose)]">{icon}</div>
+        <div className="grid h-11 w-11 place-items-center rounded-xl bg-white/[.08] text-[var(--a-rose)]">{icon}</div>
         <h1 className="brand mt-5 text-2xl font-extrabold">{title}</h1>
         <p className="mt-2 text-sm leading-6 text-[var(--a-mute)]">{detail}</p>
         {children && <div className="mt-6 flex flex-wrap gap-2">{children}</div>}
@@ -36,7 +36,7 @@ function GateScreen({ icon, title, detail, children, testId }: { icon: ReactNode
     </div>
   </div>;
 }
-const primaryBtn = 'inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[var(--a-rose)] px-5 text-sm font-extrabold text-[#24111b]';
+const primaryBtn = 'inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[var(--a-rose)] px-5 text-sm font-extrabold text-black';
 const ghostBtn = 'inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-white/10 px-4 text-sm font-bold hover:bg-white/5';
 
 function AdminLoading() {
@@ -84,16 +84,16 @@ export default function AdminPage() {
   }, [qc, signOut]);
 
   if (!isLoaded) return <AdminLoading />;
-  if (!isSignedIn) return <GateScreen testId="screen-admin-signin" icon={<Lock size={20} />} title="Sign in to the console" detail="This area is for VibeSwipes administrators. Sign in with the account that has admin access. A dating profile is not required.">
+  if (!isSignedIn) return <GateScreen testId="screen-admin-signin" icon={<Lock size={20} />} title="Sign in to the console" detail="This area is for MyAgeBeauty administrators. Sign in with the account that has admin access. A member profile is not required.">
     <Link href={`/sign-in?redirect_url=${encodeURIComponent(`${window.location.origin}${import.meta.env.BASE_URL.replace(/\/$/, '')}/admin`)}`} data-testid="link-admin-signin" className={primaryBtn}>Sign in</Link>
-    <Link href="/" data-testid="link-admin-home" className={ghostBtn}>Back to VibeSwipes</Link>
+    <Link href="/" data-testid="link-admin-home" className={ghostBtn}>Back to MyAgeBeauty</Link>
   </GateScreen>;
   if (session.isLoading) return <AdminLoading />;
   if (session.isError || !session.data) {
     const st = errorStatus(session.error);
     if (st === 401) return <GateScreen testId="screen-admin-expired" icon={<Lock size={20} />} title="Session expired" detail="Your sign-in is no longer valid. Sign in again to continue."><button type="button" onClick={() => void doSignOut()} data-testid="button-admin-resignin" className={primaryBtn}>Sign in again</button></GateScreen>;
     if (st === 403) return <GateScreen testId="screen-admin-denied" icon={<ShieldX size={20} />} title="No admin access" detail="You are signed in, but this account is not an administrator. Access is granted on the server, not from this screen.">
-      <Link href="/" data-testid="link-admin-denied-home" className={ghostBtn}>Back to VibeSwipes</Link>
+      <Link href="/" data-testid="link-admin-denied-home" className={ghostBtn}>Back to MyAgeBeauty</Link>
       <button type="button" onClick={() => void doSignOut()} data-testid="button-admin-denied-signout" className={primaryBtn}>Use another account</button>
     </GateScreen>;
     return <GateScreen testId="screen-admin-config-error" icon={<ServerCrash size={20} />} title={st === 503 || st === 500 ? 'Admin is not configured' : 'Console unavailable'} detail={st === 503 || st === 500 ? 'The server could not verify admin access. The admin allow-list may be missing on the server. Nothing has been changed.' : adminError(session.error, 'The admin service could not be reached.')}>

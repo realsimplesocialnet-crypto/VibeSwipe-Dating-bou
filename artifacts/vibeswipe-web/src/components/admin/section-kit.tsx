@@ -20,7 +20,7 @@ export function SectionHeader({ eyebrow, title, detail, right }: { eyebrow: stri
 export function SearchField({ value, onChange, placeholder, testId }: { value: string; onChange: (v: string) => void; placeholder: string; testId: string }) {
   return <label className="relative flex min-w-0 flex-1 items-center">
     <Search size={15} className="pointer-events-none absolute left-3 text-[var(--a-mute)]" />
-    <input value={value} onChange={e => onChange(e.target.value)} maxLength={150} placeholder={placeholder} data-testid={testId} className="h-10 w-full rounded-xl border border-[var(--a-line)] bg-[var(--a-bg)] pl-9 pr-9 text-sm outline-none placeholder:text-[var(--a-mute)] focus:border-[#f34e9a]/55" />
+    <input value={value} onChange={e => onChange(e.target.value)} maxLength={150} placeholder={placeholder} data-testid={testId} className="h-10 w-full rounded-xl border border-[var(--a-line)] bg-[var(--a-bg)] pl-9 pr-9 text-sm outline-none placeholder:text-[var(--a-mute)] focus:border-white/55" />
     {value && <button type="button" aria-label="Clear search" onClick={() => onChange('')} data-testid={`${testId}-clear`} className="absolute right-2 grid h-6 w-6 place-items-center rounded-md text-[var(--a-mute)] hover:bg-white/5"><X size={13} /></button>}
   </label>;
 }
@@ -31,7 +31,7 @@ export function DateRange({ from, to, onChange, testId }: { from: string; to: st
   const btn = 'h-10 rounded-xl border px-3 text-xs font-bold transition-colors';
   const isToday = from === t && to === t;
   return <div className="flex flex-wrap items-center gap-2">
-    <button type="button" onClick={() => onChange(t, t)} data-testid={`${testId}-today`} className={`${btn} ${isToday ? 'border-[#f34e9a]/50 bg-[#f34e9a]/12 text-[#ff8cc0]' : 'border-[var(--a-line)] hover:bg-white/5'}`}>Today (UTC)</button>
+    <button type="button" onClick={() => onChange(t, t)} data-testid={`${testId}-today`} className={`${btn} ${isToday ? 'border-white/45 bg-white/[.08] text-white' : 'border-[var(--a-line)] hover:bg-white/5'}`}>Today (UTC)</button>
     <div className="flex h-10 items-center gap-1.5 rounded-xl border border-[var(--a-line)] bg-[var(--a-bg)] px-2.5">
       <CalendarRange size={14} className="text-[var(--a-mute)]" />
       <input type="date" value={from} max={to || undefined} onChange={e => onChange(e.target.value, to)} aria-label="From date" data-testid={`${testId}-from`} className="mono w-[118px] bg-transparent text-xs outline-none" />
@@ -43,7 +43,7 @@ export function DateRange({ from, to, onChange, testId }: { from: string; to: st
 }
 
 export function Stat({ label, value, hint, tone = 'ink', testId }: { label: string; value: ReactNode; hint?: string; tone?: 'ink' | 'rose' | 'mint' | 'amber'; testId: string }) {
-  const c = { ink: 'text-[var(--a-ink)]', rose: 'text-[#ff8cc0]', mint: 'text-[#9fe6c6]', amber: 'text-[#f6c987]' }[tone];
+  const c = { ink: 'text-[var(--a-ink)]', rose: 'text-white', mint: 'text-[#9fe6c6]', amber: 'text-[#f6c987]' }[tone];
   return <div className="a-panel a-fade p-4 md:p-5" data-testid={testId}>
     <div className="text-[11px] font-bold uppercase tracking-[.14em] text-[var(--a-mute)]">{label}</div>
     <div className={`mono mt-2 text-[28px] font-bold leading-none tabular-nums md:text-[34px] ${c}`}>{value}</div>

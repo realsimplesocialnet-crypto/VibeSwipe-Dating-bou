@@ -3,24 +3,24 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover" />
-    <title>VibeSwipes — Create Account or Login</title>
-    <meta name="description" content="Create a VibeSwipes account or log in." />
+    <title>MyAgeBeauty — Create Account or Login</title>
+    <meta name="description" content="Create a MyAgeBeauty account or log in." />
     <link rel="canonical" href="https://myage.beauty/" />
-    <meta name="theme-color" content="#15131a" />
+    <meta name="theme-color" content="#000000" />
     <meta name="referrer" content="no-referrer" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-title" content="VibeSwipes" />
+    <meta name="apple-mobile-web-app-title" content="MyAgeBeauty" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="robots" content="index, follow" />
-    <meta property="og:title" content="VibeSwipes" />
-    <meta property="og:description" content="Create a VibeSwipes account or log in." />
+    <meta property="og:title" content="MyAgeBeauty" />
+    <meta property="og:description" content="Create a MyAgeBeauty account or log in." />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://myage.beauty/" />
-    <meta property="og:site_name" content="VibeSwipes" />
+    <meta property="og:site_name" content="MyAgeBeauty" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="VibeSwipes" />
-    <meta name="twitter:description" content="Create a VibeSwipes account or log in." />
+    <meta name="twitter:title" content="MyAgeBeauty" />
+    <meta name="twitter:description" content="Create a MyAgeBeauty account or log in." />
     <style>
       html.is-auth-loading body { background: #000 !important; }
       html.is-auth-loading #root > main,
@@ -41,24 +41,24 @@
     </script>
     <script src="%BASE_URL%pwa-install.js?v=12"></script>
     <script defer src="%BASE_URL%pwa-launch.js?v=12" data-production="%PROD%"></script>
-    <link rel="manifest" href="%BASE_URL%manifest.json?v=10" />
-    <link rel="icon" type="image/svg+xml" href="%BASE_URL%logo.svg?v=1" />
-    <link rel="icon" type="image/png" sizes="192x192" href="%BASE_URL%vibeswipes-icon-192.png" />
-    <link rel="apple-touch-icon" sizes="180x180" href="%BASE_URL%vibeswipes-icon-192.png" />
+    <link rel="manifest" href="%BASE_URL%manifest.json?v=11" />
+    <link rel="icon" type="image/svg+xml" href="%BASE_URL%logo.svg?v=2" />
+    <link rel="icon" type="image/png" sizes="192x192" href="%BASE_URL%myage-monochrome-icon-192.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="%BASE_URL%myage-monochrome-icon-192.png" />
   </head>
-  <body style="margin:0;background:#100c12;color:#fff5fa">
+  <body style="margin:0;background:#000;color:#fff">
     <div id="root">
       <main style="display:grid;min-height:100vh;min-height:100dvh;place-items:center;padding:24px;font:16px/1.5 system-ui,sans-serif;text-align:center">
         <section style="display:flex;max-width:360px;flex-direction:column;align-items:center;gap:24px">
           <div style="display:flex;align-items:center;gap:12px;font-size:28px;font-weight:800;letter-spacing:-.04em">
-            <img src="%BASE_URL%logo.svg" alt="" width="64" height="64" style="border-radius:18px" />
-            <span>VibeSwipes</span>
+            <img src="%BASE_URL%logo.svg" alt="" width="64" height="64" style="border-radius:18px;filter:grayscale(1)" />
+             <span>MyAgeBeauty</span>
           </div>
           <h1 style="max-width:17ch;margin:0;font-size:30px;line-height:1.15">Your next connection starts here.</h1>
           <p style="margin:0;color:#c3b7c0">Create your profile. Meet someone who gets you.</p>
           <nav aria-label="Account" style="display:grid;width:min(100%,280px);gap:12px">
-            <a href="%BASE_URL%sign-up" style="display:flex;min-height:54px;align-items:center;justify-content:center;border-radius:16px;background:#f34e9a;color:#24111b;font-weight:750;text-decoration:none">Create Account</a>
-            <a href="%BASE_URL%sign-in" style="display:flex;min-height:54px;align-items:center;justify-content:center;border:1px solid rgba(255,245,250,.18);border-radius:16px;background:rgba(255,255,255,.04);color:#fff5fa;font-weight:750;text-decoration:none">Login</a>
+          <a href="%BASE_URL%sign-up" style="display:flex;min-height:54px;align-items:center;justify-content:center;border-radius:16px;background:#fff;color:#000;font-weight:750;text-decoration:none">Create Account</a>
+            <a href="%BASE_URL%sign-in" style="display:flex;min-height:54px;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,.18);border-radius:16px;background:rgba(255,255,255,.04);color:#fff;font-weight:750;text-decoration:none">Login</a>
           </nav>
         </section>
       </main>

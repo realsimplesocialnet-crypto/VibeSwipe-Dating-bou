@@ -49,7 +49,7 @@ export function HobbyMultiSelect({
               type="button"
               aria-label={`Remove ${hobby}`}
               onClick={() => onChange(selected.filter((item) => item !== hobby))}
-              className="rounded-full bg-accent px-3 py-1.5 text-xs font-semibold text-[#ffafd1]"
+              className="rounded-full bg-accent px-3 py-1.5 text-xs font-semibold text-primary"
             >
               {hobby} <span aria-hidden="true">×</span>
             </button>
@@ -74,7 +74,7 @@ export function HobbyMultiSelect({
               onClick={() => toggle(hobby)}
               className={`min-h-11 rounded-xl border px-3 py-2 text-left text-sm font-medium transition ${
                 active
-                  ? "border-primary/50 bg-accent text-[#ffafd1]"
+                  ? "border-primary/50 bg-accent text-primary"
                   : "border-white/10 bg-white/[.02] text-foreground hover:bg-white/[.06]"
               } disabled:cursor-not-allowed disabled:opacity-40`}
             >

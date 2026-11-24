@@ -157,7 +157,7 @@ export const DiscoverSwipeCard = memo(function DiscoverSwipeCard({
           }
         }}
         data-testid={`card-discover-${profile.id}`}
-        aria-label={`${profile.name}${profile.age !== null ? `, ${profile.age}` : ""}. Tap to view full profile.`}
+        aria-label={`${profile.name}. Tap to view full profile.`}
         tabIndex={active ? 0 : -1}
       >
         <div className="relative min-h-0 flex-1">
@@ -165,24 +165,24 @@ export const DiscoverSwipeCard = memo(function DiscoverSwipeCard({
             ? <img
                 key={profile.id}
                 src={src}
-                alt={`${profile.name}${profile.age !== null ? `, ${profile.age}` : ""}`}
+                alt={profile.name}
                 className="absolute inset-0 h-full w-full object-cover object-top"
                 loading="eager"
                 fetchPriority={active ? "high" : "low"}
                 decoding="async"
               />
-            : <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_25%,#9f6076,#382b3a_55%,#1b1820)]" />}
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#130f16] via-[#17121a]/10 to-[#17121a]/10" />
+            : <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_25%,#555,#252525_55%,#090909)]" />}
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black via-black/10 to-black/10" />
 
           <motion.span
-            className="pointer-events-none absolute left-5 top-7 z-[2] rounded-lg border-2 border-emerald-300 px-3 py-1 text-2xl font-black uppercase tracking-widest text-emerald-200"
+            className="pointer-events-none absolute left-5 top-7 z-[2] rounded-lg border-2 border-white px-3 py-1 text-2xl font-black uppercase tracking-widest text-white"
             style={{ opacity: likeOpacity, rotate: -12 }}
             aria-hidden="true"
           >
             Like
           </motion.span>
           <motion.span
-            className="pointer-events-none absolute right-5 top-7 z-[2] rounded-lg border-2 border-rose-300 px-3 py-1 text-2xl font-black uppercase tracking-widest text-rose-200"
+            className="pointer-events-none absolute right-5 top-7 z-[2] rounded-lg border-2 border-white/65 px-3 py-1 text-2xl font-black uppercase tracking-widest text-white/75"
             style={{ opacity: passOpacity, rotate: 12 }}
             aria-hidden="true"
           >
@@ -204,12 +204,9 @@ export const DiscoverSwipeCard = memo(function DiscoverSwipeCard({
           </button>
 
           <div className="pointer-events-none absolute inset-x-5 bottom-5">
-            <div className="flex min-w-0 items-end justify-between gap-3">
-              <h2 className="min-w-0 break-words text-3xl font-bold leading-tight tracking-tight text-white sm:text-4xl">
-                {profile.name}<VerifiedBadge verified={profile.isVerified} />
-              </h2>
-              {profile.age !== null && <span className="shrink-0 pb-0.5 text-xl text-white/80 sm:text-2xl">{profile.age}</span>}
-            </div>
+            <h2 className="min-w-0 break-words text-3xl font-bold leading-tight tracking-tight text-white sm:text-4xl">
+              {profile.name}<VerifiedBadge verified={profile.isVerified} />
+            </h2>
             <div className="mt-2 flex min-w-0 items-center gap-1.5 text-sm text-white/80">
               <MapPin size={14} className="shrink-0" />
               <span className="truncate">{[profile.city, profile.state, profile.country].filter(Boolean).join(", ") || "Nearby"}</span>

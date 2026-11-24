@@ -169,7 +169,7 @@ export function ProfileFirstSignup({ previewOnly = false }: { previewOnly?: bool
       }
       const blocking = signUp.missingFields.filter(f => f !== 'email_address');
       if (blocking.length) {
-        setConfigError(`Account setup is blocked: VibeSwipes sign-up settings currently also require ${blocking.map(f => FIELD_LABELS[f] ?? f).join(', ')}. An administrator needs to turn this off in the authentication settings. Your answers are saved here — try again once it's updated.`);
+        setConfigError(`Account setup is blocked: MyAgeBeauty sign-up settings currently also require ${blocking.map(f => FIELD_LABELS[f] ?? f).join(', ')}. An administrator needs to turn this off in the authentication settings. Your answers are saved here — try again once it's updated.`);
         return;
       }
       const sent = await signUp.verifications.sendEmailCode();
@@ -244,12 +244,12 @@ export function ProfileFirstSignup({ previewOnly = false }: { previewOnly?: bool
   if (sessionMatches) return <Frame>
     <div className="page-in" data-testid="screen-signup-finishing">
       <p className="text-[11px] font-bold uppercase tracking-[.2em] text-primary">Account verified</p>
-      <h1 className="brand mt-3 text-[2rem] font-bold leading-tight text-[#fff2f7]">{finishing === 'error' ? 'Almost there' : 'Setting up your profile'}</h1>
-      <p className="mt-3 text-[15px] leading-7 text-[#c3b7c0]">{finishing === 'error' ? finishError : 'Uploading your photo and saving your answers. This only takes a moment.'}</p>
+      <h1 className="brand mt-3 text-[2rem] font-bold leading-tight text-white">{finishing === 'error' ? 'Almost there' : 'Setting up your profile'}</h1>
+      <p className="mt-3 text-[15px] leading-7 text-[#b8b8b8]">{finishing === 'error' ? finishError : 'Uploading your photo and saving your answers. This only takes a moment.'}</p>
       {finishing !== 'error' && <div className="mt-8 h-1.5 overflow-hidden rounded-full bg-white/[.06]"><div className="h-full w-1/2 animate-pulse rounded-full bg-primary" /></div>}
       {finishing === 'error' && <div className="mt-8 space-y-3">
         {!photo && <PhotoPicker photo={photo} onPick={f => { setPhoto(f); setMediaReference(null); }} />}
-        <button onClick={() => void complete()} disabled={!photo} data-testid="button-signup-retry-finish" className="flex min-h-[52px] w-full items-center justify-center gap-2 rounded-2xl bg-primary px-5 font-bold text-[#24111b] disabled:opacity-40"><RotateCcw size={17} />Try again</button>
+        <button onClick={() => void complete()} disabled={!photo} data-testid="button-signup-retry-finish" className="flex min-h-[52px] w-full items-center justify-center gap-2 rounded-2xl bg-primary px-5 font-bold text-primary-foreground disabled:opacity-40"><RotateCcw size={17} />Try again</button>
       </div>}
     </div>
   </Frame>;
@@ -291,7 +291,7 @@ export function ProfileFirstSignup({ previewOnly = false }: { previewOnly?: bool
             onPick={o => set('city', o.name)} onEmpty={empty => setGeoEmpty(g => ({ ...g, cities: empty }))}
             emptyText={`Our location data doesn't list cities for ${a.stateName || a.countryName}. You can continue without one — your profile will show your ${a.stateName ? 'region' : 'country'}.`} placeholder="Search cities" />
         </Q>}
-        {step === 5 && <Q title="How old are you?" hint="VibeSwipes is for adults 18 and over.">
+        {step === 5 && <Q title="How old are you?" hint="MyAgeBeauty is for adults 18 and over.">
           <input autoFocus data-testid="input-signup-age" inputMode="numeric" type="number" min={18} max={120} value={a.age} onChange={e => set('age', e.target.value.replace(/\D/g, '').slice(0, 3))} className="field signup-input max-w-[160px]" placeholder="Age" />
           {a.age !== '' && Number(a.age) < 18 && <p className="mt-3 text-sm text-rose-300" data-testid="error-signup-age">You must be 18 or older to join.</p>}
         </Q>}
@@ -317,7 +317,7 @@ export function ProfileFirstSignup({ previewOnly = false }: { previewOnly?: bool
         {step === 12 && <Q title="Last thing: your email" hint="We'll send a code to confirm it's you. No password needed.">
           <input autoFocus data-testid="input-signup-email" type="email" inputMode="email" autoComplete="email" value={a.email} onChange={e => { set('email', e.target.value); setConfigError(''); }} className="field signup-input" placeholder="you@example.com" />
           {a.email && !emailValid && <p className="mt-3 text-sm text-rose-300" data-testid="error-signup-email">Enter a valid email address.</p>}
-          <label className="mt-5 block text-sm font-semibold text-[#e7dce3]">
+          <label className="mt-5 block text-sm font-semibold text-[#e5e5e5]">
             Referral code <span className="font-normal text-muted-foreground">optional</span>
             <input data-testid="input-signup-referral-code" autoCapitalize="characters" autoCorrect="off" maxLength={8} value={a.referralCode} onChange={e => set('referralCode', e.target.value.replace(/[^a-z0-9]/gi, '').toUpperCase())} className="field signup-input mt-2 uppercase tracking-[.12em]" placeholder="8 characters" />
             <span className="mt-1.5 block text-xs font-normal leading-5 text-muted-foreground">Enter a friend’s code so they earn 100 points when you join.</span>
@@ -333,10 +333,10 @@ export function ProfileFirstSignup({ previewOnly = false }: { previewOnly?: bool
         {error && <p role="alert" data-testid="error-signup" className="mt-6 rounded-xl border border-rose-300/20 bg-rose-300/[.06] px-4 py-3 text-sm leading-6 text-rose-200">{error}{errorLinksToSignIn(error) && <> <Link href="/sign-in" className="font-bold underline" data-testid="link-signup-error-signin">Sign in</Link></>}</p>}
       </div>
 
-      <div className="fixed inset-x-0 bottom-0 z-40 bg-gradient-to-t from-[#141117] via-[#141117]/95 to-transparent px-5 pt-8 pb-[max(env(safe-area-inset-bottom),16px)]">
+       <div className="fixed inset-x-0 bottom-0 z-40 bg-gradient-to-t from-black via-black/95 to-transparent px-5 pt-8 pb-[max(env(safe-area-inset-bottom),16px)]">
         <div className="mx-auto grid w-full max-w-4xl grid-cols-[auto_1fr] gap-3">
-        <button type="button" onClick={back} disabled={step === 0 || busy} data-testid="button-signup-back" className="flex min-h-[52px] items-center gap-2 rounded-2xl border border-white/10 px-5 text-sm font-semibold text-[#e7dce3] transition-colors hover:bg-white/[.04] disabled:opacity-30"><ArrowLeft size={17} />Back</button>
-        <button type="submit" disabled={!valid || busy || fetchStatus === 'fetching'} data-testid="button-signup-next" className="flex min-h-[52px] items-center justify-center gap-2 rounded-2xl bg-primary px-5 text-[15px] font-bold text-[#24111b] transition-colors hover:bg-[#ff68aa] disabled:cursor-not-allowed disabled:opacity-35">
+        <button type="button" onClick={back} disabled={step === 0 || busy} data-testid="button-signup-back" className="flex min-h-[52px] items-center gap-2 rounded-2xl border border-white/10 px-5 text-sm font-semibold text-[#e5e5e5] transition-colors hover:bg-white/[.04] disabled:opacity-30"><ArrowLeft size={17} />Back</button>
+        <button type="submit" disabled={!valid || busy || fetchStatus === 'fetching'} data-testid="button-signup-next" className="flex min-h-[52px] items-center justify-center gap-2 rounded-2xl bg-primary px-5 text-[15px] font-bold text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-35">
           {busy ? 'Please wait…' : step === 12 ? 'Send code' : step === LAST ? 'Verify and finish' : (step === 9 && !a.bio.trim()) || (step === 10 && !a.interests.length) || ((step === 3 || step === 4) && !(step === 3 ? a.stateCode : a.city)) ? 'Skip' : 'Next'}
           {!busy && <ArrowRight size={17} />}
         </button>
@@ -353,8 +353,8 @@ function Frame({ children }: { children: ReactNode }) {
     <OnboardingVideoBackground form/>
     <header className="mx-auto flex w-full max-w-4xl items-center justify-between px-5 pt-[calc(env(safe-area-inset-top,0px)+20px)]">
       <Link href="/" className="inline-flex items-center gap-2.5" data-testid="link-signup-brand">
-        <img src={`${basePath}/vibeswipes-icon-192.png`} alt="" className="h-9 w-9 rounded-xl ring-1 ring-white/10" />
-        <span className="brand text-[20px] font-extrabold text-[#fff2f7]">VibeSwipes</span>
+        <img src={`${basePath}/myage-monochrome-icon-192.png`} alt="" className="h-9 w-9 rounded-xl ring-1 ring-white/10" />
+        <span className="brand text-[20px] font-extrabold text-foreground">MyAgeBeauty</span>
       </Link>
       <Link href="/sign-in" data-testid="link-signin-from-signup" className="min-h-[44px] content-center rounded-xl px-3 text-sm font-semibold text-muted-foreground hover:text-foreground">Sign in</Link>
     </header>
@@ -366,7 +366,7 @@ function Frame({ children }: { children: ReactNode }) {
 
 function Q({ title, hint, children }: { title: string; hint?: string; children: ReactNode }) {
   return <div>
-    <h1 className="brand text-[1.85rem] font-bold leading-[1.15] text-[#fff2f7] sm:text-[2.1rem]">{title}</h1>
+    <h1 className="brand text-[1.85rem] font-bold leading-[1.15] text-white sm:text-[2.1rem]">{title}</h1>
     {hint && <p className="mt-2.5 text-[15px] leading-6 text-[#b9adb6]">{hint}</p>}
     <div className="mt-7">{children}</div>
   </div>;
@@ -375,7 +375,7 @@ function Q({ title, hint, children }: { title: string; hint?: string; children: 
 function Choices({ options, value, onPick, testId }: { options: string[]; value: string; onPick: (v: string) => void; testId: string }) {
   return <div className="grid gap-2.5" role="radiogroup">
     {options.map(o => <button key={o} type="button" role="radio" aria-checked={value === o} onClick={() => onPick(o)} data-testid={`option-${testId}-${o.toLowerCase().replace(/\s+/g, '-')}`}
-      className={`flex min-h-[56px] items-center justify-between rounded-2xl border px-5 text-left text-[15px] font-semibold transition-colors ${value === o ? 'border-primary/70 bg-primary/[.1] text-[#ffd3e6]' : 'border-white/10 bg-[#19161c] text-[#e7dce3] hover:border-white/20'}`}>
+      className={`flex min-h-[56px] items-center justify-between rounded-2xl border px-5 text-left text-[15px] font-semibold transition-colors ${value === o ? 'border-primary/70 bg-primary/[.1] text-white' : 'border-white/10 bg-[#191919] text-[#e5e5e5] hover:border-white/20'}`}>
       {o}{value === o && <Check size={18} className="text-primary" />}
     </button>)}
   </div>;
@@ -404,9 +404,9 @@ function GeoPicker({ load, deps, value, label, onPick, onEmpty, emptyText, place
   }, [opts, q]);
   if (failed) return <div className="rounded-2xl border border-white/10 p-5 text-sm text-muted-foreground">Location data could not load.<button type="button" onClick={() => setAttempt(x => x + 1)} data-testid={`button-retry-${testId}`} className="ml-2 font-bold text-primary">Try again</button></div>;
   if (!opts) return <div className="space-y-2" aria-label="Loading locations">{[0, 1, 2, 3].map(i => <div key={i} className="h-12 animate-pulse rounded-xl bg-white/[.04]" />)}</div>;
-  if (!opts.length) return <p data-testid={`status-${testId}-empty`} className="rounded-2xl border border-white/10 bg-white/[.02] px-5 py-4 text-sm leading-6 text-[#c3b7c0]"><MapPin size={15} className="mr-2 inline text-primary" />{emptyText}</p>;
+  if (!opts.length) return <p data-testid={`status-${testId}-empty`} className="rounded-2xl border border-white/10 bg-white/[.02] px-5 py-4 text-sm leading-6 text-[#b8b8b8]"><MapPin size={15} className="mr-2 inline text-primary" />{emptyText}</p>;
   return <div>
-    {value && <div className="mb-3 flex items-center gap-2 text-sm text-[#ffd3e6]" data-testid={`text-${testId}-selected`}><Check size={16} className="text-primary" />{label}</div>}
+    {value && <div className="mb-3 flex items-center gap-2 text-sm text-white" data-testid={`text-${testId}-selected`}><Check size={16} className="text-primary" />{label}</div>}
     <div className="relative">
       <Search size={17} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" />
       <input autoFocus value={q} onChange={e => setQ(e.target.value)} placeholder={placeholder} data-testid={`input-search-${testId}`} className="field signup-input !pl-11" />
@@ -414,7 +414,7 @@ function GeoPicker({ load, deps, value, label, onPick, onEmpty, emptyText, place
     </div>
     <ul className="hide-scrollbar mt-3 max-h-[300px] overflow-y-auto rounded-2xl border border-white/[.08] bg-[#19161c]" role="listbox">
       {filtered.map(o => <li key={o.code}><button type="button" role="option" aria-selected={o.code === value} onClick={() => onPick(o)} data-testid={`option-${testId}-${o.code}`}
-        className={`flex min-h-[48px] w-full items-center justify-between border-b border-white/[.05] px-4 text-left text-[15px] transition-colors last:border-0 ${o.code === value ? 'bg-primary/[.1] font-semibold text-[#ffd3e6]' : 'text-[#e7dce3] hover:bg-white/[.04]'}`}>
+        className={`flex min-h-[48px] w-full items-center justify-between border-b border-white/[.05] px-4 text-left text-[15px] transition-colors last:border-0 ${o.code === value ? 'bg-primary/[.1] font-semibold text-white' : 'text-[#e5e5e5] hover:bg-white/[.04]'}`}>
         {o.name}{o.code === value && <Check size={16} className="text-primary" />}</button></li>)}
       {!filtered.length && <li className="px-4 py-4 text-sm text-muted-foreground">No matches for “{q}”.</li>}
     </ul>
@@ -438,8 +438,8 @@ function PhotoPicker({ photo, onPick }: { photo: File | null; onPick: (f: File) 
       className="relative flex aspect-[4/5] w-full max-w-[280px] items-center justify-center overflow-hidden rounded-[22px] border border-dashed border-white/15 bg-[#19161c] transition-colors hover:border-primary/50">
       {url ? <>
         <img src={url} alt="Your selected profile photo" className="absolute inset-0 h-full w-full object-cover" data-testid="img-signup-photo-preview" />
-        <span className="absolute inset-x-3 bottom-3 rounded-xl bg-[#141117]/80 px-3 py-2.5 text-sm font-semibold text-[#fff2f7] backdrop-blur">Change photo</span>
-      </> : <span className="flex flex-col items-center gap-3 px-6 text-center text-sm text-[#c3b7c0]"><span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-accent text-primary"><ImagePlus size={24} /></span><span className="font-semibold text-[#fff2f7]">Choose a photo</span><span className="text-xs text-muted-foreground">JPEG, PNG, WebP or HEIC · up to 15 MB</span></span>}
+        <span className="absolute inset-x-3 bottom-3 rounded-xl bg-[#111]/80 px-3 py-2.5 text-sm font-semibold text-white backdrop-blur">Change photo</span>
+      </> : <span className="flex flex-col items-center gap-3 px-6 text-center text-sm text-[#b8b8b8]"><span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-accent text-primary"><ImagePlus size={24} /></span><span className="font-semibold text-white">Choose a photo</span><span className="text-xs text-muted-foreground">JPEG, PNG, WebP or HEIC · up to 15 MB</span></span>}
     </button>
     {photo && url && !/heic|heif/i.test(photo.type + photo.name) ? null : photo && <p className="mt-3 text-xs text-muted-foreground">{photo.name} is selected. Some browsers can't preview HEIC photos, but it will still upload.</p>}
     {err && <p role="alert" data-testid="error-signup-photo" className="mt-3 text-sm text-rose-300">{err}</p>}
@@ -454,7 +454,7 @@ function Interests({ value, onChange }: { value: string[]; onChange: (v: string[
   return <div>
     <div className="flex flex-wrap gap-2">
       {all.map(i => <button key={i} type="button" onClick={() => toggle(i)} aria-pressed={value.includes(i)} data-testid={`chip-interest-${i.toLowerCase().replace(/\s+/g, '-')}`}
-        className={`min-h-[44px] rounded-full border px-4 text-sm font-semibold transition-colors ${value.includes(i) ? 'border-primary/70 bg-primary/[.12] text-[#ffd3e6]' : 'border-white/10 text-[#c3b7c0] hover:border-white/25'}`}>{i}</button>)}
+        className={`min-h-[44px] rounded-full border px-4 text-sm font-semibold transition-colors ${value.includes(i) ? 'border-primary/70 bg-primary/[.12] text-white' : 'border-white/10 text-[#b8b8b8] hover:border-white/25'}`}>{i}</button>)}
     </div>
     <div className="mt-5 flex gap-2">
       <input value={custom} maxLength={32} onChange={e => setCustom(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); add(); } }} placeholder="Add your own" data-testid="input-signup-interest" className="field" />
@@ -465,8 +465,8 @@ function Interests({ value, onChange }: { value: string[]; onChange: (v: string[
 
 function Range({ label, value, min, max, unit, onChange, testId }: { label: string; value: number; min: number; max: number; unit: string; onChange: (v: number) => void; testId: string }) {
   return <label className="block">
-    <span className="flex items-baseline justify-between"><span className="text-sm font-semibold text-[#e7dce3]">{label}</span><span className="brand text-2xl font-bold tabular-nums text-[#fff2f7]" data-testid={`text-pref-${testId}`}>{value}{unit}</span></span>
-    <input type="range" min={min} max={max} value={value} onChange={e => onChange(Number(e.target.value))} data-testid={`input-pref-${testId}`} className="field mt-3 w-full accent-[#f34e9a]" />
+    <span className="flex items-baseline justify-between"><span className="text-sm font-semibold text-[#e5e5e5]">{label}</span><span className="brand text-2xl font-bold tabular-nums text-white" data-testid={`text-pref-${testId}`}>{value}{unit}</span></span>
+    <input type="range" min={min} max={max} value={value} onChange={e => onChange(Number(e.target.value))} data-testid={`input-pref-${testId}`} className="field mt-3 w-full accent-primary" />
   </label>;
 }
 

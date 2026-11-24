@@ -21,7 +21,7 @@ export function VideoEndCard({
   brandName = "MyAge Beauty",
   tagline = "Find Your Match",
   code = "MYB-01",
-  accentColor = "#f34e9a",
+  accentColor = "#ffffff",
   textColor = "#ffffff",
   logo,
 }: VideoEndCardProps) {

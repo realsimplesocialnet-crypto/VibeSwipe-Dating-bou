@@ -24,7 +24,9 @@ test("social profile exposes follow, message, post count, and posts without dati
   assert.match(profile, /ProfileFollowStats/);
   assert.match(profile, /public-profile-message/);
   assert.doesNotMatch(profile, /reactLike|"Like Back"|MatchCelebration/);
-  assert.match(profile, /public-profile-hero/);
+  assert.match(profile, /styles\.identityPanel/);
+  assert.match(profile, /public-profile-avatar/);
+  assert.match(profile, /label: "Age"/);
   assert.match(followStats, /profile-post-count-stat/);
   assert.match(ownProfile, /ProfileFollowStats/);
   assert.match(likesRoute, /Redirect href="\/\(tabs\)\/activity"/);

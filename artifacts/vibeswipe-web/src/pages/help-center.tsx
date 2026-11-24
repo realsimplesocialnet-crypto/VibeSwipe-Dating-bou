@@ -13,7 +13,7 @@ const articles = [
   },
   {
     question: "How do I report a Reel or profile?",
-    answer: "Use the three-dot menu on a Reel to report it. Open a profile’s options or the Safety Center to report a profile. Reports go to the VibeSwipes review team.",
+    answer: "Use the three-dot menu on a Reel to report it. Open a profile’s options or the Safety Center to report a profile. Reports go to the MyAgeBeauty review team.",
   },
   {
     question: "What can I do if something is not working?",
@@ -34,7 +34,7 @@ export default function HelpCenterPage() {
         <span className="grid h-12 w-12 place-items-center rounded-2xl bg-primary/15 text-primary"><CircleHelp size={23}/></span>
         <div><p className="text-xs font-bold uppercase tracking-[.18em] text-primary">{t("Support")}</p><h1 className="mt-1 text-2xl font-extrabold">{t("Help Center")}</h1></div>
       </header>
-      <p className="mb-6 text-sm leading-6 text-muted-foreground">{t("Find help with common VibeSwipes features and account settings.")}</p>
+      <p className="mb-6 text-sm leading-6 text-muted-foreground">{t("Find help with common MyAgeBeauty features and account settings.")}</p>
       <section aria-label={t("Help articles")} className="divide-y divide-white/[.07]">
         {articles.map(({ question, answer }) => <details key={question} className="group py-4">
           <summary className="flex min-h-10 cursor-pointer list-none items-center gap-3 font-semibold [&::-webkit-details-marker]:hidden">

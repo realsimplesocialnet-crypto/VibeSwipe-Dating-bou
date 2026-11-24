@@ -37,7 +37,7 @@ export function ConfirmDialog({ req, onClose }: { req: ConfirmRequest | null; on
       <div className={`h-1 ${danger ? 'bg-[var(--a-red)]' : 'bg-[var(--a-rose)]'}`} />
       <div className="p-6">
         <div className="flex gap-3">
-          <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${danger ? 'bg-[#f06b76]/12 text-[#ff9aa3]' : 'bg-[#f34e9a]/12 text-[#ff8cc0]'}`}><AlertTriangle size={18} /></span>
+          <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${danger ? 'bg-[#f06b76]/12 text-[#ff9aa3]' : 'bg-white/[.08] text-white'}`}><AlertTriangle size={18} /></span>
           <div><h2 id="admin-confirm-title" className="text-lg font-extrabold tracking-[-.02em]">{req.title}</h2><p className="mt-1.5 text-sm leading-6 text-[var(--a-mute)]">{req.detail}</p></div>
         </div>
         {req.word && <label className="mt-5 block">
@@ -46,7 +46,7 @@ export function ConfirmDialog({ req, onClose }: { req: ConfirmRequest | null; on
         </label>}
         <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
           <button type="button" disabled={busy} onClick={onClose} data-testid="button-admin-confirm-cancel" className="h-11 rounded-xl border border-white/10 px-4 text-sm font-bold hover:bg-white/5">Cancel</button>
-          <button type="submit" disabled={!ready || busy} data-testid="button-admin-confirm" className={`inline-flex h-11 items-center justify-center gap-2 rounded-xl px-5 text-sm font-extrabold transition-opacity disabled:opacity-35 ${danger ? 'bg-[var(--a-red)] text-[#2a0c10]' : 'bg-[var(--a-rose)] text-[#24111b]'}`}>
+          <button type="submit" disabled={!ready || busy} data-testid="button-admin-confirm" className={`inline-flex h-11 items-center justify-center gap-2 rounded-xl px-5 text-sm font-extrabold transition-opacity disabled:opacity-35 ${danger ? 'bg-[var(--a-red)] text-[#2a0c10]' : 'bg-[var(--a-rose)] text-black'}`}>
             {busy && <Loader2 size={15} className="animate-spin" />}{req.confirmLabel}
           </button>
         </div>

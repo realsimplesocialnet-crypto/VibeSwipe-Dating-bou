@@ -53,11 +53,9 @@ function OwnProfileFrame({ children }: { children: ReactNode }) {
   useEffect(() => {
     const element = document.documentElement;
     element.classList.toggle("op-lock", routeVisible);
-    return () => {
-      if (routeVisible) element.classList.remove("op-lock");
-    };
+    return () => { if (routeVisible) element.classList.remove("op-lock"); };
   }, [routeVisible]);
-  return <div className="own-profile op-fit -mb-24 lg:mb-0"><div className="page-in mx-auto flex h-full max-w-[560px] flex-col px-4 pt-3 md:pt-6">{children}</div></div>;
+  return <div className="own-profile min-h-[100dvh]"><div className="page-in mx-auto max-w-[560px] px-4 pt-3 md:pt-6">{children}</div></div>;
 }
 
 function genderIcon(gender: string) {
@@ -80,19 +78,19 @@ function OwnProfileOverview({ profile, travelCity }: { profile: Profile; travelC
 
   return <div data-testid="section-own-profile" className="op-overview flex min-h-0 flex-1 flex-col gap-[clamp(6px,1.4dvh,14px)] pb-[clamp(8px,1.6dvh,16px)]">
     <div className="op-toolbar grid shrink-0 grid-cols-[40px_1fr_40px] items-center">
-      <Link href="/discover" data-testid="link-profile-back" aria-label="Back to Discover" title="Back to Discover" className="op-toolbar-action inline-flex h-10 w-10 items-center justify-center rounded-full transition-transform active:scale-95"><ArrowLeft size={20} aria-hidden="true" /></Link>
+      <Link href="/reels" data-testid="link-profile-back" aria-label="Back to Home" title="Back to Home" className="op-toolbar-action inline-flex h-10 w-10 items-center justify-center rounded-full transition-transform active:scale-95"><ArrowLeft size={20} aria-hidden="true" /></Link>
       <h2 data-testid="text-my-profile-heading" className="op-title text-center">{t("My Profile")}</h2>
       <Link href="/settings?returnTo=%2Fprofile" data-testid="link-profile-settings" aria-label="Settings" title="Settings" className="op-toolbar-action inline-flex h-10 w-10 items-center justify-center justify-self-end rounded-full transition-transform active:scale-95"><Settings size={18} aria-hidden="true" /></Link>
     </div>
     <section className="op-card op-identity op-identity-modern flex shrink-0 flex-col text-left">
-      <div className="op-hero-photo relative aspect-[16/7.5] w-full overflow-hidden rounded-[18px]" data-testid="profile-main-photo">
+      <div className="op-hero-photo relative mx-auto aspect-square w-[108px] overflow-hidden rounded-full" data-testid="profile-main-photo">
         {profile.photos?.[0] && !broken
           ? <MediaImage reference={profile.photos[0]} onError={() => setBroken(true)} loading="eager" fetchPriority="high" className="h-full w-full object-cover" alt={`${profile.name}'s main profile photo`} />
-          : <div className="flex h-full flex-col items-center justify-center gap-2 bg-[linear-gradient(145deg,#392331,#17131a)] text-primary"><span className="text-5xl font-bold">{profile.name?.slice(0, 1)?.toUpperCase()}</span><span className="text-xs font-semibold text-white/70">{t("Add a main photo")}</span></div>}
+          : <div className="flex h-full flex-col items-center justify-center gap-2 bg-neutral-800 text-white"><span className="text-5xl font-bold">{profile.name?.slice(0, 1)?.toUpperCase()}</span><span className="text-[10px] font-semibold text-white/70">{t("Add a main photo")}</span></div>}
       </div>
-      <div className="op-person-details mt-2 text-left">
-        <h1 data-testid="text-profile-name" title={profile.name} className="brand max-w-full truncate text-[clamp(26px,7vw,38px)] font-extrabold leading-[1.08] tracking-[-.04em]">{profile.name}{profile.age !== null ? `, ${profile.age}` : ""}<VerifiedBadge verified={profile.isVerified} /></h1>
-        {(place || profile.gender || travelCity) && <div className="op-profile-meta mt-1.5 flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1 text-[14px]">
+      <div className="op-person-details mt-3 text-center">
+        <h1 data-testid="text-profile-name" title={profile.name} className="brand mx-auto max-w-full truncate text-[clamp(26px,7vw,38px)] font-extrabold leading-[1.08] tracking-[-.04em]">{profile.name}<VerifiedBadge verified={profile.isVerified} /></h1>
+        {(place || profile.gender || travelCity) && <div className="op-profile-meta mt-1.5 flex min-w-0 flex-wrap items-center justify-center gap-x-2.5 gap-y-1 text-[14px]">
           {place && <span data-testid="text-profile-city" title={place} className="op-muted inline-flex max-w-full items-center gap-1.5 truncate"><MapPin size={16} className="shrink-0 text-primary" aria-hidden="true" />{place}</span>}
           {profile.gender && <span data-testid="text-profile-gender" className="op-muted inline-flex items-center gap-1.5">{place && <span aria-hidden="true" className="op-meta-separator">|</span>}<GenderIcon size={16} className="text-primary" aria-hidden="true" />{profile.gender}</span>}
           {travelCity && <span className="inline-flex min-w-0 items-center gap-1 truncate rounded-full bg-primary/12 px-2.5 py-0.5 text-xs font-semibold text-primary" data-testid="badge-travel" title={`Traveling in ${travelCity}`}><Navigation size={12} />Traveling in {travelCity}</span>}
@@ -102,11 +100,11 @@ function OwnProfileOverview({ profile, travelCity }: { profile: Profile; travelC
       <Link href="/profile/edit?returnTo=%2Fprofile" data-testid="button-edit-profile" aria-label={t("Edit profile")} title={t("Edit profile")} className="op-edit inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-transform active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"><Pencil size={18} aria-hidden="true" /></Link>
     </section>
     <div className="op-rule shrink-0" aria-hidden="true" />
-    <section className="op-section min-w-0 shrink-0"><h3 className="op-label">{t("About me")}</h3><p data-testid="text-profile-bio" title={bio} className="mt-1.5 line-clamp-3 text-[14px] leading-[1.5]">{bio}</p></section>
+    <section className="op-section min-w-0 shrink-0"><h3 className="op-label">{t("About me")}</h3><p data-testid="text-profile-bio" title={bio} className="mt-1.5 line-clamp-3 text-[14px] leading-[1.5]">{bio}</p>{profile.age !== null ? <p className="op-muted mt-1.5 text-[13px]" data-testid="text-profile-age">Age · {profile.age}</p> : null}</section>
     <section className="op-section shrink-0"><h3 className="op-label">{t("Hobbies")}</h3>{profile.interests.length ? <div className="mt-2 flex flex-wrap gap-2" title={profile.interests.join(", ")} aria-label={`${t("Hobbies")}: ${profile.interests.join(", ")}`}>{shown.map((interest) => <span key={interest} className="op-chip max-w-[46%] truncate rounded-full px-3.5 py-1.5 text-[13px] font-semibold">{interest}</span>)}{more > 0 && <Link href="/profile/edit?returnTo=%2Fprofile" data-testid="link-more-hobbies" className="op-chip rounded-full px-3.5 py-1.5 text-[13px] font-bold">+{more}</Link>}</div> : <p className="op-muted mt-1.5 text-[13px]">{t("Add a few hobbies to your profile.")}</p>}</section>
     <section className="op-section shrink-0"><h3 className="op-label">{t("Work")}</h3><span data-testid="text-profile-occupation" title={work} className="op-chip mt-2 inline-flex max-w-full truncate rounded-full px-3.5 py-1.5 text-[13px] font-semibold">{work}</span></section>
     <section className="op-section shrink-0"><h3 className="op-label">{t("Photos")}</h3>
-       {profile.photos.length ? <div className="mt-2 grid grid-cols-5 gap-2" data-testid="profile-photo-strip" aria-label={`${t("Profile photos")}, ${profile.photos.length} ${t("total")}`}>{profile.photos.slice(0, 5).map((photo, index) => <div key={`${photo}-${index}`} className="op-thumb relative aspect-square overflow-hidden rounded-xl"><MediaImage reference={photo} alt={`${t("Profile photo")} ${index + 1}${index === 0 ? ` (${t("main")})` : ""}`} className="h-full w-full object-cover" />{index === 0 && <span className="absolute inset-x-0 bottom-0 bg-[#F34E9A] text-center text-[9px] font-bold leading-[14px] text-[#24111b]">{t("Main")}</span>}</div>)}</div> : <p className="op-muted mt-1.5 text-[13px]">{t("Add photos in Edit profile.")}</p>}
+       {profile.photos.length ? <div className="mt-2 grid grid-cols-5 gap-2" data-testid="profile-photo-strip" aria-label={`${t("Profile photos")}, ${profile.photos.length} ${t("total")}`}>{profile.photos.slice(0, 5).map((photo, index) => <div key={`${photo}-${index}`} className="op-thumb relative aspect-square overflow-hidden rounded-xl"><MediaImage reference={photo} alt={`${t("Profile photo")} ${index + 1}${index === 0 ? ` (${t("main")})` : ""}`} className="h-full w-full object-cover" />{index === 0 && <span className="absolute inset-x-0 bottom-0 bg-white text-center text-[9px] font-bold leading-[14px] text-black">{t("Main")}</span>}</div>)}</div> : <p className="op-muted mt-1.5 text-[13px]">{t("Add photos in Edit profile.")}</p>}
     </section>
     <ProfileReelsSection profileId={profile.id} returnTo="/profile" own />
     <ReferralProfileCard />

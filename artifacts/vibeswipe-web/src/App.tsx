@@ -27,7 +27,7 @@ import {
 import { Link, Redirect, Route, Switch, useLocation, useParams, Router as WouterRouter } from 'wouter';
 import {
   ArrowLeft, ArrowRight, Bell, Clapperboard, Check, ChevronDown, ChevronRight, CircleHelp, Compass, Eye, EyeOff,
-  Heart, ImagePlus, Inbox, MapPin, MessageCircle, MoreHorizontal, Navigation, Search, Settings,
+  Heart, House, ImagePlus, Inbox, MapPin, MessageCircle, MoreHorizontal, Navigation, Plus, Search, Settings,
   Shield, SlidersHorizontal, Mars, Venus, NonBinary, Briefcase, Pencil, Camera, Sparkles, Star, UserRound, UserPlus, Users, Volume2, X, Zap, Flag, Ban, Images, Coffee, CupSoda, Music, ImageIcon, Paperclip, SendHorizontal, LoaderCircle, MessageCircleMore,
 } from 'lucide-react';
 import NotFound from '@/pages/not-found';
@@ -120,33 +120,35 @@ const mediaUrl = (ref?: string | null) => ref ? (ref.startsWith('http') ? ref : 
 
 const appearance = {
   theme: shadcn, cssLayerName: 'clerk',
-  options: { logoPlacement: 'inside' as const, logoLinkUrl: basePath || '/', logoImageUrl: `${window.location.origin}${assetPathFor('/logo.svg')}` },
-  variables: { colorPrimary: '#F34E9A', colorForeground: '#f5edf1', colorMutedForeground: '#a79ca5', colorDanger: '#f06b76', colorBackground: '#15131a', colorInput: '#19161c', colorInputForeground: '#f5edf1', colorNeutral: '#f5edf1', fontFamily: 'DM Sans', borderRadius: '14px' },
+  options: { logoPlacement: 'inside' as const, logoLinkUrl: basePath || '/', logoImageUrl: `${window.location.origin}${assetPathFor('/logo.svg?v=2')}` },
+  variables: { colorPrimary: '#ffffff', colorForeground: '#f5f5f5', colorMutedForeground: '#a3a3a3', colorDanger: '#f06b76', colorBackground: '#111111', colorInput: '#191919', colorInputForeground: '#f5f5f5', colorNeutral: '#f5f5f5', fontFamily: 'DM Sans', borderRadius: '14px' },
   elements: {
-    rootBox: 'w-full flex justify-center', cardBox: 'bg-[#211d25] rounded-2xl w-[440px] max-w-full overflow-hidden border border-white/10',
+    rootBox: 'w-full flex justify-center', cardBox: 'bg-[#181818] rounded-2xl w-[440px] max-w-full overflow-hidden border border-white/10',
     card: '!shadow-none !border-0 !bg-transparent !rounded-none', footer: '!shadow-none !border-0 !bg-transparent !rounded-none',
-    headerTitle: 'text-[#fff2f7] font-bold', headerSubtitle: 'text-[#b9adb6]', socialButtonsBlockButtonText: 'text-[#f6edf2]',
-    formFieldLabel: 'text-[#e7dce3]', footerActionLink: 'text-[#ff6bad]', footerActionText: 'text-[#a99ca6]',
-    dividerText: 'text-[#a99ca6]', identityPreviewEditButton: 'text-[#ff6bad]', formFieldSuccessText: 'text-[#8dd6b4]',
+    headerTitle: 'text-foreground font-bold', headerSubtitle: 'text-muted-foreground', socialButtonsBlockButtonText: 'text-foreground',
+    formFieldLabel: 'text-foreground', footerActionLink: 'text-primary', footerActionText: 'text-muted-foreground',
+    dividerText: 'text-muted-foreground', identityPreviewEditButton: 'text-primary', formFieldSuccessText: 'text-muted-foreground',
     alertText: 'text-[#ffe6ea]', logoBox: 'rounded-xl', logoImage: 'rounded-lg',
     socialButtons: { display: 'none' as const }, socialButtonsBlockButton: { display: 'none' as const }, socialButtonsIconButton: { display: 'none' as const }, dividerRow: { display: 'none' as const },
-    formButtonPrimary: 'bg-[#F34E9A] hover:bg-[#ff68aa] text-[#24111b]', formFieldInput: 'bg-[#19161c] border-white/10 text-[#f5edf1]',
-    footerAction: 'bg-transparent', dividerLine: 'bg-white/10', alert: 'bg-[#40252d] border-[#7e3b4a]',
+    formButtonPrimary: '!bg-[#111111] !text-white hover:!bg-[#222222]', formFieldInput: 'bg-[#191919] border-white/10 text-white',
+    footerAction: 'bg-transparent', dividerLine: 'bg-white/10', alert: 'bg-[#302020] border-[#704040]',
     otpCodeFieldInput: 'bg-[#19161c] border-white/10 text-white', formFieldRow: 'gap-2', main: 'bg-transparent',
   },
 };
 
 function Brand({ compact = false, small = false }: { compact?: boolean; small?: boolean }) {
   return <Link href="/" className="inline-flex items-center gap-2.5" data-testid="link-brand">
-    <img src={assetPathFor('/vibeswipes-icon-192.png')} alt="" className={`${compact || small ? 'h-7 w-7 rounded-lg' : 'h-9 w-9 rounded-xl'} ring-1 ring-border`} />
-    {!compact && <span className={`brand ${small ? 'text-lg' : 'text-[21px]'} font-extrabold text-foreground`}>VibeSwipes</span>}
+    <img src={assetPathFor('/myage-monochrome-icon-192.png')} alt="" className={`${compact || small ? 'h-7 w-7 rounded-lg' : 'h-9 w-9 rounded-xl'} ring-1 ring-border`} />
+    {!compact && <span className={`brand ${small ? 'text-lg' : 'text-[21px]'} font-extrabold text-foreground`}>MyAgeBeauty</span>}
   </Link>;
 }
 
 const navItems = [
-  { href: '/discover', label: 'Discover', icon: Compass },
-  { href: '/reels', label: 'Reels', icon: Clapperboard },
-  { href: '/messages', label: 'Chats', icon: Inbox }, { href: '/notifications', label: 'Activity', icon: Bell },
+  { href: '/reels', label: 'Home', icon: House },
+  { href: '/friends', label: 'Friends', icon: Users },
+  { href: '/reels/new', label: 'Create', icon: Plus },
+  { href: '/messages', label: 'Inbox', icon: Inbox },
+  { href: '/profile', label: 'Profile', icon: UserRound },
 ];
 
 function UnreadMessageBadge({ count, mobile = false }: { count: number; mobile?: boolean }) {
@@ -169,15 +171,16 @@ function AppShell({ children }: { children: ReactNode }) {
   const [reelsNavigationVisible, setReelsNavigationVisible] = useState(true);
   const shellRef = useRef<HTMLDivElement>(null);
   const mobileNavRef = useRef<HTMLElement>(null);
-  const isReelsViewer = location === '/reels' || (/^\/reels\/[^/]+$/.test(location) && location !== '/reels/new' && location !== '/reels/saved');
+  const isReelsViewer = location === '/reels' || location === '/friends' || (/^\/reels\/[^/]+$/.test(location) && location !== '/reels/new' && location !== '/reels/saved');
   const showMainNavigation = ['/discover', '/matches', '/messages', '/notifications', '/views', '/likes', '/profile'].includes(location) || isReelsViewer;
   const isSocialPage = ['/matches', '/messages', '/notifications', '/views', '/likes'].includes(location);
-  const activeLocation = ['/matches', '/views', '/likes'].includes(location) ? '/notifications' : isReelsViewer ? '/reels' : location;
-  const mobileActiveIndex = activeLocation === '/reels' ? 1 : activeLocation === '/messages' ? 2 : activeLocation === '/notifications' ? 3 : activeLocation === '/profile' ? 4 : 0;
+  const activeLocation = ['/matches', '/views', '/likes', '/notifications'].includes(location)
+    ? '/messages'
+    : location === '/discover' ? '/friends'
+    : isReelsViewer ? (location === '/friends' ? '/friends' : '/reels') : location;
+  const mobileActiveIndex = Math.max(0, navItems.findIndex((item) => item.href === activeLocation));
   const settingsReturnTo = `${location}${window.location.search}${window.location.hash}`;
-  const { user } = useUser();
   const profile = useGetMyProfile({ query: { enabled: routeVisible } });
-  const activeName = profile.data?.name || user?.firstName || 'Your profile';
   const unreadMatches = useGetMatches({ query: {
     queryKey: getGetMatchesQueryKey(),
     enabled: routeVisible && showMainNavigation,
@@ -240,10 +243,9 @@ function AppShell({ children }: { children: ReactNode }) {
       {!isReelsViewer && <aside className="fixed inset-y-0 left-0 z-30 hidden w-[248px] flex-col border-r border-border bg-background px-5 py-6 lg:flex">
         <div className="mb-4 mt-2 px-3 text-[10px] font-bold uppercase tracking-[.2em] text-muted-foreground">Your space</div>
         <nav className="space-y-1">
-          {navItems.map(({ href, label, icon: Icon }) => <Link key={href} href={href} data-testid={`nav-${label.toLowerCase()}`} className={`flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold transition-colors ${activeLocation === href ? 'bg-accent text-[#ff80b6]' : 'text-muted-foreground hover:bg-white/[.04] hover:text-foreground'}`}><Icon size={18}/>{t(label)}{label === 'Chats' && <UnreadMessageBadge count={unreadMessageCount}/>}</Link>)}
+          {navItems.map(({ href, label, icon: Icon }) => <Link key={href} href={href} data-testid={`nav-${label.toLowerCase()}`} className={`flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold transition-colors ${activeLocation === href ? 'bg-accent text-foreground' : 'text-muted-foreground hover:bg-white/[.04] hover:text-foreground'}`}><Icon size={18}/>{t(label)}{label === 'Inbox' && <UnreadMessageBadge count={unreadMessageCount}/>}</Link>)}
         </nav>
         <div className="mt-auto space-y-2 border-t border-white/[.08] pt-4">
-          <Link href="/profile" data-testid="nav-profile" className={`flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold ${location === '/profile' ? 'bg-accent text-[#ff80b6]' : 'text-muted-foreground hover:bg-white/[.04]'}`}><UserRound size={18}/><span className="truncate">{activeName}</span></Link>
           <Link href={`/settings?returnTo=${encodeURIComponent(settingsReturnTo)}`} data-testid="nav-settings" className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-muted-foreground hover:bg-white/[.04]"><Settings size={18}/>{t("Settings")}</Link>
         </div>
       </aside>}
@@ -254,8 +256,7 @@ function AppShell({ children }: { children: ReactNode }) {
     {routeVisible && profile.data?.id&&<WebPushSettings key={profile.data.id} compact visible={showMainNavigation && !isReelsViewer} accountId={profile.data.id}/>}
     {showMainNavigation && <nav ref={mobileNavRef} aria-label="Primary" aria-hidden={isReelsViewer && !reelsNavigationVisible} className={`${location==='/profile'?'profile-nav ':''}${isReelsViewer ? `reels-mobile-nav ${reelsNavigationVisible ? '' : 'is-hidden'} ` : ''}mobile-nav fixed inset-x-0 bottom-0 ${isReelsViewer ? 'z-[80]' : 'z-30'} ${isReelsViewer ? '' : 'lg:hidden'} flex justify-around bg-background/95 px-2 pt-2 backdrop-blur-xl`}>
       <span aria-hidden="true" className="mobile-nav-indicator" style={{ transform: `translate3d(${mobileActiveIndex * 100}%, 0, 0)` }} />
-      {navItems.map(({ href, label, icon: Icon }) => <Link key={href} href={href} data-testid={`mobile-nav-${label.toLowerCase()}`} aria-current={activeLocation === href ? 'page' : undefined} className={`mnav-item ${activeLocation === href ? 'is-active text-primary' : 'text-muted-foreground'}`}><span className="mnav-icon"><Icon size={19} strokeWidth={activeLocation === href ? 2.25 : 1.85}/>{label === 'Chats' && <UnreadMessageBadge count={unreadMessageCount} mobile/>}</span><span className="mnav-label">{t(label)}</span></Link>)}
-      <Link href="/profile" data-testid="mobile-nav-profile" aria-current={location === '/profile' ? 'page' : undefined} className={`mnav-item ${location === '/profile' ? 'is-active text-primary' : 'text-muted-foreground'}`}><span className="mnav-icon"><UserRound size={19} strokeWidth={location === '/profile' ? 2.25 : 1.85}/></span><span className="mnav-label">{t("Profile")}</span></Link>
+      {navItems.map(({ href, label, icon: Icon }) => <Link key={href} href={href} data-testid={label === 'Profile' ? 'mobile-nav-profile' : `mobile-nav-${label.toLowerCase()}`} aria-current={activeLocation === href ? 'page' : undefined} className={`mnav-item ${label === 'Create' ? 'mnav-create' : ''} ${activeLocation === href ? 'is-active text-primary' : 'text-muted-foreground'}`}><span className="mnav-icon"><Icon size={label === 'Create' ? 25 : 19} strokeWidth={activeLocation === href ? 2.25 : 1.85}/>{label === 'Inbox' && <UnreadMessageBadge count={unreadMessageCount} mobile/>}</span><span className="mnav-label">{t(label)}</span></Link>)}
     </nav>}
   </div>;
 }
@@ -268,7 +269,7 @@ function Gate({ children }: { children: ReactNode }) {
   return <>{children}</>;
 }
 function AppOpening() {
-  return <div data-testid="status-app-startup"><RouteSkeleton label="Opening VibeSwipes" /></div>;
+  return <div data-testid="status-app-startup"><RouteSkeleton label="Opening MyAgeBeauty" /></div>;
 }
 function RequiredProfile({ children }: { children: ReactNode }) {
   const { user, isLoaded } = useUser();
@@ -299,7 +300,7 @@ function ShellPage({ children }: { children: ReactNode }) { return <Gate><Requir
 
 function Landing() {
   const { isSignedIn } = useUser();
-  if (isSignedIn) return <Redirect to="/discover"/>;
+  if (isSignedIn) return <Redirect to="/reels"/>;
   const principles = [
     { n: '01', icon: UserRound, title: 'A fuller picture', copy: 'Photos are the start. Your words and interests make a profile yours.' },
     { n: '02', icon: Heart, title: 'A mutual yes', copy: 'Only a mutual match opens the door to a conversation.' },
@@ -310,36 +311,36 @@ function Landing() {
       <Brand/>
       <nav className="flex items-center gap-1.5 sm:gap-2">
         <Link href="/sign-in" data-testid="link-sign-in" className="rounded-xl px-3 py-2.5 text-sm font-semibold text-muted-foreground transition-colors hover:text-foreground sm:px-4">Sign in</Link>
-        <Link href="/sign-up" data-testid="link-sign-up" className="whitespace-nowrap rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-[#25111d] transition-colors hover:bg-[#ff68aa]">Join<span className="hidden sm:inline"> VibeSwipes</span></Link>
+        <Link href="/sign-up" data-testid="link-sign-up" className="whitespace-nowrap rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground transition-colors hover:opacity-90">Join<span className="hidden sm:inline"> MyAgeBeauty</span></Link>
       </nav>
     </header>
 
     <section className="landing-rise mx-auto grid max-w-6xl gap-12 px-5 pb-16 pt-8 md:grid-cols-[1.1fr_.9fr] md:items-center md:gap-16 md:px-10 md:pb-24 md:pt-16">
       <div>
-        <div className="flex items-center gap-3 text-[11px] font-bold uppercase tracking-[.2em] text-[#ff91c1]"><span className="h-px w-8 bg-primary"/>For adults who mean it</div>
-        <h1 className="brand mt-6 text-[clamp(2.75rem,11vw,5.6rem)] font-extrabold leading-[1.02] tracking-[-.055em] text-[#fff3f8]">Less swiping.<br/><span className="text-primary">More feeling.</span></h1>
-        <p className="mt-6 max-w-[460px] text-[17px] leading-[1.7] text-[#c3b7c0]">Meet people who show up as themselves. Make a real connection, then let the conversation take its time.</p>
+        <div className="flex items-center gap-3 text-[11px] font-bold uppercase tracking-[.2em] text-white"><span className="h-px w-8 bg-primary"/>For adults who want to share</div>
+        <h1 className="brand mt-6 text-[clamp(2.75rem,11vw,5.6rem)] font-extrabold leading-[1.02] tracking-[-.055em] text-white">Your people.<br/><span className="text-primary">Your moments.</span></h1>
+        <p className="mt-6 max-w-[460px] text-[17px] leading-[1.7] text-[#b8b8b8]">Share photos and Reels, follow people you care about, and keep the conversation going in MyAgeBeauty.</p>
         <div className="mt-9 flex flex-col gap-3 sm:flex-row sm:items-center">
-          <Link href="/sign-up" data-testid="button-start-meeting" className="inline-flex items-center justify-center gap-3 rounded-2xl bg-primary px-6 py-4 text-[15px] font-bold text-[#24111b] transition-colors hover:bg-[#ff68aa]">Find your person <ArrowRight size={17}/></Link>
+          <Link href="/sign-up" data-testid="button-start-meeting" className="inline-flex items-center justify-center gap-3 rounded-2xl bg-primary px-6 py-4 text-[15px] font-bold text-primary-foreground transition-opacity hover:opacity-90">Get started <ArrowRight size={17}/></Link>
         </div>
       </div>
 
       <div className="w-full md:max-w-[420px] md:justify-self-end">
-        <div className="overflow-hidden rounded-[28px] border border-white/10 bg-[#1d1a21]">
-          <div className="relative aspect-[4/3.4] overflow-hidden bg-[linear-gradient(160deg,#3c2836,#874a62_55%,#c27c84)]">
+        <div className="overflow-hidden rounded-[28px] border border-white/10 bg-[#171717]">
+          <div className="relative aspect-[4/3.4] overflow-hidden bg-[linear-gradient(160deg,#111,#555_55%,#222)]">
             <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_22%,rgba(255,215,190,.45),transparent_40%)]"/>
             <div className="absolute left-1/2 top-[16%] h-[44%] w-[40%] -translate-x-1/2 rounded-[48%_48%_42%_42%] bg-[linear-gradient(160deg,#e6a98b,#a35d57)]"/>
             <div className="absolute bottom-0 left-1/2 h-[42%] w-[72%] -translate-x-1/2 rounded-t-[46%] bg-[linear-gradient(160deg,#e0c1b6,#915561_75%)]"/>
-            <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-[#1d1a21] to-transparent"/>
+            <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-[#171717] to-transparent"/>
             <div className="absolute inset-x-5 top-5 flex gap-1.5"><span className="h-1 flex-1 rounded-full bg-white/90"/><span className="h-1 flex-1 rounded-full bg-white/30"/><span className="h-1 flex-1 rounded-full bg-white/30"/></div>
           </div>
           <div className="px-6 pb-6 pt-1">
             <div className="text-[11px] font-bold uppercase tracking-[.18em] text-muted-foreground">Illustrative profile</div>
-            <div className="brand mt-2 text-2xl font-bold text-[#fff2f7]">A little about me</div>
-            <p className="mt-1 text-sm text-[#c3b7c0]">Good conversation, always.</p>
+            <div className="brand mt-2 text-2xl font-bold text-white">Your profile</div>
+            <p className="mt-1 text-sm text-[#b8b8b8]">Photos, Reels and moments from your world.</p>
           </div>
           <div className="grid border-t border-white/[.08] sm:grid-cols-2">
-            <div className="flex gap-3 px-6 py-5"><Heart size={17} className="mt-0.5 shrink-0 fill-primary text-primary"/><div><div className="text-sm font-bold">A better first hello</div><p className="mt-1 text-[13px] leading-5 text-muted-foreground">Start with more than a photo.</p></div></div>
+            <div className="flex gap-3 px-6 py-5"><Heart size={17} className="mt-0.5 shrink-0 fill-primary text-primary"/><div><div className="text-sm font-bold">Share your way</div><p className="mt-1 text-[13px] leading-5 text-muted-foreground">Post a photo, video or story.</p></div></div>
             <div className="flex gap-3 border-t border-white/[.08] px-6 py-5 sm:border-l sm:border-t-0"><Shield size={17} className="mt-0.5 shrink-0 text-[#86d9b6]"/><div><div className="text-sm font-bold">Your boundaries</div><p className="mt-1 text-[13px] leading-5 text-muted-foreground">Block, report or pause.</p></div></div>
           </div>
         </div>
@@ -348,13 +349,13 @@ function Landing() {
 
     <section className="mx-auto max-w-6xl px-5 md:px-10">
       <dl className="grid grid-cols-3 border-y border-white/[.08]">
-        {[['18+','Adults only'],['Mutual','Matches to message'],['Your call','Privacy controls']].map(([v,l],i)=><div key={v} className={`py-6 pr-2 ${i>0?'border-l border-white/[.08] pl-4 md:pl-8':''}`}><dt className="text-[12px] leading-5 text-muted-foreground md:text-sm">{l}</dt><dd className="brand order-first mt-1 text-lg font-bold text-foreground md:text-2xl">{v}</dd></div>)}
+        {[['18+','Adults only'],['Reels','Short videos'],['Your call','Privacy controls']].map(([v,l],i)=><div key={v} className={`py-6 pr-2 ${i>0?'border-l border-white/[.08] pl-4 md:pl-8':''}`}><dt className="text-[12px] leading-5 text-muted-foreground md:text-sm">{l}</dt><dd className="brand order-first mt-1 text-lg font-bold text-foreground md:text-2xl">{v}</dd></div>)}
       </dl>
     </section>
 
     <section className="mx-auto max-w-6xl px-5 py-20 md:px-10 md:py-28">
       <div className="grid gap-10 md:grid-cols-[.8fr_1.2fr] md:gap-16">
-        <div><span className="text-[11px] font-bold uppercase tracking-[.2em] text-primary">A different kind of spark</span><h2 className="brand mt-4 max-w-sm text-[2.1rem] font-bold leading-[1.12] tracking-[-.045em] md:text-[2.6rem]">Chemistry starts with showing up.</h2></div>
+        <div><span className="text-[11px] font-bold uppercase tracking-[.2em] text-primary">Make it yours</span><h2 className="brand mt-4 max-w-sm text-[2.1rem] font-bold leading-[1.12] tracking-[-.045em] md:text-[2.6rem]">A social space for real moments.</h2></div>
         <div className="divide-y divide-white/[.08] border-y border-white/[.08]">
           {principles.map(({n,icon:Icon,title,copy})=><article key={n} className="grid grid-cols-[auto_1fr] gap-5 py-7"><div className="flex h-11 w-11 items-center justify-center rounded-xl border border-primary/25 bg-primary/[.08] text-primary"><Icon size={18}/></div><div><div className="flex items-baseline gap-3"><span className="text-xs font-bold tabular-nums text-primary">{n}</span><h3 className="text-lg font-bold">{title}</h3></div><p className="mt-2 max-w-md text-[15px] leading-7 text-muted-foreground">{copy}</p></div></article>)}
         </div>
@@ -362,10 +363,10 @@ function Landing() {
     </section>
 
     <section className="mx-auto mb-16 max-w-6xl px-5 md:px-10">
-      <div className="rounded-[28px] border border-white/[.09] bg-[linear-gradient(135deg,#231d27,#2a1c26)] px-6 py-12 md:px-14 md:py-16">
+      <div className="rounded-[28px] border border-white/[.09] bg-[linear-gradient(135deg,#111,#252525)] px-6 py-12 md:px-14 md:py-16">
         <div className="flex flex-col items-start justify-between gap-8 md:flex-row md:items-center">
-          <div><span className="text-[11px] font-bold uppercase tracking-[.2em] text-primary">The next good thing</span><h2 className="brand mt-4 text-[2.1rem] font-bold leading-[1.1] tracking-[-.045em] md:text-5xl">Make space for a spark.</h2><p className="mt-3 text-[15px] text-muted-foreground">VibeSwipes is for adults 18 and over.</p></div>
-          <Link href="/sign-up" data-testid="button-join-bottom" className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-primary px-6 py-4 font-bold text-[#24111b] transition-colors hover:bg-[#ff68aa] sm:w-auto">Create your profile <ArrowRight size={16}/></Link>
+          <div><span className="text-[11px] font-bold uppercase tracking-[.2em] text-primary">Your next post</span><h2 className="brand mt-4 text-[2.1rem] font-bold leading-[1.1] tracking-[-.045em] md:text-5xl">Start sharing with MyAgeBeauty.</h2><p className="mt-3 text-[15px] text-muted-foreground">A social space for adults 18 and over.</p></div>
+          <Link href="/sign-up" data-testid="button-join-bottom" className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-primary px-6 py-4 font-bold text-primary-foreground transition-opacity hover:opacity-90 sm:w-auto">Create your profile <ArrowRight size={16}/></Link>
         </div>
       </div>
     </section>
@@ -391,7 +392,7 @@ export function Retry({ onRetry, text: _text, error: _error }: { onRetry: () => 
 function Avatar({ profile, size = 'md' }: { profile: Profile; size?: 'sm'|'md'|'lg' }) {
   const [broken,setBroken]=useState(false); const src=mediaUrl(profile.photos?.[0]); const classes=size==='lg'?'h-24 w-24 text-2xl':size==='sm'?'h-11 w-11 text-sm':'h-14 w-14 text-lg';
   useEffect(()=>setBroken(false),[profile.photos?.[0]]);
-  return <div className={`${classes} shrink-0 overflow-hidden rounded-full bg-[linear-gradient(145deg,#703a58,#302333)] ring-1 ring-white/10`} data-testid={`avatar-${profile.id}`}>{src&&!broken?<MediaImage reference={profile.photos?.[0]} onError={()=>setBroken(true)} className="h-full w-full object-cover" alt={`${profile.name}'s profile`}/>:<span className="flex h-full items-center justify-center font-bold text-[#ffd3e6]">{profile.name?.slice(0,1)?.toUpperCase()||'V'}</span>}</div>;
+  return <div className={`${classes} shrink-0 overflow-hidden rounded-full bg-[linear-gradient(145deg,#555,#171717)] ring-1 ring-white/10`} data-testid={`avatar-${profile.id}`}>{src&&!broken?<MediaImage reference={profile.photos?.[0]} onError={()=>setBroken(true)} className="h-full w-full object-cover" alt={`${profile.name}'s profile`}/>:<span className="flex h-full items-center justify-center font-bold text-white">{profile.name?.slice(0,1)?.toUpperCase()||'M'}</span>}</div>;
 }
   export function MediaImage({reference,className,alt,onError,onLoad,fallbackSrc,fullResolution=false,progressive=false,loading='lazy',fetchPriority}:{reference?:string;className:string;alt:string;onError?:()=>void;onLoad?:()=>void;fallbackSrc?:string;fullResolution?:boolean;progressive?:boolean;loading?:'eager'|'lazy';fetchPriority?:'high'|'low'|'auto'}) {
   const id=reference?.startsWith('media:')?reference.slice(6):'';
@@ -436,22 +437,22 @@ export function LegacyDiscoverPage() {
   if(discover.isLoading)return <PageFrame><PageHeading eyebrow="Discover" title="Finding your next spark"/><Busy/></PageFrame>;
   if(discover.isError&&isDiscoverSetupRequired(discover.error))return <Redirect to="/onboarding"/>;
   if(discover.isError)return <PageFrame><Retry onRetry={()=>void discover.refetch()} text="Discovery could not load right now."/></PageFrame>;
-  if(!profile)return <PageFrame><PageHeading eyebrow="Discover" title="That's everyone for now" description="Try broadening your filters, or check back soon."/><Empty title="You’re all caught up" detail="Your next connection might be just outside your current filters." action={<button data-testid="button-open-filters-empty" onClick={()=>setFilters(true)} className="rounded-xl bg-primary px-4 py-2.5 font-bold text-[#24111b]">Adjust filters</button>}/></PageFrame>;
+  if(!profile)return <PageFrame><PageHeading eyebrow="Discover" title="That's everyone for now" description="Try broadening your filters, or check back soon."/><Empty title="You’re all caught up" detail="Your next connection might be just outside your current filters." action={<button data-testid="button-open-filters-empty" onClick={()=>setFilters(true)} className="rounded-xl bg-primary px-4 py-2.5 font-bold text-primary-foreground">Adjust filters</button>}/></PageFrame>;
   return <PageFrame><PageHeading eyebrow="Discover / a little serendipity" title="Meet someone new" description={`${likes.data?.remaining??'—'} likes left today · ${superStatus.data?.remaining??'—'} super likes available`} action={<div className="flex gap-2"><button disabled={!boost.data?.available||activate.isPending} onClick={()=>activate.mutate(undefined,{onSuccess:()=>{void qc.invalidateQueries({queryKey:getGetBoostStatusQueryKey()});setNotice('Your boost is active for 30 minutes.')}})} data-testid="button-activate-boost" className="inline-flex items-center gap-2 rounded-xl border border-white/10 px-3 py-2.5 text-xs font-bold disabled:opacity-40"><Zap size={15} className="text-amber-300"/>Boost</button><button onClick={()=>setFilters(true)} data-testid="button-discovery-filters" className="rounded-xl border border-white/10 p-2.5"><SlidersHorizontal size={17}/></button></div>}/>
-    {notice&&<div role="status" data-testid="status-discover" className="mb-4 rounded-xl border border-primary/20 bg-accent px-4 py-3 text-sm text-[#ffafd1]">{notice}<button onClick={()=>setNotice('')} data-testid="button-dismiss-notice" className="float-right"><X size={16}/></button></div>}
+    {notice&&<div role="status" data-testid="status-discover" className="mb-4 rounded-xl border border-primary/20 bg-accent px-4 py-3 text-sm text-primary">{notice}<button onClick={()=>setNotice('')} data-testid="button-dismiss-notice" className="float-right"><X size={16}/></button></div>}
     <div className="grid gap-5 lg:grid-cols-[minmax(360px,530px)_1fr]">
       <article className="relative min-h-[540px] overflow-hidden rounded-[30px] border border-white/10 bg-[#25202a] shadow-xl md:min-h-[630px]" onTouchStart={(e)=>{(e.currentTarget as HTMLElement).dataset.touchX=String(e.touches[0].clientX)}} onTouchEnd={(e)=>{const x=Number((e.currentTarget as HTMLElement).dataset.touchX);const dx=e.changedTouches[0].clientX-x;if(Math.abs(dx)>90)void act(dx>0?'like':'pass')}} data-testid={`card-discover-${profile.id}`}>
-        {profile.photos?.[0]&&<MediaImage reference={profile.photos[0]} className="absolute inset-0 h-full w-full object-cover" alt={`${profile.name}${profile.age!==null?`, ${profile.age}`:''}`}/>}
-        {!profile.photos?.[0]&&<div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_25%,#9f6076,#382b3a_55%,#1b1820)]"><div className="absolute left-[25%] top-[12%] h-[36%] w-[50%] rounded-[50%] bg-[linear-gradient(140deg,#d6a28c,#83515a)]"/><div className="absolute bottom-[-12%] left-[9%] h-[62%] w-[82%] rounded-t-[48%] bg-[linear-gradient(140deg,#d1b2a4,#745061)]"/></div>}
+        {profile.photos?.[0]&&<MediaImage reference={profile.photos[0]} className="absolute inset-0 h-full w-full object-cover" alt={profile.name}/>}
+        {!profile.photos?.[0]&&<div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_25%,#777,#333_55%,#111)]"><div className="absolute left-[25%] top-[12%] h-[36%] w-[50%] rounded-[50%] bg-[linear-gradient(140deg,#d6a28c,#83515a)]"/><div className="absolute bottom-[-12%] left-[9%] h-[62%] w-[82%] rounded-t-[48%] bg-[linear-gradient(140deg,#d1b2a4,#3d3d3d)]"/></div>}
         <div className="absolute inset-0 bg-gradient-to-t from-[#130f16] via-[#17121a]/10 to-[#17121a]/20"/>
         {profile.superLikedYou&&<span className="absolute left-5 top-5 flex items-center gap-2 rounded-full bg-black/40 px-3 py-2 text-xs font-bold text-amber-200 backdrop-blur"><Star size={14}/>Super liked you</span>}
         <button onClick={()=>setDetail(!detail)} data-testid="button-profile-details" aria-label="Profile details" className="absolute inset-0 z-[1]"/>
-        <div className="absolute inset-x-5 bottom-24 z-[2] pointer-events-none"><div className="flex items-end gap-2"><h2 className="text-4xl font-bold tracking-tight">{profile.name}</h2>{profile.age!==null&&<span className="pb-1 text-2xl">{profile.age}</span>}</div><div className="mt-2 flex items-center gap-1.5 text-sm text-white/75"><MapPin size={14}/>{profile.city||'Nearby'}{profile.country?`, ${profile.country}`:''}</div><p className="mt-4 line-clamp-3 max-w-lg text-sm leading-6 text-white/85">{profile.bio}</p><div className="mt-3 flex flex-wrap gap-2">{profile.interests?.slice(0,4).map(i=><span key={i} className="rounded-full border border-white/20 bg-black/20 px-3 py-1 text-xs backdrop-blur">{i}</span>)}</div></div>
-        <div className="absolute inset-x-0 bottom-0 z-[3] flex items-center justify-center gap-4 bg-gradient-to-t from-[#141117] via-[#141117]/80 to-transparent px-4 pb-5 pt-9">
+        <div className="absolute inset-x-5 bottom-24 z-[2] pointer-events-none"><h2 className="text-4xl font-bold tracking-tight">{profile.name}</h2><div className="mt-2 flex items-center gap-1.5 text-sm text-white/75"><MapPin size={14}/>{profile.city||'Nearby'}{profile.country?`, ${profile.country}`:''}</div><p className="mt-4 line-clamp-3 max-w-lg text-sm leading-6 text-white/85">{profile.bio}</p><div className="mt-3 flex flex-wrap gap-2">{profile.interests?.slice(0,4).map(i=><span key={i} className="rounded-full border border-white/20 bg-black/20 px-3 py-1 text-xs backdrop-blur">{i}</span>)}</div></div>
+        <div className="absolute inset-x-0 bottom-0 z-[3] flex items-center justify-center gap-4 bg-gradient-to-t from-black via-black/80 to-transparent px-4 pb-5 pt-9">
           <button onClick={()=>void act('pass')} disabled={reaction.isPending} data-testid="button-pass-profile" className="flex h-12 w-12 items-center justify-center rounded-full border border-white/15 bg-[#28232d] text-muted-foreground hover:text-foreground"><X size={23}/></button>
           <button onClick={()=>{if(lastPass)undo.mutate(undefined,{onSuccess:async r=>{if(r.undone){setIndex(v=>Math.max(0,v-1));setLastPass(null);await qc.invalidateQueries({queryKey:getGetDiscoverProfilesQueryKey(params)})}}})}} disabled={!lastPass||undo.isPending} data-testid="button-undo-pass" className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-[#28232d] text-muted-foreground disabled:opacity-40"><ArrowLeft size={17}/></button>
-          <button onClick={()=>void act('super')} disabled={reaction.isPending||superStatus.data?.remaining===0} data-testid="button-super-like" className="flex h-12 w-12 items-center justify-center rounded-full bg-[#f3c75c] text-[#211a11] shadow-lg disabled:opacity-40"><Star size={21}/></button>
-          <button onClick={()=>void act('like')} disabled={reaction.isPending||likes.data?.remaining===0} data-testid="button-like-profile" className="flex h-14 w-14 items-center justify-center rounded-full bg-primary text-[#27101d] shadow-[0_8px_30px_rgba(243,78,154,.32)] disabled:opacity-40"><Heart size={25} fill="currentColor"/></button>
+          <button onClick={()=>void act('super')} disabled={reaction.isPending||superStatus.data?.remaining===0} data-testid="button-super-like" className="flex h-12 w-12 items-center justify-center rounded-full bg-white text-black shadow-lg disabled:opacity-40"><Star size={21}/></button>
+          <button onClick={()=>void act('like')} disabled={reaction.isPending||likes.data?.remaining===0} data-testid="button-like-profile" className="flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg disabled:opacity-40"><Heart size={25} fill="currentColor"/></button>
         </div>
       </article>
       <aside className="hidden rounded-[28px] border border-white/[.08] bg-card p-7 lg:block">
@@ -461,8 +462,8 @@ export function LegacyDiscoverPage() {
         <div className="mt-7 rounded-2xl border border-white/[.08] bg-white/[.025] p-4 text-xs leading-5 text-muted-foreground"><div className="mb-2 flex items-center gap-2 font-bold text-foreground"><Shield size={14} className="text-[#8ed9b7]"/>Your safety is in your hands</div>Block or report any profile that crosses your boundaries.</div>
       </aside>
     </div>
-    {detail&&<Dialog title={`${profile.name}${profile.age!==null?`, ${profile.age}`:''}`} onClose={()=>setDetail(false)}><div className="space-y-4"><p className="text-sm text-muted-foreground">{profile.city} · {profile.gender} · Looking for {profile.lookingFor}</p><p className="whitespace-pre-wrap text-sm leading-6">{profile.bio||'No bio added yet.'}</p><div className="flex flex-wrap gap-2">{profile.interests?.map(i=><span key={i} className="rounded-full bg-accent px-3 py-1.5 text-xs text-[#ffafd1]">{i}</span>)}</div><div className="grid grid-cols-2 gap-2 pt-2"><button onClick={()=>void reportCurrent('inappropriate')} data-testid="button-report-profile" className="rounded-xl border border-white/10 px-4 py-3 text-sm font-semibold">Report</button><button onClick={()=>void blockCurrent()} data-testid="button-block-profile" className="rounded-xl border border-rose-400/20 px-4 py-3 text-sm font-semibold text-rose-300">Block profile</button></div></div></Dialog>}
-    {filters&&<Dialog title="Discovery filters" onClose={()=>setFilters(false)}><div className="space-y-5"><div className="grid grid-cols-2 gap-3"><label className="text-xs text-muted-foreground">Age from<input data-testid="input-filter-age-min" type="number" min="18" value={ageMin} onChange={e=>setAgeMin(Number(e.target.value))} className="field mt-2"/></label><label className="text-xs text-muted-foreground">Age to<input data-testid="input-filter-age-max" type="number" min={ageMin} value={ageMax} onChange={e=>setAgeMax(Number(e.target.value))} className="field mt-2"/></label></div><label className="block text-xs text-muted-foreground">Interested in<select data-testid="select-filter-gender" value={gender} onChange={e=>setGender(e.target.value)} className="field mt-2"><option>Everyone</option><option>Woman</option><option>Man</option><option>Non-binary</option></select></label><label className="block text-xs text-muted-foreground">City<input data-testid="input-filter-city" value={city} onChange={e=>setCity(e.target.value)} placeholder="Any city" className="field mt-2"/></label><button onClick={()=>{setIndex(0);setFilters(false)}} data-testid="button-apply-filters" className="w-full rounded-xl bg-primary py-3 font-bold text-[#27101d]">Show people</button></div></Dialog>}
+    {detail&&<Dialog title={profile.name} onClose={()=>setDetail(false)}><div className="space-y-4"><p className="text-sm text-muted-foreground">{profile.city} · {profile.gender} · Looking for {profile.lookingFor}</p><p className="whitespace-pre-wrap text-sm leading-6">{profile.bio||'No bio added yet.'}</p>{profile.age!==null&&<p className="text-sm text-muted-foreground">Age · {profile.age}</p>}<div className="flex flex-wrap gap-2">{profile.interests?.map(i=><span key={i} className="rounded-full bg-accent px-3 py-1.5 text-xs text-primary">{i}</span>)}</div><div className="grid grid-cols-2 gap-2 pt-2"><button onClick={()=>void reportCurrent('inappropriate')} data-testid="button-report-profile" className="rounded-xl border border-white/10 px-4 py-3 text-sm font-semibold">Report</button><button onClick={()=>void blockCurrent()} data-testid="button-block-profile" className="rounded-xl border border-rose-400/20 px-4 py-3 text-sm font-semibold text-rose-300">Block profile</button></div></div></Dialog>}
+    {filters&&<Dialog title="Discovery filters" onClose={()=>setFilters(false)}><div className="space-y-5"><div className="grid grid-cols-2 gap-3"><label className="text-xs text-muted-foreground">Age from<input data-testid="input-filter-age-min" type="number" min="18" value={ageMin} onChange={e=>setAgeMin(Number(e.target.value))} className="field mt-2"/></label><label className="text-xs text-muted-foreground">Age to<input data-testid="input-filter-age-max" type="number" min={ageMin} value={ageMax} onChange={e=>setAgeMax(Number(e.target.value))} className="field mt-2"/></label></div><label className="block text-xs text-muted-foreground">Interested in<select data-testid="select-filter-gender" value={gender} onChange={e=>setGender(e.target.value)} className="field mt-2"><option>Everyone</option><option>Woman</option><option>Man</option><option>Non-binary</option></select></label><label className="block text-xs text-muted-foreground">City<input data-testid="input-filter-city" value={city} onChange={e=>setCity(e.target.value)} placeholder="Any city" className="field mt-2"/></label><button onClick={()=>{setIndex(0);setFilters(false)}} data-testid="button-apply-filters" className="w-full rounded-xl bg-primary py-3 font-bold text-primary-foreground">Show people</button></div></Dialog>}
   </PageFrame>;
 }
 function DiscoverPage(){return <DiscoverSwipePage/>}
@@ -481,7 +482,7 @@ function MatchesPage() {
         : matches.isError ? <div className="mt-6"><Retry onRetry={() => void matches.refetch()} /></div>
         : matches.data?.length
           ? <div data-testid="section-matches-list" className="mt-6 grid gap-3 md:grid-cols-2">
-            {matches.data.map(m => <article key={m.id} data-testid={`card-match-${m.id}`} className="rounded-[22px] border border-white/[.08] bg-card p-4 transition-colors hover:border-white/[.14]"><div className="flex items-start gap-3"><MatchStoryAvatar matchId={m.id} profile={m.profile} storyGroup={stories.data?.mutualFollows.find((group) => group.poster.id === m.profile.id)} disabled={m.blockedByMe || m.blockedMe} /><Link href={`/chat/${m.id}`} data-testid={`link-match-chat-${m.id}`} className={`flex min-w-0 flex-1 items-center gap-3 ${m.blockedByMe || m.blockedMe ? 'pointer-events-none opacity-60' : ''}`}><div className="min-w-0 flex-1"><div className="font-bold">{m.profile.name}{m.profile.age !== null && `, ${m.profile.age}`}</div>{(m.blockedByMe || m.blockedMe || m.lastMessage) && <div className={`mt-1 truncate text-xs ${m.blockedByMe || m.blockedMe ? 'text-rose-300' : 'text-muted-foreground'}`}>{m.blockedByMe ? 'Blocked by you' : m.blockedMe ? 'This person blocked you' : m.lastMessage}</div>}</div><MessageCircle size={18} className="text-primary" /></Link><Link href={`/profile/${m.profile.id}?returnTo=%2Fmatches`} data-testid={`link-match-profile-${m.id}`} aria-label={`View ${m.profile.name}’s profile`} className="rounded-lg p-2 text-muted-foreground hover:bg-white/5"><UserRound size={18} /></Link><button onClick={() => setTarget(m.profile)} data-testid={`button-match-actions-${m.id}`} aria-label={`More actions for ${m.profile.name}`} className="rounded-lg p-2 text-muted-foreground hover:bg-white/5"><MoreHorizontal size={19} /></button></div>
+            {matches.data.map(m => <article key={m.id} data-testid={`card-match-${m.id}`} className="rounded-[22px] border border-white/[.08] bg-card p-4 transition-colors hover:border-white/[.14]"><div className="flex items-start gap-3"><MatchStoryAvatar matchId={m.id} profile={m.profile} storyGroup={stories.data?.mutualFollows.find((group) => group.poster.id === m.profile.id)} disabled={m.blockedByMe || m.blockedMe} /><Link href={`/chat/${m.id}`} data-testid={`link-match-chat-${m.id}`} className={`flex min-w-0 flex-1 items-center gap-3 ${m.blockedByMe || m.blockedMe ? 'pointer-events-none opacity-60' : ''}`}><div className="min-w-0 flex-1"><div className="font-bold">{m.profile.name}</div>{(m.blockedByMe || m.blockedMe || m.lastMessage) && <div className={`mt-1 truncate text-xs ${m.blockedByMe || m.blockedMe ? 'text-rose-300' : 'text-muted-foreground'}`}>{m.blockedByMe ? 'Blocked by you' : m.blockedMe ? 'This person blocked you' : m.lastMessage}</div>}</div><MessageCircle size={18} className="text-primary" /></Link><Link href={`/profile/${m.profile.id}?returnTo=%2Fmatches`} data-testid={`link-match-profile-${m.id}`} aria-label={`View ${m.profile.name}’s profile`} className="rounded-lg p-2 text-muted-foreground hover:bg-white/5"><UserRound size={18} /></Link><button onClick={() => setTarget(m.profile)} data-testid={`button-match-actions-${m.id}`} aria-label={`More actions for ${m.profile.name}`} className="rounded-lg p-2 text-muted-foreground hover:bg-white/5"><MoreHorizontal size={19} /></button></div>
               {!m.blockedByMe && !m.blockedMe && !m.lastMessage && prompts.data && prompts.data.length > 0 && <div className="mt-4 border-t border-white/[.07] pt-3"><button disabled={send.isPending} onClick={() => void opener(m.id, prompts.data[0].question)} data-testid={`button-icebreaker-${m.id}`} className="flex w-full items-center justify-between gap-3 rounded-xl bg-white/[.035] p-3 text-left text-xs leading-5 hover:bg-white/[.06]"><span>{prompts.data[0].question}</span><ArrowRight size={14} className="shrink-0 text-primary" /></button></div>}
             </article>)}
           </div>
@@ -598,7 +599,7 @@ function ChatPage({matchId,returnTo='/matches',autoFocusComposer=false}:{matchId
   async function attach(file?:File){if(!file||blocked||busy||send.isPending)return;const kind=file.type.startsWith('video/')?'video':file.type.startsWith('audio/')?'audio':'image';if(kind==='image'&&file.size>15*1024*1024){setError('Choose an image smaller than 15 MB.');return}if(kind==='video'&&file.size>500*1024*1024){setError('Choose a video smaller than 500 MB.');return}if(kind==='audio'&&file.size>25*1024*1024){setError('Choose an audio note smaller than 25 MB.');return}setBusy(true);setError('');try{const prepared=kind==='image'?await prepareProfilePhoto(file):file;const allowed:MediaUploadInputContentType[]=['image/jpeg','image/png','image/webp','image/heic','video/mp4','video/quicktime','audio/mp4','audio/m4a','audio/aac','audio/wav'];const fallback:MediaUploadInputContentType=kind==='image'?'image/jpeg':kind==='video'?'video/mp4':'audio/m4a';const contentType:MediaUploadInputContentType=allowed.includes(prepared.type as MediaUploadInputContentType)?prepared.type as MediaUploadInputContentType:fallback;const signed=await upload.mutateAsync({matchId,data:{name:prepared.name,size:prepared.size,contentType,mediaType:kind}});if(kind==='image')await uploadProfilePhotoBytes(signed.uploadURL,prepared);else{const res=await fetch(signed.uploadURL,{method:'PUT',headers:{'Content-Type':contentType},body:prepared});if(!res.ok)throw {status:res.status}}const mediaReference=kind==='video'?(await transcode.mutateAsync({mediaId:signed.mediaId})).mediaReference:signed.mediaReference;await sendMessage('',{mediaReference,mediaType:kind})}catch(error){setError(userErrorMessage(error,'Your attachment wasn’t sent. Choose the file again to retry.'))}finally{setBusy(false)}}
   async function action(a:string){if(!match)return;setActions(false);try{if(a==='block'){if(match.blockedByMe)await unblock.mutateAsync({targetUserId:match.profile.id});else if(window.confirm(`Block ${match.profile.name}?`))await block.mutateAsync({data:{targetUserId:match.profile.id}})}if(a==='report')await report.mutateAsync({data:{targetUserId:match.profile.id,reason:'other'}});if(a==='clear'){if(window.confirm('Clear messages from your view?')){await clear.mutateAsync({matchId});await qc.invalidateQueries({queryKey:getGetMessagesQueryKey(matchId)})}}if(a==='unmatch'){if(window.confirm('Unmatch and remove this shared chat?')){await unmatch.mutateAsync({matchId});void qc.invalidateQueries({queryKey:getGetMatchesQueryKey()});setLocation(returnTo)}}if(a==='theme')setThemeOpen(true)}catch{setError('That action did not complete. Please try again.')}}
   const chatTheme=match.chatTheme; const darkChat=chatTheme==='dark';
-  const accent=chatTheme==='blue'?'hsl(214 63% 52%)':chatTheme==='purple'?'hsl(263 55% 58%)':chatTheme==='green'?'hsl(157 60% 32%)':'hsl(var(--chat-pink))';
+  const accent='hsl(var(--chat-pink))';
   const selfPath=`/chat/${matchId}${returnTo!=='/matches'?`?returnTo=${encodeURIComponent(returnTo)}`:''}`;
   const profileHref=`/profile/${match.profile.id}?returnTo=${encodeURIComponent(selfPath)}`;
   const statusLine=typing.data?.isTyping?`${match.profile.name} is typing…`:presence.data?.isOnline?'Online now':presence.data?.lastSeenAt?`Last seen ${new Date(presence.data.lastSeenAt).toLocaleString()}`:'A conversation just for your mutual match';
@@ -644,7 +645,7 @@ function ChatPage({matchId,returnTo='/matches',autoFocusComposer=false}:{matchId
       </form>
     </div>
     {actions&&<Dialog title="Conversation settings" onClose={()=>setActions(false)}><div className="space-y-2"><Link href={profileHref} onClick={()=>setActions(false)} data-testid="link-chat-menu-profile" className="block w-full rounded-xl border border-white/10 p-3 text-left text-sm">View profile</Link><button onClick={()=>void action('theme')} data-testid="button-change-chat-theme" className="w-full rounded-xl border border-white/10 p-3 text-left text-sm">Change chat color</button><button onClick={()=>void action('clear')} data-testid="button-clear-chat" className="w-full rounded-xl border border-white/10 p-3 text-left text-sm">Clear chat for me</button><button onClick={()=>void action('report')} data-testid="button-report-chat-profile" className="w-full rounded-xl border border-white/10 p-3 text-left text-sm">Report profile</button><button onClick={()=>void action('block')} data-testid="button-block-chat-profile" className="w-full rounded-xl border border-rose-300/20 p-3 text-left text-sm text-rose-300">{match.blockedByMe?'Unblock profile':'Block profile'}</button><button onClick={()=>void action('unmatch')} data-testid="button-chat-unmatch" className="w-full rounded-xl border border-rose-300/20 p-3 text-left text-sm text-rose-300">Unmatch</button></div></Dialog>}
-    {themeOpen&&<Dialog title="Choose a chat color" onClose={()=>setThemeOpen(false)}><div className="grid grid-cols-2 gap-2">{(['pink','blue','purple','green','dark','light'] as ChatTheme[]).map(t=><button key={t} onClick={()=>theme.mutate({matchId,data:{theme:t}},{onSuccess:()=>{setThemeOpen(false);void qc.invalidateQueries({queryKey:getGetMatchesQueryKey()})}})} data-testid={`button-theme-${t}`} className="rounded-xl border border-white/10 p-3 text-sm font-semibold capitalize">{t}</button>)}</div></Dialog>}
+    {themeOpen&&<Dialog title="Chat appearance" onClose={()=>setThemeOpen(false)}><div className="grid grid-cols-2 gap-2">{(['dark','light'] as ChatTheme[]).map(t=><button key={t} onClick={()=>theme.mutate({matchId,data:{theme:t}},{onSuccess:()=>{setThemeOpen(false);void qc.invalidateQueries({queryKey:getGetMatchesQueryKey()})}})} data-testid={`button-theme-${t}`} className="rounded-xl border border-white/10 p-3 text-sm font-semibold capitalize">{t}</button>)}</div></Dialog>}
     {deleteTarget&&<Dialog title="Delete message" onClose={()=>setDeleteTarget(null)}><p className="mb-4 text-sm text-muted-foreground">Choose whether to remove this message only for you or for everyone.</p><div className="space-y-2"><button disabled={del.isPending} onClick={()=>void deleteMessageFor(deleteTarget,false)} data-testid="button-delete-message-for-me" className="w-full rounded-xl border border-white/10 p-3 text-left text-sm">Delete for me</button>{deleteTarget.senderId===profile.data?.id&&<button disabled={del.isPending} onClick={()=>void deleteMessageFor(deleteTarget,true)} data-testid="button-delete-message-for-everyone" className="w-full rounded-xl border border-rose-300/20 p-3 text-left text-sm text-rose-300">Delete for everyone</button>}</div></Dialog>}
   </div>;
 }
@@ -711,7 +712,7 @@ function ChatsPage() {
               <ul className="space-y-3">{newMatches.map(m => <li key={m.id} className="flex items-center gap-4 py-3">
               <div className="msg-avatar shrink-0"><MatchStoryAvatar matchId={m.id} profile={m.profile} storyGroup={stories.data?.mutualFollows.find(g => g.poster.id === m.profile.id)} returnTo="/messages" /></div>
                 <Link href={`/chat/${m.id}?returnTo=%2Fmessages&focusComposer=1`} data-testid={`link-new-match-${m.id}`} aria-label={`Start a chat with ${m.profile.name}`} className="flex min-w-0 flex-1 items-center gap-3">
-                  <div className="min-w-0 flex-1"><div className="truncate text-[17px] font-bold">{m.profile.name}{m.profile.age !== null ? `, ${m.profile.age}` : ''}</div><div className="mt-1 text-sm text-muted-foreground">You both liked each other ❤️</div></div>
+                  <div className="min-w-0 flex-1"><div className="truncate text-[17px] font-bold">{m.profile.name}</div><div className="mt-1 text-sm text-muted-foreground">You both liked each other ❤️</div></div>
                   <span className="shrink-0 rounded-full bg-primary px-3 py-2 text-xs font-bold text-primary-foreground">Message</span>
                 </Link>
               </li>)}</ul>
@@ -893,7 +894,7 @@ function OwnProfileOverview({profile,travelCity}:{profile:Profile;travelCity?:st
     </div>
     <section className="op-section shrink-0"><h3 className="op-label"><span className="op-ico"><Heart size={13}/></span>Hobbies</h3>{profile.interests.length?<div className="mt-2 flex h-[28px] flex-wrap gap-1.5 overflow-hidden" title={profile.interests.join(', ')} aria-label={`Hobbies: ${profile.interests.join(', ')}`}>{shown.map(i=><span key={i} className="op-chip max-w-[46%] truncate rounded-full px-3 py-1 text-[12.5px] font-semibold">{i}</span>)}{more>0&&<Link href="/profile/edit?returnTo=%2Fprofile" data-testid="link-more-hobbies" className="op-chip rounded-full px-3 py-1 text-[12.5px] font-bold">+{more}</Link>}</div>:<p className="op-muted mt-1.5 text-[13px]">Add a few hobbies to your profile.</p>}</section>
     <section className="op-section shrink-0"><div className="flex items-center justify-between"><h3 className="op-label"><span className="op-ico"><Camera size={13}/></span>Photos <span className="op-muted ml-0.5 text-xs font-semibold tracking-normal">{profile.photos.length}/6</span></h3><Link href="/profile/edit?returnTo=%2Fprofile" data-testid="link-manage-photos" className="op-manage inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold"><Camera size={12}/>Manage</Link></div>
-      {profile.photos.length?<div className="mt-2 grid grid-cols-6 gap-1.5">{profile.photos.slice(0,6).map((p,i)=><div key={`${p}-${i}`} className="op-thumb relative aspect-square overflow-hidden rounded-xl"><MediaImage reference={p} alt={`Profile photo ${i+1}${i===0?' (main)':''}`} className="h-full w-full object-cover"/>{i===0&&<span className="absolute inset-x-0 bottom-0 bg-[#F34E9A] text-center text-[9px] font-bold leading-[14px] text-[#24111b]">Main</span>}</div>)}</div>:<p className="op-muted mt-1.5 text-[13px]">Add photos in Edit profile.</p>}
+      {profile.photos.length?<div className="mt-2 grid grid-cols-6 gap-1.5">{profile.photos.slice(0,6).map((p,i)=><div key={`${p}-${i}`} className="op-thumb relative aspect-square overflow-hidden rounded-xl"><MediaImage reference={p} alt={`Profile photo ${i+1}${i===0?' (main)':''}`} className="h-full w-full object-cover"/>{i===0&&<span className="absolute inset-x-0 bottom-0 bg-white text-center text-[9px] font-bold leading-[14px] text-black">Main</span>}</div>)}</div>:<p className="op-muted mt-1.5 text-[13px]">Add photos in Edit profile.</p>}
     </section>
      <ProfileReelsSection profileId={profile.id} returnTo="/profile" own />
   </div>;
@@ -940,13 +941,13 @@ async function uploadOnboardingPhoto(file?:File){
   }
 }
 useEffect(()=>{if(!ready)return;const key=`${step+1}:${JSON.stringify(data)}`;if(key===currentKey.current)return;autosaveTimer.current=setTimeout(()=>saveDraft.mutate({data:{step:step+1,data}},{onSuccess:d=>{currentKey.current=`${d.step}:${JSON.stringify(data)}`;qc.setQueryData(getGetOnboardingDraftQueryKey(),d);setSaved(latestDraftKey.current===key)},onError:error=>{setSaved(false);setError(userErrorMessage(error,'Your latest changes haven’t saved yet. Keep this screen open and tap Continue to try again.'))}}),650);return()=>clearTimeout(autosaveTimer.current)},[ready,step,data]);
- function validate(){if(step===0&&!data.firstName.trim())return 'Add your first name to continue.';if(step===0&&(!data.country||!data.countryCode||!data.countrySource))return 'Set your country to continue.';if(step===1&&!data.lastName.trim())return 'Add your last name to continue.';if(step===2&&(!Number.isInteger(Number(data.age))||Number(data.age)<18))return 'VibeSwipes is for adults 18 and over.';if((step===3||step===4)&&!data[step===3?'gender':'lookingFor'])return 'Choose an option to continue.';if(step===5&&!data.photos?.length)return 'Add a profile photo to continue.';if(step===9&&(Number(data.ageMin)<18||Number(data.ageMax)<Number(data.ageMin)))return 'Set a valid age range.';return ''}
-async function next(){if(uploading||saveDraft.isPending||saveProfile.isPending)return;clearTimeout(autosaveTimer.current);const message=validate();if(message){setError(message);return}setError('');try{await saveDraft.mutateAsync({data:{step:Math.min(step+2,10),data}});if(step<9){setStep(step+1);return}const profile=await saveProfile.mutateAsync({data:{name:`${data.firstName} ${data.lastName}`.trim(),age:Number(data.age),gender:data.gender,lookingFor:data.lookingFor,bio:data.bio||'',city:'',country:data.country||null,state:null,interests:normalizeHobbies(data.interests).slice(0,12),occupation:String(data.occupation||'Prefer not to say').slice(0,80),occupationOther:data.occupation==='Other'?String(data.occupationOther||'').trim().slice(0,80):'',photos:data.photos,videoUrl:null,preferences:{ageMin:Number(data.ageMin)||22,ageMax:Number(data.ageMax)||35,gender:data.lookingFor,distanceKm:Number(data.distanceKm)||50}}});qc.setQueryData(getGetMyProfileQueryKey(),profile);void qc.invalidateQueries();setLocation('/discover',{replace:true})}catch(error){setError(userErrorMessage(error,'Your setup hasn’t saved yet. Keep this screen open and tap Continue to try again.'))}}
+ function validate(){if(step===0&&!data.firstName.trim())return 'Add your first name to continue.';if(step===0&&(!data.country||!data.countryCode||!data.countrySource))return 'Set your country to continue.';if(step===1&&!data.lastName.trim())return 'Add your last name to continue.';if(step===2&&(!Number.isInteger(Number(data.age))||Number(data.age)<18))return 'MyAgeBeauty is for adults 18 and over.';if((step===3||step===4)&&!data[step===3?'gender':'lookingFor'])return 'Choose an option to continue.';if(step===5&&!data.photos?.length)return 'Add a profile photo to continue.';if(step===9&&(Number(data.ageMin)<18||Number(data.ageMax)<Number(data.ageMin)))return 'Set a valid age range.';return ''}
+async function next(){if(uploading||saveDraft.isPending||saveProfile.isPending)return;clearTimeout(autosaveTimer.current);const message=validate();if(message){setError(message);return}setError('');try{await saveDraft.mutateAsync({data:{step:Math.min(step+2,10),data}});if(step<9){setStep(step+1);return}const profile=await saveProfile.mutateAsync({data:{name:`${data.firstName} ${data.lastName}`.trim(),age:Number(data.age),gender:data.gender,lookingFor:data.lookingFor,bio:data.bio||'',city:'',country:data.country||null,state:null,interests:normalizeHobbies(data.interests).slice(0,12),occupation:String(data.occupation||'Prefer not to say').slice(0,80),occupationOther:data.occupation==='Other'?String(data.occupationOther||'').trim().slice(0,80):'',photos:data.photos,videoUrl:null,preferences:{ageMin:Number(data.ageMin)||22,ageMax:Number(data.ageMax)||35,gender:data.lookingFor,distanceKm:Number(data.distanceKm)||50}}});qc.setQueryData(getGetMyProfileQueryKey(),profile);void qc.invalidateQueries();setLocation('/reels',{replace:true})}catch(error){setError(userErrorMessage(error,'Your setup hasn’t saved yet. Keep this screen open and tap Continue to try again.'))}}
 if(q.isError&&!ready)return <PageFrame><Retry error={q.error} text="We couldn’t load your saved setup. Check your connection and try again." onRetry={()=>void q.refetch()}/></PageFrame>;
 if(q.isLoading||!ready)return <PageFrame><PageHeading eyebrow="Your profile" title="Getting your space ready"/><Busy/></PageFrame>;
-const choices=(values:string[],key:string)=> <div className="grid grid-cols-2 gap-2">{values.map(v=><button type="button" key={v} onClick={()=>update(key,v)} data-testid={`button-choice-${key}-${v.toLowerCase().replaceAll(' ','-')}`} className={`rounded-xl border p-3 text-sm font-semibold ${data[key]===v?'border-primary/50 bg-accent text-[#ffafd1]':'border-white/10 bg-white/[.02]'}`}>{v}</button>)}</div>;
+const choices=(values:string[],key:string)=> <div className="grid grid-cols-2 gap-2">{values.map(v=><button type="button" key={v} onClick={()=>update(key,v)} data-testid={`button-choice-${key}-${v.toLowerCase().replaceAll(' ','-')}`} className={`rounded-xl border p-3 text-sm font-semibold ${data[key]===v?'border-primary/50 bg-accent text-primary':'border-white/10 bg-white/[.02]'}`}>{v}</button>)}</div>;
  return <PageFrame><div className="mx-auto flex min-h-[calc(100dvh-56px)] w-full max-w-4xl flex-col md:min-h-[calc(100dvh-80px)]"><div className="mb-8 shrink-0"><div className="flex justify-between text-[10px] font-bold uppercase tracking-[.15em] text-muted-foreground"><span className="text-primary">Create your profile</span><span>Step {step+1} of 10 · {saved?'Saved':saveDraft.isError?'Not saved':'Saving as you go'}</span></div><div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/10"><div className="h-full rounded-full bg-primary transition-all" style={{width:`${((step+1)/10)*100}%`}}/></div></div>
-   <div key={step} className="page-in flex flex-1 flex-col justify-center py-6" aria-live="polite"><p className="text-xs font-bold uppercase tracking-[.18em] text-primary">{setupSteps[step]}</p><h2 className="brand mt-3 max-w-3xl text-[2.15rem] font-bold leading-tight tracking-[-.04em] sm:text-5xl">{['What should we call you?','And your last name?','How old are you?','How do you describe yourself?','Who would you like to meet?','Choose a profile photo.','What would you like people to know?','Choose your hobbies.','What do you do for work?','Set your discovery preferences.'][step]}</h2><p className="mt-3 text-sm text-muted-foreground">VibeSwipes is a space for adults 18 and over.</p><div className="mt-7 w-full max-w-2xl">
+   <div key={step} className="page-in flex flex-1 flex-col justify-center py-6" aria-live="polite"><p className="text-xs font-bold uppercase tracking-[.18em] text-primary">{setupSteps[step]}</p><h2 className="brand mt-3 max-w-3xl text-[2.15rem] font-bold leading-tight tracking-[-.04em] sm:text-5xl">{['What should we call you?','And your last name?','How old are you?','How do you describe yourself?','Who would you like to meet?','Choose a profile photo.','What would you like people to know?','Choose your hobbies.','What do you do for work?','Set your discovery preferences.'][step]}</h2><p className="mt-3 text-sm text-muted-foreground">MyAgeBeauty is a space for adults 18 and over.</p><div className="mt-7 w-full max-w-2xl">
 {step===0&&<input data-testid="input-onboarding-first-name" autoComplete="given-name" value={data.firstName} onChange={e=>update('firstName',e.target.value)} placeholder="First name" className="field"/>}
 {step===1&&<input data-testid="input-onboarding-last-name" autoComplete="family-name" value={data.lastName} onChange={e=>update('lastName',e.target.value)} placeholder="Last name" className="field"/>}
 {step===2&&<input data-testid="input-onboarding-age" type="number" min="18" max="120" value={data.age} onChange={e=>update('age',e.target.value)} placeholder="Age" className="field max-w-40"/>}
@@ -957,7 +958,7 @@ const choices=(values:string[],key:string)=> <div className="grid grid-cols-2 ga
 {step===0&&<OnboardingCountryStep country={data.country} countryCode={data.countryCode} countrySource={data.countrySource} onSelect={updateOnboardingCountry}/>}
 {step===7&&<HobbyMultiSelect value={normalizeHobbies(data.interests)} onChange={value=>update('interests',value)} testIdPrefix="onboarding"/>}
 {step===8&&<OccupationSelect value={String(data.occupation||'Prefer not to say')} otherValue={String(data.occupationOther||'')} onChange={value=>update('occupation',value)} onOtherChange={value=>update('occupationOther',value)} testIdPrefix="onboarding"/>}
-{step===9&&<div className="space-y-5"><div className="grid grid-cols-2 gap-3"><Field label="Age from"><input data-testid="input-onboarding-age-min" type="number" min="18" value={data.ageMin} onChange={e=>update('ageMin',e.target.value)} className="field"/></Field><Field label="Age to"><input data-testid="input-onboarding-age-max" type="number" value={data.ageMax} onChange={e=>update('ageMax',e.target.value)} className="field"/></Field></div><Field label={`Distance · ${data.distanceKm} km`}><input data-testid="input-onboarding-distance" type="range" min="1" max="500" value={data.distanceKm} onChange={e=>update('distanceKm',Number(e.target.value))} className="w-full accent-[#F34E9A]"/></Field></div>}
+{step===9&&<div className="space-y-5"><div className="grid grid-cols-2 gap-3"><Field label="Age from"><input data-testid="input-onboarding-age-min" type="number" min="18" value={data.ageMin} onChange={e=>update('ageMin',e.target.value)} className="field"/></Field><Field label="Age to"><input data-testid="input-onboarding-age-max" type="number" value={data.ageMax} onChange={e=>update('ageMax',e.target.value)} className="field"/></Field></div><Field label={`Distance · ${data.distanceKm} km`}><input data-testid="input-onboarding-distance" type="range" min="1" max="500" value={data.distanceKm} onChange={e=>update('distanceKm',Number(e.target.value))} className="w-full accent-primary"/></Field></div>}
 </div>{uploading&&<p role="status" className="mt-4 text-sm text-muted-foreground">{uploadStatus}</p>}{error&&<p role="alert" data-testid="text-onboarding-error" className="mt-5 text-sm text-rose-300">{error}</p>}{step===5&&photoRetry&&!uploading&&retryPhoto.current&&<button type="button" data-testid="button-retry-photo" className="mt-3 rounded-xl border border-primary/30 px-4 py-2 text-sm font-semibold text-primary" onClick={()=>void uploadOnboardingPhoto(retryPhoto.current??undefined)}>Retry upload</button>}
   <div className="profile-setup-controls mt-8 flex items-center justify-between gap-3 border-t border-white/[.08] pt-5"><button disabled={step===0||saveProfile.isPending} onClick={()=>{cancelPhotoUpload();setStep(s=>Math.max(0,s-1))}} data-testid="button-onboarding-back" className="min-h-11 rounded-xl border border-white/10 px-4 py-3 text-sm font-semibold disabled:opacity-35">Back</button><button disabled={uploading||saveDraft.isPending||saveProfile.isPending||(step===5&&!data.photos.length)||(step===0&&(!data.country||!data.countrySource))} onClick={()=>void next()} data-testid="button-onboarding-next" className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-bold text-[#26111b] disabled:opacity-50">{saveProfile.isPending?'Saving profile…':saveDraft.isPending?'Saving…':step===9?'Finish setup':'Continue'}<ArrowRight size={16}/></button></div></div></div></PageFrame>}
 
@@ -1059,7 +1060,7 @@ function PublicProfile({id,actionReturnTo='/discover'}:{id:string;actionReturnTo
            {photos.length&&!photoError?<MediaImage reference={photos[0]} progressive alt={`${profile.name}'s main photo`} onError={()=>setPhotoError(true)} className="h-full w-full rounded-full object-cover" loading="eager" fetchPriority="high"/>:<span className="brand text-4xl font-bold">{profile.name.trim().slice(0,1).toUpperCase()}</span>}
        </button>)}
       <div className="pp-identity-copy">
-        <h1 data-testid="text-public-profile-name" className="break-words text-[1.55rem] font-extrabold leading-tight tracking-[-.035em] sm:text-[1.85rem]">{profile.name}{profile.showAge&&profile.age!==null&&<span className="font-semibold text-[hsl(var(--pp-muted))]">, {profile.age}</span>}<VerifiedBadge verified={profile.isVerified}/></h1>
+        <h1 data-testid="text-public-profile-name" className="break-words text-[1.55rem] font-extrabold leading-tight tracking-[-.035em] sm:text-[1.85rem]">{profile.name}<VerifiedBadge verified={profile.isVerified}/></h1>
         <p data-testid="text-public-profile-location" className="mt-1 flex items-center gap-1.5 text-[14px] text-[hsl(var(--pp-muted))]"><MapPin size={15} className="shrink-0 text-[hsl(var(--pp-pink))]"/>{headerLocation||'Location not shared'}</p>
       </div>
     </header>
@@ -1097,7 +1098,7 @@ function PublicProfile({id,actionReturnTo='/discover'}:{id:string;actionReturnTo
   </div>
 }
 
-function OnboardingGate(){const p=useGetMyProfile({query:{retry:shouldRetryProfile}});if(p.isLoading)return <PageFrame><ProfileLoading/></PageFrame>;if(p.data)return <Redirect to="/discover"/>;if(p.isError&&!isProfileMissing(p.error))return <PageFrame><Retry text="We couldn’t check your profile. Check your connection and try again." onRetry={()=>void p.refetch()}/></PageFrame>;return <OnboardingPage/>}
+function OnboardingGate(){const p=useGetMyProfile({query:{retry:shouldRetryProfile}});if(p.isLoading)return <PageFrame><ProfileLoading/></PageFrame>;if(p.data)return <Redirect to="/reels"/>;if(p.isError&&!isProfileMissing(p.error))return <PageFrame><Retry text="We couldn’t check your profile. Check your connection and try again." onRetry={()=>void p.refetch()}/></PageFrame>;return <OnboardingPage/>}
 function OnboardingSignInAction(){
   const {signOut}=useClerk();
   const [leaving,setLeaving]=useState(false);
@@ -1118,8 +1119,8 @@ function OnboardingSignInAction(){
     {error&&<p role="alert" className="mt-2 max-w-[220px] rounded-xl bg-[#211d25] px-3 py-2 text-xs text-rose-200">{error}</p>}
   </div>
 }
-function HomeRedirect(){const {isLoaded,isSignedIn}=useUser();if(!isLoaded)return <InstalledWelcome/>;return <Redirect to={isSignedIn?'/discover':'/welcome'}/>}
-function WelcomeRoute(){const {isLoaded,isSignedIn}=useUser();if(!isLoaded)return <InstalledWelcome/>;return isSignedIn?<Redirect to="/discover"/>:<InstalledWelcome/>}
+function HomeRedirect(){const {isLoaded,isSignedIn}=useUser();if(!isLoaded)return <InstalledWelcome/>;return <Redirect to={isSignedIn?'/reels':'/welcome'}/>}
+function WelcomeRoute(){const {isLoaded,isSignedIn}=useUser();if(!isLoaded)return <InstalledWelcome/>;return isSignedIn?<Redirect to="/reels"/>:<InstalledWelcome/>}
 function BrandedSignUp(){
   const {signUp,fetchStatus}=useSignUp();
   const [,setLocation]=useLocation();
@@ -1155,14 +1156,14 @@ function BrandedSignUp(){
     finally{setBusy(false)}
   }
   return <div className="onboarding-video-form auth-sign-up grain flex min-h-[100dvh] items-center justify-center bg-background px-4"><OnboardingVideoBackground form/><div className="auth-sign-up-brand"><Brand/></div><section className="w-full max-w-[440px] rounded-[26px] border border-white/10 bg-[#211d25] p-6 shadow-2xl sm:p-8">
-    <div className="mb-7"><img src={pathFor('/vibeswipes-icon-192.png')} alt="" className="mb-5 h-12 w-12 rounded-2xl border border-white/10"/><p className="text-[10px] font-bold uppercase tracking-[.2em] text-primary">VibeSwipes · 18+</p>{!verifying&&<><p className="mt-4 text-[10px] font-bold uppercase tracking-[.16em] text-muted-foreground">Account setup · {step==='email'?'1':'2'} of 2</p><div className="mt-2 flex gap-2" aria-label={`Step ${step==='email'?'1':'2'} of 2`}><span className="h-1 flex-1 rounded-full bg-primary"/><span className={`h-1 flex-1 rounded-full ${step==='password'?'bg-primary':'bg-white/10'}`}/></div></>}<h1 className="brand mt-2 text-3xl font-bold tracking-[-.05em]">{verifying?'Check your email':step==='email'?'Start with your email':'Create a password'}</h1><p className="mt-2 text-sm leading-6 text-muted-foreground">{verifying?`We sent a verification code to ${email.trim()}.`:step==='email'?'Enter your email to begin creating your account.':'Choose a password with at least 15 characters.'}</p></div>
+    <div className="mb-7"><img src={pathFor('/vibeswipes-icon-192.png')} alt="" className="mb-5 h-12 w-12 rounded-2xl border border-white/10 grayscale"/><p className="text-[10px] font-bold uppercase tracking-[.2em] text-primary">MyAgeBeauty · 18+</p>{!verifying&&<><p className="mt-4 text-[10px] font-bold uppercase tracking-[.16em] text-muted-foreground">Account setup · {step==='email'?'1':'2'} of 2</p><div className="mt-2 flex gap-2" aria-label={`Step ${step==='email'?'1':'2'} of 2`}><span className="h-1 flex-1 rounded-full bg-primary"/><span className={`h-1 flex-1 rounded-full ${step==='password'?'bg-primary':'bg-white/10'}`}/></div></>}<h1 className="brand mt-2 text-3xl font-bold tracking-[-.05em]">{verifying?'Check your email':step==='email'?'Start with your email':'Create a password'}</h1><p className="mt-2 text-sm leading-6 text-muted-foreground">{verifying?`We sent a verification code to ${email.trim()}.`:step==='email'?'Enter your email to begin creating your account.':'Choose a password with at least 15 characters.'}</p></div>
     <form onSubmit={submit} className="space-y-5" noValidate>
       {!verifying&&step==='email'?<label className="grid gap-2 text-xs font-semibold text-[#e7dce3]">Email address<input data-testid="input-signup-email" type="email" inputMode="email" autoComplete="email" required value={email} onChange={e=>{setEmail(e.target.value);setError('')}} className="field" placeholder="you@example.com"/>{email&& !emailValid&&<span className="text-xs font-normal text-rose-300" data-testid="error-signup-email">Enter a valid email address.</span>}</label>
       :!verifying?<><button type="button" onClick={()=>{setError('');setStep('email')}} data-testid="button-signup-back-email" className="inline-flex items-center gap-2 text-xs font-semibold text-muted-foreground hover:text-foreground"><ArrowLeft size={14}/>Change email</button>
       <SignupPasswordField value={password} onChange={value=>{setPassword(value);setError('')}}/>{passwordTooShort&&<span className="text-xs font-normal text-rose-300" data-testid="error-signup-password">Password must be at least 15 characters</span>}
       </>:<label className="grid gap-2 text-xs font-semibold text-[#e7dce3]">Email verification code<input data-testid="input-signup-code" inputMode="numeric" autoComplete="one-time-code" value={code} onChange={e=>setCode(e.target.value)} className="field" placeholder="Enter your code"/></label>}
       {error&&<p role="alert" data-testid="error-signup-clerk" className="rounded-xl border border-rose-300/20 bg-rose-300/[.06] px-3 py-2.5 text-xs leading-5 text-rose-200">{error}</p>}
-      <button type="submit" disabled={busy||fetchStatus==='fetching'||(verifying&&!code.trim())||(!verifying&&step==='email'&&!emailValid)||(!verifying&&step==='password'&&password.length<15)} data-testid="button-signup-continue" className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3.5 text-sm font-bold text-[#24111b] disabled:cursor-not-allowed disabled:opacity-40">{busy?'Please wait…':verifying?'Verify email':step==='email'?'Continue':'Create account'}{!busy&&<ArrowRight size={16}/>}</button>
+      <button type="submit" disabled={busy||fetchStatus==='fetching'||(verifying&&!code.trim())||(!verifying&&step==='email'&&!emailValid)||(!verifying&&step==='password'&&password.length<15)} data-testid="button-signup-continue" className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3.5 text-sm font-bold text-primary-foreground disabled:cursor-not-allowed disabled:opacity-40">{busy?'Please wait…':verifying?'Verify email':step==='email'?'Continue':'Create account'}{!busy&&<ArrowRight size={16}/>}</button>
       {verifying&&<button type="button" onClick={async()=>{setBusy(true);setError('');try{const result=await signUp.verifications.sendEmailCode();if(result.error)setError(result.error.message)}catch(e){setError(e instanceof Error?e.message:'Could not resend the code.')}finally{setBusy(false)}}} data-testid="button-resend-signup-code" className="w-full text-center text-xs font-semibold text-primary">Resend code</button>}
     </form>
     <p className="mt-6 border-t border-white/[.08] pt-5 text-center text-xs text-muted-foreground">Already a member? <Link href="/sign-in" data-testid="link-signin-from-signup" className="font-bold text-primary">Sign in</Link></p>
@@ -1190,6 +1191,7 @@ function PublicLocationShareRoute(){return <PublicLocationSharePage/>}
 function DiscoverRoute(){return <ShellPage><DiscoverPage/></ShellPage>}
 function SearchRoute(){return <ShellPage><MemberSearchPage/></ShellPage>}
 function ReelsRoute(){return <ShellPage><ReelsFeedPage/></ShellPage>}
+function FriendsRoute(){return <ShellPage><ReelsFeedPage initialFeedMode="friends"/></ShellPage>}
 function ReelRoute(){const params=useParams<{reelId:string}>();return <ShellPage><ReelsFeedPage key={params.reelId} initialReelId={params.reelId}/></ShellPage>}
 function ReelComposerRoute(){return <ShellPage><ReelComposerPage/></ShellPage>}
 function ReelsLibraryRoute(){return <ShellPage><ReelsLibraryPage/></ShellPage>}
@@ -1303,10 +1305,10 @@ function ScreenTimeTracker() {
     const reminder = settings.data?.screenTimeReminderMinutes;
     if (limit && total >= limit * 60 && !shownLimit.current) {
       shownLimit.current = true;
-      setNotice(t("You've reached your daily VibeSwipes limit reminder."));
+      setNotice(t("You've reached your daily MyAgeBeauty limit reminder."));
     } else if (reminder && total >= reminder * 60 && !shownReminder.current) {
       shownReminder.current = true;
-      setNotice(t("You’ve reached your VibeSwipes screen-time reminder."));
+      setNotice(t("You’ve reached your MyAgeBeauty screen-time reminder."));
     }
   }, [activeSeconds, settings.data?.screenTimeLimitMinutes, settings.data?.screenTimeReminderMinutes, summary.data?.todaySeconds, t, usageTick]);
   useEffect(() => {
@@ -1385,14 +1387,14 @@ function ProfileNavigationPrefetcher(){
   },[user?.id,client]);
   return null;
 }
-function ClerkRoutes(){const [,setLocation]=useLocation();return <ClerkProvider publishableKey={clerkPubKey} proxyUrl={clerkProxyUrl} appearance={appearance} signInUrl={pathFor('/sign-in')} signUpUrl={pathFor('/sign-up')} localization={{signIn:{start:{title:'Welcome back',subtitle:'Your next good conversation is waiting.'}},signUp:{start:{title:'Make room for a spark',subtitle:'Create your adults-only VibeSwipes account.'}}}} routerPush={to=>setLocation(to.startsWith(basePath)?to.slice(basePath.length)||'/':to)} routerReplace={to=>setLocation(to.startsWith(basePath)?to.slice(basePath.length)||'/':to,{replace:true})}><ClerkCacheSync/><ProfileNavigationPrefetcher/><SettingsThemeSync/><ScreenTimeTracker/><ReferralToastHost/><Suspense fallback={<RouteSkeleton label="Loading VibeSwipes" />}><Switch>
+function ClerkRoutes(){const [,setLocation]=useLocation();return <ClerkProvider publishableKey={clerkPubKey} proxyUrl={clerkProxyUrl} appearance={appearance} signInUrl={pathFor('/sign-in')} signUpUrl={pathFor('/sign-up')} localization={{signIn:{start:{title:'Welcome back',subtitle:'Catch up on photos, Reels, and messages.'}},signUp:{start:{title:'Join MyAgeBeauty',subtitle:'Share photos, Reels, and moments with your people.'}}}} routerPush={to=>setLocation(to.startsWith(basePath)?to.slice(basePath.length)||'/':to)} routerReplace={to=>setLocation(to.startsWith(basePath)?to.slice(basePath.length)||'/':to,{replace:true})}><ClerkCacheSync/><ProfileNavigationPrefetcher/><SettingsThemeSync/><ScreenTimeTracker/><ReferralToastHost/><Suspense fallback={<RouteSkeleton label="Loading MyAgeBeauty" />}><Switch>
   <Route path="/" component={HomeRedirect}/>
   <Route path="/welcome" component={WelcomeRoute}/>
   <Route path="/admin" component={AdminPage}/><Route path="/admin/:section" component={AdminPage}/>
    <Route path="/sign-in/*?"><SignInRoute/></Route>
   <Route path="/sign-up/*?" component={BrandedSignUp}/>
   {import.meta.env.DEV&&<Route path="/create-account-preview"><div className="border-b border-primary/20 bg-accent px-5 py-3 text-center text-xs leading-5 text-foreground" role="note">Form preview only. Email-code signup still needs the authentication setting changed.</div><ProfileFirstSignup previewOnly/></Route>}
-  <Route path="/onboarding" component={OnboardingRoute}/><Route path="/discover" component={DiscoverRoute}/><Route path="/search" component={SearchRoute}/><Route path="/stories/camera" component={StoryCameraRoute}/><Route path="/stories/new" component={StoryComposerRoute}/><Route path="/reels" component={ReelsRoute}/><Route path="/reels/new" component={ReelComposerRoute}/><Route path="/reels/saved" component={ReelsLibraryRoute}/><Route path="/reels/:reelId" component={ReelRoute}/><Route path="/matches" component={MatchesRoute}/>
+  <Route path="/onboarding" component={OnboardingRoute}/><Route path="/discover" component={DiscoverRoute}/><Route path="/friends" component={FriendsRoute}/><Route path="/search" component={SearchRoute}/><Route path="/stories/camera" component={StoryCameraRoute}/><Route path="/stories/new" component={StoryComposerRoute}/><Route path="/reels" component={ReelsRoute}/><Route path="/reels/new" component={ReelComposerRoute}/><Route path="/reels/saved" component={ReelsLibraryRoute}/><Route path="/reels/:reelId" component={ReelRoute}/><Route path="/matches" component={MatchesRoute}/>
    <Route path="/chat/:matchId" component={ChatRoute}/><Route path="/direct-chat/:conversationId" component={DirectChatPage}/><Route path="/views" component={ViewsRoute}/><Route path="/likes" component={LikesRoute}/><Route path="/messages" component={ChatsRoute}/><Route path="/notifications" component={NotificationsRoute}/>
    <Route path="/privacy-policy" component={PrivacyPolicyRoute}/><Route path="/terms" component={TermsRoute}/><Route path="/community-guidelines" component={CommunityGuidelinesRoute}/>
     <Route path="/safety-center" component={SafetyCenterRoute}/><Route path="/report-safety" component={ReportSafetyRoute}/><Route path="/help" component={HelpCenterRoute}/><Route path="/report-problem" component={ReportProblemRoute}/><Route path="/safety/location" component={PublicLocationShareRoute}/>
@@ -1401,7 +1403,7 @@ function ClerkRoutes(){const [,setLocation]=useLocation();return <ClerkProvider 
 function SignInRoute(){
   const {isLoaded,isSignedIn}=useUser();
   if(!isLoaded)return <AppOpening/>;
-  if(isSignedIn)return <Redirect to="/discover"/>;
+  if(isSignedIn)return <Redirect to="/reels"/>;
   return <div className="auth-sign-in grain flex min-h-[100dvh] flex-col bg-background px-4"><header className="mb-6 shrink-0 px-2" data-testid="header-sign-in-brand"><Brand/></header><main className="flex w-full flex-1 flex-col items-center justify-center"><SignIn routing="path" path={pathFor('/sign-in')} signUpUrl={pathFor('/sign-up')}/><p className="mt-5 text-center text-xs text-muted-foreground"><Link href="/privacy-policy" className="hover:text-primary">Privacy Policy</Link><span className="px-2">·</span><Link href="/terms" className="hover:text-primary">Terms of Service</Link></p></main></div>;
 }
 function App(){if(!clerkPubKey)throw new Error('Missing VITE_CLERK_PUBLISHABLE_KEY');return <QueryClientProvider client={queryClient}><AppLanguageProvider><WouterRouter base={basePath}><ClerkRoutes/></WouterRouter></AppLanguageProvider></QueryClientProvider>}

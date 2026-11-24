@@ -38,7 +38,7 @@ export default function PublicLocationSharePage() {
           <MapPin size={22} />
         </div>
         <p className="mt-5 text-[10px] font-extrabold uppercase tracking-[.2em] text-primary">
-          VibeSwipes safety link
+          MyAgeBeauty safety link
         </p>
         <h1 className="mt-1 text-2xl font-extrabold">Live location</h1>
         <p className="mt-2 text-sm leading-6 text-muted-foreground">
@@ -67,7 +67,7 @@ export default function PublicLocationSharePage() {
               href={mapUrl!}
               target="_blank"
               rel="noreferrer noopener"
-              className="mt-5 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-extrabold text-[#24111b]"
+              className="mt-5 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-extrabold text-primary-foreground"
               data-testid="link-open-map"
             >
               <ExternalLink size={16} /> Open in Maps

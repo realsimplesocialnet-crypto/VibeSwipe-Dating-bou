@@ -48,7 +48,7 @@ export function OnlineSection() {
     {r.isError && d && <div className="a-panel mb-3"><ErrorBox error={r.error} onRetry={() => void r.refetch()} text="Presence data may be out of date." /></div>}
     {r.isError && !d ? <div className="a-panel"><ErrorBox error={r.error} onRetry={() => void r.refetch()} text="Presence could not load." /></div> :
       !d ? <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{Array.from({ length: 6 }, (_, i) => <div key={i} className="a-skel h-[124px]" />)}</div> :
-      d.users.length === 0 ? <div className="a-panel"><EmptyState title="Nobody online" detail={dq ? 'No online member matches that name.' : 'When members open VibeSwipes they appear here within seconds.'} /></div> :
+      d.users.length === 0 ? <div className="a-panel"><EmptyState title="Nobody online" detail={dq ? 'No online member matches that name.' : 'When members open MyAgeBeauty they appear here within seconds.'} /></div> :
       <>
         <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{d.users.map(u => <OnlineCard key={u.id} u={u} />)}</ul>
         {d.total > d.pageSize && <div className="a-panel mt-3 overflow-hidden"><Pager page={page} total={d.total} pageSize={d.pageSize} onPage={setPage} testId="pager-online" /></div>}

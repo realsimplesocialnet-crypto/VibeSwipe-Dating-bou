@@ -105,7 +105,13 @@ function usePageHidden() {
   return hidden;
 }
 
-export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
+export function ReelsFeedPage({
+  initialReelId,
+  initialFeedMode: requestedFeedMode,
+}: {
+  initialReelId?: string;
+  initialFeedMode?: "reels" | "friends";
+}) {
   const [location, setLocation] = useLocation();
   const { t } = useAppLanguage();
   const client = useQueryClient();
@@ -117,7 +123,8 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
   const scroller = useRef<HTMLDivElement>(null);
   const initialReelPositioned = useRef(false);
   const initialHistoryMarker = readReelCommentsHistoryMarker(window.history.state);
-  const initialFeedMode = new URLSearchParams(window.location.search).get("tab") === "friends" ? "friends" : "reels";
+  const initialFeedMode = requestedFeedMode
+    ?? (new URLSearchParams(window.location.search).get("tab") === "friends" ? "friends" : "reels");
   const [feedMode, setFeedMode] = useState<"reels" | "friends">(initialFeedMode);
   const [active, setActive] = useState(initialHistoryMarker?.activeIndex ?? 0);
   const [uiVisible, setUiVisible] = useState(true);
@@ -525,10 +532,10 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
   function changeFeedMode(mode: "reels" | "friends") {
     setFeedMode(mode);
     const params = new URLSearchParams(window.location.search);
-    if (mode === "friends") params.set("tab", "friends");
-    else params.delete("tab");
+    params.delete("tab");
     const query = params.toString();
-    setLocation(`${location}${query ? `?${query}` : ""}`, { replace: true });
+    const path = mode === "friends" ? "/friends" : "/reels";
+    setLocation(`${path}${query ? `?${query}` : ""}`, { replace: true });
   }
   function closeSearch() {
     setSearchOpen(false);
@@ -616,7 +623,7 @@ export function ReelsFeedPage({ initialReelId }: { initialReelId?: string }) {
       <header className="reels-top">
         {(profileId || initialReelId) && <button type="button" onClick={back} aria-label="Back" data-testid="button-reels-back" className="reels-icon"><ArrowLeft size={23} /></button>}
         {!profileId && !initialReelId ? <nav aria-label="Reel feed" role="tablist" className={`reels-feed-tabs ${navigationVisible ? "" : "is-hidden"}`} data-testid="nav-reel-feed">
-          <button type="button" role="tab" aria-selected={feedMode === "reels"} onClick={() => changeFeedMode("reels")} className={feedMode === "reels" ? "is-active" : ""} data-testid="tab-reels-feed">Reels</button>
+          <button type="button" role="tab" aria-selected={feedMode === "reels"} onClick={() => changeFeedMode("reels")} className={feedMode === "reels" ? "is-active" : ""} data-testid="tab-reels-feed">For You</button>
           <button type="button" role="tab" aria-selected={feedMode === "friends"} onClick={() => changeFeedMode("friends")} className={feedMode === "friends" ? "is-active" : ""} data-testid="tab-friends-feed">Friends</button>
         </nav> : <h1 className="reels-title">Reels</h1>}
         <div className="ml-auto flex items-center gap-2">

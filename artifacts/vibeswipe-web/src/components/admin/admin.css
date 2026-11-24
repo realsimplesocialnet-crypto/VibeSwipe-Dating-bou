@@ -1,11 +1,11 @@
 .vs-admin {
   --a-bg: #0F0F12;
   --a-panel: #1A1A1E;
-  --a-raise: #282722;
-  --a-line: rgba(244, 241, 234, .10);
-  --a-ink: #f5edf1;
-  --a-mute: #A9A49A;
-  --a-rose: #F34E9A;
+  --a-raise: #282828;
+  --a-line: rgba(255, 255, 255, .12);
+  --a-ink: #f5f5f5;
+  --a-mute: #a3a3a3;
+  --a-rose: #f5f5f5;
   --a-mint: #7fd6b0;
   --a-amber: #f2b766;
   --a-red: #f06b76;
@@ -17,7 +17,7 @@
 .vs-admin .ledger { background-image: repeating-linear-gradient(0deg, transparent 0 47px, var(--a-line) 47px 48px); }
 .vs-admin .a-panel { background: var(--a-panel); border: 1px solid var(--a-line); border-radius: 18px; }
 .vs-admin .a-row { transition: background-color .15s ease; }
-.vs-admin .a-row:hover { background: rgba(243, 78, 154, .055); }
+.vs-admin .a-row:hover { background: rgba(255, 255, 255, .055); }
 .vs-admin .a-pulse { position: relative; }
 .vs-admin .a-pulse::after { content: ''; position: absolute; inset: -3px; border-radius: 999px; border: 1px solid var(--a-mint); opacity: 0; animation: a-ping 2.2s ease-out infinite; }
 @keyframes a-ping { 0% { transform: scale(.6); opacity: .9 } 100% { transform: scale(1.9); opacity: 0 } }

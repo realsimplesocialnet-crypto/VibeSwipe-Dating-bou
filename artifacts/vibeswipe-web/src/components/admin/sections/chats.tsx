@@ -42,7 +42,7 @@ export function ChatsSection() {
         <SearchField value={q} onChange={setQ} placeholder="Search by participant name" testId="input-search-chats" />
         <DateRange from={from} to={to} onChange={(f, t) => { setFrom(f); setTo(t); }} testId="filter-chats-date" />
       </div>
-      {userId && <div className="flex items-center gap-2 border-b border-[var(--a-line)] bg-[#f34e9a]/[.06] px-4 py-2 text-xs">
+      {userId && <div className="flex items-center gap-2 border-b border-[var(--a-line)] bg-white/[.05] px-4 py-2 text-xs">
         <span className="text-[var(--a-mute)]">Showing chats for one member</span>
         <button type="button" onClick={() => setLocation('/admin/chats')} data-testid="button-clear-chat-user-filter" className="inline-flex items-center gap-1 rounded-md border border-white/10 px-2 py-0.5 font-bold hover:bg-white/5"><X size={11} />Show all</button>
       </div>}

@@ -17,7 +17,7 @@ export function ConnectionRow({ c }: { c: AdminConnection }) {
   const { run, pending } = useModeration();
   const [req, setReq] = useState<ConfirmRequest | null>(null);
   const s = STATUS[c.status];
-  const nameBtn = (id: string, name: string) => <button type="button" onClick={() => openUser(id)} data-testid={`button-open-user-${c.id}-${id}`} className="font-bold hover:text-[#ff8cc0]">{name}</button>;
+  const nameBtn = (id: string, name: string) => <button type="button" onClick={() => openUser(id)} data-testid={`button-open-user-${c.id}-${id}`} className="font-bold hover:text-white">{name}</button>;
   return <li className="a-row flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3" data-testid={`row-connection-${c.id}`}>
     <div className="min-w-0 flex-1">
       <div className="text-sm">{nameBtn(c.userAId, c.userAName)} <span className="text-[var(--a-mute)]">{s.arrow}</span> {nameBtn(c.userBId, c.userBName)}</div>
@@ -43,7 +43,7 @@ export function ConnectionsSection() {
     <SectionHeader eyebrow="Friends / Connections" title="Matches and likes" right={<LiveDot fetching={r.isFetching} />} />
     <div className="mb-4 flex gap-3 rounded-xl border border-[var(--a-line)] bg-[var(--a-panel)] p-4 text-sm leading-6 text-[var(--a-mute)]" data-testid="text-connections-explainer">
       <Info size={16} className="mt-1 shrink-0 text-[var(--a-rose)]" />
-      <p>VibeSwipes has no friend-request system. A <span className="font-bold text-[var(--a-ink)]">mutual match</span> is two members liking each other, which opens a chat. A <span className="font-bold text-[var(--a-ink)]">pending like</span> is one-way and has not been returned yet.</p>
+      <p>MyAgeBeauty has no separate friend-request system. A <span className="font-bold text-[var(--a-ink)]">mutual match</span> is two members liking each other, which opens a chat. A <span className="font-bold text-[var(--a-ink)]">pending like</span> is one-way and has not been returned yet.</p>
     </div>
     <div className="a-panel overflow-hidden">
       <div className="flex items-center gap-3 border-b border-[var(--a-line)] p-3">

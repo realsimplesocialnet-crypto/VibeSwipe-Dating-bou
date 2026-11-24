@@ -128,7 +128,7 @@ export function MemberSearchPage() {
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="flex items-center text-[15px] font-bold text-foreground">
-                      <span className="truncate">{profile.name}{profile.age != null ? `, ${profile.age}` : ""}</span>
+                      <span className="truncate">{profile.name}</span>
                       {profile.isVerified && <VerifiedBadge verified className="ml-1.5 shrink-0" />}
                     </span>
                     {place && <span className="mt-1 block truncate text-sm text-muted-foreground">{place}</span>}

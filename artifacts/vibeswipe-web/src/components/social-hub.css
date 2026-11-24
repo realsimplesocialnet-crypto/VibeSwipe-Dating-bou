@@ -1,84 +1,90 @@
-.app-shell:has(.social-hub) { --primary:341 83% 63%; --primary-foreground:0 0% 100%; --accent:48 7% 16%; --accent-foreground:40 24% 75%; --card:240 6% 11%; --border:40 5% 20%; --foreground:40 20% 94%; --muted-foreground:40 7% 64%; --ring:341 83% 63%; }
-.social-hub { background:#0F0F12; color:#FBF5F7; }
-.social-hub .sh-card { background:#1A1A1E; border:1px solid #332b31; box-shadow:0 6px 18px rgba(0,0,0,.18); color:#FBF5F7; }
+.app-shell:has(.social-hub) { --primary:0 0% 100%; --primary-foreground:0 0% 6%; --accent:0 0% 18%; --accent-foreground:0 0% 96%; --card:0 0% 8%; --border:0 0% 20%; --foreground:0 0% 96%; --muted-foreground:0 0% 65%; --ring:0 0% 100%; }
+.social-hub { background:#000; color:#f5f5f5; }
+.social-hub .sh-card { background:#111; border:1px solid #2a2a2a; box-shadow:0 6px 18px rgba(0,0,0,.18); color:#f5f5f5; }
 .social-hub .sh-muted { color:hsl(var(--muted-foreground)); }
 .social-hub .sh-label { font-size:12px; font-weight:800; letter-spacing:.2em; text-transform:uppercase; color:hsl(var(--muted-foreground)); }
-.social-hub .sh-icon, .social-hub .sh-pill, .social-hub .sh-chat { background:#3b202b; color:#F34E9A; }
+.social-hub .sh-icon, .social-hub .sh-pill, .social-hub .sh-chat { background:#292929; color:#fff; }
 .social-hub .sh-chat { transition:transform .15s; }
 .social-hub .sh-chat:active { transform:scale(.94); }
-.social-hub .sh-back { background:#1A1A1E; border:1px solid #34332F; }
+.social-hub .sh-back { background:#111; border:1px solid #303030; }
 .social-hub .sh-stack { border:2px solid hsl(var(--card)); }
 .social-hub .sh-stack > * { max-width:100%; max-height:100%; }
 .sh-profile-social { display:flex; flex-direction:column; align-items:stretch; gap:9px; margin-top:12px; width:100%; }
 .sh-profile-stats { display:flex; align-items:stretch; gap:8px; width:100%; }
 .sh-profile-social-compact { margin-top:7px; }
 .sh-profile-social-compact .sh-profile-stats { gap:8px; }
-.sh-profile-stat { display:flex; min-width:0; min-height:56px; flex:1; flex-direction:column; align-items:center; justify-content:center; gap:1px; border:1px solid #332b31; border-radius:16px; background:#1A1A1E; padding:8px 10px; color:#FBF5F7; }
+.sh-profile-stat { display:flex; min-width:0; min-height:56px; flex:1; flex-direction:column; align-items:center; justify-content:center; gap:1px; border:1px solid #2a2a2a; border-radius:16px; background:#111; padding:8px 10px; color:#f5f5f5; }
 .sh-profile-social-compact .sh-profile-stat { min-height:44px; flex:1; flex-direction:column; gap:1px; border-radius:14px; padding:4px 8px; }
 .sh-profile-social-compact .sh-profile-stat strong { font-size:20px; line-height:1; }
 .sh-profile-social-compact .sh-profile-stat span { font-size:12px; }
 .sh-profile-stat strong { color:inherit; font-size:22px; font-weight:900; line-height:1.05; }
-.sh-profile-stat span { color:#D9CFD5; font-size:12px; font-weight:800; letter-spacing:.01em; }
+.sh-profile-stat span { color:#b8b8b8; font-size:12px; font-weight:800; letter-spacing:.01em; }
 .sh-profile-actions { display:flex; align-items:flex-start; gap:9px; width:100%; }
 .sh-profile-actions > .sh-follow-action { flex:1; min-width:0; }
 .sh-follow-action { display:flex; flex-direction:column; align-items:stretch; gap:3px; min-width:0; }
-.sh-follow-button { width:100%; min-height:42px; border:1px solid #F34E9A; border-radius:999px; background:#F34E9A; padding:0 12px; color:#fff; font-size:13px; font-weight:800; white-space:nowrap; }
-.sh-follow-button.sh-following { background:transparent; color:#F34E9A; }
+.sh-follow-button { width:100%; min-height:42px; border:1px solid #fff; border-radius:999px; background:#fff; padding:0 12px; color:#000; font-size:13px; font-weight:800; white-space:nowrap; }
+.sh-follow-button.sh-following { background:transparent; color:#fff; }
 .sh-follow-button:disabled { opacity:.55; }
 .sh-follow-error { max-width:120px; color:#ff9aa7; font-size:10px; line-height:1.2; text-align:center; }
 .sh-dating-slot { display:flex; flex:1; min-width:0; flex-direction:column; align-items:stretch; gap:3px; }
-.sh-dating-button { display:flex; width:100%; min-height:42px; align-items:center; justify-content:center; gap:6px; border:1px solid #F34E9A; border-radius:999px; background:#F34E9A; padding:0 12px; color:#fff; font-size:13px; font-weight:800; white-space:nowrap; }
-.sh-dating-button.sh-dating-liked { background:transparent; color:#F34E9A; }
+.sh-dating-button { display:flex; width:100%; min-height:42px; align-items:center; justify-content:center; gap:6px; border:1px solid #fff; border-radius:999px; background:#fff; padding:0 12px; color:#000; font-size:13px; font-weight:800; white-space:nowrap; }
+.sh-dating-button.sh-dating-liked { background:transparent; color:#fff; }
 .sh-dating-button:disabled { opacity:.58; }
 .sh-dating-error { color:#ff9aa7; font-size:10px; line-height:1.2; text-align:center; }
 .sh-follow-notice-row + .sh-follow-notice-row { border-top:1px solid rgba(255,255,255,.08); }
-.sh-follow-notice-row > button > div { border:1px solid rgba(243,78,154,.5); padding:2px; }
+.sh-follow-notice-row > button > div { border:1px solid rgba(255,255,255,.45); padding:2px; }
 .sh-follow-notice-row > button > div > * { width:100%; height:100%; border-radius:inherit; }
 .sh-follow-notice-actions { display:flex; flex-shrink:0; align-items:center; }
 .sh-follow-notice-actions .sh-follow-action { min-width:96px; }
 .sh-follow-notice-actions .sh-follow-button { min-height:36px; padding:0 12px; font-size:12px; }
 .sh-follow-notice-actions > .sh-follow-button { width:96px; }
-.social-hub .sh-search { border:1px solid #4a3642; background:#1A1A1E; color:#FBF5F7; }
+.social-hub .sh-search { border:1px solid #303030; background:#111; color:#f5f5f5; }
 .social-hub .sh-search svg { color:hsl(var(--primary)); flex-shrink:0; }
 .activity-metric-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; margin:0 0 20px; }
-.activity-metric-card { display:flex; min-width:0; min-height:92px; align-items:center; gap:12px; border:1px solid #2b303a; border-radius:17px; background:#191d26; padding:12px; color:#f4f6fa; text-decoration:none; transition:transform .16s ease,border-color .16s ease,background .16s ease; }
-.activity-metric-card:hover { transform:translateY(-1px); border-color:#414754; background:#1d222c; }
+.activity-metric-card { display:flex; min-width:0; min-height:92px; align-items:center; gap:12px; border:1px solid #2a2a2a; border-radius:17px; background:#111; padding:12px; color:#f5f5f5; text-decoration:none; transition:transform .16s ease,border-color .16s ease,background .16s ease; }
+.activity-metric-card:hover { transform:translateY(-1px); border-color:#555; background:#181818; }
 .activity-metric-card:active { transform:scale(.985); }
 .activity-metric-card.is-loading { cursor:default; }
 .activity-metric-icon { display:flex; width:46px; height:46px; flex:none; align-items:center; justify-content:center; border-radius:15px; color:#fff; box-shadow:0 4px 12px rgb(0 0 0 / .2); }
 .activity-metric-copy { display:flex; min-width:0; flex-direction:column; gap:2px; }
 .activity-metric-copy strong { font-size:25px; font-weight:850; line-height:1; font-variant-numeric:tabular-nums; }
-.activity-metric-copy > span { color:#aeb5c2; font-size:13px; font-weight:600; }
+.activity-metric-copy > span { color:#b8b8b8; font-size:13px; font-weight:600; }
 .activity-feed { overflow:hidden; border-top:1px solid rgb(255 255 255 / .07); }
-.activity-feed-row { display:flex; width:100%; min-height:72px; align-items:center; gap:12px; border-bottom:1px solid rgb(255 255 255 / .08); background:transparent; padding:10px 5px; color:#f4f6fa; text-align:left; transition:opacity .16s ease,background .16s ease; }
+.activity-feed-row { display:flex; width:100%; min-height:72px; align-items:center; gap:12px; border-bottom:1px solid rgb(255 255 255 / .08); background:transparent; padding:10px 5px; color:#f5f5f5; text-align:left; transition:opacity .16s ease,background .16s ease; }
 .activity-feed-row:active { background:rgb(255 255 255 / .055); }
 .activity-feed-row.is-read { opacity:.58; }
 .activity-feed-icon { display:flex; width:42px; height:42px; flex:none; align-items:center; justify-content:center; border-radius:50%; color:#fff; }
 .activity-feed-copy { display:flex; min-width:0; flex:1; align-items:center; justify-content:space-between; gap:8px; }
 .activity-feed-copy > span { overflow:hidden; font-size:14px; text-overflow:ellipsis; white-space:nowrap; }
 .activity-feed-copy strong { font-weight:800; }
-.activity-feed-copy time { flex:none; color:#a5acb8; font-size:12px; white-space:nowrap; }
-.activity-unread-dot { width:9px; height:9px; flex:none; border-radius:50%; background:#f34e9a; }
+.activity-feed-copy time { flex:none; color:#aaa; font-size:12px; white-space:nowrap; }
+.activity-unread-dot { width:9px; height:9px; flex:none; border-radius:50%; background:#fff; }
 .activity-read-error { margin:0 0 10px; border:1px solid rgb(255 100 118 / .3); border-radius:12px; background:rgb(255 100 118 / .08); padding:10px 12px; color:#ff9eaa; font-size:13px; }
-.activity-empty { display:flex; min-height:120px; flex-direction:column; align-items:center; justify-content:center; gap:10px; color:#aeb5c2; font-size:14px; }
-.activity-empty-icon { display:flex; width:42px; height:42px; align-items:center; justify-content:center; border-radius:50%; background:#35202e; color:#f34e9a; }
-html[data-theme="light"] .social-hub { --primary:341 78% 48%; --primary-foreground:0 0% 100%; --muted-foreground:335 10% 38%; --foreground:335 25% 14%; background:linear-gradient(135deg,#fde1ec 0%,#fbdedc 48%,#fff0df 100%); color:#2a2328; }
-html[data-theme="light"] .social-hub .sh-card { background:#fffdfe; border-color:#f3dce5; box-shadow:0 5px 14px rgba(131,70,94,.09); color:#2a2328; }
-html[data-theme="light"] .social-hub .sh-icon, html[data-theme="light"] .social-hub .sh-pill, html[data-theme="light"] .social-hub .sh-chat { background:#fde4ea; color:#e8466a; }
-html[data-theme="light"] .social-hub .sh-back { background:rgba(255,253,253,.75); border-color:rgba(255,255,255,.8); }
-html[data-theme="light"] .sh-profile-stat { background:#fffafd; border-color:#f0d8e2; color:#2a2328; }
-html[data-theme="light"] .sh-profile-stat strong { color:#2a2328; }
-html[data-theme="light"] .sh-profile-stat span { color:#62565d; }
+ .activity-empty { display:flex; min-height:120px; flex-direction:column; align-items:center; justify-content:center; gap:10px; color:#b8b8b8; font-size:14px; }
+.activity-empty-icon { display:flex; width:42px; height:42px; align-items:center; justify-content:center; border-radius:50%; background:#292929; color:#fff; }
+html[data-theme="light"] .social-hub { --primary:0 0% 8%; --primary-foreground:0 0% 100%; --muted-foreground:0 0% 42%; --foreground:0 0% 8%; background:#fff; color:#111; }
+html[data-theme="light"] .app-shell:has(.social-hub) { --primary:0 0% 8%; --primary-foreground:0 0% 100%; --accent:0 0% 94%; --accent-foreground:0 0% 10%; --card:0 0% 100%; --border:0 0% 88%; --foreground:0 0% 8%; --muted-foreground:0 0% 42%; --ring:0 0% 8%; }
+html[data-theme="light"] .social-hub .sh-card { background:#fff; border-color:#e5e5e5; box-shadow:0 5px 14px rgba(0,0,0,.04); color:#111; }
+html[data-theme="light"] .social-hub .sh-icon, html[data-theme="light"] .social-hub .sh-pill, html[data-theme="light"] .social-hub .sh-chat { background:#f1f1f1; color:#111; }
+html[data-theme="light"] .social-hub .sh-back { background:#fff; border-color:#e5e5e5; }
+html[data-theme="light"] .sh-follow-button,
+html[data-theme="light"] .sh-dating-button { border-color:#111; background:#111; color:#fff; }
+html[data-theme="light"] .sh-follow-button.sh-following,
+html[data-theme="light"] .sh-dating-button.sh-dating-liked { background:transparent; color:#111; }
+html[data-theme="light"] .sh-profile-stat { background:#fff; border-color:#e5e5e5; color:#111; }
+html[data-theme="light"] .sh-profile-stat strong { color:#111; }
+html[data-theme="light"] .sh-profile-stat span { color:#666; }
 html[data-theme="light"] .social-hub .sh-profile-stat span,
-html[data-theme="light"] .social-hub .sh-muted { color:#62565d; }
-html[data-theme="light"] .social-hub .sh-search { background:#fffafd; border-color:#ebcbd8; color:#2a2328; }
-html[data-theme="light"] .social-hub.activity-screen .activity-metric-card { border-color:#f3dce5; background:#fffdfe; color:#2a2328; box-shadow:0 5px 14px rgba(131,70,94,.09); }
-html[data-theme="light"] .social-hub.activity-screen .activity-metric-card:hover { border-color:#e9bfd0; background:#fffafd; }
-html[data-theme="light"] .social-hub.activity-screen .activity-metric-copy > span { color:#62565d; }
-html[data-theme="light"] .social-hub.activity-screen .activity-feed { border-color:rgba(131,70,94,.16); }
-html[data-theme="light"] .social-hub.activity-screen .activity-feed-row { border-bottom-color:rgba(131,70,94,.16); color:#2a2328; }
-html[data-theme="light"] .social-hub.activity-screen .activity-feed-row:active { background:rgba(232,70,106,.07); }
-html[data-theme="light"] .social-hub.activity-screen .activity-feed-copy time { color:#756871; }
+html[data-theme="light"] .social-hub .sh-profile-stat span,
+html[data-theme="light"] .social-hub .sh-muted { color:#666; }
+html[data-theme="light"] .social-hub .sh-search { background:#f7f7f7; border-color:#e5e5e5; color:#111; }
+html[data-theme="light"] .social-hub.activity-screen .activity-metric-card { border-color:#e5e5e5; background:#fff; color:#111; box-shadow:0 5px 14px rgba(0,0,0,.04); }
+html[data-theme="light"] .social-hub.activity-screen .activity-metric-card:hover { border-color:#ccc; background:#fafafa; }
+html[data-theme="light"] .social-hub.activity-screen .activity-metric-copy > span { color:#666; }
+html[data-theme="light"] .social-hub.activity-screen .activity-feed { border-color:rgba(0,0,0,.1); }
+html[data-theme="light"] .social-hub.activity-screen .activity-feed-row { border-bottom-color:rgba(0,0,0,.1); color:#111; }
+html[data-theme="light"] .social-hub.activity-screen .activity-feed-row:active { background:rgba(0,0,0,.04); }
+html[data-theme="light"] .social-hub.activity-screen .activity-feed-copy time { color:#666; }
 html[data-theme="light"] .social-hub.activity-screen .activity-read-error { border-color:rgba(196,55,74,.22); background:rgba(196,55,74,.06); color:#a83248; }
-html[data-theme="light"] .social-hub.activity-screen .activity-empty { color:#62565d; }
-html[data-theme="light"] .social-hub.activity-screen .activity-empty-icon { background:#fde4ea; color:#e8466a; }
+html[data-theme="light"] .social-hub.activity-screen .activity-empty { color:#666; }
+html[data-theme="light"] .social-hub.activity-screen .activity-empty-icon { background:#f1f1f1; color:#111; }

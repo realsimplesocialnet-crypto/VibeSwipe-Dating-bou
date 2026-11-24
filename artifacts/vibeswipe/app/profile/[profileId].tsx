@@ -154,7 +154,6 @@ export default function PublicProfileScreen() {
   ];
   const avatarSource = photos.length ? profileImagePreviewSource(photos[0], token) : undefined;
   const viewerWidth = Math.min(width, 900);
-  const heroHeight = Math.min(Math.max(height * 0.42, 280), 420);
   const mediaColumnWidth = width >= 820 ? Math.min(360, Math.floor((Math.min(width, 900) - 48) * 0.44)) : Math.max(0, Math.min(width, 900) - (width < 380 ? 32 : 48));
   const photoTileWidth = Math.max(72, Math.floor((mediaColumnWidth - 16) / 3));
   const socialAction = (
@@ -186,16 +185,15 @@ export default function PublicProfileScreen() {
           </Pressable>
         </View>
 
-        {fromLikes ? (
-          <Pressable testID="public-profile-hero" accessibilityRole="imagebutton" accessibilityLabel={`Open ${user.name}'s main photo`} disabled={!photos.length} onPress={() => setViewer(0)} style={[styles.likesHero, { height: heroHeight, backgroundColor: colors.profileCard, shadowColor: colors.profileChipForeground }]}>
-            {avatarSource && !avatarError ? <ExpoImage source={avatarSource} onError={() => setAvatarError(true)} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="memory-disk" transition={150} priority="high" accessibilityLabel={`${user.name}'s main photo`} /> : <Text style={[styles.heroInitial, { color: colors.profileEdit }]}>{user.name.trim().slice(0, 1).toUpperCase()}</Text>}
+        <View style={[styles.identityPanel, { backgroundColor: colors.profileCard, borderColor: colors.border, shadowColor: colors.profileChipForeground }]}>
+          <Pressable testID="public-profile-avatar" accessibilityRole="imagebutton" accessibilityLabel={`Open ${user.name}'s main photo`} disabled={!photos.length} onPress={() => setViewer(0)} style={[styles.avatarRing, { borderColor: colors.profileEdit, backgroundColor: colors.profileCard, shadowColor: colors.profileChipForeground }]}>
+            {avatarSource && !avatarError
+              ? <ExpoImage source={avatarSource} onError={() => setAvatarError(true)} style={styles.avatar} contentFit="cover" cachePolicy="memory-disk" transition={150} priority="high" accessibilityLabel={`${user.name}'s main photo`} />
+              : <Text style={[styles.initial, { color: colors.profileEdit }]}>{user.name.trim().slice(0, 1).toUpperCase()}</Text>}
           </Pressable>
-        ) : null}
-
-        {fromLikes ? (
-          <View style={[styles.likesHeader, { marginTop: 12 }]}>
-            <Text testID="public-profile-name" style={[styles.name, { color: colors.foreground, textAlign: "center" }]}>
-              {user.name}{showAge ? <Text style={{ color: colors.profileMuted, fontWeight: "600" }}>, {user.age}</Text> : null}
+          <View style={styles.identityCopy}>
+            <Text testID="public-profile-name" style={[styles.name, { color: colors.foreground }]}>
+              {user.name}
               {user.isVerified && <Feather name="check-circle" size={21} color={colors.foreground} accessibilityLabel="Verified profile" />}
             </Text>
             <View style={styles.locationRow}>
@@ -203,25 +201,7 @@ export default function PublicProfileScreen() {
               <Text testID="public-profile-location" style={[styles.city, { color: colors.profileMuted }]}>{headerLocation || "Location not shared"}</Text>
             </View>
           </View>
-        ) : (
-          <View style={[styles.identityPanel, { backgroundColor: colors.profileCard, borderColor: colors.border, shadowColor: colors.profileChipForeground }]}>
-            <Pressable testID="public-profile-avatar" accessibilityRole="imagebutton" accessibilityLabel={`Open ${user.name}'s main photo`} disabled={!photos.length} onPress={() => setViewer(0)} style={[styles.avatarRing, { borderColor: colors.profileEdit, backgroundColor: colors.profileCard, shadowColor: colors.profileChipForeground }]}>
-              {avatarSource && !avatarError
-                ? <ExpoImage source={avatarSource} onError={() => setAvatarError(true)} style={styles.avatar} contentFit="cover" cachePolicy="memory-disk" transition={150} priority="high" accessibilityLabel={`${user.name}'s main photo`} />
-                : <Text style={[styles.initial, { color: colors.profileEdit }]}>{user.name.trim().slice(0, 1).toUpperCase()}</Text>}
-            </Pressable>
-            <View style={styles.identityCopy}>
-              <Text testID="public-profile-name" style={[styles.name, { color: colors.foreground }]}>
-                {user.name}{showAge ? <Text style={{ color: colors.profileMuted, fontWeight: "600" }}>, {user.age}</Text> : null}
-                {user.isVerified && <Feather name="check-circle" size={21} color={colors.foreground} accessibilityLabel="Verified profile" />}
-              </Text>
-              <View style={styles.locationRow}>
-                <Feather name="map-pin" size={14} color={colors.profileEdit} />
-                <Text testID="public-profile-location" style={[styles.city, { color: colors.profileMuted }]}>{headerLocation || "Location not shared"}</Text>
-              </View>
-            </View>
-          </View>
-        )}
+        </View>
         <ProfileFollowStats profileId={user.id} viewerId={me.data?.id} socialAction={socialAction} />
 
         <View style={[styles.profileLayout, width >= 820 && styles.profileLayoutWide]}>
@@ -356,9 +336,6 @@ const styles = StyleSheet.create({
   round: { width: 42, height: 42, borderRadius: 21, alignItems: "center", justifyContent: "center", ...shadow },
   identityPanel: { width: "100%", minHeight: 112, flexDirection: "row", alignItems: "center", gap: 14, borderWidth: StyleSheet.hairlineWidth, borderRadius: 24, padding: 12, ...shadow, shadowOpacity: 0.08 },
   identityCopy: { flex: 1, minWidth: 0 },
-  likesHeader: { alignItems: "center", marginBottom: 18 },
-  likesHero: { width: "100%", borderRadius: 24, overflow: "hidden", alignItems: "center", justifyContent: "center", marginTop: 16, borderWidth: 1, ...shadow },
-  heroInitial: { fontSize: 64, fontWeight: "800" },
   profileActionButton: { width: "100%", minHeight: 42, borderWidth: 1.5, borderRadius: 999, paddingHorizontal: 10, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6 },
   avatarRing: { width: 92, height: 92, flexShrink: 0, borderRadius: 46, borderWidth: 2, padding: 3, alignItems: "center", justifyContent: "center", ...shadow, shadowOpacity: 0.2 },
   avatar: { width: "100%", height: "100%", borderRadius: 44 },

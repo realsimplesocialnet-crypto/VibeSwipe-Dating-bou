@@ -68,7 +68,7 @@ function PostRow({ post, onRemove }: { post: Post; onRemove: (post: Post) => voi
         <UserMark name={post.authorName} size={40} />
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <button type="button" onClick={() => openUser(post.authorId)} className="truncate text-left font-bold hover:text-[#ff8cc0]" data-testid={`button-post-author-${post.id}`}>{post.authorName}</button>
+            <button type="button" onClick={() => openUser(post.authorId)} className="truncate text-left font-bold hover:text-white" data-testid={`button-post-author-${post.id}`}>{post.authorName}</button>
             <Pill tone="mute">{post.kind === 'reel' ? <><Film size={11} />Reel</> : <><ImageIcon size={11} />Story</>}</Pill>
             <Pill tone={statusTone(post.status)}>{post.status}</Pill>
           </div>
@@ -118,7 +118,7 @@ export function PostsSection() {
   function requestRemoval(post: Post) {
     setConfirm({
       title: `Remove this ${post.kind}?`,
-      detail: `This permanently removes the ${post.kind} from VibeSwipes. The action is written to the administrator audit log. Type REMOVE to confirm.`,
+      detail: `This permanently removes the ${post.kind} from MyAgeBeauty. The action is written to the administrator audit log. Type REMOVE to confirm.`,
       confirmLabel: `Remove ${post.kind}`,
       word: 'REMOVE',
       onConfirm: async confirmation => {
@@ -141,7 +141,7 @@ export function PostsSection() {
     <div className="a-panel overflow-hidden">
       <div className="flex flex-wrap items-center gap-3 border-b border-[var(--a-line)] p-3">
         <SearchField value={q} onChange={setQ} placeholder="Search caption, author, post ID" testId="input-search-admin-posts" />
-        <input value={userId} onChange={event => setUserId(event.target.value)} placeholder="Filter by owner ID" aria-label="Filter posts by owner ID" data-testid="input-filter-post-owner" className="h-10 min-w-[190px] flex-1 rounded-xl border border-[var(--a-line)] bg-[var(--a-bg)] px-3 text-sm outline-none focus:border-[#f34e9a]/50" />
+        <input value={userId} onChange={event => setUserId(event.target.value)} placeholder="Filter by owner ID" aria-label="Filter posts by owner ID" data-testid="input-filter-post-owner" className="h-10 min-w-[190px] flex-1 rounded-xl border border-[var(--a-line)] bg-[var(--a-bg)] px-3 text-sm outline-none focus:border-white/50" />
         <label className="sr-only" htmlFor="admin-post-kind">Post type</label>
         <select id="admin-post-kind" value={kind} onChange={event => { setKind(event.target.value as typeof kind); setPage(1); }} data-testid="select-admin-post-kind" className="h-10 rounded-xl border border-[var(--a-line)] bg-[var(--a-bg)] px-3 text-sm">
           <option value="all">All posts</option><option value="reel">Reels</option><option value="story">Stories</option>

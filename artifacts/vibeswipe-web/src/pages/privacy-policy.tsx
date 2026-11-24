@@ -6,11 +6,11 @@ const supportEmail = "Realsimplesocialnet@gmail.com";
 const sections = [
   {
     title: "Who we are",
-    body: "VibeSwipes is operated by VIBESWIPES LIMITED, a company registered in Nigeria. This notice applies to the VibeSwipes website, progressive web app, and mobile app. The service is intended for adults worldwide. Mandatory privacy rights in the country where you live continue to apply.",
+    body: "MyAgeBeauty is operated by VIBESWIPES LIMITED, a company registered in Nigeria. This notice applies to the MyAgeBeauty website, progressive web app, and mobile app. The service is intended for adults worldwide. Mandatory privacy rights in the country where you live continue to apply.",
   },
   {
     title: "Information we collect",
-    body: "We process account and profile information you provide, such as your name, age, email or account identifier, gender, dating preferences, biography, interests, work, photos and videos, and the city, state, or country you choose to add. We also process activity needed to run the service, including likes, matches, follows, profile views, Reels, Stories, captions, comments, saved or reposted content, messages, attachments, blocks, reports, support requests, keyword-filter preferences, and daily VibeSwipes screen-time totals.",
+    body: "We process account and profile information you provide, such as your name, age, email or account identifier, gender, dating preferences, biography, interests, work, photos and videos, and the city, state, or country you choose to add. We also process activity needed to run the service, including likes, matches, follows, profile views, Reels, Stories, captions, comments, saved or reposted content, messages, attachments, blocks, reports, support requests, keyword-filter preferences, and daily MyAgeBeauty screen-time totals.",
   },
   {
     title: "Location and safety information",
@@ -18,11 +18,11 @@ const sections = [
   },
   {
     title: "Optional face verification",
-    body: "If face verification is available and you choose to use it, a live camera image and the profile photo selected for checking are sent to Luxand for liveness and face-similarity checks. The live camera frame is not saved as a profile or message photo by VibeSwipes. A protected checked copy of the selected profile photo may be stored as verification evidence and, after a successful check, used as your main profile photo; it is shown according to your account settings and remains subject to normal profile-photo retention. Verification records can include photo references, status, and review details. Face checks are optional, are not proof of legal identity, and do not establish your age or location. Routine cleanup removes pending, processing, failed, or passed session records after 24 hours; requests awaiting review are expired after 30 days, and completed or cancelled session records are removed after 90 days. That session cleanup does not remove a checked photo that remains on your profile. Luxand's own terms and retention practices also apply.",
+    body: "If face verification is available and you choose to use it, a live camera image and the profile photo selected for checking are sent to Luxand for liveness and face-similarity checks. The live camera frame is not saved as a profile or message photo by MyAgeBeauty. A protected checked copy of the selected profile photo may be stored as verification evidence and, after a successful check, used as your main profile photo; it is shown according to your account settings and remains subject to normal profile-photo retention. Verification records can include photo references, status, and review details. Face checks are optional, are not proof of legal identity, and do not establish your age or location. Routine cleanup removes pending, processing, failed, or passed session records after 24 hours; requests awaiting review are expired after 30 days, and completed or cancelled session records are removed after 90 days. That session cleanup does not remove a checked photo that remains on your profile. Luxand's own terms and retention practices also apply.",
   },
   {
     title: "How we use information",
-    body: "We use information to create and display profiles, support discovery and matching, deliver messages and notifications, provide safety and moderation tools, respond to requests, prevent abuse, secure the service, and maintain its features. Screen time counts only while VibeSwipes is visible in the foreground; it does not monitor time in other phone apps. Keyword filters are saved to your account settings and hide matching Reel captions or comments for you. We do not sell personal information.",
+    body: "We use information to create and display profiles, support discovery and matching, deliver messages and notifications, provide safety and moderation tools, respond to requests, prevent abuse, secure the service, and maintain its features. Screen time counts only while MyAgeBeauty is visible in the foreground; it does not monitor time in other phone apps. Keyword filters are saved to your account settings and hide matching Reel captions or comments for you. We do not sell personal information.",
   },
   {
     title: "What other people can see",
@@ -46,7 +46,7 @@ const sections = [
   },
   {
     title: "International processing, security, and children",
-    body: "Because VibeSwipes serves users in multiple countries, our service providers may process information outside your country, subject to protections required by applicable law. We use access controls and other safeguards, but no online service can guarantee absolute security. VibeSwipes is for adults aged 18 and over; do not create an account if you are under 18.",
+    body: "Because MyAgeBeauty serves users in multiple countries, our service providers may process information outside your country, subject to protections required by applicable law. We use access controls and other safeguards, but no online service can guarantee absolute security. MyAgeBeauty is for adults aged 18 and over; do not create an account if you are under 18.",
   },
   {
     title: "Updates and contact",
@@ -60,9 +60,9 @@ export default function PrivacyPolicyPage() {
       <div className="mx-auto max-w-3xl">
         <header className="flex items-center justify-between gap-4">
           <Link href="/" className="inline-flex items-center gap-2 text-sm font-semibold text-muted-foreground hover:text-foreground" data-testid="link-privacy-home">
-            <ArrowLeft size={16} /> Back to VibeSwipes
+            <ArrowLeft size={16} /> Back to MyAgeBeauty
           </Link>
-          <Link href="/" aria-label="VibeSwipes home" className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-card text-primary">
+          <Link href="/" aria-label="MyAgeBeauty home" className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-card text-primary">
             <span className="text-lg font-black leading-none">V</span>
           </Link>
         </header>
@@ -76,10 +76,10 @@ export default function PrivacyPolicyPage() {
             <ShieldCheck size={22} />
           </div>
           <div>
-            <p className="text-[10px] font-extrabold uppercase tracking-[.2em] text-primary">VibeSwipes</p>
+            <p className="text-[10px] font-extrabold uppercase tracking-[.2em] text-primary">MyAgeBeauty</p>
             <h1 className="mt-1 text-3xl font-extrabold tracking-tight">Privacy Policy</h1>
             <p className="mt-2 text-sm leading-6 text-muted-foreground">
-              How VibeSwipes handles information when you use the service.
+              How MyAgeBeauty handles information when you use the service.
             </p>
           </div>
         </div>
@@ -101,8 +101,8 @@ export default function PrivacyPolicyPage() {
         <footer className="mt-7 flex flex-wrap gap-x-5 gap-y-2 border-t border-white/[.08] pt-5 text-xs font-semibold text-muted-foreground">
           <Link href="/terms" className="hover:text-primary">Terms of Service</Link>
           <Link href="/community-guidelines" className="hover:text-primary">Community Guidelines</Link>
-          <a href={`mailto:${supportEmail}?subject=VibeSwipes%20safety%20report`} className="hover:text-primary">Report a safety issue</a>
-          <a href={`mailto:${supportEmail}?subject=VibeSwipes%20privacy%20request`} className="hover:text-primary">Contact support</a>
+          <a href={`mailto:${supportEmail}?subject=MyAgeBeauty%20safety%20report`} className="hover:text-primary">Report a safety issue</a>
+          <a href={`mailto:${supportEmail}?subject=MyAgeBeauty%20privacy%20request`} className="hover:text-primary">Contact support</a>
         </footer>
       </div>
     </main>

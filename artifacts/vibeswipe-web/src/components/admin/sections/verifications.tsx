@@ -46,7 +46,7 @@ export function VerificationsSection() {
   return <div>
     <SectionHeader eyebrow="Trust" title="Photo verification" detail="Verification is automatic. Blue ticks activate after the live selfie, face match and gallery checks pass. No administrator approval is needed." />
     <div className="mb-4 flex flex-wrap gap-1.5" role="tablist" aria-label="Filter by status">
-      {FILTERS.map(f => <button key={f.key} type="button" role="tab" aria-selected={status === f.key} onClick={() => { setStatus(f.key); setPage(1); }} data-testid={`filter-verification-${f.key}`} className={`rounded-full px-3.5 py-1.5 text-xs font-bold transition-colors ${status === f.key ? 'bg-[#f34e9a]/15 text-[#ff8cc0]' : 'text-[var(--a-mute)] hover:bg-white/5'}`}>{f.label}</button>)}
+      {FILTERS.map(f => <button key={f.key} type="button" role="tab" aria-selected={status === f.key} onClick={() => { setStatus(f.key); setPage(1); }} data-testid={`filter-verification-${f.key}`} className={`rounded-full px-3.5 py-1.5 text-xs font-bold transition-colors ${status === f.key ? 'bg-white/[.08] text-white' : 'text-[var(--a-mute)] hover:bg-white/5'}`}>{f.label}</button>)}
     </div>
     <div className="a-panel overflow-hidden">
       {q.isLoading ? <Skeleton rows={4} />

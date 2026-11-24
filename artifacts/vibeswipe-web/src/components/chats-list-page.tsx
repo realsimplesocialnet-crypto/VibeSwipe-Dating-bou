@@ -1,5 +1,5 @@
 import { lazy, useMemo, useState, type ReactNode } from "react";
-import { Camera, Heart, Search, Sparkles } from "lucide-react";
+import { Bell, Camera, Heart, Search, Sparkles } from "lucide-react";
 import {
   getGetDirectChatsQueryKey,
   getGetMatchesQueryKey,
@@ -68,8 +68,9 @@ export function ChatsListPage() {
   return <div className="messages-page min-h-[calc(100dvh-48px)] lg:min-h-[100dvh]">
     <div className="page-in mx-auto max-w-[720px] px-4 pb-10 pt-6 md:px-8 md:pt-10" data-testid="messages-page-content">
       <div className="flex items-center justify-between" data-testid="chats-header">
-        <h1 className="text-3xl font-black leading-tight tracking-[-.04em] md:text-4xl">Chats</h1>
+        <h1 className="text-3xl font-black leading-tight tracking-[-.04em] md:text-4xl">Inbox</h1>
         <div className="flex items-center gap-2">
+          <Link href="/notifications" aria-label="Open activity and notifications" data-testid="link-inbox-activity" className="flex h-11 w-11 items-center justify-center rounded-full border border-border bg-card text-foreground shadow-sm transition-colors hover:bg-accent"><Bell size={20} aria-hidden="true" /></Link>
           <Link href="/stories/new?returnTo=%2Fmessages&mode=text" aria-label="Write a text story" data-testid="button-write-story-from-chats" className="flex h-11 w-11 items-center justify-center rounded-full border border-border bg-card text-sm font-bold text-foreground shadow-sm transition-colors hover:bg-accent">Aa</Link>
           <StoryCameraTrigger returnTo="/messages" label="Open camera to create a story" testId="button-create-story-from-chats" className="flex h-11 w-11 items-center justify-center rounded-full border border-border bg-card text-foreground shadow-sm transition-colors hover:bg-accent">
             <Camera size={21} strokeWidth={2.4} aria-hidden="true" />
@@ -102,7 +103,7 @@ export function ChatsListPage() {
                     <ul className="space-y-3">{newMatches.map((match) => <li key={match.id} className="flex items-center gap-4 py-3">
                       <div className="msg-avatar shrink-0"><MatchStoryAvatar matchId={match.id} profile={match.profile} storyGroup={stories.data?.mutualFollows.find((group) => group.poster.id === match.profile.id)} returnTo="/messages" /></div>
                       <Link href={`/chat/${match.id}?returnTo=%2Fmessages&focusComposer=1`} data-testid={`link-new-match-${match.id}`} aria-label={`Start a chat with ${match.profile.name}`} className="flex min-w-0 flex-1 items-center gap-3">
-                        <div className="min-w-0 flex-1"><div className="truncate text-[17px] font-bold">{match.profile.name}{match.profile.age !== null ? `, ${match.profile.age}` : ""}</div><div className="mt-1 text-sm text-muted-foreground">You both liked each other ❤️</div></div>
+                        <div className="min-w-0 flex-1"><div className="truncate text-[17px] font-bold">{match.profile.name}</div><div className="mt-1 text-sm text-muted-foreground">You both liked each other ❤️</div></div>
                         <span className="shrink-0 rounded-full bg-primary px-3 py-2 text-xs font-bold text-primary-foreground">Message</span>
                       </Link>
                     </li>)}</ul>

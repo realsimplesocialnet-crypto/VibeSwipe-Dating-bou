@@ -38,7 +38,7 @@ export default function ReportSafetyPage() {
           ...(details.trim() ? { details: details.trim() } : {}),
         },
       });
-      setNotice("Your report was sent to the VibeSwipes safety team. Thank you.");
+      setNotice("Your report was sent to the MyAgeBeauty safety team. Thank you.");
       setDetails("");
     } catch {
       setError("The report could not be sent. Check your connection and try again.");
@@ -57,7 +57,7 @@ export default function ReportSafetyPage() {
             <Shield size={22} />
           </div>
           <div>
-            <p className="text-[10px] font-extrabold uppercase tracking-[.2em] text-primary">VibeSwipes Safety</p>
+            <p className="text-[10px] font-extrabold uppercase tracking-[.2em] text-primary">MyAgeBeauty Safety</p>
             <h1 className="mt-1 text-3xl font-extrabold tracking-tight">Report a Scam or Safety Issue</h1>
             <p className="mt-2 text-sm leading-6 text-muted-foreground">Tell us about a profile that made you feel unsafe. Reports are sent privately for review.</p>
           </div>
@@ -89,7 +89,7 @@ export default function ReportSafetyPage() {
               <legend className="text-xs font-bold text-foreground">What happened?</legend>
               <div className="mt-2 grid gap-2 sm:grid-cols-2">
                 {reasons.map((item) => (
-                  <button key={item.value} type="button" onClick={() => setReason(item.value)} aria-pressed={reason === item.value} className={`min-h-11 rounded-xl border px-3 text-left text-xs font-semibold transition-colors ${reason === item.value ? "border-primary/60 bg-primary/10 text-[#ffd3e6]" : "border-white/10 bg-[#19161c] text-muted-foreground hover:text-foreground"}`}>
+                  <button key={item.value} type="button" onClick={() => setReason(item.value)} aria-pressed={reason === item.value} className={`min-h-11 rounded-xl border px-3 text-left text-xs font-semibold transition-colors ${reason === item.value ? "border-primary/60 bg-primary/10 text-foreground" : "border-white/10 bg-[#191919] text-muted-foreground hover:text-foreground"}`}>
                     {item.label}
                   </button>
                 ))}
