@@ -17,7 +17,7 @@
 .sh-profile-social-compact .sh-profile-stat { min-height:44px; flex:1; flex-direction:column; gap:1px; border-radius:14px; padding:4px 8px; }
 .sh-profile-social-compact .sh-profile-stat strong { font-size:20px; line-height:1; }
 .sh-profile-social-compact .sh-profile-stat span { font-size:12px; }
-.sh-profile-stat strong { color:inherit; font-size:22px; font-weight:900; line-height:1.05; }
+.sh-profile-stat strong { color:#FE2C55; font-size:22px; font-weight:900; line-height:1.05; }
 .sh-profile-stat span { color:#b8b8b8; font-size:12px; font-weight:800; letter-spacing:.01em; }
 .sh-profile-actions { display:flex; align-items:flex-start; gap:9px; width:100%; }
 .sh-profile-actions > .sh-follow-action { flex:1; min-width:0; }
@@ -72,7 +72,7 @@ html[data-theme="light"] .sh-dating-button { border-color:#111; background:#111;
 html[data-theme="light"] .sh-follow-button.sh-following,
 html[data-theme="light"] .sh-dating-button.sh-dating-liked { background:transparent; color:#111; }
 html[data-theme="light"] .sh-profile-stat { background:#fff; border-color:#e5e5e5; color:#111; }
-html[data-theme="light"] .sh-profile-stat strong { color:#111; }
+html[data-theme="light"] .sh-profile-stat strong { color:#FE2C55; }
 html[data-theme="light"] .sh-profile-stat span { color:#666; }
 html[data-theme="light"] .social-hub .sh-profile-stat span,
 html[data-theme="light"] .social-hub .sh-profile-stat span,

@@ -165,7 +165,7 @@ export function ProfileFollowStats({ profileId, viewerId, showAction = true, soc
           onPress={() => router.push({ pathname: "/followers/[profileId]", params: { profileId } })}
           style={styles.stat}
         >
-          {query.data ? <Text style={[styles.statValue, { color: colors.profileLabel }]}>{query.data.followersCount}</Text> : query.isError ? <Text style={[styles.statValue, { color: colors.profileLabel }]}>—</Text> : <View testID="skeleton-profile-follower-count" style={{ width: 24, height: 16, borderRadius: 8, backgroundColor: colors.border, opacity: 0.65 }} />}
+          {query.data ? <Text style={[styles.statValue, { color: colors.profileSocialAccent }]}>{query.data.followersCount}</Text> : query.isError ? <Text style={[styles.statValue, { color: colors.profileSocialAccent }]}>—</Text> : <View testID="skeleton-profile-follower-count" style={{ width: 24, height: 16, borderRadius: 8, backgroundColor: colors.border, opacity: 0.65 }} />}
           <Text style={[styles.statLabel, { color: colors.profileMuted }]}>Followers</Text>
         </Pressable>
         <View style={[styles.statRule, { backgroundColor: colors.profileRule }]} />
@@ -176,7 +176,7 @@ export function ProfileFollowStats({ profileId, viewerId, showAction = true, soc
           onPress={() => router.push({ pathname: "/following/[profileId]", params: { profileId } })}
           style={styles.stat}
         >
-          {query.data ? <Text style={[styles.statValue, { color: colors.profileLabel }]}>{query.data.followingCount}</Text> : query.isError ? <Text style={[styles.statValue, { color: colors.profileLabel }]}>—</Text> : <View testID="skeleton-profile-following-count" style={{ width: 24, height: 16, borderRadius: 8, backgroundColor: colors.border, opacity: 0.65 }} />}
+          {query.data ? <Text style={[styles.statValue, { color: colors.profileSocialAccent }]}>{query.data.followingCount}</Text> : query.isError ? <Text style={[styles.statValue, { color: colors.profileSocialAccent }]}>—</Text> : <View testID="skeleton-profile-following-count" style={{ width: 24, height: 16, borderRadius: 8, backgroundColor: colors.border, opacity: 0.65 }} />}
           <Text style={[styles.statLabel, { color: colors.profileMuted }]}>Following</Text>
         </Pressable>
       </View>
