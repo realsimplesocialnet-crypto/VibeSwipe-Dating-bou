@@ -55,7 +55,7 @@
     "zod": "catalog:"
   },
   "dependencies": {
-    "@clerk/expo": "^4.15.1",
+    "@clerk/expo": "^4.17.5",
     "country-state-city": "^3.2.1",
     "expo-audio": "~58.0.12",
     "expo-auth-session": "~58.0.18",

@@ -26,3 +26,4 @@
 - [Company identity](company-identity.md) — Use MyAgeBeauty as the app brand; reserve VIBESWIPES LIMITED for legal disclosures.
 - [Startup cache and Clerk identity](startup-cache-clerk.md) — Cache only the active Clerk user's profile; never persist Clerk session tokens in browser storage.
 - [Social product direction](social-product-direction.md) — MyAgeBeauty is a social app across Android and web; do not use another platform's branding.
+- [Codemagic and managed Clerk](android-codemagic-clerk.md) — External Android builds do not receive Replit-managed production Clerk credentials; do not ship with development keys.
