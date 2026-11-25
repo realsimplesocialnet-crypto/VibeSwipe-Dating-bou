@@ -36,6 +36,12 @@ test('My Profile shows one main profile picture and the actual account details',
   for (const field of ['user.name', 'user.age', 'user.city', 'user.bio', 'user.occupation', 'user.interests']) assert.ok(native.includes(field), field);
   assert.match(overview, /profile\.photos\?\.\[0\]/);
   assert.match(native, /<ProfileAvatar profile=\{user\}/);
+  assert.match(overview, /button-own-profile-details-toggle/);
+  assert.match(overview, /aria-expanded=\{detailsOpen\}/);
+  assert.match(overview, /detailsOpen \? \(/);
+  assert.match(native, /own-profile-details-toggle/);
+  assert.match(native, /detailsOpen \&\& \(/);
+  assert.doesNotMatch(native, /work && work !== "Prefer not to say"/);
   for (const source of [overview, native]) assert.doesNotMatch(source, /Monf Jou|Enjoying life, good music/);
 });
 

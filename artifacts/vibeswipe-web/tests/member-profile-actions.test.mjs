@@ -80,6 +80,10 @@ test('public profiles show a round main photo and browse Reels without a duplica
   assert.match(native, /styles\.identityPanel/);
   assert.match(native, /<ProfileFollowStats profileId=\{user\.id\}/);
   assert.doesNotMatch(native, /public-profile-photo-grid|public-profile-more-photos/);
+  assert.match(member, /button-public-profile-details-toggle/);
+  assert.match(member, /detailsOpen&&<div data-testid="section-public-profile-expanded-details"/);
+  assert.match(native, /public-profile-details-toggle/);
+  assert.match(native, /detailsOpen \? \(/);
   assert.match(native, /<ProfileReelsSection[^>]*profileId=\{id\}/);
   const webReels = read('../src/components/profile-reels-section.tsx');
   const nativeReels = read('../../vibeswipe/components/ProfileReelsSection.tsx');

@@ -83,14 +83,15 @@ export default function ProfileScreen() {
               <Text numberOfLines={2} accessibilityLabel={user.name} style={[styles.name, { color: colors.profileLabel }]}>{user.name}</Text>
               {user.isVerified ? <Feather name="check-circle" size={18} color={colors.profileLabel} accessibilityLabel="Verified profile" /> : null}
             </View>
-            {work && work !== "Prefer not to say" ? <Text numberOfLines={1} style={[styles.city, { color: colors.profileMuted }]}>{work}</Text> : null}
             <Pressable
+              testID="own-profile-details-toggle"
               accessibilityRole="button"
+              accessibilityLabel={detailsOpen ? "Show less profile details" : "Show more profile details"}
               accessibilityState={{ expanded: detailsOpen }}
               onPress={() => setDetailsOpen((open) => !open)}
               style={styles.seeMore}
             >
-              <Text style={[styles.seeMoreText, { color: colors.foreground }]}>{detailsOpen ? "See less" : "See more"}</Text>
+              <Text style={[styles.seeMoreText, { color: colors.foreground }]}>{detailsOpen ? "Less" : "More"}</Text>
               <Feather name={detailsOpen ? "chevron-up" : "chevron-down"} size={15} color={colors.foreground} />
             </Pressable>
           </View>
@@ -119,6 +120,7 @@ export default function ProfileScreen() {
                   {user.age !== null ? <Text style={[styles.meta, { color: colors.mutedForeground, marginTop: 8 }]}>Age · {user.age}</Text> : null}
                   {place ? <Text style={[styles.city, styles.detailPlace, { color: colors.mutedForeground }]}>{place}</Text> : null}
                   {user.gender ? <View style={styles.genderRow}><MaterialCommunityIcons name={genderIcon} size={15} color={colors.mutedForeground} /><Text style={[styles.meta, { color: colors.mutedForeground }]}>{user.gender}</Text></View> : null}
+                  {user.lookingFor ? <View style={styles.genderRow}><MaterialCommunityIcons name="heart-outline" size={15} color={colors.mutedForeground} /><Text style={[styles.meta, { color: colors.mutedForeground }]}>Looking for · {user.lookingFor}</Text></View> : null}
                 </View>
                 <View style={styles.detailSection}>
                   <Text style={[styles.detailHeading, { color: colors.foreground }]}>Work</Text>

@@ -12,7 +12,7 @@ import {
   type Profile,
   type ProfileInput,
 } from "@workspace/api-client-react";
-import { ArrowLeft, MapPin, Mars, Navigation, NonBinary, Pencil, Settings, Venus } from "lucide-react";
+import { ArrowLeft, ChevronDown, MapPin, Mars, Navigation, NonBinary, Pencil, Settings, Venus } from "lucide-react";
 import { Empty, MediaImage, ProfileLoading, Retry } from "@/App";
 import { VerifiedBadge } from "@/components/verified-badge";
 import { Link, Redirect, RouteVisibilityContext, useLocation } from "@/lib/router-compat";
@@ -68,13 +68,13 @@ function genderIcon(gender: string) {
 function OwnProfileOverview({ profile, travelCity }: { profile: Profile; travelCity?: string | null }) {
   const { t } = useAppLanguage();
   const [broken, setBroken] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState(false);
   useEffect(() => setBroken(false), [profile.photos?.[0]]);
   const GenderIcon = genderIcon(profile.gender || "");
   const place = [...new Set([profile.city, profile.state, profile.country].map((part) => part?.trim()).filter(Boolean))].join(", ");
   const work = profile.occupation === "Other" ? profile.occupationOther || "Other" : profile.occupation || "Prefer not to say";
   const bio = profile.bio || "Add a bio so people can get to know you.";
-  const shown = profile.interests.slice(0, 5);
-  const more = profile.interests.length - shown.length;
+  const lookingFor = profile.lookingFor || "Not shared";
 
   return <div data-testid="section-own-profile" className="op-overview flex min-h-0 flex-1 flex-col gap-[clamp(6px,1.4dvh,14px)] pb-[clamp(8px,1.6dvh,16px)]">
     <div className="op-toolbar grid shrink-0 grid-cols-[40px_1fr_40px] items-center">
@@ -90,9 +90,8 @@ function OwnProfileOverview({ profile, travelCity }: { profile: Profile; travelC
       </div>
       <div className="op-person-details mt-3 text-center">
         <h1 data-testid="text-profile-name" title={profile.name} className="brand mx-auto max-w-full truncate text-[clamp(26px,7vw,38px)] font-extrabold leading-[1.08] tracking-[-.04em]">{profile.name}<VerifiedBadge verified={profile.isVerified} /></h1>
-        {(place || profile.gender || travelCity) && <div className="op-profile-meta mt-1.5 flex min-w-0 flex-wrap items-center justify-center gap-x-2.5 gap-y-1 text-[14px]">
+        {(place || travelCity) && <div className="op-profile-meta mt-1.5 flex min-w-0 flex-wrap items-center justify-center gap-x-2.5 gap-y-1 text-[14px]">
           {place && <span data-testid="text-profile-city" title={place} className="op-muted inline-flex max-w-full items-center gap-1.5 truncate"><MapPin size={16} className="shrink-0 text-primary" aria-hidden="true" />{place}</span>}
-          {profile.gender && <span data-testid="text-profile-gender" className="op-muted inline-flex items-center gap-1.5">{place && <span aria-hidden="true" className="op-meta-separator">|</span>}<GenderIcon size={16} className="text-primary" aria-hidden="true" />{profile.gender}</span>}
           {travelCity && <span className="inline-flex min-w-0 items-center gap-1 truncate rounded-full bg-primary/12 px-2.5 py-0.5 text-xs font-semibold text-primary" data-testid="badge-travel" title={`Traveling in ${travelCity}`}><Navigation size={12} />Traveling in {travelCity}</span>}
         </div>}
       </div>
@@ -100,9 +99,39 @@ function OwnProfileOverview({ profile, travelCity }: { profile: Profile; travelC
       <Link href="/profile/edit?returnTo=%2Fprofile" data-testid="button-edit-profile" aria-label={t("Edit profile")} title={t("Edit profile")} className="op-edit inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-transform active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"><Pencil size={18} aria-hidden="true" /></Link>
     </section>
     <div className="op-rule shrink-0" aria-hidden="true" />
-    <section className="op-section min-w-0 shrink-0"><h3 className="op-label">{t("About me")}</h3><p data-testid="text-profile-bio" title={bio} className="mt-1.5 line-clamp-3 text-[14px] leading-[1.5]">{bio}</p>{profile.age !== null ? <p className="op-muted mt-1.5 text-[13px]" data-testid="text-profile-age">Age · {profile.age}</p> : null}</section>
-    <section className="op-section shrink-0"><h3 className="op-label">{t("Hobbies")}</h3>{profile.interests.length ? <div className="mt-2 flex flex-wrap gap-2" title={profile.interests.join(", ")} aria-label={`${t("Hobbies")}: ${profile.interests.join(", ")}`}>{shown.map((interest) => <span key={interest} className="op-chip max-w-[46%] truncate rounded-full px-3.5 py-1.5 text-[13px] font-semibold">{interest}</span>)}{more > 0 && <Link href="/profile/edit?returnTo=%2Fprofile" data-testid="link-more-hobbies" className="op-chip rounded-full px-3.5 py-1.5 text-[13px] font-bold">+{more}</Link>}</div> : <p className="op-muted mt-1.5 text-[13px]">{t("Add a few hobbies to your profile.")}</p>}</section>
-    <section className="op-section shrink-0"><h3 className="op-label">{t("Work")}</h3><span data-testid="text-profile-occupation" title={work} className="op-chip mt-2 inline-flex max-w-full truncate rounded-full px-3.5 py-1.5 text-[13px] font-semibold">{work}</span></section>
+    <section id="own-profile-details-region" className="op-section min-w-0 shrink-0" data-testid="section-profile-details">
+      <h3 className="op-label">{t("About me")}</h3>
+      <p data-testid="text-profile-bio" title={bio} className={`mt-1.5 text-[14px] leading-[1.5] ${detailsOpen ? "whitespace-pre-wrap" : "line-clamp-2"}`}>{bio}</p>
+      <button
+        type="button"
+        data-testid="button-own-profile-details-toggle"
+        aria-expanded={detailsOpen}
+        aria-controls="own-profile-details-region"
+        onClick={() => setDetailsOpen((open) => !open)}
+        className="mt-2 inline-flex min-h-9 items-center gap-1 rounded-full px-2.5 text-[13px] font-bold text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+      >
+        {detailsOpen ? t("Less") : t("More")}
+        <ChevronDown size={15} className={detailsOpen ? "rotate-180" : ""} aria-hidden="true" />
+      </button>
+      {detailsOpen ? (
+        <div data-testid="section-profile-details-expanded" className="mt-3 grid gap-3">
+          <div className="grid gap-1.5 text-[13px]">
+            {profile.age !== null ? <p className="op-muted" data-testid="text-profile-age">{t("Age")} · {profile.age}</p> : null}
+            {profile.gender ? <p className="op-muted inline-flex items-center gap-1.5" data-testid="text-profile-gender"><GenderIcon size={15} aria-hidden="true" />{t("Gender")}: {profile.gender}</p> : null}
+            <p className="op-muted" data-testid="text-profile-looking-for">{t("Looking for")}: {lookingFor}</p>
+            {place ? <p className="op-muted" data-testid="text-profile-full-location">{t("Based in")} {place}</p> : null}
+          </div>
+          <div>
+            <h4 className="op-label">{t("Hobbies")}</h4>
+            {profile.interests.length ? <div className="mt-2 flex flex-wrap gap-2" title={profile.interests.join(", ")} aria-label={`${t("Hobbies")}: ${profile.interests.join(", ")}`}>{profile.interests.map((interest) => <span key={interest} className="op-chip max-w-[46%] truncate rounded-full px-3.5 py-1.5 text-[13px] font-semibold">{interest}</span>)}</div> : <p className="op-muted mt-1.5 text-[13px]">{t("Add a few hobbies to your profile.")}</p>}
+          </div>
+          <div>
+            <h4 className="op-label">{t("Work")}</h4>
+            <span data-testid="text-profile-occupation" title={work} className="op-chip mt-2 inline-flex max-w-full truncate rounded-full px-3.5 py-1.5 text-[13px] font-semibold">{work}</span>
+          </div>
+        </div>
+      ) : null}
+    </section>
     <ProfileReelsSection profileId={profile.id} returnTo="/profile" own />
     <ReferralProfileCard />
   </div>;

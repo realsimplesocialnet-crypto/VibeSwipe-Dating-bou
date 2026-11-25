@@ -27,6 +27,9 @@ test("social profile exposes follow, message, match count, and Reels without dat
   assert.match(profile, /styles\.identityPanel/);
   assert.match(profile, /public-profile-avatar/);
   assert.match(profile, /label: "Age"/);
+  assert.match(profile, /public-profile-details-toggle/);
+  assert.match(profile, /detailsOpen \? \(/);
+  assert.match(profile, /label: "Looking for"/);
   assert.match(followStats, /profile-match-count-stat/);
   assert.match(ownProfile, /ProfileFollowStats/);
   assert.match(likesRoute, /Redirect href="\/\(tabs\)\/activity"/);
@@ -34,6 +37,8 @@ test("social profile exposes follow, message, match count, and Reels without dat
   assert.match(activity, /openComments: "1"/);
   assert.match(ownProfile, /usePremiumColors/);
   assert.match(ownProfile, /user\.isVerified/);
+  assert.match(ownProfile, /own-profile-details-toggle/);
+  assert.doesNotMatch(ownProfile, /work && work !== "Prefer not to say"/);
   assert.match(tabs, /tintColor=\{colors\.premiumAccent\}/);
   assert.match(tabs, /tabBarActiveTintColor: colors\.premiumAccent/);
 });

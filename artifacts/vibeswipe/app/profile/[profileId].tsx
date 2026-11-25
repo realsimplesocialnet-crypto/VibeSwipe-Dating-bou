@@ -36,6 +36,7 @@ export default function PublicProfileScreen() {
   const [token, setToken] = useState<string | null>(null);
   const [viewer, setViewer] = useState<number | null>(null);
   const [avatarError, setAvatarError] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState(false);
   const [actionError, setActionError] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
   const [confirmSafety, setConfirmSafety] = useState<"block" | "report" | null>(null);
@@ -91,6 +92,7 @@ export default function PublicProfileScreen() {
   useEffect(() => {
     setViewer(null);
     setAvatarError(false);
+    setDetailsOpen(false);
   }, [id]);
 
   async function runSafety(kind: "block" | "report") {
@@ -150,6 +152,7 @@ export default function PublicProfileScreen() {
   const facts: { icon: ComponentProps<typeof Feather>["name"]; label: string; value: string; testID: string }[] = [
     ...(showAge ? [{ icon: "calendar" as const, label: "Age", value: String(user.age), testID: "public-profile-age" }] : []),
     { icon: "briefcase", label: "Work", value: work, testID: "public-profile-work" },
+    { icon: "heart", label: "Looking for", value: user.lookingFor || "Not shared", testID: "public-profile-looking-for" },
     { icon: "user", label: "Gender", value: user.gender || "Not shared", testID: "public-profile-gender" },
   ];
   const avatarSource = photos.length ? profileImagePreviewSource(photos[0], token) : undefined;
@@ -207,24 +210,39 @@ export default function PublicProfileScreen() {
           <View style={[styles.detailColumn, width >= 820 && styles.detailColumnWide]}>
             <View testID="public-profile-about" style={[styles.card, { backgroundColor: colors.profileCard, shadowColor: colors.profileChipForeground }]}>
               <Text style={[styles.label, { color: colors.profileEdit }]}>ABOUT ME</Text>
-              <Text style={[styles.value, { color: colors.foreground, marginTop: 8 }]}>{user.bio || "No bio added yet."}</Text>
-              {user.interests.length ? (
-                <View testID="public-profile-interests" style={styles.tags}>
-                  {user.interests.map((item) => <Text key={item} style={[styles.tag, { color: colors.profileChipForeground, backgroundColor: colors.profileChip }]}>{item}</Text>)}
+              <Text numberOfLines={detailsOpen ? undefined : 2} style={[styles.value, { color: colors.foreground, marginTop: 8 }]}>{user.bio || "No bio added yet."}</Text>
+              <Pressable
+                testID="public-profile-details-toggle"
+                accessibilityRole="button"
+                accessibilityLabel={detailsOpen ? "Show less profile details" : "Show more profile details"}
+                accessibilityState={{ expanded: detailsOpen }}
+                onPress={() => setDetailsOpen((open) => !open)}
+                style={styles.detailsToggle}
+              >
+                <Text style={[styles.detailsToggleText, { color: colors.foreground }]}>{detailsOpen ? "Less" : "More"}</Text>
+                <Feather name={detailsOpen ? "chevron-up" : "chevron-down"} size={15} color={colors.foreground} />
+              </Pressable>
+              {detailsOpen ? (
+                <View testID="public-profile-expanded-details">
+                  {user.interests.length ? (
+                    <View testID="public-profile-interests" style={styles.tags}>
+                      {user.interests.map((item) => <Text key={item} style={[styles.tag, { color: colors.profileChipForeground, backgroundColor: colors.profileChip }]}>{item}</Text>)}
+                    </View>
+                  ) : null}
+                  {fullLocation && fullLocation !== headerLocation ? <Text style={[styles.small, { color: colors.profileMuted }]}>Based in {fullLocation}</Text> : null}
+                  <View testID="public-profile-facts" style={[styles.factGrid, { borderTopColor: colors.profileRule }]}>
+                    {facts.map((f) => (
+                      <View key={f.label} testID={f.testID} style={[styles.compactFact, { backgroundColor: colors.profileChip }]}>
+                        <View style={[styles.factIcon, { backgroundColor: colors.profileCard }]}><Feather name={f.icon} size={15} color={colors.profileEdit} /></View>
+                        <View style={styles.compactFactCopy}>
+                          <Text style={[styles.factLabel, { color: colors.profileMuted }]}>{f.label}</Text>
+                          <Text style={[styles.factValue, { color: colors.foreground }]}>{f.value}</Text>
+                        </View>
+                      </View>
+                    ))}
+                  </View>
                 </View>
               ) : null}
-              {fullLocation && fullLocation !== headerLocation ? <Text style={[styles.small, { color: colors.profileMuted }]}>Based in {fullLocation}</Text> : null}
-              <View testID="public-profile-facts" style={[styles.factGrid, { borderTopColor: colors.profileRule }]}>
-                {facts.map((f) => (
-                  <View key={f.label} testID={f.testID} style={[styles.compactFact, { backgroundColor: colors.profileChip }]}>
-                    <View style={[styles.factIcon, { backgroundColor: colors.profileCard }]}><Feather name={f.icon} size={15} color={colors.profileEdit} /></View>
-                    <View style={styles.compactFactCopy}>
-                      <Text style={[styles.factLabel, { color: colors.profileMuted }]}>{f.label}</Text>
-                      <Text style={[styles.factValue, { color: colors.foreground }]}>{f.value}</Text>
-                    </View>
-                  </View>
-                ))}
-              </View>
             </View>
           </View>
 
@@ -338,6 +356,8 @@ const styles = StyleSheet.create({
   factValue: { marginTop: 2, fontSize: 13, lineHeight: 17, fontWeight: "700" },
   label: { fontSize: 12, fontWeight: "800", letterSpacing: 1.4 },
   value: { fontSize: 15, lineHeight: 22 },
+  detailsToggle: { alignSelf: "flex-start", minHeight: 36, flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 8 },
+  detailsToggleText: { fontSize: 13, fontWeight: "800" },
   small: { fontSize: 13, marginTop: 12 },
   tags: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 14 },
   tag: { overflow: "hidden", borderRadius: 16, paddingHorizontal: 13, paddingVertical: 6, fontSize: 13, fontWeight: "600" },

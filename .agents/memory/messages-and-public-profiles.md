@@ -15,7 +15,7 @@ Leave paid upgrades out.
 
 **How to apply:** Do not add a non-working Upgrade button, payment gate, or premium banner merely to copy a screenshot.
 
-Other members' full profiles use the black-and-white MyAgeBeauty palette, one circular main photo, and real profile details. Do not repeat other uploaded photos in a gallery. Do not place age next to the name; show it in About.
+Other members' full profiles use the black-and-white MyAgeBeauty palette, one circular main photo, and real profile details. Do not repeat other uploaded photos in a gallery. Keep About compact with a short bio preview; reveal age, gender, work, looking-for details, hobbies, and the full bio only after More is tapped. Do not place age next to the name.
 
 When opened from Likes, show the selected member's main photo prominently and present Pass plus Like Back; omit Super Like on that entry path. Like Back uses the normal like/match handling and returns to Likes when no match celebration takes over. Keep other profile entry paths' existing actions.
 

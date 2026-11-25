@@ -967,14 +967,17 @@ const ProfileInterestChips=memo(function ProfileInterestChips({interests}:{inter
  function PublicProfileLoading(){return <div className="public-profile min-h-[100dvh]"><main aria-label="Loading profile" className="page-in pp-main mx-auto w-full max-w-md px-4 pb-[calc(6rem+env(safe-area-inset-bottom))] pt-2"><div className="flex justify-between"><div className="h-10 w-10 animate-pulse rounded-full bg-[hsl(var(--pp-soft))]"/><div className="h-10 w-10 animate-pulse rounded-full bg-[hsl(var(--pp-soft))]"/></div><div className="pp-identity-panel mt-4"><div className="pp-avatar-identity animate-pulse rounded-full bg-[hsl(var(--pp-soft))]"/><div className="min-w-0 flex-1 space-y-3"><div className="h-6 w-4/5 animate-pulse rounded bg-[hsl(var(--pp-soft))]"/><div className="h-4 w-3/5 animate-pulse rounded bg-[hsl(var(--pp-soft))]"/></div></div><div className="sh-profile-social"><div className="sh-profile-stats"><div className="sh-profile-stat animate-pulse"/><div className="sh-profile-stat animate-pulse"/><div className="sh-profile-stat animate-pulse"/></div><div className="sh-profile-actions"><div className="sh-follow-button animate-pulse"/><div className="sh-dating-button animate-pulse"/></div></div><div className="pp-layout mt-5"><div className="pp-profile-details"><section className="pp-card"><div className="h-3 w-24 animate-pulse rounded bg-[hsl(var(--pp-soft))]"/><div className="mt-4 h-5 w-3/4 animate-pulse rounded bg-[hsl(var(--pp-soft))]"/><div className="mt-4 flex flex-wrap gap-2" data-testid="skeleton-profile-interests" aria-hidden="true"><span className="pp-pill w-[72px] animate-pulse text-transparent"/><span className="pp-pill w-[104px] animate-pulse text-transparent"/><span className="pp-pill w-[84px] animate-pulse text-transparent"/></div><div className="pp-facts"><div className="pp-fact h-[68px] animate-pulse"/><div className="pp-fact h-[68px] animate-pulse"/><div className="pp-fact h-[68px] animate-pulse"/><div className="pp-fact h-[68px] animate-pulse"/></div></section></div><div className="pp-profile-media"><div className="pp-reel-grid" data-testid="skeleton-profile-reels" aria-hidden="true"><div className="pp-reel-tile animate-pulse"/><div className="pp-reel-tile animate-pulse"/><div className="pp-reel-tile animate-pulse"/></div></div></div></main></div>}
 function PublicProfile({id,actionReturnTo='/discover'}:{id:string;actionReturnTo?:string}){
    const fromLikes=actionReturnTo==='/likes';
+   const {t}=useAppLanguage();
   const me=useGetMyProfile();
   const q=useGetProfileById(id,{query:{queryKey:getGetProfileByIdQueryKey(id),staleTime:10*60_000,gcTime:30*60_000}});const datingState=useGetProfileDatingState(id,{query:{queryKey:getGetProfileDatingStateQueryKey(id),enabled:!!id,staleTime:10*60_000,gcTime:30*60_000}});const followSummary=useGetProfileFollowSummary(id,{query:{queryKey:getGetProfileFollowSummaryQueryKey(id),enabled:!!id,staleTime:10*60_000,gcTime:30*60_000}});const matchedId=datingState.isError?null:datingState.data?.matchId??null;const canViewProfileStories=Boolean(followSummary.data?.isFollowing&&followSummary.data?.followsYou);const storyFeed=useGetStories({query:{queryKey:getGetStoriesQueryKey(),enabled:canViewProfileStories,staleTime:0,refetchOnMount:'always'}});const view=useRecordProfileView();const seen=useRef('');const [photoError,setPhotoError]=useState(false);const [viewer,setViewer]=useState<number|null>(null);const openPhoto=useCallback((index:number)=>setViewer(index),[]);
    const client=useQueryClient();const [,setLocation]=useLocation();const reaction=useCreateReaction();const unlike=useUnlikeProfile();const likes=useGetDailyLikeStatus({query:{queryKey:getGetDailyLikeStatusQueryKey()}});
+   const [detailsOpen,setDetailsOpen]=useState(false);
   const [confirmation,setConfirmation]=useState<{text:string;kind:'like'}|null>(null);const [actionError,setActionError]=useState('');const block=useBlockProfile();const report=useReportProfile();const [menu,setMenu]=useState(false);const [confirmSafety,setConfirmSafety]=useState<'block'|'report'|null>(null);const [safetyError,setSafetyError]=useState('');const [reported,setReported]=useState(false);const [matchResult,setMatchResult]=useState<{name:string;matchId:string|null}|null>(null);
   const confirmationTimer=useRef<number|null>(null);const busy=useRef(false);const mounted=useRef(true);const currentId=useRef(id);currentId.current=id;
   useEffect(()=>{mounted.current=true;return()=>{mounted.current=false;if(confirmationTimer.current!==null)window.clearTimeout(confirmationTimer.current)}},[]);
   useEffect(()=>{if(q.data?.id&&seen.current!==q.data.id){seen.current=q.data.id;view.mutate({profileId:q.data.id})}},[q.data?.id]);
   useEffect(()=>{setPhotoError(false);setViewer(null)},[q.data?.id,q.data?.photos?.[0]]);
+   useEffect(()=>{setDetailsOpen(false)},[q.data?.id]);
     useEffect(()=>{const reference=q.data?.photos?.[0];if(!reference?.startsWith('media:'))return;const mediaId=reference.slice(6);void client.prefetchQuery({queryKey:getGetMediaPreviewQueryKey(mediaId),queryFn:({signal})=>getMediaPreview(mediaId,{signal}),staleTime:10*60_000,gcTime:30*60_000})},[q.data?.id,q.data?.photos?.[0],client]);
   const likeRemaining=likes.data?.remaining;
    const alreadyLiked=datingState.data?.reaction==='like';
@@ -1032,7 +1035,7 @@ function PublicProfile({id,actionReturnTo='/discover'}:{id:string;actionReturnTo
   if(!q.data)return <PublicProfileLoading/>;
     const profile=q.data;const photos=profile.photos?.[0]?[profile.photos[0]]:[];const profileStory=canViewProfileStories?storyFeed.data?.mutualFollows.find(group=>group.poster.id===profile.id):undefined;const location=[profile.city,profile.state,profile.country].filter(Boolean).join(', ');const headerLocation=[profile.city,profile.state].filter(Boolean).join(', ')||location;
   const work=profile.occupation==='Other'?(profile.occupationOther||'Other'):(profile.occupation||'');
-  const facts=[profile.showAge&&profile.age!==null?{icon:Sparkles,label:'Age',value:String(profile.age)}:null,{icon:Briefcase,label:'Work',value:work||'Not shared'},{icon:Heart,label:'Looking for',value:profile.lookingFor||'Not shared'},{icon:Users,label:'Gender',value:profile.gender||'Not shared'}].filter(Boolean) as {icon:typeof Heart;label:string;value:string}[];
+   const facts=[profile.showAge&&profile.age!==null?{icon:Sparkles,label:'Age',value:String(profile.age)}:null,{icon:Briefcase,label:'Work',value:work||'Not shared'},{icon:Heart,label:'Looking for',value:profile.lookingFor||'Not shared'},{icon:Users,label:'Gender',value:profile.gender||'Not shared'}].filter(Boolean) as {icon:typeof Heart;label:string;value:string}[];
   const likeOut=likeRemaining===0;
    const actionStatusLoading=(!datingState.data&&datingState.isLoading)||(!alreadyLiked&&likes.isLoading&&!likes.data);
    const actionBusy=locked||actionStatusLoading;
@@ -1066,14 +1069,26 @@ function PublicProfile({id,actionReturnTo='/discover'}:{id:string;actionReturnTo
     <ProfileSocialActions profileId={profile.id} viewerId={me.data?.id} datingAction={datingAction} />
     <div className="pp-layout mt-5">
       <div className="pp-profile-details">
-        <section className="pp-card" data-testid="section-about">
-          <h2 className="pp-label">About me</h2>
-          <p className="mt-2 whitespace-pre-wrap text-[15px] leading-6">{profile.bio||'No bio added yet.'}</p>
-          {profile.interests.length>0&&<ProfileInterestChips interests={profile.interests}/>}
-          {location&&location!==headerLocation&&<p className="mt-4 text-[13px] text-[hsl(var(--pp-muted))]">Based in {location}</p>}
-          <div className="pp-facts" data-testid="section-facts">
-            {facts.map(f=><div key={f.label} className="pp-fact" data-testid={`section-${f.label.toLowerCase().replace(/\s/g,'-')}`}><span className="pp-icon"><f.icon size={17}/></span><span className="min-w-0"><span className="block text-[11px] font-semibold text-[hsl(var(--pp-muted))]">{f.label}</span><span className="mt-0.5 block break-words text-[13px] font-bold">{f.value}</span></span></div>)}
-          </div>
+        <section id="public-profile-about" className="pp-card" data-testid="section-about">
+          <h2 className="pp-label">{t("About me")}</h2>
+          <p className={`mt-2 text-[15px] leading-6 ${detailsOpen ? "whitespace-pre-wrap" : "line-clamp-2"}`}>{profile.bio||t("No bio added yet.")}</p>
+          <button
+            type="button"
+            data-testid="button-public-profile-details-toggle"
+            aria-expanded={detailsOpen}
+            aria-controls="public-profile-about"
+            onClick={()=>setDetailsOpen((open)=>!open)}
+            className="mt-3 inline-flex min-h-9 items-center gap-1.5 rounded-full px-3 text-[13px] font-bold text-[hsl(var(--pp-fg))] hover:bg-[hsl(var(--pp-soft))] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+          >
+            {detailsOpen?t("Less"):t("More")}<ChevronDown size={15} className={detailsOpen?"rotate-180":""} aria-hidden="true"/>
+          </button>
+          {detailsOpen&&<div data-testid="section-public-profile-expanded-details">
+            {profile.interests.length>0&&<ProfileInterestChips interests={profile.interests}/>}
+            {location&&location!==headerLocation&&<p className="mt-4 text-[13px] text-[hsl(var(--pp-muted))]">{t("Based in")} {location}</p>}
+            <div className="pp-facts" data-testid="section-facts">
+              {facts.map(f=><div key={f.label} className="pp-fact" data-testid={`section-${f.label.toLowerCase().replace(/\s/g,'-')}`}><span className="pp-icon"><f.icon size={17}/></span><span className="min-w-0"><span className="block text-[11px] font-semibold text-[hsl(var(--pp-muted))]">{t(f.label)}</span><span className="mt-0.5 block break-words text-[13px] font-bold">{f.value}</span></span></div>)}
+            </div>
+          </div>}
         </section>
       </div>
       <div className="pp-profile-media">
