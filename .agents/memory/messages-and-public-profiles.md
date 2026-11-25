@@ -15,7 +15,7 @@ Leave paid upgrades out.
 
 **How to apply:** Do not add a non-working Upgrade button, payment gate, or premium banner merely to copy a screenshot.
 
-Other members' full profiles use the black-and-white MyAgeBeauty palette, a circular main photo, and real profile details and uploaded photos. Do not place age next to the name; show it in About.
+Other members' full profiles use the black-and-white MyAgeBeauty palette, one circular main photo, and real profile details. Do not repeat other uploaded photos in a gallery. Do not place age next to the name; show it in About.
 
 When opened from Likes, show the selected member's main photo prominently and present Pass plus Like Back; omit Super Like on that entry path. Like Back uses the normal like/match handling and returns to Likes when no match celebration takes over. Keep other profile entry paths' existing actions.
 
@@ -47,8 +47,8 @@ When opening a member profile from a feed or list, Back must restore the origina
 
 **How to apply:** Preserve the selected card and relevant list position across profile navigation. Refresh in the background without changing the user's current selection; key cached state to the active account and feed.
 
-The member's own profile defaults to their posted Reels in a straight three-column grid. Saved and liked videos belong in separate icon tabs; saved videos are visible only to the signed-in owner. Do not show a Reposts tab or add repost behavior unless the owner asks for it. Never mix liked videos into the posted-Reels grid.
+The member's own profile defaults to posted video Reels in a straight three-column grid; do not mix photo posts into the Reels grid. Show one circular profile photo only, with Matches, Followers, and Following counts. Saved and liked videos belong in separate icon tabs; saved videos are visible only to the signed-in owner. Do not show a Reposts tab or add repost behavior unless the owner asks for it. Never mix liked videos into the posted-Reels grid.
 
-**Why:** The user asked for the profile media organization to match TikTok and clarified that only their own Reels belong in the main profile grid.
+**Why:** The user asked for the profile media organization to match TikTok, clarified that only Reels belong in the main profile grid, and later requested one profile image plus Matches, Followers, and Following.
 
-**How to apply:** Keep the same tab separation on web/PWA and Expo, enforce privacy in the API as well as the UI, and keep the active tab and grid simple.
+**How to apply:** Keep the same tab separation on web/PWA and Expo, enforce privacy in the API as well as the UI, show a single main photo without deleting hidden legacy images, and keep the active tab and grid simple.

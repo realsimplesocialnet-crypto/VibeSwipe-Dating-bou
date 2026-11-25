@@ -8,10 +8,9 @@ import {
 } from "@workspace/api-client-react";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { Platform } from "react-native";
-import { useAuth } from "@clerk/expo";
 import { useQueryClient } from "@tanstack/react-query";
 import { router } from "expo-router";
-import { ActivityIndicator, Alert, Image, Modal, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from "react-native";
+import { ActivityIndicator, Alert, Modal, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AppHeader } from "@/components/AppHeader";
 import { ProfileAvatar } from "@/components/ProfileAvatar";
@@ -19,32 +18,19 @@ import { ProfileReelsSection } from "@/components/ProfileReelsSection";
 import { ProfileFollowStats } from "@/components/ProfileFollow";
 import { ReferralProfileCard } from "@/components/ReferralProfileCard";
 import { usePremiumColors } from "@/hooks/useColors";
-import { profileImageSource } from "@/lib/media";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 export default function ProfileScreen() {
   const colors = usePremiumColors();
-  const { getToken } = useAuth();
   const insets = useSafeAreaInsets();
   const window = useWindowDimensions();
   const [areaHeight, setAreaHeight] = useState(0);
   const [blockedOpen, setBlockedOpen] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
-  const [mediaToken, setMediaToken] = useState<string | null>(null);
   const profile = useGetMyProfile();
   const blockedProfiles = useGetBlockedProfiles();
   const unblockProfile = useUnblockProfile();
   const queryClient = useQueryClient();
-  useEffect(() => {
-    let active = true;
-    void getToken().then((value) => {
-      if (active) setMediaToken(value);
-    });
-    return () => {
-      active = false;
-    };
-  }, [getToken]);
-
   async function unblock(profileId: string) {
     try {
       await unblockProfile.mutateAsync({ targetUserId: profileId });
@@ -72,7 +58,6 @@ export default function ProfileScreen() {
   const tabBar = Platform.OS === "web" ? 84 : 49 + insets.bottom;
   const avail = (areaHeight || window.height - 100) - tabBar;
   const avatar = Math.round(Math.max(80, Math.min(112, avail * 0.14)));
-  const photos = user.photos.slice(0, 6);
   const blockedCount = blockedProfiles.data?.length ?? 0;
   return (
     <View style={[styles.root, { backgroundColor: colors.profileGradientMiddle }]} onLayout={(e) => setAreaHeight(e.nativeEvent.layout.height)}>
@@ -80,15 +65,6 @@ export default function ProfileScreen() {
       <ScrollView style={{ flex: 1 }} contentContainerStyle={[styles.scrollContent, { paddingBottom: tabBar + 18 }]} showsVerticalScrollIndicator={false}>
         <View style={[styles.profileCard, { backgroundColor: colors.profileCard, borderColor: colors.border }]}>
           <View style={styles.cover}>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Upload profile picture"
-              onPress={() => router.push("/edit-profile")}
-              style={({ pressed }) => [styles.uploadPicture, { opacity: pressed ? 0.7 : 1 }]}
-            >
-              <Feather name="camera" size={14} color="#FFFFFF" />
-              <Text style={styles.uploadPictureText}>Upload picture</Text>
-            </Pressable>
             <View style={styles.coverActions}>
               <Pressable testID="profile-blocked" accessibilityLabel={`Blocked profiles${blockedCount ? `, ${blockedCount}` : ""}`} onPress={() => setBlockedOpen(true)} style={styles.coverAction}>
                 <Feather name="slash" size={18} color="#FFFFFF" />
@@ -157,30 +133,6 @@ export default function ProfileScreen() {
                   </View>
                 ) : <Text style={[styles.body, { color: colors.profileMuted }]}>Add a few interests to your profile.</Text>}
               </View>
-              <View style={styles.detailSection}>
-                <View style={styles.photoHeading}>
-                  <Text style={[styles.detailHeading, { color: colors.foreground }]}>Photos <Text style={{ color: colors.profileMuted, fontWeight: "500" }}>{user.photos.length}/6</Text></Text>
-                  <Pressable accessibilityRole="button" accessibilityLabel="Manage profile photos" onPress={() => router.push("/edit-profile")} style={styles.managePhotos}>
-                    <Feather name="camera" size={13} color={colors.foreground} />
-                    <Text style={[styles.managePhotosText, { color: colors.foreground }]}>Manage</Text>
-                  </Pressable>
-                </View>
-                {photos.length ? (
-                  <View style={styles.mediaRow}>
-                    {photos.map((photo, index) => (
-                      <View key={`${photo}-${index}`} accessibilityLabel={`Profile photo ${index + 1}${index === 0 ? " (main)" : ""}`} style={[styles.mediaThumb, { backgroundColor: colors.profileChip }]}>
-                        {profileImageSource(photo, mediaToken) ? <Image source={profileImageSource(photo, mediaToken)} style={styles.mediaImage} resizeMode="cover" /> : <Feather name="image" size={16} color={colors.profileMuted} />}
-                        {index === 0 ? <View style={[styles.mainPhotoBadge, { backgroundColor: colors.profileEdit }]}><Text style={[styles.mainPhotoBadgeText, { color: colors.profileEditForeground }]}>Main</Text></View> : null}
-                      </View>
-                    ))}
-                  </View>
-                ) : (
-                  <Pressable onPress={() => router.push("/edit-profile")} style={styles.emptyPhotos}>
-                    <Feather name="image" size={17} color={colors.profileMuted} />
-                    <Text style={[styles.body, { color: colors.profileMuted }]}>Add photos to your profile.</Text>
-                  </Pressable>
-                )}
-              </View>
               <ReferralProfileCard />
             </View>
           )}
@@ -225,8 +177,6 @@ const styles = StyleSheet.create({
   scrollContent: { flexGrow: 1, paddingHorizontal: 18, paddingTop: 18, paddingBottom: 18, gap: 18, justifyContent: "flex-start" },
   profileCard: { overflow: "hidden", borderRadius: 24, borderWidth: StyleSheet.hairlineWidth },
   cover: { height: 116, backgroundColor: "#111111", justifyContent: "flex-end", position: "relative" },
-  uploadPicture: { position: "absolute", left: 16, bottom: 13, flexDirection: "row", alignItems: "center", gap: 6 },
-  uploadPictureText: { color: "#FFFFFF", fontSize: 12, fontWeight: "700" },
   coverActions: { position: "absolute", top: 12, right: 12, flexDirection: "row", gap: 8 },
   coverAction: { width: 40, height: 40, borderRadius: 13, backgroundColor: "rgba(0,0,0,0.18)", alignItems: "center", justifyContent: "center" },
   profileIdentity: { alignItems: "center", paddingHorizontal: 18, paddingBottom: 12 },
@@ -250,15 +200,6 @@ const styles = StyleSheet.create({
   body: { fontSize: 14, lineHeight: 21 },
   tags: { flexDirection: "row", flexWrap: "wrap", gap: 7 },
   tag: { overflow: "hidden", borderRadius: 20, paddingHorizontal: 13, paddingVertical: 7, fontSize: 13, fontWeight: "600", maxWidth: 160 },
-  photoHeading: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  managePhotos: { flexDirection: "row", gap: 5, alignItems: "center", paddingHorizontal: 9, paddingVertical: 5 },
-  managePhotosText: { fontSize: 12, fontWeight: "700" },
-  mediaRow: { flexDirection: "row", gap: 5 },
-  emptyPhotos: { minHeight: 58, flexDirection: "row", alignItems: "center", gap: 8 },
-  mediaThumb: { flex: 1, aspectRatio: 1, alignItems: "center", justifyContent: "center", overflow: "hidden", position: "relative" },
-  mediaImage: { width: "100%", height: "100%" },
-  mainPhotoBadge: { position: "absolute", left: 0, right: 0, bottom: 0, alignItems: "center", paddingVertical: 1 },
-  mainPhotoBadgeText: { fontSize: 8, fontWeight: "800" },
   backdrop: { flex: 1, backgroundColor: "rgba(20,10,16,0.35)" },
   sheet: { borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 18 },
   sheetHead: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 8 },

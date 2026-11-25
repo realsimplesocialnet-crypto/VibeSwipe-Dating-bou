@@ -1824,6 +1824,8 @@ export const GetProfileFollowSummaryParams = zod.object({
 
 export const getProfileFollowSummaryResponsePostCountMin = 0;
 
+export const getProfileFollowSummaryResponseMatchCountMin = 0;
+
 export const getProfileFollowSummaryResponseFollowersCountMin = 0;
 
 export const getProfileFollowSummaryResponseFollowingCountMin = 0;
@@ -1832,6 +1834,7 @@ export const getProfileFollowSummaryResponseFollowingCountMin = 0;
 
 export const GetProfileFollowSummaryResponse = zod.object({
   "postCount": zod.int().min(getProfileFollowSummaryResponsePostCountMin).optional().describe('Number of this profile\'s posts visible to the signed-in viewer'),
+  "matchCount": zod.int().min(getProfileFollowSummaryResponseMatchCountMin).describe('Number of this profile\'s mutual matches'),
   "followersCount": zod.int().min(getProfileFollowSummaryResponseFollowersCountMin),
   "followingCount": zod.int().min(getProfileFollowSummaryResponseFollowingCountMin),
   "isFollowing": zod.boolean(),
@@ -1882,6 +1885,8 @@ export const FollowProfileParams = zod.object({
 
 export const followProfileResponsePostCountMin = 0;
 
+export const followProfileResponseMatchCountMin = 0;
+
 export const followProfileResponseFollowersCountMin = 0;
 
 export const followProfileResponseFollowingCountMin = 0;
@@ -1890,6 +1895,7 @@ export const followProfileResponseFollowingCountMin = 0;
 
 export const FollowProfileResponse = zod.object({
   "postCount": zod.int().min(followProfileResponsePostCountMin).optional().describe('Number of this profile\'s posts visible to the signed-in viewer'),
+  "matchCount": zod.int().min(followProfileResponseMatchCountMin).describe('Number of this profile\'s mutual matches'),
   "followersCount": zod.int().min(followProfileResponseFollowersCountMin),
   "followingCount": zod.int().min(followProfileResponseFollowingCountMin),
   "isFollowing": zod.boolean(),

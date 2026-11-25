@@ -12,7 +12,7 @@ import {
   type Profile,
   type ProfileInput,
 } from "@workspace/api-client-react";
-import { ArrowLeft, MapPin, Mars, Navigation, NonBinary, Pencil, Settings, Venus, X } from "lucide-react";
+import { ArrowLeft, MapPin, Mars, Navigation, NonBinary, Pencil, Settings, Venus } from "lucide-react";
 import { Empty, MediaImage, ProfileLoading, Retry } from "@/App";
 import { VerifiedBadge } from "@/components/verified-badge";
 import { Link, Redirect, RouteVisibilityContext, useLocation } from "@/lib/router-compat";
@@ -103,9 +103,6 @@ function OwnProfileOverview({ profile, travelCity }: { profile: Profile; travelC
     <section className="op-section min-w-0 shrink-0"><h3 className="op-label">{t("About me")}</h3><p data-testid="text-profile-bio" title={bio} className="mt-1.5 line-clamp-3 text-[14px] leading-[1.5]">{bio}</p>{profile.age !== null ? <p className="op-muted mt-1.5 text-[13px]" data-testid="text-profile-age">Age · {profile.age}</p> : null}</section>
     <section className="op-section shrink-0"><h3 className="op-label">{t("Hobbies")}</h3>{profile.interests.length ? <div className="mt-2 flex flex-wrap gap-2" title={profile.interests.join(", ")} aria-label={`${t("Hobbies")}: ${profile.interests.join(", ")}`}>{shown.map((interest) => <span key={interest} className="op-chip max-w-[46%] truncate rounded-full px-3.5 py-1.5 text-[13px] font-semibold">{interest}</span>)}{more > 0 && <Link href="/profile/edit?returnTo=%2Fprofile" data-testid="link-more-hobbies" className="op-chip rounded-full px-3.5 py-1.5 text-[13px] font-bold">+{more}</Link>}</div> : <p className="op-muted mt-1.5 text-[13px]">{t("Add a few hobbies to your profile.")}</p>}</section>
     <section className="op-section shrink-0"><h3 className="op-label">{t("Work")}</h3><span data-testid="text-profile-occupation" title={work} className="op-chip mt-2 inline-flex max-w-full truncate rounded-full px-3.5 py-1.5 text-[13px] font-semibold">{work}</span></section>
-    <section className="op-section shrink-0"><h3 className="op-label">{t("Photos")}</h3>
-       {profile.photos.length ? <div className="mt-2 grid grid-cols-5 gap-2" data-testid="profile-photo-strip" aria-label={`${t("Profile photos")}, ${profile.photos.length} ${t("total")}`}>{profile.photos.slice(0, 5).map((photo, index) => <div key={`${photo}-${index}`} className="op-thumb relative aspect-square overflow-hidden rounded-xl"><MediaImage reference={photo} alt={`${t("Profile photo")} ${index + 1}${index === 0 ? ` (${t("main")})` : ""}`} className="h-full w-full object-cover" />{index === 0 && <span className="absolute inset-x-0 bottom-0 bg-white text-center text-[9px] font-bold leading-[14px] text-black">{t("Main")}</span>}</div>)}</div> : <p className="op-muted mt-1.5 text-[13px]">{t("Add photos in Edit profile.")}</p>}
-    </section>
     <ProfileReelsSection profileId={profile.id} returnTo="/profile" own />
     <ReferralProfileCard />
   </div>;
@@ -130,6 +127,7 @@ export function ProfilePage({ mode = "view", returnTo = "/profile" }: { mode?: "
   const [form, setForm] = useState<ProfileInput>(emptyProfile);
   const [formReady, setFormReady] = useState(false);
   const mediaInput = useRef<HTMLInputElement>(null);
+  const videoInput = useRef<HTMLInputElement>(null);
   const [photoPreviews, setPhotoPreviews] = useState<Record<string, string>>({});
   const photoPreviewUrls = useRef(new Map<string, string>());
 
@@ -145,20 +143,6 @@ export function ProfilePage({ mode = "view", returnTo = "/profile" }: { mode?: "
   }, [query.data, formReady]);
 
   const change = (key: keyof ProfileInput, value: unknown) => setForm((current) => ({ ...current, [key]: value }));
-  function removeProfilePhoto(index: number) {
-    const reference = form.photos[index];
-    const preview = photoPreviewUrls.current.get(reference);
-    if (preview) {
-      URL.revokeObjectURL(preview);
-      photoPreviewUrls.current.delete(reference);
-      setPhotoPreviews((current) => {
-        const next = { ...current };
-        delete next[reference];
-        return next;
-      });
-    }
-    change("photos", form.photos.filter((_, photoIndex) => photoIndex !== index));
-  }
   async function uploadProfileMedia(file?: File) {
     if (!file || uploading) return;
     const video = file.type.startsWith("video/");
@@ -180,7 +164,10 @@ export function ProfilePage({ mode = "view", returnTo = "/profile" }: { mode?: "
         const preview = URL.createObjectURL(prepared);
         photoPreviewUrls.current.set(checked.mediaReference, preview);
         setPhotoPreviews((current) => ({ ...current, [checked.mediaReference]: preview }));
-        setForm((current) => ({ ...current, photos: [...current.photos, checked.mediaReference].slice(0, 6) }));
+        setForm((current) => ({
+          ...current,
+          photos: [checked.mediaReference, ...current.photos.slice(1).filter((photo) => photo !== checked.mediaReference)].slice(0, 6),
+        }));
       }
     } catch (error) {
       setSaveError(userErrorMessage(error, "Your picture could not be uploaded. Choose the photo again to retry."));
@@ -211,14 +198,25 @@ export function ProfilePage({ mode = "view", returnTo = "/profile" }: { mode?: "
 
   return <Frame>{heading}{query.isLoading || edit && !formReady ? <ProfileLoading /> : query.isError && !query.data ? <Retry text={query.error?.status === 401 ? "Your session has expired. Please sign in again." : "We couldn’t load your profile. Check your connection and try again."} onRetry={() => void query.refetch()} /> : !query.data ? <Empty title="Your profile is waiting" detail="Finish a few details to begin discovering people." action={<Link href="/onboarding" data-testid="link-profile-onboarding" className="rounded-xl bg-primary px-4 py-3 font-bold text-[#26111b]">Set up profile</Link>} /> : <>{!edit && <OwnProfileOverview profile={query.data} travelCity={settings.data?.travelMode ? settings.data.travelCity : null} />}
     {edit && <form onSubmit={(event) => void submit(event)} className="pb-[calc(7rem+env(safe-area-inset-bottom))]" data-testid="form-edit-profile">
-      <section className="pe-card" data-testid="section-edit-photos"><div className="flex items-baseline justify-between"><h2 className="pe-label">Photos</h2><span className="text-sm font-bold text-[hsl(var(--pe-pink))]" data-testid="text-photo-count">{form.photos.length}/6</span></div>
-        <div className="mt-4 grid grid-cols-3 gap-3">{Array.from({ length: 6 }, (_, index) => {
-          const photo = form.photos[index];
-          return photo ? <div key={`${photo}-${index}`} className="pe-slot relative overflow-hidden"><MediaImage reference={photo} fallbackSrc={photoPreviews[photo]} alt={`Profile photo ${index + 1}`} className="h-full w-full object-cover" />{index === 0 && <span className="pe-main">Main photo</span>}<button type="button" onClick={() => removeProfilePhoto(index)} aria-label={`Remove profile photo ${index + 1}`} data-testid={`button-remove-profile-photo-${index}`} className="pe-x"><X size={14} strokeWidth={2.6} /></button></div> : <button key={`empty-${index}`} type="button" disabled={uploading || form.photos.length >= 6} onClick={() => mediaInput.current?.click()} aria-label="Add a photo" data-testid={`button-add-profile-photo-slot-${index}`} className="pe-slot pe-empty">{uploading && index === form.photos.length ? <span className="text-[11px] font-semibold text-[hsl(var(--pe-muted))]">Uploading…</span> : <span className="pe-plus"><span className="sr-only">Add</span>+</span>}</button>;
-        })}</div>
-        <p className="mt-4 text-center text-[13px] text-[hsl(var(--pe-muted))]">{form.photos.length === 0 ? "Add at least one photo before saving." : "Add up to 6 photos to show your vibe."} New photos are kept after you tap Save profile.</p>
-        <input ref={mediaInput} data-testid="input-profile-media" type="file" accept={`${PROFILE_PHOTO_ACCEPT},video/mp4,video/quicktime`} className="sr-only" tabIndex={-1} disabled={uploading} onChange={(event) => { const file = event.currentTarget.files?.[0]; event.currentTarget.value = ""; if (file && !file.type.startsWith("video/") && form.photos.length >= 6) { setSaveError("You can add up to 6 photos. Remove one to add another."); return; } void uploadProfileMedia(file); }} />
-        <button type="button" disabled={uploading} onClick={() => mediaInput.current?.click()} data-testid="button-add-profile-video" className="mt-3 w-full rounded-xl border border-dashed border-[hsl(var(--pe-pink)/.45)] py-2.5 text-[13px] font-semibold text-[hsl(var(--pe-pink))] disabled:opacity-50">{form.videoUrl ? "Profile video ready · replace media" : "Add photo or profile video"}</button>
+      <section className="pe-card" data-testid="section-edit-photos">
+        <div className="flex items-baseline justify-between">
+          <h2 className="pe-label">Profile picture</h2>
+          <span className="text-sm font-bold text-[hsl(var(--pe-pink))]" data-testid="text-photo-count">{form.photos[0] ? "1/1" : "0/1"}</span>
+        </div>
+        <div className="mt-4 flex flex-col items-center">
+          <div data-testid="profile-edit-main-photo" className="relative h-28 w-28 overflow-hidden rounded-full border border-white/15 bg-neutral-900">
+            {form.photos[0]
+              ? <MediaImage reference={form.photos[0]} fallbackSrc={photoPreviews[form.photos[0]]} alt="Your profile picture" className="h-full w-full object-cover" />
+              : <div className="flex h-full w-full items-center justify-center text-3xl font-bold text-white/70">{form.name.trim().slice(0, 1).toUpperCase() || "?"}</div>}
+          </div>
+          <button type="button" disabled={uploading} onClick={() => mediaInput.current?.click()} data-testid="button-add-profile-photo" className="mt-3 rounded-full border border-white/15 px-4 py-2 text-[13px] font-semibold text-[hsl(var(--pe-pink))] disabled:opacity-50">
+            {uploading ? "Uploading…" : form.photos[0] ? "Change profile picture" : "Add profile picture"}
+          </button>
+          <p className="mt-3 max-w-sm text-center text-[13px] text-[hsl(var(--pe-muted))]">Use one profile picture. Your Reels will appear below your profile details.</p>
+        </div>
+        <input ref={mediaInput} data-testid="input-profile-media" type="file" accept={PROFILE_PHOTO_ACCEPT} className="sr-only" tabIndex={-1} disabled={uploading} onChange={(event) => { const file = event.currentTarget.files?.[0]; event.currentTarget.value = ""; if (file) void uploadProfileMedia(file); }} />
+        <input ref={videoInput} data-testid="input-profile-video" type="file" accept="video/mp4,video/quicktime" className="sr-only" tabIndex={-1} disabled={uploading} onChange={(event) => { const file = event.currentTarget.files?.[0]; event.currentTarget.value = ""; if (file) void uploadProfileMedia(file); }} />
+        <button type="button" disabled={uploading} onClick={() => videoInput.current?.click()} data-testid="button-add-profile-video" className="mt-3 w-full rounded-xl border border-dashed border-[hsl(var(--pe-pink)/.45)] py-2.5 text-[13px] font-semibold text-[hsl(var(--pe-pink))] disabled:opacity-50">{form.videoUrl ? "Profile video ready · replace" : "Add profile video"}</button>
       </section>
       <section className="pe-card mt-4"><h2 className="pe-label mb-4">About you</h2><div className="grid gap-4 sm:grid-cols-2">
         <Field label="Name"><input data-testid="input-profile-name" required maxLength={60} value={form.name} onChange={(event) => change("name", event.target.value)} className="field" /></Field>

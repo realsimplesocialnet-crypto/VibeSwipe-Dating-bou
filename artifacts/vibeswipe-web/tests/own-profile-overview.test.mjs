@@ -31,9 +31,11 @@ test('branding is absent from signed-in screens while public welcome and sign-in
   assert.match(css, /\.app-shell:not\(\.discover-shell\):not\(\.profile-shell\) \{ padding-top:env\(safe-area-inset-top,0px\); \}/);
 });
 
-test('My Profile displays the actual account identity, interests and uploaded photos', () => {
-  for (const field of ['profile.name', 'profile.age', 'profile.city', 'profile.bio', 'profile.occupation', 'profile.interests', 'profile.photos']) assert.ok(overview.includes(field), field);
-  for (const field of ['user.name', 'user.age', 'user.city', 'user.bio', 'user.occupation', 'user.interests', 'user.photos']) assert.ok(native.includes(field), field);
+test('My Profile shows one main profile picture and the actual account details', () => {
+  for (const field of ['profile.name', 'profile.age', 'profile.city', 'profile.bio', 'profile.occupation', 'profile.interests']) assert.ok(overview.includes(field), field);
+  for (const field of ['user.name', 'user.age', 'user.city', 'user.bio', 'user.occupation', 'user.interests']) assert.ok(native.includes(field), field);
+  assert.match(overview, /profile\.photos\?\.\[0\]/);
+  assert.match(native, /<ProfileAvatar profile=\{user\}/);
   for (const source of [overview, native]) assert.doesNotMatch(source, /Monf Jou|Enjoying life, good music/);
 });
 
@@ -62,20 +64,32 @@ test('Profile bars blend into the background and reserve space rather than cover
   assert.match(css, /\.own-profile\.op-fit \{[^}]*padding-bottom:0;[^}]*container:own-profile \/ size;/s);
 });
 
-test('short profile screens compact the portrait while keeping photos and saved videos available', () => {
+test('short profile screens keep the portrait, Reels and saved videos available', () => {
   assert.match(css, /@container own-profile \(max-height:620px\)/);
   assert.match(css, /@container own-profile \(max-height:500px\)/);
   assert.match(css, /@container own-profile \(max-height:620px\) \{[\s\S]*?\.op-hero-photo \{ aspect-ratio:16 \/ 9; max-height:220px;/);
   assert.match(overview, /<ProfileReelsSection[^>]*own/);
   assert.match(readFileSync(new URL('../src/components/profile-reels-section.tsx', import.meta.url), 'utf8'), /id: "saved"/);
   assert.doesNotMatch(overview, /op-ghost mt-3/);
-  assert.match(overview, /profile\.photos\.slice\(0,\s*5\)/);
-  assert.match(overview, /data-testid="profile-photo-strip"/);
+  assert.doesNotMatch(overview, /profile-photo-strip|<h3 className="op-label">\{t\("Photos"\)\}/);
   assert.match(overview, /data-testid="profile-main-photo"/);
   assert.match(overview, /main profile photo/);
   assert.match(overview, /About me/);
   assert.match(overview, /<MapPin size=\{16\}/);
   assert.match(app, /onProfile \? \(lightMode \? "#fde4ec" : "#3a2232"\)/);
+});
+
+test('profile editors offer one round profile picture and replace it instead of adding a gallery', () => {
+  const editor = read('../src/components/profile-page.tsx');
+  const nativeEditor = read('../../vibeswipe/app/edit-profile.tsx');
+  const nativePicker = read('../../vibeswipe/components/MediaPicker.tsx');
+  assert.match(editor, /data-testid="profile-edit-main-photo"/);
+  assert.match(editor, /Change profile picture/);
+  assert.match(editor, /form\.photos\[0\] \? "1\/1" : "0\/1"/);
+  assert.doesNotMatch(editor, /Add up to 6 photos|Array\.from\(\{ length: 6 \}/);
+  assert.match(nativeEditor, /maxPhotos=\{1\}/);
+  assert.match(nativeEditor, /replaceSinglePhoto/);
+  assert.match(nativePicker, /uploadedReferences\.slice\(0, 1\)/);
 });
 
 test('own profile sections use a continuous surface and retain the media grid', () => {
@@ -85,5 +99,5 @@ test('own profile sections use a continuous surface and retain the media grid', 
   assert.match(css, /\.own-profile \.pp-media-tabs-list \{ border-bottom:0; \}/);
   assert.match(css, /\.own-profile \.pp-media-state \{[^}]*border:0;[^}]*background:transparent;/s);
   assert.match(css, /\.pp-reel-grid \{ display:grid; grid-template-columns:repeat\(3,minmax\(0,1fr\)\);/);
-  assert.match(overview, /profile\.photos\.slice\(0,\s*5\)/);
+  assert.doesNotMatch(overview, /profile-photo-strip/);
 });

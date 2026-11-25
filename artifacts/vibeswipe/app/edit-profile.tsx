@@ -82,10 +82,22 @@ export default function EditProfileScreen() {
         </View>
         <View style={[styles.card, { backgroundColor: colors.profileCard, shadowColor: colors.profileChipForeground }]}>
           <View style={styles.cardHead}>
-            <Text style={[styles.section, { color: colors.profileEdit }]}>PHOTOS</Text>
-            <Text testID="edit-profile-photo-count" style={[styles.count, { color: colors.profileEdit }]}>{form.photos.length}/6</Text>
+            <Text style={[styles.section, { color: colors.profileEdit }]}>PROFILE PICTURE</Text>
+            <Text testID="edit-profile-photo-count" style={[styles.count, { color: colors.profileEdit }]}>{form.photos[0] ? "1/1" : "0/1"}</Text>
           </View>
-          <MediaPicker variant="grid" photos={form.photos} videoUrl={form.videoUrl} onChange={(media) => setForm({ ...form, ...media })} />
+          <MediaPicker
+            photos={form.photos.slice(0, 1)}
+            videoUrl={form.videoUrl}
+            maxPhotos={1}
+            replaceSinglePhoto
+            onChange={(media) => setForm((current) => ({
+              ...current,
+              photos: media.photos.length
+                ? [media.photos[0], ...current.photos.slice(1).filter((photo) => photo !== media.photos[0])].slice(0, 6)
+                : current.photos,
+              videoUrl: media.videoUrl,
+            }))}
+          />
         </View>
         <View style={[styles.card, { backgroundColor: colors.profileCard, shadowColor: colors.profileChipForeground, marginTop: 14 }]}>
           <Text style={[styles.section, { color: colors.profileEdit }]}>ABOUT YOU</Text>

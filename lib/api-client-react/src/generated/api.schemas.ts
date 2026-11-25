@@ -1271,6 +1271,11 @@ export interface ProfileFollowSummary {
      * @minimum 0
      */
   postCount?: number;
+  /**
+     * Number of this profile's mutual matches
+     * @minimum 0
+     */
+  matchCount: number;
   /** @minimum 0 */
   followersCount: number;
   /** @minimum 0 */

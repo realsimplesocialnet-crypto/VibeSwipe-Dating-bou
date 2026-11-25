@@ -14,7 +14,7 @@ test("native Home is a social feed with Stories and no dating swipe deck", () =>
   assert.match(stories, /Stories/);
 });
 
-test("social profile exposes follow, message, post count, and posts without dating actions", () => {
+test("social profile exposes follow, message, match count, and Reels without dating actions", () => {
   const profile = read("../app/profile/[profileId].tsx");
   const ownProfile = read("../app/(tabs)/profile.tsx");
   const followStats = read("../components/ProfileFollow.tsx");
@@ -27,7 +27,7 @@ test("social profile exposes follow, message, post count, and posts without dati
   assert.match(profile, /styles\.identityPanel/);
   assert.match(profile, /public-profile-avatar/);
   assert.match(profile, /label: "Age"/);
-  assert.match(followStats, /profile-post-count-stat/);
+  assert.match(followStats, /profile-match-count-stat/);
   assert.match(ownProfile, /ProfileFollowStats/);
   assert.match(likesRoute, /Redirect href="\/\(tabs\)\/activity"/);
   assert.match(activity, /n\.type === "reel_like"/);
@@ -36,4 +36,14 @@ test("social profile exposes follow, message, post count, and posts without dati
   assert.match(ownProfile, /user\.isVerified/);
   assert.match(tabs, /tintColor=\{colors\.premiumAccent\}/);
   assert.match(tabs, /tabBarActiveTintColor: colors\.premiumAccent/);
+});
+
+test("profile media keeps Reels and saved videos without the photo-post tab", () => {
+  const section = read("../components/ProfileReelsSection.tsx");
+  const editor = read("../app/edit-profile.tsx");
+  assert.match(section, /type MediaTab = "reels" \| "saved"/);
+  assert.match(section, /item\.mediaType !== "slides"/);
+  assert.doesNotMatch(section, /id: "posts"|label: "Posts"/);
+  assert.match(editor, /PROFILE PICTURE/);
+  assert.match(editor, /maxPhotos=\{1\}/);
 });

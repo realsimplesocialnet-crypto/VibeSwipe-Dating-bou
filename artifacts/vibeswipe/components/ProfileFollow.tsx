@@ -153,9 +153,9 @@ export function ProfileFollowStats({ profileId, viewerId, showAction = true, soc
   return (
     <View style={styles.statsWrap} testID="profile-follow-stats">
         <View style={styles.stats}>
-        <View testID="profile-post-count-stat" accessibilityLabel={`${query.data?.postCount ?? 0} posts`} style={styles.stat}>
-          {query.data ? <Text style={[styles.statValue, { color: colors.profileLabel }]}>{query.data.postCount}</Text> : query.isError ? <Text style={[styles.statValue, { color: colors.profileLabel }]}>—</Text> : <View style={{ width: 24, height: 16, borderRadius: 8, backgroundColor: colors.border, opacity: 0.65 }} />}
-          <Text style={[styles.statLabel, { color: colors.profileMuted }]}>Posts</Text>
+        <View testID="profile-match-count-stat" accessibilityLabel={`${query.data?.matchCount ?? 0} matches`} style={styles.stat}>
+          {query.data ? <Text style={[styles.statValue, { color: colors.profileLabel }]}>{query.data.matchCount}</Text> : query.isError ? <Text style={[styles.statValue, { color: colors.profileLabel }]}>—</Text> : <View style={{ width: 24, height: 16, borderRadius: 8, backgroundColor: colors.border, opacity: 0.65 }} />}
+          <Text style={[styles.statLabel, { color: colors.profileMuted }]}>Matches</Text>
         </View>
         <View style={[styles.statRule, { backgroundColor: colors.profileRule }]} />
         <Pressable

@@ -70,23 +70,31 @@ async function blockedBetween(userA: string, userB: string): Promise<boolean> {
 }
 
 async function followSummary(viewerId: string, profileId: string) {
-  const [postSummary] = await db.select({ total: count() }).from(reelsTable)
-    .innerJoin(profilesTable, eq(profilesTable.id, reelsTable.userId))
-    .where(and(eq(reelsTable.userId, profileId), visibleReelCondition(viewerId)));
-  const [summary] = await db.select({
-    followersCount: sql<number>`(select count(*) from ${vibeSwipeFollowsTable} where ${vibeSwipeFollowsTable.followedId} = ${profileId})`.mapWith(Number),
-    followingCount: sql<number>`(select count(*) from ${vibeSwipeFollowsTable} where ${vibeSwipeFollowsTable.followerId} = ${profileId})`.mapWith(Number),
-    isFollowing: sql<boolean>`exists (select 1 from ${vibeSwipeFollowsTable} where ${vibeSwipeFollowsTable.followerId} = ${viewerId} and ${vibeSwipeFollowsTable.followedId} = ${profileId})`.mapWith(Boolean),
-    followsYou: sql<boolean>`exists (select 1 from ${vibeSwipeFollowsTable} where ${vibeSwipeFollowsTable.followerId} = ${profileId} and ${vibeSwipeFollowsTable.followedId} = ${viewerId})`.mapWith(Boolean),
-    requestPendingByMe: sql<boolean>`exists (select 1 from ${vibeSwipeFollowRequestsTable} where ${vibeSwipeFollowRequestsTable.requesterId} = ${viewerId} and ${vibeSwipeFollowRequestsTable.targetId} = ${profileId})`.mapWith(Boolean),
-    requestPendingForMe: sql<boolean>`exists (select 1 from ${vibeSwipeFollowRequestsTable} where ${vibeSwipeFollowRequestsTable.requesterId} = ${profileId} and ${vibeSwipeFollowRequestsTable.targetId} = ${viewerId})`.mapWith(Boolean),
-  }).from(profilesTable).where(eq(profilesTable.id, profileId)).limit(1);
+  const [postRows, matchRows, summaryRows] = await Promise.all([
+    db.select({ total: count().mapWith(Number) }).from(reelsTable)
+      .innerJoin(profilesTable, eq(profilesTable.id, reelsTable.userId))
+      .where(and(eq(reelsTable.userId, profileId), visibleReelCondition(viewerId))),
+    db.select({ total: count().mapWith(Number) }).from(matchesTable)
+      .where(or(eq(matchesTable.userAId, profileId), eq(matchesTable.userBId, profileId))),
+    db.select({
+      followersCount: sql<number>`(select count(*) from ${vibeSwipeFollowsTable} where ${vibeSwipeFollowsTable.followedId} = ${profileId})`.mapWith(Number),
+      followingCount: sql<number>`(select count(*) from ${vibeSwipeFollowsTable} where ${vibeSwipeFollowsTable.followerId} = ${profileId})`.mapWith(Number),
+      isFollowing: sql<boolean>`exists (select 1 from ${vibeSwipeFollowsTable} where ${vibeSwipeFollowsTable.followerId} = ${viewerId} and ${vibeSwipeFollowsTable.followedId} = ${profileId})`.mapWith(Boolean),
+      followsYou: sql<boolean>`exists (select 1 from ${vibeSwipeFollowsTable} where ${vibeSwipeFollowsTable.followerId} = ${profileId} and ${vibeSwipeFollowsTable.followedId} = ${viewerId})`.mapWith(Boolean),
+      requestPendingByMe: sql<boolean>`exists (select 1 from ${vibeSwipeFollowRequestsTable} where ${vibeSwipeFollowRequestsTable.requesterId} = ${viewerId} and ${vibeSwipeFollowRequestsTable.targetId} = ${profileId})`.mapWith(Boolean),
+      requestPendingForMe: sql<boolean>`exists (select 1 from ${vibeSwipeFollowRequestsTable} where ${vibeSwipeFollowRequestsTable.requesterId} = ${profileId} and ${vibeSwipeFollowRequestsTable.targetId} = ${viewerId})`.mapWith(Boolean),
+    }).from(profilesTable).where(eq(profilesTable.id, profileId)).limit(1),
+  ]);
+  const postSummary = postRows[0];
+  const matchSummary = matchRows[0];
+  const summary = summaryRows[0];
   return {
     ...(summary ?? {
       followersCount: 0, followingCount: 0, isFollowing: false, followsYou: false,
       requestPendingByMe: false, requestPendingForMe: false,
     }),
     postCount: postSummary?.total ?? 0,
+    matchCount: matchSummary?.total ?? 0,
   };
 }
 

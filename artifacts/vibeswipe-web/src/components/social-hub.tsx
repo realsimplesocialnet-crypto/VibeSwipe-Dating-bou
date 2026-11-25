@@ -318,6 +318,9 @@ export function ProfileSocialActions({ profileId, viewerId, showAction = true, c
   } });
   return <section className={`sh-profile-social${compact ? ' sh-profile-social-compact' : ''}`} data-testid="profile-follow-stats">
     <div className="sh-profile-stats">
+      <div className="sh-profile-stat" data-testid="profile-match-count-stat" aria-label={`${summary.data?.matchCount ?? 0} matches`}>
+        <strong>{summary.data?.matchCount ?? 0}</strong><span>Matches</span>
+      </div>
       <Link href={`/profile/${profileId}/followers`} data-testid="link-profile-followers" className="sh-profile-stat">
         <strong>{summary.data?.followersCount ?? 0}</strong><span>Followers</span>
       </Link>

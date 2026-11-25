@@ -75,7 +75,7 @@ export default function PublicProfileScreen() {
   }, [getToken]);
   useEffect(() => {
     if (!token) return;
-    const references = (profile.data?.photos ?? []).slice(0, 2);
+    const references = (profile.data?.photos ?? []).slice(0, 1);
     const sources = references
       .map((reference) => profileImagePreviewSource(reference, token))
       .filter((source): source is { uri: string; headers?: Record<string, string> } =>
@@ -87,7 +87,7 @@ export default function PublicProfileScreen() {
         headers: { Authorization: `Bearer ${token}` },
       });
     }
-  }, [profile.data?.id, profile.data?.photos?.[0], profile.data?.photos?.[1], token]);
+  }, [profile.data?.id, profile.data?.photos?.[0], token]);
   useEffect(() => {
     setViewer(null);
     setAvatarError(false);
@@ -142,7 +142,7 @@ export default function PublicProfileScreen() {
   }
 
   const user = profile.data;
-  const photos = user.photos ?? [];
+  const photos = user.photos?.slice(0, 1) ?? [];
   const work = user.occupation === "Other" ? user.occupationOther || "Other" : user.occupation || "Not shared";
   const fullLocation = [user.city, user.state, user.country].filter(Boolean).join(", ");
   const headerLocation = [user.city, user.state].filter(Boolean).join(", ") || fullLocation;
@@ -155,7 +155,6 @@ export default function PublicProfileScreen() {
   const avatarSource = photos.length ? profileImagePreviewSource(photos[0], token) : undefined;
   const viewerWidth = Math.min(width, 900);
   const mediaColumnWidth = width >= 820 ? Math.min(360, Math.floor((Math.min(width, 900) - 48) * 0.44)) : Math.max(0, Math.min(width, 900) - (width < 380 ? 32 : 48));
-  const photoTileWidth = Math.max(72, Math.floor((mediaColumnWidth - 16) / 3));
   const socialAction = (
     <View style={{ flex: 1, minWidth: 0, alignItems: "stretch" }}>
       <Pressable
@@ -230,24 +229,6 @@ export default function PublicProfileScreen() {
           </View>
 
           <View style={[styles.mediaColumn, width >= 820 && { width: mediaColumnWidth }]}>
-            <View testID="public-profile-more-photos" style={styles.mediaSection}>
-              <View style={styles.photosHead}>
-                <Text style={[styles.label, { color: colors.profileEdit }]}>PHOTOS</Text>
-                <Text style={[styles.small, { color: colors.profileMuted, marginTop: 0 }]}>{photos.length}</Text>
-              </View>
-              {photos.length ? (
-                <View testID="public-profile-photo-grid" style={styles.photoGrid}>
-                  {photos.map((photo, index) => {
-                    const source = profileImagePreviewSource(photo, token);
-                    return (
-                      <Pressable key={`${photo}-${index}`} testID={`public-profile-photo-${index}`} accessibilityRole="imagebutton" accessibilityLabel={`Open photo ${index + 1} of ${photos.length}`} onPress={() => setViewer(index)} style={({ pressed }) => [styles.thumb, { width: photoTileWidth, backgroundColor: colors.profileChip, transform: [{ scale: pressed ? 0.96 : 1 }] }]}>
-                        {source ? <ExpoImage source={source} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="memory-disk" transition={150} priority={index === 0 ? "high" : "normal"} /> : null}
-                      </Pressable>
-                    );
-                  })}
-                </View>
-              ) : <Text style={[styles.value, { color: colors.profileMuted, marginTop: 8 }]}>No photos shared yet.</Text>}
-            </View>
             <ProfileReelsSection key={id} profileId={id} returnTo={reelReturnTo} />
           </View>
         </View>
@@ -360,10 +341,6 @@ const styles = StyleSheet.create({
   small: { fontSize: 13, marginTop: 12 },
   tags: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 14 },
   tag: { overflow: "hidden", borderRadius: 16, paddingHorizontal: 13, paddingVertical: 6, fontSize: 13, fontWeight: "600" },
-  photosHead: { flexDirection: "row", justifyContent: "space-between", alignItems: "baseline", paddingHorizontal: 4 },
-  mediaSection: { width: "100%" },
-  photoGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 12 },
-  thumb: { aspectRatio: 1, borderRadius: 14, overflow: "hidden" },
   confirmation: { position: "absolute", alignSelf: "center", zIndex: 10, flexDirection: "row", alignItems: "center", gap: 8, borderRadius: 24, paddingHorizontal: 17, paddingVertical: 12, ...shadow, elevation: 8 },
   confirmationText: { fontSize: 14, fontWeight: "700" },
   viewerTop: { position: "absolute", left: 16, right: 16, flexDirection: "row", justifyContent: "space-between", alignItems: "center" },

@@ -56,7 +56,8 @@ export function ProfileReelsSection({ profileId, returnTo, own = false }: {
 
   const current = visibleTab === "reels" ? (own ? myReels : profileReels)
     : visibleTab === "saved" ? saved : liked;
-  const reels: Reel[] = current.data?.pages.flatMap(page => page.items) ?? [];
+  const loadedReels: Reel[] = current.data?.pages.flatMap(page => page.items) ?? [];
+  const reels = visibleTab === "reels" ? loadedReels.filter(reel => reel.mediaType !== "slides") : loadedReels;
   const isPrivacyLimited = !own && visibleTab === "liked" && current.isError && !current.data;
   const sectionClass = own ? "op-section op-media-tabs shrink-0" : "pp-reels-grid-section pp-media-tabs";
   const tabClass = (tab: MediaTab) => `pp-media-tab ${visibleTab === tab ? "is-active" : ""}`;

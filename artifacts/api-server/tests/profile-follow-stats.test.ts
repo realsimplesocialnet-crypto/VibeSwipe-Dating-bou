@@ -4,20 +4,30 @@ import { readFileSync } from "node:fs";
 
 const source = (path: string) => readFileSync(new URL(`../../../${path}`, import.meta.url), "utf8");
 
-test("own and public web profiles emphasize follower counts over their labels", () => {
+test("own and public profiles show Matches alongside follower counts", () => {
   const styles = source("artifacts/vibeswipe-web/src/components/social-hub.css");
   assert.match(styles, /\.sh-profile-stat strong \{[^}]*font-size:22px/);
   assert.match(styles, /\.sh-profile-stat span \{[^}]*font-size:12px[^}]*font-weight:800/);
   assert.match(styles, /\.sh-profile-social-compact \.sh-profile-stat \{[^}]*flex-direction:column/);
   assert.match(styles, /\.sh-profile-social-compact \.sh-profile-stat strong \{ font-size:20px/);
-  assert.match(styles, /html\[data-theme="light"\] \.sh-profile-stat \{[^}]*background:#fffafd/);
-  assert.match(styles, /html\[data-theme="light"\] \.sh-profile-stat span \{ color:#62565d/);
+  assert.match(styles, /html\[data-theme="light"\] \.sh-profile-stat \{[^}]*background:#fff;[^}]*color:#111/);
+  assert.match(styles, /html\[data-theme="light"\] \.sh-profile-stat span \{ color:#666/);
+  const web = source("artifacts/vibeswipe-web/src/components/social-hub.tsx");
+  const native = source("artifacts/vibeswipe/components/ProfileFollow.tsx");
+  const route = source("artifacts/api-server/src/routes/vibeswipe-social.ts");
+  assert.match(web, /profile-match-count-stat/);
+  assert.match(native, /profile-match-count-stat/);
+  assert.match(native, /Matches/);
+  assert.match(route, /matchesTable\.userAId, profileId/);
+  assert.match(route, /matchCount: matchSummary\?\.total \?\? 0/);
+  const spec = source("lib/api-spec/openapi.yaml");
+  assert.match(spec, /matchCount: \{ type: integer, minimum: 0, description: Number of this profile's mutual matches \}/);
 });
 
 test("native own and public profiles use large count text with smaller labels", () => {
   const component = source("artifacts/vibeswipe/components/ProfileFollow.tsx");
   assert.match(component, /statValue: \{ fontSize: 22, lineHeight: 25, fontWeight: "900" \}/);
-  assert.match(component, /statLabel: \{ fontSize: 12, fontWeight: "800" \}/);
+  assert.match(component, /statLabel: \{ fontSize: 12, fontWeight: "500" \}/);
 });
 
 test("public profile follow-back labels use the refreshed follow relationship", () => {

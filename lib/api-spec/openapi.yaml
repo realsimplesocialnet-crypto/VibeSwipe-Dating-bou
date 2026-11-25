@@ -3099,13 +3099,14 @@ components:
       type: object
       properties:
         postCount: { type: integer, minimum: 0, description: Number of this profile's posts visible to the signed-in viewer }
+        matchCount: { type: integer, minimum: 0, description: Number of this profile's mutual matches }
         followersCount: { type: integer, minimum: 0 }
         followingCount: { type: integer, minimum: 0 }
         isFollowing: { type: boolean }
         followsYou: { type: boolean }
         requestPendingByMe: { type: boolean }
         requestPendingForMe: { type: boolean }
-      required: [followersCount, followingCount, isFollowing, followsYou, requestPendingByMe, requestPendingForMe]
+      required: [matchCount, followersCount, followingCount, isFollowing, followsYou, requestPendingByMe, requestPendingForMe]
     FollowRequest:
       type: object
       properties:

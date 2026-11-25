@@ -27,6 +27,7 @@ type Props = {
   onChange: (next: { photos: string[]; videoUrl: string | null }) => void;
   maxPhotos?: number;
   showVideo?: boolean;
+  replaceSinglePhoto?: boolean;
   /** Six equal slots with pink add buttons (Edit Profile). Presentation only. */
   variant?: "default" | "grid";
 };
@@ -41,6 +42,7 @@ export function MediaPicker({
   onChange,
   maxPhotos = MAX_PHOTOS,
   showVideo = true,
+  replaceSinglePhoto = false,
   variant = "default",
 }: Props) {
   const colors = useColors();
@@ -121,8 +123,8 @@ export function MediaPicker({
     }
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ["images"],
-      allowsMultipleSelection: true,
-      selectionLimit: Math.max(1, photoLimit - photos.length),
+      allowsMultipleSelection: photoLimit > 1 && !replaceSinglePhoto,
+      selectionLimit: replaceSinglePhoto ? 1 : Math.max(1, photoLimit - photos.length),
       quality: 0.85,
     });
     if (result.canceled || result.assets.length === 0) return;
@@ -144,7 +146,13 @@ export function MediaPicker({
         ...current,
         ...Object.fromEntries(uploaded.map(({ reference, uri }) => [reference, uri])),
       }));
-      onChange({ photos: [...photos, ...uploaded.map((photo) => photo.reference)], videoUrl });
+      const uploadedReferences = uploaded.map((photo) => photo.reference);
+      onChange({
+        photos: replaceSinglePhoto
+          ? uploadedReferences.slice(0, 1)
+          : [...photos, ...uploadedReferences],
+        videoUrl,
+      });
       setPendingAssets([]);
     } catch (caught) {
       const data = (caught as { data?: { error?: string } })?.data;
@@ -279,10 +287,12 @@ export function MediaPicker({
     );
   }
 
+  const visiblePhotos = replaceSinglePhoto && pendingAssets.length > 0 ? [] : photos;
+
   return (
     <View style={styles.wrap}>
       <View style={styles.photoRow}>
-        {photos.map((photo, index) => (
+        {visiblePhotos.map((photo, index) => (
           <View key={`${photo}-${index}`} style={photoLimit === 1 ? styles.singlePhotoSlot : styles.photoSlot}>
             <Image
               source={profileImageSource(photo, token)}
@@ -296,14 +306,14 @@ export function MediaPicker({
                   <Text style={styles.mainBadgeText}>Main</Text>
                 </View>
               ) : null}
-            <Pressable
+            {!replaceSinglePhoto ? <Pressable
                 accessibilityLabel={`Remove photo ${index + 1}`}
               testID={`remove-photo-${index}`}
               style={styles.remove}
               onPress={() => removePhoto(index)}
             >
               <Feather name="x" size={14} color="#ffffff" />
-            </Pressable>
+            </Pressable> : null}
           </View>
         ))}
         {pendingAssets.map((asset, index) => (
@@ -329,8 +339,23 @@ export function MediaPicker({
           </Pressable>
         )}
       </View>
+      {replaceSinglePhoto && photos.length > 0 ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Change profile picture"
+          testID="replace-profile-photo"
+          onPress={pickPhotos}
+          disabled={busy}
+          style={({ pressed }) => [styles.changePhoto, { borderColor: colors.border, opacity: busy ? 0.6 : pressed ? 0.75 : 1 }]}
+        >
+          <Feather name="camera" size={15} color={colors.primary} />
+          <Text style={[styles.changePhotoText, { color: colors.foreground }]}>{busy ? "Uploading…" : "Change profile picture"}</Text>
+        </Pressable>
+      ) : null}
       <Text testID="profile-photo-count" style={[styles.helper, { color: colors.mutedForeground }]}>
-        {photos.length}/{photoLimit} photos · the first photo is your main photo
+        {replaceSinglePhoto
+          ? `${photos.length ? 1 : 0}/1 profile picture · shown on your profile`
+          : `${photos.length}/${photoLimit} photos · the first photo is your main photo`}
       </Text>
       {showVideo ? <Pressable
         accessibilityRole="button"
@@ -378,7 +403,7 @@ export function MediaPicker({
       ) : null}
       <Text style={[styles.helper, { color: colors.mutedForeground }]}>
         {photoLimit === 1
-          ? "Add one profile picture. It will appear on your profile and Discover cards."
+          ? showVideo ? "Add one profile picture. It will appear on your profile and Discover cards." : "Choose one clear photo."
           : `Add 1–${photoLimit} photos.${showVideo ? " Videos are compressed to 720p or smaller and limited to 30 seconds and 50 MB." : ""}`}
       </Text>
     </View>
@@ -406,6 +431,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: "rgba(0,0,0,0.7)",
   },
+  changePhoto: { minHeight: 40, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, borderWidth: 1, borderRadius: 999, paddingHorizontal: 16 },
+  changePhotoText: { fontSize: 13, fontWeight: "700" },
   addSlot: {
     width: 76,
     height: 92,

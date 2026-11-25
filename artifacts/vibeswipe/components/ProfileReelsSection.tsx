@@ -17,7 +17,7 @@ import {
 import { usePremiumColors } from "@/hooks/useColors";
 import { mediaUri } from "@/lib/media";
 
-type MediaTab = "posts" | "reels" | "saved";
+type MediaTab = "reels" | "saved";
 
 export function ProfileReelsSection({
   profileId,
@@ -32,13 +32,13 @@ export function ProfileReelsSection({
   const { getToken } = useAuth();
   const [token, setToken] = useState<string | null>(null);
   const [sectionWidth, setSectionWidth] = useState(0);
-  const [activeTab, setActiveTab] = useState<MediaTab>("posts");
+  const [activeTab, setActiveTab] = useState<MediaTab>("reels");
   const myReels = useInfiniteQuery({
     queryKey: getGetMyReelsQueryKey(),
     initialPageParam: undefined as string | undefined,
     queryFn: ({ pageParam, signal }) => getMyReels(pageParam ? { cursor: pageParam } : undefined, { signal }),
     getNextPageParam: (page) => page.nextCursor ?? undefined,
-    enabled: own && (activeTab === "posts" || activeTab === "reels"),
+    enabled: own && activeTab === "reels",
     staleTime: 30_000,
   });
   const profileReels = useInfiniteQuery({
@@ -46,7 +46,7 @@ export function ProfileReelsSection({
     initialPageParam: undefined as string | undefined,
     queryFn: ({ pageParam, signal }) => getProfileReels({ profileId, ...(pageParam ? { cursor: pageParam } : {}) }, { signal }),
     getNextPageParam: (page) => page.nextCursor ?? undefined,
-    enabled: Boolean(profileId) && !own && (activeTab === "posts" || activeTab === "reels"),
+    enabled: Boolean(profileId) && !own && activeTab === "reels",
     staleTime: 30_000,
   });
   const saved = useInfiniteQuery({
@@ -59,14 +59,11 @@ export function ProfileReelsSection({
   });
   const current = activeTab === "saved" ? saved : own ? myReels : profileReels;
   const allItems: Reel[] = current.data?.pages.flatMap((page) => page.items) ?? [];
-  const items = activeTab === "posts"
-    ? allItems.filter((item) => item.mediaType === "slides")
-    : activeTab === "reels"
-      ? allItems.filter((item) => item.mediaType !== "slides")
-      : allItems;
+  const items = activeTab === "reels"
+    ? allItems.filter((item) => item.mediaType !== "slides")
+    : allItems;
   const tileWidth = Math.max(72, Math.floor((sectionWidth - 8) / 3));
   const tabs: { id: MediaTab; label: string; icon: "grid" | "video" | "bookmark" }[] = [
-    { id: "posts", label: "Posts", icon: "grid" },
     { id: "reels", label: "Reels", icon: "video" },
     ...(own ? [{ id: "saved" as const, label: "Saved", icon: "bookmark" as const }] : []),
   ];
@@ -91,7 +88,7 @@ export function ProfileReelsSection({
       onLayout={(event) => setSectionWidth(event.nativeEvent.layout.width)}
       style={styles.section}
     >
-      <View style={[styles.tabs, { borderBottomColor: colors.profileRule }]} accessibilityRole="tablist" accessibilityLabel="Profile posts and Reels">
+      <View style={[styles.tabs, { borderBottomColor: colors.profileRule }]} accessibilityRole="tablist" accessibilityLabel="Profile Reels">
         {tabs.map((tab) => (
           <Pressable
             key={tab.id}
@@ -239,9 +236,8 @@ const styles = StyleSheet.create({
 });
 
 function emptyCopy(tab: MediaTab, own: boolean): string {
-  if (tab === "reels") return own ? "Your Reels will appear here." : "No Reels to show yet.";
-  if (tab === "saved") return "Saved posts are private to you.";
-  return own ? "Your posts will appear here." : "No posts to show yet.";
+  if (tab === "reels") return own ? "Your first Reel will appear here." : "No Reels to show yet.";
+  return "Saved Reels are private to you.";
 }
 
 function formatViewCount(value: number): string {

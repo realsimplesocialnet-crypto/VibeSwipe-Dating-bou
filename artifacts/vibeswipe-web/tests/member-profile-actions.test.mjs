@@ -71,26 +71,28 @@ test('real gallery and age-privacy handling remain on member profiles', () => {
   }
 });
 
-test('public profiles group identity and actions, compact details, and browse media in grids', () => {
+test('public profiles show a round main photo and browse Reels without a duplicate photo gallery', () => {
   assert.match(member, /pp-identity-panel/);
   assert.match(member, /<ProfileSocialActions profileId=\{profile\.id\}/);
   assert.match(member, /pp-facts/);
-  assert.match(member, /<ProfilePhotoGallery/);
+  assert.doesNotMatch(member, /<ProfilePhotoGallery|public-profile-gallery|section-more-photos/);
   assert.match(member, /<ProfileReelsSection[^>]*profileId=\{profile\.id\}/);
   assert.match(native, /styles\.identityPanel/);
   assert.match(native, /<ProfileFollowStats profileId=\{user\.id\}/);
-  assert.match(native, /public-profile-photo-grid/);
+  assert.doesNotMatch(native, /public-profile-photo-grid|public-profile-more-photos/);
   assert.match(native, /<ProfileReelsSection[^>]*profileId=\{id\}/);
   const webReels = read('../src/components/profile-reels-section.tsx');
   const nativeReels = read('../../vibeswipe/components/ProfileReelsSection.tsx');
   const webStyles = read('../src/index.css');
-  assert.match(webStyles, /\.public-profile \.pp-gallery-grid\s*\{/);
+  assert.doesNotMatch(webStyles, /\.pp-gallery-grid\s*\{/);
   for (const source of [webReels, nativeReels]) {
     assert.match(source, /useInfiniteQuery/);
     assert.match(source, /button-load-more-profile-/);
   }
   assert.doesNotMatch(webReels, /reposted|Reposts|Repeat2/);
-  assert.match(nativeReels, /reposted|Reposts/);
+  assert.doesNotMatch(nativeReels, /reposted|Reposts/);
+  assert.doesNotMatch(nativeReels, /id: "posts"|label: "Posts"/);
+  assert.match(webReels, /loadedReels\.filter\(reel => reel\.mediaType !== "slides"\)/);
   assert.match(webReels, /gridTemplateColumns: `repeat\(\$\{tabs\.length\}, minmax\(0, 1fr\)\)`/);
   const shareSheet = read('../src/components/reels/reel-share-sheet.tsx');
   assert.doesNotMatch(shareSheet, /Repost|repost|Repeat2|useRepostReel|useRemoveRepost/);
@@ -133,12 +135,14 @@ test('Super Like has a separate Activity notice and is distinguished in incoming
 
 test('Edit Profile retains real photo controls and the existing save mutation', () => {
   const editor = read('../src/components/profile-page.tsx');
-  for (const text of ['Main photo', 'button-remove-profile-photo-', 'button-add-profile-photo-slot-', 'button-save-profile', 'form.photos.length', 'useSaveMyProfile']) assert.ok(editor.includes(text), text);
-  for (const text of ['photoPreviews', 'URL.createObjectURL(prepared)', 'fallbackSrc={photoPreviews[photo]}', 'New photos are kept after you tap Save profile']) assert.ok(editor.includes(text), text);
+  for (const text of ['profile-edit-main-photo', 'Change profile picture', 'button-add-profile-photo', 'button-save-profile', 'form.photos.length', 'useSaveMyProfile']) assert.ok(editor.includes(text), text);
+  for (const text of ['photoPreviews', 'URL.createObjectURL(prepared)', 'fallbackSrc={photoPreviews[form.photos[0]]}']) assert.ok(editor.includes(text), text);
+  assert.doesNotMatch(editor, /Add up to 6 photos|Array\.from\(\{ length: 6 \}/);
   const nativeEditor = read('../../vibeswipe/app/edit-profile.tsx');
   const picker = read('../../vibeswipe/components/MediaPicker.tsx');
-  assert.match(nativeEditor, /variant="grid"/);
+  assert.match(nativeEditor, /maxPhotos=\{1\}/);
+  assert.match(nativeEditor, /replaceSinglePhoto/);
   assert.match(nativeEditor, /edit-profile-save/);
   assert.match(nativeEditor, /useSaveMyProfile/);
-  for (const text of ['Main photo', 'removePhoto', 'add-profile-photo-slot-']) assert.ok(picker.includes(text), text);
+  for (const text of ['replaceSinglePhoto', 'Change profile picture', 'removePhoto']) assert.ok(picker.includes(text), text);
 });
