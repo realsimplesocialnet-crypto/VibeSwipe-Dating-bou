@@ -8,3 +8,9 @@ Replit-managed Clerk production keys are injected by Replit's publishing flow an
 **Why:** Production investigation observed authenticated profile, onboarding, and settings requests returning 401 from the release APK. Replit's official documentation confirms production Clerk keys are managed during Replit publishing and cannot be manually substituted for external builds.
 
 **How to apply:** Before shipping a standalone APK through Codemagic, decide whether to use Replit's supported managed-auth flow or migrate both the mobile app and API to an app-owned auth provider. Never point a development Clerk key at the production API.
+
+The user chose to use their own Clerk account for Codemagic releases.
+
+**Why:** The user prioritized a working standalone Android APK over retaining Replit-managed Clerk for this product.
+
+**How to apply:** Migrate the mobile app and API together, use distinct external-Clerk environment variable names instead of overwriting Replit-managed secrets, and warn that existing managed-auth accounts are not automatically moved.
