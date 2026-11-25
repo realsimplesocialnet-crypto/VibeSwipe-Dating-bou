@@ -4,6 +4,7 @@ import {
   EMPTY_SETUP,
   asSetupData,
   buildProfileInput,
+  getOnboardingDraftLoadState,
   getOnboardingStepError,
   runProfileCompletionOnce,
   type SetupData,
@@ -87,6 +88,41 @@ test("saved drafts upgrade older comma-separated hobbies without losing them", (
   const restored = asSetupData({ interests: "Music, coffee, travel" });
   assert.deepEqual(restored.interests, ["Music", "coffee", "travel"]);
   assert.equal(restored.occupation, "Prefer not to say");
+});
+
+test("onboarding draft failures and timeouts show a retry state instead of loading forever", () => {
+  assert.equal(
+    getOnboardingDraftLoadState({
+      hydrated: false,
+      failed: false,
+      timedOut: false,
+    }),
+    "loading",
+  );
+  assert.equal(
+    getOnboardingDraftLoadState({
+      hydrated: false,
+      failed: true,
+      timedOut: false,
+    }),
+    "retry",
+  );
+  assert.equal(
+    getOnboardingDraftLoadState({
+      hydrated: false,
+      failed: false,
+      timedOut: true,
+    }),
+    "retry",
+  );
+  assert.equal(
+    getOnboardingDraftLoadState({
+      hydrated: true,
+      failed: true,
+      timedOut: true,
+    }),
+    "ready",
+  );
 });
 
 test("concurrent completion attempts submit once and failed saves can be retried", async () => {

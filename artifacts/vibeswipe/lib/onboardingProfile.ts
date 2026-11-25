@@ -152,3 +152,13 @@ export async function runProfileCompletionOnce(
     throw error;
   }
 }
+
+export function getOnboardingDraftLoadState(input: {
+  hydrated: boolean;
+  failed: boolean;
+  timedOut: boolean;
+}): "loading" | "retry" | "ready" {
+  if (input.hydrated) return "ready";
+  if (input.failed || input.timedOut) return "retry";
+  return "loading";
+}

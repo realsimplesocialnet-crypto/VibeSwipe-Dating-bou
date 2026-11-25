@@ -34,12 +34,14 @@ import {
   asSetupData,
   buildProfileInput,
   EMPTY_SETUP,
+  getOnboardingDraftLoadState,
   getOnboardingStepError,
   runProfileCompletionOnce,
   type SetupData,
 } from "@/lib/onboardingProfile";
 
 const STEP_COUNT = 10;
+const DRAFT_LOAD_TIMEOUT_MS = 15_000;
 const STEPS = [
   "First name",
   "Last name",
@@ -80,6 +82,7 @@ export function OnboardingWizard() {
   const [error, setError] = useState("");
   const [switchingToSignIn, setSwitchingToSignIn] = useState(false);
   const [hydrated, setHydrated] = useState(false);
+  const [draftLoadTimedOut, setDraftLoadTimedOut] = useState(false);
   const completionInFlight = useRef(false);
   const signingOut = useRef(false);
   const lastSavedKey = useRef("");
@@ -104,6 +107,15 @@ export function OnboardingWizard() {
     lastSavedKey.current = `${restoredStep + 1}:${JSON.stringify(data)}`;
     setHydrated(true);
   }, [savedDraft.data, savedDraft.isSuccess, hydrated, referralFromUrl]);
+
+  useEffect(() => {
+    if (hydrated || savedDraft.isError || draftLoadTimedOut) return;
+    const timeout = setTimeout(
+      () => setDraftLoadTimedOut(true),
+      DRAFT_LOAD_TIMEOUT_MS,
+    );
+    return () => clearTimeout(timeout);
+  }, [hydrated, savedDraft.isError, draftLoadTimedOut]);
 
   useEffect(() => {
     setSearch("");
@@ -253,10 +265,56 @@ export function OnboardingWizard() {
   const animationSpaceHeight = Math.min(420, Math.max(250, viewport.height * 0.4));
   const bottomPadding = Platform.OS === "web" ? 34 : insets.bottom + 16;
 
-  if (savedDraft.isLoading || !hydrated) {
+  const draftLoadState = getOnboardingDraftLoadState({
+    hydrated,
+    failed: savedDraft.isError,
+    timedOut: draftLoadTimedOut,
+  });
+
+  if (draftLoadState !== "ready") {
+    const canRetry = draftLoadState === "retry";
     return (
-      <View style={[styles.loading, { backgroundColor: colors.background }]}>
-        <ActivityIndicator color={colors.primary} />
+      <View style={[styles.loading, { backgroundColor: colors.background, paddingHorizontal: 28 }]}>
+        {canRetry ? (
+          <Feather name="wifi-off" size={26} color={colors.mutedForeground} />
+        ) : (
+          <ActivityIndicator color={colors.primary} />
+        )}
+        <Text style={[styles.loadTitle, { color: colors.foreground }]}>
+          {canRetry ? "Your setup couldn’t load." : "Loading your setup…"}
+        </Text>
+        <Text style={[styles.loadHint, { color: colors.mutedForeground }]}>
+          {canRetry
+            ? "Your account is ready, but we couldn’t reach your saved setup. Check your connection and try again."
+            : "This usually takes a moment."}
+        </Text>
+        {canRetry ? (
+          <>
+            <Pressable
+              accessibilityRole="button"
+              disabled={savedDraft.isFetching}
+              onPress={() => {
+                setDraftLoadTimedOut(false);
+                void savedDraft.refetch();
+              }}
+              style={[styles.loadRetryButton, { backgroundColor: colors.primary, opacity: savedDraft.isFetching ? 0.65 : 1 }]}
+            >
+              {savedDraft.isFetching ? <ActivityIndicator color="#ffffff" /> : null}
+              <Text style={styles.nextText}>
+                {savedDraft.isFetching ? "Retrying…" : "Try again"}
+              </Text>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => void logInInstead()}
+              style={styles.loadSignInButton}
+            >
+              <Text style={[styles.signInText, { color: colors.primary }]}>
+                Return to sign in
+              </Text>
+            </Pressable>
+          </>
+        ) : null}
       </View>
     );
   }
@@ -581,6 +639,10 @@ function ChoiceGrid({ values, selected, onSelect }: { values: string[]; selected
 
 const styles = StyleSheet.create({
   loading: { flex: 1, alignItems: "center", justifyContent: "center" },
+  loadTitle: { fontSize: 18, fontWeight: "800", textAlign: "center", marginTop: 16 },
+  loadHint: { fontSize: 14, lineHeight: 21, textAlign: "center", marginTop: 8, maxWidth: 320 },
+  loadRetryButton: { minHeight: 52, minWidth: 160, borderRadius: 15, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 9, marginTop: 22, paddingHorizontal: 18 },
+  loadSignInButton: { minHeight: 46, justifyContent: "center", paddingHorizontal: 12, marginTop: 8 },
   screen: { flex: 1 },
   container: { flexGrow: 1 },
   formPanel: { flexGrow: 1, paddingHorizontal: 22, paddingTop: 20, borderTopLeftRadius: 24, borderTopRightRadius: 24 },

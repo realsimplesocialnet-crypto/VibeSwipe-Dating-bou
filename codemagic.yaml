@@ -14,6 +14,7 @@ workflows:
         PACKAGE_NAME: beauty.myage
         EXPO_PUBLIC_DOMAIN: myage.beauty
         EXPO_PUBLIC_WEB_URL: https://myage.beauty
+        EXPO_PUBLIC_CLERK_PROXY_URL: https://myage.beauty/api/__clerk
     scripts:
       - name: Install dependencies
         script: |
@@ -25,6 +26,11 @@ workflows:
       - name: Check required app configuration
         script: |
           : "${EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY:?Add this variable to the myage_build group in Codemagic}"
+          : "${EXPO_PUBLIC_CLERK_PROXY_URL:?Set the production Clerk proxy URL}"
+          case "$EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY" in
+            pk_live_*) ;;
+            *) echo "Release APKs must use the production Clerk publishable key (pk_live_...)."; exit 1 ;;
+          esac
       - name: Prebuild Android
         script: |
           pnpm --filter @workspace/vibeswipe exec expo prebuild --platform android --clean --non-interactive --no-install
