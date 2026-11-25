@@ -16,7 +16,6 @@ workflows:
       - name: Install dependencies
         script: |
           cd "$CM_BUILD_DIR"
-          export COREPACK_ENABLE_PROJECT_SPEC=0
           corepack enable
           corepack prepare pnpm@10.26.1 --activate
           pnpm --version

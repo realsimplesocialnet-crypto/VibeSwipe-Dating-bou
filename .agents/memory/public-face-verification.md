@@ -38,3 +38,9 @@ Luxand's public marketing pages omit the actual code widgets. Their dashboard pu
 **Why:** The published JavaScript typo would silently call the wrong capability. Liveness and similarity are single-photo checks; instructions to hold still are supported, but a cosmetic head-turn animation does not prove motion.
 
 **How to apply:** Verify provider examples and response shapes before changing the adapter; keep provider credentials server-side and do not claim this passive endpoint validates left/right challenges.
+
+The user wants paid profile verification at ₦3,000 per month in Nigeria, with Paystack bank transfer locally and card payments for international users. They want to reuse the existing selfie-to-profile-photo match for the verification.
+
+**Why:** The user explicitly requested this pricing and payment behavior for MyAgeBeauty.
+
+**How to apply:** Treat this as the requested product model, but keep billing disabled until a supported payment provider and country/currency coverage are confirmed. Do not promise automatic currency conversion or payment methods without provider confirmation.

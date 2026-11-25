@@ -17,7 +17,7 @@
 - [Smart discovery locality](smart-discovery.md) — Expand sparse default feeds worldwide, country then continent first; explicit saved/manual location filters remain strict.
 - [Optional Quickmavo shop](quickmavo-shop.md) — Settings-only cross-promotion, explicit Cancel/Continue confirmation, and an easy return; never interrupt Discover or chat.
 - [Long voice notes](long-voice-notes.md) — No recording-time cutoff; release sends, cancellation discards, and recipients can seek through the full private recording.
-- [Public face verification](public-face-verification.md) — Self-service verification must match a live person to their profile photo before awarding a public badge.
+- [Public face verification](public-face-verification.md) — Match a live person to their profile photo; the user requests ₦3,000 monthly paid verification in Nigeria.
 - [Reels experience](reels-experience.md) — Reels have no app-set duration cap; Stories are capped at 60 seconds; keep existing privacy and interaction rules.
 - [Server validation environment](server-validation-environment.md) — Standalone checks must respect pnpm's isolation of workspace-package dependencies.
 - [Admin oversight](admin-oversight.md) — Owner wants a single web overview; keep private-chat inspection explicit, restricted and audited.
