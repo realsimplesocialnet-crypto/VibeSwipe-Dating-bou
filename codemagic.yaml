@@ -7,7 +7,7 @@ workflows:
       node: v20
       java: 17
       android_signing:
-        - myagebeauty-release
+        - myage-upload-key
       groups:
         - myage_build
       vars:
@@ -36,7 +36,7 @@ workflows:
           echo "sdk.dir=$ANDROID_SDK_ROOT" > "$CM_BUILD_DIR/artifacts/vibeswipe/android/local.properties"
       - name: Check release signing
         script: |
-          : "${CM_KEYSTORE_PATH:?Codemagic keystore myagebeauty-release was not loaded}"
+          : "${CM_KEYSTORE_PATH:?Codemagic keystore myage-upload-key was not loaded}"
           : "${CM_KEYSTORE_PASSWORD:?Codemagic keystore password was not loaded}"
           : "${CM_KEY_ALIAS:?Codemagic key alias was not loaded}"
           : "${CM_KEY_PASSWORD:?Codemagic key password was not loaded}"
