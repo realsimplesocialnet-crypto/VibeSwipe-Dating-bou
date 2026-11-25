@@ -6,6 +6,8 @@ workflows:
     environment:
       node: v20
       java: 17
+      android_signing:
+        - myagebeauty-release
       groups:
         - myage_build
       vars:
@@ -26,12 +28,21 @@ workflows:
       - name: Prebuild Android
         script: |
           pnpm --filter @workspace/vibeswipe exec expo prebuild --platform android --clean --non-interactive --no-install
+      - name: Configure release signing
+        script: |
+          node "$CM_BUILD_DIR/artifacts/vibeswipe/scripts/configure-android-release.cjs"
       - name: Set Android SDK
         script: |
           echo "sdk.dir=$ANDROID_SDK_ROOT" > "$CM_BUILD_DIR/artifacts/vibeswipe/android/local.properties"
-      - name: Build APK
+      - name: Check release signing
+        script: |
+          : "${CM_KEYSTORE_PATH:?Codemagic keystore myagebeauty-release was not loaded}"
+          : "${CM_KEYSTORE_PASSWORD:?Codemagic keystore password was not loaded}"
+          : "${CM_KEY_ALIAS:?Codemagic key alias was not loaded}"
+          : "${CM_KEY_PASSWORD:?Codemagic key password was not loaded}"
+      - name: Build release APK
         script: |
           cd "$CM_BUILD_DIR/artifacts/vibeswipe/android"
-          ./gradlew assembleDebug
+          ./gradlew assembleRelease
     artifacts:
-      - artifacts/vibeswipe/android/app/build/outputs/**/*.apk
+      - artifacts/vibeswipe/android/app/build/outputs/apk/release/*.apk
