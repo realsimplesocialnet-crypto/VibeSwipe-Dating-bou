@@ -1,4 +1,4 @@
-import { clerkClient, getAuth } from "@clerk/express";
+import { getAuth } from "@clerk/express";
 import {
   GetAdminPostsQueryParams,
   GetAdminPostsResponse,
@@ -12,6 +12,7 @@ import {
 import { and, count, desc, eq, ilike, isNull, or, sql } from "drizzle-orm";
 import { Router, type IRouter } from "express";
 import { createAdminGuard } from "../lib/admin-access";
+import { getAppClerkClient } from "../lib/clerk-client";
 import { ObjectNotFoundError, ObjectStorageService } from "../lib/objectStorage";
 
 const router: IRouter = Router();
@@ -21,7 +22,7 @@ const storage = new ObjectStorageService();
 
 router.use("/vibeswipe/admin/posts", createAdminGuard({
   userId: req => getAuth(req).userId,
-  loadUser: id => clerkClient.users.getUser(id),
+  loadUser: id => getAppClerkClient().users.getUser(id),
   email: () => process.env.VIBESWIPE_ADMIN_EMAIL ?? "",
 }));
 

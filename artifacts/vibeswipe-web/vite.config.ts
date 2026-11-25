@@ -30,6 +30,11 @@ if (!basePath) {
 
 export default defineConfig({
   base: basePath,
+  define: {
+    'import.meta.env.VITE_MYAGE_EXTERNAL_CLERK_PUBLISHABLE_KEY': JSON.stringify(
+      process.env.MYAGE_EXTERNAL_CLERK_PUBLISHABLE_KEY ?? '',
+    ),
+  },
   plugins: [
     queryClientSingletonGuard(),
     react(),

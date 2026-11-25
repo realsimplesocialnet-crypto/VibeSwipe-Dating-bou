@@ -1,4 +1,4 @@
-import { clerkClient, getAuth } from "@clerk/express";
+import { getAuth } from "@clerk/express";
 import {
   GetAdminVerificationRequestsQueryParams, GetAdminVerificationRequestsResponse,
   GetAdminVerificationPhotoParams,
@@ -7,13 +7,14 @@ import { db, profilesTable, mediaAssetsTable, faceVerificationSessionsTable as s
 import { and, count, desc, eq, isNull, sql } from "drizzle-orm";
 import { Router, type IRouter } from "express";
 import { createAdminGuard } from "../lib/admin-access";
+import { getAppClerkClient } from "../lib/clerk-client";
 import { ObjectStorageService } from "../lib/objectStorage";
 
 const router: IRouter = Router();
 const storage = new ObjectStorageService();
 router.use("/vibeswipe/admin/verification-requests", createAdminGuard({
   userId: req => getAuth(req).userId,
-  loadUser: id => clerkClient.users.getUser(id),
+  loadUser: id => getAppClerkClient().users.getUser(id),
   email: () => process.env.VIBESWIPE_ADMIN_EMAIL ?? "",
 }));
 router.use("/vibeswipe/admin/verification-requests", (_req, res, next) => {

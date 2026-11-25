@@ -12,6 +12,7 @@ import {
 } from "./middlewares/security";
 import router from "./routes";
 import { logger } from "./lib/logger";
+import { getAppClerkCredentials } from "./lib/clerk-client";
 import {
   CLERK_PROXY_PATH,
   clerkProxyMiddleware,
@@ -52,12 +53,18 @@ app.use(CLERK_PROXY_PATH, clerkProxyMiddleware());
 app.use(express.json({ limit: "1mb", strict: true }));
 app.use(express.urlencoded({ extended: false, limit: "16kb", parameterLimit: 100 }));
 app.use(
-  clerkMiddleware((req) => ({
-    publishableKey: publishableKeyFromHost(
-      getClerkProxyHost(req) ?? "",
-      process.env.CLERK_PUBLISHABLE_KEY,
-    ),
-  })),
+  clerkMiddleware((req) => {
+    const credentials = getAppClerkCredentials();
+    return {
+      publishableKey: credentials.usesExternalClerk
+        ? credentials.publishableKey
+        : publishableKeyFromHost(
+            getClerkProxyHost(req) ?? "",
+            credentials.publishableKey,
+          ),
+      secretKey: credentials.secretKey,
+    };
+  }),
 );
 
 app.use(rateLimitSensitiveApiRequests);

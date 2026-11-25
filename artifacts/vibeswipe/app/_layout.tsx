@@ -41,7 +41,10 @@ const queryClient = new QueryClient({
 });
 const domain = process.env.EXPO_PUBLIC_DOMAIN;
 if (domain) setBaseUrl(`https://${domain}`);
-const clerkKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY ?? "";
+const clerkKey =
+  process.env.EXPO_PUBLIC_MYAGE_EXTERNAL_CLERK_PUBLISHABLE_KEY ??
+  process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY ??
+  "";
 const clerkProxyUrl = process.env.EXPO_PUBLIC_CLERK_PROXY_URL || undefined;
 
 function ThemeStatusBar() {

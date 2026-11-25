@@ -1,4 +1,4 @@
-import { clerkClient, getAuth } from "@clerk/express";
+import { getAuth } from "@clerk/express";
 import {
   adminAuditTable,
   adminDeletedUsersTable,
@@ -27,6 +27,7 @@ import {
 } from "@workspace/api-zod";
 import { Router, type IRouter, type Request } from "express";
 import { createAdminGuard } from "../lib/admin-access";
+import { getAppClerkClient } from "../lib/clerk-client";
 import { loadAdminIdentity } from "../lib/admin-identity";
 import { adminTimestamp } from "../lib/admin-timestamp";
 import { ObjectNotFoundError, ObjectStorageService } from "../lib/objectStorage";
@@ -41,7 +42,7 @@ const DATE = /^\d{4}-\d{2}-\d{2}$/;
 
 const adminGuard = createAdminGuard({
   userId: (req) => getAuth(req).userId,
-  loadUser: async (id) => clerkClient.users.getUser(id),
+  loadUser: async (id) => getAppClerkClient().users.getUser(id),
   email: () => process.env.VIBESWIPE_ADMIN_EMAIL ?? "",
 });
 router.use("/vibeswipe/admin", adminGuard);
@@ -79,7 +80,7 @@ async function getAdminUser(profile: typeof profilesTable.$inferSelect) {
     db.select().from(vibeSwipePresenceTable).where(eq(vibeSwipePresenceTable.userId, profile.id)).limit(1),
     db.select({ id: matchesTable.id }).from(matchesTable)
       .where(or(eq(matchesTable.userAId, profile.id), eq(matchesTable.userBId, profile.id))),
-    loadAdminIdentity(() => clerkClient.users.getUser(profile.id)),
+    loadAdminIdentity(() => getAppClerkClient().users.getUser(profile.id)),
   ]);
   const phone = identity?.phoneNumbers.find((item) => item.id === identity.primaryPhoneNumberId)?.phoneNumber ?? null;
   const email = identity?.emailAddresses.find((item) => item.id === identity.primaryEmailAddressId)?.emailAddress ?? null;
@@ -315,7 +316,7 @@ router.get("/vibeswipe/admin/audit", async (req, res): Promise<void> => {
       .limit(PAGE_SIZE).offset(offset),
   ]);
   const items = await Promise.all(rows.map(async (entry) => {
-    const identity = await loadAdminIdentity(() => clerkClient.users.getUser(entry.actorId));
+    const identity = await loadAdminIdentity(() => getAppClerkClient().users.getUser(entry.actorId));
     return {
       id: entry.id,
       actorId: entry.actorId,
@@ -428,7 +429,7 @@ router.get("/vibeswipe/admin/dashboard", async (req, res): Promise<void> => {
     if (q || userId) {
       const search = q || userId;
       const identityMatches = q
-        ? await clerkClient.users.getUserList({ query: q, limit: 500 })
+        ? await getAppClerkClient().users.getUserList({ query: q, limit: 500 })
         : { data: [] };
       const identityIds = new Set(identityMatches.data.map((entry) => entry.id));
       matches = matches.filter((profile) => (!userId || profile.id === userId) &&
@@ -502,7 +503,7 @@ router.get("/vibeswipe/admin/dashboard", async (req, res): Promise<void> => {
         (!range.to || row.createdAt < new Date(range.to.getTime() + 86_400_000)));
     }
     if (q) {
-      const queryIds = new Set((await clerkClient.users.getUserList({ query: q, limit: 500 })).data.map((user) => user.id));
+      const queryIds = new Set((await getAppClerkClient().users.getUserList({ query: q, limit: 500 })).data.map((user) => user.id));
       const queryProfiles = await db.select({ id: profilesTable.id, name: profilesTable.name }).from(profilesTable);
       const matchingIds = new Set(queryProfiles.filter((profile) =>
         profile.name.toLowerCase().includes(q.toLowerCase()) || queryIds.has(profile.id) ||
@@ -643,7 +644,7 @@ router.post("/vibeswipe/admin/actions", async (req, res): Promise<void> => {
         await tx.delete(profilesTable).where(eq(profilesTable.id, targetId));
       });
       await Promise.all(userMatches.map((match) => closeAdminChat(match.id)));
-      try { await clerkClient.users.deleteUser(targetId); } catch {
+      try { await getAppClerkClient().users.deleteUser(targetId); } catch {
         // The account profile is gone, so app access is already denied. Preserve audit and report partial external cleanup.
         await doAudit();
         res.status(502).json({ error: "Application data was deleted, but identity-provider account cleanup failed." }); return;

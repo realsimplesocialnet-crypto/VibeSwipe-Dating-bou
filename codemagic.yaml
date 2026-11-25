@@ -25,9 +25,9 @@ workflows:
           pnpm install --frozen-lockfile
       - name: Check required app configuration
         script: |
-          : "${EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY:?Add this variable to the myage_build group in Codemagic}"
+          : "${MYAGE_EXTERNAL_CLERK_PUBLISHABLE_KEY:?Add this public key to the myage_build group in Codemagic}"
           : "${EXPO_PUBLIC_CLERK_PROXY_URL:?Set the production Clerk proxy URL}"
-          case "$EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY" in
+          case "$MYAGE_EXTERNAL_CLERK_PUBLISHABLE_KEY" in
             pk_live_*) ;;
             *) echo "Release APKs must use the production Clerk publishable key (pk_live_...)."; exit 1 ;;
           esac
@@ -49,6 +49,7 @@ workflows:
       - name: Build release APK
         script: |
           cd "$CM_BUILD_DIR/artifacts/vibeswipe/android"
+          export EXPO_PUBLIC_MYAGE_EXTERNAL_CLERK_PUBLISHABLE_KEY="$MYAGE_EXTERNAL_CLERK_PUBLISHABLE_KEY"
           ./gradlew assembleRelease
     artifacts:
       - artifacts/vibeswipe/android/app/build/outputs/apk/release/*.apk

@@ -99,8 +99,11 @@ const artifactBasePath = import.meta.env.BASE_URL.replace(/\/$/, '');
 const appPathPrefix = `${artifactBasePath}/app`;
 const isDedicatedAppRoute = window.location.pathname === appPathPrefix || window.location.pathname.startsWith(`${appPathPrefix}/`);
 const basePath = isDedicatedAppRoute ? appPathPrefix : artifactBasePath;
-const clerkPubKey = publishableKeyFromHost(window.location.hostname, import.meta.env.VITE_CLERK_PUBLISHABLE_KEY);
-const clerkProxyUrl = import.meta.env.VITE_CLERK_PROXY_URL;
+const externalClerkPubKey = import.meta.env.VITE_MYAGE_EXTERNAL_CLERK_PUBLISHABLE_KEY;
+const clerkPubKey = externalClerkPubKey || publishableKeyFromHost(window.location.hostname, import.meta.env.VITE_CLERK_PUBLISHABLE_KEY);
+const clerkProxyUrl = externalClerkPubKey
+  ? (import.meta.env.PROD ? `${window.location.origin}/api/__clerk` : undefined)
+  : import.meta.env.VITE_CLERK_PROXY_URL;
 const pathFor = (path: string) => `${basePath}${path === '/' ? '/' : path}`;
 const assetPathFor = (path: string) => `${artifactBasePath}${path === '/' ? '/' : path}`;
 function safeAppReturnPath(value: string | null, fallback: string) {

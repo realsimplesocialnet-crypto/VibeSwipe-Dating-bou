@@ -5,10 +5,8 @@
  * authentication on custom domains and .replit.app deployments without
  * requiring CNAME DNS configuration.
  *
- * AUTH CONFIGURATION: To manage users, enable/disable login providers
- * (Google, GitHub, etc.), change app branding, or configure OAuth credentials,
- * use the Auth pane in the workspace toolbar. There is no external Clerk
- * dashboard — all auth configuration is done through the Auth pane.
+ * This proxy can use either the Replit-managed Clerk keys or the app-owned
+ * MYAGE_EXTERNAL_CLERK_* keys. Never expose the secret key to a client.
  *
  * IMPORTANT:
  * - Only active in production (Clerk proxying doesn't work for dev instances)
@@ -22,6 +20,7 @@
 import type { IncomingHttpHeaders } from 'http';
 import type { RequestHandler } from 'express';
 import { createProxyMiddleware } from 'http-proxy-middleware';
+import { getAppClerkCredentials } from '../lib/clerk-client';
 
 const CLERK_FAPI = 'https://frontend-api.clerk.dev';
 export const CLERK_PROXY_PATH = '/api/__clerk';
@@ -58,7 +57,12 @@ export function clerkProxyMiddleware(): RequestHandler {
     return (_req, _res, next) => next();
   }
 
-  const secretKey = process.env.CLERK_SECRET_KEY;
+  let secretKey: string;
+  try {
+    secretKey = getAppClerkCredentials().secretKey;
+  } catch {
+    return (_req, _res, next) => next();
+  }
   if (!secretKey) {
     return (_req, _res, next) => next();
   }
