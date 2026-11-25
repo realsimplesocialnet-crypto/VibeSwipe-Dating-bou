@@ -122,6 +122,7 @@ import {
 } from "../lib/objectStorage";
 import { removeUnreferencedProfileMedia } from "../lib/profileMediaCleanup";
 import { evictMediaPreview, getMediaPreview, PreviewBusyError, PreviewUnreadableError } from "../lib/mediaPreview";
+import { uploadedMediaFileMatches } from "../lib/media-file-validation";
 import { removedProfilePhotoMediaIds } from "../lib/profileMediaReferences";
 import {
   MAX_PROFILE_VIDEO_SOURCE_BYTES,
@@ -821,8 +822,41 @@ router.put("/vibeswipe/me", async (req, res): Promise<void> => {
     return;
   }
   const [photoSnapshot] = await db.select({
-    photos: profilesTable.photos, isVerified: profilesTable.isVerified,
+    photos: profilesTable.photos, videoUrl: profilesTable.videoUrl, isVerified: profilesTable.isVerified,
   }).from(profilesTable).where(eq(profilesTable.id, userId)).limit(1);
+  const existingReferences = new Set([
+    ...(photoSnapshot?.photos ?? []),
+    ...(photoSnapshot?.videoUrl ? [photoSnapshot.videoUrl] : []),
+  ]);
+  const referencesToCheck = references.filter((reference) => !existingReferences.has(reference));
+  if (referencesToCheck.length) {
+    const ids = [...new Set(referencesToCheck.map((reference) => reference.slice("media:".length)))];
+    const expectedKindById = new Map<string, "image" | "video">([
+      ...body.photos.map((reference) => [reference.slice("media:".length), "image"] as const),
+      ...(body.videoUrl ? [[body.videoUrl.slice("media:".length), "video"] as const] : []),
+    ]);
+    const assets = await db.select({
+      id: mediaAssetsTable.id,
+      ownerId: mediaAssetsTable.ownerId,
+      matchId: mediaAssetsTable.matchId,
+      mediaType: mediaAssetsTable.mediaType,
+      contentType: mediaAssetsTable.contentType,
+      objectPath: mediaAssetsTable.objectPath,
+    }).from(mediaAssetsTable).where(inArray(mediaAssetsTable.id, ids));
+    if (assets.length !== ids.length || assets.some((asset) => asset.ownerId !== userId || asset.matchId)) {
+      res.status(403).json({ error: "Profile media must be uploaded by your account." });
+      return;
+    }
+    for (const asset of assets) {
+      const file = await objectStorage.getObjectEntityFile(asset.objectPath);
+      const expectedKind = expectedKindById.get(asset.id);
+      if (!expectedKind || asset.mediaType !== expectedKind ||
+          !await uploadedMediaFileMatches(file, expectedKind, asset.contentType)) {
+        res.status(415).json({ error: "A selected upload does not match its actual file type. Choose it again." });
+        return;
+      }
+    }
+  }
   if (photoSnapshot?.isVerified) {
     if (!photoSnapshot.photos[0]) {
       res.status(409).json({ error: "Your verified main photo is missing. Please verify your main photo again." });
@@ -2335,6 +2369,8 @@ router.post(
         .select({
           ownerId: mediaAssetsTable.ownerId,
           mediaType: mediaAssetsTable.mediaType,
+          contentType: mediaAssetsTable.contentType,
+          objectPath: mediaAssetsTable.objectPath,
           matchId: mediaAssetsTable.matchId,
         })
         .from(mediaAssetsTable)
@@ -2347,6 +2383,11 @@ router.post(
         asset.mediaType !== mediaType
       ) {
         res.status(403).json({ error: "Attachment is not available to this account." });
+        return;
+      }
+      const file = await objectStorage.getObjectEntityFile(asset.objectPath);
+      if (!await uploadedMediaFileMatches(file, mediaType, asset.contentType)) {
+        res.status(415).json({ error: "This attachment does not match its actual file type." });
         return;
       }
     }
@@ -2948,6 +2989,9 @@ router.post(
 
     try {
       const file = await objectStorage.getObjectEntityFile(asset.objectPath);
+      if (!await uploadedMediaFileMatches(file, "video", asset.contentType)) {
+        throw new ProfileVideoValidationError("This upload does not match an MP4 or MOV video.");
+      }
       const result = await transcodeProfileVideo(file);
       await db
         .update(mediaAssetsTable)
@@ -3082,6 +3126,10 @@ router.get(
     }
     try {
       const file = await objectStorage.getObjectEntityFile(asset.objectPath);
+      if (!await uploadedMediaFileMatches(file, asset.mediaType, asset.contentType)) {
+        res.status(415).json({ error: "This upload does not match its actual file type." });
+        return;
+      }
       const bytes = await getMediaPreview(asset.id, asset.mediaType, () => file.createReadStream());
       res.setHeader("Content-Type", "image/webp");
       res.setHeader("Content-Length", String(bytes.length));
@@ -3137,6 +3185,11 @@ router.get(
       : false;
     try {
       const file = await objectStorage.getObjectEntityFile(asset.objectPath);
+      if (!["image", "video", "audio"].includes(asset.mediaType) ||
+          !await uploadedMediaFileMatches(file, asset.mediaType as "image" | "video" | "audio", asset.contentType)) {
+        res.status(415).json({ error: "This upload does not match its actual file type." });
+        return;
+      }
       const response = await objectStorage.downloadObject(file, 300, req.get("range"));
       res.status(response.status);
       response.headers.forEach((value, key) => res.setHeader(key, value));

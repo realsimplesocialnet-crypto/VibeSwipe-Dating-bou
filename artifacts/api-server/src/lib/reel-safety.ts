@@ -12,6 +12,7 @@ import { checkReelImage, checkReelVideo } from "./reel-safety-checker";
 import { ReelSafetyError, REEL_SAFETY_VERSION } from "./reel-safety-policy";
 import { AsyncSemaphore } from "./async-semaphore";
 import { logger } from "./logger";
+import { uploadedMediaFileMatches } from "./media-file-validation";
 
 const storage = new ObjectStorageService();
 const safetyCheckSlots = new AsyncSemaphore(2);
@@ -36,7 +37,7 @@ export async function processSafeReel(asset: Asset): Promise<TranscodedProfileVi
     if (!locked) throw new ReelSafetyError("This video is already being checked. Please try again shortly.");
     // A different server may have sealed the upload while this request waited.
     // Refresh under the per-media lock before touching its approval receipt.
-    const latest = await client.query<Asset>(`SELECT id,owner_id AS "ownerId",object_path AS "objectPath"
+    const latest = await client.query<Asset>(`SELECT id,owner_id AS "ownerId",object_path AS "objectPath",content_type AS "contentType"
       FROM vibeswipe_media_assets WHERE id=$1`, [asset.id]);
     if (!latest.rows[0]) throw new ReelSafetyError("This video upload is no longer available.", 404);
     if (latest.rows[0].ownerId !== asset.ownerId) throw new ReelSafetyError("This upload is not owned by your account.", 403);
@@ -52,6 +53,9 @@ export async function processSafeReel(asset: Asset): Promise<TranscodedProfileVi
       status='checking',version=$2,checked_path=$3,checked_at=now(),result=NULL`, [asset.id, REEL_SAFETY_VERSION, asset.objectPath]);
     recorded = true;
     const file = await storage.getObjectEntityFile(asset.objectPath);
+    if (!asset.contentType || !await uploadedMediaFileMatches(file, "video", asset.contentType)) {
+      throw new ReelSafetyError("This upload does not match an MP4 or MOV video.", 415);
+    }
     const video = await transcodeReelVideo(file, async (path, result) => {
       const report = await checkReelVideo(path, result.duration);
       sealed = `/objects/checked-reels/${randomUUID()}`;
@@ -139,6 +143,9 @@ export async function processSafeReelImage(asset: Asset): Promise<void> {
     const sourcePath = join(tempDirectory, "source");
     const normalizedPath = join(tempDirectory, "slide.jpg");
     const original = await storage.getObjectEntityFile(asset.objectPath);
+    if (!asset.contentType || !await uploadedMediaFileMatches(original, "image", asset.contentType)) {
+      throw new ReelSafetyError("This upload does not match a supported photo.", 415);
+    }
     await pipeline(original.createReadStream(), createWriteStream(sourcePath));
     await normalizeSlideImage(sourcePath, normalizedPath);
     const report = await checkReelImage(normalizedPath);
@@ -178,8 +185,8 @@ export async function checkExistingReels(): Promise<void> {
   if (backfillRunning || safetyCheckSlots.busy) return;
   backfillRunning = true;
   try {
-    const rows = await pool.query<{ id: string; ownerId: string; objectPath: string }>(`
-      SELECT m.id,m.owner_id AS "ownerId",m.object_path AS "objectPath"
+    const rows = await pool.query<{ id: string; ownerId: string; objectPath: string; contentType: string }>(`
+      SELECT m.id,m.owner_id AS "ownerId",m.object_path AS "objectPath",m.content_type AS "contentType"
       FROM vibeswipe_reels r JOIN vibeswipe_media_assets m ON m.id=r.media_id
       LEFT JOIN vibeswipe_reel_safety s ON s.media_id=m.id
       WHERE s.media_id IS NULL OR s.version<>$1 OR s.checked_path<>m.object_path

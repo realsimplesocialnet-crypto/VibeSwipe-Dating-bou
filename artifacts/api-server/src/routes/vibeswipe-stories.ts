@@ -37,6 +37,7 @@ import {
 } from "@workspace/db";
 import { requireAuth } from "../middlewares/auth";
 import { ObjectStorageService } from "../lib/objectStorage";
+import { uploadedMediaFileMatches } from "../lib/media-file-validation";
 import { removeUnreferencedProfileMedia } from "../lib/profileMediaCleanup";
 import {
   cleanupExpiredStories,
@@ -380,6 +381,10 @@ router.post(
     }
     try {
       const file = await objectStorage.getObjectEntityFile(asset.objectPath);
+      if (!await uploadedMediaFileMatches(file, "video", asset.contentType)) {
+        res.status(415).json({ error: "This upload does not match an MP4 or MOV video." });
+        return;
+      }
       const result = await transcodeProfileVideo(
         file,
         MAX_STORY_VIDEO_DURATION_SECONDS,
@@ -434,6 +439,11 @@ router.post("/vibeswipe/stories", async (req, res): Promise<void> => {
       .limit(1);
     if (!asset || asset.ownerId !== userId || asset.matchId !== null || asset.mediaType !== mediaType) {
       res.status(403).json({ error: "This upload does not belong to your account." });
+      return;
+    }
+    const uploadedFile = await objectStorage.getObjectEntityFile(asset.objectPath);
+    if (!await uploadedMediaFileMatches(uploadedFile, mediaType, asset.contentType)) {
+      res.status(415).json({ error: "This upload does not match its actual file type." });
       return;
     }
     if (mediaType === "video") {

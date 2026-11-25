@@ -12,6 +12,7 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const { isPathInside, resolveStaticFilePath } = require('./static-path.cjs');
 
 const STATIC_ROOT = path.resolve(__dirname, '..', 'static-build');
 const TEMPLATE_PATH = path.resolve(__dirname, 'templates', 'landing-page.html');
@@ -64,7 +65,14 @@ function toScriptString(value) {
 }
 
 function serveManifest(platform, res) {
-  const manifestPath = path.join(STATIC_ROOT, platform, 'manifest.json');
+  let manifestPath;
+  if (platform === 'ios') manifestPath = path.join(STATIC_ROOT, 'ios', 'manifest.json');
+  else if (platform === 'android') manifestPath = path.join(STATIC_ROOT, 'android', 'manifest.json');
+  else {
+    res.writeHead(400, { 'content-type': 'application/json' });
+    res.end(JSON.stringify({ error: 'Unsupported platform.' }));
+    return;
+  }
 
   if (!fs.existsSync(manifestPath)) {
     res.writeHead(404, { 'content-type': 'application/json' });
@@ -101,24 +109,35 @@ function serveLandingPage(req, res, landingPageTemplate, appName) {
 }
 
 function serveStaticFile(urlPath, res) {
-  const safePath = path.normalize(urlPath).replace(/^(\.\.(\/|\\|$))+/, '');
-  const filePath = path.join(STATIC_ROOT, safePath);
-
-  if (!filePath.startsWith(STATIC_ROOT)) {
+  const filePath = resolveStaticFilePath(STATIC_ROOT, urlPath);
+  if (!filePath) {
     res.writeHead(403);
     res.end('Forbidden');
     return;
   }
 
-  if (!fs.existsSync(filePath) || fs.statSync(filePath).isDirectory()) {
+  if (!fs.existsSync(filePath)) {
     res.writeHead(404);
     res.end('Not Found');
     return;
   }
 
-  const ext = path.extname(filePath).toLowerCase();
+  const rootPath = fs.realpathSync(STATIC_ROOT);
+  const realFilePath = fs.realpathSync(filePath);
+  if (!isPathInside(rootPath, realFilePath)) {
+    res.writeHead(403);
+    res.end('Forbidden');
+    return;
+  }
+  if (fs.statSync(realFilePath).isDirectory()) {
+    res.writeHead(404);
+    res.end('Not Found');
+    return;
+  }
+
+  const ext = path.extname(realFilePath).toLowerCase();
   const contentType = MIME_TYPES[ext] || 'application/octet-stream';
-  const content = fs.readFileSync(filePath);
+  const content = fs.readFileSync(realFilePath);
   res.writeHead(200, { 'content-type': contentType });
   res.end(content);
 }
