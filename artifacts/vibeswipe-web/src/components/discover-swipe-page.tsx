@@ -110,6 +110,7 @@ export function DiscoverSwipePage() {
   const block = useBlockProfile();
   const report = useReportProfile();
   const profilesRef = useRef(profiles);
+  const feedKeyRef = useRef(feedKey);
   const indexRef = useRef(index);
   const activeProfileRef = useRef(profile);
   const profileByIdRef = useRef(new Map<string, Profile>());
@@ -123,6 +124,7 @@ export function DiscoverSwipePage() {
   const superLikesRemainingRef = useRef(superLikes.data?.remaining);
   const matchResultRef = useRef(matchResult);
   profilesRef.current = profiles;
+  feedKeyRef.current = feedKey;
   indexRef.current = index;
   activeProfileRef.current = profile;
   profileByIdRef.current = new Map(profiles.map((item) => [item.id, item]));
@@ -278,6 +280,7 @@ export function DiscoverSwipePage() {
         };
 
     const nextIndex = indexRef.current + 1;
+    const reactionFeedKey = feedKeyRef.current;
     indexRef.current = nextIndex;
     activeProfileRef.current = profilesRef.current[nextIndex];
     setIndexRef.current(nextIndex);
@@ -313,6 +316,7 @@ export function DiscoverSwipePage() {
         if (type === "like") void queryClient.invalidateQueries({ queryKey: getGetDailyLikeStatusQueryKey() });
         if (type === "super") void queryClient.invalidateQueries({ queryKey: getGetSuperLikeStatusQueryKey() });
         if (result.matched) void queryClient.invalidateQueries({ queryKey: getGetMatchesQueryKey() });
+        void queryClient.invalidateQueries({ queryKey: getGetProfileDatingStateQueryKey(current.id) });
         if (result.matched) {
           if (noticeTimer.current !== null) window.clearTimeout(noticeTimer.current);
           setLikeConfirmation("");
@@ -327,10 +331,13 @@ export function DiscoverSwipePage() {
       } catch (error) {
         const status = (error as { status?: number }).status;
         const failedIndex = nextIndex - 1;
-        if (status !== 404 && indexRef.current === nextIndex) {
+        const sameFeed = feedKeyRef.current === reactionFeedKey;
+        if (status !== 404 && sameFeed && indexRef.current === nextIndex) {
           indexRef.current = failedIndex;
           activeProfileRef.current = profilesRef.current[failedIndex];
           setIndexRef.current(failedIndex);
+        }
+        if (status !== 404) {
           setSwipeExits((exits) => {
             if (!(current.id in exits)) return exits;
             const next = { ...exits };

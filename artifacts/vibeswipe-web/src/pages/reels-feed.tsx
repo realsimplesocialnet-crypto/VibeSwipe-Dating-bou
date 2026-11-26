@@ -675,13 +675,14 @@ export function ReelsFeedPage({
         <div className="reels-search-results" aria-live="polite">
           {debouncedSearchText.trim().length < 2
             ? null
-            : searchFeed.isLoading
+            : searchFeed.isLoading && !searchResults.length
               ? <div className="reels-search-status"><QuietSpinner size={20} /></div>
-              : searchFeed.isError
+              : searchFeed.isError && !searchResults.length
                 ? <div className="reels-search-status" role="alert"><p>Search couldn’t load.</p><button type="button" onClick={() => void searchFeed.refetch()} className="reels-primary mt-4">Retry</button></div>
                 : !searchResults.length
                   ? <div className="reels-search-status">No Reels match “{debouncedSearchText}” yet.</div>
                   : <>
+                    {searchFeed.isError && <FetchErrorBanner text="Couldn’t load more Reels. The results already loaded are still here." onRetry={() => void searchFeed.refetch()} />}
                     <p className="reels-search-label">Reels matching “{debouncedSearchText}”</p>
                     <ul className="reels-search-list">
                       {searchResults.map((reel) => <li key={reel.id}>

@@ -12,7 +12,7 @@ import {
   useMarkNotificationRead, useUnfollowProfile,
   createUseMarkActivitySeen,
 } from '@workspace/api-client-react';
-import type { Match, NotificationsResponse, Profile, ProfileFollowList } from '@workspace/api-client-react';
+import type { Match, NotificationsResponse, Profile, ProfileFollowList, ProfileLike } from '@workspace/api-client-react';
 import { patchActivityReads } from '@workspace/api-client-react';
 import { MatchStoryAvatar } from '@/components/stories/stories-ui';
 import { MatchCelebration } from '@/components/match-celebration';
@@ -31,6 +31,14 @@ function ago(v: string) {
   return new Date(v).toLocaleDateString();
 }
 const activeMatches = (m?: Match[]) => (m ?? []).filter(x => !x.profile.isDemo && !x.blockedByMe && !x.blockedMe);
+
+function restoreRemovedLike(current: ProfileLike[] | undefined, removed: ProfileLike, laterIds: ReadonlySet<string>) {
+  const list = current ?? [];
+  if (list.some((item) => item.profile.id === removed.profile.id)) return list;
+  const insertAt = list.findIndex((item) => laterIds.has(item.profile.id));
+  if (insertAt < 0) return [...list, removed];
+  return [...list.slice(0, insertAt), removed, ...list.slice(insertAt)];
+}
 
 function useNoticeReader() {
   const qc = useQueryClient();
@@ -195,13 +203,16 @@ export function InboundPeoplePage({ avatar, kind }: { avatar: AvatarFn; kind: 'l
               setBusyId(id);
               setActionError('');
               const key = getGetWhoLikedYouQueryKey();
-              const previous = qc.getQueryData<NonNullable<typeof likes.data>>(key);
-              qc.setQueryData<NonNullable<typeof likes.data>>(key, (current) => current?.filter((item) => item.profile.id !== id));
+              const previous = qc.getQueryData<ProfileLike[]>(key) ?? [];
+              const removedIndex = previous.findIndex((item) => item.profile.id === id);
+              const removed = removedIndex >= 0 ? previous[removedIndex] : undefined;
+              const laterIds = new Set((removedIndex >= 0 ? previous.slice(removedIndex + 1) : []).map((item) => item.profile.id));
+              qc.setQueryData<ProfileLike[]>(key, (current) => current?.filter((item) => item.profile.id !== id));
               void reaction.mutateAsync({ data: { toUserId: id, type: 'pass' } }).then(() => {
                 void qc.invalidateQueries({ queryKey: key });
                 void qc.invalidateQueries({ queryKey: getGetNotificationsQueryKey() });
               }).catch(() => {
-                if (previous) qc.setQueryData(key, previous);
+                if (removed) qc.setQueryData<ProfileLike[]>(key, (current) => restoreRemovedLike(current, removed, laterIds));
                 setActionError(`Your pass on ${r.profile.name} did not save. Please try again.`);
               }).finally(() => {
                 likeInflight.current.delete(id);
@@ -217,15 +228,18 @@ export function InboundPeoplePage({ avatar, kind }: { avatar: AvatarFn; kind: 'l
               setBusyId(id);
               setActionError('');
               const key = getGetWhoLikedYouQueryKey();
-              const previous = qc.getQueryData<NonNullable<typeof likes.data>>(key);
-              qc.setQueryData<NonNullable<typeof likes.data>>(key, (current) => current?.filter((item) => item.profile.id !== id));
+              const previous = qc.getQueryData<ProfileLike[]>(key) ?? [];
+              const removedIndex = previous.findIndex((item) => item.profile.id === id);
+              const removed = removedIndex >= 0 ? previous[removedIndex] : undefined;
+              const laterIds = new Set((removedIndex >= 0 ? previous.slice(removedIndex + 1) : []).map((item) => item.profile.id));
+              qc.setQueryData<ProfileLike[]>(key, (current) => current?.filter((item) => item.profile.id !== id));
               void reaction.mutateAsync({ data: { toUserId: id, type: 'like' } }).then((result) => {
                 void qc.invalidateQueries({ queryKey: key });
                 void qc.invalidateQueries({ queryKey: getGetMatchesQueryKey() });
                 void qc.invalidateQueries({ queryKey: getGetNotificationsQueryKey() });
                 if (result.matched) setMatch({ profile: r.profile, matchId: result.matchId ?? null });
               }).catch(() => {
-                if (previous) qc.setQueryData(key, previous);
+                if (removed) qc.setQueryData<ProfileLike[]>(key, (current) => restoreRemovedLike(current, removed, laterIds));
                 setActionError(`Your Like Back to ${r.profile.name} did not go through. Please try again.`);
               }).finally(() => {
                 likeInflight.current.delete(id);
