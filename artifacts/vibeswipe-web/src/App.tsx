@@ -46,6 +46,8 @@ import { checkAdditionalProfilePhoto } from '@workspace/api-client-react';
 import { userErrorMessage } from '@/lib/user-errors';
 import { readCachedMyProfile, writeCachedMyProfile, clearCachedMyProfile } from '@/lib/my-profile-cache';
 import { RouteSkeleton } from '@/components/route-skeleton';
+import { motion } from 'framer-motion';
+import { SpringDialog, ROUTE_SPRING } from '@/components/spring-motion';
 import { RouteVisibilityContext } from '@/lib/router-compat';
 import { AppLanguageProvider, isAppLanguage, useAppLanguage } from '@/lib/app-language';
 import '@/styles/landing.css';
@@ -205,7 +207,10 @@ function AppShell({ children }: { children: ReactNode }) {
       // Force iOS standalone mode to refresh safe-area styles before reading
       // the tab height; its viewport can be stale for a frame after resume.
       void window.getComputedStyle(nav).paddingBottom;
-      shell.style.setProperty('--mobile-nav-height', `${nav.getBoundingClientRect().height}px`);
+      const nextHeight = String(Math.round(nav.getBoundingClientRect().height));
+      if (shell.dataset.navHeight === nextHeight) return;
+      shell.dataset.navHeight = nextHeight;
+      shell.style.setProperty('--mobile-nav-height', `${nextHeight}px`);
     };
     const scheduleMeasure = () => {
       window.requestAnimationFrame(() => {
@@ -228,7 +233,6 @@ function AppShell({ children }: { children: ReactNode }) {
     window.addEventListener('focus', syncAfterResume);
     document.addEventListener('visibilitychange', onVisibilityChange);
     viewport?.addEventListener('resize', scheduleMeasure);
-    viewport?.addEventListener('scroll', scheduleMeasure);
     syncAfterResume();
     return () => {
       resumeTimers.forEach(window.clearTimeout);
@@ -238,7 +242,6 @@ function AppShell({ children }: { children: ReactNode }) {
       window.removeEventListener('focus', syncAfterResume);
       document.removeEventListener('visibilitychange', onVisibilityChange);
       viewport?.removeEventListener('resize', scheduleMeasure);
-      viewport?.removeEventListener('scroll', scheduleMeasure);
     };
   }, [routeVisible, showMainNavigation, location]);
   return <div ref={shellRef} className={`app-shell min-h-[100dvh] bg-background text-foreground ${isSocialPage?'messages-shell':''} ${location==='/discover'?'discover-shell':''} ${location==='/profile'?'profile-shell':''}`}>
@@ -253,9 +256,14 @@ function AppShell({ children }: { children: ReactNode }) {
         </div>
       </aside>}
     </>}
-    <main className={showMainNavigation && !isReelsViewer ? "min-h-[100dvh] pb-24 lg:ml-[248px] lg:pb-0" : "min-h-[100dvh]"}>
+    <motion.main
+      className={showMainNavigation && !isReelsViewer ? "min-h-[100dvh] pb-24 lg:ml-[248px] lg:pb-0" : "min-h-[100dvh]"}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: routeVisible ? 1 : 0 }}
+      transition={routeVisible ? ROUTE_SPRING : { duration: 0 }}
+    >
       <ReelsNavigationVisibilityContext.Provider value={setReelsNavigationVisible}>{children}</ReelsNavigationVisibilityContext.Provider>
-    </main>
+    </motion.main>
     {routeVisible && profile.data?.id&&<WebPushSettings key={profile.data.id} compact visible={showMainNavigation && !isReelsViewer} accountId={profile.data.id}/>}
     {showMainNavigation && <nav ref={mobileNavRef} aria-label="Primary" aria-hidden={isReelsViewer && !reelsNavigationVisible} className={`${location==='/profile'?'profile-nav ':''}${isReelsViewer ? `reels-mobile-nav ${reelsNavigationVisible ? '' : 'is-hidden'} ` : ''}mobile-nav fixed inset-x-0 bottom-0 ${isReelsViewer ? 'z-[80]' : 'z-30'} ${isReelsViewer ? '' : 'lg:hidden'} flex justify-around bg-background/95 px-2 pt-2 backdrop-blur-xl`}>
       <span aria-hidden="true" className="mobile-nav-indicator" style={{ transform: `translate3d(${mobileActiveIndex * 100}%, 0, 0)` }} />
@@ -470,7 +478,10 @@ export function LegacyDiscoverPage() {
   </PageFrame>;
 }
 function DiscoverPage(){return <DiscoverSwipePage/>}
-function Dialog({ title, children, onClose }: { title:string; children:ReactNode; onClose:()=>void }) { return <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/65 p-0 backdrop-blur-sm sm:items-center sm:p-5" role="presentation" onMouseDown={e=>{if(e.target===e.currentTarget)onClose()}}><section className="max-h-[90dvh] w-full max-w-lg overflow-y-auto rounded-t-[26px] border border-white/10 bg-[#211d25] p-5 shadow-2xl sm:rounded-[26px] sm:p-7" style={{ color: "#fbf5f7" }}><div className="mb-6 flex items-center justify-between"><h2 className="brand text-2xl font-bold" style={{ color: "#fbf5f7" }}>{title}</h2><button onClick={onClose} data-testid="button-close-dialog" aria-label="Close" className="rounded-lg p-2 text-[#b6a8af] hover:bg-white/5"><X size={19}/></button></div>{children}</section></div>; }
+function Dialog({ title, children, onClose }: { title:string; children:ReactNode; onClose:()=>void }) {
+  const [open, setOpen] = useState(true);
+  return <SpringDialog open={open} onClose={() => setOpen(false)} onExited={onClose} label={title} panelClassName="max-h-[90dvh] w-full max-w-lg overflow-y-auto rounded-t-[26px] border border-white/10 bg-[#211d25] p-5 text-[#fbf5f7] shadow-2xl sm:rounded-[26px] sm:p-7"><div className="mb-6 flex items-center justify-between"><h2 className="brand text-2xl font-bold text-[#fbf5f7]">{title}</h2><button type="button" onClick={() => setOpen(false)} data-testid="button-close-dialog" aria-label="Close" className="rounded-lg p-2 text-[#b6a8af] hover:bg-white/5"><X size={19}/></button></div>{children}</SpringDialog>;
+}
 
 function MatchesPage() {
   const qc=useQueryClient(); const [,setLocation]=useLocation(); const matches=useGetMatches({query:{refetchInterval:15000}}); const stories=useGetStories({query:{queryKey:getGetStoriesQueryKey(),refetchInterval:30000}}); const prompts=useGetIcebreakers(); const send=useSendMessage(); const block=useBlockProfile(); const report=useReportProfile(); const del=useDeleteChat(); const unmatch=useUnmatchMatch(); const [target,setTarget]=useState<Profile|null>(null);
@@ -593,7 +604,7 @@ function ChatPage({matchId,returnTo='/matches',autoFocusComposer=false}:{matchId
     if(list)observer.observe(list);
     return()=>observer.disconnect();
   },[matchId,matches.isLoading,msgs.isLoading,scrollToLatest]);
-  if(matches.isLoading||msgs.isLoading)return <PageFrame><Busy/></PageFrame>;
+  if((matches.isLoading && !matches.data) || (msgs.isLoading && !msgs.data))return <PageFrame><Busy/></PageFrame>;
   if(matches.isError&&!matches.data)return <PageFrame><Retry error={matches.error} text="We couldn’t load your conversations. Check your connection and try again." onRetry={()=>void matches.refetch()}/></PageFrame>;
   if(!match)return <PageFrame><Empty title="Conversation unavailable" detail="This chat may have ended or the match is no longer available." action={<Link href={returnTo} data-testid="link-back-matches" className="rounded-xl bg-secondary px-4 py-2.5 font-bold">{returnTo==='/views'?'Back to messages':returnTo==='/notifications'?'Back to activity':'Back to matches'}</Link>}/></PageFrame>;
   async function sendMessage(content:string, media?:{mediaReference:string;mediaType:'image'|'video'|'audio'}){if(blocked||(!content.trim()&&!media)||send.isPending)return;const old=draft;if(!media)setDraft('');try{const message=await send.mutateAsync({matchId,data:{...(content.trim()?{content:content.trim()}:{}),...media}});qc.setQueryData<Message[]>(getGetMessagesQueryKey(matchId),previous=>previous?.some(item=>item.id===message.id)?previous:[...(previous??[]),message]);updateTyping.mutate({matchId,data:{isTyping:false}});void qc.invalidateQueries({queryKey:getGetMessagesQueryKey(matchId)});void qc.invalidateQueries({queryKey:getGetMatchesQueryKey()});setError('')}catch(error){if(!media)setDraft(current=>current&&current!==old?[old,current].filter(Boolean).join('\n'):old);setError(userErrorMessage(error,'Your message wasn’t sent. Your text is still in the input—try sending again.'))}}

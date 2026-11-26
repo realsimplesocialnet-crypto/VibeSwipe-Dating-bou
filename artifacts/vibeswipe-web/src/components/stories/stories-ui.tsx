@@ -155,9 +155,9 @@ export function StoriesRow({mode="all"}:{mode?:"all"|"own"|"matches"}) {
   if(mode==="matches"&&!feed.isLoading&&!feed.isError&&!mutualFollows.length)return null;
   return <section className="mb-4 -mx-4 w-[calc(100%+2rem)]" aria-label="Stories" data-testid="section-stories">
     {feed.isLoading
-      ? <div className="flex min-h-[84px] items-center justify-center" role="status" aria-label="Loading stories"><QuietSpinner /></div>
+      ? <div className="flex min-h-[100px] items-center justify-center" role="status" aria-label="Loading stories"><QuietSpinner /></div>
       : feed.isError
-        ? <div className="flex min-h-[84px] items-center justify-center" role="status" aria-label="Loading stories"><QuietSpinner onRetry={() => void feed.refetch()} /></div>
+        ? <div className="flex min-h-[100px] items-center justify-center" role="status" aria-label="Loading stories"><QuietSpinner onRetry={() => void feed.refetch()} /></div>
         : <div className="hide-scrollbar flex min-h-[100px] gap-3 overflow-x-auto px-5 pb-1" data-testid="list-story-circles">
           {mode!=="matches"&&<div className="flex w-[72px] shrink-0 flex-col items-center gap-1.5 text-center">
             <span className="relative block h-[68px] w-[68px]">

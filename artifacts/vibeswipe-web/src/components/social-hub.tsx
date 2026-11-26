@@ -12,7 +12,7 @@ import {
   useMarkNotificationRead, useUnfollowProfile,
   createUseMarkActivitySeen,
 } from '@workspace/api-client-react';
-import type { Match, NotificationsResponse, Profile, ProfileFollowList } from '@workspace/api-client-react';
+import type { Match, NotificationsResponse, Profile, ProfileFollowList, ProfileLike } from '@workspace/api-client-react';
 import { patchActivityReads } from '@workspace/api-client-react';
 import { MatchStoryAvatar } from '@/components/stories/stories-ui';
 import { MatchCelebration } from '@/components/match-celebration';
@@ -31,6 +31,14 @@ function ago(v: string) {
   return new Date(v).toLocaleDateString();
 }
 const activeMatches = (m?: Match[]) => (m ?? []).filter(x => !x.profile.isDemo && !x.blockedByMe && !x.blockedMe);
+
+function restoreRemovedLike(current: ProfileLike[] | undefined, removed: ProfileLike, laterIds: ReadonlySet<string>) {
+  const list = current ?? [];
+  if (list.some((item) => item.profile.id === removed.profile.id)) return list;
+  const insertAt = list.findIndex((item) => laterIds.has(item.profile.id));
+  if (insertAt < 0) return [...list, removed];
+  return [...list.slice(0, insertAt), removed, ...list.slice(insertAt)];
+}
 
 function useNoticeReader() {
   const qc = useQueryClient();
@@ -57,8 +65,8 @@ function SeenError({ seen }: { seen: ReturnType<typeof useMarkActivitySeen> }) {
 function Skel() {
   return <div className="flex justify-center py-10" role="status" aria-label="Loading"><QuietSpinner /></div>;
 }
-function Err({ onRetry }: { onRetry: () => void; text: string }) {
-  return <div className="flex justify-center py-10" role="status" aria-label="Loading"><QuietSpinner onRetry={onRetry} /></div>;
+function Err({ onRetry, text }: { onRetry: () => void; text: string }) {
+  return <div role="alert" className="sh-card mx-auto max-w-sm rounded-[26px] px-6 py-10 text-center"><p className="text-sm leading-6">{text}</p><button type="button" onClick={onRetry} className="mt-4 rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground">Retry</button></div>;
 }
 function Empty({ icon, title, detail }: { icon: ReactNode; title: string; detail: string }) {
   return <div className="sh-card flex flex-col items-center rounded-[26px] px-6 py-12 text-center" data-testid="status-empty"><div className="sh-icon mb-4 flex h-14 w-14 items-center justify-center rounded-full">{icon}</div><h2 className="text-lg font-bold">{title}</h2><p className="sh-muted mt-1 max-w-xs text-sm">{detail}</p><Link href="/discover" data-testid="link-empty-discover" className="mt-5 rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground">Go to Discover</Link></div>;
@@ -83,37 +91,27 @@ export function ActivityOverview({ avatar: _avatar }: { avatar: AvatarFn }) {
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()), [notes.data?.notifications]);
 
   async function openActivityItem(n: NotificationsResponse['notifications'][number]) {
-    const key = getGetNotificationsQueryKey();
-    const stamp = new Date().toISOString();
-    if (!n.readAt) {
-      await qc.cancelQueries({ queryKey: key });
-      const current = qc.getQueryData<NotificationsResponse>(key);
-      const canOptimisticallyMark = !!current?.notifications.some(item => item.id === n.id && !item.readAt);
-      if (canOptimisticallyMark) {
-        qc.setQueryData<NotificationsResponse>(key, data => data ? patchActivityReads(data, [n.id], stamp) : data);
-      }
-      try {
-        await mark.mutateAsync({ notificationId: n.id });
-      } catch {
-        if (canOptimisticallyMark) {
-          qc.setQueryData<NotificationsResponse>(key, data => data ? patchActivityReads(data, [n.id], stamp, true) : data);
-        }
-        setReadError('This activity could not be marked as read. Please try again.');
-      } finally {
-        void qc.invalidateQueries({ queryKey: key });
-      }
-    }
-    if (n.type === 'new_match' && n.matchId) {
-      go(`/chat/${encodeURIComponent(n.matchId)}?returnTo=%2Fnotifications`);
-      return;
-    }
-    if ((n.type === 'reel_like' || n.type === 'reel_comment_reply' || n.type === 'reel_comment_like') && n.reelId) {
+    if (n.type === 'new_match' && n.matchId) go(`/chat/${encodeURIComponent(n.matchId)}?returnTo=%2Fnotifications`);
+    else if ((n.type === 'reel_like' || n.type === 'reel_comment_reply' || n.type === 'reel_comment_like') && n.reelId) {
       const params = new URLSearchParams({ returnTo: '/notifications' });
       if ((n.type === 'reel_comment_reply' || n.type === 'reel_comment_like') && n.commentId) params.set('commentId', n.commentId);
       go(`/reels/${encodeURIComponent(n.reelId)}?${params.toString()}`);
-      return;
+    } else go(`/profile/${encodeURIComponent(n.actor.id)}?returnTo=%2Fnotifications`);
+    if (n.readAt) return;
+    const key = getGetNotificationsQueryKey();
+    const stamp = new Date().toISOString();
+    await qc.cancelQueries({ queryKey: key });
+    const current = qc.getQueryData<NotificationsResponse>(key);
+    const canOptimisticallyMark = !!current?.notifications.some(item => item.id === n.id && !item.readAt);
+    if (canOptimisticallyMark) qc.setQueryData<NotificationsResponse>(key, data => data ? patchActivityReads(data, [n.id], stamp) : data);
+    try {
+      await mark.mutateAsync({ notificationId: n.id });
+    } catch {
+      if (canOptimisticallyMark) qc.setQueryData<NotificationsResponse>(key, data => data ? patchActivityReads(data, [n.id], stamp, true) : data);
+      setReadError('This activity could not be marked as read. Please try again.');
+    } finally {
+      void qc.invalidateQueries({ queryKey: key });
     }
-    go(`/profile/${encodeURIComponent(n.actor.id)}?returnTo=%2Fnotifications`);
   }
 
   const eventStyle = (type: NotificationsResponse['notifications'][number]['type']) => {
@@ -144,8 +142,9 @@ export function ActivityOverview({ avatar: _avatar }: { avatar: AvatarFn }) {
       })}
     </section>
     {readError && <p role="alert" className="activity-read-error">{readError}</p>}
-    {notes.isLoading ? <Skel /> : notes.isError && !notes.data ? <Err text="We couldn't load your activity." onRetry={() => void notes.refetch()} /> : items.length === 0
-      ? <div className="activity-empty" data-testid="status-empty-activity"><span className="activity-empty-icon"><Heart size={22}/></span><strong>You’re all caught up</strong></div>
+    {notes.isError && notes.data && <div role="alert" className="mb-3 flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-card px-4 py-3 text-sm"><p className="text-muted-foreground">Activity couldn’t refresh.</p><button type="button" onClick={() => void notes.refetch()} className="shrink-0 rounded-lg bg-primary px-3 py-2 text-xs font-bold text-primary-foreground">Retry</button></div>}
+    {notes.isLoading && !notes.data ? <Skel /> : notes.isError && !notes.data ? <Err text="We couldn't load your activity. Check your connection and try again." onRetry={() => void notes.refetch()} /> : items.length === 0
+      ? <div className="activity-empty" data-testid="status-empty-activity"><span className="activity-empty-icon"><Heart size={22}/></span><strong>You’re all caught up</strong><p>New follows, likes, and profile views will show up here. Check back later.</p><Link href="/discover" className="mt-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground">Discover people</Link></div>
       : <section className="activity-feed" aria-label="Activity feed" data-testid="activity-feed">
         {items.map(n => {
           const event = eventStyle(n.type);
@@ -166,10 +165,12 @@ export function InboundPeoplePage({ avatar, kind }: { avatar: AvatarFn; kind: 'l
   const likes = useGetWhoLikedYou({ query: { queryKey: getGetWhoLikedYouQueryKey(), enabled: isLikes, ...live } });
   const views = useGetWhoViewedYou({ query: { queryKey: getGetWhoViewedYouQueryKey(), enabled: !isLikes, ...live } });
   const me = useGetMyProfile();
+  const [, setLocation] = useLocation();
   const reaction = useCreateReaction();
   const [match, setMatch] = useState<{ profile: Profile; matchId: string | null } | null>(null);
   const [actionError, setActionError] = useState('');
   const [busyId, setBusyId] = useState('');
+  const likeInflight = useRef(new Set<string>());
   const qc = useQueryClient();
   const q = isLikes ? likes : views;
   const seen = useMarkActivitySeen(kind, { ready: q.isSuccess && !q.isFetching });
@@ -179,7 +180,7 @@ export function InboundPeoplePage({ avatar, kind }: { avatar: AvatarFn; kind: 'l
     <Head back title={isLikes ? 'Dating Likes' : 'Views'} sub={isLikes ? 'People who liked your profile' : 'People who viewed your profile'} />
     <SeenError seen={seen} />
     {actionError && <p role="alert" className="mb-3 rounded-xl border border-destructive/25 bg-destructive/10 p-3 text-sm">{actionError}</p>}
-    {q.isLoading ? <Skel /> : q.isError && !q.data ? <Err text={`We couldn't load your ${kind}.`} onRetry={() => void q.refetch()} />
+    {q.isLoading && !q.data ? <Skel /> : q.isError && !q.data ? <Err text={`We couldn't load your ${kind}.`} onRetry={() => void q.refetch()} />
       : !rows.length && isLikes ? <div className="sh-card flex flex-col items-center rounded-[26px] px-6 py-12 text-center" data-testid="status-empty-likes">
         <div className="sh-icon mb-4 flex h-16 w-16 items-center justify-center rounded-full"><Heart size={30} fill="currentColor" aria-hidden="true" /></div>
         <h2 className="text-lg font-bold">No new likes yet.</h2>
@@ -194,39 +195,62 @@ export function InboundPeoplePage({ avatar, kind }: { avatar: AvatarFn; kind: 'l
           {isLikes ? (r.isSuperLike ? <Star size={22} fill="currentColor" className="shrink-0 text-primary" aria-hidden="true" /> : <Heart size={22} fill="currentColor" className="shrink-0 text-primary" aria-hidden="true" />) : <span className="sh-pill inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold"><Eye size={15} aria-hidden="true" />View</span>}
         </Link>
         {isLikes && <div className="flex w-full gap-2 pl-[4.5rem] sm:w-auto sm:pl-0">
-          <button type="button" disabled={reaction.isPending || busyId === r.profile.id} data-testid={`button-pass-like-${r.profile.id}`}
-            onClick={async () => {
-              setBusyId(r.profile.id); setActionError('');
-              try {
-                await reaction.mutateAsync({ data: { toUserId: r.profile.id, type: 'pass' } });
-                await Promise.all([
-                  qc.invalidateQueries({ queryKey: getGetWhoLikedYouQueryKey() }),
-                  qc.invalidateQueries({ queryKey: getGetNotificationsQueryKey() }),
-                ]);
-              } catch { setActionError(`Your pass on ${r.profile.name} did not save. Please try again.`); }
-              finally { setBusyId(''); }
+          <button type="button" disabled={busyId === r.profile.id} data-testid={`button-pass-like-${r.profile.id}`}
+            onClick={() => {
+              const id = r.profile.id;
+              if (likeInflight.current.has(id)) return;
+              likeInflight.current.add(id);
+              setBusyId(id);
+              setActionError('');
+              const key = getGetWhoLikedYouQueryKey();
+              const previous = qc.getQueryData<ProfileLike[]>(key) ?? [];
+              const removedIndex = previous.findIndex((item) => item.profile.id === id);
+              const removed = removedIndex >= 0 ? previous[removedIndex] : undefined;
+              const laterIds = new Set((removedIndex >= 0 ? previous.slice(removedIndex + 1) : []).map((item) => item.profile.id));
+              qc.setQueryData<ProfileLike[]>(key, (current) => current?.filter((item) => item.profile.id !== id));
+              void reaction.mutateAsync({ data: { toUserId: id, type: 'pass' } }).then(() => {
+                void qc.invalidateQueries({ queryKey: key });
+                void qc.invalidateQueries({ queryKey: getGetNotificationsQueryKey() });
+              }).catch(() => {
+                if (removed) qc.setQueryData<ProfileLike[]>(key, (current) => restoreRemovedLike(current, removed, laterIds));
+                setActionError(`Your pass on ${r.profile.name} did not save. Please try again.`);
+              }).finally(() => {
+                likeInflight.current.delete(id);
+                setBusyId('');
+              });
             }}
             className="rounded-xl border border-white/10 px-3 py-2 text-xs font-bold text-muted-foreground disabled:opacity-50">Pass</button>
-          <button type="button" disabled={reaction.isPending || busyId === r.profile.id} data-testid={`button-like-back-${r.profile.id}`}
-            onClick={async () => {
-              setBusyId(r.profile.id); setActionError('');
-              try {
-                const result = await reaction.mutateAsync({ data: { toUserId: r.profile.id, type: 'like' } });
-                await Promise.all([
-                  qc.invalidateQueries({ queryKey: getGetWhoLikedYouQueryKey() }),
-                  qc.invalidateQueries({ queryKey: getGetMatchesQueryKey() }),
-                  qc.invalidateQueries({ queryKey: getGetNotificationsQueryKey() }),
-                ]);
+          <button type="button" disabled={busyId === r.profile.id} data-testid={`button-like-back-${r.profile.id}`}
+            onClick={() => {
+              const id = r.profile.id;
+              if (likeInflight.current.has(id)) return;
+              likeInflight.current.add(id);
+              setBusyId(id);
+              setActionError('');
+              const key = getGetWhoLikedYouQueryKey();
+              const previous = qc.getQueryData<ProfileLike[]>(key) ?? [];
+              const removedIndex = previous.findIndex((item) => item.profile.id === id);
+              const removed = removedIndex >= 0 ? previous[removedIndex] : undefined;
+              const laterIds = new Set((removedIndex >= 0 ? previous.slice(removedIndex + 1) : []).map((item) => item.profile.id));
+              qc.setQueryData<ProfileLike[]>(key, (current) => current?.filter((item) => item.profile.id !== id));
+              void reaction.mutateAsync({ data: { toUserId: id, type: 'like' } }).then((result) => {
+                void qc.invalidateQueries({ queryKey: key });
+                void qc.invalidateQueries({ queryKey: getGetMatchesQueryKey() });
+                void qc.invalidateQueries({ queryKey: getGetNotificationsQueryKey() });
                 if (result.matched) setMatch({ profile: r.profile, matchId: result.matchId ?? null });
-                else setActionError(`Your like to ${r.profile.name} was sent.`);
-              } catch { setActionError(`Your Like Back to ${r.profile.name} did not go through. Please try again.`); }
-              finally { setBusyId(''); }
+              }).catch(() => {
+                if (removed) qc.setQueryData<ProfileLike[]>(key, (current) => restoreRemovedLike(current, removed, laterIds));
+                setActionError(`Your Like Back to ${r.profile.name} did not go through. Please try again.`);
+              }).finally(() => {
+                likeInflight.current.delete(id);
+                setBusyId('');
+              });
             }}
             className="flex-1 rounded-xl bg-primary px-3 py-2 text-xs font-bold text-primary-foreground sm:flex-none">Like Back</button>
         </div>}
       </li>)}</ul>}
     <MatchCelebration visible={!!match} self={me.data ?? null} other={match?.profile ?? null} canMessage={!!match?.matchId}
-      onMessage={() => { if (!match?.matchId) return; const matchId = match.matchId; setMatch(null); window.location.assign(`/chat/${encodeURIComponent(matchId)}?returnTo=%2Flikes&focusComposer=1`); }}
+      onMessage={() => { if (!match?.matchId) return; const matchId = match.matchId; setMatch(null); setLocation(`/chat/${encodeURIComponent(matchId)}?returnTo=%2Flikes&focusComposer=1`); }}
       onKeepSwiping={() => setMatch(null)} />
   </div></div>;
 }
@@ -406,7 +430,7 @@ export function MutualMatchesPage(_props: { avatar: AvatarFn }) {
   return <div className="social-hub min-h-[calc(100dvh-48px)] lg:min-h-[100dvh]"><div className="page-in mx-auto max-w-[720px] px-4 pb-12 pt-6 md:px-8 md:pt-10">
     <Head title="Matches" back />
     <SeenError seen={seen} />
-    {matches.isLoading ? <Skel /> : matches.isError && !matches.data ? <Err text="We couldn't load your matches." onRetry={() => void matches.refetch()} />
+    {matches.isLoading && !matches.data ? <Skel /> : matches.isError && !matches.data ? <Err text="We couldn't load your matches." onRetry={() => void matches.refetch()} />
       : !list.length ? <Link href="/discover" data-testid="link-empty-discover" className="inline-flex rounded-2xl bg-primary px-5 py-3 font-bold text-primary-foreground">Explore profiles</Link>
       : <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">{list.map(m => <li key={m.id} data-testid={`card-match-${m.id}`} className="sh-card flex items-center gap-3 rounded-[22px] p-3.5">
         <MatchStoryAvatar matchId={m.id} profile={m.profile} storyGroup={stories.data?.mutualFollows.find(g => g.poster.id === m.profile.id)} returnTo="/matches" />

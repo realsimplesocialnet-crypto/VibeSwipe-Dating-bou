@@ -42,8 +42,8 @@ html[data-theme="light"] .bg-\[\#211d25\] { background-color: #fff !important; }
 html[data-theme="light"] .text-\[\#f5edf1\] { color: hsl(var(--foreground)) !important; }
 @layer base {
   * { @apply border-border; }
-  html { background:#000; scroll-behavior:smooth; }
-  body { @apply font-sans antialiased bg-background text-foreground; min-height:100dvh; }
+  html { background:#000; scroll-behavior:auto; scrollbar-gutter:stable; overscroll-behavior-y:none; }
+  body { @apply font-sans antialiased bg-background text-foreground; min-height:100dvh; overscroll-behavior-y:none; }
   button,input,textarea,select { font:inherit; }
 }
 .grain:before { content:''; pointer-events:none; position:fixed; inset:0; opacity:.025; z-index:30; background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.6'/%3E%3C/svg%3E"); }
@@ -61,8 +61,11 @@ html[data-theme="light"] .text-\[\#f5edf1\] { color: hsl(var(--foreground)) !imp
   caret-color: hsl(var(--foreground));
 }
 .field[type=range] { min-height:24px; padding:0; border:0; background:transparent; box-shadow:none; }
-.page-in { animation: pageIn .28s ease both; }
-@keyframes pageIn { from { opacity:0; transform:translateY(8px) } to { opacity:1; transform:translateY(0) } }
+.page-in { animation: pageIn .2s ease both; }
+@keyframes pageIn { from { opacity:0 } to { opacity:1 } }
+/* Kept tabs are hidden with display:none. A transform entrance would restart
+   and slide the whole screen every time the tab is shown again. */
+[data-kept-tab] .page-in { animation: none; }
 .hide-scrollbar::-webkit-scrollbar { display:none; }
 .hide-scrollbar { scrollbar-width:none; }
 @media (prefers-reduced-motion: reduce) { *,*::before,*::after { animation-duration:.01ms!important; scroll-behavior:auto!important; } }

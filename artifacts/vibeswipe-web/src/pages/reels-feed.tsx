@@ -1,5 +1,5 @@
-import { useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { Link, useLocation } from "wouter";
+import { useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { Link, RouteVisibilityContext, useLocation } from "wouter";
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import {
   getGetMyReelsQueryKey, getGetNotificationsQueryKey, getGetProfileReelsQueryKey, getGetReelQueryKey,
@@ -17,6 +17,8 @@ import { saveReelDownload } from "@/lib/reel-download";
 import { readOfflineReels, saveReelForOffline } from "@/lib/offline-reels";
 import { reelSlideIndex, reelsViewportFrame } from "@/lib/reels-viewport";
 import { mixReelsByCreator } from "@/lib/reels-feed-order";
+import { FetchErrorBanner } from "@/components/fetch-status";
+import { SpringDialog } from "@/components/spring-motion";
 import { QuietSpinner } from "@/components/ui/quiet-spinner";
 import { useAppLanguage } from "@/lib/app-language";
 import "@/components/reels/reels.css";
@@ -44,10 +46,11 @@ function readReelCommentsHistoryMarker(state: unknown): ReelCommentsHistoryMarke
     : null;
 }
 
-function useReelsViewport() {
+function useReelsViewport(active: boolean) {
   const baseline = useRef(window.visualViewport?.height ?? window.innerHeight);
   const [frame, setFrame] = useState(() => reelsViewportFrame(window.visualViewport?.height ?? window.innerHeight, window.visualViewport?.offsetTop ?? 0, window.innerHeight, false));
   useEffect(() => {
+    if (!active) return;
     const viewport = window.visualViewport;
     const bodyOverflow = document.body.style.overflow;
     const htmlOverflow = document.documentElement.style.overflow;
@@ -62,7 +65,16 @@ function useReelsViewport() {
       const frameHeight = editing ? height : Math.max(height, window.innerHeight);
       const frameTop = editing ? viewport?.offsetTop ?? 0 : 0;
       if (!editing) baseline.current = frameHeight;
-      setFrame(reelsViewportFrame(frameHeight, frameTop, Math.max(baseline.current, window.innerHeight), editing));
+      const next = reelsViewportFrame(frameHeight, frameTop, Math.max(baseline.current, window.innerHeight), editing);
+      setFrame((current) => {
+        if (
+          current.keyboardOpen === next.keyboardOpen
+          && Math.abs(current.height - next.height) < 4
+          && Math.abs(current.top - next.top) < 4
+          && Math.abs(current.commentsHeight - next.commentsHeight) < 4
+        ) return current;
+        return next;
+      });
     };
     const refreshAfterResume = () => {
       window.requestAnimationFrame(update);
@@ -91,8 +103,14 @@ function useReelsViewport() {
       document.body.style.overflow = bodyOverflow;
       document.documentElement.style.overflow = htmlOverflow;
     };
-  }, []);
+  }, [active]);
   return frame;
+}
+
+function ReportReelDialog({ pending, onClose, children }: { pending: boolean; onClose: () => void; children: (close: () => void) => ReactNode }) {
+  const [open, setOpen] = useState(true);
+  const close = () => { if (!pending) setOpen(false); };
+  return <SpringDialog open={open} onClose={close} onExited={onClose} label="Report Reel" className="z-[110]" panelClassName="w-full max-w-lg">{children(close)}</SpringDialog>;
 }
 
 function usePageHidden() {
@@ -112,14 +130,15 @@ export function ReelsFeedPage({
   initialReelId?: string;
   initialFeedMode?: "reels" | "friends";
 }) {
+  const routeVisible = useContext(RouteVisibilityContext);
   const [location, setLocation] = useLocation();
   const { t } = useAppLanguage();
   const client = useQueryClient();
   const setAppNavigationVisible = useContext(ReelsNavigationVisibilityContext);
   const returnTo = safeReelReturnPath(new URLSearchParams(window.location.search).get("returnTo"));
   const profileId = new URLSearchParams(window.location.search).get("profileId") ?? "";
-  const viewport = useReelsViewport();
-  const pageHidden = usePageHidden();
+  const pageHidden = usePageHidden() || !routeVisible;
+  const viewport = useReelsViewport(routeVisible);
   const scroller = useRef<HTMLDivElement>(null);
   const initialReelPositioned = useRef(false);
   const initialHistoryMarker = readReelCommentsHistoryMarker(window.history.state);
@@ -399,6 +418,10 @@ export function ReelsFeedPage({
     root.scrollTo({ top: Math.max(0, activeRef.current + delta) * root.clientHeight, behavior: "smooth" });
   }, []);
   useEffect(() => {
+    if (routeVisible && initialFeedMode === "reels") setFeedMode("reels");
+  }, [routeVisible, initialFeedMode]);
+  useEffect(() => {
+    if (!routeVisible) return;
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape" && searchOpen) {
         event.preventDefault();
@@ -412,7 +435,7 @@ export function ReelsFeedPage({
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [go, closeComments, commentsFor, searchOpen]);
+  }, [go, closeComments, commentsFor, searchOpen, routeVisible]);
 
   function patch(id: string, value: Partial<Reel>) { setPatches((all) => ({ ...all, [id]: { ...all[id], ...value } })); }
   function patchShareCount(id: string, shareCount: number) {
@@ -580,7 +603,7 @@ export function ReelsFeedPage({
     <div className="reels-stage">
       <div ref={scroller} className={`reels-scroller ${commentsFor ? "is-locked" : ""}`} data-testid="reels-scroller">
         {loading ? <div className="reel-slide"><QuietSpinner size={28} /></div>
-          : activeFeed.isError && !reels.length ? offline ? <div className="reels-empty"><span className="reels-empty-mark"><Clapperboard size={30} /></span><p className="mt-5 text-xl font-bold">No Reels yet</p></div> : <div className="reel-slide"><QuietSpinner size={28} onRetry={() => void activeFeed.refetch()} /></div>
+          : activeFeed.isError && !reels.length ? offline ? <div className="reels-empty"><span className="reels-empty-mark"><Clapperboard size={30} /></span><p className="mt-5 text-xl font-bold">No Reels yet</p><p className="mt-1 max-w-[260px] text-sm leading-6 text-white/60">Saved videos will show here when you are back online.</p></div> : <div className="reels-empty" role="alert"><span className="reels-empty-mark"><Clapperboard size={30} /></span><p className="mt-5 text-xl font-bold">Reels couldn’t load</p><p className="mt-1 max-w-[260px] text-sm leading-6 text-white/60">Check your connection, then try again.</p><button type="button" onClick={() => void activeFeed.refetch()} className="reels-primary mt-6" data-testid="button-retry-reels">Retry</button></div>
           : !reels.length && feedMode === "friends" && !profileId ? <div className="reels-empty"><span className="reels-empty-mark"><Users size={30} /></span><p className="mt-5 text-xl font-bold">No Friends Reels yet</p><p className="mt-1 max-w-[260px] text-sm leading-6 text-white/60">Reels from people you follow will appear here.</p><button type="button" onClick={() => changeFeedMode("reels")} className="reels-primary mt-6" data-testid="button-open-all-reels">Watch all Reels</button></div>
           : !reels.length ? <div className="reels-empty"><span className="reels-empty-mark"><Clapperboard size={30} /></span><p className="mt-5 text-xl font-bold">No Reels yet</p><p className="mt-1 max-w-[260px] text-sm leading-6 text-white/60">Be the first to share a video with the community.</p><Link href="/reels/new" className="reels-primary mt-6" data-testid="link-post-first-reel">Post a Reel</Link></div>
           : reels.map((reel, index) => {
@@ -620,6 +643,7 @@ export function ReelsFeedPage({
         {activeFeed.isFetchingNextPage && <div className="reels-more" role="status" aria-label="Loading"><QuietSpinner size={18} /></div>}
         {!offline && !activeFeed.hasNextPage && reels.length > 1 && !activeFeed.isLoading && <div className="reels-end">{profileId ? "You’ve seen all of this person’s Reels." : "You are all caught up."}</div>}
       </div>
+      {activeFeed.isError && reels.length > 0 && <div className="pointer-events-auto absolute inset-x-4 top-[calc(env(safe-area-inset-top,0px)+64px)] z-20"><FetchErrorBanner text="Couldn’t refresh Reels. The videos already loaded are still here." onRetry={() => void activeFeed.refetch()} /></div>}
       <header className="reels-top">
         {(profileId || initialReelId) && <button type="button" onClick={back} aria-label="Back" data-testid="button-reels-back" className="reels-icon"><ArrowLeft size={23} /></button>}
         {!profileId && !initialReelId ? <nav aria-label="Reel feed" role="tablist" className={`reels-feed-tabs ${navigationVisible ? "" : "is-hidden"}`} data-testid="nav-reel-feed">
@@ -651,13 +675,15 @@ export function ReelsFeedPage({
         <div className="reels-search-results" aria-live="polite">
           {debouncedSearchText.trim().length < 2
             ? null
-            : searchFeed.isLoading
+            : searchFeed.isLoading && !searchResults.length
               ? <div className="reels-search-status"><QuietSpinner size={20} /></div>
-              : searchFeed.isError
-                ? <div className="reels-search-status"><QuietSpinner onRetry={() => void searchFeed.refetch()} /></div>
+              : searchFeed.isError && !searchResults.length
+                ? <div className="reels-search-status" role="alert"><p>Search couldn’t load.</p><button type="button" onClick={() => void searchFeed.refetch()} className="reels-primary mt-4">Retry</button></div>
                 : !searchResults.length
                   ? <div className="reels-search-status">No Reels match “{debouncedSearchText}” yet.</div>
                   : <>
+                    {searchFeed.isFetchNextPageError && <FetchErrorBanner text="Couldn’t load more Reels. The results already loaded are still here." onRetry={() => void searchFeed.fetchNextPage()} />}
+                    {searchFeed.isRefetchError && <FetchErrorBanner text="Couldn’t refresh this search. The results already loaded are still here." onRetry={() => void searchFeed.refetch()} />}
                     <p className="reels-search-label">Reels matching “{debouncedSearchText}”</p>
                     <ul className="reels-search-list">
                       {searchResults.map((reel) => <li key={reel.id}>
@@ -680,11 +706,11 @@ export function ReelsFeedPage({
       </section>}
       {notice && <p role="status" className="reels-notice" data-testid="status-reels">{notice}</p>}
     </div>
-    {reportFor && <div className="fixed inset-0 z-[110] flex items-end justify-center bg-black/75 p-3 sm:items-center" role="presentation" onClick={() => !reportReel.isPending && setReportFor(null)}>
-      <section className="w-full max-w-lg rounded-t-[28px] bg-[#17141b] p-5 pb-[calc(env(safe-area-inset-bottom)+20px)] text-foreground shadow-2xl ring-1 ring-white/10 sm:rounded-[28px]" role="dialog" aria-modal="true" aria-labelledby="report-reel-title" data-testid="dialog-report-reel" onClick={(event) => event.stopPropagation()}>
+    {reportFor && <ReportReelDialog pending={reportReel.isPending} onClose={() => { if (!reportReel.isPending) setReportFor(null); }}>
+      {(close) => <section className="w-full max-w-lg rounded-t-[28px] bg-[#17141b] p-5 pb-[calc(env(safe-area-inset-bottom)+20px)] text-foreground shadow-2xl ring-1 ring-white/10 sm:rounded-[28px]" data-testid="dialog-report-reel">
         <div className="mb-4 flex items-center justify-between">
           <h2 id="report-reel-title" className="text-lg font-bold">{t("Report Reel")}</h2>
-          <button type="button" onClick={() => setReportFor(null)} disabled={reportReel.isPending} aria-label={t("Close")} className="grid h-10 w-10 place-items-center rounded-full hover:bg-white/10"><X size={20}/></button>
+          <button type="button" onClick={close} disabled={reportReel.isPending} aria-label={t("Close")} className="grid h-10 w-10 place-items-center rounded-full hover:bg-white/10"><X size={20}/></button>
         </div>
         <p className="mb-4 text-sm text-white/65">{t("Choose the reason that best describes this Reel. Reports are reviewed by our safety team.")}</p>
         <label className="mb-4 block text-sm font-semibold">
@@ -704,11 +730,11 @@ export function ReelsFeedPage({
           <textarea value={reportDetails} onChange={(event) => setReportDetails(event.target.value.slice(0, 1000))} maxLength={1000} rows={3} placeholder={t("Add details to help the review")} className="mt-2 w-full resize-none rounded-xl bg-white/[.06] p-3 text-sm text-white outline-none placeholder:text-white/40 focus:ring-2 focus:ring-primary"/>
         </label>
         <div className="mt-5 flex gap-3">
-          <button type="button" onClick={() => setReportFor(null)} disabled={reportReel.isPending} className="min-h-12 flex-1 rounded-xl bg-white/[.08] font-bold">{t("Cancel")}</button>
+          <button type="button" onClick={close} disabled={reportReel.isPending} className="min-h-12 flex-1 rounded-xl bg-white/[.08] font-bold">{t("Cancel")}</button>
           <button type="button" onClick={() => void submitReelReport()} disabled={reportReel.isPending} className="min-h-12 flex-1 rounded-xl bg-primary font-bold text-[#25111c] disabled:opacity-50" data-testid="button-submit-reel-report">{reportReel.isPending ? t("Sending…") : t("Submit report")}</button>
         </div>
-      </section>
-    </div>}
+      </section>}
+    </ReportReelDialog>}
     {commentReel && <button type="button" className="reel-comments-backdrop" onClick={closeComments} aria-label="Close comments" data-testid="button-dismiss-comments-backdrop" />}
     {commentReel && <ReelComments key={commentReel.id} reelId={commentReel.id} creatorId={commentReel.creatorId} returnTo={returnTo} commentCount={commentReel.commentCount} canComment={commentReel.canComment} focusCommentId={initialCommentId} onClose={closeComments} onCountChange={(delta) => {
       patch(commentReel.id, { commentCount: Math.max(0, commentReel.commentCount + delta) });

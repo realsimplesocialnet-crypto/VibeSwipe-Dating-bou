@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync } from "node:fs";
 import { discoveryExcludedIds } from "../src/lib/discovery-exclusions.ts";
-import { continueDiscoveryDeck, createUseDiscoveryDeck } from "../../../lib/api-client-react/src/discovery-deck.ts";
+import { continueDiscoveryDeck, createUseDiscoveryDeck, restoreFailedDiscoveryCard } from "../../../lib/api-client-react/src/discovery-deck.ts";
 import { GetDiscoverProfilesQueryParams } from "../../../lib/api-zod/src/generated/api.ts";
 
 test("member search accepts a single character and a nonnegative result offset", () => {
@@ -123,6 +123,18 @@ test("a remount before the feed response keeps the cached card until fresh data 
   deck = hook([{ id: "new-first" }, { id: "tail" }], "pending-response-feed");
   assert.equal(deck.profiles[deck.index].id, "current");
   assert.deepEqual(deck.profiles.map(profile => profile.id), ["seen", "current", "new-first", "tail"]);
+});
+
+test("a failed swipe returns in front of the remaining cards without replaying a later swipe", () => {
+  const restored = restoreFailedDiscoveryCard(
+    [{ id: "a" }, { id: "b" }, { id: "c" }],
+    2,
+    { id: "a" },
+    0,
+  );
+  assert.deepEqual(restored?.profiles.map(profile => profile.id), ["b", "a", "c"]);
+  assert.equal(restored?.index, 1);
+  assert.equal(restoreFailedDiscoveryCard(restored!.profiles, restored!.index, { id: "a" }, 0), null);
 });
 
 test("empty server results stay truthful rather than fabricating members", () => {

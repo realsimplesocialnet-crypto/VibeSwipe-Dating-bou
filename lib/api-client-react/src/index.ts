@@ -1,7 +1,7 @@
 export * from "./generated/api";
 export * from "./generated/api.schemas";
 export * from "./discovery-location";
-export { createUseDiscoveryDeck, reconcileDiscoveryDeck } from "./discovery-deck";
+export { createUseDiscoveryDeck, reconcileDiscoveryDeck, restoreFailedDiscoveryCard } from "./discovery-deck";
 export { createUseMarkActivitySeen, unreadActivityIds, patchActivityReads } from "./activity-seen";
 export type { ActivityCategory } from "./activity-seen";
 export { setBaseUrl, setAuthTokenGetter } from "./custom-fetch";

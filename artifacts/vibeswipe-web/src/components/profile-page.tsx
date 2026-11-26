@@ -13,7 +13,8 @@ import {
   type ProfileInput,
 } from "@workspace/api-client-react";
 import { ArrowLeft, ChevronDown, MapPin, Mars, Navigation, NonBinary, Pencil, Settings, Venus } from "lucide-react";
-import { Empty, MediaImage, ProfileLoading, Retry } from "@/App";
+import { Empty, MediaImage, ProfileLoading } from "@/App";
+import { FetchError, FetchErrorBanner } from "@/components/fetch-status";
 import { VerifiedBadge } from "@/components/verified-badge";
 import { Link, Redirect, RouteVisibilityContext, useLocation } from "@/lib/router-compat";
 import { isProfileMissing, shouldRetryProfile } from "@/lib/profile-query-state";
@@ -224,8 +225,11 @@ export function ProfilePage({ mode = "view", returnTo = "/profile" }: { mode?: "
   if (query.isError && isProfileMissing(query.error)) return <Redirect to="/onboarding" />;
   const heading = edit ? <div className="pe-head"><Link href={returnTo} data-testid="link-edit-profile-back" aria-label={returnTo.startsWith("/settings") ? `${t("Back to")} ${t("Settings")}` : `${t("Back to")} ${t("Profile")}`} className="pe-round"><ArrowLeft size={19} /></Link><h1 className="pe-title">{t("Edit Profile")}</h1><span className="w-10" aria-hidden="true" /></div> : null;
   const Frame = edit ? ProfileEditFrame : OwnProfileFrame;
+  if (query.isError && !query.data) {
+    return <Frame>{heading}<FetchError text={query.error?.status === 401 ? "Your session has expired. Please sign in again." : "We couldn’t load your profile. Check your connection and try again."} onRetry={() => void query.refetch()} /></Frame>;
+  }
 
-  return <Frame>{heading}{query.isLoading || edit && !formReady ? <ProfileLoading /> : query.isError && !query.data ? <Retry text={query.error?.status === 401 ? "Your session has expired. Please sign in again." : "We couldn’t load your profile. Check your connection and try again."} onRetry={() => void query.refetch()} /> : !query.data ? <Empty title="Your profile is waiting" detail="Finish a few details to begin discovering people." action={<Link href="/onboarding" data-testid="link-profile-onboarding" className="rounded-xl bg-primary px-4 py-3 font-bold text-[#26111b]">Set up profile</Link>} /> : <>{!edit && <OwnProfileOverview profile={query.data} travelCity={settings.data?.travelMode ? settings.data.travelCity : null} />}
+  return <Frame>{heading}{query.isError && query.data && <FetchErrorBanner text="Your profile couldn’t refresh. The saved version is still here." onRetry={() => void query.refetch()} />}{(query.isLoading && !query.data) || (edit && query.data && !formReady) ? <ProfileLoading /> : !query.data ? <Empty title="Your profile is waiting" detail="Finish a few details to begin discovering people." action={<Link href="/onboarding" data-testid="link-profile-onboarding" className="rounded-xl bg-primary px-4 py-3 font-bold text-[#26111b]">Set up profile</Link>} /> : <>{!edit && <OwnProfileOverview profile={query.data} travelCity={settings.data?.travelMode ? settings.data.travelCity : null} />}
     {edit && <form onSubmit={(event) => void submit(event)} className="pb-[calc(7rem+env(safe-area-inset-bottom))]" data-testid="form-edit-profile">
       <section className="pe-card" data-testid="section-edit-photos">
         <div className="flex items-baseline justify-between">

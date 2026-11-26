@@ -29,7 +29,7 @@ type LegacyRouteProps = {
   children?: ReactNode;
 };
 
-const PRIMARY_TAB_PATHS = new Set(["/discover", "/messages", "/profile", "/settings"]);
+const PRIMARY_TAB_PATHS = new Set(["/discover", "/reels", "/messages", "/notifications", "/profile", "/settings"]);
 
 export const RouteVisibilityContext = createContext(true);
 
