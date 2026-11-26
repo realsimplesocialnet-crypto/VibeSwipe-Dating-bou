@@ -117,6 +117,7 @@ export function DiscoverSwipePage() {
   const setIndexRef = useRef(setIndex);
   const pendingLikeCountRef = useRef(0);
   const pendingSuperLikeCountRef = useRef(0);
+  const pendingReactionCountRef = useRef(0);
   const reactionQueue = useRef<Promise<void>>(Promise.resolve());
   const reactionMutateRef = useRef(reaction.mutateAsync);
   const refetchDiscoverRef = useRef(discover.refetch);
@@ -136,6 +137,7 @@ export function DiscoverSwipePage() {
   matchResultRef.current = matchResult;
   pendingLikeCountRef.current = pendingLikeCount;
   pendingSuperLikeCountRef.current = pendingSuperLikeCount;
+  pendingReactionCountRef.current = pendingReactionCount;
 
   const stackProfiles = useMemo(() => profiles.slice(index, index + 4), [profiles, index]);
   useEffect(() => {
@@ -209,7 +211,7 @@ export function DiscoverSwipePage() {
     const exhausted = index >= profiles.length;
     // A prefetch started before the last swipe can contain that now-liked card.
     // Only start a new round from a request sent after the stack was exhausted.
-    void discover.refetch().then(result => { if (exhausted && !result.isError) refill(result.data); });
+    void discover.refetch().then(result => { if (exhausted && !result.isError && pendingReactionCountRef.current === 0) refill(result.data); });
   }, [feedKey, index, profiles.length, pendingReactionCount, discover.isFetching]);
   const matchOverlay = <MatchCelebration
     visible={!!matchResult} self={(myProfile.data as Profile | undefined) ?? null}
@@ -306,7 +308,8 @@ export function DiscoverSwipePage() {
       pendingSuperLikeCountRef.current += 1;
       setPendingSuperLikeCount(pendingSuperLikeCountRef.current);
     }
-    setPendingReactionCount((count) => count + 1);
+    pendingReactionCountRef.current += 1;
+    setPendingReactionCount(pendingReactionCountRef.current);
     swipeLock.current = false;
 
     const submit = async () => {
@@ -316,7 +319,9 @@ export function DiscoverSwipePage() {
         if (type === "like") void queryClient.invalidateQueries({ queryKey: getGetDailyLikeStatusQueryKey() });
         if (type === "super") void queryClient.invalidateQueries({ queryKey: getGetSuperLikeStatusQueryKey() });
         if (result.matched) void queryClient.invalidateQueries({ queryKey: getGetMatchesQueryKey() });
-        void queryClient.invalidateQueries({ queryKey: getGetProfileDatingStateQueryKey(current.id) });
+        const datingKey = getGetProfileDatingStateQueryKey(current.id);
+        await queryClient.cancelQueries({ queryKey: datingKey });
+        void queryClient.invalidateQueries({ queryKey: datingKey });
         if (result.matched) {
           if (noticeTimer.current !== null) window.clearTimeout(noticeTimer.current);
           setLikeConfirmation("");
@@ -358,7 +363,8 @@ export function DiscoverSwipePage() {
           pendingSuperLikeCountRef.current = Math.max(0, pendingSuperLikeCountRef.current - 1);
           setPendingSuperLikeCount(pendingSuperLikeCountRef.current);
         }
-        setPendingReactionCount((count) => Math.max(0, count - 1));
+        pendingReactionCountRef.current = Math.max(0, pendingReactionCountRef.current - 1);
+        setPendingReactionCount(pendingReactionCountRef.current);
       }
     };
 
@@ -468,7 +474,7 @@ export function DiscoverSwipePage() {
           <p className="mt-2 max-w-sm text-sm leading-6 text-muted-foreground">{message}</p>
           <button
             type="button"
-            onClick={() => void discover.refetch().then(result => { if (!result.isError) refill(result.data); })}
+            onClick={() => void discover.refetch().then(result => { if (!result.isError && pendingReactionCountRef.current === 0) refill(result.data); })}
             data-testid="button-retry-discover-load"
             className="mt-5 rounded-xl bg-primary px-5 py-3 text-sm font-bold text-primary-foreground"
           >
@@ -488,7 +494,7 @@ export function DiscoverSwipePage() {
             <h1 className="brand text-2xl font-bold">{t("No matching profiles right now")}</h1>
             <p className="mt-2 text-sm text-muted-foreground">{t("Skipped profiles return automatically. Try another location or age range, or check back later.")}</p>
             <button onClick={() => setFiltersOpen(true)} data-testid="button-open-filters-empty" className="mt-5 rounded-xl bg-primary px-4 py-3 font-bold text-primary-foreground">{t("Adjust filters")}</button>
-            <button disabled={discover.isFetching} onClick={() => void discover.refetch().then(result => { if (!result.isError) refill(result.data); })}
+            <button disabled={discover.isFetching} onClick={() => void discover.refetch().then(result => { if (!result.isError && pendingReactionCountRef.current === 0) refill(result.data); })}
               data-testid="button-refresh-discovery" className="ml-3 mt-5 rounded-xl bg-secondary px-4 py-3 font-bold disabled:opacity-50">{t("Refresh")}</button>
           </>}
         </div>

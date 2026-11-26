@@ -682,7 +682,8 @@ export function ReelsFeedPage({
                 : !searchResults.length
                   ? <div className="reels-search-status">No Reels match “{debouncedSearchText}” yet.</div>
                   : <>
-                    {searchFeed.isError && <FetchErrorBanner text="Couldn’t load more Reels. The results already loaded are still here." onRetry={() => void searchFeed.refetch()} />}
+                    {searchFeed.isFetchNextPageError && <FetchErrorBanner text="Couldn’t load more Reels. The results already loaded are still here." onRetry={() => void searchFeed.fetchNextPage()} />}
+                    {searchFeed.isRefetchError && <FetchErrorBanner text="Couldn’t refresh this search. The results already loaded are still here." onRetry={() => void searchFeed.refetch()} />}
                     <p className="reels-search-label">Reels matching “{debouncedSearchText}”</p>
                     <ul className="reels-search-list">
                       {searchResults.map((reel) => <li key={reel.id}>
