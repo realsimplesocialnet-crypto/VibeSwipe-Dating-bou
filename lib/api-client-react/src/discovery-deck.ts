@@ -16,6 +16,23 @@ export function reconcileDiscoveryDeck<T extends Member>(previous: T[], incoming
   })];
 }
 
+/**
+ * Put a failed swipe back in front of the cards still waiting.
+ * Cards swiped after it stay behind the index, so they are not offered again.
+ */
+export function restoreFailedDiscoveryCard<T extends Member>(profiles: T[], index: number, card: T, failedIndex: number) {
+  if (index <= failedIndex) return null;
+  const nextProfiles = profiles.slice();
+  let nextIndex = index;
+  if (nextProfiles[failedIndex]?.id === card.id) {
+    nextProfiles.splice(failedIndex, 1);
+    nextIndex -= 1;
+  }
+  if (nextProfiles.slice(nextIndex).some(profile => profile.id === card.id)) return null;
+  nextProfiles.splice(nextIndex, 0, card);
+  return { profiles: nextProfiles, index: nextIndex };
+}
+
 /** Start another round only after the previous stack is exhausted. */
 export function continueDiscoveryDeck<T extends Member>(previous: T[], incoming: T[], index: number) {
   if (index >= previous.length && incoming.length) {
@@ -99,6 +116,16 @@ export function createUseDiscoveryDeck(useState: StateHook) {
         return updated;
       });
     };
-    return { profiles: deck.profiles, index: deck.index, setIndex, refill };
+    const restoreCard = (card: T, failedIndex: number) => {
+      setSaved(current => {
+        if (current.key !== key) return current;
+        const restored = restoreFailedDiscoveryCard(current.profiles, current.index, card, failedIndex);
+        if (!restored) return current;
+        const updated = { ...current, profiles: restored.profiles, index: restored.index };
+        remember(updated);
+        return updated;
+      });
+    };
+    return { profiles: deck.profiles, index: deck.index, setIndex, refill, restoreCard };
   };
 }

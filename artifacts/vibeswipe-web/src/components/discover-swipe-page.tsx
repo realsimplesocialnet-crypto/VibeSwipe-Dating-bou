@@ -6,6 +6,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Redirect, useLocation } from "wouter";
 import {
   createUseDiscoveryDeck,
+  restoreFailedDiscoveryCard,
   getGetBoostStatusQueryKey,
   getGetDailyLikeStatusQueryKey,
   getGetDiscoverProfilesQueryKey,
@@ -98,7 +99,7 @@ export function DiscoverSwipePage() {
       refetchInterval: 30_000,
     },
   });
-  const { profiles, index, setIndex, refill } = useDiscoveryDeck(discover.data, feedKey);
+  const { profiles, index, setIndex, refill, restoreCard } = useDiscoveryDeck(discover.data, feedKey);
   const profile = profiles[index];
   const reaction = useCreateReaction();
   const undo = useUndoLastPass();
@@ -115,6 +116,7 @@ export function DiscoverSwipePage() {
   const activeProfileRef = useRef(profile);
   const profileByIdRef = useRef(new Map<string, Profile>());
   const setIndexRef = useRef(setIndex);
+  const restoreCardRef = useRef(restoreCard);
   const pendingLikeCountRef = useRef(0);
   const pendingSuperLikeCountRef = useRef(0);
   const pendingReactionCountRef = useRef(0);
@@ -130,6 +132,7 @@ export function DiscoverSwipePage() {
   activeProfileRef.current = profile;
   profileByIdRef.current = new Map(profiles.map((item) => [item.id, item]));
   setIndexRef.current = setIndex;
+  restoreCardRef.current = restoreCard;
   reactionMutateRef.current = reaction.mutateAsync;
   refetchDiscoverRef.current = discover.refetch;
   likesRemainingRef.current = likes.data?.remaining;
@@ -211,7 +214,14 @@ export function DiscoverSwipePage() {
     const exhausted = index >= profiles.length;
     // A prefetch started before the last swipe can contain that now-liked card.
     // Only start a new round from a request sent after the stack was exhausted.
-    void discover.refetch().then(result => { if (exhausted && !result.isError && pendingReactionCountRef.current === 0) refill(result.data); });
+    void discover.refetch().then(result => {
+      if (!exhausted || result.isError) return;
+      if (pendingReactionCountRef.current > 0) {
+        tailRequested.current = "";
+        return;
+      }
+      refill(result.data);
+    });
   }, [feedKey, index, profiles.length, pendingReactionCount, discover.isFetching]);
   const matchOverlay = <MatchCelebration
     visible={!!matchResult} self={(myProfile.data as Profile | undefined) ?? null}
@@ -341,6 +351,14 @@ export function DiscoverSwipePage() {
           indexRef.current = failedIndex;
           activeProfileRef.current = profilesRef.current[failedIndex];
           setIndexRef.current(failedIndex);
+        } else if (status !== 404 && sameFeed && indexRef.current > nextIndex) {
+          const restored = restoreFailedDiscoveryCard(profilesRef.current, indexRef.current, current, failedIndex);
+          if (restored) {
+            profilesRef.current = restored.profiles;
+            indexRef.current = restored.index;
+            activeProfileRef.current = restored.profiles[restored.index];
+            restoreCardRef.current(current, failedIndex);
+          }
         }
         if (status !== 404) {
           setSwipeExits((exits) => {
@@ -494,7 +512,14 @@ export function DiscoverSwipePage() {
             <h1 className="brand text-2xl font-bold">{t("No matching profiles right now")}</h1>
             <p className="mt-2 text-sm text-muted-foreground">{t("Skipped profiles return automatically. Try another location or age range, or check back later.")}</p>
             <button onClick={() => setFiltersOpen(true)} data-testid="button-open-filters-empty" className="mt-5 rounded-xl bg-primary px-4 py-3 font-bold text-primary-foreground">{t("Adjust filters")}</button>
-            <button disabled={discover.isFetching} onClick={() => void discover.refetch().then(result => { if (!result.isError && pendingReactionCountRef.current === 0) refill(result.data); })}
+            <button disabled={discover.isFetching} onClick={() => void discover.refetch().then(result => {
+              if (result.isError) return;
+              if (pendingReactionCountRef.current > 0) {
+                tailRequested.current = "";
+                return;
+              }
+              refill(result.data);
+            })}
               data-testid="button-refresh-discovery" className="ml-3 mt-5 rounded-xl bg-secondary px-4 py-3 font-bold disabled:opacity-50">{t("Refresh")}</button>
           </>}
         </div>
