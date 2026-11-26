@@ -7,6 +7,7 @@ import {
   type Profile,
 } from "@workspace/api-client-react";
 import { VerifiedBadge } from "@/components/verified-badge";
+import { WEIGHT_SPRING } from "@/components/spring-motion";
 import { swipeCardPhotoUrl } from "@/lib/swipe-photo-preload";
 
 export type SwipeAction = "pass" | "like" | "super";
@@ -16,6 +17,8 @@ export type SwipeExit = {
   x: number;
   y: number;
   rotate: number;
+  velocityX: number;
+  velocityY: number;
   reducedMotion: boolean;
 };
 
@@ -57,7 +60,12 @@ export const DiscoverSwipeCard = memo(function DiscoverSwipeCard({
         pointerEvents: "none" as const,
         transition: target?.reducedMotion
           ? { duration: 0 }
-          : { duration: 0.16, ease: [0.16, 0.84, 0.24, 1] as const },
+          : {
+              x: { ...WEIGHT_SPRING, velocity: target?.velocityX ?? 0 },
+              y: { ...WEIGHT_SPRING, velocity: target?.velocityY ?? 0 },
+              rotate: WEIGHT_SPRING,
+              opacity: WEIGHT_SPRING,
+            },
       };
     },
   }), [profile.id]);

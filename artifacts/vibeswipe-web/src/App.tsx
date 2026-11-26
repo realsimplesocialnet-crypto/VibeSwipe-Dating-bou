@@ -46,6 +46,8 @@ import { checkAdditionalProfilePhoto } from '@workspace/api-client-react';
 import { userErrorMessage } from '@/lib/user-errors';
 import { readCachedMyProfile, writeCachedMyProfile, clearCachedMyProfile } from '@/lib/my-profile-cache';
 import { RouteSkeleton } from '@/components/route-skeleton';
+import { motion } from 'framer-motion';
+import { SpringDialog, WEIGHT_SPRING } from '@/components/spring-motion';
 import { RouteVisibilityContext } from '@/lib/router-compat';
 import { AppLanguageProvider, isAppLanguage, useAppLanguage } from '@/lib/app-language';
 import '@/styles/landing.css';
@@ -254,9 +256,14 @@ function AppShell({ children }: { children: ReactNode }) {
         </div>
       </aside>}
     </>}
-    <main className={showMainNavigation && !isReelsViewer ? "min-h-[100dvh] pb-24 lg:ml-[248px] lg:pb-0" : "min-h-[100dvh]"}>
+    <motion.main
+      className={showMainNavigation && !isReelsViewer ? "min-h-[100dvh] pb-24 lg:ml-[248px] lg:pb-0" : "min-h-[100dvh]"}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: routeVisible ? 1 : 0 }}
+      transition={routeVisible ? WEIGHT_SPRING : { duration: 0 }}
+    >
       <ReelsNavigationVisibilityContext.Provider value={setReelsNavigationVisible}>{children}</ReelsNavigationVisibilityContext.Provider>
-    </main>
+    </motion.main>
     {routeVisible && profile.data?.id&&<WebPushSettings key={profile.data.id} compact visible={showMainNavigation && !isReelsViewer} accountId={profile.data.id}/>}
     {showMainNavigation && <nav ref={mobileNavRef} aria-label="Primary" aria-hidden={isReelsViewer && !reelsNavigationVisible} className={`${location==='/profile'?'profile-nav ':''}${isReelsViewer ? `reels-mobile-nav ${reelsNavigationVisible ? '' : 'is-hidden'} ` : ''}mobile-nav fixed inset-x-0 bottom-0 ${isReelsViewer ? 'z-[80]' : 'z-30'} ${isReelsViewer ? '' : 'lg:hidden'} flex justify-around bg-background/95 px-2 pt-2 backdrop-blur-xl`}>
       <span aria-hidden="true" className="mobile-nav-indicator" style={{ transform: `translate3d(${mobileActiveIndex * 100}%, 0, 0)` }} />
@@ -471,7 +478,10 @@ export function LegacyDiscoverPage() {
   </PageFrame>;
 }
 function DiscoverPage(){return <DiscoverSwipePage/>}
-function Dialog({ title, children, onClose }: { title:string; children:ReactNode; onClose:()=>void }) { return <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/65 p-0 backdrop-blur-sm sm:items-center sm:p-5" role="presentation" onMouseDown={e=>{if(e.target===e.currentTarget)onClose()}}><section className="max-h-[90dvh] w-full max-w-lg overflow-y-auto rounded-t-[26px] border border-white/10 bg-[#211d25] p-5 shadow-2xl sm:rounded-[26px] sm:p-7" style={{ color: "#fbf5f7" }}><div className="mb-6 flex items-center justify-between"><h2 className="brand text-2xl font-bold" style={{ color: "#fbf5f7" }}>{title}</h2><button onClick={onClose} data-testid="button-close-dialog" aria-label="Close" className="rounded-lg p-2 text-[#b6a8af] hover:bg-white/5"><X size={19}/></button></div>{children}</section></div>; }
+function Dialog({ title, children, onClose }: { title:string; children:ReactNode; onClose:()=>void }) {
+  const [open, setOpen] = useState(true);
+  return <SpringDialog open={open} onClose={() => setOpen(false)} onExited={onClose} panelClassName="max-h-[90dvh] w-full max-w-lg overflow-y-auto rounded-t-[26px] border border-white/10 bg-[#211d25] p-5 text-[#fbf5f7] shadow-2xl sm:rounded-[26px] sm:p-7"><div className="mb-6 flex items-center justify-between"><h2 className="brand text-2xl font-bold text-[#fbf5f7]">{title}</h2><button type="button" onClick={() => setOpen(false)} data-testid="button-close-dialog" aria-label="Close" className="rounded-lg p-2 text-[#b6a8af] hover:bg-white/5"><X size={19}/></button></div>{children}</SpringDialog>;
+}
 
 function MatchesPage() {
   const qc=useQueryClient(); const [,setLocation]=useLocation(); const matches=useGetMatches({query:{refetchInterval:15000}}); const stories=useGetStories({query:{queryKey:getGetStoriesQueryKey(),refetchInterval:30000}}); const prompts=useGetIcebreakers(); const send=useSendMessage(); const block=useBlockProfile(); const report=useReportProfile(); const del=useDeleteChat(); const unmatch=useUnmatchMatch(); const [target,setTarget]=useState<Profile|null>(null);

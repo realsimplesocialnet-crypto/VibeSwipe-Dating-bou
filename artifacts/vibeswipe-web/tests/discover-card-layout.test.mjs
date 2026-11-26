@@ -36,7 +36,7 @@ test("swipe animations support pass, like, super like and reduced motion", () =>
   for (const action of ['"pass"', '"like"', '"super"']) assert.ok(card.includes(action));
   assert.match(component, /<AnimatePresence initial=\{false\} custom=\{swipeExits\}>/);
   assert.match(card, /type: "spring", stiffness: 720/);
-  assert.match(card, /duration: 0\.16/);
+  assert.match(card, /WEIGHT_SPRING/);
   assert.match(card, /useMotionValue/);
   assert.match(card, /dragElastic=\{0\.035\}/);
   assert.match(card, /dragMomentum=\{false\}/);

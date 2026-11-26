@@ -41,3 +41,25 @@ createRoot(document.getElementById('root')!, {
   ),
 );
 
+const splash = document.getElementById("app-splash");
+if (splash) {
+  const root = document.documentElement;
+  const removeSplash = () => {
+    if (!splash.isConnected) return;
+    splash.style.opacity = "0";
+    window.setTimeout(() => splash.remove(), 400);
+  };
+  const dismissSplash = () => {
+    if (root.classList.contains("is-auth-loading")) return;
+    removeSplash();
+    observer.disconnect();
+  };
+  const observer = new MutationObserver(dismissSplash);
+  observer.observe(root, { attributes: true, attributeFilter: ["class"] });
+  dismissSplash();
+  window.setTimeout(() => {
+    observer.disconnect();
+    removeSplash();
+  }, 8000);
+}
+

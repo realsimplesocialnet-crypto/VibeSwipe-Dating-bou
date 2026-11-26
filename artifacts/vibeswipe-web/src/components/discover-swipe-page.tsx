@@ -38,6 +38,8 @@ import { ArrowLeft, Heart, Search, SlidersHorizontal, Star, X, Zap } from "lucid
 import { isDiscoverSetupRequired, shouldRetryDiscover } from "@/lib/profile-query-state";
 import { StoriesRow } from "@/components/stories/stories-ui";
 import { MatchCelebration } from "@/components/match-celebration";
+import { FetchErrorBanner } from "@/components/fetch-status";
+import { SpringDialog } from "@/components/spring-motion";
 import { QuietSpinner } from "@/components/ui/quiet-spinner";
 import { DiscoverSwipeCard, type SwipeAction, type SwipeExit, type SwipeGesture } from "@/components/discover-swipe-card";
 import { useAppLanguage } from "@/lib/app-language";
@@ -227,12 +229,14 @@ export function DiscoverSwipePage() {
     swipeLock.current = true;
     const direction = type === "pass" ? -1 : 1;
     const swipeExitTarget: SwipeExit = type === "super"
-      ? { action: type, x: 0, y: -window.innerHeight * 1.15, rotate: 0, reducedMotion }
+      ? { action: type, x: 0, y: -window.innerHeight * 1.15, rotate: 0, velocityX: 0, velocityY: -1400, reducedMotion }
       : {
           action: type,
           x: direction * Math.max(window.innerWidth * 1.15, Math.abs(gesture.offsetX) + Math.abs(gesture.velocityX) * 0.16),
           y: 0,
           rotate: direction * Math.min(15, 5 + Math.abs(gesture.velocityX) / 280),
+          velocityX: direction * Math.max(900, Math.abs(gesture.velocityX)),
+          velocityY: 0,
           reducedMotion,
         };
 
@@ -425,8 +429,9 @@ export function DiscoverSwipePage() {
         {stickyHeader}
         <div className="mx-auto max-w-xl pt-10 pb-8">
           {!hasCachedProfiles && (discover.isFetching || reaction.isPending) ? <div className="flex justify-center py-6"><QuietSpinner /></div> : <>
+            {discover.isError && <FetchErrorBanner text={t("Discover couldn’t refresh. Your last results are still here.")} onRetry={() => void discover.refetch()} />}
             <h1 className="brand text-2xl font-bold">{t("No matching profiles right now")}</h1>
-            <p className="mt-2 text-sm text-muted-foreground">{t("Skipped profiles return automatically. Try another location or age range to meet more people.")}</p>
+            <p className="mt-2 text-sm text-muted-foreground">{t("Skipped profiles return automatically. Try another location or age range, or check back later.")}</p>
             <button onClick={() => setFiltersOpen(true)} data-testid="button-open-filters-empty" className="mt-5 rounded-xl bg-primary px-4 py-3 font-bold text-primary-foreground">{t("Adjust filters")}</button>
             <button disabled={discover.isFetching} onClick={() => void discover.refetch().then(result => { if (!result.isError) refill(result.data); })}
               data-testid="button-refresh-discovery" className="ml-3 mt-5 rounded-xl bg-secondary px-4 py-3 font-bold disabled:opacity-50">{t("Refresh")}</button>
@@ -442,6 +447,7 @@ export function DiscoverSwipePage() {
     <main className="discover-deck mx-auto flex h-full min-h-0 w-full max-w-[680px] flex-col px-4 sm:px-6">
       {stickyHeader}
 
+      {discover.isError && <FetchErrorBanner text={t("Discover couldn’t refresh. Your last results are still here.")} onRetry={() => void discover.refetch()} />}
       <p role="status" data-testid="status-discovery-worldwide" className="mb-2 min-h-4 text-center text-xs text-muted-foreground">{worldwide ? t("Not many people near you yet — showing members worldwide") : ""}</p>
       {notice && <div role="status" data-testid="status-discover" className="mb-3 rounded-xl border border-primary/20 bg-accent px-4 py-3 text-sm text-primary">{t(notice)}<button onClick={() => setNotice("")} aria-label={t("Dismiss message")} className="float-right"><X size={16} /></button></div>}
       {likeConfirmation && <div className="fixed inset-x-0 top-[calc(env(safe-area-inset-top)+1rem)] z-[60] flex justify-center px-4" role="status" aria-live="polite" data-testid="status-discover-liked"><div className="flex items-center gap-2 rounded-full border border-primary/25 bg-[#211a27]/95 px-5 py-3 text-sm font-semibold text-white shadow-2xl backdrop-blur-xl"><Heart size={17} fill="currentColor" className="text-primary"/>{t(likeConfirmation)}</div></div>}
@@ -469,7 +475,7 @@ export function DiscoverSwipePage() {
           <button type="button" onClick={(event) => { event.stopPropagation(); swipe(profile.id, "like"); }} disabled={!!matchResult || likeLimitReached} data-testid="button-like-profile" aria-label={t("Like")} className="flex h-16 w-16 items-center justify-center rounded-full bg-card text-primary shadow-lg disabled:opacity-40"><Heart size={31} fill="currentColor" /></button>
         </div>
 
-      {optionsOpen && <ProfileOptionsDialog onClose={() => setOptionsOpen(false)} onReport={(reason) => void reportCurrent(reason)} onBlock={() => void blockCurrent()} />}
+      <ProfileOptionsDialog open={optionsOpen} onClose={() => setOptionsOpen(false)} onReport={(reason) => void reportCurrent(reason)} onBlock={() => void blockCurrent()} />
       <FilterDialog open={filtersOpen} onClose={() => setFiltersOpen(false)} value={filterValues} travelMode={Boolean(settings.data?.travelMode)} onApply={applyFilters} />
       {matchOverlay}
     </main>
@@ -481,23 +487,20 @@ function FilterDialog({ open, onClose, value, travelMode, onApply }: {
   onApply: (value: DiscoveryFilters) => void;
 }) {
   const { t } = useAppLanguage();
-  if (!open) return null;
-  return <Dialog title={t("Discovery filters")} onClose={onClose}><DiscoveryFilterForm initialValue={value} travelMode={travelMode} onApply={onApply} /></Dialog>;
+  return <Dialog open={open} title={t("Discovery filters")} onClose={onClose}><DiscoveryFilterForm initialValue={value} travelMode={travelMode} onApply={onApply} /></Dialog>;
 }
 
-function ProfileOptionsDialog({ onClose, onReport, onBlock }: { onClose: () => void; onReport: (reason: ReportInputReason) => void; onBlock: () => void }) {
+function ProfileOptionsDialog({ open, onClose, onReport, onBlock }: { open: boolean; onClose: () => void; onReport: (reason: ReportInputReason) => void; onBlock: () => void }) {
   const { t } = useAppLanguage();
-  return <Dialog title={t("Profile options")} onClose={onClose}><div className="space-y-4">
+  return <Dialog open={open} title={t("Profile options")} onClose={onClose}><div className="space-y-4">
     <p className="text-sm text-muted-foreground">{t("Manage this profile without opening its details.")}</p>
     <div className="grid grid-cols-2 gap-2 pt-2"><button type="button" onClick={() => onReport("inappropriate")} data-testid="button-report-profile" className="rounded-xl border border-white/10 px-4 py-3 text-sm font-semibold">{t("Report")}</button><button type="button" onClick={onBlock} data-testid="button-block-profile" className="rounded-xl border border-rose-400/20 px-4 py-3 text-sm font-semibold text-rose-300">{t("Block profile")}</button></div>
   </div></Dialog>;
 }
 
-function Dialog({ title, children, onClose }: { title: string; children: React.ReactNode; onClose: () => void }) {
-  return <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/65 p-0 backdrop-blur-sm sm:items-center sm:p-5" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
-    <section className="max-h-[90dvh] w-full max-w-lg overflow-y-auto rounded-t-[26px] border border-white/10 bg-[#211d25] p-5 shadow-2xl sm:rounded-[26px] sm:p-7">
-      <div className="mb-6 flex items-center justify-between"><h2 className="brand text-2xl font-bold">{title}</h2><button type="button" onClick={onClose} aria-label="Close" data-testid="button-close-dialog" className="rounded-lg p-2 text-muted-foreground hover:bg-white/5"><X size={19} /></button></div>
-      {children}
-    </section>
-  </div>;
+function Dialog({ open, title, children, onClose }: { open: boolean; title: string; children: React.ReactNode; onClose: () => void }) {
+  return <SpringDialog open={open} onClose={onClose} panelClassName="max-h-[90dvh] w-full max-w-lg overflow-y-auto rounded-t-[26px] border border-white/10 bg-[#211d25] p-5 shadow-2xl sm:rounded-[26px] sm:p-7">
+    <div className="mb-6 flex items-center justify-between"><h2 className="brand text-2xl font-bold">{title}</h2><button type="button" onClick={onClose} aria-label="Close" data-testid="button-close-dialog" className="rounded-lg p-2 text-muted-foreground hover:bg-white/5"><X size={19} /></button></div>
+    {children}
+  </SpringDialog>;
 }

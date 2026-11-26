@@ -10,6 +10,7 @@ import {
 } from "@workspace/api-client-react";
 import { Link } from "@/lib/router-compat";
 import { searchChatsByPersonName } from "@/lib/chat-search";
+import { FetchError, FetchErrorBanner } from "@/components/fetch-status";
 import { QuietSpinner } from "@/components/ui/quiet-spinner";
 import { MediaImage } from "@/App";
 
@@ -34,7 +35,7 @@ function LoadingConversations() {
 }
 
 function RetryConversations({ onRetry }: { onRetry: () => void }) {
-  return <div role="status" aria-label="Loading conversations" className="flex justify-center py-10"><QuietSpinner onRetry={onRetry} /></div>;
+  return <FetchError text="We couldn’t load your messages. Check your connection and try again." onRetry={onRetry} />;
 }
 
 function EmptyConversations({ action }: { action: ReactNode }) {
@@ -90,6 +91,7 @@ export function ChatsListPage() {
         ] as const).map(([value, label]) => <button key={value} type="button" aria-pressed={filter === value} data-testid={`chat-filter-${value}`} onClick={() => setFilter(value)} className={`shrink-0 rounded-full border px-4 py-2 text-sm font-bold transition-colors ${filter === value ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card text-muted-foreground hover:text-foreground"}`}>{label}</button>)}
       </div>
       <div className="mt-5">
+        {(matches.isError || direct.isError) && (matches.data || direct.data) && <FetchErrorBanner text="Some conversations couldn’t refresh." onRetry={() => { void matches.refetch(); void direct.refetch(); }} />}
         {matches.isLoading && direct.isLoading ? <LoadingConversations />
           : matches.isError && !matches.data && direct.isError && !direct.data
             ? <RetryConversations onRetry={() => { void matches.refetch(); void direct.refetch(); }} />

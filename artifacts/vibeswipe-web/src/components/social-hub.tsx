@@ -57,8 +57,8 @@ function SeenError({ seen }: { seen: ReturnType<typeof useMarkActivitySeen> }) {
 function Skel() {
   return <div className="flex justify-center py-10" role="status" aria-label="Loading"><QuietSpinner /></div>;
 }
-function Err({ onRetry }: { onRetry: () => void; text: string }) {
-  return <div className="flex justify-center py-10" role="status" aria-label="Loading"><QuietSpinner onRetry={onRetry} /></div>;
+function Err({ onRetry, text }: { onRetry: () => void; text: string }) {
+  return <div role="alert" className="sh-card mx-auto max-w-sm rounded-[26px] px-6 py-10 text-center"><p className="text-sm leading-6">{text}</p><button type="button" onClick={onRetry} className="mt-4 rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground">Retry</button></div>;
 }
 function Empty({ icon, title, detail }: { icon: ReactNode; title: string; detail: string }) {
   return <div className="sh-card flex flex-col items-center rounded-[26px] px-6 py-12 text-center" data-testid="status-empty"><div className="sh-icon mb-4 flex h-14 w-14 items-center justify-center rounded-full">{icon}</div><h2 className="text-lg font-bold">{title}</h2><p className="sh-muted mt-1 max-w-xs text-sm">{detail}</p><Link href="/discover" data-testid="link-empty-discover" className="mt-5 rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground">Go to Discover</Link></div>;
@@ -144,8 +144,9 @@ export function ActivityOverview({ avatar: _avatar }: { avatar: AvatarFn }) {
       })}
     </section>
     {readError && <p role="alert" className="activity-read-error">{readError}</p>}
-    {notes.isLoading ? <Skel /> : notes.isError && !notes.data ? <Err text="We couldn't load your activity." onRetry={() => void notes.refetch()} /> : items.length === 0
-      ? <div className="activity-empty" data-testid="status-empty-activity"><span className="activity-empty-icon"><Heart size={22}/></span><strong>You’re all caught up</strong></div>
+    {notes.isError && notes.data && <div role="alert" className="mb-3 flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-card px-4 py-3 text-sm"><p className="text-muted-foreground">Activity couldn’t refresh.</p><button type="button" onClick={() => void notes.refetch()} className="shrink-0 rounded-lg bg-primary px-3 py-2 text-xs font-bold text-primary-foreground">Retry</button></div>}
+    {notes.isLoading ? <Skel /> : notes.isError && !notes.data ? <Err text="We couldn't load your activity. Check your connection and try again." onRetry={() => void notes.refetch()} /> : items.length === 0
+      ? <div className="activity-empty" data-testid="status-empty-activity"><span className="activity-empty-icon"><Heart size={22}/></span><strong>You’re all caught up</strong><p>New follows, likes, and profile views will show up here. Check back later.</p><Link href="/discover" className="mt-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground">Discover people</Link></div>
       : <section className="activity-feed" aria-label="Activity feed" data-testid="activity-feed">
         {items.map(n => {
           const event = eventStyle(n.type);
