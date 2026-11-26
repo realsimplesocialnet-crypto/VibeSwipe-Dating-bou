@@ -7,6 +7,7 @@ import {
   type Profile,
 } from "@workspace/api-client-react";
 import { VerifiedBadge } from "@/components/verified-badge";
+import { swipeCardPhotoUrl } from "@/lib/swipe-photo-preload";
 
 export type SwipeAction = "pass" | "like" | "super";
 export type SwipeGesture = { offsetX: number; velocityX: number };
@@ -80,16 +81,7 @@ export const DiscoverSwipeCard = memo(function DiscoverSwipeCard({
     return () => URL.revokeObjectURL(nextUrl);
   }, [media.data]);
 
-  const photo = profile.photos?.[0];
-  const src = mediaId
-    ? objectUrl
-    : photo?.startsWith("http")
-      ? photo
-      : photo?.startsWith("demo:")
-        ? ""
-        : photo
-          ? `/api/storage${photo.startsWith("/") ? photo : `/${photo}`}`
-          : "";
+  const src = mediaId ? objectUrl : swipeCardPhotoUrl(profile.photos?.[0]);
 
   return (
     <motion.div
@@ -98,10 +90,10 @@ export const DiscoverSwipeCard = memo(function DiscoverSwipeCard({
       aria-hidden={!active}
       style={{ zIndex: 10 - depth, pointerEvents: active ? "auto" : "none" }}
       initial={false}
-      animate={{ y: depth * 10, scale: 1 - depth * 0.035, opacity: 1 - depth * 0.12 }}
+      animate={{ y: 0, scale: 1, opacity: 1 }}
       transition={reducedMotion
         ? { duration: 0 }
-        : { type: "spring", stiffness: 720, damping: 38, mass: 0.6 }}
+        : { type: "spring", stiffness: 720, damping: 52, mass: 0.6 }}
       variants={swipeCardVariants}
       exit="exit"
     >

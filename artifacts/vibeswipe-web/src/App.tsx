@@ -205,7 +205,10 @@ function AppShell({ children }: { children: ReactNode }) {
       // Force iOS standalone mode to refresh safe-area styles before reading
       // the tab height; its viewport can be stale for a frame after resume.
       void window.getComputedStyle(nav).paddingBottom;
-      shell.style.setProperty('--mobile-nav-height', `${nav.getBoundingClientRect().height}px`);
+      const nextHeight = String(Math.round(nav.getBoundingClientRect().height));
+      if (shell.dataset.navHeight === nextHeight) return;
+      shell.dataset.navHeight = nextHeight;
+      shell.style.setProperty('--mobile-nav-height', `${nextHeight}px`);
     };
     const scheduleMeasure = () => {
       window.requestAnimationFrame(() => {
@@ -228,7 +231,6 @@ function AppShell({ children }: { children: ReactNode }) {
     window.addEventListener('focus', syncAfterResume);
     document.addEventListener('visibilitychange', onVisibilityChange);
     viewport?.addEventListener('resize', scheduleMeasure);
-    viewport?.addEventListener('scroll', scheduleMeasure);
     syncAfterResume();
     return () => {
       resumeTimers.forEach(window.clearTimeout);
@@ -238,7 +240,6 @@ function AppShell({ children }: { children: ReactNode }) {
       window.removeEventListener('focus', syncAfterResume);
       document.removeEventListener('visibilitychange', onVisibilityChange);
       viewport?.removeEventListener('resize', scheduleMeasure);
-      viewport?.removeEventListener('scroll', scheduleMeasure);
     };
   }, [routeVisible, showMainNavigation, location]);
   return <div ref={shellRef} className={`app-shell min-h-[100dvh] bg-background text-foreground ${isSocialPage?'messages-shell':''} ${location==='/discover'?'discover-shell':''} ${location==='/profile'?'profile-shell':''}`}>

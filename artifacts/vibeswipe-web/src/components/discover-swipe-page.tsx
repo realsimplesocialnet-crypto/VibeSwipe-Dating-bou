@@ -41,6 +41,7 @@ import { MatchCelebration } from "@/components/match-celebration";
 import { QuietSpinner } from "@/components/ui/quiet-spinner";
 import { DiscoverSwipeCard, type SwipeAction, type SwipeExit, type SwipeGesture } from "@/components/discover-swipe-card";
 import { useAppLanguage } from "@/lib/app-language";
+import { resetSwipePhotoWarmup, swipeCardPhotoUrl, warmSwipePhotoUrls } from "@/lib/swipe-photo-preload";
 
 const useDiscoveryDeck = createUseDiscoveryDeck(useState);
 
@@ -152,7 +153,13 @@ export function DiscoverSwipePage() {
         gcTime: 30 * 60_000,
       });
     }
+    const retained = profiles.slice(Math.max(0, index - 2), index + preloadCount);
+    warmSwipePhotoUrls(
+      retained.map((candidate) => swipeCardPhotoUrl(candidate.photos?.[0])),
+      upcoming.slice(1).map((candidate) => swipeCardPhotoUrl(candidate.photos?.[0])),
+    );
   }, [profiles, index, queryClient]);
+  useEffect(() => () => resetSwipePhotoWarmup(), []);
   const worldwide = Boolean(profile?.discoveryExpanded || discover.data?.some(p => p.discoveryExpanded));
   const viewed = useRef(new Set<string>());
   const tailRequested = useRef("");
@@ -378,7 +385,8 @@ export function DiscoverSwipePage() {
     (likes.data?.remaining !== undefined && pendingLikeCount >= likes.data.remaining);
   const superLikeLimitReached = superLikes.data?.remaining === 0 ||
     (superLikes.data?.remaining !== undefined && pendingSuperLikeCount >= superLikes.data.remaining);
-  if (discover.isLoading) {
+  const hasCachedProfiles = profiles.length > 0 || (discover.data?.length ?? 0) > 0;
+  if (discover.isLoading && !hasCachedProfiles) {
     return (
       <div role="status" aria-label="Loading Discover" data-testid="status-discover-loading" className="mx-auto flex min-h-[55dvh] max-w-xl flex-col items-center justify-center gap-4 px-4 text-center">
         <QuietSpinner />
@@ -386,35 +394,37 @@ export function DiscoverSwipePage() {
       </div>
     );
   }
-  if (discover.isError && isDiscoverSetupRequired(discover.error)) return <Redirect to="/onboarding" />;
+  if (discover.isError && isDiscoverSetupRequired(discover.error) && !hasCachedProfiles) return <Redirect to="/onboarding" />;
   if (discover.isError && !discover.data) {
-    const status = discover.error.status;
-    const message = status === 401
-        ? t("Your session needs a refresh. Try loading Discover again.")
-      : status === 403
-        ? t("Discover is unavailable for this account right now.")
-        : t("Check your connection, then try again.");
-    return (
-      <div role="alert" data-testid="error-discover-load" className="mx-auto flex min-h-[55dvh] max-w-xl flex-col items-center justify-center px-6 text-center">
-        <h1 className="brand text-xl font-bold">{t("Discover couldn’t load")}</h1>
-        <p className="mt-2 max-w-sm text-sm leading-6 text-muted-foreground">{message}</p>
-        <button
-          type="button"
-          onClick={() => void discover.refetch().then(result => { if (!result.isError) refill(result.data); })}
-          data-testid="button-retry-discover-load"
-          className="mt-5 rounded-xl bg-primary px-5 py-3 text-sm font-bold text-primary-foreground"
-        >
-          {t("Try again")}
-        </button>
-      </div>
-    );
+    if (!hasCachedProfiles) {
+      const status = discover.error.status;
+      const message = status === 401
+          ? t("Your session needs a refresh. Try loading Discover again.")
+        : status === 403
+          ? t("Discover is unavailable for this account right now.")
+          : t("Check your connection, then try again.");
+      return (
+        <div role="alert" data-testid="error-discover-load" className="mx-auto flex min-h-[55dvh] max-w-xl flex-col items-center justify-center px-6 text-center">
+          <h1 className="brand text-xl font-bold">{t("Discover couldn’t load")}</h1>
+          <p className="mt-2 max-w-sm text-sm leading-6 text-muted-foreground">{message}</p>
+          <button
+            type="button"
+            onClick={() => void discover.refetch().then(result => { if (!result.isError) refill(result.data); })}
+            data-testid="button-retry-discover-load"
+            className="mt-5 rounded-xl bg-primary px-5 py-3 text-sm font-bold text-primary-foreground"
+          >
+            {t("Try again")}
+          </button>
+        </div>
+      );
+    }
   }
   if (!profile) {
     return (
       <div className="mx-auto max-w-[680px] px-4 pb-5 text-center sm:px-6 sm:pb-7">
         {stickyHeader}
         <div className="mx-auto max-w-xl pt-10 pb-8">
-          {discover.isFetching || reaction.isPending ? <div className="flex justify-center py-6"><QuietSpinner /></div> : <>
+          {!hasCachedProfiles && (discover.isFetching || reaction.isPending) ? <div className="flex justify-center py-6"><QuietSpinner /></div> : <>
             <h1 className="brand text-2xl font-bold">{t("No matching profiles right now")}</h1>
             <p className="mt-2 text-sm text-muted-foreground">{t("Skipped profiles return automatically. Try another location or age range to meet more people.")}</p>
             <button onClick={() => setFiltersOpen(true)} data-testid="button-open-filters-empty" className="mt-5 rounded-xl bg-primary px-4 py-3 font-bold text-primary-foreground">{t("Adjust filters")}</button>

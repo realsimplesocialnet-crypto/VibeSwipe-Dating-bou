@@ -1,5 +1,5 @@
 import { useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { Link, useLocation } from "wouter";
+import { Link, RouteVisibilityContext, useLocation } from "wouter";
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import {
   getGetMyReelsQueryKey, getGetNotificationsQueryKey, getGetProfileReelsQueryKey, getGetReelQueryKey,
@@ -44,10 +44,11 @@ function readReelCommentsHistoryMarker(state: unknown): ReelCommentsHistoryMarke
     : null;
 }
 
-function useReelsViewport() {
+function useReelsViewport(active: boolean) {
   const baseline = useRef(window.visualViewport?.height ?? window.innerHeight);
   const [frame, setFrame] = useState(() => reelsViewportFrame(window.visualViewport?.height ?? window.innerHeight, window.visualViewport?.offsetTop ?? 0, window.innerHeight, false));
   useEffect(() => {
+    if (!active) return;
     const viewport = window.visualViewport;
     const bodyOverflow = document.body.style.overflow;
     const htmlOverflow = document.documentElement.style.overflow;
@@ -62,7 +63,16 @@ function useReelsViewport() {
       const frameHeight = editing ? height : Math.max(height, window.innerHeight);
       const frameTop = editing ? viewport?.offsetTop ?? 0 : 0;
       if (!editing) baseline.current = frameHeight;
-      setFrame(reelsViewportFrame(frameHeight, frameTop, Math.max(baseline.current, window.innerHeight), editing));
+      const next = reelsViewportFrame(frameHeight, frameTop, Math.max(baseline.current, window.innerHeight), editing);
+      setFrame((current) => {
+        if (
+          current.keyboardOpen === next.keyboardOpen
+          && Math.abs(current.height - next.height) < 4
+          && Math.abs(current.top - next.top) < 4
+          && Math.abs(current.commentsHeight - next.commentsHeight) < 4
+        ) return current;
+        return next;
+      });
     };
     const refreshAfterResume = () => {
       window.requestAnimationFrame(update);
@@ -91,7 +101,7 @@ function useReelsViewport() {
       document.body.style.overflow = bodyOverflow;
       document.documentElement.style.overflow = htmlOverflow;
     };
-  }, []);
+  }, [active]);
   return frame;
 }
 
@@ -112,14 +122,15 @@ export function ReelsFeedPage({
   initialReelId?: string;
   initialFeedMode?: "reels" | "friends";
 }) {
+  const routeVisible = useContext(RouteVisibilityContext);
   const [location, setLocation] = useLocation();
   const { t } = useAppLanguage();
   const client = useQueryClient();
   const setAppNavigationVisible = useContext(ReelsNavigationVisibilityContext);
   const returnTo = safeReelReturnPath(new URLSearchParams(window.location.search).get("returnTo"));
   const profileId = new URLSearchParams(window.location.search).get("profileId") ?? "";
-  const viewport = useReelsViewport();
-  const pageHidden = usePageHidden();
+  const pageHidden = usePageHidden() || !routeVisible;
+  const viewport = useReelsViewport(routeVisible);
   const scroller = useRef<HTMLDivElement>(null);
   const initialReelPositioned = useRef(false);
   const initialHistoryMarker = readReelCommentsHistoryMarker(window.history.state);
