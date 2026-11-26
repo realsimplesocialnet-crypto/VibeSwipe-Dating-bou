@@ -480,7 +480,7 @@ export function LegacyDiscoverPage() {
 function DiscoverPage(){return <DiscoverSwipePage/>}
 function Dialog({ title, children, onClose }: { title:string; children:ReactNode; onClose:()=>void }) {
   const [open, setOpen] = useState(true);
-  return <SpringDialog open={open} onClose={() => setOpen(false)} onExited={onClose} panelClassName="max-h-[90dvh] w-full max-w-lg overflow-y-auto rounded-t-[26px] border border-white/10 bg-[#211d25] p-5 text-[#fbf5f7] shadow-2xl sm:rounded-[26px] sm:p-7"><div className="mb-6 flex items-center justify-between"><h2 className="brand text-2xl font-bold text-[#fbf5f7]">{title}</h2><button type="button" onClick={() => setOpen(false)} data-testid="button-close-dialog" aria-label="Close" className="rounded-lg p-2 text-[#b6a8af] hover:bg-white/5"><X size={19}/></button></div>{children}</SpringDialog>;
+  return <SpringDialog open={open} onClose={() => setOpen(false)} onExited={onClose} label={title} panelClassName="max-h-[90dvh] w-full max-w-lg overflow-y-auto rounded-t-[26px] border border-white/10 bg-[#211d25] p-5 text-[#fbf5f7] shadow-2xl sm:rounded-[26px] sm:p-7"><div className="mb-6 flex items-center justify-between"><h2 className="brand text-2xl font-bold text-[#fbf5f7]">{title}</h2><button type="button" onClick={() => setOpen(false)} data-testid="button-close-dialog" aria-label="Close" className="rounded-lg p-2 text-[#b6a8af] hover:bg-white/5"><X size={19}/></button></div>{children}</SpringDialog>;
 }
 
 function MatchesPage() {

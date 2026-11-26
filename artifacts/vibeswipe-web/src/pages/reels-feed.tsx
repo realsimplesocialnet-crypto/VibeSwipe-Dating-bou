@@ -110,7 +110,7 @@ function useReelsViewport(active: boolean) {
 function ReportReelDialog({ pending, onClose, children }: { pending: boolean; onClose: () => void; children: (close: () => void) => ReactNode }) {
   const [open, setOpen] = useState(true);
   const close = () => { if (!pending) setOpen(false); };
-  return <SpringDialog open={open} onClose={close} onExited={onClose} className="z-[110]" panelClassName="w-full max-w-lg">{children(close)}</SpringDialog>;
+  return <SpringDialog open={open} onClose={close} onExited={onClose} label="Report Reel" className="z-[110]" panelClassName="w-full max-w-lg">{children(close)}</SpringDialog>;
 }
 
 function usePageHidden() {
@@ -705,7 +705,7 @@ export function ReelsFeedPage({
       {notice && <p role="status" className="reels-notice" data-testid="status-reels">{notice}</p>}
     </div>
     {reportFor && <ReportReelDialog pending={reportReel.isPending} onClose={() => { if (!reportReel.isPending) setReportFor(null); }}>
-      {(close) => <section className="w-full max-w-lg rounded-t-[28px] bg-[#17141b] p-5 pb-[calc(env(safe-area-inset-bottom)+20px)] text-foreground shadow-2xl ring-1 ring-white/10 sm:rounded-[28px]" role="dialog" aria-modal="true" aria-labelledby="report-reel-title" data-testid="dialog-report-reel">
+      {(close) => <section className="w-full max-w-lg rounded-t-[28px] bg-[#17141b] p-5 pb-[calc(env(safe-area-inset-bottom)+20px)] text-foreground shadow-2xl ring-1 ring-white/10 sm:rounded-[28px]" data-testid="dialog-report-reel">
         <div className="mb-4 flex items-center justify-between">
           <h2 id="report-reel-title" className="text-lg font-bold">{t("Report Reel")}</h2>
           <button type="button" onClick={close} disabled={reportReel.isPending} aria-label={t("Close")} className="grid h-10 w-10 place-items-center rounded-full hover:bg-white/10"><X size={20}/></button>
