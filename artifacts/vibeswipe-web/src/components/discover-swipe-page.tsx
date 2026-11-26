@@ -14,11 +14,13 @@ import {
   getGetProfileFollowSummaryQueryKey,
   getGetMediaPreviewQueryKey,
   getGetMatchesQueryKey,
+  getGetMessagesQueryKey,
   getGetSuperLikeStatusQueryKey,
   getGetVibeSwipeSettingsQueryKey,
   getProfileDatingState,
   getProfileFollowSummary,
   getMediaPreview,
+  getMessages,
   useActivateBoost,
   useBlockProfile,
   useCreateReaction,
@@ -63,6 +65,7 @@ export function DiscoverSwipePage() {
   const [pendingSuperLikeCount, setPendingSuperLikeCount] = useState(0);
   const swipeLock = useRef(false);
   const swipeExitTimers = useRef(new Map<string, number>());
+  const lastSwipeAt = useRef(0);
   const [matchResult, setMatchResult] = useState<{ profile: Profile; matchId: string | null } | null>(null);
   const reducedMotion = useReducedMotion() ?? false;
   const myProfile = useGetMyProfile();
@@ -160,6 +163,38 @@ export function DiscoverSwipePage() {
       retained.map((candidate) => swipeCardPhotoUrl(candidate.photos?.[0])),
       upcoming.slice(1).map((candidate) => swipeCardPhotoUrl(candidate.photos?.[0])),
     );
+    const idleWindow = window as Window & {
+      requestIdleCallback?: (callback: () => void, options?: { timeout: number }) => number;
+    };
+    const warmScreens = () => {
+      for (const candidate of profiles.slice(index, index + 2)) {
+        const followKey = getGetProfileFollowSummaryQueryKey(candidate.id);
+        const datingKey = getGetProfileDatingStateQueryKey(candidate.id);
+        void queryClient.prefetchQuery({
+          queryKey: followKey,
+          queryFn: ({ signal }) => getProfileFollowSummary(candidate.id, { signal }),
+          staleTime: 10 * 60_000,
+          gcTime: 30 * 60_000,
+        });
+        void queryClient.prefetchQuery({
+          queryKey: datingKey,
+          queryFn: ({ signal }) => getProfileDatingState(candidate.id, { signal }),
+          staleTime: 10 * 60_000,
+          gcTime: 30 * 60_000,
+        }).then(() => {
+          const matchId = queryClient.getQueryData<{ matchId?: string | null }>(datingKey)?.matchId;
+          if (!matchId) return;
+          void queryClient.prefetchQuery({
+            queryKey: getGetMessagesQueryKey(matchId),
+            queryFn: ({ signal }) => getMessages(matchId, { signal }),
+            staleTime: 30_000,
+            gcTime: 10 * 60_000,
+          });
+        }, () => undefined);
+      }
+    };
+    const idleId = idleWindow.requestIdleCallback?.(warmScreens, { timeout: 400 });
+    if (idleId === undefined) warmScreens();
   }, [profiles, index, queryClient]);
   useEffect(() => () => resetSwipePhotoWarmup(), []);
   const worldwide = Boolean(profile?.discoveryExpanded || discover.data?.some(p => p.discoveryExpanded));
@@ -215,6 +250,8 @@ export function DiscoverSwipePage() {
   const swipe = useCallback((profileId: string, type: SwipeAction, gesture: SwipeGesture = { offsetX: 0, velocityX: 0 }) => {
     const current = activeProfileRef.current;
     if (!current || current.id !== profileId || swipeLock.current || matchResultRef.current) return;
+    if (Date.now() - lastSwipeAt.current < 180) return;
+    lastSwipeAt.current = Date.now();
     const likesRemaining = likesRemainingRef.current;
     if (type === "like" && likesRemaining !== undefined && pendingLikeCountRef.current >= likesRemaining) {
       setNotice("You’ve reached your daily like limit. Come back in 24 hours.");
@@ -288,12 +325,23 @@ export function DiscoverSwipePage() {
           }, 1500);
         }
       } catch (error) {
-        if ((error as { status?: number }).status === 404) {
-          setNotice("This profile is no longer available. Finding someone new.");
-          void refetchDiscoverRef.current();
-        } else {
-          setNotice("That swipe could not be saved. Try again later.");
+        const status = (error as { status?: number }).status;
+        const failedIndex = nextIndex - 1;
+        if (status !== 404 && indexRef.current === nextIndex) {
+          indexRef.current = failedIndex;
+          activeProfileRef.current = profilesRef.current[failedIndex];
+          setIndexRef.current(failedIndex);
+          setSwipeExits((exits) => {
+            if (!(current.id in exits)) return exits;
+            const next = { ...exits };
+            delete next[current.id];
+            return next;
+          });
         }
+        setNotice(status === 404
+          ? "This profile is no longer available. Finding someone new."
+          : "That swipe could not be saved. Try again.");
+        if (status === 404) void refetchDiscoverRef.current();
       } finally {
         if (type === "like") {
           pendingLikeCountRef.current = Math.max(0, pendingLikeCountRef.current - 1);

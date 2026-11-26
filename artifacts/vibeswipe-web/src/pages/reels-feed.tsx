@@ -418,6 +418,10 @@ export function ReelsFeedPage({
     root.scrollTo({ top: Math.max(0, activeRef.current + delta) * root.clientHeight, behavior: "smooth" });
   }, []);
   useEffect(() => {
+    if (routeVisible && initialFeedMode === "reels") setFeedMode("reels");
+  }, [routeVisible, initialFeedMode]);
+  useEffect(() => {
+    if (!routeVisible) return;
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape" && searchOpen) {
         event.preventDefault();
@@ -431,7 +435,7 @@ export function ReelsFeedPage({
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [go, closeComments, commentsFor, searchOpen]);
+  }, [go, closeComments, commentsFor, searchOpen, routeVisible]);
 
   function patch(id: string, value: Partial<Reel>) { setPatches((all) => ({ ...all, [id]: { ...all[id], ...value } })); }
   function patchShareCount(id: string, shareCount: number) {

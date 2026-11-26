@@ -4,6 +4,9 @@ import type { ReactNode } from "react";
 /** Overdamped spring: the motion slows into place and does not bounce back. */
 export const WEIGHT_SPRING = { type: "spring" as const, stiffness: 280, damping: 38, mass: 1.1 };
 
+/** Fast enough that a tab change settles in under a tenth of a second. */
+export const ROUTE_SPRING = { type: "spring" as const, stiffness: 1200, damping: 48, mass: 0.35 };
+
 export function SpringDialog({
   open,
   onClose,

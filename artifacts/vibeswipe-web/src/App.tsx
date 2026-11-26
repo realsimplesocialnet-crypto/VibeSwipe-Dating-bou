@@ -47,7 +47,7 @@ import { userErrorMessage } from '@/lib/user-errors';
 import { readCachedMyProfile, writeCachedMyProfile, clearCachedMyProfile } from '@/lib/my-profile-cache';
 import { RouteSkeleton } from '@/components/route-skeleton';
 import { motion } from 'framer-motion';
-import { SpringDialog, WEIGHT_SPRING } from '@/components/spring-motion';
+import { SpringDialog, ROUTE_SPRING } from '@/components/spring-motion';
 import { RouteVisibilityContext } from '@/lib/router-compat';
 import { AppLanguageProvider, isAppLanguage, useAppLanguage } from '@/lib/app-language';
 import '@/styles/landing.css';
@@ -260,7 +260,7 @@ function AppShell({ children }: { children: ReactNode }) {
       className={showMainNavigation && !isReelsViewer ? "min-h-[100dvh] pb-24 lg:ml-[248px] lg:pb-0" : "min-h-[100dvh]"}
       initial={{ opacity: 0 }}
       animate={{ opacity: routeVisible ? 1 : 0 }}
-      transition={routeVisible ? WEIGHT_SPRING : { duration: 0 }}
+      transition={routeVisible ? ROUTE_SPRING : { duration: 0 }}
     >
       <ReelsNavigationVisibilityContext.Provider value={setReelsNavigationVisible}>{children}</ReelsNavigationVisibilityContext.Provider>
     </motion.main>
@@ -604,7 +604,7 @@ function ChatPage({matchId,returnTo='/matches',autoFocusComposer=false}:{matchId
     if(list)observer.observe(list);
     return()=>observer.disconnect();
   },[matchId,matches.isLoading,msgs.isLoading,scrollToLatest]);
-  if(matches.isLoading||msgs.isLoading)return <PageFrame><Busy/></PageFrame>;
+  if((matches.isLoading && !matches.data) || (msgs.isLoading && !msgs.data))return <PageFrame><Busy/></PageFrame>;
   if(matches.isError&&!matches.data)return <PageFrame><Retry error={matches.error} text="We couldn’t load your conversations. Check your connection and try again." onRetry={()=>void matches.refetch()}/></PageFrame>;
   if(!match)return <PageFrame><Empty title="Conversation unavailable" detail="This chat may have ended or the match is no longer available." action={<Link href={returnTo} data-testid="link-back-matches" className="rounded-xl bg-secondary px-4 py-2.5 font-bold">{returnTo==='/views'?'Back to messages':returnTo==='/notifications'?'Back to activity':'Back to matches'}</Link>}/></PageFrame>;
   async function sendMessage(content:string, media?:{mediaReference:string;mediaType:'image'|'video'|'audio'}){if(blocked||(!content.trim()&&!media)||send.isPending)return;const old=draft;if(!media)setDraft('');try{const message=await send.mutateAsync({matchId,data:{...(content.trim()?{content:content.trim()}:{}),...media}});qc.setQueryData<Message[]>(getGetMessagesQueryKey(matchId),previous=>previous?.some(item=>item.id===message.id)?previous:[...(previous??[]),message]);updateTyping.mutate({matchId,data:{isTyping:false}});void qc.invalidateQueries({queryKey:getGetMessagesQueryKey(matchId)});void qc.invalidateQueries({queryKey:getGetMatchesQueryKey()});setError('')}catch(error){if(!media)setDraft(current=>current&&current!==old?[old,current].filter(Boolean).join('\n'):old);setError(userErrorMessage(error,'Your message wasn’t sent. Your text is still in the input—try sending again.'))}}
